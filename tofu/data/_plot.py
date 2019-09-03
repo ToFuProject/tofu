@@ -38,10 +38,10 @@ _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 _lcm = _lclbd
 _cbck = (0.8,0.8,0.8)
-_dmarker = {'Ax':'o', 'X':'x'}
+_dmarker = {'ax':'o', 'x':'x'}
 
 
-def Data_plot(lData, key=None, Bck=True, indref=0,
+def Data_plot(lData, key=None, bck=True, indref=0,
               cmap=None, ms=4, vmin=None, vmax=None,
               vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
               ntMax=None, nchMax=None, nlbdMax=None,
@@ -121,6 +121,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         msg = "Option cmap='touch' will be available in future releases  :-)"
         raise Exception(msg)
 
+
     # ------------------
     # Plot
     if lData[0]._isSpectral():
@@ -133,7 +134,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
         kh = _DataCam12D_plot_spectral(lData, key=key,
                                        nchMax=nchMax, ntMax=ntMax, nlbdMax=nlbdMax,
-                                       indref=indref, Bck=Bck, lls=lls,
+                                       indref=indref, bck=bck, lls=lls,
                                        lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
                                        fs=fs, dmargin=dmargin, wintit=wintit,
                                        tit=tit, Lplot=Lplot, ms=ms,
@@ -150,7 +151,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     else:
         kh = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
                               nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
-                              Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                              bck=bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
                               cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
                               cmap_map=cmap_map, vmin_map=vmin_map,
                               vmax_map=vmax_map, normt_map=normt_map,
@@ -163,13 +164,13 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
 
 
-def Data_plot_combine(lData, key=None, Bck=True, indref=0,
+def Data_plot_combine(lData, key=None, bck=True, indref=0,
               cmap=None, ms=4, vmin=None, vmax=None,
               vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
               ntMax=None, nchMax=None, nlbdMax=3,
               inct=[1,10], incX=[1,5], inclbd=[1,10],
               lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
-              fmt_t='06.3f', fmt_X='01.0f',
+              fmt_t='06.3f', fmt_X='01.0f', sharex=False,
               invert=True, Lplot='In', dmarker=None,
               fs=None, dmargin=None, wintit=None, tit=None,
               fontsize=None, labelpad=None, draw=True, connect=True):
@@ -233,14 +234,15 @@ def Data_plot_combine(lData, key=None, Bck=True, indref=0,
     # Plot
     kh = _DataCam12D_plot_combine(lData, lis2D=lis2D, key=key, indref=indref,
                                   nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
-                                  Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                                  bck=bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
                                   cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
                                   cmap_map=cmap_map, vmin_map=vmin_map,
                                   vmax_map=vmax_map, normt_map=normt_map,
                                   fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
                                   Lplot=Lplot, invert=invert, dmarker=dmarker,
                                   fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                                  fontsize=fontsize, draw=draw, connect=connect)
+                                  fontsize=fontsize, draw=draw,
+                                  connect=connect, sharex=sharex)
 
     return kh
 
@@ -262,7 +264,7 @@ def _init_DataCam12D(fs=None, dmargin=None,
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # Axes
@@ -337,7 +339,7 @@ def _init_DataCam12D(fs=None, dmargin=None,
 
 
 def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
-                     indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
+                     indref=0, bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
                      fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                      inct=[1,10], incX=[1,5], ms=4,
                      cmap=None, vmin=None, vmax=None,
@@ -425,7 +427,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             raise Exception(msg)
 
         x1, x2, indr, extent = lData[0].get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -470,28 +472,60 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # ---------
     # Extra
-    lkEq = ['Sep','Ax','X']
+    lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
+                                               for ii in range(0,nDat)
+                                               if lData[ii].dextra is not
+                                               None])))
+    dEq_corres = dict.fromkeys(['ax','sep','x'])
+    for k0 in dEq_corres.keys():
+        lkEq_temp = list(set([kk for kk in lkex
+                              if k0 == kk.split('.')[-1].lower()]))
+        assert len(lkEq_temp) <= 1
+        if len(lkEq_temp) == 1:
+            dEq_corres[k0] = lkEq_temp[0]
+            if k0 in dmarker.keys():
+                dmarker[lkEq_temp[0]] = str(dmarker[k0])
+                del dmarker[k0]
+
+    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
+
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
         if lData[ii].dextra is not None:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
+
                 if idteq not in dteq[ii].keys():
+                    # test if any existing t matches values
+                    lidalready = [[k1 for k1,v1 in v0.items()
+                                   if (v1.size == lData[ii].dextra[k]['t'].size
+                                       and np.allclose(v1, lData[ii].dextra[k]['t']))]
+                                  for v0 in dteq.values()]
+                    lidalready = list(set(itt.chain.from_iterable(lidalready)))
+                    assert len(lidalready) in [0,1]
+                    if len(lidalready) == 1:
+                        idteq = lidalready[0]
+
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                idteq = list(dteq[ii].keys())[0]
+
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['x'],dEq_corres['ax']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
                 msg += "    - lData[%s]: %s:\n"%(ii,lData[ii].Id.SaveName)
                 msg += "        - " + "\n        - ".join(lkEqmap)
                 warnings.warn(msg)
+
 
 
     #########
@@ -511,7 +545,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if lData[0].Id.shot is not None:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
 
     # -----------------
@@ -520,14 +555,18 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     c1 = c0 and lData[0]._dgeom['lCam'] is not None
     if c0:
         out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
+                                             element='P',
+                                             tit=False, wintit=False,
+                                             dLeg=None, draw=False)
         dax['cross'][0], dax['hor'][0] = out
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in lData[0]._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and nD == 2:
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
+                if bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -538,10 +577,11 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  wintit=False, tit=False,
                                   dLeg=None, draw=False)
                     dax['cross'][0], dax['hor'][0] = out
 
@@ -556,7 +596,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         lCross, lHor = None, None
 
     # Background (optional)
-    if Bck:
+    if bck:
         if nD == 1:
             if lData[0].ddata['nnch'] == 1:
                 env = [np.nanmin(ldata[0],axis=0), np.nanmax(ldata[0],axis=0)]
@@ -576,10 +616,13 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             for kk in lk:
                 dd = lData[ii].dextra[kk]
                 if 't' in dd.keys():
-                    co = dd['c'] if 'c' in dd.keys() else 'k'
-                    lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
-                    dax['t'][0].plot(dd['t'], dd['data'],
-                                     ls=lls[ii], lw=1., c=co, label=lab)
+                    try:
+                        co = dd['c'] if 'c' in dd.keys() else 'k'
+                        lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
+                        dax['t'][0].plot(dd['t'], dd['data'],
+                                         ls=lls[ii], lw=1., c=co, label=lab)
+                    except Exception:
+                        pass
 
     dax['t'][0].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
                        ncol=4, mode='expand', borderaxespad=0., prop={'size':fontsize})
@@ -616,20 +659,24 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                              color='k', fontweight='bold',
                              fontsize=6., ha='left', va='center')
 
-    # dref
-    lref = [(lidt[ii],{'group':'time', 'val':lt[ii], 'inc':inct})
-            for ii in range(0,nDat)]
-    lref += [(lidX[ii],{'group':'channel', 'val':lX[ii], 'inc':incX,
-                        'otherid':lXother[ii], 'indother':lindtX[ii]})
-             for ii in range(0,nDat)]
-    llrr = [[(k,v) for k,v in dteq[ii].items()] for ii in range(0,nDat)]
-    llrr = itt.chain.from_iterable(llrr)
-    lref += [(kv[0], {'group':'time', 'val':kv[1], 'inc':inct}) for kv in llrr]
-    dref = dict(lref)
 
-    if nD == 2:
-        for ii in range(0,nDat):
+    # dref
+    dref = {}
+    for ii in range(0,nDat):
+        dref[lidt[ii]] = {'group':'time', 'val':lt[ii], 'inc':inct}
+        dref[lidX[ii]] = {'group':'channel', 'val':lX[ii], 'inc':incX,
+                          'otherid':lXother[ii], 'indother':lindtX[ii]}
+        if nD == 2:
             dref[lidX[ii]]['2d'] = (x1,x2)
+
+    for ii in range(0,nDat):
+        if len(list(dteq[ii])) > 0:
+            idteq, teq = list(dteq[ii].items())[0]
+            break
+    else:
+        idteq, teq = lidt[0], lt[0]
+    dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
+
 
     # ddata
     ddat = dict([(liddata[ii], {'val':ldata[ii], 'refids':[lidt[ii],lidX[ii]]})
@@ -773,12 +820,12 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
-                    if kk == 'Sep':
+                    if kk == kSep:
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[ii],
                                                    lw=1.)
                     else:
-                        marker = dlextra[kk][ii]['marker']
+                        marker = dlextra[kk][ii].get('marker', 'o')
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    mec=lct[jj], mfc='None', ls=lls[ii],
                                                    ms=ms, marker=marker)
@@ -860,7 +907,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
         dmargin = dict(left=0.05, bottom=0.06, right=0.99, top=0.92,
                        wspace=0.4, hspace=2.)
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # -------------
@@ -1003,7 +1050,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
 
 def _DataCam12D_plot_spectral(lData, key=None,
                               nchMax=_nchMax, ntMax=_ntMax, nlbdMax=_nlbdMax,
-                              indref=0, Bck=True, lls=_lls,
+                              indref=0, bck=True, lls=_lls,
                               lct=_lct, lcch=_lcch, lclbd=_lclbd, cbck=_cbck,
                               fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                               inct=[1,10], incX=[1,5], inclbd=[1,10], ms=4,
@@ -1093,7 +1140,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
             raise Exception(msg)
 
         x1, x2, indr, extent = lData[0].get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -1127,12 +1174,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                lData[0].dlabels['lamb']['units'])
 
     llambtype = ['x' if lData[ii].ddata['nnlamb'] == 1 else 'x1'
-              for ii in range(0,nDat)]
-    llambother = [None if lData[ii].ddata['nnlamb'] == 1 else lidt[ii]
-               for ii in range(0,nDat)]
+                 for ii in range(0,nDat)]
+    llambother = [None if lData[ii].ddata['nnlamb'] == 1 else lidX[ii]
+                  for ii in range(0,nDat)]
     lindXlamb = [(None if lData[ii].ddata['nnlamb'] == 1
-               else lData[ii].ddata['indXlamb'])
-              for ii in range(0,nDat)]
+                  else lData[ii].ddata['indXlamb'])
+                 for ii in range(0,nDat)]
     llamb = [dd.lamb for dd in lData]
     lidlamb = [id(lamb) for lamb in llamb]
 
@@ -1163,7 +1210,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     # data sum
     ldataint = [scpinteg.trapz(ldata[ii], x=llamb[ii].ravel(), axis=2)
                 if llambother[ii] is None
-                else np.hstack([scpinteg.trapz(ldata[ii][:,jj,:],
+                else np.vstack([scpinteg.trapz(ldata[ii][:,jj,:],
                                                x=llamb[ii][jj,:],axis=1)
                                 for jj in range(0,nch)]).T
                 for ii in range(0,nDat)]
@@ -1172,24 +1219,58 @@ def _DataCam12D_plot_spectral(lData, key=None,
                r"%s"%lData[0].dlabels['data']['units'])
     Dintlab = r"$\int_{\lambda}$%s ($\int_{\lambda}$%s)"%Dintlab
 
+
+
+
     # ---------
     # Extra
-    lkEq = ['Sep','Ax','X']
+    lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
+                                               for ii in range(0,nDat)
+                                               if lData[ii].dextra is not
+                                               None])))
+    dEq_corres = dict.fromkeys(['ax','sep','x'])
+    for k0 in dEq_corres.keys():
+        lkEq_temp = list(set([kk for kk in lkex
+                              if k0 == kk.split('.')[-1].lower()]))
+        assert len(lkEq_temp) <= 1
+        if len(lkEq_temp) == 1:
+            dEq_corres[k0] = lkEq_temp[0]
+            if k0 in dmarker.keys():
+                dmarker[lkEq_temp[0]] = str(dmarker[k0])
+                del dmarker[k0]
+
+    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
+
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
         if lData[ii].dextra is not None:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
+
                 if idteq not in dteq[ii].keys():
+                    # test if any existing t matches values
+                    lidalready = [[k1 for k1,v1 in v0.items()
+                                   if (v1.size == lData[ii].dextra[k]['t'].size
+                                       and np.allclose(v1, lData[ii].dextra[k]['t']))]
+                                  for v0 in dteq.values()]
+                    lidalready = list(set(itt.chain.from_iterable(lidalready)))
+                    assert len(lidalready) in [0,1]
+                    if len(lidalready) == 1:
+                        idteq = lidalready[0]
+
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                idteq = list(dteq[ii].keys())[0]
+
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['ax'],dEq_corres['x']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -1218,7 +1299,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
         if lData[0].Id.shot is not None:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
 
     # -----------------
@@ -1232,9 +1314,11 @@ def _DataCam12D_plot_spectral(lData, key=None,
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in lData[0]._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and nD == 2:
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
+                if bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -1245,7 +1329,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -1263,7 +1347,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
         lCross, lHor = None, None
 
     # Background (optional)
-    if Bck:
+    if bck:
         if nD == 1:
             if lData[0].ddata['nnch'] == 1 and dax['X'] is not None:
                 env = [np.nanmin(ldataint[0],axis=0), np.nanmax(ldataint[0],axis=0)]
@@ -1327,7 +1411,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                              'defid':lidX[0], 'defax':dax['X'][0]}
 
     dgroup['lambda'] = {'nMax':nlbdMax, 'key':'f%s'%str(len(dgroup.keys())+1),
-                        'defid':llamb[0], 'defax':dax['lamb'][0]}
+                        'defid':lidlamb[0], 'defax':dax['lamb'][0]}
 
     # Group info (make dynamic in later versions ?)
     msg = '  '.join(['%s: %s'%(v['key'],k) for k, v in dgroup.items()])
@@ -1336,23 +1420,26 @@ def _DataCam12D_plot_spectral(lData, key=None,
                              fontsize=6., ha='left', va='top')
 
     # dref
-    lref = [(lidt[ii],{'group':'time', 'val':lt[ii], 'inc':inct})
-            for ii in range(0,nDat)]
-    if dax['X'] is not None:
-        lref += [(lidX[ii],{'group':'channel', 'val':lX[ii], 'inc':incX,
-                            'otherid':lXother[ii], 'indother':lindtX[ii]})
-                 for ii in range(0,nDat)]
-    lref += [(lidlamb[ii],{'group':'lambda', 'val':llamb[ii], 'inc':inclbd,
-                           'otherid':llambother[ii], 'indother':lindXlamb[ii]})
-             for ii in range(0,nDat)]
-    llrr = [[(k,v) for k,v in dteq[ii].items()] for ii in range(0,nDat)]
-    llrr = itt.chain.from_iterable(llrr)
-    lref += [(kv[0], {'group':'time', 'val':kv[1], 'inc':inct}) for kv in llrr]
-    dref = dict(lref)
-
-    if nD == 2:
-        for ii in range(0,nDat):
+    dref = {}
+    for ii in range(0,nDat):
+        dref[lidt[ii]] = {'group':'time', 'val':lt[ii], 'inc':inct}
+        dref[lidX[ii]] = {'group':'channel', 'val':lX[ii], 'inc':incX,
+                          'otherid':lXother[ii], 'indother':lindtX[ii]}
+        dref[lidlamb[ii]] = {'group':'lambda', 'val':llamb[ii], 'inc':inclbd,
+                             'otherid':llambother[ii], 'indother':lindXlamb[ii]}
+        if nD == 2:
             dref[lidX[ii]]['2d'] = (x1,x2)
+
+    for ii in range(0,nDat):
+        if len(list(dteq[ii])) > 0:
+            idteq, teq = list(dteq[ii].items())[0]
+            break
+    else:
+        idteq, teq = lidt[0], lt[0]
+    dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
+
+
+
 
     # ddata
     ddat = dict([(liddata[ii], {'val':ldata[ii],
@@ -1477,13 +1564,19 @@ def _DataCam12D_plot_spectral(lData, key=None,
     for jj in range(0,nlbdMax):
         # lambda txt
         for ll in range(0,nchMax):
-            l0 = dax['txtl'][ll].text((0.5+jj)/nlbdMax, 0., r'',
-                                      color=lclbd[jj], fontweight='bold',
-                                      fontsize=6., ha='center', va='bottom')
-            dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
-                                          'bstr':'{0:%s}'%fmt_l}},
-                        'drefid':{lidlamb[0]:jj}}
-
+            for ii in range(0,nDat):
+                l0 = dax['txtl'][ll].text((0.5+jj)/nlbdMax, 0., r'',
+                                          color=lclbd[jj], fontweight='bold',
+                                          fontsize=6., ha='center', va='bottom')
+                if llambother[ii] is None:
+                    dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
+                                                  'bstr':'{0:%s}'%fmt_l}},
+                                'drefid':{lidlamb[0]:jj}}
+                else:
+                    dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0],
+                                                  'lrid':[llambother[ii], lidlamb[0]],
+                                                  'bstr':'{0:%s}'%fmt_l}},
+                                'drefid':{llambother[ii]:ll, lidlamb[0]:jj}}
 
     # -------------
     # Data-specific
@@ -1527,12 +1620,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
-                    if kk == 'Sep':
+                    if kk == kSep:
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[ii],
                                                    lw=1.)
                     else:
-                        marker = dlextra[kk][ii]['marker']
+                        marker = dlextra[kk][ii].get('marker', 'o')
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    mec=lct[jj], mfc='None', ls=lls[ii],
                                                    ms=ms, marker=marker)
@@ -1604,24 +1697,11 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                 'drefid':{lidX[ii]:jj, lidlamb[ii]:ll}}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     ##################
     # Instanciate KeyHandler
     can = fig.canvas
     can.draw()
 
-    # kh = None
     kh = utils.KeyHandler_mpl(can=can,
                               dgroup=dgroup, dref=dref, ddata=ddat,
                               dobj=dobj, dax=dax2, lax_fix=lax_fix,
@@ -1659,7 +1739,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
 def _init_DataCam12D_combine(fs=None, dmargin=None,
                              fontsize=8,  wintit=_wintit, fldict=None,
-                             nchMax=4, ntMax=1, nDat=1, lis2D=None):
+                             nchMax=4, ntMax=1, nDat=1, lis2D=None,
+                             sharex=False):
     assert nDat<=5, "Cannot display more than 5 Data objects !"
     assert nDat == len(lis2D)
 
@@ -1668,7 +1749,7 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
     if dmargin is None:
         dmargin = _def.dmargin_combine
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # Axes
@@ -1691,7 +1772,11 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
             cb.set_xticks([])
             cb.set_xticklabels([])
         else:
-            axp = fig.add_subplot(gs1[ii,2:-1],fc='w', sharey=Laxt[-1])
+            if sharex and ii>1:
+                axp = fig.add_subplot(gs1[ii,2:-1],fc='w',
+                                      sharex=laxp[-1], sharey=Laxt[-1])
+            else:
+                axp = fig.add_subplot(gs1[ii,2:-1],fc='w', sharey=Laxt[-1])
             cb = None
         laxp.append(axp)
         laxc.append(cb)
@@ -1742,14 +1827,14 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
 
 
 def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
-                             indref=0, Bck=True, lls=_lls, lct=_lct,
+                             indref=0, bck=True, lls=_lls, lct=_lct,
                              lcch=_lcch, cbck=_cbck,
                              fs=None, dmargin=None,
                              wintit=_wintit, tit=None, Lplot='In',
                              inct=[1,10], incX=[1,5], ms=4,
                              cmap=None, vmin=None, vmax=None,
                              vmin_map=None, vmax_map=None,
-                             cmap_map=None, normt_map=False,
+                             cmap_map=None, normt_map=False, sharex=False,
                              fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
                              fontsize=_fontsize, labelpad=_labelpad,
                              invert=True, draw=True, connect=True, lis2D=None):
@@ -1837,22 +1922,53 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # ---------
     # Extra
-    lkEq = ['Sep','Ax','X']
+    lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
+                                               for ii in range(0,nDat)
+                                               if lData[ii].dextra is not
+                                               None])))
+    dEq_corres = dict.fromkeys(['ax','sep','x'])
+    for k0 in dEq_corres.keys():
+        lkEq_temp = list(set([kk for kk in lkex
+                              if k0 == kk.split('.')[-1].lower()]))
+        assert len(lkEq_temp) <= 1
+        if len(lkEq_temp) == 1:
+            dEq_corres[k0] = lkEq_temp[0]
+            if k0 in dmarker.keys():
+                dmarker[lkEq_temp[0]] = str(dmarker[k0])
+                del dmarker[k0]
+
+    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
+
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
         if lData[ii].dextra is not None:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
+
                 if idteq not in dteq[ii].keys():
+                    # test if any existing t matches values
+                    lidalready = [[k1 for k1,v1 in v0.items()
+                                   if (v1.size == lData[ii].dextra[k]['t'].size
+                                       and np.allclose(v1, lData[ii].dextra[k]['t']))]
+                                  for v0 in dteq.values()]
+                    lidalready = list(set(itt.chain.from_iterable(lidalready)))
+                    assert len(lidalready) in [0,1]
+                    if len(lidalready) == 1:
+                        idteq = lidalready[0]
+
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                idteq = list(dteq[ii].keys())[0]
+
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['ax'], dEq_corres['x']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -1868,18 +1984,14 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Format axes
     dax = _init_DataCam12D_combine(fs=fs, dmargin=dmargin, wintit=wintit,
                                    nchMax=nchMax, ntMax=ntMax, nDat=nDat,
-                                   lis2D=lis2D, fldict=fldict)
+                                   lis2D=lis2D, fldict=fldict, sharex=sharex)
     fig  = dax['t'][0].figure
     if tit is None:
-        tit = []
-        if lData[0].Id.Exp is not None:
-            tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
-            tit.append(lData[0].Id.Diag)
-        if lData[0].Id.shot is not None:
-            tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
+        tit = [str(getattr(lData[0].Id,aa)) for aa in ['Exp','Diag','shot']
+               if getattr(lData[0].Id,aa) is not None]
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
 
     # -----------------
@@ -1888,9 +2000,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # conf
     c0 = lData[0]._dgeom['config'] is not None
     if c0:
-        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
-        dax['cross'][0], dax['hor'][0] = out
+        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0], proj='hor',
+                                                       element='P', dLeg=None, draw=False)
 
     # dextra
     if lData[0].dextra is not None:
@@ -1933,10 +2044,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             llHor[ii] = [None for jj in range(0,len(lData[ii]._dgeom['lCam']))]
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
                 cc = lData[ii]._dgeom['lCam'][jj]
-                llCross[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                llHor[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                llCross[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='cross',
+                                                return_pts=True, multi=True)
+                llHor[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='hor',
+                                              return_pts=True, multi=True)
 
-        if c2 and lis2D[ii] and Bck:
+        if c2 and lis2D[ii] and bck:
             indbck = np.r_[lindr[ii][0,0], lindr[ii][0,-1],
                            lindr[ii][-1,0], lindr[ii][-1,-1]]
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
@@ -1947,7 +2060,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          c=cbck, ls='-', lw=1.)
         elif c2 and not lis2D[ii]:
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
-                    dax['cross'][ii] = cc.plot(lax=dax['cross'][0], proj='cross',
+                    dax['cross'][ii] = cc.plot(lax=dax['cross'][ii], proj='cross',
                                                element='L', Lplot=Lplot,
                                                dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
                                                dLeg=None, draw=False)
@@ -1958,12 +2071,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             lidHor[ii] = id(llHor[ii])
 
 
-        # Bck signal
-        if lis2D[ii] and Bck:
+        # bck signal
+        if lis2D[ii] and bck:
             dax['t'][ii+1].fill_between(lt[ii], np.nanmin(ldata[ii],axis=1),
                                         np.nanmax(ldata[ii],axis=1),
                                         facecolor=cbck)
-        elif Bck and not lis2D[ii]:
+        elif bck and not lis2D[ii]:
             if lData[ii].ddata['nnch'] == 1:
                 env = [np.nanmin(ldata[ii],axis=0), np.nanmax(ldata[ii],axis=0)]
                 dax['X'][ii].fill_between(lX[ii].ravel(), env[0], env[1], facecolor=cbck)
@@ -1986,9 +2099,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dax['X'][ii].invert_xaxis()
                 dax['X'][ii].invert_yaxis()
         else:
-            dax['X'][ii].set_xlim(lDX[ii])
+            if not sharex:
+                dax['X'][ii].set_xlim(lDX[ii])
             dax['X'][ii].set_xlabel(lXlab[ii], **fldict)
-
+    if sharex:
+        dax['X'][0].set_xlim(np.nanmin(np.array(lDX)[:,0]),
+                             np.nanmax(np.array(lDX)[:,1]))
 
     ##################
     # Interactivity dict
@@ -2016,10 +2132,13 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                           'otherid':lXother[ii], 'indother':lindtX[ii]}
         if lis2D[ii]:
             dref[lidX[ii]]['2d'] = (lx1[ii],lx2[ii])
-    if len(list(dteq[0].items())) == 0:
-        idteq, teq = lidt[0], lt[0]
+
+    for ii in range(0,nDat):
+        if len(list(dteq[ii])) > 0:
+            idteq, teq = list(dteq[ii].items())[0]
+            break
     else:
-        idteq, teq = list(dteq[0].items())[0]
+        idteq, teq = lidt[0], lt[0]
     dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
 
@@ -2168,16 +2287,16 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
-                    if kk == 'Sep':
-                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                    if kk == kSep:
+                        l0, = dax['cross'][ii].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[0],
                                                    lw=1.)
                     else:
-                        marker = dlextra[kk][ii]['marker']
-                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
-                                                   mec=lct[jj], mfc='None',
-                                                   ls=lls[0],
-                                                   ms=ms, marker=marker)
+                        marker = dlextra[kk][ii].get('marker', 'o')
+                        l0, = dax['cross'][ii].plot([np.nan],[np.nan],
+                                                    mec=lct[jj], mfc='None',
+                                                    ls=lls[0],
+                                                    ms=ms, marker=marker)
                     dobj[l0] = {'dupdate':{'data':{'id':id_,
                                                    'lrid':[idt]}},
                                 'drefid':{idt:jj}}
@@ -2215,7 +2334,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                         'lrid':[lidt[ii],lidX[ii]]}},
                                     'drefid':{lidX[ii]:jj, lidt[ii]:ll}}
 
-
     ##################
     # Instanciate KeyHandler
     can = fig.canvas
@@ -2247,7 +2365,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
 
 def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
-                          key=None, Bck=True, indref=0,
+                          key=None, bck=True, indref=0,
                           cmap_f=None, cmap_img=None, ms=4,
                           vmin=None, vmax=None,
                           normt=False, ntMax=None, nfMax=3,
@@ -2272,7 +2390,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
     kh = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                   fmax=fmax, key=key, nD=nD,
                                   ntMax=ntMax, nfMax=nfMax,
-                                  Bck=Bck, llsf=lls, lct=lct,
+                                  bck=bck, llsf=lls, lct=lct,
                                   cmap_f=cmap_f, cmap_img=cmap_img,
                                   normt=normt, invert=invert,
                                   vmin=vmin, vmax=vmax, ms=ms,
@@ -2290,7 +2408,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     gs1 = gridspec.GridSpec(6, 5, **dmargin)
@@ -2381,7 +2499,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
 def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              fmax=None, key=None, nD=1,
                              ntMax=_ntMax, nfMax=_nfMax,
-                             Bck=True, llsf=_lls, lct=_lct,
+                             bck=True, llsf=_lls, lct=_lct,
                              inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
                              cmap_f=None, cmap_img=None,
@@ -2405,7 +2523,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     # Start extracting data
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    lEq = ['Ax','Sep','q1']
 
     # Force update for safety
     ddata = Data.ddata
@@ -2434,7 +2551,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         assert nnch == 1
         assert indtX is None
         x1, x2, indr, extent = Data.get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -2511,7 +2628,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         if Data.Id.shot is not None:
             tit.append(r"{0:05.0f}".format(Data.Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     # Plot vessel
     c0 = Data._dgeom['config'] is not None
@@ -2523,9 +2641,11 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in Data._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and cc._is2D():
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
+                if bck and cc._is2D():
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -2536,7 +2656,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -2553,7 +2673,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     else:
         lCross, lHor = None, None
 
-    if Bck:
+    if bck:
         if nD == 1:
             if nnch == 1:
                 env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
@@ -2869,7 +2989,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
 
 def Data_plot_svd(Data, chronos, s, topos, modes=None,
-                  key=None, Bck=True, Lplot='In',
+                  key=None, bck=True, Lplot='In',
                   cmap=None, vmin=None, vmax=None,
                   cmap_topos=None, vmin_topos=None, vmax_topos=None,
                   ntMax=None, nchMax=None, ms=4,
@@ -2918,7 +3038,7 @@ def Data_plot_svd(Data, chronos, s, topos, modes=None,
     # ------------------
     # Plotting
     kh = _Data_plot_svd(Data, chronos, s, topos, modes=modes,
-                        key=key, Bck=Bck, Lplot=Lplot,
+                        key=key, bck=bck, Lplot=Lplot,
                         cmap=cmap, vmin=vmin, vmax=vmax,
                         cmap_topos=cmap_topos, vmin_topos=vmin_topos,
                         vmax_topos=vmax_topos, nD=nD,
@@ -2941,7 +3061,7 @@ def _init_Data_svd(fs=None, dmargin=None, nD=1,
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # Axes array
@@ -3036,7 +3156,7 @@ def _init_Data_svd(fs=None, dmargin=None, nD=1,
 
 
 def _Data_plot_svd(Data, chronos, s, topos, modes=None,
-                   key=None, Bck=True, Lplot='In',
+                   key=None, bck=True, Lplot='In',
                    cmap=None, vmin=None, vmax=None,
                    cmap_topos=None, vmin_topos=None, vmax_topos=None,
                    ntMax=None, nchMax=None, ms=4,
@@ -3063,7 +3183,6 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     # Start extracting data
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    lEq = ['Ax','Sep','q1']
 
     # Force update for safety
     ddata = Data.ddata
@@ -3099,7 +3218,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         assert nnch == 1
         assert indtX is None
         x1, x2, indr, extent = Data.get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -3163,7 +3282,8 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         if Data.Id.shot is not None:
             tit.append(r"{0:05.0f}".format(Data.Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     ############
     # Plot static
@@ -3179,9 +3299,11 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in Data._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and cc._is2D():
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
+                if bck and cc._is2D():
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -3192,7 +3314,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -3210,7 +3332,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         lCross, lHor = None, None
 
     # Background
-    if Bck:
+    if bck:
         if nD == 1:
             if nnch == 1:
                 env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
@@ -3464,7 +3586,6 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                         ms=ms, mfc='None', zorder=10)
                 dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
                             'drefid':{idX:jj}}
-
 
     # Instanciate KeyHandler
     can = fig.canvas

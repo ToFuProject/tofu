@@ -629,13 +629,15 @@ for typ in dconf.keys():
                               np.full((nP,),4.+foc),
                               np.full((nP,),0.02)])
         else:
-            nP = 100
-            X = np.linspace(-DX,DX,nP)
             if typ=='Tor':
+                nP = 100
+                X = np.linspace(-DX,DX,nP)
                 D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
                      + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
                      + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
             else:
+                nP = 100
+                X = np.linspace(-DX,DX,nP)
                 D = np.array([np.repeat(3.+X[::-1],nP),
                               np.full((nP*nP,),4.+foc),
                               np.tile(0.01+X,nP)])
@@ -748,24 +750,27 @@ class Test03_Rays(object):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
+                Ds, us = obj.D[:], obj.u[:]
                 out = obj.get_sample(0.02, resMode='abs',
                                      method='sum',DL=None)
-                pts, k, res = out
-                assert len(pts)==len(k)==obj.nRays
+                k, res, lind = out
+                # nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+                # kus = k * np.repeat(us, nbrepet, axis=1)
+                # Pts = np.repeat(Ds, nbrepet, axis=1) + kus
+                k = np.asarray(np.split(k, lind))
+                assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
-                    assert pts[ii].shape[1]==k[ii].size
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
                                       & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
                 assert np.all(res[~np.isnan(res)]<0.02)
-
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='simps',DL=[0,1])
-                pts, k, res = out
-                assert len(pts)==len(k)==obj.nRays
+                k, res, lind = out
+                k = np.split(k, lind)
+                assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
-                    assert pts[ii].shape[1]==k[ii].size
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         if not np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
@@ -777,10 +782,10 @@ class Test03_Rays(object):
                             raise Exception(msg)
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='romb',DL=[0,1])
-                pts, k, res = out
-                assert len(pts)==len(k)==obj.nRays
+                k, res, lind = out
+                k = np.split(k, lind)
+                assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
-                    assert pts[ii].shape[1]==k[ii].size
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
@@ -827,44 +832,52 @@ class Test03_Rays(object):
 
 
     def test10_calc_signal(self):
-        def ffL(Pts, t=None, Vect=None):
+        def ffL(Pts, t=None, vect=None):
             E = np.exp(-(Pts[1,:]-2.4)**2/0.1 - Pts[2,:]**2/0.1)
-            if Vect is not None:
-                if np.asarray(Vect).ndim==2:
-                    E = E*Vect[0,:]
+            if vect is not None:
+                if np.asarray(vect).ndim==2:
+                    E = E*vect[0,:]
                 else:
-                    E = E*Vect[0]
+                    E = E*vect[0]
             if t is not None:
                 E = E[np.newaxis,:]*t
             return E
-        def ffT(Pts, t=None, Vect=None):
+        def ffT(Pts, t=None, vect=None):
             E = np.exp(-(np.hypot(Pts[0,:],Pts[1,:])-2.4)**2/0.1
                        - Pts[2,:]**2/0.1)
-            if Vect is not None:
-                if np.asarray(Vect).ndim==2:
-                    E = E*Vect[0,:]
+            if vect is not None:
+                if np.asarray(vect).ndim==2:
+                    E = E*vect[0,:]
                 else:
-                    E = E*Vect[0]
+                    E = E*vect[0]
             if t is not None:
                 E = E[np.newaxis,:]*t
             return E
 
         ind = None#[0,10,20,30,40]
-        for typ in self.dobj.keys():
-            for c in self.dobj[typ].keys():
-                obj = self.dobj[typ][c]
-                ff = ffT if obj.config.Id.Type=='Tor' else ffL
-                t = np.arange(0,10,10)
-                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                           and getattr(plt.get_current_fig_manager(),'toolbar')
-                           is not None)
-                out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
-                                      res=0.01, DL=None, resMode='abs',
-                                      method='simps', ind=ind,
-                                      plot=False, out=np.ndarray,
-                                      fs=(12,6), connect=connect)
-                sig, units = out
-                assert not np.all(np.isnan(sig)), str(ii)
+        minimize = ["memory", "calls", "hybrid"]
+        for aa in [True, False]:
+            for rm in ["abs", "rel"]:
+                for dm in ["simps", "romb", "sum"]:
+                    for mmz in minimize:
+                        for typ in self.dobj.keys():
+                            for c in self.dobj[typ].keys():
+                                obj = self.dobj[typ][c]
+                                ff = ffT if obj.config.Id.Type=='Tor' else ffL
+                                t = np.arange(0,10,10)
+                                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                                           and getattr(plt.get_current_fig_manager(),'toolbar')
+                                           is not None)
+                                out = obj.calc_signal(ff, t=t, ani=aa,
+                                                      fkwdargs={},
+                                                      res=0.01, DL=None,
+                                                      resMode=rm,
+                                                      method=dm, minimize=mmz,
+                                                      ind=ind,
+                                                      plot=False, out=np.ndarray,
+                                                      fs=(12,6), connect=connect)
+                                sig, units = out
+                                assert not np.all(np.isnan(sig)), str(ii)
         plt.close('all')
 
     def test11_plot(self):
@@ -918,6 +931,22 @@ class Test03_Rays(object):
                 # Just to check the loaded version works fine
                 obj2.strip(0, verb=verb)
                 os.remove(pfe)
+    def test15_get_sample_same_res_unit(self):
+        dmeths = ['rel', 'abs']
+        qmeths = ['simps', 'romb', 'sum']
+        list_res = [0.25, np.r_[0.2, 0.5]]
+        DL = np.array([[1.,10.],[2.,20.]])
+
+        for dL in list_res:
+            for dm in dmeths:
+                for qm in qmeths:
+                    out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
+                    k = out[0]
+                    lind = out[2]
+                    assert np.all(k[:lind[0]] >= DL[0][0])
+                    assert np.all(k[:lind[0]] <= DL[1][0])
+                    assert np.all(k[lind[0]:] >= DL[0][1])
+                    assert np.all(k[lind[0]:] <= DL[1][1])
 
 
 """

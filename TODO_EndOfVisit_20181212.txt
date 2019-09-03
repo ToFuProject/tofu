@@ -36,8 +36,7 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 	> parametres entrées: (nvert, poly, vin, lims si lin, los_origin,
 	                       los_direction)
 
-	>> Only did it for toroidal polygons... is it really necessary ?
-/!\ I erased the function "is los close to vpoly"
+ 	>> Only did it for toroidal polygons... is it really necessary ?
 
        o Interface Python:
            qui appelle une des deux (si il existe un parametre epislon)
@@ -110,6 +109,7 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 		- Les rÃ©flexions (spÃ©culaires et diffusives)
 		- Les rÃ©flexions sur un cristal Ã  simple ou double courbure
 		(pour les spectromÃ¨tres)
+
 
 	8/ S'attaquer aux maillages (an 2)
 

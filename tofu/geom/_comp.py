@@ -15,9 +15,6 @@ if sys.version[0]=='3':
 elif sys.version[0]=='2':
     from inspect import getargspec as insp
 
-# Less common libraries
-import Polygon as plg
-
 # ToFu-specific
 try:
     import tofu.geom._def as _def
@@ -60,9 +57,8 @@ def _Struct_set_Poly(Poly, pos=None, extent=None, arrayorder='C',
     P2Min = Poly[:,np.argmin(Poly[1,:])]
     BaryP = np.sum(Poly[:,:-1],axis=1,keepdims=False)/(Poly.shape[1]-1)
     BaryL = np.array([(P1Max[0]+P1Min[0])/2., (P2Max[1]+P2Min[1])/2.])
-    TorP = plg.Polygon(Poly.T)
-    Surf = TorP.area()
-    BaryS = np.array(TorP.center()).flatten()
+    BaryS, Surf = _GG.poly_area_and_barycenter(Poly, NP)
+
 
     # Get lim-related indicators
     noccur = int(pos.size)
@@ -82,8 +78,7 @@ def _Struct_set_Poly(Poly, pos=None, extent=None, arrayorder='C',
 
     # Compute the normalised vectors directed inwards
     Vin = np.array([Vect[1,:],-Vect[0,:]])
-    if not _GG.Poly_isClockwise(Poly):
-        Vin = -Vin
+    Vin = -Vin # Poly is Counter Clock-wise as defined above
     Vin = Vin/np.hypot(Vin[0,:],Vin[1,:])[np.newaxis,:]
     Vin = fPfmt(Vin)
 
@@ -151,17 +146,26 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
 
 
 
-def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin=1.e-9):
+def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None,
+                        margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dL) in types and type(DIn) in types
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dLMode) is str and dLMode.lower() in ['abs','rel'], "Arg dLMode must be in ['abs','rel'] !" 
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and
+                                   all([ss is None or type(ss) in types
+                                        for ss in ds])) for ds in DS])
+    assert (type(dLMode) is str and
+            dLMode.lower() in ['abs','rel']), "Arg dLMode must be in ['abs','rel'] !" 
     #assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-    Pts, dLr, ind, N, Rref, VPolybis = _GG._Ves_Smesh_Cross(VPoly, float(dL), dLMode=dLMode.lower(), D1=DS[0], D2=DS[1], margin=margin, DIn=float(DIn), VIn=VIn)
+    Pts, dLr, ind, N,\
+        Rref, VPolybis = _GG.discretize_vpoly(VPoly, float(dL),
+                                              mode=dLMode.lower(),
+                                              D1=DS[0], D2=DS[1],
+                                              margin=margin,
+                                              DIn=float(DIn), VIn=VIn)
     return Pts, dLr, ind
 
 
@@ -173,24 +177,32 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     c0 = (hasattr(dS,'__iter__') and len(dS)==2
           and all([type(ds) in types for ds in dS]))
-    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats !"
-    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1])]
+    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats!"
+    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),
+                                                          float(dS[1])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
-    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2
+                                   and all([ss is None or type(ss) in types
+                                            for ss in ds])) for ds in DS])
+    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'],\
+        "Arg dSMode must be in ['abs','rel'] !"
+    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1
+                           and ind.dtype in ['int32','int64']
+                           and np.all(ind>=0)), \
+                           "Arg ind must be None or 1D np.ndarray of positive int !"
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
         if mode == 'flat':
-            Pts, dS, ind, d1r, d2r = _GG._Ves_meshCross_FromD(MinMax1, MinMax2,
+            Pts, dS, ind, d1r, d2r = _GG.discretize_segment2d(MinMax1, MinMax2,
                                                               dS[0], dS[1],
-                                                              D1=DS[0], D2=DS[1],
-                                                              dSMode=dSMode,
+                                                              D1=DS[0],
+                                                              D2=DS[1],
+                                                              mode=dSMode,
                                                               VPoly=VPoly,
                                                               margin=margin)
             out = (Pts, dS, ind, (d1r,d2r))
@@ -209,7 +221,6 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
             pts = np.squeeze([xx1,xx2])
             extent = (x1[0]-d1r/2., x1[-1]+d1r/2., x2[0]-d2r/2., x2[-1]+d2r/2.)
             out = (pts, x1, x2, extent)
-
     else:
         assert mode == 'flat'
         c0 = type(ind) is np.ndarray and ind.ndim==1
@@ -330,6 +341,101 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
 
 
 
+# ------------------------------------------------------------
+#   phi / theta projections for magfieldlines
+
+def _Struct_get_phithetaproj(ax=None, poly_closed=None, lim=None, noccur=0):
+
+    # phi = toroidal angle
+    if noccur == 0:
+        Dphi = np.array([[-np.pi,np.pi]])
+        nphi = np.r_[1]
+    else:
+        assert lim.ndim == 2, str(lim)
+        nphi = np.ones((noccur,),dtype=int)
+        ind = (lim[:,0] > lim[:,1]).nonzero()[0]
+        Dphi = np.concatenate((lim, np.full((noccur,2),np.nan)), axis=1)
+        if ind.size > 0:
+            for ii in ind:
+                Dphi[ii,:] = [lim[ii,0], np.pi, -np.pi, lim[ii,1]]
+                nphi[ii] = 2
+
+    # theta = poloidal angle
+    Dtheta = np.arctan2(poly_closed[1,:]-ax[1], poly_closed[0,:]-ax[0])
+    Dtheta = np.r_[np.min(Dtheta), np.max(Dtheta)]
+    if Dtheta[0] > Dtheta[1]:
+        ntheta = 2
+        Dtheta = [Dtheta[0],np.pi, -np.pi, Dtheta[1]]
+    else:
+        ntheta = 1
+
+    return nphi, Dphi, ntheta, Dtheta
+
+def _get_phithetaproj_dist(poly_closed, ax, Dtheta, nDtheta,
+                           Dphi, nDphi, theta, phi, ntheta, nphi, noccur):
+
+    if nDtheta == 1:
+        ind = (theta >= Dtheta[0]) & (theta <= Dtheta[1])
+    else:
+        ind = (theta >= Dtheta[0]) | (theta <= Dtheta[1])
+
+    disttheta = np.full((theta.size,), np.nan)
+
+    # phi within Dphi
+    if noccur > 0:
+        indphi = np.zeros((nphi,),dtype=bool)
+        for ii in range(0,noccur):
+            for jj in range(0,nDphi[ii]):
+                indphi |= (phi >= Dphi[ii,jj]) & (phi<= Dphi[ii,jj+1])
+        if not np.any(indphi):
+            return disttheta, indphi
+    else:
+        indphi = np.ones((nphi,),dtype=bool)
+
+    # No theta within Dtheta
+    if not np.any(ind):
+        return disttheta, indphi
+
+    # Check for non-parallel AB / u pairs
+    u = np.array([np.cos(theta), np.sin(theta)])
+    AB = np.diff(poly_closed, axis=1)
+    detABu = AB[0,:,None]*u[1,None,:] - AB[1,:,None]*u[0,None,:]
+    inddet = ind[None,:] & (np.abs(detABu) > 1.e-9)
+    if not np.any(inddet):
+        return disttheta, indphi
+
+    nseg = poly_closed.shape[1]-1
+    k = np.full((nseg, ntheta), np.nan)
+
+    OA = poly_closed[:,:-1] - ax[:,None]
+    detOAu = (OA[0,:,None]*u[1,None,:] - OA[1,:,None]*u[0,None,:])[inddet]
+    ss = - detOAu / detABu[inddet]
+    inds = (ss >= 0.) & (ss < 1.)
+    inddet[inddet] = inds
+
+    if not np.any(inds):
+        return disttheta, indphi
+
+    scaOAu = (OA[0,:,None]*u[0,None,:] + OA[1,:,None]*u[1,None,:])[inddet]
+    scaABu = (AB[0,:,None]*u[0,None,:] + AB[1,:,None]*u[1,None,:])[inddet]
+    k[inddet] =   scaOAu + ss[inds]*scaABu
+    indk = k[inddet] > 0.
+    inddet[inddet] = indk
+
+    if not np.any(indk):
+        return disttheta, indphi
+
+    k[~inddet] = np.nan
+    indok = np.any(inddet, axis=0)
+    disttheta[indok] = np.nanmin(k[:,indok], axis=0)
+
+    return disttheta, indphi
+
+
+
+
+
+
 
 """
 ###############################################################################
@@ -338,118 +444,168 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
 ###############################################################################
 """
 
-def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
+def LOS_PRMin(Ds, us, kOut=None, Eps=1.e-12, squeeze=True, Test=True):
     """  Compute the point on the LOS where the major radius is minimum """
     if Test:
-        assert Ds.ndim in [1,2] and 3 in Ds.shape and Ds.shape==dus.shape
-        assert kPOut is None or (Ds.ndim==1 and not hasattr(kPOut,'__iter__')) or (Ds.ndim==2 and kPOut.shape==(Ds.size/3,))
+        assert Ds.ndim in [1,2,3] and 3 in Ds.shape and Ds.shape == us.shape
+    if kOut is not None:
+        kOut = np.atleast_1d(kOut)
+        assert kOut.size == Ds.size/3
 
-    v = Ds.ndim==1
-    if v:
-        Ds = Ds.reshape((3,1))
-        dus = dus.reshape((3,1))
-        if kPOut is not None:
-            kPOut = np.array([kPOut])
+    v = Ds.ndim == 1
+    if Ds.ndim == 1:
+        Ds, us = Ds[:,None,None], us[:,None,None]
+    elif Ds.ndim == 2:
+        Ds, us = Ds[:,:,None], us[:,:,None]
+    if kOut is not None:
+        if kOut.ndim == 1:
+            kOut = kOut[:,None]
+    _, nlos, nref = Ds.shape
 
-    kRMin = np.nan*np.ones((Ds.shape[1],))
-    uparN = np.sqrt(dus[0,:]**2 + dus[1,:]**2)
+    kRMin = np.full((nlos,nref), np.nan)
+    uparN = np.sqrt(us[0,:,:]**2 + us[1,:,:]**2)
 
     # Case with u vertical
-    ind = uparN>Eps
+    ind = uparN > Eps
     kRMin[~ind] = 0.
 
     # Else
-    kRMin[ind] = -(dus[0,ind]*Ds[0,ind]+dus[1,ind]*Ds[1,ind])/uparN[ind]**2
+    kRMin[ind] = -(us[0,ind]*Ds[0,ind] + us[1,ind]*Ds[1,ind]) / uparN[ind]**2
 
     # Check
-    kRMin[kRMin<=0.] = 0.
-    if kPOut is not None:
-        kRMin[kRMin>kPOut] = kPOut[kRMin>kPOut]
+    kRMin[kRMin <= 0.] = 0.
+    if kOut is not None:
+        kRMin[kRMin > kOut] = kOut[kRMin > kOut]
 
-    if v:
-        kRMin = kRMin[0]
+    # squeeze
+    if squeeze:
+        if nref == 1 and nlos == 11:
+            kRMin = kRMin[0,0]
+        elif nref == 1:
+            kRMin = kRMin[:,0]
+        elif nlos == 1:
+            kRMin = kRMin[0,:]
     return kRMin
 
 
-def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
-                  Lplot='In', proj='All', multi=False):
+def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
+                  num_threads=16, return_pts=False, Test=True):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
-    assert Lplot.lower() in ['tot','in']
-    assert type(proj) is str
-    proj = proj.lower()
-    assert proj in ['cross','hor','all','3d']
-    assert Ds.ndim==2 and Ds.shape==us.shape
-    nL = Ds.shape[1]
-    k0 = kPIns if Lplot.lower()=='in' else np.zeros((nL,))
+    dproj = {'cross':('R','Z'), 'hor':('x,y'), 'all':('R','Z','x','y'),
+             '3d':('x','y','z')}
+    assert type(proj) in [str, tuple]
+    if type(proj) is tuple:
+        assert all([type(pp) is str for pp in proj])
+        lcoords = proj
+    else:
+        proj = proj.lower()
+        assert proj in dproj.keys()
+        lcoords = dproj[proj]
+    if return_pts:
+        assert proj in ['cross','hor', '3d']
 
-    if VType.lower()=='tor' and proj in ['cross','all']:
-        CrossProjAng = np.arccos(np.sqrt(us[0,:]**2+us[1,:]**2)
-                                 /np.sqrt(np.sum(us**2,axis=0)))
-        nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
-        ks = np.max([kRMins,kPIns],axis=0) if Lplot.lower()=='in' else kRMins
-        pts0 = []
-        if multi:
-            for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
-                    pts0.append( np.array([[np.nan,np.nan],
-                                           [np.nan,np.nan]]) )
-                else:
-                    k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                    k = np.unique(np.append(k,ks[ii]))
-                    pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
-                    pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
-        else:
-            for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
-                    pts0.append(np.array([[np.nan,np.nan,np.nan],
-                                          [np.nan,np.nan,np.nan],
-                                          [np.nan,np.nan,np.nan]]))
-                else:
-                    k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                    k = np.append(np.unique(np.append(k,ks[ii])),np.nan)
-                    pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
-            pts0 = np.concatenate(tuple(pts0),axis=1)
-            pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
+    lc = [Ds.ndim == 3, Ds.shape == us.shape]
+    if not all(lc):
+        msg = "Ds and us must have the same shape and dim in [2,3]:\n"
+        msg += "    - provided Ds.shape: %s\n"%str(Ds.shape)
+        msg += "    - provided us.shape: %s"%str(us.shape)
+        raise Exception(msg)
+    lc = [kOuts.size == Ds.size/3, kOuts.shape == Ds.shape[1:]]
+    if not all(lc):
+        msg = "kOuts must have the same shape and ndim = Ds.ndim-1:\n"
+        msg += "    - Ds.shape    : %s\n"%str(Ds.shape)
+        msg += "    - kOutss.shape: %s"%str(kOuts.shape)
+        raise Exception(msg)
 
-    if not (VType.lower()=='tor' and proj=='cross'):
-        pts = []
-        if multi:
-            for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
-                    pts.append( np.array([[np.nan,np.nan],
-                                          [np.nan,np.nan],
-                                          [np.nan,np.nan]]) )
-                else:
-                    k = np.array([k0[ii],kPOuts[ii]])
-                    pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
-        else:
-            for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
-                    pts.append(np.array([[np.nan,np.nan,np.nan],
-                                         [np.nan,np.nan,np.nan],
-                                         [np.nan,np.nan,np.nan]]))
-                else:
-                    k = np.array([k0[ii],kPOuts[ii],np.nan])
-                    pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
-            pts = np.concatenate(tuple(pts),axis=1)
+    # Prepare inputs
+    _, nlos, nseg = Ds.shape
 
-    if proj=='hor':
-        pts = [pp[:2,:] for pp in pts] if multi else pts[:2,:]
-    elif proj=='cross':
-        if VType.lower()=='tor':
-            pts = pts0
-        else:
-            pts = [pp[1:,:] for pp in pts] if multi else pts[1:,:]
-    elif proj=='all':
-        if multi:
-            if VType.lower()=='tor':
-                pts = [(p0,pp[:2,:]) for (p0,pp) in zip(*[pts0,pts])]
+    # Detailed sampling for 'tor' and ('cross' or 'all')
+    R, Z = None, None
+    if 'R' in lcoords or 'Z' in lcoords:
+        angcross = np.arccos(np.sqrt(us[0,...]**2 + us[1,...]**2)
+                             /np.sqrt(np.sum(us**2, axis=0)))
+        resnk = np.ceil(25.*(1 - (angcross/(np.pi/4)-1)**2) + 5)
+        resnk = 1./resnk.ravel()
+
+        # Use optimized get sample
+        DL = np.vstack((np.zeros((nlos*nseg,),dtype=float), kOuts.ravel()))
+
+        k, reseff, lind = _GG.LOS_get_sample(nlos*nseg, resnk, DL,
+                                             dmethod='rel', method='simps',
+                                             num_threads=num_threads, Test=Test)
+
+        assert lind.size == nseg*nlos - 1
+        ind = lind[nseg-1::nseg]
+        nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+        pts = (np.repeat(Ds.reshape((3,nlos*nseg)), nbrep, axis=1)
+               + k[None,:] * np.repeat(us.reshape((3,nlos*nseg)), nbrep,
+                                       axis=1))
+
+        if return_pts:
+            pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
+            if multi:
+                pts = np.split(pts, ind, axis=1)
             else:
-                pts = (pts[1:,:],pts[:2,:])
+                pts = np.insert(pts, ind, np.nan, axis=1)
         else:
-            pts = (pts0,pts[:2,:]) if VType.lower()=='tor' else (pts[1:,:],pts[:2,:])
-    return pts
+            if multi:
+                if 'R' in lcoords:
+                    R = np.split(np.hypot(pts[0,:],pts[1,:]), ind)
+                if 'Z' in lcoords:
+                    Z = np.split(pts[2,:], ind)
+            else:
+                if 'R' in lcoords:
+                    R = np.insert(np.hypot(pts[0,:],pts[1,:]), ind, np.nan)
+                if 'Z' in lcoords:
+                    Z = np.insert(pts[2,:], ind, np.nan)
+
+    # Normal sampling => pts
+    # unnecessary only if 'tor' and 'cross'
+    x, y, z = None, None, None
+    if 'x' in lcoords or 'y' in lcoords or 'z' in lcoords:
+        pts = np.concatenate((Ds, Ds[:,:,-1:] + kOuts[None,:,-1:]*us[:,:,-1:]),
+                            axis=-1)
+
+        if multi:
+            ind = np.arange(1,nlos)*(nseg+1)
+            pts = pts.reshape((3,nlos*(nseg+1)))
+        else:
+            nancoords = np.full((3,nlos,1), np.nan)
+            pts = np.concatenate((pts,nancoords), axis=-1)
+            pts = pts.reshape((3,nlos*(nseg+2)))
+
+        if return_pts:
+            assert proj in ['hor','3d']
+            if multi:
+                if proj == 'hor':
+                    pts = np.split(pts[:2,:], ind, axis=1)
+                else:
+                    pts = np.split(pts, ind, axis=1)
+            elif proj == 'hor':
+                pts = pts[:2,:]
+
+        else:
+            if multi:
+                if 'x' in lcoords:
+                    x = np.split(pts[0,:], ind)
+                if 'y' in lcoords:
+                    y = np.split(pts[1,:], ind)
+                if 'z' in lcoords:
+                    z = np.split(pts[2,:], ind)
+            else:
+                if 'x' in lcoords:
+                    x = pts[0,:]
+                if 'y' in lcoords:
+                    y = pts[1,:]
+                if 'z' in lcoords:
+                    z = pts[2,:]
+
+    if return_pts:
+        return pts
+    else:
+        return R, Z, x, y, z
 
 
 
@@ -506,7 +662,9 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif N==2:
         Vals = ff(Pts, np.tile(-u,(Pts.shape[1],1)).T)
     else:
-        raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
+        raise ValueError("The function (ff) assessing the emissivity locally "
+                         + "must take a single positional argument: Pts a (3,N)"
+                         + " np.ndarray of (X,Y,Z) cartesian coordinates !")
 
     Vals[np.isnan(Vals)] = 0.
     if method=='sum':
@@ -516,3 +674,133 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif method=='romb':
         Int = scpintg.romb(Vals, dx=dLr, show=False)
     return Int
+
+
+
+
+"""
+###############################################################################
+###############################################################################
+                        Solid Angle particle
+###############################################################################
+"""
+
+
+def calc_solidangle_particle(traj, pts, r=1., config=None,
+                             approx=True, aniso=False, block=True):
+    """ Compute the solid angle subtended by a particle along a trajectory
+
+    The particle has radius r, and trajectory (array of points) traj
+    It is observed from pts (array of points)
+
+    traj and pts are (3,N) and (3,M) arrays of cartesian coordinates
+
+    approx = True => use approximation
+    aniso = True => return also unit vector of emission
+    block = True consider LOS collisions (with Ves, Struct...)
+
+    if block:
+        config = config used for LOS collisions
+
+    Return:
+    -------
+    sang: np.ndarray
+        (N,M) Array of floats, solid angles
+
+    """
+    ################
+    # Prepare inputs
+    traj = np.ascontiguousarray(traj, dtype=float)
+    pts = np.ascontiguousarray(pts, dtype=float)
+    r = np.r_[r].astype(float).ravel()
+
+    # Check booleans
+    assert type(approx) is bool
+    assert type(aniso) is bool
+    assert type(block) is bool
+
+    # Check config
+    assert config is None or config.__class__.__name__ == 'Config'
+    assert block == (config is not None)
+
+    # Check pts, traj and r are array of good shape
+    assert traj.ndim in [1,2]
+    assert pts.ndim in [1,2]
+    assert 3 in traj.shape and 3 in pts.shape
+    if traj.ndim == 1:
+        traj = traj.reshape((3,1))
+    if traj.shape[0] != 3:
+        traj = traj.T
+    if pts.ndim == 1:
+        pts = pts.reshape((3,1))
+    if pts.shape[0] != 3:
+        pts = pts.T
+
+    # get npart
+    ntraj = traj.shape[1]
+    nr = r.size
+    npts = pts.shape[1]
+
+    npart = max(nr,ntraj)
+    assert nr in [1,npart]
+    assert ntraj in [1,npart]
+    if nr < npart:
+        r = np.full((npart,), r[0])
+    if ntraj < npart:
+        traj = np.repeat(traj, npart, axis=1)
+
+    ################
+    # Main computation
+
+    # traj2pts vector, with length (3d array (3,N,M))
+    vect = pts[:,None,:] - traj[:,:,None]
+    l = np.sqrt(np.sum(vect**2, axis=0))
+
+    # If aniso or block, normalize
+    if aniso or block:
+        vect = vect/l[None,:,:]
+
+    # Solid angle
+    if approx:
+        sang = np.pi*r[None,:]**2/l**2
+    else:
+        sang = 2.*np.pi*(1 - np.sqrt(1.-r**2[None,:]/l**2))
+
+    # block
+    if block:
+        kwdargs = config._get_kwdargs_LOS_isVis()
+        # TODO : modify this function along issue #102
+        indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(traj, pts, k=l, vis=False,
+                                                     **kwdargs)
+        sang[indnan] = 0.
+        vect[indnan,:] = np.nan
+
+    ################
+    # Return
+
+    if aniso:
+        return sang, vect
+    else:
+        return sang
+
+
+def calc_solidangle_particle_integ(traj, r=1., config=None,
+                                   approx=True, block=True, res=0.01):
+
+
+    # step0: if block : generate kwdargs from config
+
+    # step 1: sample cross-section
+
+    # step 2: loop on R of  pts of cross-section (parallelize ?)
+        # => fix nb. of phi for the rest of the loop
+
+    # loop of Z
+
+    # step 3: loop phi
+    # Check visibility (if block = True) for each phi (LOS collision)
+    # If visible => compute solid angle
+    # integrate (sum * res) on each phi the solid angle
+
+    # Return sang as (N,nR,nZ) array
+    return

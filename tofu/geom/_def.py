@@ -8,6 +8,7 @@ Including in particular computing parameters, dictionnaries and figures
 #matplotlib.interactive(True)
 
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from matplotlib.path import Path
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -15,6 +16,20 @@ import numpy as np
 #from mayavi import mlab
 import datetime as dtm
 import time as time
+
+# tofu
+try:
+    from tofu.version import __version__
+    import tofu.utils as utils
+except Exception:
+    from tofu.version import __version__
+    from .. import utils as utils
+
+
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
+_fontsize = 8
+_labelpad = 0
 
 
 """
@@ -207,6 +222,56 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu'
 #    axPosP, axPosT = [0.07, 0.1, 0.3, 0.8], [0.55, 0.1, 0.3, 0.8]
 #    f = mlab.figure(bgcolor=fBgC,fgcolor=None,size=(fW,fH))
 #    return f
+
+
+
+def _Config_phithetaproj_default(fs=None, dmargin=None,
+                                 fontsize=_fontsize, labelpad=_labelpad,
+                                 wintit=_wintit, ntMax=1):
+
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+
+    # Figure
+    axCol = "w"
+    fs = utils.get_figuresize(fs, fsdef=(12,7))
+    if dmargin is None:
+        dmargin = dict(left=0.06, bottom=0.06, right=0.97, top=0.95,
+                       wspace=0.8, hspace=0.3)
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    # -------------
+    # Axes grid
+    # -------
+
+    gs0 = gridspec.GridSpec(5, 2, **dmargin)
+
+    axt = fig.add_subplot(gs0[0,:], fc='w')
+    axd = fig.add_subplot(gs0[1:3,:], fc='w')
+    axc = fig.add_subplot(gs0[3:,0], fc='w')
+    axh = fig.add_subplot(gs0[3:,1], fc='w')
+
+    axc.set_aspect('equal', adjustable='datalim')
+    axh.set_aspect('equal', adjustable='datalim')
+
+    axt.set_xlabel(r'$s$ (s)', **fldict)
+    axt.set_ylabel(r'$data$ (a.u.)', **fldict)
+    axd.set_xlabel(r'$\phi$ (rad)', **fldict)
+    axd.set_ylabel(r'$\theta$ (rad)', **fldict)
+    axc.set_xlabel(r'$R$ (m)', **fldict)
+    axc.set_ylabel(r'$Z$ (m)', **fldict)
+    axh.set_xlabel(r'$X$ (m)', **fldict)
+    axh.set_ylabel(r'$Y$ (m)', **fldict)
+
+    dax = {'t':[axt],
+           'dist':[axd],
+           'cross':[axc],
+           'hor':[axh]}
+
+    return fig, dax
+
+
 
 
 

@@ -167,7 +167,7 @@ class Test01_DataCam12D(object):
         # signal as Data from lcams
         lm = ['sum', 'simps']
         lData = [lc[ii].calc_signal(emiss, t=t,
-                                    res=0.01, method=lm[ii], plot=False)
+                                    res=0.01, method=lm[ii], plot=False)[0]
                  for ii in range(0,len(lc))]
 
         # Adding concatenated sig / data and without lcam
@@ -254,12 +254,13 @@ class Test01_DataCam12D(object):
     def test04_select_ch(self):
         for oo in self.lobj:
             if oo.dgeom['lCam'] is not None:
-                name = [k for k in oo.config.dStruct['lorder']
+                name = [(ii,k) for ii,k in
+                        enumerate(oo.config.dStruct['lorder'])
                         if 'Ves' in k or 'PlasmaDomain' in k]
                 assert len(name) == 1
-                ind = oo.select_ch(touch=name[0], out=bool)
+                ind = oo.select_ch(touch=name[0][1], out=bool)
                 assert ind.sum() > 0, (ind.sum(), ind)
-                assert np.allclose(ind, oo.select_ch(touch=0,
+                assert np.allclose(ind, oo.select_ch(touch=name[0][0],
                                                      out=bool))
             if len(oo.dchans().keys()) > 0:
                 ind = oo.select_ch(key='Name', val=['c0','c10'],

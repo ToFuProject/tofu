@@ -4,12 +4,14 @@ import os
 import sys
 import collections
 from abc import ABCMeta, abstractmethod
+import importlib
 import getpass
 import subprocess
 import itertools as itt
 import warnings
 
 # Common
+import scipy.io as scpio
 import numpy as np
 import matplotlib as mpl
 from matplotlib.tri import Triangulation as mplTri
@@ -23,6 +25,10 @@ import tofu.pathfile as tfpf
 _sep = '_'
 _dict_lexcept_key = []
 _pyv = int(sys.version[0])
+
+_SAVETYP = '__type__'
+_NSAVETYP = len(_SAVETYP)
+
 
 ###############################################
 #           File searching
@@ -328,59 +334,53 @@ def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
     if return_pfe:
         return pathfileext
 
-def _save_npz(dd, pathfileext, compressed=False):
 
-    func = np.savez_compressed if compressed else np.savez
+def _save_npzmat_dict(dd):
     msg = "How to deal with:"
     msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
     msg += "\n Attributes:"
     err = False
-    dt = {}
+    dnpzmat, dt = {}, {}
     for k in dd.keys():
-        kt = k+'_type'
+        kt = k + _SAVETYP
         dt[kt] = np.asarray([type(dd[k]).__name__])
         if dd[k] is None:
-            dd[k] = np.asarray([None])
+            # save only the type, because:
+            #     - .mat cannot handle None
+            #     - save disk
+            # None will be recreated at load time
+            pass
         elif (type(dd[k]) in [int,float,bool,str]
               or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)):
-            dd[k] = np.asarray([dd[k]])
-        elif type(dd[k]) in [list,tuple]:
-            dd[k] = np.asarray(dd[k])
-        elif not isinstance(dd[k], np.ndarray):
-            msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
-            err = True
-    if err:
-        raise Exception(msg)
-    dd.update(**dt)
-    func(pathfileext, **dd)
-
-def _save_mat(dd, pathfileext, compressed=False):
-    # Create intermediate dict to make sure to get rid of None values
-    dmat = {}
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    dt = {}
-    for k in dd.keys():
-        kt = k+'_type'
-        dt[kt] = np.asarray([type(d[k]).__name__])
-        if type(dd[k]) in [int,float,np.int64,np.float64,bool]:
-            dmat[k] = np.asarray([dd[k]])
+              or issubclass(dd[k].__class__,np.float)
+              or issubclass(dd[k].__class__,np.bool_)):
+            dnpzmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
-            dmat[k] = np.asarray(dd[k])
-        elif isinstance(dd[k],str):
-            dmat[k] = np.asarray([dd[k]])
+            dnpzmat[k] = np.asarray(dd[k])
         elif type(dd[k]) is np.ndarray:
-            dmat[k] = dd[k]
+            dnpzmat[k] = dd[k]
         else:
             msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
             err = True
     if err:
         raise Exception(msg)
-    dmat.update(**dt)
-    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
+    dnpzmat.update(**dt)
+    return dnpzmat
+
+
+def _save_npz(dd, pathfileext, compressed=False):
+    func = np.savez_compressed if compressed else np.savez
+    dsave = _save_npzmat_dict(dd)
+    func(pathfileext, **dsave)
+
+def _save_mat(dd, pathfileext, compressed=False):
+    # Create intermediate dict to make sure to get rid of None values
+    dsave = _save_npzmat_dict(dd)
+    scpio.savemat(pathfileext, dsave, do_compression=compressed, format='5')
+
+
+
+
 
 ###################################
 #       loading routines
@@ -474,8 +474,9 @@ def load(name, path=None, strip=None, verb=True):
             dd = _load_mat(pfe)
 
         # Recreate from dict
-        exec("import tofu.{0} as mod".format(dd['dId_dall_Mod']))
-        obj = eval("mod.{0}(fromdict=dd)".format(dd['dId_dall_Cls']))
+        mod = importlib.import_module( 'tofu.%s'%dd['dId_dall_Mod'] )
+        cls = getattr( mod, dd['dId_dall_Cls'] )
+        obj = cls(fromdict=dd)
 
     if strip is not None:
         obj.strip(strip=strip)
@@ -487,60 +488,99 @@ def load(name, path=None, strip=None, verb=True):
         print(msg)
     return obj
 
-def _load_npz(pathfileext):
 
-    try:
-        out = np.load(pathfileext, mmap_mode=None)
-    except UnicodeError:
-        out = np.load(pathfileext, mmap_mode=None, encoding='latin1')
-    except Exception as err:
-        raise err
+def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
 
     C = ['dId' in kk for kk in out.keys()]
-    if np.sum(C)<1:
-        msg = "There does not seem to be a dId in {0}".format(pathfileext)
+    if np.sum(C) < 1:
+        msg = "There does not seem to be a dId in {0}".format(pfe)
         msg += "\n    => Is it really a tofu-generated file ?"
         raise Exception(msg)
 
-    lk = [k for k in out.keys() if not k[-5:]=='_type']
+    lk = [k for k in out.keys()
+          if (k[-_NSAVETYP:] != _SAVETYP and k not in exclude_keys)]
+    lkt = [k for k in out.keys() if k[-_NSAVETYP:] == _SAVETYP]
     dout = dict.fromkeys(lk)
 
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    for k in lk:
-        kt = k+'_type'
-        typ = out[kt]
+    err, msgi = False, ""
+    for kt in lkt:
+        k = kt[:-_NSAVETYP]
+        typ = out[kt][0]
+
         if typ=='NoneType':
             dout[k] = None
-        elif typ in ['int','int64']:
-            dout[k] = int(out[k][0]) if typ=='int' else out[k][0]
-        elif typ in ['float','float64']:
-            dout[k] = float(out[k][0]) if typ=='float' else out[k][0]
-        elif typ in ['bool','bool_']:
-            dout[k] = bool(out[k][0]) if typ=='bool' else out[k][0]
-        elif typ in ['str','str_']:
-            dout[k] = str(out[k][0]) if typ=='str' else out[k][0]
+        elif typ in ['int','int64','float','float64',
+                     'bool','bool_','str','str_']:
+            dout[k] = np.ravel(out[k])[0]
+            if typ == 'float':
+                dout[k] = float(dout[k])
+            elif typ == 'int':
+                dout[k] = int(dout[k])
+            elif typ == 'bool':
+                dout[k] = bool(dout[k])
+            elif typ == 'str':
+                dout[k] = str(dout[k])
         elif typ in ['list','tuple']:
-            dout[k] = out[k].tolist()
+            if mode == 'mat':
+                if out[k].ndim == 1:
+                    dout[k] = out[k].tolist()
+                else:
+                    dout[k] = np.squeeze(out[k],axis=0).tolist()
+                if type(dout[k][0]) is str:
+                    dout[k] = [kk.strip() for kk in dout[k]]
+            else:
+                dout[k] = out[k].tolist()
             if typ=='tuple':
-                dout[k] = tuple(out[k])
+                dout[k] = tuple(dout[k])
         elif typ=='ndarray':
-            dout[k] = np.array(out[k])
+            if mode == 'mat':
+                dout[k] = np.squeeze(out[k])
+                if dout[k].shape == (0,0):
+                    dout[k] = dout[k].ravel()
+            else:
+                dout[k] = out[k]
         else:
-            msg += "\n    {0} : {1}".format(k,typ)
+            msgi += "\n    {0} : {1}".format(k,typ)
             err = True
     if err:
+        msg = "How to deal with:"
+        msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'][0])
+        msg += "\n Attributes:"
+        msg += msgi
         raise Exception(msg)
+
     return dout
+
+
+
+def _load_npz(pfe):
+
+    try:
+        out = np.load(pfe, mmap_mode=None)
+    except UnicodeError:
+        out = np.load(pfe, mmap_mode=None, encoding='latin1')
+    except Exception as err:
+        raise err
+
+    return _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[])
+
+
+def _load_mat(pfe):
+
+    try:
+        out = scpio.loadmat(pfe)
+    except Exception as err:
+        raise err
+
+    lsmat = ['__header__', '__globals__', '__version__']
+    return _get_load_npzmat_dict(out, pfe, mode='mat', exclude_keys=lsmat)
 
 
 #######
 #   tf.geom.Struct - specific
 #######
 
-def _load_from_txt(name, pfe):
+def _load_from_txt(name, pfe, Name=None, Exp=None):
 
     # Extract class
     lk = name.split('_')
@@ -555,8 +595,530 @@ def _load_from_txt(name, pfe):
 
     # Recreate object
     import tofu.geom as mod
-    obj = eval("mod.%s.from_txt(pfe, Name=Name, Exp=Exp)"%cls)
+    obj = getattr(mod, cls).from_txt(pfe, Name=Name, Exp=Exp)
     return obj
+
+
+#######
+#   imas
+#######
+
+_DEF_IMAS_PLASMA_SIG = {'core_profiles':{'plot_sig':['1dTe','1dne'],
+                                         'plot_X':['1drhotn'],
+                                         'other':['t']}}
+
+def _get_exception(q, ids, qtype='quantity'):
+    msg = MultiIDSLoader._shortcuts(ids=ids,
+                                    verb=False, return_=True)
+    col = ['ids', 'shortcut', 'long version']
+    msg = MultiIDSLoader._getcharray(msg, col)
+    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
+    msg += "\n\nAvailable shortcuts are:\n%s"%msg
+    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    raise Exception(msg)
+
+
+def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   dsig=None, data=None, X=None, t0=None, dextra=None,
+                   plot=True, plot_sig=None, plot_X=None, sharex=False,
+                   bck=True, indch_auto=True, t=None, init=None):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        import tofu.imas2tofu as imas2tofu
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
+    lok = ['Config', 'Plasma2D', 'Cam', 'Data']
+    c0 = out is None or out in lok
+    if not c0:
+        msg = "Arg out must be in %s"%str(lok)
+        raise Exception(msg)
+
+    # -------------------
+    # Prepare ids
+    assert ids is None or type(ids) in [list,str]
+    if type(ids) is str:
+        ids = [ids]
+    if type(ids) is list:
+        assert all([ids_ is None or type(ids_) is str for ids_ in ids])
+
+    # -------------------
+    # Pre-check ids
+    lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    lidscustom = ['magfieldlines']
+    lidsout = [ids_ for ids_ in ids
+               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+    if len(lidsout) > 0:
+        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg += "  => Available imas ids are:\n"
+        msg += repr(lidsok)
+        raise Exception(msg)
+    nids = len(ids)
+
+    if nids > 1:
+        assert not any([ids_ in ids for ids_ in lidscustom])
+
+
+    # -------------------
+    # Prepare shot
+    shot = np.r_[shot].astype(int)
+    nshot = shot.size
+
+    # -------------------
+    # Call magfieldline if relevant
+    if ids == ['magfieldlines']:
+        assert shot.size == 1
+        import tofu.mag as tfm
+        plot = True
+        if t is None:
+            t = np.r_[38]
+        t = np.atleast_1d(t).ravel()
+        if init is None:
+            init = [[2.9],[0.],[0.]]
+
+        if False:
+            multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                             tokamak=tokamak, version=version,
+                                             ids='wall')
+            config = multi.to_Config(plot=False)
+        else:
+            import tofu.geom as tfg
+            config = tfg.utils.create_config('B2')
+        if config.nStruct > 1:
+            config.set_colors_random()
+        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+                                                       direction='FWD',
+                                                       length_line=None,
+                                                       stp=None)
+        refpt = np.r_[2.4,0.]
+        dax = config.plot_phithetaproj_dist(refpt)
+        for ii in range(0,len(trace)):
+            for jj in range(0,len(trace[ii])):
+                lab = r't = %s s'%str(t[ii])
+                phi = np.arctan2(np.sin(trace[ii][jj]['p']), np.cos(trace[ii][jj]['p']))
+                theta = np.arctan2(trace[ii][jj]['z']-refpt[1], trace[ii][jj]['r']-refpt[0])
+                # insert nans for clean periodicity
+                indnan = ((np.abs(np.diff(phi)) > np.pi)
+                          | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                    np.insert(theta, indnan, np.nan),
+                                    label=lab)
+                dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
+                                     label=lab)
+                x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
+                y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
+                dax['hor'][0].plot(x, y, label=lab)
+        return dax
+
+
+    # -------------------
+    # Prepare out
+    loutok = ['Config','Plasma2D','Cam','Data']
+    c0 = out is None
+    c1 = out in loutok
+    c2 = type(out) is list and all([oo is None or oo in loutok
+                                    for oo in out])
+    assert c0 or c1 or c2
+    if c0:
+        out = [None for _ in ids]
+    elif c1:
+        out = [str(out) for _ in ids]
+
+    # Temporary caveat
+    if nids > 1:
+        if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
+                    for ids_ in ids]):
+            msg = "tf.load_from_imas() only handles multipe ids\n"
+            msg += "if all are diagnostics ids !"
+            raise Exception(msg)
+
+    # -------------------
+    # Prepare
+    for ii in range(0, nids):
+
+        # Config
+        if ids[ii] == 'wall':
+            assert out[ii] in [None,'Config']
+            out[ii] = 'Config'
+        if out[ii] == 'Config':
+            assert ids[ii] in [None,'wall']
+
+        # Plasma2D
+        lids = imas2tofu.MultiIDSLoader._lidsplasma
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Plasma2D']
+            out[ii] = 'Plasma2D'
+        if out[ii] == 'Plasma2D':
+            assert ids[ii] in lids
+
+        # Cam or Data
+        lids = imas2tofu.MultiIDSLoader._lidsdiag
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Cam','Data']
+            if out[ii] is None:
+                out[ii] = 'Data'
+        if out[ii] in ['Cam','Data']:
+            assert ids[ii] in lids
+
+    dout = {shot[jj]: {oo:[] for oo in set(out)} for jj in range(0,nshot)}
+
+    # -------------------
+    # Prepare plot_ and complement ids
+    lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
+    lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
+    nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
+    if nDat > 1:
+        plot_ = False
+    else:
+        plot_ = plot
+
+    # Check conformity nshot / nDat
+    lc = [nshot > 1, nDat > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several diags for several shots!\n"
+        msg += "  => Please select either several diags (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+    lc = [nshot > 1, nPla > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several plasma profles for several shots!\n"
+        msg += "  => Please select either several profiles (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+
+    lc = [nDat >= 1, nPla >= 1, nCam >= 1]
+    if np.sum(lc) > 1:
+        msg = "Can only load Cam xor Data xor Plasma2D !"
+        raise Exception(msg)
+
+    # Complement ids
+    lids = list(ids)
+    if nDat > 0 or nCam > 0 or nPla > 0:
+        if 'wall' not in lids:
+            lids.append('wall')
+        if nDat > 0 or nPla > 0 and dextra is None:
+            if 'equilibrium' not in lids:
+                lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
+        if t0 not in [None, False] and (nDat > 0 or nPla > 0):
+            if 'pulse_schedule' not in lids:
+                lids.append('pulse_schedule')
+
+    # -------------------
+    # If plot and plasma, default dsig, plot_sig, plot_X
+    if plot and nPla > 0:
+        if lids[0] in _DEF_IMAS_PLASMA_SIG.keys():
+            if plot_sig is None:
+                plot_sig = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_sig']
+            if plot_X is None:
+                plot_X = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_X']
+            if dsig is None:
+                lsig = (list(plot_sig) + list(plot_X)
+                        + _DEF_IMAS_PLASMA_SIG[lids[0]]['other'])
+                dsig = {lids[0]: lsig}
+
+        if plot_sig is None or plot_X is None:
+            msg = "Trying to plot a plasma profile\n"
+            msg += "Impossible if plot_sig and plot_X not provided!\n"
+            msg += "  (resp. quantity and quant_X if calling from tofuplot)"
+            raise Exception(msg)
+
+        dq = imas2tofu.MultiIDSLoader._dshort[lids[0]]
+        lk = sorted(dq.keys())
+        for qq in plot_sig:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='quantity')
+        for qq in plot_X:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='X')
+
+
+    # -------------------
+    # load
+    for ss in shot:
+        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids=lids)
+
+        # export to instances
+        for ii in range(0,nids):
+            if out[ii] == 'Config':
+                dout[ss]['Config'].append(multi.to_Config(Name=Name, occ=occ,
+                                                          indDescription=indDescription,
+                                                          plot=False))
+
+            elif out[ii] == 'Plasma2D':
+                dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
+                                                              tlim=tlim, dsig=dsig, t0=t0,
+                                                              plot=False, plot_sig=plot_sig,
+                                                              dextra=dextra, plot_X=plot_X,
+                                                              config=config,
+                                                              bck=bck))
+            elif out[ii] == 'Cam':
+                dout[ss]['Cam'].append(multi.to_Cam(Name=Name, occ=occ,
+                                                    ids=lids[ii], indch=indch, config=config,
+                                                    plot=False))
+            elif out[ii] == "Data":
+                dout[ss]['Data'].append(multi.to_Data(Name=Name, occ=occ,
+                                                      ids=lids[ii], tlim=tlim, dsig=dsig,
+                                                      config=config, data=data, X=X, indch=indch,
+                                                      indch_auto=indch_auto, t0=t0,
+                                                      dextra=dextra,
+                                                      plot=False, bck=bck))
+
+    # -------------------
+    # plot if relevant
+    if plot == True:
+
+        # Config & Cam
+        for ss in shot:
+            for k0 in set(['Config','Cam']).intersection(out):
+                for ii in range(0, len(dout[ss][k0])):
+                    dout[ss][k0][ii].plot()
+
+        # Plasma2D
+        if nshot == 1 and nPla == 1:
+            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
+        elif nshot > 1 and nPla == 1:
+            ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
+                                                   plot=False)
+                  for ss in shot[1:]]
+            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
+                                                       plot=False)
+            d0.plot_compare(ld, bck=bck)
+
+        # Data
+        elif nshot == 1 and nDat == 1:
+            dout[shot[0]]['Data'][0].plot(bck=bck)
+        elif nshot > 1 and nDat == 1:
+            ld = [dout[ss]['Data'][0] for ss in shot[1:]]
+            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck)
+        elif nshot == 1 and nDat > 1:
+            ld = dout[shot[0]]['Data'][1:]
+            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex, bck=bck)
+
+    # return
+    if nshot == 1 and nDat == 1:
+        dout = dout[shot[0]]['Data'][0]
+    elif nshot == 1 and nPla == 1:
+        dout = dout[shot[0]]['Plasma2D'][0]
+    return out
+
+
+
+def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   dsig=None, data=None, X=None, t0=None, dextra=None,
+                   Brightness=None, res=None, interp_t=None,
+                   plot=True, plot_compare=True, sharex=False,
+                   bck=True, indch_auto=True, t=None, init=None):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        import tofu.imas2tofu as imas2tofu
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
+    lok = ['Data']
+    c0 = out is None or out in lok
+    if not c0:
+        msg = "Arg out must be in %s"%str(lok)
+        raise Exception(msg)
+
+    # -------------------
+    # Prepare ids
+    assert ids is None or type(ids) in [list,str]
+    if type(ids) is str:
+        ids = [ids]
+    if type(ids) is list:
+        assert all([ids_ is None or type(ids_) is str for ids_ in ids])
+
+    # -------------------
+    # Pre-check ids
+    lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    lidscustom = []
+    lidsout = [ids_ for ids_ in ids
+               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+    if len(lidsout) > 0:
+        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg += "  => Available imas ids are:\n"
+        msg += repr(lidsok)
+        raise Exception(msg)
+    nids = len(ids)
+
+    if nids > 1:
+        assert not any([ids_ in ids for ids_ in lidscustom])
+
+
+    # -------------------
+    # Prepare shot
+    shot = np.r_[shot].astype(int)
+    nshot = shot.size
+
+
+    # -------------------
+    # Prepare out
+    loutok = ['Data']
+    c0 = out is None
+    c1 = out in loutok
+    c2 = type(out) is list and all([oo is None or oo in loutok
+                                    for oo in out])
+    assert c0 or c1 or c2
+    if c0:
+        out = [None for _ in ids]
+    elif c1:
+        out = [str(out) for _ in ids]
+
+    # Temporary caveat
+    if nids > 1:
+        if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
+                    for ids_ in ids]):
+            msg = "tf.load_from_imas() only handles multipe ids\n"
+            msg += "if all are diagnostics ids !"
+            raise Exception(msg)
+
+    # -------------------
+    # Prepare
+    for ii in range(0, nids):
+
+        # Cam or Data
+        lids = imas2tofu.MultiIDSLoader._lidsdiag
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Cam','Data']
+            if out[ii] is None:
+                out[ii] = 'Data'
+        if out[ii] in ['Cam','Data']:
+            assert ids[ii] in lids
+
+    dout = {shot[jj]: {oo:[] for oo in set(out)} for jj in range(0,nshot)}
+
+    # -------------------
+    # Prepare plot_ and complement ids
+    lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
+    lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
+    nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
+    if nDat > 1:
+        plot_ = False
+    else:
+        plot_ = plot
+
+    # Check conformity nshot / nDat
+    lc = [nshot > 1, nDat > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several diags for several shots!\n"
+        msg += "  => Please select either several diags (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+    lc = [nshot > 1, nPla > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several plasma profles for several shots!\n"
+        msg += "  => Please select either several profiles (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+
+    lc = [nDat >= 1, nPla >= 1, nCam >= 1]
+    if np.sum(lc) > 1:
+        msg = "Can only load Cam xor Data xor Plasma2D !"
+        raise Exception(msg)
+
+    # Complement ids
+    lids = list(ids)
+    if nDat > 0 or nCam > 0 or nPla > 0:
+        if 'wall' not in lids:
+            lids.append('wall')
+        if nDat > 0 or nPla > 0 and dextra is None:
+            if 'equilibrium' not in lids:
+                lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
+        if t0 not in [None, False] and (nDat > 0 or nPla > 0):
+            if 'pulse_schedule' not in lids:
+                lids.append('pulse_schedule')
+
+    # Complement ids in diag-specific way
+    for ids in lids:
+        if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
+            dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
+            if dd.get('synth') is not None:
+                for v0 in dd['synth']['dsynth'].values():
+                    for v1 in v0:
+                        if '.' in v1:
+                            v20, v21 = v1.split('.')
+                            if v20 not in lids:
+                                lids.append(v20)
+
+    # -------------------
+    # If plot and plasma, default dsig, plot_sig, plot_X
+    if plot and nPla > 0:
+        if lids[0] in _DEF_IMAS_PLASMA_SIG.keys():
+            if plot_sig is None:
+                plot_sig = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_sig']
+            if plot_X is None:
+                plot_X = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_X']
+            if dsig is None:
+                lsig = (list(plot_sig) + list(plot_X)
+                        + _DEF_IMAS_PLASMA_SIG[lids[0]]['other'])
+                dsig = {lids[0]: lsig}
+
+        if plot_sig is None or plot_X is None:
+            msg = "Trying to plot a plasma profile\n"
+            msg += "Impossible if plot_sig and plot_X not provided!\n"
+            msg += "  (resp. quantity and quant_X if calling from tofuplot)"
+            raise Exception(msg)
+
+        dq = imas2tofu.MultiIDSLoader._dshort[lids[0]]
+        lk = sorted(dq.keys())
+        for qq in plot_sig:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='quantity')
+        for qq in plot_X:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='X')
+
+
+    # -------------------
+    # load
+    for ss in shot:
+        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids=lids)
+
+        # export to instances
+        for ii in range(0,nids):
+            if out[ii] == "Data":
+                multi.calc_signal(ids=lids[ii],
+                                  tlim=tlim, dsig=dsig,
+                                  config=config, t=t,
+                                  res=res, indch=indch,
+                                  Brightness=Brightness,
+                                  interp_t=interp_t,
+                                  indch_auto=indch_auto,
+                                  t0=t0, dextra=dextra,
+                                  plot=True,
+                                  plot_compare=plot_compare)
+
+
+
+
 
 
 
@@ -791,6 +1353,95 @@ class ToFuObjectBase(object):
     def _check_InputsGeneric(ld, tab=0):
         return _check_InputsGeneric(ld, tab=tab)
 
+
+    #############################
+    #  charray and summary
+    #############################
+
+
+    @staticmethod
+    def _getcharray(ar, col=None, sep='  ', line='-', just='l', msg=True):
+
+        c0 = ar is None or len(ar) == 0
+        if c0:
+            return ''
+        ar = np.array(ar, dtype='U')
+
+        if ar.ndim == 1:
+            ar = ar.reshape((1,ar.size))
+
+        # Get just len
+        nn = np.char.str_len(ar).max(axis=0)
+        if col is not None:
+            assert len(col) in ar.shape
+            if len(col) != ar.shape[1]:
+                ar = ar.T
+                nn = np.char.str_len(ar).max(axis=0)
+            nn = np.fmax(nn, [len(cc) for cc in col])
+
+        # Apply to array
+        fjust = np.char.ljust if just == 'l' else np.char.rjust
+        out = np.array([sep.join(v) for v in fjust(ar,nn)])
+
+        # Apply to col
+        if col is not None:
+            arcol = np.array([col, [line*n for n in nn]], dtype='U')
+            arcol = np.array([sep.join(v) for v in fjust(arcol,nn)])
+            out = np.append(arcol,out)
+
+        if msg:
+            out = '\n'.join(out)
+        return out
+
+
+    @classmethod
+    def _get_summary(cls, lar, lcol,
+                     sep='  ', line='-', just='l', table_sep=None,
+                     verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
+        if table_sep is None:
+            table_sep = '\n\n'
+
+
+        # Out
+        if verb or return_ in [True,'msg']:
+            lmsg = [cls._getcharray(ar, col, sep=sep, line=line, just=just)
+                    for ar, col in zip(*[lar,lcol])]
+            if verb:
+                msg = table_sep.join(lmsg)
+                print(msg)
+
+        if return_ != False:
+            if return_ == True:
+                out = lar, lmsg
+            elif return_ == 'array':
+                out = lar
+            elif return_ == 'msg':
+                out = table_sep.join(lmsg)
+            else:
+                lok = [False, True, 'msg', 'array']
+                raise Exception("Valid return_ values are: %s"%str(lok))
+            return out
+
+
+    # def get_summary(self, sep='  ', line='-', just='l',
+                    # table_sep=None, verb=True, return_=False):
+        # """ Summary description of the object content as a np.array of str """
+        # pass
+
+    def __repr__(self):
+        if hasattr(self, 'get_summary'):
+            return self.get_summary(return_='msg', verb=False)
+        else:
+            return object.__repr__(self)
+
+
+
+    #############################
+    #  strip and to/from dict
+    #############################
+
+
     def strip(self, strip=0, **kwdargs):
         """ Remove non-essential attributes to save memory / disk usage
 
@@ -873,6 +1524,8 @@ class ToFuObjectBase(object):
         dout = {}
         for k, v in dd.items():
             lexcept_key = v.get('lexcept_key', None)
+            if v['dict'] is None:
+                continue
             try:
                 d = flatten_dict(v['dict'],
                                  parent_key='', sep=sep, deep=deep,
@@ -957,6 +1610,11 @@ class ToFuObjectBase(object):
                 dsize[k] = np.asarray(v).nbytes
             total += dsize[k]
         return total, dsize
+
+
+    #############################
+    #  operator overloading
+    #############################
 
 
     def __eq__(self, obj, lexcept=[], detail=True, verb=True):
@@ -1789,6 +2447,7 @@ def get_valf(val, lrids, linds):
     #   => use py2 convention, compatible with both, WRONG !!!
     # Replace *li by li (which is always an array of max 3 elements
     ninds = len(linds)
+
     if type(val) is list:
         assert ninds == 1 and lrids == linds
         func = lambda li, val=val: val[li[0]]
@@ -1877,42 +2536,74 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
         if otherid is None:
             assert ref.size == np.max(ref.shape)
             ref = ref.ravel()
-            refb = 0.5*(ref[1:]+ref[:-1])
-            if Type == 'x':
-                def func(val, ind0=None, refb=refb):
-                    return np.digitize([val[0]], refb)[0]
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref-val[0]))
+                else:
+                    def func(val, ind0=None, refb=refb):
+                        return np.nanargmin(np.abs(ref-val[1]))
+
             else:
-                def func(val, ind0=None, refb=refb):
-                    return np.digitize([val[1]], refb)[0]
+                refb = 0.5*(ref[1:]+ref[:-1])
+                if Type == 'x':
+                    def func(val, ind0=None, refb=refb):
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, refb=refb):
+                        return np.digitize([val[1]], refb)[0]
         elif indother is None:
             assert ref.ndim == 2
-            if Type == 'x':
-                def func(val, ind0=None, ref=ref):
-                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
-                    return np.digitize([val[0]], refb)[0]
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref[ind0,:]-val[0]))
+                else:
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref[:,ind0]-val[1]))
+
             else:
-                def func(val, ind0=None, ref=ref):
-                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
-                    return np.digitize([val[1]], refb)[0]
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, ref=ref):
+                        refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                        return np.digitize([val[1]], refb)[0]
         else:
             assert ref.ndim == 2
-            if Type == 'x':
-                def func(val, ind0=None, ref=ref, indother=indother):
-                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
-                    return np.digitize([val[0]], refb)[0]
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        return np.nanargmin(np.abs(ref[indother[ind0],:] - val[0]))
+                else:
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        return np.nanargmin(np.abs(ref[indother[ind0],:] - val[1]))
             else:
-                def func(val, ind0=None, ref=ref, indother=indother):
-                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
-                    return np.digitize([val[1]], refb)[0]
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                        return np.digitize([val[1]], refb)[0]
     else:
         assert type(ref2) is tuple and len(ref2) == 2
         n1, n2 = ref2[0].size, ref2[1].size
-        refb1 = 0.5*(ref2[0][1:]+ref2[0][:-1])
-        refb2 = 0.5*(ref2[1][1:]+ref2[1][:-1])
-        def func(val, ind0=None, refb1=refb1, refb2=refb2, n1=n1, n2=n2):
-            i1 = np.digitize([val[0]], refb1)[0]
-            i2 = np.digitize([val[1]], refb2)[0]
-            return i2*n1 + i1
+        if any([np.any(np.isnan(rr)) for rr in ref2]):
+            def func(val, ind0=None, ref2=ref2, n1=n1, n2=n2):
+                i1 = np.nanargmin(np.abs(ref2[0]-val[0]))
+                i2 = np.nanargmin(np.abs(ref2[1]-val[1]))
+                return i2*n1 + i1
+        else:
+            refb1 = 0.5*(ref2[0][1:]+ref2[0][:-1])
+            refb2 = 0.5*(ref2[1][1:]+ref2[1][:-1])
+            def func(val, ind0=None, refb1=refb1, refb2=refb2, n1=n1, n2=n2):
+                i1 = np.digitize([val[0]], refb1)[0]
+                i2 = np.digitize([val[1]], refb2)[0]
+                return i2*n1 + i1
     return func
 
 def get_pos_fromind(ref=None, ref2=None, otherid=None, indother=None):
@@ -2286,6 +2977,7 @@ class KeyHandler_mpl(object):
                                                      otherid = otherid,
                                                      indother = indother)
                     dmovkeys = dax[ax]['dmovkeys'][rid]
+
                     df_ind_key[ax] = get_ind_fromkey(dmovkeys,
                                                      is2d = is2d,
                                                      nn = nn)
@@ -2735,6 +3427,7 @@ class KeyHandler_mpl(object):
             ind = self.dref[refid]['df_ind_key'][ax](movk,
                                                      self.dref[refid]['ind'][ii],
                                                      self.dkeys['alt']['val'])
+
             if self._follow:
                 self.dref[refid]['ind'][ii:] = ind
             else:

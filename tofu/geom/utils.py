@@ -621,21 +621,23 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 #       Fast creation of config
 ###########################################################
 
-_dconfig = {'A1': {'Exp':'WEST',
+_ExpWest = 'WEST'
+
+_dconfig = {'A1': {'Exp':_ExpWest,
                    'Ves': ['V1']},
             'A2': {'Exp':'ITER',
                    'Ves': ['V0']},
-            'A3': {'Exp':'WEST',
+            'A3': {'Exp':_ExpWest,
                    'PlasmaDomain': ['Sep']},
-            'B1': {'Exp':'WEST',
+            'B1': {'Exp':_ExpWest,
                    'Ves': ['V2'],
                    'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'B2': {'Exp':'WEST',
+            'B2': {'Exp':_ExpWest,
                    'Ves': ['V2'],
                    'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
                            'BumperInnerV1', 'BumperOuterV1',
                            'IC1V1', 'IC2V1', 'IC3V1']},
-            'B3': {'Exp':'WEST',
+            'B3': {'Exp':_ExpWest,
                    'Ves': ['V2'],
                    'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
                            'BumperInnerV3', 'BumperOuterV3',
@@ -691,7 +693,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=2.4, r=1., elong=0., Dshape=0.,
                   divlow=True, divup=True, nP=200,
-                  out='object', SavePath='./'):
+                  out='object', SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -746,7 +748,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
     """
 
     if case is not None:
-        conf = _create_config_testcase(config=case, out=out)
+        conf = _create_config_testcase(config=case, out=out, path=path)
     else:
         poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
                                                 divlow=divlow, divup=divup, nP=nP)
