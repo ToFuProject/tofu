@@ -133,21 +133,25 @@
 
 % =================================
 \begin{frame}
-\frametitle{Context: Energy generation}
+\frametitle{Context: energy needs vs climate change}
 
 	\begin{center}
-		\includegraphics[height=2.2cm]{figures/solar-power.jpg}%
-		\includegraphics[height=2.2cm]{figures/nuclear-power.jpg}%
-		\includegraphics[height=2.2cm]{figures/wind-power.jpg}
+		\includegraphics[height=1.8cm]{figures/oil-power.jpg}%
+		\includegraphics[height=1.8cm]{figures/solar-power.jpg}%
+		\includegraphics[height=1.8cm]{figures/nuclear-power.jpg}%
+		\includegraphics[height=1.8cm]{figures/wind-power.jpg}
 	\end{center}
 
 Current solutions present some drawbacks:
 \begin{itemize}%[leftmargin=1em]
-	\item Limited resources
+	\item limited or intermittent resources
 	\item Production of carbon dioxide
-	\item Radioactive waste
-	\item Not too efficient
-	\item Harmful to surrounding environment
+	\item significant production of green house gases or radioactive waste
+	\item not too efficient
+	\item harmful to surrounding environment
+	\item low availability without long-term mass storage solution
+	\item unequal geographical distribution of resources
+	\item industrial risks (nuclear, chemical...)
 \end{itemize}
 
 \begin{itemize}%[leftmargin=1em]
@@ -175,7 +179,7 @@ Current solutions present some drawbacks:
 		\begin{itemize}%[leftmargin=1em]
     			\item Gas $>$ 100 Million\degree K composed of positive ions and negative electrons: plasma
     			\item Confinement using electromagnetic fields
-			\item Energy break-even point still not obtained: $Q_{\text{max}} = \dfrac{E_\text{output}}{E_\text{input}}  =0.67$
+			\item break-even not obtained yet
 		\end{itemize}
 
     	\end{column}
@@ -190,10 +194,10 @@ Current solutions present some drawbacks:
 	\item Current reactors: different shapes, sizes, heating methods, confinement techniques, etc.
 \end{itemize}
 \vspace{-0.2cm}
-\begin{itemize}%[leftmargin=1em]
-\setbeamertemplate{itemize item}{$\Rightarrow$}
-	\item \alert{Fusion codes:} complexity due to the number of parameters, geometry, model, etc.
-\end{itemize}
+%%\begin{itemize}%[leftmargin=1em]
+%%\setbeamertemplate{itemize item}{$\Rightarrow$}
+%%	\item \alert{Fusion codes:} complexity due to the number of parameters, geometry, model, etc.
+%%\end{itemize}
 \end{frame}
 % =================================
 
@@ -203,7 +207,7 @@ Current solutions present some drawbacks:
 
 % =================================
 \begin{frame}
-\frametitle{Tokamak diagnostics}
+\frametitle{Tokamak diagnostics to measure plasma quantities}
     
  \metroset{block=fill}
 \begin{alertblock}{Diagnostics}
@@ -440,48 +444,108 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \end{frame}
 % =================================
 
+% =================================
+\begin{frame}
+\frametitle{Tofu's structure}
+
+\begin{center}
+    	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
+\end{center}
+	
+\end{frame}
+% =================================
+
+
+%% =================================
+%\begin{frame}
+%\frametitle{What ToFu can do: modeling of simplified geometry}
+%	\begin{center}
+%		\includegraphics[width=\textwidth,trim={0 0 4cm 0}]{figures/geom_B3.png}
+%	\end{center}
+%\end{frame}
+%% =================================
+%
+%% =================================
+%\begin{frame}
+%\frametitle{What ToFu can do: 3D modeling of a 1D camera}
+%		\begin{center}
+%		\includegraphics[width=\textwidth]{figures/cam1d.png}
+%	\end{center}
+%\end{frame}
+%% =================================
+%
+%% =================================
+%\begin{frame}
+%\frametitle{What ToFu can do: 3D modeling of a 2D camera}
+%		\begin{center}
+%		\includegraphics[width=\textwidth]{figures/cam2d.png}
+%	\end{center}	
+%\end{frame}
+%% =================================
 
 
 % =================================
 \begin{frame}
 \frametitle{What ToFu can do: modeling of simplified geometry}
+\begin{columns}
+	\begin{column}{0.33\textwidth}
 	\begin{center}
-		\includegraphics[width=\textwidth,trim={0 0 4cm 0}]{figures/geom_B2.png}
+		\textbf{Geometry configuration}
+		\includegraphics[width=\textwidth,trim={0 0 6cm 0}]{figures/geom_B3.png}
 	\end{center}
-\end{frame}
-% =================================
-
-% =================================
-\begin{frame}
-\frametitle{What ToFu can do: 3D modeling of a 1D camera}
+	\pause
+	\end{column}
+		\begin{column}{0.33\textwidth}
 		\begin{center}
+		\textbf{1D Camera}
 		\includegraphics[width=\textwidth]{figures/cam1d.png}
 	\end{center}
-\end{frame}
-% =================================
-
-% =================================
-\begin{frame}
-\frametitle{What ToFu can do: 3D modeling of a 2D camera}
+		\end{column}
+		\pause
+		\begin{column}{0.33\textwidth}
 		\begin{center}
+		\textbf{2D Camera}
 		\includegraphics[width=\textwidth]{figures/cam2d.png}
 	\end{center}	
+		\end{column}
+	\end{columns}
 \end{frame}
 % =================================
 
 % =================================
 \begin{frame}
-\frametitle{What ToFu can do: handle basic reflexions}
-	
+\frametitle{What ToFu can do: modeling of simplified geometry}
+\begin{columns}
+	\begin{column}{0.33\textwidth}
+	\begin{center}
+		\textbf{Geometry configuration}
+		\includegraphics[width=\textwidth,trim={0 0 6cm 0}]{figures/geom_B3.png}
+	\end{center}
+	\pause
+	\end{column}
+		\begin{column}{0.33\textwidth}
+		\begin{center}
+		\textbf{1D Camera with reflexions}
+		\includegraphics[width=\textwidth]{figures/cam1d_ref.png}
+	\end{center}
+		\end{column}
+		\pause
+		\begin{column}{0.33\textwidth}
+		\begin{center}
+		\textbf{2D Camera with reflexions}
+		\includegraphics[width=\textwidth]{figures/cam2d_ref.png}
+	\end{center}	
+		\end{column}
+	\end{columns}
 \end{frame}
 % =================================
 
-% =================================
-\begin{frame}
-\frametitle{What ToFu can do: computing synthetic signals}
-	
-\end{frame}
-% =================================
+%% =================================
+%\begin{frame}
+%\frametitle{What ToFu can do: computing synthetic signals}
+%	
+%\end{frame}
+%% =================================
 
 % =================================
 \begin{frame}
