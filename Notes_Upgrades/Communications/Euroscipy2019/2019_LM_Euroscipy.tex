@@ -80,8 +80,8 @@
 \newrobustcmd*{\footlessfullcite}{\AtNextCite{\renewbibmacro{title}{}\renewbibmacro{in:}{}}\footfullcite}
 
 %\renewbibmacro{in:}{\hspace{-5pt}}
-%\AtEveryCitekey{\clearfield{pages}\clearfield{volume}\clearfield{url}
-%\clearfield{doi}\clearfield{issn}}
+\AtEveryCitekey{\clearfield{pages}\clearfield{volume}\clearfield{url}
+\clearfield{doi}\clearfield{issn}}
 %% -----------------------------------------
 
 % ---------First page variables------------
@@ -390,10 +390,11 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \end{center}
 \end{column}
 \end{columns}
+\vspace{-0.9cm}
 
 \begin{block}{}
 	\begin{center}
-	\textbf{For tomography diagnostics:\\ } The \textcolor{SchoolColor}{\textbf{To}mography for \textbf{Fu}sion} code (\textcolor{SchoolColor}{\textbf{ToFu}\footnote{repository: \url{https://github.com/ToFuProject/tofu}}\footnote{documentation: \url{https://tofuproject.github.io/tofu/index.html} }\footcite{didier2016}})
+	\textbf{For tomography diagnostics:\\ } The \alert{\textbf{To}mography for \textbf{Fu}sion} code (\alert{\textbf{ToFu}\footnote{repository: \url{https://github.com/ToFuProject/tofu}}\footnote{documentation: \url{https://tofuproject.github.io/tofu/index.html} }\footcite{didier2016}})
 	\end{center}
 \vspace{-5mm} 
 \end{block}
@@ -452,21 +453,27 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 % =================================
 \begin{frame}
 \frametitle{What ToFu can do: modeling of simplified geometry}
-	
+	\begin{center}
+		\includegraphics[width=\textwidth,trim={0 0 4cm 0}]{figures/geom_B2.png}
+	\end{center}
 \end{frame}
 % =================================
 
 % =================================
 \begin{frame}
 \frametitle{What ToFu can do: 3D modeling of a 1D camera}
-	
+		\begin{center}
+		\includegraphics[width=\textwidth]{figures/cam1d.png}
+	\end{center}
 \end{frame}
 % =================================
 
 % =================================
 \begin{frame}
 \frametitle{What ToFu can do: 3D modeling of a 2D camera}
-	
+		\begin{center}
+		\includegraphics[width=\textwidth]{figures/cam2d.png}
+	\end{center}	
 \end{frame}
 % =================================
 
