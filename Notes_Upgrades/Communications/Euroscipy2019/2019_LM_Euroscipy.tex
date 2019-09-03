@@ -440,15 +440,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \end{frame}
 % =================================
 
-% Tofu peut:
-%  Modeliser geom simplifiée
-%  Modeliser geom 3D d'une camera 1D
-%  Modeliser geom 3D d'une camera 2D
-%  Handle basics of Reflexions
-%  Calculer signal synthetic
-% and next : meshing and basis functions, tomographic inversion
 
-% =================================
 
 % =================================
 \begin{frame}
@@ -618,21 +610,18 @@ Cone-Ray intersection algorithm:
 	\begin{itemize}
 	\item Main steps:
 	\begin{itemize}
-		\item Test if intersection with bounding-box
-		\item Computation of special cases of segment $AB$
-		\item Computation of special cases of ray directional vector
-		\item General case: solution of a quadratic equation
+		\item Test intersection \textbf{bounding-box}
+		\item \textbf{special cases} (ray direction, segment, etc.)
+		\item General case: solution of a\textbf{ quadratic equation}
 	\end{itemize}
-	\item Pre-computation of geometry-independent variables
-	\item Core functions written in \textbf{Cython}
-	\item Parallelization over ray-loop (\textbf{prange} loops)
+	\item Pre-computation of variables
+	\item Core functions in \textbf{Cython}
+	\item Parallelization (\textbf{prange} loops)
 	\end{itemize}
-
-% TODO : moins de texte au dessus
+\pause
 \begin{table}[h] % just use this specifier if really needed.
     \centering
     \label{tab:LOS_init_sirrah}
-    % Visionner le code LaTeX du paragraphe 0
 	\sisetup{round-mode=places}
      \begin{tabular}{@{}l*{4}{S[table-format=1.2e-1,scientific-notation=true]}@{}}
        \toprule
@@ -667,19 +656,12 @@ Cone-Ray intersection algorithm:
 \begin{frame}
 \frametitle{Optimization of spatial integration routines}
 
-For the integration along a LOS:
-% rajouter equation et redire que fonction definie par utilisateur
+Integration of \textbf{user-defined function} along a LOS:
 	\begin{itemize}
-	\item Sample (discretization) of a 3D ray:
-		\begin{itemize}
-		\item Different quadrature rules: midpoint, simpson, romberg
-		\item Resolution given by user
-		\item Possible to define a sub-domain of discretization
-		\end{itemize}
 	\item Integration of a python function \textbf{func} defined by user by:
 		\begin{itemize}
-		\item \textbf{numpy}.sum
-		\item Cython based sum
+		\item \textbf{numpy}.sum (quad: \textbf{midpoint})
+		\item Cython based sum (quad: \textbf{midpoint})
 		\item \textbf{Scipy}.integrate.simps
 		\item \textbf{Scipy}.integrate.romb
 		\end{itemize}
@@ -739,7 +721,6 @@ For the integration along a LOS:
 \begin{table}[h] % just use this specifier if really needed.
     \centering
     \label{tab:LOS_init_sirrah}
-    % Visionner le code LaTeX du paragraphe 0
 	\sisetup{round-mode=places}
      \begin{tabular}{@{}lllll@{}}
        \toprule
