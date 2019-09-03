@@ -254,6 +254,27 @@ cdef inline void tile_3_to_2d(double v0, double v1, double v2,
         res[2,ii] = v2
     return
 
+# ==============================================================================
+# =  Polygon helpers
+# ==============================================================================
+cdef inline int find_ind_lowerright_corner(const double[::1] xpts,
+                                           const double[::1] ypts,
+                                           int npts) nogil:
+    cdef int ii
+    cdef int res = 0
+    cdef double minx = xpts[0]
+    cdef double miny = ypts[0]
+    for ii in range(1,npts):
+        if miny > ypts[ii]:
+            minx = xpts[ii]
+            miny = ypts[ii]
+            res = ii
+        elif miny == ypts[ii]:
+            if minx < xpts[ii]:
+                minx = xpts[ii]
+                miny = ypts[ii]
+                res = ii
+    return res
 
 # ==============================================================================
 # =  Distance

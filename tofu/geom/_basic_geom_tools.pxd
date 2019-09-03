@@ -58,6 +58,12 @@ cdef double comp_min(double[::1] vec, int npts) nogil
 
 cdef void tile_3_to_2d(double v0, double v1, double v2, int npts,
                        double[:,::1] res) nogil
+# ==============================================================================
+# =  Polygon helpers
+# ==============================================================================
+cdef int find_ind_lowerright_corner(const double[::1] xpts,
+                                    const double[::1] ypts,
+                                    int npts) nogil
 
 # ==============================================================================
 # == Vector Calculus Helpers
