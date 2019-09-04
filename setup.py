@@ -218,7 +218,7 @@ if sys.version[0]=='3':
 
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
-_README = [ff for ff in os.listdir(os.path.abspath(__file__))
+_README = [ff for ff in os.listdir(os.path.abspath(os.path.dirname(__file__)))
            if len(ff) <= 10 and ff[:7] == 'README.']
 assert len(_README) == 1
 _README = README[0]
