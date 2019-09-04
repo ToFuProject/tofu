@@ -217,7 +217,12 @@ if sys.version[0]=='3':
                  os.path.join(_HERE,'tofu/geom/_GG03.pyx'))
 
 # Get the long description from the README file
-with open(os.path.join(_HERE, 'README.md'), encoding='utf-8') as f:
+# Get the readme file whatever its extension (md vs rst)
+_README = [ff for ff in os.listdir(os.path.abspath(__file__))
+           if len(ff) <= 10 and ff[:7] == 'README.']
+assert len(_README) == 1
+_README = README[0]
+with open(os.path.join(_HERE, _README), encoding='utf-8') as f:
     long_description = f.read()
 
 #  ... Compiling files .........................................................
