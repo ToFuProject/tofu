@@ -145,9 +145,9 @@
 Worldwide growing energy needs (population, standards of living...)\\
 $\quad \Rightarrow$ high pressure on environment (degrading, changing, exhausting...)\\
 
-$\quad \Rightarrow$ decrease consumption + alternative production means\\
+$\quad \Rightarrow$ need to decrease consumption + alternative production means\\
 
-$\quad \Rightarrow$ relatively clean, safe, mass-production means with large resources would be welcome in the mix\\
+$\quad \Rightarrow$ a relatively clean, safe, mass-production means with large resources would be welcome in the mix\\
 
 %\begin{itemize}%[leftmargin=1em]
 %\setbeamertemplate{itemize item}{$\Rightarrow$}
@@ -213,7 +213,7 @@ Set of instruments to measure plasma quantities, for understanding, control, opt
 e.g: magnetic field, neutrons, \textbf{emitted light}, temperature, density...\\[1cm]
 
 
-$\quad \Rightarrow$ pinhole cameras (1D or 2D) for measuring light in various wavelengths
+$\quad \Rightarrow$ cameras (1D or 2D) for measuring light in various wavelengths
  
 
 %
@@ -247,6 +247,9 @@ $\quad \Rightarrow$ pinhole cameras (1D or 2D) for measuring light in various wa
     \end{column}
     	
 	\begin{column}{0.75\textwidth}
+		\begin{center}
+			\textbf{tofu.geom.Config class}
+		\end{center}
 		\includegraphics[width=1.\textwidth]{figures/Config01.pdf}
     \end{column}    	
     	
@@ -518,14 +521,14 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 %	\end{column}
 		\begin{column}{0.5\textwidth}
 		\begin{center}
-		\textbf{1D Camera}
+		\textbf{1D Camera\\(tofu.geom.CamLOS1D)}
 		\includegraphics[width=\textwidth]{figures/cam1d_bis.pdf}
 	\end{center}
 		\end{column}
 		\pause
 		\begin{column}{0.5\textwidth}
 		\begin{center}
-		\textbf{2D Camera}
+		\textbf{2D Camera\\(tofu.geom.CamLOS2D)}
 		\includegraphics[width=\textwidth]{figures/cam2d_bis.pdf}
 	\end{center}	
 		\end{column}
@@ -546,13 +549,13 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 %	\end{column}
 		\begin{column}{0.5\textwidth}
 		\begin{center}
-		\textbf{1D Camera with reflexions}
+		\textbf{1D Camera with reflexions\\(tofu.geom.CamLOS1D)}
 		\includegraphics[width=\textwidth]{figures/cam1d_bis_ref.pdf}
 	\end{center}
 		\end{column}
 		\begin{column}{0.5\textwidth}
 		\begin{center}
-		\textbf{2D Camera with reflexions}
+		\textbf{2D Camera with reflexions\\(tofu.geom.CamLOS2D)}
 		\includegraphics[width=\textwidth]{figures/cam2d_bis_ref.pdf}
 	\end{center}	
 		\end{column}
@@ -572,7 +575,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \frametitle{What ToFu can do}
 \begin{itemize}
 	\item Model simplified 3D geometry
-	\item 3D modeling of a 1D and 2D camera
+	\item 3D modeling of a 1D and 2D LOS camera
 	\item Handle basic reflections
 	\item Computing synthetic signals
 	\item native support for IMAS interfacing
@@ -580,8 +583,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 	\pause
 	\item ...and soon (being re-written / developed):
 		\begin{itemize}
-			\item meshing and basis functions
-			\item tomographic inversion
+			\item Finite beam width (VOS, in 1.4.2, late 2019)
+			\item meshing and basis functions (mid 2020)
+			\item tomographic inversion (late 2020 - 2021)
 			\item dust particle trajectory tracking (new, Arpan)
 			\item faster Matplotlib + PyQtGraph visualization
 			\item magnetic field line tracing (new)
