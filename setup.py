@@ -224,6 +224,11 @@ assert len(_README) == 1
 _README = _README[0]
 with open(os.path.join(_HERE, _README), encoding='utf-8') as f:
     long_description = f.read()
+if _README[-3:] == ".md":
+    long_description_content_type="text/markdown"
+else:
+    long_description_content_type="text/x-rst"
+
 
 #  ... Compiling files .........................................................
 if openmp_installed :
@@ -279,6 +284,7 @@ setup(
 
     description='A python library for Tomography for Fusion',
     long_description=long_description,
+    long_description_content_type=long_description_content_type,
 
     # The project's main homepage.
     url='https://github.com/ToFuProject/tofu',
