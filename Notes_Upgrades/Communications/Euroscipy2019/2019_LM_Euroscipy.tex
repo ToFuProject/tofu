@@ -133,7 +133,7 @@
 
 % =================================
 \begin{frame}
-\frametitle{Context: energy needs vs climate change}
+\frametitle{Context: energy needs vs resources and climate change}
 
 	\begin{center}
 		\includegraphics[height=1.8cm]{figures/oil-power.jpg}%
@@ -142,22 +142,17 @@
 		\includegraphics[height=1.8cm]{figures/wind-power.jpg}
 	\end{center}
 
-Energy needs are growing (population, standards of living...)
-\tab $\Rightarrow$ high pressure on our environment (degraded,
+Worldwide growing energy needs (population, standards of living...)\\
+$\quad \Rightarrow$ high pressure on environment (degrading, changing, exhausting...)\\
 
-Current solutions present some drawbacks:
-\begin{itemize}%[leftmargin=1em]
-	\item limited or intermittent resources
-	\item significant production of green house gases or radioactive waste
-	\item low availability without long-term mass storage solution
-	\item unequal geographical distribution of resources
-	\item industrial risks (nuclear, chemical...)
-\end{itemize}
+$\quad \Rightarrow$ decrease consumption + alternative production means\\
 
-\begin{itemize}%[leftmargin=1em]
-\setbeamertemplate{itemize item}{$\Rightarrow$}
-	\item \alert{Fusion}: cleaner, more reliable, more powerful energy source?
-\end{itemize}
+$\quad \Rightarrow$ relatively clean, safe, mass-production means with large resources would be welcome in the mix\\
+
+%\begin{itemize}%[leftmargin=1em]
+%\setbeamertemplate{itemize item}{$\Rightarrow$}
+%	\item \alert{Fusion}: cleaner, more reliable, more powerful energy source?
+%\end{itemize}
 
 \end{frame}
 % =================================
@@ -190,9 +185,10 @@ Current solutions present some drawbacks:
     	
 \end{columns}
 
-\begin{itemize}%[leftmargin=1em]
-	\item Current reactors: different shapes, sizes, heating methods, confinement techniques, etc.
-\end{itemize}
+%\begin{itemize}%[leftmargin=1em]
+\begin{center}
+In a nutshell: toroidal vacuum vessel, filled with H plasma
+\end{center}%\end{itemize}
 \vspace{-0.2cm}
 %%\begin{itemize}%[leftmargin=1em]
 %%\setbeamertemplate{itemize item}{$\Rightarrow$}
@@ -211,27 +207,54 @@ Current solutions present some drawbacks:
     
  \metroset{block=fill}
 \begin{alertblock}{Diagnostics}
-Set of instruments to measure for the understanding, control and optimization of the plasma performance.
+Set of instruments to measure plasma quantities, for understanding, control, optimization.
 \end{alertblock}
 
-\begin{itemize}
-\item \textbf{Magnetic} diagnostics: currents, plasma stored energy, plasma shape and position;
+e.g: magnetic field, neutrons, \textbf{emitted light}, temperature, density...\\[1cm]
 
-\item \textbf{Neutron} diagnostics (ie. cameras, spectrometers, etc.): fusion power;
 
-\item Optical systems (\textbf{interferometers}): temperature and density profiles;
+$\quad \Rightarrow$ pinhole cameras (1D or 2D) for measuring light in various wavelengths
+ 
 
-\item Bolometric systems (\textbf{tomography}): spatial distribution of radiated power;
-
-\item \textbf{Spectroscopic}: X-ray wavelength range, impurity species and density, input particle flux, ion temperature, helium density, fueling ratio, plasma rotation, and current density.
+%
+%\begin{itemize}
+%\item \textbf{Magnetic} diagnostics: currents, plasma stored energy, plasma shape and position;
+%
+%\item \textbf{Neutron} diagnostics (ie. cameras, spectrometers, etc.): fusion power;
+%
+%\item Optical systems (\textbf{interferometers}): temperature and density profiles;
+%
+%\item Bolometric systems (\textbf{tomography}): spatial distribution of radiated power;
+%
+%\item \textbf{Spectroscopic}: X-ray wavelength range, impurity species and density, input particle flux, ion temperature, helium density, fueling ratio, plasma rotation, and current density.
 
 %\item Microwave diagnostics probe the main plasma and the plasma in the divertor region in order to measure plasma position.
 
-\end{itemize}
+%\end{itemize}
 
 \end{frame}
 % =================================
 
+
+% =================================
+\begin{frame}
+\frametitle{A tokamak as a poloidal + horizontal projections}
+    
+\begin{columns}
+    	
+    \begin{column}{0.25\textwidth}
+		\includegraphics[width=1.\textwidth]{figures/ITER.pdf}
+    \end{column}
+    	
+	\begin{column}{0.75\textwidth}
+		\includegraphics[width=1.\textwidth]{figures/Config01.pdf}
+    \end{column}    	
+    	
+\end{columns}
+
+
+\end{frame}
+% =================================
 
 % =================================
 \begin{frame}
@@ -245,7 +268,7 @@ Set of instruments to measure for the understanding, control and optimization of
     	
     	%\def\svgwidth{\linewidth}
     	%\import{figures/}{detectors.pdf_tex}
-    	\includegraphics[width=\linewidth]{figures/detectors2.png}
+    	\includegraphics[width=\linewidth,trim={0 0 1cm 0}]{figures/Tomography.pdf}
 
     	\end{column}
 
@@ -296,7 +319,7 @@ Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
     	
     	%\def\svgwidth{\linewidth}
     	%\import{figures/}{detectors.pdf_tex}
-    	\includegraphics[width=\linewidth]{figures/detectors2.png}
+    	\includegraphics[width=\linewidth,trim={0 0 1cm 0}]{figures/Tomography.pdf}
 
     	\end{column}
 
@@ -336,7 +359,7 @@ Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
 \vspace{-0.5cm}
 \begin{block}{}
 \begin{center}
-Tomography very sensitive to errors, noise and bias\\
+Tomography is \textbf{ill-posed}, very sensitive to errors, noise and bias\\
 $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \end{center}
 	\end{block}
@@ -345,27 +368,26 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 
 
 
-\section{The ToFu code}
+\section{The ToFu package}
 
 
 % =================================
 \begin{frame}
-\frametitle{Motvation: ``current" state}
+\frametitle{Motivation: ``current" state}
 
-	In the fusion community, codes for synthetic diagnostic are developed:
+	In the fusion community, codes for tomography diagnostic are often:
 	\begin{itemize}
-		\item  by physicists (with little to no programming experience),
-		\item  in Matlab,
-		\item  from scratch,
-		\item  in local/private 
+		\item  developed by physicists (with little programming experience)
+		\item  in Matlab (or IDL)
+		\item  written from scratch, re-done by new students
+		\item  not distributed (few users), rarely documented
 	\end{itemize}
 
 ... which means
 \begin{itemize}
-		\item  repetition of work: lost time, man-power, etc;
-		\item  no traceability,
-		\item  results impossible to reproduce,
-		\item  no standardization of diagnostics
+		\item  waste of resources: time, man-power
+		\item  low traceability, reproducibility
+		\item  low standardization, unclear assumptions / methods
 	\end{itemize}
 	
 \end{frame}
@@ -379,10 +401,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \begin{columns}
 \begin{column}{0.65\textwidth}
 	\begin{itemize}
-	\item Accessible to everyone (open-source)
 	\item Generic (geometry independent)
-	\item Portable (developed in Python)
-	\item Optimized (reliability and performance)
+	\item Portable (Python)
+	\item Optimized / parallelized
 	\item Documented online
 	\item Continuous integration
 	\end{itemize}
@@ -398,7 +419,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 
 \begin{block}{}
 	\begin{center}
-	\textbf{For tomography diagnostics:\\ } The \alert{\textbf{To}mography for \textbf{Fu}sion} code (\alert{\textbf{ToFu}\footnote{repository: \url{https://github.com/ToFuProject/tofu}}\footnote{documentation: \url{https://tofuproject.github.io/tofu/index.html} }\footcite{didier2016}})
+	\alert{\textbf{ToFu}\footnote{repository: \url{https://github.com/ToFuProject/tofu}}\footnote{documentation: \url{https://tofuproject.github.io/tofu/index.html} }\footcite{didier2016}} = \alert{\textbf{To}mography for \textbf{Fu}sion}
 	\end{center}
 \vspace{-5mm} 
 \end{block}
@@ -420,14 +441,14 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 	\item \textbf{conda}, \textbf{pip}
 	\item Two (main) developers:
 	\begin{itemize}
-		\item Didier Vezinet (creator, PhD in Physics)
-		\item Laura S. Mendoza (since June 2018, PhD in Applied Mathematics)
+		\item Didier Vezinet (creator, Physics)
+		\item Laura S. Mendoza (since 06.2018, Applied Maths)
 	\end{itemize}
 	\item Contributors:
 	\begin{itemize}
-		\item Jorge Morales (PhD in Physics)
+		\item Jorge Morales
 		\item Florian Le Bourdais
-		\item Arpan Khandelwal (intern)
+		\item Arpan Khandelwal
 	\end{itemize}
 \end{itemize}
 \end{column}
@@ -486,26 +507,26 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 
 % =================================
 \begin{frame}
-\frametitle{What ToFu can do: modeling of simplified geometry}
+\frametitle{tofu.geom: modeling of simplified geometry}
 \begin{columns}
-	\begin{column}{0.33\textwidth}
-	\begin{center}
-		\textbf{Geometry configuration}
-		\includegraphics[width=\textwidth,trim={0 0 6cm 0}]{figures/geom_B3.png}
-	\end{center}
-	\pause
-	\end{column}
-		\begin{column}{0.33\textwidth}
+%	\begin{column}{0.33\textwidth}
+%	\begin{center}
+%		\textbf{Geometry configuration}
+%		\includegraphics[width=\textwidth,trim={0 0 6cm 0}]{figures/geom_B3.png}
+%	\end{center}
+%	\pause
+%	\end{column}
+		\begin{column}{0.5\textwidth}
 		\begin{center}
 		\textbf{1D Camera}
-		\includegraphics[width=\textwidth]{figures/cam1d.png}
+		\includegraphics[width=\textwidth]{figures/cam1d_bis.pdf}
 	\end{center}
 		\end{column}
 		\pause
-		\begin{column}{0.33\textwidth}
+		\begin{column}{0.5\textwidth}
 		\begin{center}
 		\textbf{2D Camera}
-		\includegraphics[width=\textwidth]{figures/cam2d.png}
+		\includegraphics[width=\textwidth]{figures/cam2d_bis.pdf}
 	\end{center}	
 		\end{column}
 	\end{columns}
@@ -514,26 +535,25 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 
 % =================================
 \begin{frame}
-\frametitle{What ToFu can do: modeling of simplified geometry}
+\frametitle{tofu.geom: handle basic reflexions}
 \begin{columns}
-	\begin{column}{0.33\textwidth}
-	\begin{center}
-		\textbf{Geometry configuration}
-		\includegraphics[width=\textwidth,trim={0 0 6cm 0}]{figures/geom_B3.png}
-	\end{center}
-	\pause
-	\end{column}
-		\begin{column}{0.33\textwidth}
+%	\begin{column}{0.33\textwidth}
+%	\begin{center}
+%		\textbf{Geometry configuration}
+%		\includegraphics[width=\textwidth,trim={0 0 6cm 0}]{figures/geom_B3.png}
+%	\end{center}
+%	\pause
+%	\end{column}
+		\begin{column}{0.5\textwidth}
 		\begin{center}
 		\textbf{1D Camera with reflexions}
-		\includegraphics[width=\textwidth]{figures/cam1d_ref.png}
+		\includegraphics[width=\textwidth]{figures/cam1d_bis_ref.pdf}
 	\end{center}
 		\end{column}
-		\pause
-		\begin{column}{0.33\textwidth}
+		\begin{column}{0.5\textwidth}
 		\begin{center}
 		\textbf{2D Camera with reflexions}
-		\includegraphics[width=\textwidth]{figures/cam2d_ref.png}
+		\includegraphics[width=\textwidth]{figures/cam2d_bis_ref.pdf}
 	\end{center}	
 		\end{column}
 	\end{columns}
@@ -579,7 +599,7 @@ ToFu can:
 }
 % =================================
 
-\section{Optimization of the code}
+\section{Code Optimization}
 
 
 % =================================
@@ -919,12 +939,10 @@ For basis functions:
 
 \begin{columns}
 \begin{column}{0.6\textwidth}
-Visualization and geometrical tools:
+\textbf{Geometry}:
 	\begin{itemize}
-	\item Ray-tracing algorithm
-	\item Distance 3D objects and rays
-	\item Vignetting: 3D polygon - Ray% intersection
-	\item Solid angles computation (reflexions)
+	\item Finite beam width (LOS $\Rightarrow$ VOS)
+	\item More advanced reflexions
 	\end{itemize}
 \end{column}
 \begin{column}{0.4\textwidth}
@@ -936,13 +954,10 @@ Visualization and geometrical tools:
 \end{columns}
 
 \vspace{0.2cm}
-For direct and inverse problem:
+\textbf{Meshing and Inversions}:
 \begin{itemize}
-	\item Basis functions
-	\item Discretization: Geometry, Lines, Volumes
-	\item Spatial integration
-	\item Regularization-inversion routines (Bayesian, non linear, etc.)
-	\item Filtering
+	\item Meshing and Basis functions with visualization
+	\item Multiple Inversion-Regularization and visualization
 	\end{itemize}
 %\begin{center}
 %    	\includegraphics[width=0.6\linewidth]{figures/meshes.png}
