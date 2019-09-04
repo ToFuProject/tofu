@@ -570,21 +570,22 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 % =================================
 \begin{frame}
 \frametitle{What ToFu can do}
-ToFu can:
 \begin{itemize}
-	\item Modeling of simplified geometry
-	\item 3D modeling of a 1D camera
-	\item 3D modeling of a 2D camera
-	\item Handle basic reflexions
+	\item Model simplified 3D geometry
+	\item 3D modeling of a 1D and 2D camera
+	\item Handle basic reflections
 	\item Computing synthetic signals
-	\item ...and soon:
+	\item native support for IMAS interfacing
+	\item data easy interactive visualization and basic treatment
+	\pause
+	\item ...and soon (being re-written / developed):
 		\begin{itemize}
 			\item meshing and basis functions
 			\item tomographic inversion
-			\item dust particle trajectory tracking
+			\item dust particle trajectory tracking (new, Arpan)
 			\item faster Matplotlib + PyQtGraph visualization
-			\item magnetic field line tracing
-			\item data visualization and statistical tools (pandas)
+			\item magnetic field line tracing (new)
+			\item statistical data analysis (pandas) integrated
 		\end{itemize}
 \end{itemize}
 \end{frame}
@@ -889,6 +890,54 @@ Integration of \textbf{user-defined function} along a LOS:
 
 
 
+
+% =================================
+\begin{frame}
+\frametitle{Tofu's main algorithms}
+
+
+\begin{columns}
+\begin{column}{0.6\textwidth}
+\textbf{Geometry}:
+	\begin{itemize}
+	\item Finite beam width (LOS $\Rightarrow$ VOS)
+	\item thermal heat load computation
+	\item More advanced reflections
+	\end{itemize}
+\end{column}
+\begin{column}{0.4\textwidth}
+
+\begin{center}
+    	\hspace{-0.5cm}\includegraphics[width=\linewidth]{figures/cones.png}
+\end{center}
+\end{column}
+\end{columns}
+
+\vspace{0.2cm}
+\textbf{Meshing and Inversions}:
+\begin{itemize}
+	\item Meshing and Basis functions (local and global) with visualization
+	\item geometry matrix (fast) computation and introspection plots
+	\item Multiple Inversion-Regularization (linear and non-linear) and visualization
+	\item post-inversion analysis tools
+\end{itemize}
+
+\vspace{0.2cm}
+\textbf{On the side}:
+\begin{itemize}
+	\item Statistical data analysis (tofu / pandas interface)
+	\item Basic magnetic field line and particle trajectory tracing
+	\item continued IMAS support
+\end{itemize}
+
+%\begin{center}
+%    	\includegraphics[width=0.6\linewidth]{figures/meshes.png}
+%\end{center}	
+\end{frame}
+% =================================
+
+
+
 % =================================
 \begin{frame}
 \frametitle{On geometry discretization: meshing}
@@ -931,39 +980,6 @@ For basis functions:
 
 
 
-
-% =================================
-\begin{frame}
-\frametitle{Tofu's main algorithms}
-
-
-\begin{columns}
-\begin{column}{0.6\textwidth}
-\textbf{Geometry}:
-	\begin{itemize}
-	\item Finite beam width (LOS $\Rightarrow$ VOS)
-	\item More advanced reflexions
-	\end{itemize}
-\end{column}
-\begin{column}{0.4\textwidth}
-
-\begin{center}
-    	\hspace{-0.5cm}\includegraphics[width=\linewidth]{figures/cones.png}
-\end{center}
-\end{column}
-\end{columns}
-
-\vspace{0.2cm}
-\textbf{Meshing and Inversions}:
-\begin{itemize}
-	\item Meshing and Basis functions with visualization
-	\item Multiple Inversion-Regularization and visualization
-	\end{itemize}
-%\begin{center}
-%    	\includegraphics[width=0.6\linewidth]{figures/meshes.png}
-%\end{center}	
-\end{frame}
-% =================================
 
 % =================================
 \begin{frame}
