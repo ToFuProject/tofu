@@ -221,7 +221,7 @@ if sys.version[0]=='3':
 _README = [ff for ff in os.listdir(os.path.abspath(os.path.dirname(__file__)))
            if len(ff) <= 10 and ff[:7] == 'README.']
 assert len(_README) == 1
-_README = README[0]
+_README = _README[0]
 with open(os.path.join(_HERE, _README), encoding='utf-8') as f:
     long_description = f.read()
 
