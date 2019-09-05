@@ -195,9 +195,7 @@ Creating 1D cameras
    :align: center
 
 .. figure:: figures_doc/cam1d_plot_touch.png
-   :height: 300px
-   :width: 600 px
-   :scale: 100 %
+   :scale: 70 %
    :alt: Interactive plot of a 1D Camera
    :align: center
 
@@ -207,9 +205,7 @@ Creating 2D cameras. We are going to create a 2D camera with a slight rotation o
 >>> cam2.plot_touch() # also interactive ! click on the left plot and see for yourself!
 
 .. figure:: figures_doc/cam2d_plot_touch.png
-   :height: 300px
-   :width: 600 px
-   :scale: 100 %
+   :scale:  70 %
    :alt: Interactive plot of a 2D Camera
    :align: center
 
