@@ -217,8 +217,18 @@ if sys.version[0]=='3':
                  os.path.join(_HERE,'tofu/geom/_GG03.pyx'))
 
 # Get the long description from the README file
-with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
+# Get the readme file whatever its extension (md vs rst)
+_README = [ff for ff in os.listdir(os.path.abspath(os.path.dirname(__file__)))
+           if len(ff) <= 10 and ff[:7] == 'README.']
+assert len(_README) == 1
+_README = _README[0]
+with open(os.path.join(_HERE, _README), encoding='utf-8') as f:
     long_description = f.read()
+if _README[-3:] == ".md":
+    long_description_content_type="text/markdown"
+else:
+    long_description_content_type="text/x-rst"
+
 
 #  ... Compiling files .........................................................
 if openmp_installed :
@@ -274,6 +284,7 @@ setup(
 
     description='A python library for Tomography for Fusion',
     long_description=long_description,
+    long_description_content_type=long_description_content_type,
 
     # The project's main homepage.
     url='https://github.com/ToFuProject/tofu',
