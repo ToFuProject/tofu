@@ -1,34 +1,24 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>3. tofu.pathfile &mdash; tofu v1.1</title>
-    
+    <meta charset="utf-8" />
+    <title>3. tofu.pathfile &#8212; tofu v1.1</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '1.1.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="tofu v1.1" href="index.html" />
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="4. tofu.plugins" href="Auto_tofu.plugins.html" />
     <link rel="prev" title="2. tofu.treat" href="Auto_tofu.treat.html" /> 
-  </head>
-  <body role="document">
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -44,7 +34,7 @@
         <li class="right" >
           <a href="Auto_tofu.treat.html" title="2. tofu.treat"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -57,334 +47,351 @@
 <span id="tofu-pathfile"></span><span id="overview"></span><h1>3. <strong>tofu.pathfile</strong><a class="headerlink" href="#module-tofu.pathfile" title="Permalink to this headline">¶</a></h1>
 <p>Created on Wed Jul 30 14:37:31 2014</p>
 <p>&#64;author: didiervezinet</p>
-<dl class="function">
-<dt id="tofu.pathfile.Find_Rootpath">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">Find_Rootpath</code><span class="sig-paren">(</span><em>Path='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu/doc'</em>, <em>substr='/tofu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Find_Rootpath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Find_Rootpath" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the absolute path of the root directory of ToFu, searching for a pattern in the provided input path</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>Path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; An absolute path in which a pattern is to be looked for</li>
-<li><strong>substr</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The pattern to look for</li>
+<dl class="class">
+<dt id="tofu.pathfile.ID">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">ID</code><span class="sig-paren">(</span><em class="sig-param">Cls=None, Name=None, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath='/home/lasofivec/tofu/doc', USRdict={}, LObj=None, fromdict=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class used by all ToFu objects as an attribute</p>
+<p>It stores all relevant data for the identification of instances
+Stored info can be the name of the instance, the experiment and diagnostics
+it belongs to, or other user-defined info
+Also provides default names for saving the instances</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance (user-defined)
+Should be a str without space ‘ ‘ or underscore ‘_’
+(automatically removed if present)</p></li>
+<li><p><strong>Type</strong> (<em>None / str</em>) – Type of object (i.e.: ‘Tor’ or ‘Lin’ for a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code>)</p></li>
+<li><p><strong>Deg</strong> (<em>None / int</em>) – Degree of the b-splines constituting the <code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.mesh</span></code> object</p></li>
+<li><p><strong>Exp</strong> (<em>None / str</em>) – Flag specifying the experiment (e.g.: ‘WEST’, ‘AUG’, ‘ITER’, ‘JET’…)</p></li>
+<li><p><strong>Diag</strong> (<em>None / str</em>) – Flag indicating the diagnostic (e.g.: ‘SXR’, ‘HXR’, ‘Bolo’…)</p></li>
+<li><p><strong>shot</strong> (<em>None / int</em>) – A shot number from which the instance is valid (for tracking changes)</p></li>
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – Overrides the default file name for saving (not recommended)</p></li>
+<li><p><strong>SavePath</strong> (<em>None / str</em>) – Absolute path where the instance should be saved</p></li>
+<li><p><strong>USRdict</strong> (<em>None / dict</em>) – A user-defined dictionary containing information about the instance
+All info considered relevant can be passed here
+(e.g.: thickness of the diode, date of installation…)</p></li>
+<li><p><strong>LObj</strong> (<em>None / dict / list</em>) – <dl class="simple">
+<dt>Either:</dt><dd><ul>
+<li><p>list: list of other ID instances of objects on which the created object depends (this list will then be sorted by class and formatted into a dictionary storign key attributes)</p></li>
+<li><p>dict: a ready-made such dictionary</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>root</strong> (<em>str</em>) &#8211; The absolute path containing the pattern</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_LObj">
+<code class="sig-name descname">set_LObj</code><span class="sig-paren">(</span><em class="sig-param">LObj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_LObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_LObj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the LObj attribute, storing objects the instance depends on</p>
+<p>For example:
+A Detect object depends on a vessel and some apertures
+That link between should be stored somewhere (for saving/loading).
+LObj does this: it stores the ID (as dict) of all objects depended on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>LObj</strong> (None / dict / <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> / list of such) – <dl class="simple">
+<dt>Provide either:</dt><dd><ul class="simple">
+<li><p>A dict (derived from <code class="xref py py-meth docutils literal notranslate"><span class="pre">_todict()</span></code>)</p></li>
+<li><p>A <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> instance</p></li>
+<li><p>A list of dict or <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> instances</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_Name">
+<code class="sig-name descname">set_Name</code><span class="sig-paren">(</span><em class="sig-param">Name, SaveName=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], ForceUpdate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_Name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_Name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the Name of the instance, automatically updating the SaveName</p>
+<p>The name should be a str without spaces or underscores (removed)
+When the name is changed, if SaveName (i.e. the name used for saving)
+was not user-defined, it is automatically updated</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
+<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+Each element of the list is a key str indicating whether an element
+should be present in the SaveName</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_SaveName">
+<code class="sig-name descname">set_SaveName</code><span class="sig-paren">(</span><em class="sig-param">SaveName=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], ForceUpdate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_SaveName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_SaveName" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the name for saving the instance (SaveName)</p>
+<dl class="simple">
+<dt>SaveName can be either:</dt><dd><ul class="simple">
+<li><p>provided by the user (no constraint) - not recommended</p></li>
+<li><p>automatically generated from Name and key attributes (cf. Include)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
+<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+Each element of the list is a key str indicating whether an element
+should be present in the SaveName</p></li>
+<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <dl class="simple">
+<dt>Flag indicating the behaviour when SaveName=None:</dt><dd><ul>
+<li><p>True : A new SaveName is generated, overriding the old one</p></li>
+<li><p>False : The former SaveName is preserved (default)</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_USRdict">
+<code class="sig-name descname">set_USRdict</code><span class="sig-paren">(</span><em class="sig-param">USRdict={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_USRdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_USRdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the USRdict, containing user-defined info about the instance</p>
+<p>Useful for arbitrary info (e.g.: manufacturing date, material…)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>USRdict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.pathfile.get_DefaultPaths">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">get_DefaultPaths</code><span class="sig-paren">(</span><em>RootPath=None</em>, <em>Plugin=None</em>, <em>lSubs=[]</em>, <em>PathInp=None</em>, <em>PathObj=None</em>, <em>PathOut=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_DefaultPaths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_DefaultPaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the default paths for input loading, object and output saving depending on the root path used</p>
+<dt id="tofu.pathfile.SaveName_Conv">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">SaveName_Conv</code><span class="sig-paren">(</span><em class="sig-param">Mod=None, Cls=None, Type=None, Name=None, Deg=None, Exp=None, Diag=None, shot=None, version=None, usr=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#SaveName_Conv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.SaveName_Conv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a default name for saving the object</p>
+<p>Includes key info for fast identification of the object from file name
+Used on object creation by <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+It is recommended to use this default name.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.pathfile.get_Default_dtimeFmt">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">get_Default_dtimeFmt</code><span class="sig-paren">(</span><em>dtime=None</em>, <em>dtFormat='D%Y%m%d_T%H%M%S'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_Default_dtimeFmt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_Default_dtimeFmt" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the default datetime value and format</p>
+<dt id="tofu.pathfile.CheckSameObj">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">CheckSameObj</code><span class="sig-paren">(</span><em class="sig-param">obj0</em>, <em class="sig-param">obj1</em>, <em class="sig-param">LFields=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#CheckSameObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.CheckSameObj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if two variables are the same instance of a ToFu class</p>
+<p>Checks a list of attributes, provided by LField</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj0</strong> (<em>tofu object</em>) – A variable refering to a ToFu object of any class</p></li>
+<li><p><strong>obj1</strong> (<em>tofu object</em>) – A variable refering to a ToFu object of the same class as obj0</p></li>
+<li><p><strong>LFields</strong> (<em>None / str / list</em>) – <dl class="simple">
+<dt>The criteria against which the two objects are evaluated:</dt><dd><ul>
+<li><p>None: True is returned</p></li>
+<li><p>str or list: tests whether all listed attributes have the same value</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>A</strong> (<em>bool</em>) – True only is LField is None or a list of attributes that all match</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.SelectFromListId">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">SelectFromListId</code><span class="sig-paren">(</span><em class="sig-param">LId</em>, <em class="sig-param">Val=None</em>, <em class="sig-param">Crit='Name'</em>, <em class="sig-param">PreExp=None</em>, <em class="sig-param">PostExp=None</em>, <em class="sig-param">Log='any'</em>, <em class="sig-param">InOut='In'</em>, <em class="sig-param">Out=&lt;class 'bool'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#SelectFromListId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.SelectFromListId" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the indices or instances of all LOS matching criteria</p>
+<p>The selection can be done according to 2 different mechanisms</p>
+<p>Mechanism (1): provide the value (Val) a criterion (Crit) should match
+The criteria are typically attributes of <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+(i.e.: name, or user-defined attributes like the camera head…)</p>
+<p>Mechanism (2): (used if Val=None)
+Provide a str expression (or a list of such) to be fed to eval()
+Used to check on quantitative criteria.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>PreExp: placed before the criterion value (e.g.: ‘not ‘ or ‘&lt;=’)</p></li>
+<li><p>PostExp: placed after the criterion value</p></li>
+<li><p>you can use both</p></li>
+</ul>
+</div></blockquote>
+<p>Other parameters are used to specify logical operators for the selection
+(match any or all the criterion…) and the type of output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Crit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag indicating which criterion to use for discrimination
+Can be set to:</p>
+<blockquote>
+<div><ul>
+<li><p>any attribute of <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+(e.g.: ‘Name’,’SaveName’,’SavePath’…)</p></li>
+<li><p>any key of ID.USRdict (e.g.: ‘Exp’…)</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>Val</strong> (<em>None / list / str</em>) – The value to match for the chosen criterion, can be a list
+Used for selection mechanism (1)</p></li>
+<li><p><strong>PreExp</strong> (<em>None / list / str</em>) – A str (or list of such) expression to be fed to eval(),
+Placed before the criterion value
+Used for selection mechanism (2)</p></li>
+<li><p><strong>PostExp</strong> (<em>None / list / str</em>) – A str (or list of such) expression to be fed to eval()
+Placed after the criterion value
+Used for selection mechanism (2)</p></li>
+<li><p><strong>Log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag indicating whether the criterion shall match:</dt><dd><ul>
+<li><p>’all’: all provided values</p></li>
+<li><p>’any’: at least one of them</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>InOut</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag indicating whether the returned indices are:</dt><dd><ul>
+<li><p>’In’: the ones matching the criterion</p></li>
+<li><p>’Out’: the ones not matching it</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>Out</strong> (<em>type / str</em>) – <dl class="simple">
+<dt>Flag indicating in which form to return the result:</dt><dd><ul>
+<li><p>int: as an array of integer indices</p></li>
+<li><p>bool: as an array of boolean indices</p></li>
+<li><p>’Name’: as a list of names</p></li>
+<li><p>’LOS’: as a list of <code class="xref py py-class docutils literal notranslate"><span class="pre">LOS</span></code> instances</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>ind</strong> (<em>list / np.ndarray</em>) – The computed output, of nature defined by parameter Out</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="tofu.pathfile.convert_units">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">convert_units</code><span class="sig-paren">(</span><em>P</em>, <em>In='cm'</em>, <em>Out='m'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.convert_units" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">convert_units</code><span class="sig-paren">(</span><em class="sig-param">P</em>, <em class="sig-param">In='cm'</em>, <em class="sig-param">Out='m'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.convert_units" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quickly convert distance units between meters, centimeters and millimeters</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="tofu.pathfile.get_PolyFromPolyFileObj">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">get_PolyFromPolyFileObj</code><span class="sig-paren">(</span><em>PolyFileObj</em>, <em>SavePathInp=None</em>, <em>units='m'</em>, <em>comments='#'</em>, <em>skiprows=0</em>, <em>shape0=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_PolyFromPolyFileObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_PolyFromPolyFileObj" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">get_PolyFromPolyFileObj</code><span class="sig-paren">(</span><em class="sig-param">PolyFileObj</em>, <em class="sig-param">SavePathInp=None</em>, <em class="sig-param">units='m'</em>, <em class="sig-param">comments='#'</em>, <em class="sig-param">skiprows=0</em>, <em class="sig-param">shape0=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_PolyFromPolyFileObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_PolyFromPolyFileObj" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a polygon as a np.ndarray, extracted from a txt file or from a ToFu object, with appropriate units</p>
-<p>Useful for <code class="xref py py-meth docutils literal"><span class="pre">tofu.plugins.AUG.Ves._create()</span></code></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>PolyFileObj</strong> (str / <a class="reference internal" href="Auto_tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal"><span class="pre">tofu.geom</span></code></a> object / np.ndarray) &#8211; <dl class="docutils">
-<dt>The source where the polygon is to be found, either:</dt>
-<dd><ul class="first last">
-<li>str: the name of a file containing the coorindates of a polygon to be loaded with <code class="xref py py-meth docutils literal"><span class="pre">numpy.loadtxt()</span></code></li>
-<li>A <a class="reference internal" href="Auto_tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal"><span class="pre">tofu.geom</span></code></a> object: with attribute &#8216;Poly&#8217;</li>
-<li>np.ndarray: an 2-dimensional array containing the 2D cartesian coordinates of a polygon</li>
+<p>Useful for <code class="xref py py-meth docutils literal notranslate"><span class="pre">tofu.plugins.AUG.Ves._create()</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>PolyFileObj</strong> (str / <a class="reference internal" href="Auto_tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.geom</span></code></a> object / np.ndarray) – <dl class="simple">
+<dt>The source where the polygon is to be found, either:</dt><dd><ul>
+<li><p>str: the name of a file containing the coorindates of a polygon to be loaded with <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code></p></li>
+<li><p>A <a class="reference internal" href="Auto_tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.geom</span></code></a> object: with attribute ‘Poly’</p></li>
+<li><p>np.ndarray: an 2-dimensional array containing the 2D cartesian coordinates of a polygon</p></li>
 </ul>
 </dd>
 </dl>
-</li>
-<li><strong>SavePathInp</strong> (<em>str / None</em>) &#8211; The absolute path where the input file is stored</li>
-<li><strong>units</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which units the polygon coordinates is expressed in the input file / object / array (will be converted to meters)</li>
-<li><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Parameter to be fed to <code class="xref py py-meth docutils literal"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</li>
-<li><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Parameter to be fed to <code class="xref py py-meth docutils literal"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</li>
-<li><strong>shape0</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Specifies whether the loaded array is a (2,N) or (3,N) array (transposed it if necessary)</li>
+</p></li>
+<li><p><strong>SavePathInp</strong> (<em>str / None</em>) – The absolute path where the input file is stored</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Flag indicating in which units the polygon coordinates is expressed in the input file / object / array (will be converted to meters)</p></li>
+<li><p><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
+<li><p><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
+<li><p><strong>shape0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Specifies whether the loaded array is a (2,N) or (3,N) array (transposed it if necessary)</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
-<li><strong>Poly</strong> (<em>np.ndarray</em>) &#8211; (2,N) np.ndarray containing the 2D cartesian coordinates of the polygon, where N is the number of points</li>
-<li><strong>addInfo</strong> (<em>dict</em>) &#8211; Dictionaryb containing information on the origin of the polygon, for the record (e.g.: the name and absolute path of the file from which it was extracted)</li>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Poly</strong> (<em>np.ndarray</em>) – (2,N) np.ndarray containing the 2D cartesian coordinates of the polygon, where N is the number of points</p></li>
+<li><p><strong>addInfo</strong> (<em>dict</em>) – Dictionaryb containing information on the origin of the polygon, for the record (e.g.: the name and absolute path of the file from which it was extracted)</p></li>
 </ul>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="class">
-<dt id="tofu.pathfile.ID">
-<em class="property">class </em><code class="descclassname">tofu.pathfile.</code><code class="descname">ID</code><span class="sig-paren">(</span><em>Cls</em>, <em>Name</em>, <em>Type=None</em>, <em>Deg=None</em>, <em>Exp=None</em>, <em>Diag=None</em>, <em>shot=None</em>, <em>SaveName=None</em>, <em>SavePath=None</em>, <em>USRdict=None</em>, <em>LObj=None</em>, <em>dtime=None</em>, <em>dtFormat='D%Y%m%d_T%H%M%S'</em>, <em>dtimeIn=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID" title="Permalink to this definition">¶</a></dt>
-<dd><p>A class used by all ToFu objects as an attribute, storing all relevant data for the identification of created instances and providing default path and names for saving objects</p>
-<p>Each detector created in ToFu should be identifiable thanks to user-friendly criteria, like its name, the diagnostic and experiment it is attached to, the shot number from from it was physically installed on the experiement...
-Users can also freely add some information they consider relevant, such as some characteristics of the detector (size, manufacturer, date of last calibration...)</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; <dl class="docutils">
-<dt>Flag indicating which class is the object fro which the ID instance is being created, available class flags are:</dt>
-<dd><ul class="first last">
-<li>From <a class="reference internal" href="Auto_tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal"><span class="pre">tofu.geom</span></code></a>: &#8216;Ves&#8217;, &#8216;Struct&#8217;, &#8216;LOS&#8217;, &#8216;GLOS&#8217;, &#8216;Apert&#8217;, &#8216;Lens&#8217;, &#8216;Detect&#8217; and &#8216;GDetect&#8217;</li>
-<li>From <code class="xref py py-mod docutils literal"><span class="pre">tofu.mesh</span></code>: &#8216;Mesh1D&#8217;, &#8216;Mesh2D&#8217;, &#8216;LBF1D&#8217; and &#8216;LBF2D&#8217; (to be finished)</li>
-<li>From <code class="xref py py-mod docutils literal"><span class="pre">tofu.</span></code>: (to be completed)</li>
-</ul>
 </dd>
 </dl>
-</li>
-<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name to be assigned to the created instance, should be a str without &#8216; &#8216; or &#8216;_&#8217; (spaces and underscores will be automatically removed if present)</li>
-<li><strong>Type</strong> (<em>None / str</em>) &#8211; If provided (necessary for some objects, but not for all), specifies the Type of object (i.e.: &#8216;Tor&#8217; or &#8216;Lin&#8217; for a Ves instance)</li>
-<li><strong>Deg</strong> (<em>None / int</em>) &#8211; If provided (necessary only for objects of class &#8216;LBF1D&#8217; and &#8216;LBF2D&#8217;), specifies the degree of the b-splines constituting the <code class="xref py py-mod docutils literal"><span class="pre">tofu.mesh</span></code> object</li>
-<li><strong>Exp</strong> (<em>None / str</em>) &#8211; A short 3-4 letters max flag specifying the experiment to which the created instance belongs (e.g.: &#8216;AUG&#8217;, &#8216;ITER&#8217;, &#8216;TCV&#8217;, &#8216;JET&#8217;...)</li>
-<li><strong>Diag</strong> (<em>None / str</em>) &#8211; A short flag indicating which diagnostic the the created instance belongs to (e.g.: &#8216;SXR&#8217;, &#8216;HXR&#8217;, &#8216;Bolo&#8217;...)</li>
-<li><strong>shot</strong> (<em>None / int</em>) &#8211; A shot number from which the created instance can be considered valid (useful for tracking geometry changes in the case of Ves and Detect objects)</li>
-<li><strong>SaveName</strong> (<em>None / str</em>) &#8211; If provided, overrides the automatically generated name for saving the created instance (not recommended)</li>
-<li><strong>SavePath</strong> (<em>None / str</em>) &#8211; If provided, overrides the automatically generated path for saving the created instance</li>
-<li><strong>USRdict</strong> (<em>None / dict</em>) &#8211; If provided, a user-defined dictionary containing information about the instance considered relevant (e.g.: thickness of the diode, date of installation...)</li>
-<li><strong>LObj</strong> (<em>None / dict / list</em>) &#8211; <dl class="docutils">
-<dt>If provided, either</dt>
-<dd><ul class="first last">
-<li>list: list of other ID instances of objects on which the created object depends (this list will then be sorted by class and formatted into a dictionary storign key attributes)</li>
-<li>dict: a ready-made such dictionary</li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><strong>dtime</strong> (<em>None / dtm.datetime</em>) &#8211; If provided, a time reference to be used to identify this particular instance (used for debugging mostly)</li>
-<li><strong>dtFormat</strong> (<em>None / str</em>) &#8211; If provided, the format in which dtime should be written in the automatically generated saving name for the created instance</li>
-<li><strong>dtimeIn</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the dtm.datetime should be included in the automatically generated saving name for the created instance</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><em>Id          ID instance</em> &#8211; The created ID instance, with all necessary computed attributes and methods</p>
-</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="tofu.pathfile.ID.set_LObj">
-<code class="descname">set_LObj</code><span class="sig-paren">(</span><em>LObj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_LObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_LObj" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the LObj attribute to store the list of ID of other objects the created instance depends on</p>
-<p>A Detect object depends on a vessel and some optics (e.g.: a list of apertures).
-It is necessary that the link between the created Detect object and the already-existing Ves and Apert objects be stored somewhere, so that even after saving and closing the session, this correspondence can be retrieved and the Detect object can be re-loaded with links to the proper Ves and Apert objects, themselves beoing possibly saved elsewhere (so their respective SavePath must also be stored).
-The LObj parameter does this: it stores all information necessary about each of the other objects the created instance depends on, mostly by storing their ID attributes as dictionaries.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>LObj</strong> (<em>None / dict / list</em>) &#8211; <dl class="docutils">
-<dt>If provided, either</dt>
-<dd><ul class="first last simple">
-<li>list: list of other ID instances of objects on which the created object depends (this list will then be sorted by class and formatted into a dictionary storign key attributes)</li>
-<li>dict: a ready-made such dictionary</li>
-</ul>
-</dd>
-</dl>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tofu.pathfile.ID.set_Name">
-<code class="descname">set_Name</code><span class="sig-paren">(</span><em>Name</em>, <em>SaveName=None</em>, <em>dtimeIn=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_Name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_Name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the Name of the created instance, automatically updating the SaveName</p>
-<p>When the name is changed (reminding it should not include space (&#8216; &#8216;) or underscore (&#8216;_&#8217;) characters), the name used for saving the object is automatically changed</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name to be assigned to the created instance, should be a str without &#8216; &#8216; or &#8216;_&#8217; (spaces and underscores will be automatically removed if present)</li>
-<li><strong>SaveName</strong> (<em>None / str</em>) &#8211; If provided, overrides the automatically generated name for saving the created instance (not recommended)</li>
-<li><strong>dtimeIn</strong> (<em>None / bool</em>) &#8211; If provided, modifies the value of dtimeIn provided upon creation of the ID object</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tofu.pathfile.ID.set_SaveName">
-<code class="descname">set_SaveName</code><span class="sig-paren">(</span><em>SaveName=None</em>, <em>dtimeIn=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_SaveName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_SaveName" title="Permalink to this definition">¶</a></dt>
-<dd><p>Enables either to automatically compute a ToFu-consistent saving name for the created instance, or to override that default saving name with the user-provided SaveName</p>
-<p>When creating an object of any class, an ID object is assigned to it that automatically computes a saving name in case the user wants to save the object.
-This automatically generated saving name includes not only the name given to the instance but also useful classifying info such as the class of the object, its Type, experiment, diagnostic...
-It is not recommended to override this automatically generated saving name (because some routines rely on it for fast identification of saved files), but it is made possible for flexibility.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>SaveName</strong> (<em>None / str</em>) &#8211; If provided, a str that overrides the automatically generated saving name</li>
-<li><strong>dtimeIn</strong> (<em>None / bool</em>) &#8211; If provided, modifies the value of dtimeIn provided upon creation of the ID object</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tofu.pathfile.ID.set_SavePath">
-<code class="descname">set_SavePath</code><span class="sig-paren">(</span><em>SavePath=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_SavePath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_SavePath" title="Permalink to this definition">¶</a></dt>
-<dd><p>Enables to automatically generate a saving path for the created object, or to override that default path with the user-provided SavePath</p>
-<p>Similarily to SaveName, ToFu automatically generates a saving path for any created object.
-This saving path can be overriden if desired.
-This is less crucial than SaveName, changing the SavePath has little consequences as long as you remember what you are doing.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>SavePath</strong> (<em>None / str</em>) &#8211; If provided, a str that overrides the automatically generated saving path</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="tofu.pathfile.ID.set_USRdict">
-<code class="descname">set_USRdict</code><span class="sig-paren">(</span><em>USRdict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_USRdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_USRdict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the USRdict to enable the user to store arbitrary information about the instance created</p>
-<p>It may sometimes be useful to store unforeseen arbitrary info about some objects created, like the manufacturing date of a diode, the material used for a filter...
-The USRdict attribute is a user-defined dictionary for this purpose.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>USRdict</strong> (<em>None / dict</em>) &#8211; If provided, a user-defined dictionary containing information about the instance considered relevant (e.g.: thickness of the diode, date of installation...)</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="tofu.pathfile.CheckSameObj">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">CheckSameObj</code><span class="sig-paren">(</span><em>obj0</em>, <em>obj1</em>, <em>LFields=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#CheckSameObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.CheckSameObj" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check two variable refer to the same instance of a ToFu class by checking some key attributes</p>
-<p>Sometimes two different variables can refer to the same instance (for example if an object was created and assigned to obj0, then later saved and loaded and assigned to obj1).
-Occasionally it may be useful to check whether two variables really represent the same instance, according to important criteria from the point of view of ToFu.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>obj0</strong> (<em>tofu object</em>) &#8211; A variable refering to a ToFu object of any class</li>
-<li><strong>obj1</strong> (<em>tofu object</em>) &#8211; A variable refering to a ToFu object of any class (but the same class as obj0)</li>
-<li><strong>LFields</strong> (<em>None / str / list</em>) &#8211; <dl class="docutils">
-<dt>The criteria against which the two objects are evaluated, if not None, must be str matching an attribute of the ID class or an attribute of the object class itself (or a list of such)</dt>
-<dd><ul class="first last">
-<li>None: True is returned</li>
-<li>str or list: tests whether the attributes have the same value or not and only returns True if all do</li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>A</strong> (<em>bool</em>)</p>
-</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="tofu.pathfile.Save_Generic">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">Save_Generic</code><span class="sig-paren">(</span><em>obj</em>, <em>SaveName=None</em>, <em>Path=None</em>, <em>Mode='npz'</em>, <em>compressed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Save_Generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Save_Generic" title="Permalink to this definition">¶</a></dt>
-<dd><p>Save a ToFu object under file name SaveName, in folder Path, using specified mode</p>
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">Save_Generic</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">SaveName=None</em>, <em class="sig-param">Path='./'</em>, <em class="sig-param">Mode='npz'</em>, <em class="sig-param">compressed=False</em>, <em class="sig-param">Print=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Save_Generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Save_Generic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save a ToFu object under file name SaveName, in folder Path</p>
 <p>ToFu provides built-in saving and loading functions for ToFu objects.
-They can be saved at their default SavePath under their default SaveName or user-defined values can be forced if necessary.
-Saving can be done in two ways :</p>
+There is now only one saving mode:</p>
 <blockquote>
 <div><ul class="simple">
-<li>by direct object saving using cPickle (straightforward but heavy)</li>
-<li>by mapping the key object attributes to a dictionary and using <code class="xref py py-meth docutils literal"><span class="pre">numpy.savez_compressed()</span></code> (faster and lighter, recommended)</li>
+<li><p>‘npz’: saves a dict of key attributes using <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.savez()</span></code></p></li>
 </ul>
 </div></blockquote>
-<p>ToFu now automatically saves information on smaller objects on which the object of interest depends (like apertures for detectors), so that all info is stored in a single file.
-In particular, provided the Ves object is saved separately, a whole camera can be saved in a single file (i.e.: all detectors and apertures).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>SaveName</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name to be used to for the saved file, if None (recommended) uses obj.Id.SaveName</li>
-<li><strong>Path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Path specifying where to save the file, if None (recommended) uses obj.Id.SavePath</li>
-<li><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag specifying whether to save the object as a numpy array file (&#8216;.npz&#8217;, recommended) or an object using cPickle (not recommended, may cause retro-compatibility issues with later versions)</li>
-<li><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag, used when Mode=&#8217;npz&#8217;, indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)</li>
+<dl class="simple">
+<dt>Good practices are:</dt><dd><ul class="simple">
+<li><p>save <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Struct</span></code></p></li>
+<li><p>intermediate optics (<code class="xref py py-class docutils literal notranslate"><span class="pre">Apert</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Lens</span></code>) generally do not need to be saved
+Indeed, they will be autoamtically included in larger objects
+like Detect or Cam objects</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SaveName</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The file name, if None (recommended) uses obj.Id.SaveName</p></li>
+<li><p><strong>Path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Path where to save the file</p></li>
+<li><p><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag specifying the saving mode</dt><dd><ul>
+<li><p>’npz’: Only mode currently available (‘pck’ deprecated)</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Indicate whether to use np.savez_compressed (slower but smaller files)</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="tofu.pathfile.Open">
-<code class="descclassname">tofu.pathfile.</code><code class="descname">Open</code><span class="sig-paren">(</span><em>pathfileext=None</em>, <em>shot=None</em>, <em>t=None</em>, <em>Dt=None</em>, <em>Mesh=None</em>, <em>Deg=None</em>, <em>Deriv=None</em>, <em>Sep=True</em>, <em>Pos=True</em>, <em>OutPath=None</em>, <em>ReplacePath=None</em>, <em>Ves=None</em>, <em>out='full'</em>, <em>Verb=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Open" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">Open</code><span class="sig-paren">(</span><em class="sig-param">pathfileext=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">t=None</em>, <em class="sig-param">Dt=None</em>, <em class="sig-param">Mesh=None</em>, <em class="sig-param">Deg=None</em>, <em class="sig-param">Deriv=None</em>, <em class="sig-param">Sep=True</em>, <em class="sig-param">Pos=True</em>, <em class="sig-param">OutPath=None</em>, <em class="sig-param">ReplacePath=None</em>, <em class="sig-param">Ves=None</em>, <em class="sig-param">out='full'</em>, <em class="sig-param">Verb=False</em>, <em class="sig-param">Print=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Open" title="Permalink to this definition">¶</a></dt>
 <dd><p>Open a ToFu object saved file</p>
 <p>This generic open function identifies the required loading routine by detecting how the object was saved from the file name extension.
-Also, it uses <code class="xref py py-meth docutils literal"><span class="pre">FindSolFile()</span></code> to identify the relevant file in case key criteria such as shot, Deg... are provided instead of the file name itself.
-Finally, once all the relevant data is loaded from the file, a ToFu object is re-created, if necessary by implicitly loading all other objects it may depend on (i.e.: vessel, apertures...)</p>
-<p>If pathfileext is not provided (None), then the following keyword arguments are fed to <code class="xref py py-meth docutils literal"><span class="pre">FindSolFile()</span></code>: shot, t, Dt, Mesh, Deg, Deriv, Sep, Pos</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>pathfileext</strong> (<em>None / str</em>) &#8211; If provided, the name of the file to load</li>
-<li><strong>OutPath</strong> (<em>None / str</em>) &#8211; If provided, the absolute path where the file is to be found</li>
-<li><strong>ReplacePath</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; If provided, ? (to finish)</li>
-<li><strong>Ves</strong> (<em>None /</em>) &#8211; If provided, the <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a> object that shall be used to reconstruct the object (if not provided, the appropriate vessel will be loaded).</li>
-<li><strong>out</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating whether the object should be loaded completely (&#8216;full&#8217;), in a light dismissing the heaviest attributes (&#8216;light&#8217;) or whether only the Id or a list of Id should be returned (&#8216;Id&#8217;), valid only for &#8216;.npz&#8217;</li>
-<li><strong>Verb</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether to pring intermediate comments on the loading procedure</li>
+Also, it uses <code class="xref py py-meth docutils literal notranslate"><span class="pre">FindSolFile()</span></code> to identify the relevant file in case key criteria such as shot, Deg… are provided instead of the file name itself.
+Finally, once all the relevant data is loaded from the file, a ToFu object is re-created, if necessary by implicitly loading all other objects it may depend on (i.e.: vessel, apertures…)</p>
+<p>If pathfileext is not provided (None), then the following keyword arguments are fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">FindSolFile()</span></code>: shot, t, Dt, Mesh, Deg, Deriv, Sep, Pos</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pathfileext</strong> (<em>None / str</em>) – If provided, the name of the file to load</p></li>
+<li><p><strong>OutPath</strong> (<em>None / str</em>) – If provided, the absolute path where the file is to be found</p></li>
+<li><p><strong>ReplacePath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – If provided, ? (to finish)</p></li>
+<li><p><strong>Ves</strong> (<em>None /</em>) – If provided, the <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom.Ves</span></code> object that shall be used to reconstruct the object (if not provided, the appropriate vessel will be loaded).</p></li>
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Flag indicating whether the object should be loaded completely (‘full’), in a light dismissing the heaviest attributes (‘light’) or whether only the Id or a list of Id should be returned (‘Id’), valid only for ‘.npz’</p></li>
+<li><p><strong>Verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to pring intermediate comments on the loading procedure</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><em>obj             ToFu object</em> &#8211; The loaded and re-created ToFu object</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><em>obj             ToFu object</em> – The loaded and re-created ToFu object</p>
+</dd>
+</dl>
 </dd></dl>
 
 <div class="section" id="indices-and-tables">
 <h2>3.1. Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><a class="reference external" href="index.html">Homepage</a></li>
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+<li><p><a class="reference external" href="index.html">Homepage</a></p></li>
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -395,7 +402,7 @@ Finally, once all the relevant data is loaded from the file, a ToFu object is re
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
+  <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">3. <strong>tofu.pathfile</strong></a><ul>
 <li><a class="reference internal" href="#indices-and-tables">3.1. Indices and tables</a></li>
@@ -412,18 +419,18 @@ Finally, once all the relevant data is loaded from the file, a ToFu object is re
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/Auto_tofu.pathfile.txt"
+      <li><a href="_sources/Auto_tofu.pathfile.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -445,12 +452,12 @@ Finally, once all the relevant data is loaded from the file, a ToFu object is re
         <li class="right" >
           <a href="Auto_tofu.treat.html" title="2. tofu.treat"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2016, Didier VEZINET.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
     </div>
   </body>
 </html>
