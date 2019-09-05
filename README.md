@@ -36,35 +36,35 @@ Here are some examples of what **tofu** can do
 
 #### Built-in one-liners for interactive camera geometry visualization
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS1D_touch.png" width="600" alt="Built-in one-liners for interactive camera geometry visualization"/>
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/master/README_figures/CamLOS1D_touch.png" width="600" alt="Built-in one-liners for interactive camera geometry visualization"/>
 </p>
 
 #### ...both for 1D and 2D cameras, including the basics for multiple reflections handling
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS2D_touch_refelect.png" width="600" alt="...both for 1D and 2D cameras, including the basics for multiple reflections handling"/>
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/master/README_figures/CamLOS2D_touch_refelect.png" width="600" alt="...both for 1D and 2D cameras, including the basics for multiple reflections handling"/>
 </p>
 
 ####    Built-in plotting of sinograms
 
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS1D_sino.png" width="600" alt="Built-in plotting of sinograms"/>
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/master/README_figures/CamLOS1D_sino.png" width="600" alt="Built-in plotting of sinograms"/>
 </p>
 
 ####    Basic magnetic field line tracing
 
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/MagfieldLines.png" width="600" alt="Basic magnetic field line tracing"/>
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/master/README_figures/MagfieldLines.png" width="600" alt="Basic magnetic field line tracing"/>
 </p>
 
 
 ####    Multiple 1d profiles interactive plotting
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/Plasma2D_1dneTe.png" width="600" alt="Multiple 1d profiles interactive plotting"/>
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/master/README_figures/Plasma2D_1dneTe.png" width="600" alt="Multiple 1d profiles interactive plotting"/>
 </p>
 
 ####    Built-in basic data treatment and interactive plotting: svd and spectrograms
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/Plasma2D_1dneTe.png" width="600" alt="Built-in basic data treatment and interactive plotting: svd and spectrograms"/>
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/master/README_figures/Plasma2D_1dneTe.png" width="600" alt="Built-in basic data treatment and interactive plotting: svd and spectrograms"/>
 </p>
 
 
