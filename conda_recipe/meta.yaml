@@ -29,8 +29,6 @@ requirements:
     - cython >=0.26
     - nose
     - pygments
-    - polygon2 # [py27]
-    - polygon3 # [not py27]
     - funcsigs # [py27]
 
 
@@ -45,15 +43,11 @@ requirements:
     - cython >=0.26
     - nose
     - pygments
-    - polygon2 # [py27]
-    - polygon3 # [not py27]
     - funcsigs # [py27]
 
 test:
   requires:
     - nose
-    - polygon2 # [py2k]
-    - polygon3 # [not py27]
   imports:
     - tofu.geom
 

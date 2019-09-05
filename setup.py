@@ -154,7 +154,6 @@ print("................ checking if openmp installed... > ", openmp_installed)
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
     gg = '_GG0%s' % sys.version[0]
-    poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
 
@@ -218,15 +217,25 @@ if sys.version[0]=='3':
                  os.path.join(_HERE,'tofu/geom/_GG03.pyx'))
 
 # Get the long description from the README file
-with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
+# Get the readme file whatever its extension (md vs rst)
+_README = [ff for ff in os.listdir(os.path.abspath(os.path.dirname(__file__)))
+           if len(ff) <= 10 and ff[:7] == 'README.']
+assert len(_README) == 1
+_README = _README[0]
+with open(os.path.join(_HERE, _README), encoding='utf-8') as f:
     long_description = f.read()
+if _README[-3:] == ".md":
+    long_description_content_type="text/markdown"
+else:
+    long_description_content_type="text/x-rst"
+
 
 #  ... Compiling files .........................................................
 if openmp_installed :
-    extra_compile_args=["-O0", "-Wall", "-fopenmp"]
+    extra_compile_args=["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
     extra_link_args = ["-fopenmp"]
 else:
-    extra_compile_args=["-O0", "-Wall"]
+    extra_compile_args=["-O3", "-Wall", "-fno-wrapv"]
     extra_link_args = []
 
 extensions = [ Extension(name="tofu.geom."+gg,
@@ -275,6 +284,7 @@ setup(
 
     description='A python library for Tomography for Fusion',
     long_description=long_description,
+    long_description_content_type=long_description_content_type,
 
     # The project's main homepage.
     url='https://github.com/ToFuProject/tofu',
@@ -335,7 +345,6 @@ setup(
             'numpy',
             'scipy',
             'matplotlib',
-            poly,
             'cython>=0.26',
             ] + extralib,
 

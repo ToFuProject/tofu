@@ -34,7 +34,7 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_here = os.path.abspath(__file__)
+_here = os.path.abspath(os.path.dirname(__file__))
 _root = _here[:_here.rfind('/tofu')]
 _path_testcases = os.path.join(_root,'tofu/geom/inputs')
 

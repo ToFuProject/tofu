@@ -856,22 +856,28 @@ class Test03_Rays(object):
 
         ind = None#[0,10,20,30,40]
         minimize = ["memory", "calls", "hybrid"]
-        for mmz in minimize:
-            for typ in self.dobj.keys():
-                for c in self.dobj[typ].keys():
-                    obj = self.dobj[typ][c]
-                    ff = ffT if obj.config.Id.Type=='Tor' else ffL
-                    t = np.arange(0,10,10)
-                    connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                               and getattr(plt.get_current_fig_manager(),'toolbar')
-                               is not None)
-                    out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
-                                          res=0.01, DL=None, resMode='abs',
-                                          method='simps', minimize=mmz, ind=ind,
-                                          plot=False, out=np.ndarray,
-                                          fs=(12,6), connect=connect)
-                    sig, units = out
-                    assert not np.all(np.isnan(sig)), str(ii)
+        for aa in [True, False]:
+            for rm in ["abs", "rel"]:
+                for dm in ["simps", "romb", "sum"]:
+                    for mmz in minimize:
+                        for typ in self.dobj.keys():
+                            for c in self.dobj[typ].keys():
+                                obj = self.dobj[typ][c]
+                                ff = ffT if obj.config.Id.Type=='Tor' else ffL
+                                t = np.arange(0,10,10)
+                                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                                           and getattr(plt.get_current_fig_manager(),'toolbar')
+                                           is not None)
+                                out = obj.calc_signal(ff, t=t, ani=aa,
+                                                      fkwdargs={},
+                                                      res=0.01, DL=None,
+                                                      resMode=rm,
+                                                      method=dm, minimize=mmz,
+                                                      ind=ind,
+                                                      plot=False, out=np.ndarray,
+                                                      fs=(12,6), connect=connect)
+                                sig, units = out
+                                assert not np.all(np.isnan(sig)), str(ii)
         plt.close('all')
 
     def test11_plot(self):
@@ -934,18 +940,13 @@ class Test03_Rays(object):
         for dL in list_res:
             for dm in dmeths:
                 for qm in qmeths:
-                    print("============ for: ", dm, " -", qm, "=======")
-                    print("================= dl", dL," ================")
                     out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
                     k = out[0]
                     lind = out[2]
-                    print(" k =", k)
-                    print("lind =", lind)
                     assert np.all(k[:lind[0]] >= DL[0][0])
                     assert np.all(k[:lind[0]] <= DL[1][0])
                     assert np.all(k[lind[0]:] >= DL[0][1])
                     assert np.all(k[lind[0]:] <= DL[1][1])
-                    print("================= OK =======================")
 
 
 """
