@@ -266,7 +266,7 @@ def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV,
     return Pts, dV, ind, dVr
 
 
-def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
+def _Ves_get_sampleS(VPoly, dS,
                      DS=None, dSMode='abs', ind=None, DIn=0., VIn=None,
                      VType='Tor', VLim=None, nVLim=None, Out='(X,Y,Z)',
                      margin=1.e-9, Multi=False, Ind=None):
@@ -284,8 +284,6 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
     assert type(Multi) is bool, "Arg Multi must be a bool !"
 
     VLim = None if (VLim is None or nVLim==0) else np.array(VLim)
-    MinMax1 = np.array([Min1,Max1])
-    MinMax2 = np.array([Min2,Max2])
 
     # Check if Multi
     if nVLim>1:
