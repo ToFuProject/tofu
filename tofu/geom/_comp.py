@@ -454,10 +454,6 @@ def _Ves_get_sampleV(
 
 def _Ves_get_sampleS(
     VPoly,
-    Min1,
-    Max1,
-    Min2,
-    Max2,
     dS,
     DS=None,
     dSMode="abs",
@@ -507,9 +503,6 @@ def _Ves_get_sampleS(
     assert type(Multi) is bool, "Arg Multi must be a bool !"
 
     VLim = None if (VLim is None or nVLim == 0) else np.array(VLim)
-    # TODO @DV : What are these parameters ? What should they be used for ??
-    # MinMax1 = np.array([Min1, Max1])
-    # MinMax2 = np.array([Min2, Max2])
 
     # Check if Multi
     if nVLim > 1:
