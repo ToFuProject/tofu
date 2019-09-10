@@ -933,8 +933,7 @@ class Struct(utils.ToFuObject):
                        VLim=np.ascontiguousarray(self.Lim), nVLim=self.noccur,
                        Out=Out, margin=1.e-9,
                        Multi=self.dgeom['Multi'], Ind=Ind)
-        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
-                self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
+        args = [self.Poly, res]
         pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
         return pts, dS, ind, reseff
 
