@@ -651,7 +651,7 @@ def _Ves_get_sampleS(
                         margin=margin,
                     )
                     Pts[ii], dS[ii], NL, dSr[ii][0], Rref = out_loc[:5]
-                    dSr[ii][1], dY0r, dZ0r, VPbis = out_loc[:5]
+                    dSr[ii][1], dY0r, dZ0r, VPbis = out_loc[5:]
                     dSr[ii] += [dY0r, dZ0r]
 
     if len(VLim) == 1:
