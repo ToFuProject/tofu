@@ -4639,7 +4639,7 @@ class Rays(utils.ToFuObject):
             k = np.split(k, lind, axis=-1)
         return k, reseff, lind
 
-    def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
+    def _kInOut_Isoflux_inputs(self, lPoly, lVIn=None):
 
         if self._method=='ref':
             D, u = np.ascontiguousarray(self.D), np.ascontiguousarray(self.u)
@@ -4668,7 +4668,7 @@ class Rays(utils.ToFuObject):
             pass
         return largs, dkwd
 
-    def _kInOut_IsoFlux_inputs_usr(self, lPoly, lVIn=None):
+    def _kInOut_Isoflux_inputs_usr(self, lPoly, lVIn=None):
 
         # Check lPoly
         if type(lPoly) is np.ndarray:
@@ -4713,7 +4713,7 @@ class Rays(utils.ToFuObject):
 
         return nPoly, lPoly, lVIn
 
-    def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None,
+    def calc_kInkOut_Isoflux(self, lPoly, lVIn=None, Lim=None,
                              kInOut=True):
         """ Calculate the intersection points of each ray with each isoflux
 
@@ -4733,7 +4733,7 @@ class Rays(utils.ToFuObject):
         """
 
         # Preformat input
-        nPoly, lPoly, lVIn = self._kInOut_IsoFlux_inputs_usr(lPoly, lVIn=lVIn)
+        nPoly, lPoly, lVIn = self._kInOut_Isoflux_inputs_usr(lPoly, lVIn=lVIn)
 
         # Prepare output
         kIn = np.full((self.nRays,nPoly), np.nan)
@@ -4743,14 +4743,14 @@ class Rays(utils.ToFuObject):
         assert(self._method in ['ref', 'optimized'])
         if self._method=='ref':
             for ii in range(0,nPoly):
-                largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
+                largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
                 kIn[:,ii], kOut[:,ii] = out[2], out[3]
         elif self._method=="optimized":
             for ii in range(0,nPoly):
-                largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
+                largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
 
                 out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
