@@ -4669,19 +4669,37 @@ class Rays(utils.ToFuObject):
         return largs, dkwd
 
     def _kInOut_Isoflux_inputs_usr(self, lPoly, lVIn=None):
+        c0 = type(lPoly) in [np.ndarray,list,tuple]
 
         # Check lPoly
-        if type(lPoly) is np.ndarray:
-            lPoly = [lPoly]
-        lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
-        msg = "Arg lPoly must be a list of (2,N) or (N,2) np.ndarrays !"
-        assert all([pp.ndim==2 and 2 in pp.shape for pp in lPoly]), msg
+        if c0 and type(lPoly) is np.ndarray:
+            c0 = c0 and assert lPoly.ndim in [2,3]
+            if c0 and lPoly.ndim == 2:
+                c0 = c0 and lPoly.shape[0] == 2
+                if c0:
+                    lPoly = [np.ascontiguousarray(lPoly)]
+            elif c0:
+                c0 = c0 and lPoly.shape[1] == 2
+                if c0:
+                    lPoly = np.ascontiguousarray(lpoly)
+        elif c0:
+            lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
+            c0 = all([pp.ndim == 2 and pp.shape[0] == 2 for pp in lPoly])
+        if not c0:
+            msg = "Arg lPoly must be either:\n"
+            msg += "    - a (2,N) np.ndarray (signle polygon of N points)\n"
+            msg += "    - a list of M polygons, each being a (2,Ni) np.ndarray\n"
+            msg += "        - where Ni is the number of point of each polygon\n"
+            msg += "    - a (M,2,N) np.ndarray where:\n"
+            msg += "        - M is the number of polygons\n"
+            msg += "        - N is the (common) number of points per polygon\n"
+            raise Exception(msg)
+
         nPoly = len(lPoly)
-        for ii in range(0,nPoly):
-            if lPoly[ii].shape[0]!=2:
-                lPoly[ii] = lPoly[ii].T
-                # Check closed and anti-clockwise
-                lPoly[ii] = _GG.Poly_Order(lPoly[ii], Clock=False, close=True)
+        # for ii in range(0,nPoly):
+            # if lPoly[ii].shape[0] != 2:
+                # # Check closed and anti-clockwise
+                # lPoly[ii] = _GG.Poly_Order(lPoly[ii], Clock=False, close=True)
 
         # Check lVIn
         if lVIn is None:
