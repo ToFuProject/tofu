@@ -4681,7 +4681,7 @@ class Rays(utils.ToFuObject):
             elif c0:
                 c0 = c0 and lPoly.shape[1] == 2
                 if c0:
-                    lPoly = np.ascontiguousarray(lpoly)
+                    lPoly = np.ascontiguousarray(lPoly)
         elif c0:
             lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
             c0 = all([pp.ndim == 2 and pp.shape[0] == 2 for pp in lPoly])
