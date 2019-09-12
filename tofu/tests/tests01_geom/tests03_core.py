@@ -792,7 +792,7 @@ class Test03_Rays(object):
                                       & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
 
 
-    def test09_calc_kInkOut_IsoFlux(self):
+    def test09_calc_kInkOut_Isoflux(self):
         nP = 10
         r = np.linspace(0.1,0.4,nP)
         theta = np.linspace(0.,2*np.pi,100)
@@ -801,7 +801,7 @@ class Test03_Rays(object):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
-                kIn, kOut = obj.calc_kInkOut_IsoFlux(lp2D)
+                kIn, kOut = obj.calc_kInkOut_Isoflux(lp2D)
                 assert kIn.shape==(obj.nRays, nP)
                 assert kOut.shape==(obj.nRays, nP)
                 for ii in range(0,nP):
