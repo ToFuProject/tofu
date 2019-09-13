@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Getting started: 5 minutes tutorial for tofu &#8212; tofu v1.1</title>
+    <title>Getting started: 5 minutes tutorial for tofu &#8212; tofu v1.4</title>
     <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
@@ -16,7 +16,9 @@
     <script type="text/javascript" src="../../_static/language_data.js"></script>
     
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="1. tofu.geom package" href="../../tofu.geom.html" />
+    <link rel="prev" title="tofu examples" href="../index.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,7 +29,14 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">tofu v1.1</a> &#187;</li> 
+        <li class="right" >
+          <a href="../../tofu.geom.html" title="1. tofu.geom package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="tofu examples"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">tofu v1.4</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U"><cite>tofu</cite> examples</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -49,28 +58,6 @@
 <p>We start by loading <cite>tofu</cite>. You might see some warnings at this stage since optional modules for <cite>tofu</cite> could
 be missing on the machine you are working on. This can be ignored safely.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
-</pre></div>
-</div>
-<p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/imas2tofu/__init__.py:27: UserWarning:
-
-IMAS python API issue
-imas could not be imported into tofu (&#39;import imas&#39; failed):
-  - it may not be installed (optional dependency)
-  - or you not have loaded the good working environment
-
-    =&gt; the optional sub-package tofu.imas2tofu is not usable
-
-  warnings.warn(msg)
-/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/mag/__init__.py:28: UserWarning: Traceback (most recent call last):
-  File &quot;/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/mag/__init__.py&quot;, line 11, in &lt;module&gt;
-    import imas
-ModuleNotFoundError: No module named &#39;imas&#39;
-
-
-    =&gt; the optional sub-package tofu.mag is not usable
-
-  warnings.warn(msg)
 </pre></div>
 </div>
 <p>We can now create our first configuration.
@@ -103,7 +90,7 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
 </div>
 <img alt="../../_images/sphx_glr_plot_basic_tutorial_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_plot_basic_tutorial_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/miniconda3/envs/tofu3/lib/python3.7/site-packages/tofu-.1.4.1_52_g6f060e3-py3.7-linux-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
@@ -128,13 +115,13 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
 <p>What comes next is up to you!
 You could now play with the function parameters (change the cameras direction, refinement, aperture),
 with the plots (many are interactive) or create you own tomographic configuration.</p>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.461 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.535 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-plot-basic-tutorial-py">
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/1160c42f6f24c0b8cb34d385cf43ef35/plot_basic_tutorial.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_basic_tutorial.py</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/5e563a211865134a21f8a94f4b6484ec/plot_basic_tutorial.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_basic_tutorial.py</span></code></a></p>
 </div>
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/456e1667aa04e6c18aa493de485d48e8/plot_basic_tutorial.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_basic_tutorial.ipynb</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/a0f9eb605026446245cd4d5390dde100/plot_basic_tutorial.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_basic_tutorial.ipynb</span></code></a></p>
 </div>
 </div>
 <p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
@@ -146,6 +133,12 @@ with the plots (many are interactive) or create you own tomographic configuratio
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../index.html"
+                        title="previous chapter"><cite>tofu</cite> examples</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../../tofu.geom.html"
+                        title="next chapter">1. tofu.geom package</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -176,7 +169,14 @@ with the plots (many are interactive) or create you own tomographic configuratio
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">tofu v1.1</a> &#187;</li> 
+        <li class="right" >
+          <a href="../../tofu.geom.html" title="1. tofu.geom package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="tofu examples"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">tofu v1.4</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" ><cite>tofu</cite> examples</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
