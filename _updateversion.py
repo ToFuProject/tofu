@@ -25,7 +25,7 @@ def updateversion(path=_HERE):
 
     version_msg = "# Do not edit, pipeline versioning governed by git tags!"
     with open(version_py,"w") as fh:
-        msg = "{0}__version__ = {1}{0}".format(os.linesep, version_git)
+        msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
         fh.write(version_msg + msg)
     return version_git
 

@@ -801,32 +801,29 @@ class Test03_Rays(object):
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
                 kIn, kOut = obj.calc_kInkOut_Isoflux(lp2D)
-                assert kIn.shape==(obj.nRays, nP)
-                assert kOut.shape==(obj.nRays, nP)
-                for ii in range(0,nP):
-                    ind = ~np.isnan(kIn[:,ii])
-                    if not np.all((kIn[ind,ii]>=obj.kIn[ind])
-                                  & (kIn[ind,ii]<=obj.kOut[ind])):
+                assert kIn.shape == (nP, obj.nRays)
+                assert kOut.shape == (nP, obj.nRays)
+                for ii in range(0, nP):
+                    ind = ~np.isnan(kIn[ii, :])
+                    if not np.all((kIn[ii,ind] >= obj.kIn[ind])
+                                  & (kIn[ii, ind] <= obj.kOut[ind])):
                         msg = typ+' '+c+' '+str(ii)
-                        msg += "\n {0} {1}".format(obj.kIn[ind],obj.kOut[ind])
-                        msg += "\n {0}".format(str(kIn[ind,ii]))
-                        print(msg)
+                        msg += "\n {0} {1}".format(obj.kIn[ind], obj.kOut[ind])
+                        msg += "\n {0}".format(str(kIn[ii, ind]))
                         raise Exception(msg)
 
-                    ind = ~np.isnan(kOut[:,ii])
-                    if not np.all((kOut[ind,ii]>=obj.kIn[ind])
-                                  & (kOut[ind,ii]<=obj.kOut[ind])):
+                    ind = ~np.isnan(kOut[ii, :])
+                    if not np.all((kOut[ii, ind] >= obj.kIn[ind])
+                                  & (kOut[ii, ind] <= obj.kOut[ind])):
                         msg = typ+' '+c+' '+str(ii)
-                        msg += "\n {0} {1}".format(obj.kIn[ind],obj.kOut[ind])
-                        msg += "\n {0}".format(str(kOut[ind,ii]))
-                        print(msg)
+                        msg += "\n {0} {1}".format(obj.kIn[ind], obj.kOut[ind])
+                        msg += "\n {0}".format(str(kOut[ii, ind]))
                         raise Exception(msg)
-                    ind = (~np.isnan(kIn[:,ii])) & (~np.isnan(kOut[:,ii]))
-                    if not np.all(kIn[ind,ii]<=kOut[ind,ii]):
+                    ind = (~np.isnan(kIn[ii, :])) & (~np.isnan(kOut[ii, :]))
+                    if not np.all(kIn[ii, ind] <= kOut[ii, ind]):
                         msg = typ+' '+c+' '+str(ii)
-                        msg += "\n {0}".format(str(kIn[ind,ii]))
-                        msg += "\n {0}".format(str(kOut[ind,ii]))
-                        print(msg)
+                        msg += "\n {0}".format(str(kIn[ii, ind]))
+                        msg += "\n {0}".format(str(kOut[ii, ind]))
                         raise Exception(msg)
 
 
