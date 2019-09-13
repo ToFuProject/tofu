@@ -4,6 +4,7 @@ Getting started: 5 minutes tutorial for `tofu`
 
 This is a tutorial that aims to get a new user a little familiar with tofu's structure.
 """
+import matplotlib.pyplot as plt
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since optional modules for `tofu` could
@@ -37,7 +38,7 @@ cam1d.plot_touch()
 ###############################################################################
 # The principle is similar for 2D cameras.
 
-cam2d = tf.geom.utils.create_CamLOS1D(config=configB2, P=[3.4, 0, 0], N12=100, F=0.1, D12=0.1, angs=[np.pi, 0, 0],
+cam2d = tf.geom.utils.create_CamLOS2D(config=configB2, P=[3.4, 0, 0], N12=100, F=0.1, D12=0.1, angs=[np.pi, 0, 0],
                                       Name='', Exp='', Diag='')
 cam2d.plot_touch()
 
@@ -45,3 +46,4 @@ cam2d.plot_touch()
 # What comes next is up to you!
 # You could now play with the function parameters (change the cameras direction, refinement, aperture),
 # with the plots (many are interactive) or create you own tomographic configuration.
+
