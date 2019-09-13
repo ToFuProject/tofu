@@ -1,13 +1,6 @@
 tofu.geom package
 =================
 
-Subpackages
------------
-
-.. toctree::
-
-   tofu.geom.inputs
-
 Submodules
 ----------
 
