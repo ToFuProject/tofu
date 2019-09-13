@@ -4669,11 +4669,11 @@ class Rays(utils.ToFuObject):
         return largs, dkwd
 
     def _kInOut_Isoflux_inputs_usr(self, lPoly, lVIn=None):
-        c0 = type(lPoly) in [np.ndarray,list,tuple]
+        c0 = type(lPoly) in [np.ndarray, list, tuple]
 
         # Check lPoly
         if c0 and type(lPoly) is np.ndarray:
-            c0 = c0 and lPoly.ndim in [2,3]
+            c0 = c0 and lPoly.ndim in [2, 3]
             if c0 and lPoly.ndim == 2:
                 c0 = c0 and lPoly.shape[0] == 2
                 if c0:
@@ -4688,8 +4688,8 @@ class Rays(utils.ToFuObject):
         if not c0:
             msg = "Arg lPoly must be either:\n"
             msg += "    - a (2,N) np.ndarray (signle polygon of N points)\n"
-            msg += "    - a list of M polygons, each being a (2,Ni) np.ndarray\n"
-            msg += "        - where Ni is the number of point of each polygon\n"
+            msg += "    - a list of M polygons, each a (2,Ni) np.ndarray\n"
+            msg += "        - where Ni is the number of pts of each polygon\n"
             msg += "    - a (M,2,N) np.ndarray where:\n"
             msg += "        - M is the number of polygons\n"
             msg += "        - N is the (common) number of points per polygon\n"
@@ -4701,19 +4701,21 @@ class Rays(utils.ToFuObject):
             for ii in range(nPoly):
                 # Check closed and anti-clockwise
                 if _GG.Poly_isClockwise(lPoly[ii]):
-                    lPoly[ii] = lPoly[ii][:,::-1]
-                if not np.allclose(lPoly[ii][:,0], lPoly[ii][:,-1]):
-                    lPoly[ii] = np.concatenate((lPoly[ii],lPoly[ii][:,0:1]), axis=-1)
+                    lPoly[ii] = lPoly[ii][:, ::-1]
+                if not np.allclose(lPoly[ii][:, 0], lPoly[ii][:, -1]):
+                    lPoly[ii] = np.concatenate(
+                        (lPoly[ii], lPoly[ii][:, 0:1]), axis=-1
+                    )
         else:
             for ii in range(nPoly):
                  # Check closed and anti-clockwise
                  if _GG.Poly_isClockwise(lPoly[ii]):
-                     lPoly[ii] = lPoly[ii][:,::-1]
-            d = np.sum((lPoly[:,:,0]-lPoly[:,:,-1])**2, axis=1)
-            if np.allclose(d,0.):
+                     lPoly[ii] = lPoly[ii][:, ::-1]
+            d = np.sum((lPoly[:, :, 0]-lPoly[:, :, -1])**2, axis=1)
+            if np.allclose(d, 0.):
                 pass
             elif np.all(d > 0.):
-                lPoly = np.concatenate((lPoly, lPoly[:,:,0:1]), axis=-1)
+                lPoly = np.concatenate((lPoly, lPoly[:, :, 0:1]), axis=-1)
             else:
                 msg = "All poly in lPoly should be closed or all non-closed!"
                 raise Exception(msg)
@@ -4724,11 +4726,11 @@ class Rays(utils.ToFuObject):
             lVIn = []
             for pp in lPoly:
                 vIn = np.diff(pp, axis=1)
-                vIn = vIn/(np.sqrt(np.sum(vIn**2,axis=0))[None,:])
+                vIn = vIn/(np.sqrt(np.sum(vIn**2, axis=0))[None,:])
                 vIn = np.ascontiguousarray([-vIn[1,:], vIn[0,:]])
                 lVIn.append(vIn)
         else:
-            c0 = type(lVIn) in [np.ndarray,list,tuple]
+            c0 = type(lVIn) in [np.ndarray, list, tuple]
             if c0 and type(lVIn) is np.ndarray and lVIn.ndim == 2:
                 c0 = c0 and lVIn.shape == (2, lPoly[0].shape[1]-1)
                 if c0:
@@ -4741,21 +4743,21 @@ class Rays(utils.ToFuObject):
                 c0 = c0 and len(lVIn) == nPoly
                 if c0:
                     c0 = c0 and all([vv.shape == (2, pp.shape[1]-1)
-                                     for vv,pp in zip(lVIn,lPoly)])
+                                     for vv,pp in zip(lVIn, lPoly)])
                     if c0:
                         lVIn = [np.ascontiguousarray(vv) for vv in lVIn]
 
             # Check normalization and direction
             for ii in range(0,nPoly):
-                lVIn[ii] = lVIn[ii]/np.sqrt(np.sum(lVIn[ii]**2,axis=0))[None,:]
+                lVIn[ii] = lVIn[ii]/np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None,:]
                 vect = np.diff(lPoly[ii], axis=1)
-                vect = vect / np.sqrt(np.sum(vect**2,axis=0))[None,:]
+                vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None,:]
                 det = vect[0,:]*lVIn[ii][1,:] - vect[1,:]*lVIn[ii][0,:]
-                if not np.allclose(np.abs(det),1.):
+                if not np.allclose(np.abs(det), 1.):
                     msg = "Each lVIn must be perp. to each lPoly segment !"
                     raise Exception(msg)
                 ind = np.abs(det+1) < 1.e-12
-                lVIn[ii][:,ind] = -lVIn[ii][:,ind]
+                lVIn[ii][:, ind] = -lVIn[ii][:, ind]
 
         return nPoly, lPoly, lVIn
 
