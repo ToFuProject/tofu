@@ -791,7 +791,6 @@ class Test03_Rays(object):
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
                                       & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
 
-
     def test09_calc_kInkOut_Isoflux(self):
         nP = 10
         r = np.linspace(0.1,0.4,nP)
