@@ -1,0 +1,231 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowITER_Notes &#8212; tofu v1.1</title>
+    <link rel="stylesheet" href="../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowITER_Notes</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">_save</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Notes&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">]])</span>
+               <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span><span class="p">]])</span>
+
+<div class="viewcode-block" id="get_notes"><a class="viewcode-back" href="../../../../tofu.geom.inputs.html#tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowITER_Notes.get_notes">[docs]</a><span class="k">def</span> <span class="nf">get_notes</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; By convention : D is a length of the element, d is a gap  &quot;&quot;&quot;</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;DPhi&#39;</span><span class="p">:{},</span> <span class="s1">&#39;dPhi&#39;</span><span class="p">:{}}</span>
+    <span class="c1"># Toroidal width (mm, inner outer)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DPhi&#39;</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">26.370</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DPhi&#39;</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">31.929</span>
+
+    <span class="c1"># Inter tiles distance (mm, uniform)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.500</span>
+
+    <span class="c1"># Poloidal/Radial total length (mm)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">437.000</span>
+
+    <span class="c1"># Number of tiles radially</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">35</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nbPhi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">19</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="mi">12</span>
+
+    <span class="c1"># Radial length of a tile (mm, uniform)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;Dl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">12.000</span>
+
+    <span class="c1"># Vertical height of tiles (mm, uniform)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DZ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">26.000</span>
+
+    <span class="c1"># Toroidal space between needles (mm, inner outer)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dPhi&#39;</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.588</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dPhi&#39;</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.612</span>
+
+    <span class="c1"># (X,Z,Y) polygon of one needle (mm) !!!!!! (X,Z,Y)</span>
+    <span class="c1"># 1 mm should be added towards Z&gt;0 in the direction normal to the divertor&#39;s upper surface</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mf">759.457</span><span class="p">,</span> <span class="o">-</span><span class="mf">625.500</span><span class="p">,</span> <span class="o">-</span><span class="mf">1797.591</span><span class="p">],</span> <span class="c1"># Old start point</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">759.603</span><span class="p">,</span> <span class="o">-</span><span class="mf">624.572</span><span class="p">,</span> <span class="o">-</span><span class="mf">1797.936</span><span class="p">],</span> <span class="c1"># Only for pattern</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">772.277</span><span class="p">,</span> <span class="o">-</span><span class="mf">620.864</span><span class="p">,</span> <span class="o">-</span><span class="mf">1794.112</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">761.681</span><span class="p">,</span> <span class="o">-</span><span class="mf">610.036</span><span class="p">,</span> <span class="o">-</span><span class="mf">1769.498</span><span class="p">],</span> <span class="c1"># Computed,tube/plane</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">761.895</span><span class="p">,</span> <span class="o">-</span><span class="mf">620.231</span><span class="p">,</span> <span class="o">-</span><span class="mf">1764.921</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">751.095</span><span class="p">,</span> <span class="o">-</span><span class="mf">609.687</span><span class="p">,</span> <span class="o">-</span><span class="mf">1741.154</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">755.613</span><span class="p">,</span> <span class="o">-</span><span class="mf">580.944</span><span class="p">,</span> <span class="o">-</span><span class="mf">1751.852</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">766.413</span><span class="p">,</span> <span class="o">-</span><span class="mf">591.488</span><span class="p">,</span> <span class="o">-</span><span class="mf">1775.620</span><span class="p">],</span> <span class="c1"># Edge of plane</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">763.902</span><span class="p">,</span> <span class="o">-</span><span class="mf">596.129</span><span class="p">,</span> <span class="o">-</span><span class="mf">1774.659</span><span class="p">],</span> <span class="c1"># Computed,tube/plane</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">774.498</span><span class="p">,</span> <span class="o">-</span><span class="mf">606.956</span><span class="p">,</span> <span class="o">-</span><span class="mf">1799.274</span><span class="p">],</span> <span class="c1"># Middle top of tube</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">763.246</span><span class="p">,</span> <span class="o">-</span><span class="mf">601.395</span><span class="p">,</span> <span class="o">-</span><span class="mf">1806.563</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">767.575</span><span class="p">,</span> <span class="o">-</span><span class="mf">605.891</span><span class="p">,</span> <span class="o">-</span><span class="mf">1816.813</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">763.932</span><span class="p">,</span> <span class="o">-</span><span class="mf">629.068</span><span class="p">,</span> <span class="o">-</span><span class="mf">1808.186</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">764.112</span><span class="p">,</span> <span class="o">-</span><span class="mf">629.255</span><span class="p">,</span> <span class="o">-</span><span class="mf">1808.613</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">767.755</span><span class="p">,</span> <span class="o">-</span><span class="mf">606.078</span><span class="p">,</span> <span class="o">-</span><span class="mf">1817.240</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">772.084</span><span class="p">,</span> <span class="o">-</span><span class="mf">610.573</span><span class="p">,</span> <span class="o">-</span><span class="mf">1827.490</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">768.441</span><span class="p">,</span> <span class="o">-</span><span class="mf">633.750</span><span class="p">,</span> <span class="o">-</span><span class="mf">1818.863</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">768.622</span><span class="p">,</span> <span class="o">-</span><span class="mf">633.938</span><span class="p">,</span> <span class="o">-</span><span class="mf">1819.290</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">772.265</span><span class="p">,</span> <span class="o">-</span><span class="mf">610.760</span><span class="p">,</span> <span class="o">-</span><span class="mf">1827.917</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">776.594</span><span class="p">,</span> <span class="o">-</span><span class="mf">615.256</span><span class="p">,</span> <span class="o">-</span><span class="mf">1838.167</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">772.950</span><span class="p">,</span> <span class="o">-</span><span class="mf">638.433</span><span class="p">,</span> <span class="o">-</span><span class="mf">1829.540</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">773.131</span><span class="p">,</span> <span class="o">-</span><span class="mf">638.620</span><span class="p">,</span> <span class="o">-</span><span class="mf">1829.967</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">776.774</span><span class="p">,</span> <span class="o">-</span><span class="mf">615.443</span><span class="p">,</span> <span class="o">-</span><span class="mf">1838.594</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">781.103</span><span class="p">,</span> <span class="o">-</span><span class="mf">619.938</span><span class="p">,</span> <span class="o">-</span><span class="mf">1848.844</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">777.460</span><span class="p">,</span> <span class="o">-</span><span class="mf">643.115</span><span class="p">,</span> <span class="o">-</span><span class="mf">1840.217</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">777.640</span><span class="p">,</span> <span class="o">-</span><span class="mf">643.303</span><span class="p">,</span> <span class="o">-</span><span class="mf">1840.644</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">781.283</span><span class="p">,</span> <span class="o">-</span><span class="mf">620.126</span><span class="p">,</span> <span class="o">-</span><span class="mf">1849.271</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">785.612</span><span class="p">,</span> <span class="o">-</span><span class="mf">624.621</span><span class="p">,</span> <span class="o">-</span><span class="mf">1859.520</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">781.969</span><span class="p">,</span> <span class="o">-</span><span class="mf">647.798</span><span class="p">,</span> <span class="o">-</span><span class="mf">1850.894</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">782.149</span><span class="p">,</span> <span class="o">-</span><span class="mf">647.985</span><span class="p">,</span> <span class="o">-</span><span class="mf">1851.321</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">785.793</span><span class="p">,</span> <span class="o">-</span><span class="mf">624.808</span><span class="p">,</span> <span class="o">-</span><span class="mf">1859.948</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">790.122</span><span class="p">,</span> <span class="o">-</span><span class="mf">629.303</span><span class="p">,</span> <span class="o">-</span><span class="mf">1870.197</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">786.478</span><span class="p">,</span> <span class="o">-</span><span class="mf">652.481</span><span class="p">,</span> <span class="o">-</span><span class="mf">1861.571</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">786.659</span><span class="p">,</span> <span class="o">-</span><span class="mf">652.668</span><span class="p">,</span> <span class="o">-</span><span class="mf">1861.998</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">790.302</span><span class="p">,</span> <span class="o">-</span><span class="mf">629.491</span><span class="p">,</span> <span class="o">-</span><span class="mf">1870.624</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">794.631</span><span class="p">,</span> <span class="o">-</span><span class="mf">633.986</span><span class="p">,</span> <span class="o">-</span><span class="mf">1880.874</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">790.988</span><span class="p">,</span> <span class="o">-</span><span class="mf">657.163</span><span class="p">,</span> <span class="o">-</span><span class="mf">1872.248</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">791.168</span><span class="p">,</span> <span class="o">-</span><span class="mf">657.351</span><span class="p">,</span> <span class="o">-</span><span class="mf">1872.675</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">794.811</span><span class="p">,</span> <span class="o">-</span><span class="mf">634.173</span><span class="p">,</span> <span class="o">-</span><span class="mf">1881.301</span><span class="p">]]</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">notes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="s1">&#39;nb&#39;</span> <span class="ow">in</span> <span class="n">kk</span><span class="p">:</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+    <span class="k">return</span> <span class="n">notes</span></div>
+
+
+<div class="viewcode-block" id="make_Poly"><a class="viewcode-back" href="../../../../tofu.geom.inputs.html#tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowITER_Notes.make_Poly">[docs]</a><span class="k">def</span> <span class="nf">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">_save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_here</span><span class="p">):</span>
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">get_notes</span><span class="p">()</span>
+
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">indup</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">d</span><span class="o">-</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;Dl&#39;</span><span class="p">])</span><span class="o">&lt;</span><span class="mf">1.e-6</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[</span><span class="n">indup</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">R</span><span class="p">[</span><span class="n">indup</span><span class="p">],</span> <span class="n">Z</span><span class="p">[</span><span class="n">indup</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">Z</span><span class="p">[</span><span class="n">indup</span><span class="p">]])</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">e1</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">e1</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e1</span><span class="p">)</span>
+    <span class="n">e2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="o">-</span><span class="n">e1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">e1</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+    <span class="n">nP</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">P0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">]],</span><span class="n">Z</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">]]])</span>
+    <span class="n">PEnd</span> <span class="o">=</span> <span class="n">P0</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">e1</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">*</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DL&#39;</span><span class="p">]</span>
+    <span class="n">El</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">12</span><span class="p">]],</span><span class="n">Z</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">12</span><span class="p">]]])</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nb&#39;</span><span class="p">])</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">k</span><span class="o">*</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;Dl&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dl&#39;</span><span class="p">]),</span> <span class="n">nP</span><span class="p">)</span>
+    <span class="n">Poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">El</span><span class="p">,</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nb&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">e1</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">*</span><span class="n">l</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+    <span class="n">Poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">P0</span><span class="p">,</span><span class="n">Poly</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:],</span><span class="n">PEnd</span><span class="p">),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">Poly0</span> <span class="o">=</span> <span class="n">Poly</span><span class="p">[:,[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+
+    <span class="c1"># Poly1</span>
+    <span class="n">indI0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="n">Poly</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">PI</span> <span class="o">=</span> <span class="p">(</span><span class="n">Poly</span><span class="p">[:,</span><span class="n">indI0</span><span class="p">]</span> <span class="o">+</span> <span class="n">Poly</span><span class="p">[:,</span><span class="n">indI0</span><span class="o">+</span><span class="mi">3</span><span class="p">])</span><span class="o">/</span><span class="mf">2.</span>
+    <span class="n">Poly1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">Poly0</span><span class="p">[:,:</span><span class="mi">9</span><span class="p">],</span><span class="n">PI</span><span class="p">,</span><span class="n">Poly0</span><span class="p">[:,</span><span class="o">-</span><span class="mi">3</span><span class="p">:]),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">nn</span> <span class="o">=</span> <span class="n">_name</span><span class="o">+</span><span class="s1">&#39;V0&#39;</span>
+        <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">nn</span><span class="o">+</span><span class="s1">&#39;.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Poly0</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s1">&#39;#&#39;</span><span class="p">,</span>
+                   <span class="n">header</span><span class="o">=</span><span class="s1">&#39;Exp = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">Name = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">Cls = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">_Exp</span><span class="p">,</span><span class="n">nn</span><span class="p">,</span><span class="n">_Cls</span><span class="p">))</span>
+        <span class="n">nn</span> <span class="o">=</span> <span class="n">_name</span><span class="o">+</span><span class="s1">&#39;V1&#39;</span>
+        <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">nn</span><span class="o">+</span><span class="s1">&#39;.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s1">&#39;#&#39;</span><span class="p">,</span>
+                   <span class="n">header</span><span class="o">=</span><span class="s1">&#39;Exp = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">Name = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">Cls = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">_Exp</span><span class="p">,</span><span class="n">nn</span><span class="p">,</span><span class="n">_Cls</span><span class="p">))</span>
+        <span class="n">nn</span> <span class="o">=</span> <span class="n">_name</span><span class="o">+</span><span class="s1">&#39;V2&#39;</span>
+        <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">nn</span><span class="o">+</span><span class="s1">&#39;.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s1">&#39;#&#39;</span><span class="p">,</span>
+                   <span class="n">header</span><span class="o">=</span><span class="s1">&#39;Exp = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">Name = </span><span class="si">%s</span><span class="se">\n</span><span class="s1">Cls = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">_Exp</span><span class="p">,</span><span class="n">nn</span><span class="p">,</span><span class="n">_Cls</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Poly0</span><span class="p">,</span> <span class="n">Poly1</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">notes</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Parse input arguments</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Launch creation of polygons txt from bash&#39;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span> <span class="o">=</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-save&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;save ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_save</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-path&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;saving path ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_here</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Call wrapper function</span>
+    <span class="n">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>

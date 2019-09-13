@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.dust._core &#8212; tofu v1.1</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.dust._core</h1><div class="highlight"><pre>
+<span></span>
+
+
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1"># ToFu-specific</span>
+<span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">tofu.dust._comp</span> <span class="k">as</span> <span class="nn">_comp</span>
+    <span class="kn">import</span> <span class="nn">tofu.dust._plot</span> <span class="k">as</span> <span class="nn">_plot</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
+
+
+
+
+
+
+<div class="viewcode-block" id="Dust"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust">[docs]</a><span class="k">class</span> <span class="nc">Dust</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A generic Dust class to handle dust trajectories, radiative power</span>
+<span class="sd">    balance...</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">traj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+                 <span class="n">Ves</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">LStruct</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Initialize fields</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_traj</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_geom</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_res</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emiss</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_direct</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">Id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_Id</span><span class="p">(</span><span class="n">Id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dmat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_material_properties</span><span class="p">(</span><span class="n">dmat</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">traj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_traj</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Ves</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_geom</span><span class="p">(</span><span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">LStruct</span><span class="o">=</span><span class="n">LStruct</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dmat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">traj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_traj</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Ves</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geom</span><span class="p">[</span><span class="s1">&#39;Ves&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">LStruct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geom</span><span class="p">[</span><span class="s1">&#39;LStruct&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">res</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_res</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">emiss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_emiss</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">direct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_direct</span>
+
+<div class="viewcode-block" id="Dust.set_material_properties"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.set_material_properties">[docs]</a>    <span class="k">def</span> <span class="nf">set_material_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dmat</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">dmat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">dmat</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span> <span class="o">=</span> <span class="n">dmat</span></div>
+
+<div class="viewcode-block" id="Dust.set_traj"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.set_traj">[docs]</a>    <span class="k">def</span> <span class="nf">set_traj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">traj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">C0</span> <span class="o">=</span> <span class="n">traj</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">C1</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+        <span class="n">C2</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span><span class="s1">&#39;__iter__&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">C0</span> <span class="ow">or</span> <span class="n">C1</span> <span class="ow">or</span> <span class="n">C2</span>
+        <span class="k">if</span> <span class="n">C1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="s1">&#39;pts&#39;</span> <span class="ow">in</span> <span class="n">traj</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">traj</span><span class="p">[</span><span class="s1">&#39;pts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_check_trajpts</span><span class="p">(</span><span class="n">traj</span><span class="p">[</span><span class="s1">&#39;pts&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;t&#39;</span> <span class="ow">in</span> <span class="n">traj</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">traj</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_check_trajt</span><span class="p">(</span><span class="n">traj</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">],</span><span class="n">traj</span><span class="p">[</span><span class="s1">&#39;pts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">C2</span><span class="p">:</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="n">_check_trajpts</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+            <span class="n">traj</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pts&#39;</span><span class="p">:</span><span class="n">pts</span><span class="p">}</span>
+        <span class="n">traj</span><span class="p">[</span><span class="s1">&#39;npts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[</span><span class="s1">&#39;pts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_traj</span> <span class="o">=</span> <span class="n">traj</span></div>
+
+<div class="viewcode-block" id="Dust.set_geom"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.set_geom">[docs]</a>    <span class="k">def</span> <span class="nf">set_geom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">LStruct</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg Ves must be a tf.geom.Ves&quot;</span>
+        <span class="k">assert</span> <span class="n">Ves</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Ves</span><span class="p">,</span><span class="n">tfg</span><span class="o">.</span><span class="n">Ves</span><span class="p">),</span> <span class="n">msg</span>
+        <span class="n">C0</span> <span class="o">=</span> <span class="n">LStruct</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">C1</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">LStruct</span><span class="p">,</span><span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">)</span>
+        <span class="n">C2</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">LStruct</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span>
+              <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span><span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">LStruct</span><span class="p">]))</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">C0</span> <span class="ow">or</span> <span class="n">C1</span> <span class="ow">or</span> <span class="n">C2</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="k">assert</span> <span class="n">Ves</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">LStruct</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Ves must be provided !&quot;</span>
+
+        <span class="n">LStruct</span> <span class="o">=</span> <span class="p">[</span><span class="n">Lstruct</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">LStruct</span><span class="p">,</span><span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">)</span> <span class="k">else</span> <span class="n">LStruct</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_geom</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Ves&#39;</span><span class="p">:</span><span class="n">Ves</span><span class="p">,</span> <span class="s1">&#39;LStruct&#39;</span><span class="p">:</span><span class="n">LStruct</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sampleV</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_sampleV</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dust.set_sampleV"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.set_sampleV">[docs]</a>    <span class="k">def</span> <span class="nf">set_sampleV</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1">#assert</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_res</span> <span class="o">=</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="Dust.set_emiss"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.set_emiss">[docs]</a>    <span class="k">def</span> <span class="nf">set_emiss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emiss</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Ani</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axisym</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">ani</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">_GG</span><span class="o">.</span><span class="n">check_ff</span><span class="p">(</span><span class="n">emiss</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Ani</span><span class="o">=</span><span class="n">Ani</span><span class="p">,</span> <span class="n">Vuniq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emiss</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ff&#39;</span><span class="p">:</span><span class="n">emiss</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">t</span><span class="p">,</span> <span class="s1">&#39;ani&#39;</span><span class="p">:</span><span class="n">ani</span><span class="p">,</span> <span class="s1">&#39;axisym&#39;</span><span class="p">:</span><span class="n">axisym</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="Dust.set_directproblem"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.set_directproblem">[docs]</a>    <span class="k">def</span> <span class="nf">set_directproblem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">C0</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="n">C1</span> <span class="o">=</span> <span class="n">C0</span> <span class="ow">and</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">3</span>
+        <span class="n">C2</span> <span class="o">=</span> <span class="n">C0</span> <span class="ow">and</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="o">==</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;pts must be a (3,) or (3,N) np.ndarray (X,Y,Z coordinates of N points)&quot;</span>
+        <span class="k">assert</span> <span class="n">C1</span> <span class="ow">or</span> <span class="n">C2</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="k">if</span> <span class="n">C2</span><span class="p">:</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">nt</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">C0</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+        <span class="n">C1</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span>
+        <span class="n">C2</span> <span class="o">=</span> <span class="n">C1</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span><span class="o">&gt;</span><span class="mi">1</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;r must be a float or a 1D np.ndarray&quot;</span>
+        <span class="k">assert</span> <span class="n">C0</span> <span class="ow">or</span> <span class="n">C1</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="k">if</span> <span class="n">C0</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">r</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">nt</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="n">nt</span><span class="p">,</span> <span class="s2">&quot;r must be a (nt,) np.ndarray !&quot;</span>
+
+        <span class="n">C0</span> <span class="o">=</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="o">==</span><span class="p">(</span><span class="n">nt</span><span class="p">,)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;t must be None or a (N,) np.ndarray&quot;</span>
+        <span class="k">assert</span> <span class="n">C0</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_direct</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pts&#39;</span><span class="p">:</span><span class="n">pts</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">t</span><span class="p">}</span></div>
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    def calc_directproblem(self):</span>
+<span class="sd">        msg = &quot;set the direct problem before !&quot;</span>
+<span class="sd">        assert self.direct is not None, msg</span>
+<span class="sd">        if self.emiss is None:</span>
+<span class="sd">            msg = &quot;emiss not set =&gt; only the solid angle will be computed !&quot;</span>
+<span class="sd">            warnings.warn(msg)</span>
+<span class="sd">            out = _comp.</span>
+<span class="sd">            lpolyCross, lpolyHor, gridCross, gridHor = out[:4]</span>
+<span class="sd">            saCross, saHor, volIn, saIn = out[4:]</span>
+<span class="sd">        else:</span>
+<span class="sd">            #out =</span>
+<span class="sd">            lpolyCross, lpolyHor, gridCross, gridHor = out[:4]</span>
+<span class="sd">            saCross, saHor, volIn, saIn = out[4:8]</span>
+<span class="sd">            contribCross, contribHor, powIn = out[8:]</span>
+
+<span class="sd">        self._direct_sol = {&#39;lpolyCross&#39;:lpolyCross, &#39;lpolyHor&#39;:lpolyHor,</span>
+<span class="sd">                            &#39;gridCross&#39;}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Dust.plot"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core.Dust.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dax</span><span class="p">,</span> <span class="n">KH</span> <span class="o">=</span> <span class="n">_plot</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dax</span><span class="p">,</span> <span class="n">KH</span></div></div>
+
+
+
+<span class="k">def</span> <span class="nf">_check_trajpts</span><span class="p">(</span><span class="n">pts</span><span class="p">):</span>
+    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">pts</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">3</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">pts</span>
+
+<span class="k">def</span> <span class="nf">_check_trajt</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">npts</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="n">npts</span>
+    <span class="k">return</span> <span class="n">t</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>

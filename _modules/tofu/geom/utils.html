@@ -1,0 +1,1008 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.geom.utils &#8212; tofu v1.1</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.geom.utils</h1><div class="highlight"><pre>
+<span></span>
+<span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">inspect</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Python 2 back-porting</span>
+    <span class="kn">import</span> <span class="nn">funcsigs</span> <span class="k">as</span> <span class="nn">inspect</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># tofu</span>
+<span class="kn">import</span> <span class="nn">tofu</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">tofu.geom._core</span> <span class="k">as</span> <span class="nn">_core</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_core</span>
+
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;coords_transform&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;get_nIne1e2&#39;</span><span class="p">,</span> <span class="s1">&#39;get_X12fromflat&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;compute_RaysCones&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;create_config&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;create_CamLOS1D&#39;</span><span class="p">,</span> <span class="s1">&#39;create_CamLOS2D&#39;</span><span class="p">]</span>
+
+
+<span class="n">_sep</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span>
+<span class="n">_dict_lexcept_key</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">_lok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">_lok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_lok</span><span class="p">,</span> <span class="n">_lok</span><span class="o">+</span><span class="mi">10</span><span class="p">])</span>
+
+<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">_root</span> <span class="o">=</span> <span class="n">tofu</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">_path_testcases</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_root</span><span class="p">,</span> <span class="s1">&#39;geom&#39;</span><span class="p">,</span> <span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
+
+<span class="c1">###########################################################</span>
+<span class="c1">#       COCOS</span>
+<span class="c1">###########################################################</span>
+
+<span class="k">class</span> <span class="nc">CoordinateInputError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+
+    <span class="n">_cocosref</span> <span class="o">=</span> <span class="s2">&quot;O. Sauter, S. Yu. Medvedev, &quot;</span>
+    <span class="n">_cocosref</span> <span class="o">+=</span> <span class="s2">&quot;Computer Physics Communications 184 (2103) 293-302&quot;</span>
+
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The provided coords flag should be a str</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;It should match a known flag:</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - &#39;cart&#39; / &#39;xyz&#39; : cartesian coordinates</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - cocos flag indicating the cocos number (1-8, 11-18)</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;        Valid cocos flags include:</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;            &#39;11&#39;, &#39;02&#39;, &#39;5&#39;, &#39;14&#39;, ...&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;The cocos (COordinates COnvetionS) are descibed in:</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    [1] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">_cocosref</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+
+        <span class="c1"># Call the base class constructor with the parameters it</span>
+        <span class="c1"># needs</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CoordinateInputError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">msg</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Now for your custom code...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span> <span class="o">=</span> <span class="n">errors</span>
+
+
+
+<span class="k">def</span> <span class="nf">_coords_checkformatcoords</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="s1">&#39;11&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg coords must be a str !&quot;</span>
+        <span class="k">raise</span> <span class="n">CoordinateInputError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="n">iint</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">])</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">coords</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cart&#39;</span><span class="p">,</span><span class="s1">&#39;xyz&#39;</span><span class="p">]:</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="s1">&#39;xyz&#39;</span>
+    <span class="k">elif</span> <span class="n">iint</span><span class="o">.</span><span class="n">size</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">coords</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="n">iint</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">coords</span> <span class="ow">in</span> <span class="n">_lok</span><span class="o">.</span><span class="n">ravel</span><span class="p">():</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Not allowed number ({0) !&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">CoordinateInputError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Not allowed coords (</span><span class="si">{0}</span><span class="s2">) !&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">CoordinateInputError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coords</span>
+
+
+<span class="k">def</span> <span class="nf">_coords_cocos2cart</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="mi">11</span><span class="p">):</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">coords</span><span class="o">%</span><span class="mi">0</span><span class="p">)</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">indphi</span><span class="p">,</span> <span class="n">indZi</span><span class="p">,</span> <span class="n">sig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indphi</span><span class="p">,</span> <span class="n">indZ</span> <span class="p">,</span> <span class="n">sig</span><span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">sig</span><span class="o">*</span><span class="n">pts</span><span class="p">[</span><span class="n">indphi</span><span class="p">,:]</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">R</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">R</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="n">indZ</span><span class="p">,:]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">_coords_cart2cocos</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="mi">11</span><span class="p">):</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">coords</span><span class="o">%</span><span class="mi">0</span><span class="p">)</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">indphi</span><span class="p">,</span> <span class="n">indZ</span><span class="p">,</span> <span class="n">sig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indphi</span><span class="p">,</span> <span class="n">indZ</span> <span class="p">,</span> <span class="n">sig</span><span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span>
+    <span class="n">pts_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">pts_out</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">R</span>
+    <span class="n">pts_out</span><span class="p">[</span><span class="n">indphi</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">sig</span><span class="o">*</span><span class="n">phi</span>
+    <span class="n">pts_out</span><span class="p">[</span><span class="n">indZ</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">Z</span>
+    <span class="k">return</span> <span class="n">pts_out</span>
+
+<div class="viewcode-block" id="coords_transform"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.coords_transform">[docs]</a><span class="k">def</span> <span class="nf">coords_transform</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords_in</span><span class="o">=</span><span class="s1">&#39;11&#39;</span><span class="p">,</span> <span class="n">coords_out</span><span class="o">=</span><span class="s1">&#39;11&#39;</span><span class="p">):</span>
+
+    <span class="n">coords_in</span> <span class="o">=</span> <span class="n">_coords_checkformatcoords</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">coords_in</span><span class="p">)</span>
+    <span class="n">coords_out</span> <span class="o">=</span> <span class="n">_coords_checkformatcoords</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">coords_out</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">coords_in</span><span class="o">==</span><span class="n">coords_out</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">elif</span> <span class="n">coords_in</span><span class="o">==</span><span class="s1">&#39;xyz&#39;</span><span class="p">:</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">_coords_cart2cocos</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords_out</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">coords_out</span><span class="o">==</span><span class="s1">&#39;xyz&#39;</span><span class="p">:</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">_coords_cocos2cart</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords_out</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">_coords_cocos2cart</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords_in</span><span class="p">)</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">_coords_cocos2cart</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">coords_out</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pts</span></div>
+
+
+
+<span class="c1">###########################################################</span>
+<span class="c1">###########################################################</span>
+<span class="c1">#       Useful functions</span>
+<span class="c1">###########################################################</span>
+
+<div class="viewcode-block" id="get_nIne1e2"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.get_nIne1e2">[docs]</a><span class="k">def</span> <span class="nf">get_nIne1e2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">e1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">e2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">&gt;</span><span class="mf">1.e-12</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">ephi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="mf">0.</span><span class="p">])</span>
+    <span class="n">ez</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">nIn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nIn</span> <span class="o">=</span> <span class="o">-</span><span class="n">P</span>
+    <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIn</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">nIn</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">e1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nIn</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1.e-12</span><span class="p">:</span>
+            <span class="n">e1</span> <span class="o">=</span> <span class="n">ephi</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nIn</span><span class="p">,</span><span class="n">ez</span><span class="p">)</span>
+        <span class="n">e1</span> <span class="o">=</span> <span class="n">e1</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">e1</span><span class="o">*</span><span class="n">ephi</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.</span> <span class="k">else</span> <span class="o">-</span><span class="n">e1</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">e1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nIn</span><span class="o">*</span><span class="n">e1</span><span class="p">))</span><span class="o">&lt;</span><span class="mf">1.e-12</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Identified local base does not seem valid!</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;nIn = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">nIn</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;e1 =  </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">e1</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;np.sum(nIn*e1) = sum(</span><span class="si">%s</span><span class="s2">) = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">nIn</span><span class="o">*</span><span class="n">e1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nIn</span><span class="o">*</span><span class="n">e1</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">e2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nIn</span><span class="p">,</span><span class="n">e1</span><span class="p">)</span>
+    <span class="n">e2</span> <span class="o">=</span> <span class="n">e2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nIn</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">e2</span></div>
+
+
+<div class="viewcode-block" id="get_X12fromflat"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.get_X12fromflat">[docs]</a><span class="k">def</span> <span class="nf">get_X12fromflat</span><span class="p">(</span><span class="n">X12</span><span class="p">,</span> <span class="n">x12u</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nx12</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">x12u</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x1u</span><span class="p">,</span> <span class="n">x2u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]),</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+        <span class="k">if</span> <span class="n">x1u</span><span class="o">.</span><span class="n">size</span><span class="o">*</span><span class="n">x2u</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">X12</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">tol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">X12</span><span class="p">[:,:</span><span class="mi">2</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="mf">100.</span>
+            <span class="n">tolmag</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">tol</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span>
+            <span class="n">x1u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="o">-</span><span class="n">tolmag</span><span class="p">))</span>
+            <span class="n">x2u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="o">-</span><span class="n">tolmag</span><span class="p">))</span>
+            <span class="n">indx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x1u</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">+</span><span class="n">x1u</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">indx2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x2u</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">+</span><span class="n">x2u</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">indx1u</span><span class="p">,</span> <span class="n">indx2u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">indx1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">indx2</span><span class="p">)</span>
+            <span class="n">x1u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">indx1</span><span class="o">==</span><span class="n">ii</span><span class="p">])</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">indx1u</span><span class="p">])</span>
+            <span class="n">x2u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="n">indx2</span><span class="o">==</span><span class="n">ii</span><span class="p">])</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">indx2u</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x1u</span><span class="p">,</span> <span class="n">x2u</span> <span class="o">=</span> <span class="n">x12u</span>
+    <span class="k">if</span> <span class="n">nx12</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nx1</span><span class="p">,</span> <span class="n">nx2</span> <span class="o">=</span> <span class="n">x1u</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">x2u</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nx1</span><span class="p">,</span> <span class="n">nx2</span> <span class="o">=</span> <span class="n">nx12</span>
+
+    <span class="n">Dx12</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x1u</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x2u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x2u</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx1</span><span class="p">,</span><span class="n">nx2</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="n">indr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x1u</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">+</span><span class="n">x1u</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
+                     <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">X12</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x2u</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">+</span><span class="n">x2u</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))])</span>
+    <span class="n">ind</span><span class="p">[</span><span class="n">indr</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">indr</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">X12</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">x1u</span><span class="p">,</span> <span class="n">x2u</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">Dx12</span></div>
+
+<span class="c1">###########################################################</span>
+<span class="c1">###########################################################</span>
+<span class="c1">#       Fast computation of cones with rays</span>
+<span class="c1">###########################################################</span>
+
+
+<div class="viewcode-block" id="compute_RaysCones"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.compute_RaysCones">[docs]</a><span class="k">def</span> <span class="nf">compute_RaysCones</span><span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">us</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">90.</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="mi">40</span><span class="p">):</span>
+    <span class="c1"># Check inputs</span>
+    <span class="n">Ddim</span><span class="p">,</span> <span class="n">udim</span> <span class="o">=</span> <span class="n">Ds</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">us</span><span class="o">.</span><span class="n">ndim</span>
+    <span class="k">assert</span> <span class="n">Ddim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">Ds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">3</span> <span class="ow">and</span> <span class="n">Ds</span><span class="o">.</span><span class="n">size</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">udim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">us</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">3</span> <span class="ow">and</span> <span class="n">us</span><span class="o">.</span><span class="n">size</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">0</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">angs</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">udim</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">Ds</span><span class="o">.</span><span class="n">shape</span><span class="o">==</span><span class="n">us</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">Ddim</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">Ds</span> <span class="o">=</span> <span class="n">Ds</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">nD</span> <span class="o">=</span> <span class="n">Ds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Compute</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">nP</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span><span class="n">nD</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+    <span class="k">if</span> <span class="n">udim</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">us</span><span class="p">)</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">nD</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">us</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+    <span class="n">us</span> <span class="o">=</span> <span class="n">us</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">nP</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">us</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="o">-</span><span class="n">us</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">us</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],))])</span>
+    <span class="n">e2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">us</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span><span class="o">*</span><span class="n">e1</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">us</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span><span class="o">*</span><span class="n">e1</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span>
+                   <span class="n">us</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span><span class="o">*</span><span class="n">e1</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]</span><span class="o">-</span><span class="n">us</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]</span><span class="o">*</span><span class="n">e1</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]])</span>
+    <span class="n">ub</span> <span class="o">=</span> <span class="p">(</span><span class="n">us</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">)</span>
+          <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">e1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">e2</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">))</span>
+    <span class="n">Db</span> <span class="o">=</span> <span class="n">Ds</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">nP</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Db</span><span class="p">,</span> <span class="n">ub</span></div>
+
+
+<span class="c1">###########################################################</span>
+<span class="c1">###########################################################</span>
+<span class="c1">#       Fast computation of poly</span>
+<span class="c1">###########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mf">2.4</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+                    <span class="n">divlow</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Utility to compute three 2D (R,Z) polygons</span>
+
+<span class="sd">    One represents a vacuum vessel, one an outer bumper, one a baffle</span>
+
+<span class="sd">    The vessel polygon is centered on (R,0.), with minor radius r</span>
+<span class="sd">    It can have a vertical (&gt;0) or horizontal(&lt;0) elongation in [-1;1]</span>
+<span class="sd">    It can be D-shaped (Dshape in [0.,1.], typically 0.2)</span>
+<span class="sd">    It can be non-convex, with:</span>
+<span class="sd">        * a lower divertor-like shape</span>
+<span class="sd">        * a upper divertor-like shape</span>
+<span class="sd">    The elongation also affects the outer bumper and baffle</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    R:          int / float</span>
+<span class="sd">        Major radius used as a center of the vessel</span>
+<span class="sd">    r :         int / float</span>
+<span class="sd">        Minor radius of the vessel</span>
+<span class="sd">    elong:      int / float</span>
+<span class="sd">        Dimensionless elongation parameter in [-1;1]</span>
+<span class="sd">    Dshape:     int / float</span>
+<span class="sd">        Dimensionless parameter for the D-shape (in-out asymmetry) in [0;1]</span>
+<span class="sd">    divlow:     bool</span>
+<span class="sd">        Flag indicating whether to incude a lower divertor-like shape</span>
+<span class="sd">    divup:      bool</span>
+<span class="sd">        Flag indicating whether to incude an upper divertor-like shape</span>
+<span class="sd">    nP :        int</span>
+<span class="sd">        Parameter specifying approximately the number of points of the vessel</span>
+
+<span class="sd">    Return</span>
+<span class="sd">    ------</span>
+<span class="sd">    poly:       np.ndarray</span>
+<span class="sd">        Closed (2,nP) polygon of the vacuum vessel, optionnally with divertors</span>
+<span class="sd">    pbump:      np.ndarray</span>
+<span class="sd">        Closed (2,N) polygon defining the outer bumper</span>
+<span class="sd">    pbaffle:    np.ndarray</span>
+<span class="sd">        Closed (2,N) polygon defining the lower baffle</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Basics (center, theta, unit vectors)</span>
+    <span class="n">cent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">R</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">nP</span><span class="p">)</span>
+    <span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+
+    <span class="c1"># Divertors</span>
+    <span class="n">pdivR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]</span>
+    <span class="n">pdivZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="o">-</span><span class="mf">0.1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">divlow</span><span class="p">:</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">&lt;-</span><span class="mf">0.85</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pinsert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pdivR</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="o">+</span><span class="n">pdivZ</span><span class="p">])</span>
+        <span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">poly</span><span class="p">[:,:</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">pinsert</span><span class="p">,</span> <span class="n">poly</span><span class="p">[:,</span><span class="n">ind</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">:]),</span>
+                              <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">divup</span><span class="p">:</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">poly</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">poly</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">&gt;</span><span class="mf">0.85</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pinsert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pdivR</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mf">1.</span><span class="o">-</span><span class="n">pdivZ</span><span class="p">])</span>
+        <span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">poly</span><span class="p">[:,:</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">pinsert</span><span class="p">,</span> <span class="n">poly</span><span class="p">[:,</span><span class="n">ind</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">:]),</span>
+                              <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Modified radius (by elongation and Dshape)</span>
+    <span class="n">rbis</span> <span class="o">=</span> <span class="n">r</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">poly</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">poly</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">poly</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">poly</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+    <span class="n">rbis</span> <span class="o">=</span> <span class="n">rbis</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">elong</span><span class="o">*</span><span class="mf">0.15</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">theta</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">Dshape</span><span class="o">&gt;</span><span class="mf">0.</span><span class="p">:</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.</span>
+        <span class="n">coef</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">Dshape</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">ind</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span>
+        <span class="n">rbis</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">rbis</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">*</span><span class="n">coef</span>
+
+    <span class="n">er</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+    <span class="n">poly</span> <span class="o">=</span> <span class="n">cent</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">rbis</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">*</span><span class="n">er</span>
+
+    <span class="c1"># Outer bumper</span>
+    <span class="n">Dbeta</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">6.</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">Dbeta</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span><span class="n">Dbeta</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">pbRin</span> <span class="o">=</span> <span class="mf">0.85</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">beta</span><span class="p">)])</span>
+    <span class="n">pbRout</span> <span class="o">=</span> <span class="mf">0.95</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">beta</span><span class="p">)])[:,::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">pinsert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.95</span><span class="p">,</span><span class="mf">1.05</span><span class="p">,</span><span class="mf">1.05</span><span class="p">,</span><span class="mf">0.95</span><span class="p">],</span>
+                        <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="mf">0.05</span><span class="p">,</span><span class="o">-</span><span class="mf">0.05</span><span class="p">,</span><span class="o">-</span><span class="mf">0.05</span><span class="p">]])</span>
+
+    <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pbRout</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span><span class="o">&lt;</span><span class="mf">0.05</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">pbump</span> <span class="o">=</span> <span class="p">(</span><span class="n">pbRin</span><span class="p">,</span> <span class="n">pbRout</span><span class="p">[:,:</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">pinsert</span><span class="p">,</span>
+             <span class="n">pbRout</span><span class="p">[:,</span><span class="n">ind</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">:],</span> <span class="n">pbRin</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">pbump</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">pbump</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pbump</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">pbump</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+    <span class="n">er</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+    <span class="n">rbis</span> <span class="o">=</span> <span class="n">r</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pbump</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pbump</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+              <span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="n">elong</span><span class="o">*</span><span class="mf">0.15</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">theta</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.</span><span class="p">)))</span>
+    <span class="n">pbump</span> <span class="o">=</span> <span class="n">cent</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">rbis</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">*</span><span class="n">er</span>
+
+    <span class="c1"># Baffle</span>
+    <span class="n">offR</span><span class="p">,</span> <span class="n">offZ</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.85</span>
+    <span class="n">wR</span><span class="p">,</span> <span class="n">wZ</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.05</span>
+    <span class="n">pbaffle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">offR</span> <span class="o">+</span> <span class="n">wR</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">offZ</span> <span class="o">+</span> <span class="n">wZ</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pbaffle</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">pbaffle</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+    <span class="n">er</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+    <span class="n">rbis</span> <span class="o">=</span> <span class="n">r</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pbaffle</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pbaffle</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+              <span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="n">elong</span><span class="o">*</span><span class="mf">0.15</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">theta</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.</span><span class="p">)))</span>
+    <span class="n">pbaffle</span> <span class="o">=</span> <span class="n">cent</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">rbis</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">*</span><span class="n">er</span>
+
+    <span class="k">return</span> <span class="n">poly</span><span class="p">,</span> <span class="n">pbump</span><span class="p">,</span> <span class="n">pbaffle</span>
+
+
+<span class="c1">###########################################################</span>
+<span class="c1">###########################################################</span>
+<span class="c1">#       Fast computation of camera parameters</span>
+<span class="c1">###########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_PinholeCam_checkformatinputs</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                                          <span class="n">angs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">VType</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+    <span class="n">VType</span> <span class="o">=</span> <span class="n">VType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">VType</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;tor&#39;</span><span class="p">,</span><span class="s1">&#39;lin&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">angs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">nIn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">])</span><span class="o">!=</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Either angs xor nIn should be provided !&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Pinhole</span>
+    <span class="k">if</span> <span class="n">P</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">defRY</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;If P is not provided, a value msut be set for defRY!&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">VType</span><span class="o">==</span><span class="s1">&#39;tor&#39;</span><span class="p">:</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">defRY</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Lim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;If P is not provided, Lim must be set!&quot;</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">Lim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Lim</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">Lim</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">Lim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">Lim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Lim</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="n">defRY</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">P</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">3</span>
+
+    <span class="c1"># Camera inner parameters</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">F</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">D12</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">D12</span> <span class="o">=</span> <span class="n">F</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">D12</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+        <span class="n">D12</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">D12</span><span class="p">,</span><span class="n">D12</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">D12</span><span class="p">,</span><span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">D12</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span>
+        <span class="n">D12</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">D12</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">N12</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+        <span class="n">N12</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">N12</span><span class="p">,</span><span class="n">N12</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">N12</span><span class="p">,</span><span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">N12</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span>
+        <span class="n">N12</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">N12</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># Angles</span>
+    <span class="k">if</span> <span class="n">angs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">nIn</span><span class="p">,</span><span class="s1">&#39;__iter__&#39;</span><span class="p">)</span>
+        <span class="n">nIn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">nIn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">nIn</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">3</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">angs</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+            <span class="n">angs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">angs</span><span class="p">,</span><span class="n">angs</span><span class="p">,</span><span class="n">angs</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">angs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">angs</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">angs</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="mi">3</span>
+        <span class="n">angs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">VType</span><span class="o">==</span><span class="s1">&#39;tor&#39;</span><span class="p">:</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">eR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="mf">0.</span><span class="p">])</span>
+        <span class="n">ePhi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="mf">0.</span><span class="p">])</span>
+        <span class="n">eZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">nIn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nIncross</span> <span class="o">=</span> <span class="n">eR</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">eZ</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIncross</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">ePhi</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIn</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">nIn</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nIn</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">1.e-12</span><span class="p">:</span>
+            <span class="n">e10</span> <span class="o">=</span> <span class="n">ePhi</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">e10</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nIn</span><span class="p">,</span><span class="n">eZ</span><span class="p">)</span>
+            <span class="n">e10</span> <span class="o">=</span> <span class="n">e10</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e10</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">eX</span><span class="p">,</span> <span class="n">eY</span><span class="p">,</span> <span class="n">eZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">nIn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nIncross</span> <span class="o">=</span> <span class="n">eY</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">eY</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIncross</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">eZ</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIn</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">nIn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nIn</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">1.e-12</span><span class="p">:</span>
+            <span class="n">e10</span> <span class="o">=</span> <span class="n">eX</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">e10</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nIn</span><span class="p">,</span><span class="n">eZ</span><span class="p">)</span>
+            <span class="n">e10</span> <span class="o">=</span> <span class="n">e10</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e10</span><span class="p">)</span>
+
+    <span class="n">e20</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">e10</span><span class="p">,</span><span class="n">nIn</span><span class="p">)</span>
+    <span class="n">e20</span> <span class="o">=</span> <span class="n">e20</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e20</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">e20</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">&lt;</span><span class="mf">0.</span><span class="p">:</span>
+        <span class="n">e10</span><span class="p">,</span> <span class="n">e20</span> <span class="o">=</span> <span class="o">-</span><span class="n">e10</span><span class="p">,</span> <span class="o">-</span><span class="n">e20</span>
+
+    <span class="k">if</span> <span class="n">angs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">e1</span> <span class="o">=</span> <span class="n">e10</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="n">e20</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span><span class="n">e10</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span><span class="n">e20</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span><span class="n">e10</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angs</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span><span class="n">e20</span>
+
+    <span class="c1"># Check consistency of vector base</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ee</span><span class="p">)</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">1.e-12</span> <span class="k">for</span> <span class="n">ee</span> <span class="ow">in</span> <span class="p">[</span><span class="n">e1</span><span class="p">,</span><span class="n">nIn</span><span class="p">,</span><span class="n">e2</span><span class="p">]])</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nIn</span><span class="o">*</span><span class="n">e1</span><span class="p">))</span><span class="o">&lt;</span><span class="mf">1.e-12</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nIn</span><span class="o">*</span><span class="n">e2</span><span class="p">))</span><span class="o">&lt;</span><span class="mf">1.e-12</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">e1</span><span class="o">*</span><span class="n">e2</span><span class="p">))</span><span class="o">&lt;</span><span class="mf">1.e-12</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">e1</span><span class="p">,</span><span class="n">nIn</span><span class="p">)</span><span class="o">-</span><span class="n">e2</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">1.e-12</span>
+
+    <span class="k">return</span> <span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="p">,</span> <span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="n">VType</span>
+
+
+
+<span class="n">_comdoc</span> <span class="o">=</span> \
+        <span class="sd">&quot;&quot;&quot; Generate LOS for a {0}D camera</span>
+
+<span class="sd">        Generate the tofu inputs to instanciate a {0}D LOS pinhole camera</span>
+
+<span class="sd">        Internally, the camera is defined with:</span>
+<span class="sd">            - P : (X,Y,Z) position of the pinhole</span>
+<span class="sd">            - F : focal length (distance pinhole-detector plane)</span>
+<span class="sd">            - (e1,nIn,e2): a right-handed normalized vector base</span>
+<span class="sd">                nIn: the vector pointing inwards, from the detector plane to</span>
+<span class="sd">                    the pinhole and plasma</span>
+<span class="sd">                (e1,e2):  the 2 vector defining the detector plane coordinates</span>
+<span class="sd">                    By default, e1 is horizontal and e2 points upwards</span>
+<span class="sd">            - D12: The size of the detector plane in each direction (e1 and e2)</span>
+<span class="sd">            - N12: The number of detectors (LOS) in each direction (e1 and e2)</span>
+
+<span class="sd">        To simplify parameterization, the vector base (e1,nIn,e2) is</span>
+<span class="sd">        automatically computed from a set of 3 angles contained in angs</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        P:      np.ndarray</span>
+<span class="sd">            (3,) array containing the pinhole (X,Y,Z) cartesian coordinates</span>
+<span class="sd">        F:      float</span>
+<span class="sd">            The focal length</span>
+<span class="sd">        D12:    float {1}</span>
+<span class="sd">            The absolute size of the detector plane</span>
+<span class="sd">            {2}</span>
+<span class="sd">        N12:    int {3}</span>
+<span class="sd">            The number of detectors (LOS) on the detector plane</span>
+<span class="sd">            {4}</span>
+<span class="sd">        angs:   list</span>
+<span class="sd">            The three angles defining the orientation of the camera vector base</span>
+<span class="sd">                - angs[0] : &#39;vertical&#39; angle, the angle between the projection of</span>
+<span class="sd">                    nIn in a cross-section and the equatorial plane</span>
+<span class="sd">                - angs[1] : &#39;longitudinal&#39; angle, the angle between nIn and a</span>
+<span class="sd">                    cross-section plane</span>
+<span class="sd">                - angs[2] : &#39;twist&#39; angle, the angle between e1 and the equatorial</span>
+<span class="sd">                    plane, this is the angle the camera is rotated around its own</span>
+<span class="sd">                    axis</span>
+<span class="sd">        VType:  str</span>
+<span class="sd">            Flag indicating whether the geometry type is:</span>
+<span class="sd">                - &#39;Lin&#39;: linear</span>
+<span class="sd">                - &#39;Tor&#39;: toroidal</span>
+<span class="sd">        defRY:  None / float</span>
+<span class="sd">            Only used if P not provided</span>
+<span class="sd">            The default R (if &#39;Tor&#39;) or &#39;Y&#39; (of &#39;Lin&#39;) position at which to</span>
+<span class="sd">            place P, in the equatorial plane.</span>
+<span class="sd">        Lim:    None / list / np.ndarray</span>
+<span class="sd">            Only used if P is None and VTYpe is &#39;Lin&#39;</span>
+<span class="sd">            The vessel limits, by default P will be place in the middle</span>
+
+<span class="sd">        Return</span>
+<span class="sd">        ------</span>
+<span class="sd">        Ds:     np.ndarray</span>
+<span class="sd">            (3,N) array of the LOS starting points cartesian (X,Y,Z) coordinates</span>
+<span class="sd">            Can be fed to tofu.geom.CamLOSCam{0}D</span>
+<span class="sd">        P:      np.ndarray</span>
+<span class="sd">            (3,) array of pinhole (X,Y,Z) coordinates</span>
+<span class="sd">            Can be fed to tofu.geom.CamLOS{0}D</span>
+<span class="sd">        {5}</span>
+<span class="sd">        d2:     np.ndarray</span>
+<span class="sd">            (N2,) coordinates array of the LOS starting point along local</span>
+<span class="sd">            vector e2 (0 being the perpendicular to the pinhole on the detector plane)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+
+
+
+<span class="k">def</span> <span class="nf">_compute_CamLOS1D_pinhole</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                              <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span> <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">return_Du</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+    <span class="c1"># Check/ format inputs</span>
+    <span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="p">,</span> <span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="n">VType</span>\
+            <span class="o">=</span> <span class="n">_compute_PinholeCam_checkformatinputs</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">N12</span><span class="p">,</span>
+                                                    <span class="n">angs</span><span class="o">=</span><span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span>
+                                                    <span class="n">VType</span><span class="o">=</span><span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="n">defRY</span><span class="p">,</span>
+                                                    <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">)</span>
+
+    <span class="c1"># Get starting points</span>
+    <span class="n">d2</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">D12</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="n">N12</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">d2e</span> <span class="o">=</span> <span class="n">d2</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">*</span><span class="n">e2</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+    <span class="n">Ds</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="n">F</span><span class="o">*</span><span class="n">nIn</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">d2e</span>
+    <span class="k">if</span> <span class="n">return_Du</span><span class="p">:</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">-</span><span class="n">Ds</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">us</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+        <span class="k">return</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">d2</span>
+
+
+<span class="n">_comdoc1</span> <span class="o">=</span> <span class="n">_comdoc</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;Extension of the detector alignment along e2&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;Number of detectors along e2&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+<span class="n">_compute_CamLOS1D_pinhole</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_comdoc1</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_CamLOS2D_pinhole</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                              <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span> <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">return_Du</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+    <span class="c1"># Check/ format inputs</span>
+    <span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="p">,</span> <span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="n">VType</span>\
+            <span class="o">=</span> <span class="n">_compute_PinholeCam_checkformatinputs</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">N12</span><span class="p">,</span>
+                                                    <span class="n">angs</span><span class="o">=</span><span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span>
+                                                    <span class="n">VType</span><span class="o">=</span><span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="n">defRY</span><span class="p">,</span>
+                                                    <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">)</span>
+
+    <span class="c1"># Get starting points</span>
+    <span class="n">d1</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">D12</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="n">N12</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">d2</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">D12</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="n">N12</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">d1f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">d1</span><span class="p">,</span><span class="n">N12</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">d2f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">d2</span><span class="p">,</span><span class="n">N12</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">d1e</span> <span class="o">=</span> <span class="n">d1f</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">*</span><span class="n">e1</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">d2e</span> <span class="o">=</span> <span class="n">d2f</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span><span class="o">*</span><span class="n">e2</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+    <span class="c1"># Here compute ind12</span>
+    <span class="n">indflat2img</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">indimg2flat</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">Ds</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="n">F</span><span class="o">*</span><span class="n">nIn</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">d1e</span> <span class="o">+</span> <span class="n">d2e</span>
+    <span class="k">if</span> <span class="n">return_Du</span><span class="p">:</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">-</span><span class="n">Ds</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">us</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+        <span class="k">return</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">indflat2img</span><span class="p">,</span> <span class="n">indimg2flat</span>
+
+
+
+<span class="n">_extracom2</span> <span class="o">=</span> <span class="s1">&#39;(N1,) coordinates array of the LOS starting point along local</span><span class="se">\n\</span>
+<span class="se">\t</span><span class="s1">    vector e1 (0 being the perpendicular to the pinhole on the detector plane)&#39;</span>
+<span class="n">_comdoc2</span> <span class="o">=</span> <span class="n">_comdoc</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;/ list&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;Extended to [D12,D12] if a float is provided&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;/ list&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;Extended to [D12,D12] if a float is provided&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;d1:    np.ndarray</span><span class="se">\n\t</span><span class="s1">    &#39;</span><span class="o">+</span><span class="n">_extracom2</span><span class="p">)</span>
+
+<span class="n">_compute_CamLOS2D_pinhole</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_comdoc2</span>
+
+
+
+<span class="c1">###########################################################</span>
+<span class="c1">#       Fast creation of config</span>
+<span class="c1">###########################################################</span>
+
+<span class="n">_ExpWest</span> <span class="o">=</span> <span class="s1">&#39;WEST&#39;</span>
+
+<span class="n">_dconfig</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="s1">&#39;ITER&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+                   <span class="s1">&#39;PlasmaDomain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Sep&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV0&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV1&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV2&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;BumperInnerV1&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV1&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV3&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV3&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;BumperInnerV3&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV3&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;LH1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;LH2V1&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;RippleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;VDEV0&#39;</span><span class="p">]}}</span>
+
+<span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="s1">&#39;A1&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span>
+                            <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span> <span class="n">dconfig</span><span class="o">=</span><span class="n">_dconfig</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Load the desired test case configuration</span>
+
+<span class="sd">    Choose from one of the reference preset configurations:</span>
+<span class="sd">        {0}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;]&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">config</span><span class="p">,</span><span class="n">path</span><span class="p">]])</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dconfig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Please a valid config, from one of the following:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;[&quot;</span><span class="o">+</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot;+]&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># Get file names for config</span>
+    <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span><span class="o">==</span><span class="s1">&#39;.txt&#39;</span><span class="p">]</span>
+    <span class="n">lS</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lcls</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="o">!=</span> <span class="s1">&#39;Exp&#39;</span><span class="p">])</span>
+    <span class="n">Exp</span> <span class="o">=</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">lcls</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="n">cc</span><span class="p">]:</span>
+            <span class="n">ff</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span>
+                  <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">s</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cc</span><span class="p">,</span><span class="n">Exp</span><span class="p">,</span><span class="n">ss</span><span class="p">]])]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;No / several matching files</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;  Folder: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">path</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    Criteria: [</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span><span class="n">ss</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    Matching: &quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">              &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">ff</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;_core.&#39;</span><span class="o">+</span><span class="n">cc</span><span class="p">)</span><span class="o">.</span><span class="n">from_txt</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+                                             <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span>
+                                             <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">out</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;object&#39;</span><span class="p">,</span><span class="nb">object</span><span class="p">]:</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="p">((</span><span class="n">ss</span><span class="p">,{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;pos&#39;</span><span class="p">:</span><span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;extent&#39;</span><span class="p">:</span><span class="n">obj</span><span class="p">[</span><span class="mi">2</span><span class="p">]}),)</span>
+            <span class="n">lS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">tt</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span> <span class="n">lStruct</span><span class="o">=</span><span class="n">lS</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conf</span>
+
+<div class="viewcode-block" id="create_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_config">[docs]</a><span class="k">def</span> <span class="nf">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+                  <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Bump_posextent</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">],</span>
+                  <span class="n">R</span><span class="o">=</span><span class="mf">2.4</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+                  <span class="n">divlow</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+                  <span class="n">out</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create easily a tofu.geom.Config object</span>
+
+<span class="sd">    In tofu, a Config (short for geometrical configuration) refers to the 3D</span>
+<span class="sd">    geometry of a fusion device.</span>
+<span class="sd">    It includes, at least, a simple 2D polygon describing the first wall of the</span>
+<span class="sd">    fusion chamber, and can also include other structural elements (tiles,</span>
+<span class="sd">    limiters...) that can be non-axisymmetric.</span>
+
+<span class="sd">    To create a simple Config, provide either the name of a reference test</span>
+<span class="sd">    case, of a set of geometrical parameters (major radius, elongation...).</span>
+
+<span class="sd">    This is just a tool for fast testing, if you want to create a custom</span>
+<span class="sd">    config, use directly tofu.geom.Config and provide the parameters you want.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    case :      str</span>
+<span class="sd">        The name of a reference test case, if provided, this arguments is</span>
+<span class="sd">        sufficient, the others are ignored</span>
+<span class="sd">    Exp  :      str</span>
+<span class="sd">        The name of the experiment</span>
+<span class="sd">    Type :      str</span>
+<span class="sd">        The type of configuration (toroidal &#39;Tor&#39; or linear &#39;Lin&#39;)</span>
+<span class="sd">    Lim_Bump:   list</span>
+<span class="sd">        The angular (poloidal) limits, in the cross-section of the extension of</span>
+<span class="sd">        the outer bumper</span>
+<span class="sd">    R   :       float</span>
+<span class="sd">        The major radius of the center of the cross-section</span>
+<span class="sd">    r   :       float</span>
+<span class="sd">        The minor radius of the cross-section</span>
+<span class="sd">    elong:      float</span>
+<span class="sd">        An elongation parameter (in [-1;1])</span>
+<span class="sd">    Dshape:     float</span>
+<span class="sd">        A parameter specifying the D-shape of the cross-section (in [-1;1])</span>
+<span class="sd">    divlow:     bool</span>
+<span class="sd">        A flag specifying whether to include a lower divertor-like shape</span>
+<span class="sd">    divup:     bool</span>
+<span class="sd">        A flag specifying whether to include an upper divertor-like shape</span>
+<span class="sd">    nP:         int</span>
+<span class="sd">        Number of points used to describe the cross-section polygon</span>
+<span class="sd">    out:        str</span>
+<span class="sd">        FLag indicating whether to return:</span>
+<span class="sd">            - &#39;dict&#39;  : the polygons as a dictionary of np.ndarrays</span>
+<span class="sd">            - &#39;object&#39;: the configuration as a tofu.geom.Config instance</span>
+
+<span class="sd">    Return</span>
+<span class="sd">    ------</span>
+<span class="sd">    conf:   tofu.geom.Config / dict</span>
+<span class="sd">        Depending on the value of parameter out, either:</span>
+<span class="sd">            - the tofu.geom.Config object created</span>
+<span class="sd">            - a dictionary of the polygons and their pos/extent (if any)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">case</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">poly</span><span class="p">,</span> <span class="n">pbump</span><span class="p">,</span> <span class="n">pbaffle</span> <span class="o">=</span> <span class="n">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="n">R</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="n">elong</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="n">Dshape</span><span class="p">,</span>
+                                                <span class="n">divlow</span><span class="o">=</span><span class="n">divlow</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="n">divup</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="n">nP</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">out</span><span class="o">==</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+            <span class="n">conf</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Ves&#39;</span><span class="p">:{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">poly</span><span class="p">},</span>
+                    <span class="s1">&#39;Baffle&#39;</span><span class="p">:{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">pbaffle</span><span class="p">},</span>
+                    <span class="s1">&#39;Bumper&#39;</span><span class="p">:{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">pbump</span><span class="p">,</span>
+                              <span class="s1">&#39;pos&#39;</span><span class="p">:</span><span class="n">Bump_posextent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                              <span class="s1">&#39;extent&#39;</span><span class="p">:</span><span class="n">Bump_posextent</span><span class="p">[</span><span class="mi">1</span><span class="p">]}}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ves</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">Ves</span><span class="p">(</span><span class="n">Poly</span><span class="o">=</span><span class="n">poly</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Ves&#39;</span><span class="p">,</span>
+                            <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+            <span class="n">baf</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">PFC</span><span class="p">(</span><span class="n">Poly</span><span class="o">=</span><span class="n">pbaffle</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span>
+                            <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Baffle&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+            <span class="n">bump</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">PFC</span><span class="p">(</span><span class="n">Poly</span><span class="o">=</span><span class="n">pbump</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span>
+                             <span class="n">pos</span><span class="o">=</span><span class="n">Bump_posextent</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">extent</span><span class="o">=</span><span class="n">Bump_posextent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                             <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Bumper&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+
+            <span class="n">conf</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">lStruct</span><span class="o">=</span><span class="p">[</span><span class="n">ves</span><span class="p">,</span><span class="n">baf</span><span class="p">,</span><span class="n">bump</span><span class="p">],</span>
+                                <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conf</span></div>
+
+<span class="c1">###########################################################</span>
+<span class="c1">#       Fast creation of cam</span>
+<span class="c1">###########################################################</span>
+
+<span class="n">_P</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.5</span><span class="p">,</span><span class="mf">3.2</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+<span class="n">_F</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">_testF</span> <span class="o">=</span> <span class="mf">0.4</span>
+<span class="n">_D12</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]</span>
+<span class="n">_nIn</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+
+<span class="n">_P1</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.5</span><span class="p">,</span><span class="o">-</span><span class="mf">3.2</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+<span class="n">_nIn1</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+
+<span class="n">_PA</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.9</span><span class="p">,</span><span class="o">-</span><span class="mf">6.9</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+<span class="n">_nInA</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
+<span class="n">_D12A</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">,</span><span class="mf">0.3</span><span class="p">]</span>
+<span class="n">_dcam</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;V1&#39;</span><span class="p">:</span>       <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P1</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn1</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]},</span>
+         <span class="s1">&#39;V10&#39;</span><span class="p">:</span>      <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">]},</span>
+         <span class="s1">&#39;V100&#39;</span><span class="p">:</span>     <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">20</span><span class="p">,</span><span class="mi">5</span><span class="p">]},</span>
+         <span class="s1">&#39;V1000&#39;</span><span class="p">:</span>    <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">50</span><span class="p">,</span><span class="mi">20</span><span class="p">]},</span>
+         <span class="s1">&#39;V10000&#39;</span><span class="p">:</span>   <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">125</span><span class="p">,</span><span class="mi">80</span><span class="p">]},</span>
+         <span class="s1">&#39;V100000&#39;</span><span class="p">:</span>  <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">500</span><span class="p">,</span><span class="mi">200</span><span class="p">]},</span>
+         <span class="s1">&#39;V1000000&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">1600</span><span class="p">,</span><span class="mi">625</span><span class="p">]},</span>
+         <span class="s1">&#39;VA1&#39;</span><span class="p">:</span>      <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]},</span>
+         <span class="s1">&#39;VA10&#39;</span><span class="p">:</span>     <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">]},</span>
+         <span class="s1">&#39;VA100&#39;</span><span class="p">:</span>    <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">20</span><span class="p">,</span><span class="mi">5</span><span class="p">]},</span>
+         <span class="s1">&#39;VA1000&#39;</span><span class="p">:</span>   <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">50</span><span class="p">,</span><span class="mi">20</span><span class="p">]},</span>
+         <span class="s1">&#39;VA10000&#39;</span><span class="p">:</span>  <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span><span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">125</span><span class="p">,</span><span class="mi">80</span><span class="p">]},</span>
+         <span class="s1">&#39;VA100000&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span><span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span><span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">500</span><span class="p">,</span><span class="mi">200</span><span class="p">]},</span>
+         <span class="s1">&#39;VA1000000&#39;</span><span class="p">:{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_PA</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_F</span><span class="p">,</span><span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12A</span><span class="p">,</span><span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nInA</span><span class="p">,</span><span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">1600</span><span class="p">,</span><span class="mi">625</span><span class="p">]},</span>
+         <span class="s1">&#39;testV&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_testF</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span><span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">1600</span><span class="p">,</span><span class="mi">625</span><span class="p">]}}</span>
+
+
+
+<span class="n">_createCamstr</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; Create a pinhole CamLOS</span><span class="si">{0}</span><span class="s2">D</span>
+
+<span class="s2">    In tofu, a CamLOS is a camera described as a set of Lines of Sight (LOS),</span>
+<span class="s2">    as opposed to a Cam, where the Volume of Sight (VOS) of all pixels are</span>
+<span class="s2">    computed in 3D. The CamLOS is then a simplified approximation of the Cam.</span>
+<span class="s2">    It can be:</span>
+<span class="s2">        - 1D : like when all LOS are included in a common plane</span>
+<span class="s2">        - 2D : like a regular everyday camera, producing a 2D image</span>
+<span class="s2">    For a pinhole camera, all LOS pass through a common point (pinhole)</span>
+
+<span class="s2">    This function provides an easy way to create a pinhole CamLOS</span><span class="si">{0}</span><span class="s2">D</span>
+<span class="s2">    In tofu, LOS are described as semi-lines using:</span>
+<span class="s2">        - a starting point (D)</span>
+<span class="s2">        - a unit vector (u)</span>
+<span class="s2">    All coordinates are 3D cartesian (X,Y,Z)</span>
+
+<span class="s2">    Here, you simply need to provide, either:</span>
+<span class="s2">        - the name of a standard test case</span>
+<span class="s2">        - a set of geometrical parameters:</span>
+<span class="s2">            - P: pinhole, throught the camera axis passes</span>
+<span class="s2">            - F: focal length</span>
+<span class="s2">            - D12 : dimensiosn perpendicular to the camera axis</span>
+<span class="s2">            - N12 : number of pixels (LOS)</span>
+<span class="s2">            - angs: 3 angles defining the orientation of the camera</span>
+
+<span class="s2">    The computed set of LOS, optionnaly associated to a Config, can then be</span>
+<span class="s2">    returned as:</span>
+<span class="s2">        - a tofu object (i.e.: a CamLOS</span><span class="si">{0}</span><span class="s2">D)</span>
+<span class="s2">        - a set of starting points (D) and unit vectors (u)</span>
+<span class="s2">        - a set of starting points (D), a pinhole, and and the coordinates of D</span>
+<span class="s2">        in the camera frame</span>
+
+<span class="s2">    Parameters</span>
+<span class="s2">    ----------</span>
+
+<span class="s2">    Return</span>
+<span class="s2">    ------</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+
+<span class="n">_createCamerr</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; Arg out, specifying the output, must be either:</span>
+<span class="s2">        - object   : return a tofu object</span>
+<span class="s2">        - &#39;Du&#39;     : return the LOS starting points (D) and unit vectors (u)</span>
+<span class="s2">        - &#39;pinhole&#39;: return the starting points (D), pinhole (P) and the coordinates of D in the camera frame</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">_create_CamLOS</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nD</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span> <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">dcam</span><span class="o">=</span><span class="n">_dcam</span><span class="p">,</span>
+                   <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
+                   <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">nD</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">out</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">object</span><span class="p">,</span><span class="s1">&#39;object&#39;</span><span class="p">,</span><span class="s1">&#39;Du&#39;</span><span class="p">,</span><span class="s1">&#39;dict&#39;</span><span class="p">,</span><span class="nb">dict</span><span class="p">]:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">_createCamerr</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Lim</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Lim</span>
+        <span class="n">VType</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span>
+        <span class="n">lS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">lStructIn</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lS</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">lS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">lStruct</span>
+        <span class="n">defRY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;P1Max&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+
+    <span class="c1"># Get parameters for test case if any</span>
+    <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">case</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dcam</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not a known test case !</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Available test cases include:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dcam</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Extract pinhole, focal length, width, nb. of pix., unit vector</span>
+        <span class="n">P</span><span class="p">,</span> <span class="n">F</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;P&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;F&#39;</span><span class="p">]</span>
+        <span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="p">,</span> <span class="n">nIn</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;D12&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;N12&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;nIn&#39;</span><span class="p">]</span>
+        <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIn</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">nIn</span><span class="p">)</span>
+
+        <span class="c1"># Compute the LOS starting points and unit vectors</span>
+        <span class="n">nD</span><span class="p">,</span> <span class="n">VType</span><span class="p">,</span> <span class="n">Lim</span><span class="p">,</span> <span class="n">angs</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">Name</span> <span class="o">=</span> <span class="n">case</span>
+
+    <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">N12</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span>
+                   <span class="n">VType</span><span class="o">=</span><span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="n">defRY</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">Ds</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">_compute_CamLOS1D_pinhole</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Ds</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">indflat2img</span><span class="p">,</span> <span class="n">indimg2flat</span> <span class="o">=</span> <span class="n">_compute_CamLOS2D_pinhole</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">out</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;dict&#39;</span><span class="p">,</span><span class="nb">dict</span><span class="p">]:</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;D&#39;</span><span class="p">:</span><span class="n">Ds</span><span class="p">,</span> <span class="s1">&#39;pinhole&#39;</span><span class="p">:</span><span class="n">P</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">nD</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">dout</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;x1&#39;</span><span class="p">:</span><span class="n">d1</span><span class="p">,</span><span class="s1">&#39;x2&#39;</span><span class="p">:</span><span class="n">d2</span><span class="p">,</span>
+                         <span class="s1">&#39;indflat2img&#39;</span><span class="p">:</span><span class="n">indflat2img</span><span class="p">,</span> <span class="s1">&#39;indimg2flat&#39;</span><span class="p">:</span><span class="n">indimg2flat</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">dout</span>
+
+    <span class="k">elif</span> <span class="n">out</span><span class="o">==</span><span class="s1">&#39;Du&#39;</span><span class="p">:</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">-</span><span class="n">Ds</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">us</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+        <span class="k">return</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;_core.CamLOS</span><span class="si">{0:01.0f}</span><span class="s1">D&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nD</span><span class="p">))</span>
+        <span class="n">cam</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="n">Diag</span><span class="p">,</span>
+                  <span class="n">dgeom</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;pinhole&#39;</span><span class="p">:</span><span class="n">P</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span><span class="n">Ds</span><span class="p">},</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+                  <span class="n">Etendues</span><span class="o">=</span><span class="n">Etendues</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="n">Surfaces</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">,</span>
+                  <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cam</span>
+
+
+<div class="viewcode-block" id="create_CamLOS1D"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_CamLOS1D">[docs]</a><span class="k">def</span> <span class="nf">create_CamLOS1D</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_create_CamLOS</span><span class="p">(</span><span class="n">nD</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span></div>
+
+<span class="n">create_CamLOS1D</span><span class="o">.</span><span class="n">__signature__</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">_create_CamLOS</span><span class="p">)</span>
+<span class="n">create_CamLOS1D</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_createCamstr</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="create_CamLOS2D"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_CamLOS2D">[docs]</a><span class="k">def</span> <span class="nf">create_CamLOS2D</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_create_CamLOS</span><span class="p">(</span><span class="n">nD</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span></div>
+
+<span class="n">create_CamLOS2D</span><span class="o">.</span><span class="n">__signature__</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">_create_CamLOS</span><span class="p">)</span>
+<span class="n">create_CamLOS2D</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_createCamstr</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;2&#39;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,660 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.geom._def &#8212; tofu v1.1</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.geom._def</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module stores all the default setting of ToFu</span>
+<span class="sd">Including in particular computing parameters, dictionnaries and figures</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1">#import matplotlib</span>
+<span class="c1">#matplotlib.use(&#39;WxAgg&#39;)</span>
+<span class="c1">#matplotlib.interactive(True)</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">gridspec</span>
+<span class="kn">from</span> <span class="nn">matplotlib.path</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.mplot3d</span> <span class="k">import</span> <span class="n">Axes3D</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1">#from mayavi import mlab</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+<span class="kn">import</span> <span class="nn">time</span> <span class="k">as</span> <span class="nn">time</span>
+
+<span class="c1"># tofu</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="k">import</span> <span class="n">__version__</span>
+    <span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">utils</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="k">import</span> <span class="n">__version__</span>
+    <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">utils</span>
+
+
+<span class="n">__github</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/ToFuProject/tofu/issues&#39;</span>
+<span class="n">_wintit</span> <span class="o">=</span> <span class="s1">&#39;tofu-</span><span class="si">%s</span><span class="s1">        report issues / requests at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">__version__</span><span class="p">,</span> <span class="n">__github</span><span class="p">)</span>
+<span class="n">_fontsize</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">_labelpad</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">                Defaults settings generic</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">                Defaults settings of ToFu_Geom</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">###############################################################################</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="c1"># ---------- Common to several classes ----------</span>
+
+<span class="n">Legpropd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span><span class="mi">10</span><span class="p">}</span>
+<span class="n">TorLegd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;frameon&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span><span class="s1">&#39;ncol&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;bbox_to_anchor&#39;</span><span class="p">:(</span><span class="mf">1.01</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span><span class="s1">&#39;loc&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;borderaxespad&#39;</span><span class="p">:</span><span class="mf">0.</span><span class="p">,</span><span class="s1">&#39;prop&#39;</span><span class="p">:</span><span class="n">Legpropd</span><span class="p">}</span>
+
+
+<span class="c1">#####################################################################</span>
+<span class="c1">##################  Ves and Struct class  ###########################</span>
+<span class="c1">#####################################################################</span>
+
+
+<span class="c1"># ------------ Computing settings ---------------</span>
+
+<span class="n">TorNP</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">TorRelOff</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="n">TorInsideNP</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">TorSplprms</span> <span class="o">=</span> <span class="p">[</span><span class="mf">100.</span><span class="p">,</span><span class="mf">2.</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">DetBaryCylNP1</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">DetBaryCylNP2</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="c1"># --- Plotting dictionaries and parameters ------</span>
+
+<span class="n">TorPd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;lw&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">TorId</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;dashed&#39;</span><span class="p">,</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;markersize&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;mew&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">TorBsd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;dashed&#39;</span><span class="p">,</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;markersize&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;mew&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">TorBvd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;g&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;dashed&#39;</span><span class="p">,</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;markersize&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;mew&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">TorVind</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;color&#39;</span><span class="p">:</span><span class="s1">&#39;r&#39;</span><span class="p">,</span><span class="s1">&#39;scale&#39;</span><span class="p">:</span><span class="mi">10</span><span class="p">}</span>
+<span class="n">TorITord</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;dashed&#39;</span><span class="p">}</span>
+<span class="n">TorBsTord</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;dashed&#39;</span><span class="p">}</span>
+<span class="n">TorBvTord</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;g&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;dashed&#39;</span><span class="p">}</span>
+<span class="n">TorNTheta</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">Tor3DThetalim</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span>
+<span class="n">Tor3DThetamin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">20.</span>
+<span class="n">TorP3Dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;color&#39;</span><span class="p">:(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">1.</span><span class="p">),</span><span class="s1">&#39;rstride&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;cstride&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;linewidth&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;antialiased&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">}</span>
+<span class="n">TorPFilld</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;edgecolor&#39;</span><span class="p">:(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">1.</span><span class="p">),</span><span class="s1">&#39;facecolor&#39;</span><span class="p">:(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">1.</span><span class="p">),</span><span class="s1">&#39;linestyle&#39;</span><span class="p">:</span><span class="s1">&#39;solid&#39;</span><span class="p">,</span><span class="s1">&#39;linewidth&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+<span class="n">TorPAng</span> <span class="o">=</span> <span class="s1">&#39;theta&#39;</span>
+<span class="n">TorPAngUnit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+<span class="n">TorPSketch</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">TorP3DFilld</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;color&#39;</span><span class="p">:(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.4</span><span class="p">),</span><span class="s1">&#39;linestyle&#39;</span><span class="p">:</span><span class="s1">&#39;solid&#39;</span><span class="p">,</span><span class="s1">&#39;linewidth&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+
+<span class="n">Vesdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="s1">&#39;All&#39;</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;PIBsBvV&#39;</span><span class="p">,</span> <span class="n">dP</span><span class="o">=</span><span class="n">TorPd</span><span class="p">,</span> <span class="n">dI</span><span class="o">=</span><span class="n">TorId</span><span class="p">,</span>
+               <span class="n">dBs</span><span class="o">=</span><span class="n">TorBsd</span><span class="p">,</span> <span class="n">dBv</span><span class="o">=</span><span class="n">TorBvd</span><span class="p">,</span> <span class="n">dVect</span><span class="o">=</span><span class="n">TorVind</span><span class="p">,</span> <span class="n">dIHor</span><span class="o">=</span><span class="n">TorITord</span><span class="p">,</span>
+               <span class="n">dBsHor</span><span class="o">=</span><span class="n">TorBsTord</span><span class="p">,</span> <span class="n">dBvHor</span><span class="o">=</span><span class="n">TorBvTord</span><span class="p">,</span> <span class="n">dLeg</span><span class="o">=</span><span class="n">TorLegd</span><span class="p">,</span>
+               <span class="n">Lim</span><span class="o">=</span><span class="n">Tor3DThetalim</span><span class="p">,</span> <span class="n">Nstep</span><span class="o">=</span><span class="n">TorNTheta</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="n">StructPd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;fc&#39;</span><span class="p">:(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.5</span><span class="p">),</span><span class="s1">&#39;ec&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;linewidth&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+<span class="n">StructPd_Tor</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;fc&#39;</span><span class="p">:(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.5</span><span class="p">),</span><span class="s1">&#39;ec&#39;</span><span class="p">:</span><span class="s1">&#39;none&#39;</span><span class="p">}</span>
+
+<span class="n">Structdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Vesdict</span><span class="p">)</span>
+<span class="n">Structdict</span><span class="p">[</span><span class="s1">&#39;dP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">StructPd_Tor</span>
+<span class="c1">#Structdict[&#39;P3Dd&#39;] = {&#39;color&#39;:(0.8,0.8,0.8,1.),&#39;rstride&#39;:1,&#39;cstride&#39;:1,</span>
+<span class="c1">#                      &#39;linewidth&#39;:0, &#39;antialiased&#39;:False}</span>
+
+
+<span class="c1"># -------------- Figures ------------------------</span>
+
+
+<div class="viewcode-block" id="Plot_LOSProj_DefAxes"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._def.Plot_LOSProj_DefAxes">[docs]</a><span class="k">def</span> <span class="nf">Plot_LOSProj_DefAxes</span><span class="p">(</span><span class="n">Mode</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="s1">&#39;tofu&#39;</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">fs</span><span class="o">==</span><span class="s1">&#39;a4&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span>
+    <span class="k">assert</span> <span class="n">Mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">,</span><span class="s1">&#39;hor&#39;</span><span class="p">,</span><span class="s1">&#39;all&#39;</span><span class="p">],</span> <span class="s2">&quot;Arg should be &#39;Cross&#39; or &#39;Hor&#39; or &#39;All&#39; !&quot;</span>
+    <span class="k">assert</span> <span class="n">Type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span><span class="s1">&#39;Lin&#39;</span><span class="p">],</span> <span class="s2">&quot;Arg Type must be in [&#39;Tor&#39;,&#39;Lin&#39;] !&quot;</span>
+    <span class="k">assert</span> <span class="n">wintit</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">wintit</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;Arg wintit must be a str !&quot;</span>
+    <span class="n">axCol</span><span class="p">,</span> <span class="n">fdpi</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="mi">80</span>
+    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span> <span class="k">if</span> <span class="n">Mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">==</span><span class="s1">&#39;all&#39;</span> <span class="k">else</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">fs</span><span class="o">==</span><span class="s1">&#39;a4&#39;</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="p">(</span><span class="mf">11.69</span><span class="p">,</span><span class="mf">8.27</span><span class="p">)</span> <span class="k">if</span> <span class="n">Mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">==</span><span class="s1">&#39;all&#39;</span> <span class="k">else</span> <span class="p">(</span><span class="mf">8.27</span><span class="p">,</span><span class="mf">11.69</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="n">fdpi</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wintit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="n">wintit</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">==</span><span class="s1">&#39;all&#39;</span><span class="p">:</span>
+        <span class="n">axPosP</span><span class="p">,</span> <span class="n">axPosT</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.07</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]</span>
+        <span class="n">axP</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">axPosP</span><span class="p">,</span><span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">)</span>
+        <span class="n">axT</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">axPosT</span><span class="p">,</span><span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Type</span><span class="o">==</span><span class="s1">&#39;Tor&#39;</span><span class="p">:</span>
+            <span class="n">axP</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;R (m)&quot;</span><span class="p">),</span>   <span class="n">axP</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Z (m)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">axP</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Y (m)&quot;</span><span class="p">),</span>   <span class="n">axP</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Z (m)&quot;</span><span class="p">)</span>
+        <span class="n">axT</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;X (m)&quot;</span><span class="p">),</span>   <span class="n">axT</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Y (m)&quot;</span><span class="p">)</span>
+        <span class="n">axP</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
+        <span class="n">axT</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="p">[</span><span class="n">axP</span><span class="p">,</span><span class="n">axT</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">axPos</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">]</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">axPos</span><span class="p">,</span><span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Mode</span> <span class="o">==</span> <span class="s1">&#39;Cross&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Type</span><span class="o">==</span><span class="s1">&#39;Tor&#39;</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;R (m)&quot;</span><span class="p">),</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Z (m)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Y (m)&quot;</span><span class="p">),</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Z (m)&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">Mode</span> <span class="o">==</span> <span class="s1">&#39;Hor&#39;</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;X (m)&quot;</span><span class="p">),</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Y (m)&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+<div class="viewcode-block" id="Plot_3D_plt_Tor_DefAxes"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._def.Plot_3D_plt_Tor_DefAxes">[docs]</a><span class="k">def</span> <span class="nf">Plot_3D_plt_Tor_DefAxes</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="s1">&#39;tofu&#39;</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">fs</span><span class="o">==</span><span class="s1">&#39;a4&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span>
+    <span class="n">axCol</span><span class="p">,</span> <span class="n">fdpi</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="mi">80</span>
+    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">fs</span><span class="o">==</span><span class="s1">&#39;a4&#39;</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="p">(</span><span class="mf">11.69</span><span class="p">,</span><span class="mf">8.27</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="n">fdpi</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wintit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="n">wintit</span><span class="p">)</span>
+    <span class="n">axPos</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">]</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">axPos</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">,</span><span class="n">projection</span><span class="o">=</span><span class="s1">&#39;3d&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;X (m)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Y (m)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Z (m)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+
+<div class="viewcode-block" id="Plot_Impact_DefAxes"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._def.Plot_Impact_DefAxes">[docs]</a><span class="k">def</span> <span class="nf">Plot_Impact_DefAxes</span><span class="p">(</span><span class="n">Proj</span><span class="p">,</span> <span class="n">Ang</span><span class="o">=</span><span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">AngUnit</span><span class="o">=</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="s1">&#39;tofu&#39;</span><span class="p">,</span> <span class="n">Sketch</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">fs</span><span class="o">==</span><span class="s1">&#39;a4&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span>
+    <span class="n">axCol</span><span class="p">,</span> <span class="n">fdpi</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="mi">80</span>
+    <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span> <span class="k">if</span> <span class="n">Proj</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">==</span><span class="s1">&#39;Cross&#39;</span> <span class="k">else</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="mi">9</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">fs</span><span class="o">==</span><span class="s1">&#39;a4&#39;</span><span class="p">:</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="p">(</span><span class="mf">11.69</span><span class="p">,</span><span class="mf">8.27</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="n">fdpi</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wintit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="n">wintit</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Proj</span> <span class="o">==</span> <span class="s1">&#39;Cross&#39;</span><span class="p">:</span>
+        <span class="n">axPos</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]</span>
+        <span class="n">ax</span><span class="p">,</span> <span class="n">axSketch</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">axPos</span><span class="p">,</span><span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">),</span> <span class="p">[]</span>
+        <span class="n">XAng</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;$\theta$&quot;</span> <span class="k">if</span> <span class="n">Ang</span><span class="o">==</span><span class="s1">&#39;theta&#39;</span> <span class="k">else</span> <span class="sa">r</span><span class="s2">&quot;$\xi$&quot;</span>
+        <span class="n">XUnit</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;$(rad.)$&quot;</span> <span class="k">if</span> <span class="n">AngUnit</span><span class="o">==</span><span class="s1">&#39;rad&#39;</span> <span class="k">else</span> <span class="sa">r</span><span class="s2">&quot;$(deg.)$&quot;</span>
+        <span class="n">XTickLab</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$0$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$\pi/4$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$\pi/2$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$3\pi/4$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$\pi$&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">AngUnit</span><span class="o">==</span><span class="s1">&#39;rad&#39;</span> <span class="k">else</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$0$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$90$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$180$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$270$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$360$&quot;</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">XAng</span><span class="o">+</span><span class="sa">r</span><span class="s2">&quot; &quot;</span><span class="o">+</span><span class="n">XUnit</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$p$ $(m)$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span><span class="mf">1.5</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span><span class="mf">1.</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span><span class="mf">3.</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">XTickLab</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Sketch</span><span class="p">:</span>
+            <span class="n">axSketch</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">],</span><span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">)</span>
+            <span class="n">Pt</span><span class="p">,</span> <span class="n">Line</span><span class="p">,</span> <span class="n">Hor</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ksi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mf">0.8</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.8</span><span class="p">]]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1.6</span><span class="p">,</span><span class="mf">0.1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mf">1.7</span><span class="p">]]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">0.4</span><span class="p">,</span><span class="mf">0.2</span><span class="p">],[</span><span class="mf">1.2</span><span class="p">,</span><span class="mf">1.2</span><span class="p">]]),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mf">3.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span><span class="mi">30</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">ksi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span><span class="mf">0.3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.4</span><span class="o">+</span><span class="mf">0.4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ksi</span><span class="p">),</span> <span class="mf">1.2</span><span class="o">+</span><span class="mf">0.4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ksi</span><span class="p">)])</span>
+            <span class="n">axSketch</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Pt</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">Pt</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;+k&#39;</span><span class="p">,</span><span class="n">Pt</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">Pt</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;--k&#39;</span><span class="p">,</span><span class="n">Line</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">Line</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;-k&#39;</span><span class="p">,</span> <span class="n">Hor</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">Hor</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;-k&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">theta</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;-k&#39;</span><span class="p">,</span> <span class="n">ksi</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">ksi</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+            <span class="n">axSketch</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\theta$&quot;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span><span class="mf">0.4</span><span class="p">),</span><span class="n">xycoords</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span><span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+            <span class="n">axSketch</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\xi$&quot;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">1.4</span><span class="p">),</span><span class="n">xycoords</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span><span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+            <span class="n">axSketch</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$p$&quot;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span><span class="mf">0.3</span><span class="p">),</span><span class="n">xycoords</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span><span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+            <span class="n">axSketch</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([]),</span> <span class="n">axSketch</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+            <span class="n">axSketch</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ax</span><span class="p">,</span> <span class="n">axSketch</span>
+    <span class="k">elif</span> <span class="n">Proj</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;3d&#39;</span><span class="p">:</span>
+        <span class="n">axPos</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.65</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">axPos</span><span class="p">,</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">,</span><span class="n">projection</span><span class="o">=</span><span class="s1">&#39;3d&#39;</span><span class="p">)</span>
+        <span class="n">XAng</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;$\theta$&quot;</span> <span class="k">if</span> <span class="n">Ang</span><span class="o">==</span><span class="s1">&#39;theta&#39;</span> <span class="k">else</span> <span class="sa">r</span><span class="s2">&quot;$\xi$&quot;</span>
+        <span class="n">XUnit</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;$(rad.)$&quot;</span> <span class="k">if</span> <span class="n">AngUnit</span><span class="o">==</span><span class="s1">&#39;rad&#39;</span> <span class="k">else</span> <span class="sa">r</span><span class="s2">&quot;$(deg.)$&quot;</span>
+        <span class="n">XTickLab</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$0$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$\pi/4$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$\pi/2$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$3\pi/4$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$\pi$&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">AngUnit</span><span class="o">==</span><span class="s1">&#39;rad&#39;</span> <span class="k">else</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$0$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$90$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$180$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$270$&quot;</span><span class="p">,</span><span class="sa">r</span><span class="s2">&quot;$360$&quot;</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">XAng</span><span class="o">+</span><span class="sa">r</span><span class="s2">&quot; &quot;</span><span class="o">+</span><span class="n">XUnit</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$p$ $(m)$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\phi$ $(rad)$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span><span class="mf">1.5</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlim</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span><span class="mf">1.</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span><span class="mf">3.</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">XTickLab</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">ax</span><span class="p">]</span></div>
+
+<span class="c1">#def Plot_3D_mlab_Tor_DefFig():</span>
+<span class="c1">#    fW,fH,fBgC = 700,500,(1.,1.,1.)</span>
+<span class="c1">#    axPosP, axPosT = [0.07, 0.1, 0.3, 0.8], [0.55, 0.1, 0.3, 0.8]</span>
+<span class="c1">#    f = mlab.figure(bgcolor=fBgC,fgcolor=None,size=(fW,fH))</span>
+<span class="c1">#    return f</span>
+
+
+
+<span class="k">def</span> <span class="nf">_Config_phithetaproj_default</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmargin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">fontsize</span><span class="o">=</span><span class="n">_fontsize</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="n">_labelpad</span><span class="p">,</span>
+                                 <span class="n">wintit</span><span class="o">=</span><span class="n">_wintit</span><span class="p">,</span> <span class="n">ntMax</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+    <span class="n">fldict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="n">labelpad</span><span class="p">)</span>
+
+    <span class="c1"># Figure</span>
+    <span class="n">axCol</span> <span class="o">=</span> <span class="s2">&quot;w&quot;</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_figuresize</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="n">fsdef</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">7</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">dmargin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dmargin</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mf">0.06</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="mf">0.06</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mf">0.97</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+                       <span class="n">wspace</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">hspace</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="n">axCol</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wintit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="n">wintit</span><span class="p">)</span>
+
+    <span class="c1"># -------------</span>
+    <span class="c1"># Axes grid</span>
+    <span class="c1"># -------</span>
+
+    <span class="n">gs0</span> <span class="o">=</span> <span class="n">gridspec</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">dmargin</span><span class="p">)</span>
+
+    <span class="n">axt</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs0</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">axd</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs0</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,:],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">axc</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs0</span><span class="p">[</span><span class="mi">3</span><span class="p">:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">axh</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs0</span><span class="p">[</span><span class="mi">3</span><span class="p">:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="n">axc</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
+    <span class="n">axh</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
+
+    <span class="n">axt</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$s$ (s)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axt</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$data$ (a.u.)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axd</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\phi$ (rad)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axd</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$\theta$ (rad)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axc</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$R$ (m)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axc</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$Z$ (m)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axh</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$X$ (m)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+    <span class="n">axh</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$Y$ (m)&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">fldict</span><span class="p">)</span>
+
+    <span class="n">dax</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">:[</span><span class="n">axt</span><span class="p">],</span>
+           <span class="s1">&#39;dist&#39;</span><span class="p">:[</span><span class="n">axd</span><span class="p">],</span>
+           <span class="s1">&#39;cross&#39;</span><span class="p">:[</span><span class="n">axc</span><span class="p">],</span>
+           <span class="s1">&#39;hor&#39;</span><span class="p">:[</span><span class="n">axh</span><span class="p">]}</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">dax</span>
+
+
+
+
+
+<span class="c1">#####################################################################</span>
+<span class="c1">########################  LOS class  ################################</span>
+<span class="c1">#####################################################################</span>
+
+
+<span class="c1"># ------------ Computing settings ---------------</span>
+<span class="n">LOSDiscrtSLim</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="mi">1</span><span class="p">,)</span>
+<span class="n">LOSDiscrtSLMode</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>
+<span class="n">LOSDiscrtDS</span> <span class="o">=</span> <span class="mf">0.005</span>
+<span class="n">LOSDiscrtSMode</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+
+
+<span class="c1"># --- Plotting dictionaries and parameters ------</span>
+
+<span class="n">LOSLd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;lw&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">LOSMd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;None&#39;</span><span class="p">,</span><span class="s1">&#39;lw&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;markersize&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;mew&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">LOSMImpd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span><span class="s1">&#39;ls&#39;</span><span class="p">:</span><span class="s1">&#39;None&#39;</span><span class="p">,</span><span class="s1">&#39;lw&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;markersize&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;mew&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+<span class="n">LOSLplot</span> <span class="o">=</span> <span class="s1">&#39;Tot&#39;</span>
+<span class="n">LOSImpAng</span> <span class="o">=</span> <span class="s1">&#39;theta&#39;</span>
+<span class="n">LOSImpAngUnit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+<span class="n">LOSImpElt</span> <span class="o">=</span> <span class="s1">&#39;LV&#39;</span>
+
+<span class="n">LOSdict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="s1">&#39;All&#39;</span><span class="p">,</span> <span class="n">Lplot</span><span class="o">=</span><span class="n">LOSLplot</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;LDIORP&#39;</span><span class="p">,</span> <span class="n">EltVes</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Ldict</span><span class="o">=</span><span class="n">LOSLd</span><span class="p">,</span> <span class="n">MdictD</span><span class="o">=</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">MdictI</span><span class="o">=</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">MdictO</span><span class="o">=</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">MdictR</span><span class="o">=</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">MdictP</span><span class="o">=</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">LegDict</span><span class="o">=</span><span class="n">TorLegd</span><span class="p">,</span> <span class="n">Vesdict</span><span class="o">=</span><span class="n">Vesdict</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># -------------- Figures ------------------------</span>
+
+
+
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">#####################################################################</span>
+<span class="sd">###################### Lens class  ################################</span>
+<span class="sd">#####################################################################</span>
+
+
+
+
+
+
+<span class="sd"># -------------- Figures ------------------------</span>
+
+<span class="sd">def Plot_Lens_Alone_DefAxes(fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (20,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    axPos = [0.05, 0.1, 0.9, 0.85]</span>
+<span class="sd">    ax = f.add_axes(axPos,facecolor=axCol)</span>
+<span class="sd">    ax.set_xlabel(r&quot;x (m)&quot;)</span>
+<span class="sd">    ax.set_ylabel(r&quot;y (m)&quot;)</span>
+<span class="sd">    return ax</span>
+
+
+
+
+<span class="sd">#####################################################################</span>
+<span class="sd">###################### Detect class  ################################</span>
+<span class="sd">#####################################################################</span>
+
+
+<span class="sd"># ------------ Computing settings ---------------</span>
+
+<span class="sd">DetSpanRMinMargin = 0.9</span>
+<span class="sd">DetSpanNEdge = 5</span>
+<span class="sd">DetSpanNRad = 5</span>
+
+<span class="sd">DetConeNEdge = 8</span>
+<span class="sd">DetConeNRad = 6</span>
+
+<span class="sd">DetPreConedX12 = [0.01, 0.01]</span>
+<span class="sd">DetPreConedX12Mode = &#39;abs&#39;</span>
+<span class="sd">DetPreConeds = 0.01</span>
+<span class="sd">DetPreConedsMode = &#39;abs&#39;</span>
+<span class="sd">DetPreConeMarginS = 0.002</span>
+
+<span class="sd">DetConeDX = 0.002</span>
+<span class="sd">DetConeDRY = 0.0025 # 0.0025</span>
+<span class="sd">DetConeDTheta = np.pi/1024. # 512.</span>
+<span class="sd">DetConeDZ = 0.0025 # 0.0025</span>
+<span class="sd">#DetConeNTheta = 25 # 25</span>
+<span class="sd">#DetConeNZ = 50 # 50</span>
+
+<span class="sd">DetConeRefdMax = 0.02</span>
+
+<span class="sd">DetEtendMethod = &#39;quad&#39;</span>
+<span class="sd">DetEtenddX12 = [0.01, 0.01]</span>
+<span class="sd">DetEtenddX12Mode = &#39;rel&#39;</span>
+<span class="sd">DetEtendepsrel = 1.e-3</span>
+<span class="sd">DetEtendRatio = 0.02</span>
+<span class="sd">DetCalcEtendColis = False</span>
+
+<span class="sd">DetCalcSAngVectColis = True</span>
+<span class="sd">DetCalcSAngVectCone = True</span>
+
+<span class="sd">DetSynthEpsrel = 1.e-4</span>
+<span class="sd">DetSynthdX12 = [0.005, 0.005]</span>
+<span class="sd">DetSynthdX12Mode = &#39;abs&#39;</span>
+<span class="sd">DetSynthds = 0.005</span>
+<span class="sd">DetSynthdsMode = &#39;abs&#39;</span>
+<span class="sd">DetSynthMarginS = 0.001</span>
+
+<span class="sd"># --- Plotting dictionaries and parameters ------</span>
+
+<span class="sd">ApPd = {&#39;c&#39;:&#39;k&#39;,&#39;lw&#39;:2,&#39;ls&#39;:&#39;solid&#39;}</span>
+<span class="sd">ApVd = {&#39;color&#39;:&#39;r&#39;,&#39;lw&#39;:2,&#39;ls&#39;:&#39;solid&#39;}</span>
+<span class="sd">DetPd = {&#39;c&#39;:&#39;k&#39;,&#39;lw&#39;:2,&#39;ls&#39;:&#39;solid&#39;}</span>
+<span class="sd">DetVd = {&#39;color&#39;:&#39;r&#39;,&#39;lw&#39;:2,&#39;ls&#39;:&#39;solid&#39;}</span>
+<span class="sd">DetSAngPld = {&#39;cmap&#39;:plt.cm.YlOrRd,&#39;lw&#39;:0.,&#39;rstride&#39;:1,&#39;cstride&#39;:1, &#39;antialiased&#39;:False, &#39;edgecolor&#39;:&#39;None&#39;}</span>
+<span class="sd">DetSangPlContd = {&#39;linewidths&#39;:0.}</span>
+<span class="sd">DetConed = {&#39;edgecolors&#39;:&#39;k&#39;, &#39;facecolors&#39;:(0.8,0.8,0.8,0.2), &#39;alpha&#39;:0.2, &#39;linewidths&#39;:0., &#39;linestyles&#39;:&#39;-&#39;, &#39;antialiaseds&#39;:False}</span>
+<span class="sd">DetImpd = {&#39;ls&#39;:&#39;solid&#39;,&#39;c&#39;:&#39;k&#39;,&#39;lw&#39;:1}</span>
+
+<span class="sd">ApLVin = 0.1</span>
+<span class="sd">DetSAngPlRa = 0.5</span>
+<span class="sd">DetSAngPldX12 = [0.025,0.025]</span>
+<span class="sd">DetSAngPldX12Mode = &#39;rel&#39;</span>
+<span class="sd">DetSAngPlRatio = 0.01</span>
+<span class="sd">DetEtendOnLOSNP = 20</span>
+<span class="sd">DetEtendOnLOSModes = [&#39;trapz&#39;]</span>
+<span class="sd">DetEtendOnLOSLd = {&#39;ls&#39;:&#39;solid&#39;,&#39;c&#39;:&#39;k&#39;,&#39;lw&#39;:2}</span>
+
+<span class="sd">DetSAngPlot = &#39;Int&#39;</span>
+<span class="sd">DetSAngPlotMode = &#39;scatter&#39;</span>
+<span class="sd">DetSAngPlotd = {&#39;cmap&#39;:plt.cm.YlOrRd}</span>
+<span class="sd">DetSAngPlotLvl = 20</span>
+
+<span class="sd">DetSliceAGdR = 0.005</span>
+<span class="sd">DetSliceAGdY = 0.005</span>
+<span class="sd">DetSliceAGdX = 0.01</span>
+<span class="sd">DetSliceAGdTheta = np.pi/512.</span>
+<span class="sd">DetSliceAGdZ = 0.005</span>
+<span class="sd">DetSliceNbd = {&#39;scatter&#39;:{&#39;cmap&#39;:plt.cm.Greys,&#39;marker&#39;:&#39;s&#39;,&#39;edgecolors&#39;:&#39;None&#39;,&#39;s&#39;:10},</span>
+<span class="sd">        &#39;contour&#39;:{&#39;cmap&#39;:plt.cm.Greys},</span>
+<span class="sd">        &#39;contourf&#39;:{&#39;cmap&#39;:plt.cm.Greys},</span>
+<span class="sd">        &#39;imshow&#39;:{&#39;cmap&#39;:plt.cm.Greys}}</span>
+<span class="sd">DetSliceSAd = {&#39;scatter&#39;:{&#39;cmap&#39;:plt.cm.YlOrRd,&#39;marker&#39;:&#39;s&#39;,&#39;edgecolors&#39;:&#39;None&#39;,&#39;s&#39;:10, &#39;vmin&#39;:0},</span>
+<span class="sd">        &#39;contour&#39;:{&#39;cmap&#39;:plt.cm.YlOrRd, &#39;vmin&#39;:0},</span>
+<span class="sd">        &#39;contourf&#39;:{&#39;cmap&#39;:plt.cm.YlOrRd, &#39;vmin&#39;:0},</span>
+<span class="sd">        &#39;imshow&#39;:{&#39;cmap&#39;:plt.cm.YlOrRd, &#39;vmin&#39;:0}}</span>
+
+
+<span class="sd">DetPolProjNTheta = 50</span>
+<span class="sd">DetPolProjNZ = 25</span>
+<span class="sd">DetSAngColis = True</span>
+
+<span class="sd">GDetEtendMdA = {&#39;ls&#39;:&#39;None&#39;,&#39;c&#39;:&#39;k&#39;,&#39;lw&#39;:2,&#39;marker&#39;:&#39;+&#39;}</span>
+<span class="sd">GDetEtendMdR = {&#39;ls&#39;:&#39;None&#39;,&#39;c&#39;:&#39;b&#39;,&#39;lw&#39;:2,&#39;marker&#39;:&#39;x&#39;}</span>
+<span class="sd">GDetEtendMdS = {&#39;ls&#39;:&#39;None&#39;,&#39;c&#39;:&#39;g&#39;,&#39;lw&#39;:2,&#39;marker&#39;:&#39;o&#39;}</span>
+<span class="sd">GDetEtendMdP = {&#39;ls&#39;:&#39;None&#39;,&#39;c&#39;:&#39;r&#39;,&#39;lw&#39;:2,&#39;marker&#39;:&#39;*&#39;}</span>
+
+<span class="sd">GDetSigd = {&#39;ls&#39;:&#39;solid&#39;,&#39;c&#39;:&#39;k&#39;,&#39;lw&#39;:2,&#39;marker&#39;:&#39;+&#39;}</span>
+
+
+<span class="sd">Apertdict = dict(Lax=None, Proj=&#39;All&#39;, Elt=&#39;PV&#39;, EltVes=&#39;&#39;, Leg=&#39;&#39;, LVIn=ApLVin, Pdict=ApPd, Vdict=ApVd, Vesdict=Vesdict, LegDict=TorLegd, draw=True, Test=True)</span>
+<span class="sd">#Detdict =</span>
+
+
+<span class="sd"># -------------- Figures ------------------------</span>
+
+<span class="sd">def Plot_SAng_Plane_DefAxes(fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    (fW,fH,fdpi,axCol) = (11.69,8.27,80,&#39;w&#39;) if a4 else (10,8,80,&#39;w&#39;)</span>
+<span class="sd">    axPos = [0.05, 0.05, 0.9, 0.9]</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;,figsize=(fW,fH),dpi=fdpi)</span>
+<span class="sd">    ax = f.add_axes(axPos,facecolor=axCol,projection=&#39;3d&#39;)</span>
+<span class="sd">    ax.set_xlabel(r&quot;X1 (m)&quot;)</span>
+<span class="sd">    ax.set_ylabel(r&quot;X2 (m)&quot;)</span>
+<span class="sd">    ax.set_zlabel(r&quot;$\Omega$ (sr)&quot;)</span>
+<span class="sd">    return ax</span>
+
+
+<span class="sd">def Plot_Etendue_AlongLOS_DefAxes(kMode=&#39;rel&#39;,fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    (fW,fH,fdpi,axCol) = (11.69,8.27,80,&#39;w&#39;) if a4 else (14,8,80,&#39;w&#39;)</span>
+<span class="sd">    axPos = [0.06, 0.08, 0.70, 0.86]</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;,figsize=(fW,fH),dpi=fdpi)</span>
+<span class="sd">    ax = f.add_axes(axPos,frameon=True,facecolor=axCol)</span>
+<span class="sd">    if kMode.lower()==&#39;rel&#39;:</span>
+<span class="sd">        ax.set_xlabel(r&quot;Rel. length (adim.)&quot;)</span>
+<span class="sd">    else:</span>
+<span class="sd">        ax.set_xlabel(r&quot;Length (m)&quot;)</span>
+<span class="sd">    ax.set_ylabel(r&quot;Etendue ($sr.m^2$)&quot;)</span>
+<span class="sd">    return ax</span>
+
+
+<span class="sd">def Plot_CrossSlice_SAngNb_DefAxes(VType=&#39;Tor&#39;, fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    (fW,fH,fdpi,axCol) = (11.69,8.27,80,&#39;w&#39;) if a4 else (15,8,80,&#39;w&#39;)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;,figsize=(fW,fH),dpi=fdpi)</span>
+<span class="sd">    axSAng = f.add_axes([0.05, 0.06, 0.40, 0.85],frameon=True,facecolor=axCol)</span>
+<span class="sd">    axNb = f.add_axes([0.60, 0.06, 0.40, 0.85],frameon=True,facecolor=axCol)</span>
+<span class="sd">    if VType==&#39;Tor&#39;:</span>
+<span class="sd">        axSAng.set_xlabel(r&quot;R (m)&quot;),    axNb.set_xlabel(r&quot;R (m)&quot;)</span>
+<span class="sd">    elif VType==&#39;Lin&#39;:</span>
+<span class="sd">        axSAng.set_xlabel(r&quot;Y (m)&quot;),    axNb.set_xlabel(r&quot;Y (m)&quot;)</span>
+<span class="sd">    axSAng.set_ylabel(r&quot;Z (m)&quot;),      axNb.set_ylabel(r&quot;Z (m)&quot;)</span>
+<span class="sd">    axSAng.set_aspect(aspect=&quot;equal&quot;, adjustable=&#39;datalim&#39;)</span>
+<span class="sd">    axNb.set_aspect(aspect=&quot;equal&quot;, adjustable=&#39;datalim&#39;)</span>
+<span class="sd">    return axSAng, axNb</span>
+
+
+<span class="sd">def Plot_HorSlice_SAngNb_DefAxes(fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    (fW,fH,fdpi,axCol) = (11.69,8.27,80,&#39;w&#39;) if a4 else (15,8,80,&#39;w&#39;)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;,figsize=(fW,fH),dpi=fdpi)</span>
+<span class="sd">    axSAng = f.add_axes([0.07, 0.12, 0.35, 0.8],frameon=True,facecolor=axCol)</span>
+<span class="sd">    axNb = f.add_axes([0.55, 0.12, 0.35, 0.8],frameon=True,facecolor=axCol)</span>
+<span class="sd">    axSAng.set_xlabel(r&quot;X (m)&quot;),    axSAng.set_ylabel(r&quot;Y (m)&quot;)</span>
+<span class="sd">    axNb.set_xlabel(r&quot;X (m)&quot;),      axNb.set_ylabel(r&quot;Y (m)&quot;)</span>
+<span class="sd">    axSAng.set_aspect(aspect=&quot;equal&quot;, adjustable=&#39;datalim&#39;)</span>
+<span class="sd">    axNb.set_aspect(aspect=&quot;equal&quot;, adjustable=&#39;datalim&#39;)</span>
+<span class="sd">    return axSAng, axNb</span>
+
+
+<span class="sd">def Plot_Etendues_GDetect_DefAxes(fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    (fW,fH,fdpi,axCol) = (11.69,8.27,80,&#39;w&#39;) if a4 else (18,8,80,&#39;w&#39;)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;,figsize=(fW,fH),dpi=fdpi)</span>
+<span class="sd">    ax = f.add_axes([0.05,0.1,0.85,0.80],frameon=True,facecolor=axCol)</span>
+<span class="sd">    ax.set_xlabel(r&quot;&quot;)</span>
+<span class="sd">    ax.set_ylabel(r&quot;Etendue (sr.m^2)&quot;)</span>
+<span class="sd">    return ax</span>
+
+
+<span class="sd">def Plot_Sig_GDetect_DefAxes(fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    (fW,fH,fdpi,axCol) = (11.69,8.27,80,&#39;w&#39;) if a4 else (18,8,80,&#39;w&#39;)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;,figsize=(fW,fH),dpi=fdpi)</span>
+<span class="sd">    ax = f.add_axes([0.05,0.1,0.85,0.80],frameon=True,facecolor=axCol)</span>
+<span class="sd">    ax.set_xlabel(r&quot;&quot;)</span>
+<span class="sd">    ax.set_ylabel(r&quot;Signal (W)&quot;)</span>
+<span class="sd">    return ax</span>
+
+
+<span class="sd">#Ldict_mlab_Def = {&#39;color&#39;:(0.,0.,0.),&#39;tube_radius&#39;:None}</span>
+<span class="sd">#Mdict_mlab_Def = {&#39;color&#39;:(0.,0.,0.),&#39;line_width&#39;:1,&#39;mode&#39;:&#39;sphere&#39;}</span>
+<span class="sd">#Dict_3D_mlab_Tor_Def = {&#39;color&#39;:(0.8,0.8,0.8),&#39;opacity&#39;:0.15,&#39;transparent&#39;:False,&#39;scale_factor&#39;:0.1}</span>
+
+
+<span class="sd">def Plot_GDetect_Resolution_DefAxes(VType=&#39;Tor&#39;, fs=None, wintit=&#39;tofu&#39;):</span>
+<span class="sd">    axCol, fdpi = &#39;w&#39;, 80</span>
+<span class="sd">    if fs is None:</span>
+<span class="sd">        fs = (16,8) if Mode.lower()==&#39;all&#39; else (6,8)</span>
+<span class="sd">    elif type(fs) is str and fs==&#39;a4&#39;:</span>
+<span class="sd">        fs = (11.69,8.27) if Mode.lower()==&#39;all&#39; else (8.27,11.69)</span>
+<span class="sd">    f = plt.figure(facecolor=&quot;w&quot;, figsize=fs, dpi=fdpi)</span>
+<span class="sd">    axCol = &quot;w&quot;</span>
+<span class="sd">    (fW,fH) = (11.69,8.27) if a4 else (16,10)</span>
+<span class="sd">    f = plt.figure(figsize=(fW,fH),facecolor=axCol)</span>
+<span class="sd">    ax1 = f.add_axes([0.05, 0.06, 0.32, 0.80], frameon=True, facecolor=axCol)</span>
+<span class="sd">    ax2 = f.add_axes([0.50, 0.55, 0.47, 0.40], frameon=True, facecolor=axCol)</span>
+<span class="sd">    ax3 = f.add_axes([0.50, 0.06, 0.47, 0.40], frameon=True, facecolor=axCol)</span>
+<span class="sd">    X1 = r&quot;R (m)&quot; if VType==&#39;Tor&#39; else r&quot;Y (m)&quot;</span>
+<span class="sd">    ax1.set_xlabel(X1)</span>
+<span class="sd">    ax1.set_ylabel(r&quot;Z (m)&quot;)</span>
+<span class="sd">    ax2.set_xlabel(r&quot;size (a.u.)&quot;)</span>
+<span class="sd">    ax2.set_ylabel(r&quot;Signal (mW)&quot;)</span>
+<span class="sd">    ax3.set_xlabel(r&quot;Channels index (from 0)&quot;)</span>
+<span class="sd">    ax3.set_ylabel(r&quot;Signal (mW)&quot;)</span>
+<span class="sd">    ax1.set_aspect(aspect=&#39;equal&#39;,adjustable=&#39;datalim&#39;)</span>
+<span class="sd">    return ax1, ax2, ax3</span>
+
+
+
+
+
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>

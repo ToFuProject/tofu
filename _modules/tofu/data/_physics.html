@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.data._physics &#8212; tofu v1.1</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.data._physics</h1><div class="highlight"><pre>
+<span></span>
+
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.constants</span> <span class="k">as</span> <span class="nn">scpct</span>
+
+
+
+<div class="viewcode-block" id="compute_bremzeff"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._physics.compute_bremzeff">[docs]</a><span class="k">def</span> <span class="nf">compute_bremzeff</span><span class="p">(</span><span class="n">Te</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ne</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zeff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the bremsstrahlun spectral radiance at lamb</span>
+
+<span class="sd">    The plasma conditions are set by:</span>
+<span class="sd">        - Te   (eV)</span>
+<span class="sd">        - ne   (/m3)</span>
+<span class="sd">        - zeff (adim.)</span>
+
+<span class="sd">    The wavelength is set by the diagnostics</span>
+<span class="sd">        - lamb (m)</span>
+
+<span class="sd">    The vol. spectral emis. is returned in ph / (s.m3.sr.m)</span>
+
+<span class="sd">    The computation requires an intermediate : gff(Te, zeff)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ktkeV</span> <span class="o">=</span> <span class="n">Te</span> <span class="o">*</span> <span class="mf">1.e-3</span>
+    <span class="n">ktJ</span> <span class="o">=</span> <span class="n">Te</span> <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">e</span>
+    <span class="n">gff</span> <span class="o">=</span> <span class="mf">5.54</span> <span class="o">-</span> <span class="p">(</span><span class="mf">3.11</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ktkeV</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="mf">0.69</span><span class="o">-</span><span class="mf">0.13</span><span class="o">/</span><span class="n">zeff</span><span class="p">)</span>
+    <span class="n">Const</span> <span class="o">=</span> <span class="p">((</span><span class="n">scpct</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">6</span><span class="o">/</span><span class="p">(</span><span class="n">scpct</span><span class="o">.</span><span class="n">h</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">c</span><span class="o">**</span><span class="mi">3</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">epsilon_0</span><span class="p">)</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>
+             <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="p">(</span><span class="mf">864.</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">m_e</span><span class="o">**</span><span class="mi">3</span><span class="p">)))</span>
+    <span class="n">hc</span> <span class="o">=</span> <span class="n">scpct</span><span class="o">.</span><span class="n">h</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">c</span>
+    <span class="n">emis</span> <span class="o">=</span> <span class="n">Const</span><span class="o">/</span><span class="n">lamb</span> <span class="o">*</span> <span class="n">ne</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">zeff</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">hc</span><span class="o">/</span><span class="p">(</span><span class="n">lamb</span><span class="o">*</span><span class="n">ktJ</span><span class="p">))</span> <span class="o">*</span> <span class="n">gff</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ktJ</span><span class="p">)</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;ph / (s.m3.sr.m)&#39;</span>
+    <span class="k">return</span> <span class="n">emis</span><span class="p">,</span> <span class="n">units</span></div>
+
+
+<div class="viewcode-block" id="compute_fangle"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._physics.compute_fangle">[docs]</a><span class="k">def</span> <span class="nf">compute_fangle</span><span class="p">(</span><span class="n">BR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">BPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">BZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ne</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The the vector quantity to be integrated on LOS to get faraday angle</span>
+
+<span class="sd">    fangle = int_LOS ( abs(sca(quant, u_LOS)) )</span>
+<span class="sd">    Where:</span>
+<span class="sd">        quant = C * lamb**2 * ne * Bv</span>
+
+<span class="sd">    With:</span>
+<span class="sd">        - C = 2.615e-13  (1/T)</span>
+<span class="sd">        - ne    (/m3)</span>
+<span class="sd">        - lamb  (m)</span>
+<span class="sd">        - Bv    (T)</span>
+
+<span class="sd">    The resulting faraday angle (after integration) will be in radians</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">const</span> <span class="o">=</span> <span class="n">scpct</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">3</span> <span class="o">/</span> <span class="p">(</span><span class="mf">8.</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span>
+                          <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">epsilon_0</span> <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">m_e</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">c</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">quant</span> <span class="o">=</span> <span class="n">const</span> <span class="o">*</span> <span class="n">lamb</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ne</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">BR</span><span class="p">,</span> <span class="n">BPhi</span><span class="p">,</span> <span class="n">BZ</span><span class="p">])</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;rad / m&#39;</span>
+    <span class="k">return</span> <span class="n">quant</span><span class="p">,</span> <span class="n">units</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>

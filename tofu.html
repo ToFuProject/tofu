@@ -1,0 +1,1656 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu package &#8212; tofu v1.1</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tofu-package">
+<h1>tofu package<a class="headerlink" href="#tofu-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tofu.data.html">2. tofu.data package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#submodules">2.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._comp">2.2. tofu.data._comp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._core">2.3. tofu.data._core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._def">2.4. tofu.data._def module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._physics">2.5. tofu.data._physics module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._plot">2.6. tofu.data._plot module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data">2.7. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">3. tofu.dumpro package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#submodules">3.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._comp">3.2. tofu.dumpro._comp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._comp_clusters">3.3. tofu.dumpro._comp_clusters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#tofu-dumpro-core-module">3.4. tofu.dumpro._core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._def">3.5. tofu.dumpro._def module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._draft">3.6. tofu.dumpro._draft module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._plot">3.7. tofu.dumpro._plot module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro">3.8. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust._comp">tofu.dust._comp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust._core">tofu.dust._core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust._plot">tofu.dust._plot module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">1. tofu.geom package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#subpackages">1.1. Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tofu.geom.inputs.html">1.1.1. tofu.geom.inputs package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#submodules">1.1.1.1. Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_CoilPF_Notes">1.1.1.2. tofu.geom.inputs._DEPRECATED_WEST_CoilPF_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_Baffle_Notes">1.1.1.3. tofu.geom.inputs._DEPRECATED_WEST_PFC_Baffle_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_BumperInner_Notes">1.1.1.4. tofu.geom.inputs._DEPRECATED_WEST_PFC_BumperInner_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_BumperOuter_Notes">1.1.1.5. tofu.geom.inputs._DEPRECATED_WEST_PFC_BumperOuter_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowGC_Notes">1.1.1.6. tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowGC_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowITER_Notes">1.1.1.7. tofu.geom.inputs._DEPRECATED_WEST_PFC_DivLowITER_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_DivUp_Notes">1.1.1.8. tofu.geom.inputs._DEPRECATED_WEST_PFC_DivUp_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_IC1_Notes">1.1.1.9. tofu.geom.inputs._DEPRECATED_WEST_PFC_IC1_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_IC2_Notes">1.1.1.10. tofu.geom.inputs._DEPRECATED_WEST_PFC_IC2_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_IC3_Notes">1.1.1.11. tofu.geom.inputs._DEPRECATED_WEST_PFC_IC3_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_LH1_Notes">1.1.1.12. tofu.geom.inputs._DEPRECATED_WEST_PFC_LH1_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_LH2_Notes">1.1.1.13. tofu.geom.inputs._DEPRECATED_WEST_PFC_LH2_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_PFC_Ripple_Notes">1.1.1.14. tofu.geom.inputs._DEPRECATED_WEST_PFC_Ripple_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#tofu-geom-inputs-deprecated-west-plasmadomain-standard-notes-module">1.1.1.15. tofu.geom.inputs._DEPRECATED_WEST_PlasmaDomain_Standard_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_Ves_VesIn_Notes">1.1.1.16. tofu.geom.inputs._DEPRECATED_WEST_Ves_VesIn_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs._DEPRECATED_WEST_Ves_VesOut_Notes">1.1.1.17. tofu.geom.inputs._DEPRECATED_WEST_Ves_VesOut_Notes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tofu.geom.inputs.html#module-tofu.geom.inputs">1.1.1.18. Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#submodules">1.2. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._GG">1.3. tofu.geom._GG module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#tofu-geom-gg02-module">1.4. tofu.geom._GG02 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._GG03">1.5. tofu.geom._GG03 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._basic_geom_tools">1.6. tofu.geom._basic_geom_tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._comp">1.7. tofu.geom._comp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._core">1.8. tofu.geom._core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._def">1.9. tofu.geom._def module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._distance_tools">1.10. tofu.geom._distance_tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._plot">1.11. tofu.geom._plot module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._raytracing_tools">1.12. tofu.geom._raytracing_tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._sampling_tools">1.13. tofu.geom._sampling_tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._vignetting_tools">1.14. tofu.geom._vignetting_tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom.utils">1.15. tofu.geom.utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom">1.16. Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-tofu._plot">
+<span id="tofu-plot-module"></span><h2>tofu._plot module<a class="headerlink" href="#module-tofu._plot" title="Permalink to this headline">¶</a></h2>
+<p>Module providing a basic routine for plotting a shot overview</p>
+<dl class="function">
+<dt id="tofu._plot.plot_shotoverview">
+<code class="sig-prename descclassname">tofu._plot.</code><code class="sig-name descname">plot_shotoverview</code><span class="sig-paren">(</span><em class="sig-param">db, ntMax=3, indt=0, config=None, inct=[1, 5], dcol=None, lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], fmt_t='06.3f', fs=None, dmargin=None, tit=None, wintit=None, fontsize=8, labelpad=0, sharet=True, sharey=True, shareRZ=True, connect=True, draw=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/_plot.html#plot_shotoverview"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu._plot.plot_shotoverview" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.defaults">
+<span id="tofu-defaults-module"></span><h2>tofu.defaults module<a class="headerlink" href="#module-tofu.defaults" title="Permalink to this headline">¶</a></h2>
+<p>This module stores all the default setting of ToFu
+Including in particular computing parameters, dictionnaries and figures</p>
+<dl class="data">
+<dt id="tofu.defaults.AllowedExp">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">AllowedExp</code><em class="property"> = [None, 'AUG', 'MISTRAL', 'JET', 'ITER', 'TCV', 'TS', 'WEST', 'KSTAR', 'Misc', 'Test']</em><a class="headerlink" href="#tofu.defaults.AllowedExp" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Defaults settings of ToFu_Geom</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.BF2_DVect_DefR">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">BF2_DVect_DefR</code><span class="sig-paren">(</span><em class="sig-param">Points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#BF2_DVect_DefR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.BF2_DVect_DefR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.BF2_DVect_DefTor">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">BF2_DVect_DefTor</code><span class="sig-paren">(</span><em class="sig-param">Points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#BF2_DVect_DefTor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.BF2_DVect_DefTor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.BF2_DVect_DefZ">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">BF2_DVect_DefZ</code><span class="sig-paren">(</span><em class="sig-param">Points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#BF2_DVect_DefZ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.BF2_DVect_DefZ" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="tofu.defaults.InvSigmad">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">InvSigmad</code><em class="property"> = {'facecolor': (0.8, 0.8, 0.8, 0.7), 'lw': 0.0}</em><a class="headerlink" href="#tofu.defaults.InvSigmad" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_3D_plt_Tor_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_3D_plt_Tor_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_3D_plt_Tor_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_3D_plt_Tor_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BF2_interp_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BF2_interp_DefAxes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BF2_interp_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BF2_interp_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BF2_sum_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BF2_sum_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BF2_sum_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BF2_sum_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BFunc_SuppMax_PolProj_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BFunc_SuppMax_PolProj_DefAxes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BFunc_SuppMax_PolProj_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BFunc_SuppMax_PolProj_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BSplineFit_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BSplineFit_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">Mode</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BSplineFit_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BSplineFit_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BSpline_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BSpline_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">Mode</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BSpline_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BSpline_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BSpline_Deriv_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BSpline_Deriv_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">Deg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BSpline_Deriv_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BSpline_Deriv_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_BaseFunc2D_BFuncMesh_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_BaseFunc2D_BFuncMesh_DefAxes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_BaseFunc2D_BFuncMesh_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_BaseFunc2D_BFuncMesh_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_CrossSlice_SAngNb_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_CrossSlice_SAngNb_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">VType='Tor'</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_CrossSlice_SAngNb_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_CrossSlice_SAngNb_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Eq2D_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Eq2D_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">VType='Tor'</em>, <em class="sig-param">cbar=False</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Eq2D_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Eq2D_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Eq2D_Inter_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Eq2D_Inter_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">VType='Tor'</em>, <em class="sig-param">cbar=False</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Eq2D_Inter_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Eq2D_Inter_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Eq2D_Vs_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Eq2D_Vs_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">VType='Tor'</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Eq2D_Vs_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Eq2D_Vs_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Etendue_AlongLOS_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Etendue_AlongLOS_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">kMode='rel'</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Etendue_AlongLOS_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Etendue_AlongLOS_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Etendues_GDetect_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Etendues_GDetect_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Etendues_GDetect_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Etendues_GDetect_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_FFTChan_Def">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_FFTChan_Def</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_FFTChan_Def"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_FFTChan_Def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_FFTInter_Def">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_FFTInter_Def</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_FFTInter_Def"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_FFTInter_Def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_GDetect_Resolution_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_GDetect_Resolution_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">VType='Tor'</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_GDetect_Resolution_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_GDetect_Resolution_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_GeomMatrix_Mesh_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_GeomMatrix_Mesh_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_GeomMatrix_Mesh_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_GeomMatrix_Mesh_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_HorSlice_SAngNb_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_HorSlice_SAngNb_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_HorSlice_SAngNb_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_HorSlice_SAngNb_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Impact_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Impact_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">Proj</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">a4=False</em>, <em class="sig-param">Sketch=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Impact_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Impact_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Anim_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Anim_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">SXR=True</em>, <em class="sig-param">TMat=True</em>, <em class="sig-param">Chi2N=True</em>, <em class="sig-param">Mu=True</em>, <em class="sig-param">R=True</em>, <em class="sig-param">Nit=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Anim_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Anim_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Basic_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Basic_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em>, <em class="sig-param">dpi=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Basic_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Basic_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Compare_Basic_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Compare_Basic_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">N=2</em>, <em class="sig-param">a4=False</em>, <em class="sig-param">dpi=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Compare_Basic_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Compare_Basic_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Compare_Profiles_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Compare_Profiles_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">N=2</em>, <em class="sig-param">NL=4</em>, <em class="sig-param">a4=False</em>, <em class="sig-param">dpi=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Compare_Profiles_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Compare_Profiles_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Compare_Technical_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Compare_Technical_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">N=2</em>, <em class="sig-param">a4=False</em>, <em class="sig-param">dpi=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Compare_Technical_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Compare_Technical_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_FFTPow_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_FFTPow_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">NPts=6</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_FFTPow_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_FFTPow_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Profiles_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Profiles_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">NL=4</em>, <em class="sig-param">a4=False</em>, <em class="sig-param">dpi=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Profiles_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Profiles_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Inv_Technical_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Inv_Technical_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em>, <em class="sig-param">dpi=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Inv_Technical_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Inv_Technical_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_LOSProj_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_LOSProj_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">Mode</em>, <em class="sig-param">Type='Tor'</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_LOSProj_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_LOSProj_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Lens_Alone_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Lens_Alone_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Lens_Alone_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Lens_Alone_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Mesh1D_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Mesh1D_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Mesh1D_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Mesh1D_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Mesh2D_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Mesh2D_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">VType='Tor'</em>, <em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Mesh2D_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Mesh2D_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Noise_Def">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Noise_Def</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Noise_Def"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Noise_Def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Res_Mesh1D_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Res_Mesh1D_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Res_Mesh1D_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Res_Mesh1D_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Res_Mesh2D_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Res_Mesh2D_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em>, <em class="sig-param">VType='Tor'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Res_Mesh2D_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Res_Mesh2D_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_SAng_Plane_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_SAng_Plane_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_SAng_Plane_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_SAng_Plane_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_Sig_GDetect_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_Sig_GDetect_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_Sig_GDetect_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_Sig_GDetect_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_SynDiag_DefAxes">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_SynDiag_DefAxes</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_SynDiag_DefAxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_SynDiag_DefAxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.Plot_TreatSig_Def">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">Plot_TreatSig_Def</code><span class="sig-paren">(</span><em class="sig-param">a4=False</em>, <em class="sig-param">nMax=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#Plot_TreatSig_Def"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.Plot_TreatSig_Def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.defaults.kpVsPolProjAng">
+<code class="sig-prename descclassname">tofu.defaults.</code><code class="sig-name descname">kpVsPolProjAng</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/defaults.html#kpVsPolProjAng"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.defaults.kpVsPolProjAng" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.pathfile">
+<span id="tofu-pathfile-module"></span><h2>tofu.pathfile module<a class="headerlink" href="#module-tofu.pathfile" title="Permalink to this headline">¶</a></h2>
+<p>Created on Wed Jul 30 14:37:31 2014</p>
+<p>&#64;author: didiervezinet</p>
+<dl class="class">
+<dt id="tofu.pathfile.ID">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">ID</code><span class="sig-paren">(</span><em class="sig-param">Cls=None, Name=None, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath='/Users/mendoza/tofu/doc', USRdict={}, LObj=None, fromdict=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class used by all ToFu objects as an attribute</p>
+<p>It stores all relevant data for the identification of instances
+Stored info can be the name of the instance, the experiment and diagnostics
+it belongs to, or other user-defined info
+Also provides default names for saving the instances</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance (user-defined)
+Should be a str without space ‘ ‘ or underscore ‘_’
+(automatically removed if present)</p></li>
+<li><p><strong>Type</strong> (<em>None / str</em>) – Type of object (i.e.: ‘Tor’ or ‘Lin’ for a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code>)</p></li>
+<li><p><strong>Deg</strong> (<em>None / int</em>) – Degree of the b-splines constituting the <code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.mesh</span></code> object</p></li>
+<li><p><strong>Exp</strong> (<em>None / str</em>) – Flag specifying the experiment (e.g.: ‘WEST’, ‘AUG’, ‘ITER’, ‘JET’…)</p></li>
+<li><p><strong>Diag</strong> (<em>None / str</em>) – Flag indicating the diagnostic (e.g.: ‘SXR’, ‘HXR’, ‘Bolo’…)</p></li>
+<li><p><strong>shot</strong> (<em>None / int</em>) – A shot number from which the instance is valid (for tracking changes)</p></li>
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – Overrides the default file name for saving (not recommended)</p></li>
+<li><p><strong>SavePath</strong> (<em>None / str</em>) – Absolute path where the instance should be saved</p></li>
+<li><p><strong>USRdict</strong> (<em>None / dict</em>) – A user-defined dictionary containing information about the instance
+All info considered relevant can be passed here
+(e.g.: thickness of the diode, date of installation…)</p></li>
+<li><p><strong>LObj</strong> (<em>None / dict / list</em>) – <dl class="simple">
+<dt>Either:</dt><dd><ul>
+<li><p>list: list of other ID instances of objects on which the created object depends (this list will then be sorted by class and formatted into a dictionary storign key attributes)</p></li>
+<li><p>dict: a ready-made such dictionary</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="tofu.pathfile.ID.Cls">
+<em class="property">property </em><code class="sig-name descname">Cls</code><a class="headerlink" href="#tofu.pathfile.ID.Cls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.Diag">
+<em class="property">property </em><code class="sig-name descname">Diag</code><a class="headerlink" href="#tofu.pathfile.ID.Diag" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.Exp">
+<em class="property">property </em><code class="sig-name descname">Exp</code><a class="headerlink" href="#tofu.pathfile.ID.Exp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.LObj">
+<em class="property">property </em><code class="sig-name descname">LObj</code><a class="headerlink" href="#tofu.pathfile.ID.LObj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.Name">
+<em class="property">property </em><code class="sig-name descname">Name</code><a class="headerlink" href="#tofu.pathfile.ID.Name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.NameLTX">
+<em class="property">property </em><code class="sig-name descname">NameLTX</code><a class="headerlink" href="#tofu.pathfile.ID.NameLTX" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.SaveName">
+<em class="property">property </em><code class="sig-name descname">SaveName</code><a class="headerlink" href="#tofu.pathfile.ID.SaveName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.SavePath">
+<em class="property">property </em><code class="sig-name descname">SavePath</code><a class="headerlink" href="#tofu.pathfile.ID.SavePath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.Type">
+<em class="property">property </em><code class="sig-name descname">Type</code><a class="headerlink" href="#tofu.pathfile.ID.Type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.USRdict">
+<em class="property">property </em><code class="sig-name descname">USRdict</code><a class="headerlink" href="#tofu.pathfile.ID.USRdict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_LObj">
+<code class="sig-name descname">set_LObj</code><span class="sig-paren">(</span><em class="sig-param">LObj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_LObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_LObj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the LObj attribute, storing objects the instance depends on</p>
+<p>For example:
+A Detect object depends on a vessel and some apertures
+That link between should be stored somewhere (for saving/loading).
+LObj does this: it stores the ID (as dict) of all objects depended on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>LObj</strong> (None / dict / <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> / list of such) – <dl class="simple">
+<dt>Provide either:</dt><dd><ul class="simple">
+<li><p>A dict (derived from <code class="xref py py-meth docutils literal notranslate"><span class="pre">_todict()</span></code>)</p></li>
+<li><p>A <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> instance</p></li>
+<li><p>A list of dict or <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> instances</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_Name">
+<code class="sig-name descname">set_Name</code><span class="sig-paren">(</span><em class="sig-param">Name, SaveName=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], ForceUpdate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_Name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_Name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the Name of the instance, automatically updating the SaveName</p>
+<p>The name should be a str without spaces or underscores (removed)
+When the name is changed, if SaveName (i.e. the name used for saving)
+was not user-defined, it is automatically updated</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
+<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+Each element of the list is a key str indicating whether an element
+should be present in the SaveName</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_SaveName">
+<code class="sig-name descname">set_SaveName</code><span class="sig-paren">(</span><em class="sig-param">SaveName=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], ForceUpdate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_SaveName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_SaveName" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the name for saving the instance (SaveName)</p>
+<dl class="simple">
+<dt>SaveName can be either:</dt><dd><ul class="simple">
+<li><p>provided by the user (no constraint) - not recommended</p></li>
+<li><p>automatically generated from Name and key attributes (cf. Include)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
+<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+Each element of the list is a key str indicating whether an element
+should be present in the SaveName</p></li>
+<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <dl class="simple">
+<dt>Flag indicating the behaviour when SaveName=None:</dt><dd><ul>
+<li><p>True : A new SaveName is generated, overriding the old one</p></li>
+<li><p>False : The former SaveName is preserved (default)</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.set_USRdict">
+<code class="sig-name descname">set_USRdict</code><span class="sig-paren">(</span><em class="sig-param">USRdict={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID.set_USRdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID.set_USRdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the USRdict, containing user-defined info about the instance</p>
+<p>Useful for arbitrary info (e.g.: manufacturing date, material…)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>USRdict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.pathfile.ID.shot">
+<em class="property">property </em><code class="sig-name descname">shot</code><a class="headerlink" href="#tofu.pathfile.ID.shot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.SaveName_Conv">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">SaveName_Conv</code><span class="sig-paren">(</span><em class="sig-param">Mod=None, Cls=None, Type=None, Name=None, Deg=None, Exp=None, Diag=None, shot=None, version=None, usr=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#SaveName_Conv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.SaveName_Conv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a default name for saving the object</p>
+<p>Includes key info for fast identification of the object from file name
+Used on object creation by <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+It is recommended to use this default name.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.CheckSameObj">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">CheckSameObj</code><span class="sig-paren">(</span><em class="sig-param">obj0</em>, <em class="sig-param">obj1</em>, <em class="sig-param">LFields=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#CheckSameObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.CheckSameObj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if two variables are the same instance of a ToFu class</p>
+<p>Checks a list of attributes, provided by LField</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj0</strong> (<em>tofu object</em>) – A variable refering to a ToFu object of any class</p></li>
+<li><p><strong>obj1</strong> (<em>tofu object</em>) – A variable refering to a ToFu object of the same class as obj0</p></li>
+<li><p><strong>LFields</strong> (<em>None / str / list</em>) – <dl class="simple">
+<dt>The criteria against which the two objects are evaluated:</dt><dd><ul>
+<li><p>None: True is returned</p></li>
+<li><p>str or list: tests whether all listed attributes have the same value</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>A</strong> (<em>bool</em>) – True only is LField is None or a list of attributes that all match</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.SelectFromListId">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">SelectFromListId</code><span class="sig-paren">(</span><em class="sig-param">LId</em>, <em class="sig-param">Val=None</em>, <em class="sig-param">Crit='Name'</em>, <em class="sig-param">PreExp=None</em>, <em class="sig-param">PostExp=None</em>, <em class="sig-param">Log='any'</em>, <em class="sig-param">InOut='In'</em>, <em class="sig-param">Out=&lt;class 'bool'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#SelectFromListId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.SelectFromListId" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the indices or instances of all LOS matching criteria</p>
+<p>The selection can be done according to 2 different mechanisms</p>
+<p>Mechanism (1): provide the value (Val) a criterion (Crit) should match
+The criteria are typically attributes of <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+(i.e.: name, or user-defined attributes like the camera head…)</p>
+<p>Mechanism (2): (used if Val=None)
+Provide a str expression (or a list of such) to be fed to eval()
+Used to check on quantitative criteria.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>PreExp: placed before the criterion value (e.g.: ‘not ‘ or ‘&lt;=’)</p></li>
+<li><p>PostExp: placed after the criterion value</p></li>
+<li><p>you can use both</p></li>
+</ul>
+</div></blockquote>
+<p>Other parameters are used to specify logical operators for the selection
+(match any or all the criterion…) and the type of output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Crit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag indicating which criterion to use for discrimination
+Can be set to:</p>
+<blockquote>
+<div><ul>
+<li><p>any attribute of <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+(e.g.: ‘Name’,’SaveName’,’SavePath’…)</p></li>
+<li><p>any key of ID.USRdict (e.g.: ‘Exp’…)</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>Val</strong> (<em>None / list / str</em>) – The value to match for the chosen criterion, can be a list
+Used for selection mechanism (1)</p></li>
+<li><p><strong>PreExp</strong> (<em>None / list / str</em>) – A str (or list of such) expression to be fed to eval(),
+Placed before the criterion value
+Used for selection mechanism (2)</p></li>
+<li><p><strong>PostExp</strong> (<em>None / list / str</em>) – A str (or list of such) expression to be fed to eval()
+Placed after the criterion value
+Used for selection mechanism (2)</p></li>
+<li><p><strong>Log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag indicating whether the criterion shall match:</dt><dd><ul>
+<li><p>’all’: all provided values</p></li>
+<li><p>’any’: at least one of them</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>InOut</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag indicating whether the returned indices are:</dt><dd><ul>
+<li><p>’In’: the ones matching the criterion</p></li>
+<li><p>’Out’: the ones not matching it</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>Out</strong> (<em>type / str</em>) – <dl class="simple">
+<dt>Flag indicating in which form to return the result:</dt><dd><ul>
+<li><p>int: as an array of integer indices</p></li>
+<li><p>bool: as an array of boolean indices</p></li>
+<li><p>’Name’: as a list of names</p></li>
+<li><p>’LOS’: as a list of <code class="xref py py-class docutils literal notranslate"><span class="pre">LOS</span></code> instances</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>ind</strong> (<em>list / np.ndarray</em>) – The computed output, of nature defined by parameter Out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.get_InfoFromFileName">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">get_InfoFromFileName</code><span class="sig-paren">(</span><em class="sig-param">PathFileExt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_InfoFromFileName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_InfoFromFileName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.get_FileFromInfos">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">get_FileFromInfos</code><span class="sig-paren">(</span><em class="sig-param">Path='./'</em>, <em class="sig-param">Mod=None</em>, <em class="sig-param">Cls=None</em>, <em class="sig-param">Type=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Deg=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">usr=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_FileFromInfos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_FileFromInfos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.convert_units">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">convert_units</code><span class="sig-paren">(</span><em class="sig-param">P</em>, <em class="sig-param">In='cm'</em>, <em class="sig-param">Out='m'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#convert_units"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.convert_units" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quickly convert distance units between meters, centimeters and millimeters</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.get_PolyFromPolyFileObj">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">get_PolyFromPolyFileObj</code><span class="sig-paren">(</span><em class="sig-param">PolyFileObj</em>, <em class="sig-param">SavePathInp=None</em>, <em class="sig-param">units='m'</em>, <em class="sig-param">comments='#'</em>, <em class="sig-param">skiprows=0</em>, <em class="sig-param">shape0=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#get_PolyFromPolyFileObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.get_PolyFromPolyFileObj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a polygon as a np.ndarray, extracted from a txt file or from a ToFu object, with appropriate units</p>
+<p>Useful for <code class="xref py py-meth docutils literal notranslate"><span class="pre">tofu.plugins.AUG.Ves._create()</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>PolyFileObj</strong> (str / <a class="reference internal" href="tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.geom</span></code></a> object / np.ndarray) – <dl class="simple">
+<dt>The source where the polygon is to be found, either:</dt><dd><ul>
+<li><p>str: the name of a file containing the coorindates of a polygon to be loaded with <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code></p></li>
+<li><p>A <a class="reference internal" href="tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.geom</span></code></a> object: with attribute ‘Poly’</p></li>
+<li><p>np.ndarray: an 2-dimensional array containing the 2D cartesian coordinates of a polygon</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>SavePathInp</strong> (<em>str / None</em>) – The absolute path where the input file is stored</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Flag indicating in which units the polygon coordinates is expressed in the input file / object / array (will be converted to meters)</p></li>
+<li><p><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
+<li><p><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
+<li><p><strong>shape0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Specifies whether the loaded array is a (2,N) or (3,N) array (transposed it if necessary)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Poly</strong> (<em>np.ndarray</em>) – (2,N) np.ndarray containing the 2D cartesian coordinates of the polygon, where N is the number of points</p></li>
+<li><p><strong>addInfo</strong> (<em>dict</em>) – Dictionaryb containing information on the origin of the polygon, for the record (e.g.: the name and absolute path of the file from which it was extracted)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.Save_Generic">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">Save_Generic</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">SaveName=None</em>, <em class="sig-param">Path='./'</em>, <em class="sig-param">Mode='npz'</em>, <em class="sig-param">compressed=False</em>, <em class="sig-param">Print=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Save_Generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Save_Generic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save a ToFu object under file name SaveName, in folder Path</p>
+<p>ToFu provides built-in saving and loading functions for ToFu objects.
+There is now only one saving mode:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>‘npz’: saves a dict of key attributes using <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.savez()</span></code></p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>Good practices are:</dt><dd><ul class="simple">
+<li><p>save <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Struct</span></code></p></li>
+<li><p>intermediate optics (<code class="xref py py-class docutils literal notranslate"><span class="pre">Apert</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Lens</span></code>) generally do not need to be saved
+Indeed, they will be autoamtically included in larger objects
+like Detect or Cam objects</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SaveName</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The file name, if None (recommended) uses obj.Id.SaveName</p></li>
+<li><p><strong>Path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Path where to save the file</p></li>
+<li><p><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag specifying the saving mode</dt><dd><ul>
+<li><p>’npz’: Only mode currently available (‘pck’ deprecated)</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Indicate whether to use np.savez_compressed (slower but smaller files)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.pathfile.Open">
+<code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">Open</code><span class="sig-paren">(</span><em class="sig-param">pathfileext=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">t=None</em>, <em class="sig-param">Dt=None</em>, <em class="sig-param">Mesh=None</em>, <em class="sig-param">Deg=None</em>, <em class="sig-param">Deriv=None</em>, <em class="sig-param">Sep=True</em>, <em class="sig-param">Pos=True</em>, <em class="sig-param">OutPath=None</em>, <em class="sig-param">ReplacePath=None</em>, <em class="sig-param">Ves=None</em>, <em class="sig-param">out='full'</em>, <em class="sig-param">Verb=False</em>, <em class="sig-param">Print=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#Open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.Open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open a ToFu object saved file</p>
+<p>This generic open function identifies the required loading routine by detecting how the object was saved from the file name extension.
+Also, it uses <code class="xref py py-meth docutils literal notranslate"><span class="pre">FindSolFile()</span></code> to identify the relevant file in case key criteria such as shot, Deg… are provided instead of the file name itself.
+Finally, once all the relevant data is loaded from the file, a ToFu object is re-created, if necessary by implicitly loading all other objects it may depend on (i.e.: vessel, apertures…)</p>
+<p>If pathfileext is not provided (None), then the following keyword arguments are fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">FindSolFile()</span></code>: shot, t, Dt, Mesh, Deg, Deriv, Sep, Pos</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pathfileext</strong> (<em>None / str</em>) – If provided, the name of the file to load</p></li>
+<li><p><strong>OutPath</strong> (<em>None / str</em>) – If provided, the absolute path where the file is to be found</p></li>
+<li><p><strong>ReplacePath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – If provided, ? (to finish)</p></li>
+<li><p><strong>Ves</strong> (<em>None /</em>) – If provided, the <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom.Ves</span></code> object that shall be used to reconstruct the object (if not provided, the appropriate vessel will be loaded).</p></li>
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Flag indicating whether the object should be loaded completely (‘full’), in a light dismissing the heaviest attributes (‘light’) or whether only the Id or a list of Id should be returned (‘Id’), valid only for ‘.npz’</p></li>
+<li><p><strong>Verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to pring intermediate comments on the loading procedure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><em>obj             ToFu object</em> – The loaded and re-created ToFu object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tofu.utils">
+<span id="tofu-utils-module"></span><h2>tofu.utils module<a class="headerlink" href="#module-tofu.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tofu.utils.DChans">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">DChans</code><span class="sig-paren">(</span><em class="sig-param">dchans</em>, <em class="sig-param">fromdict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#DChans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.DChans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for handling event on tofu interactive figures</p>
+<dl class="method">
+<dt id="tofu.utils.DChans.dchans">
+<em class="property">property </em><code class="sig-name descname">dchans</code><a class="headerlink" href="#tofu.utils.DChans.dchans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dchans dict</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.DChans.nch">
+<em class="property">property </em><code class="sig-name descname">nch</code><a class="headerlink" href="#tofu.utils.DChans.nch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dchans dict</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.DChans.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param">key=None</em>, <em class="sig-param">val=None</em>, <em class="sig-param">log='any'</em>, <em class="sig-param">out=&lt;class 'bool'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#DChans.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.DChans.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>The the indices of all channels matching the (key,val) pairs</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tofu.utils.Data2DBase">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">Data2DBase</code><span class="sig-paren">(</span><em class="sig-param">fromdict=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#Data2DBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.Data2DBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tofu.utils.ToFuObjectBase" title="tofu.utils.ToFuObjectBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObjectBase</span></code></a></p>
+<p>Provide a a dict of sequences depending on 2 indices</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tofu.utils.Dictattr">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">Dictattr</code><span class="sig-paren">(</span><em class="sig-param">extra</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#Dictattr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.Dictattr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.FileNotFoundMsg">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">FileNotFoundMsg</code><span class="sig-paren">(</span><em class="sig-param">pattern</em>, <em class="sig-param">path</em>, <em class="sig-param">lF</em>, <em class="sig-param">nocc=1</em>, <em class="sig-param">ntab=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#FileNotFoundMsg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.FileNotFoundMsg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.FindFilePattern">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">FindFilePattern</code><span class="sig-paren">(</span><em class="sig-param">pattern</em>, <em class="sig-param">path</em>, <em class="sig-param">nocc=1</em>, <em class="sig-param">ntab=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#FindFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.FindFilePattern" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="tofu.utils.ID">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">ID</code><span class="sig-paren">(</span><em class="sig-param">Cls=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Type=None</em>, <em class="sig-param">Deg=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">SaveName=None</em>, <em class="sig-param">SavePath=None</em>, <em class="sig-param">usr=None</em>, <em class="sig-param">dUSR=None</em>, <em class="sig-param">lObj=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">include=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tofu.utils.ToFuObjectBase" title="tofu.utils.ToFuObjectBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObjectBase</span></code></a></p>
+<p>A class used by all ToFu objects as an attribute</p>
+<p>It stores all relevant data for the identification of instances
+Stored info can be the name of the instance, the experiment and diagnostics
+it belongs to, or other user-defined info
+Also provides default names for saving the instances</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance (user-defined)
+Should be a str without space ‘ ‘ or underscore ‘_’
+(automatically removed if present)</p></li>
+<li><p><strong>Type</strong> (<em>None / str</em>) – Type of object (i.e.: ‘Tor’ or ‘Lin’ for a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code>)</p></li>
+<li><p><strong>Deg</strong> (<em>None / int</em>) – Degree of the b-splines constituting the <code class="xref py py-mod docutils literal notranslate"><span class="pre">tofu.mesh</span></code> object</p></li>
+<li><p><strong>Exp</strong> (<em>None / str</em>) – Flag specifying the experiment (e.g.: ‘WEST’, ‘AUG’, ‘ITER’, ‘JET’…)</p></li>
+<li><p><strong>Diag</strong> (<em>None / str</em>) – Flag indicating the diagnostic (e.g.: ‘SXR’, ‘HXR’, ‘Bolo’…)</p></li>
+<li><p><strong>shot</strong> (<em>None / int</em>) – A shot number from which the instance is valid (for tracking changes)</p></li>
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – Overrides the default file name for saving (not recommended)</p></li>
+<li><p><strong>SavePath</strong> (<em>None / str</em>) – Absolute path where the instance should be saved</p></li>
+<li><p><strong>dUSR</strong> (<em>None / dict</em>) – A user-defined dictionary containing information about the instance
+All info considered relevant can be passed here
+(e.g.: thickness of the diode, date of installation…)</p></li>
+<li><p><strong>lObj</strong> (<em>None / dict / list</em>) – <dl class="simple">
+<dt>Either:</dt><dd><ul>
+<li><p>list: list of other ID instances of objects on which the created object depends
+(this list will then be sorted by class and formatted into a dictionary storign key attributes)</p></li>
+<li><p>dict: a ready-made such dictionary</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="tofu.utils.ID.Cls">
+<em class="property">property </em><code class="sig-name descname">Cls</code><a class="headerlink" href="#tofu.utils.ID.Cls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.Deg">
+<em class="property">property </em><code class="sig-name descname">Deg</code><a class="headerlink" href="#tofu.utils.ID.Deg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.Diag">
+<em class="property">property </em><code class="sig-name descname">Diag</code><a class="headerlink" href="#tofu.utils.ID.Diag" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.Exp">
+<em class="property">property </em><code class="sig-name descname">Exp</code><a class="headerlink" href="#tofu.utils.ID.Exp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.Mod">
+<em class="property">property </em><code class="sig-name descname">Mod</code><a class="headerlink" href="#tofu.utils.ID.Mod" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.Name">
+<em class="property">property </em><code class="sig-name descname">Name</code><a class="headerlink" href="#tofu.utils.ID.Name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.NameLTX">
+<em class="property">property </em><code class="sig-name descname">NameLTX</code><a class="headerlink" href="#tofu.utils.ID.NameLTX" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.SaveName">
+<em class="property">property </em><code class="sig-name descname">SaveName</code><a class="headerlink" href="#tofu.utils.ID.SaveName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.SaveName_Conv">
+<em class="property">static </em><code class="sig-name descname">SaveName_Conv</code><span class="sig-paren">(</span><em class="sig-param">Mod=None</em>, <em class="sig-param">Cls=None</em>, <em class="sig-param">Type=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Deg=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">usr=None</em>, <em class="sig-param">include=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.SaveName_Conv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.SaveName_Conv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a default name for saving the object</p>
+<p>Includes key info for fast identification of the object from file name
+Used on object creation by <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>
+It is recommended to use this default name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.SavePath">
+<em class="property">property </em><code class="sig-name descname">SavePath</code><a class="headerlink" href="#tofu.utils.ID.SavePath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.Type">
+<em class="property">property </em><code class="sig-name descname">Type</code><a class="headerlink" href="#tofu.utils.ID.Type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.dUSR">
+<em class="property">property </em><code class="sig-name descname">dUSR</code><a class="headerlink" href="#tofu.utils.ID.dUSR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.dall">
+<em class="property">property </em><code class="sig-name descname">dall</code><a class="headerlink" href="#tofu.utils.ID.dall" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.generate_SaveName">
+<code class="sig-name descname">generate_SaveName</code><span class="sig-paren">(</span><em class="sig-param">include=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.generate_SaveName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.generate_SaveName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.lObj">
+<em class="property">property </em><code class="sig-name descname">lObj</code><a class="headerlink" href="#tofu.utils.ID.lObj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.set_Name">
+<code class="sig-name descname">set_Name</code><span class="sig-paren">(</span><em class="sig-param">Name</em>, <em class="sig-param">SaveName=None</em>, <em class="sig-param">include=None</em>, <em class="sig-param">ForceUpdate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.set_Name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.set_Name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the Name of the instance, automatically updating the SaveName</p>
+<p>The name should be a str without spaces or underscores (removed)
+When the name is changed, if SaveName (i.e. the name used for saving)
+was not user-defined, it is automatically updated</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
+<li><p><strong>include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+Each element of the list is a key str indicating whether an element
+should be present in the SaveName</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.set_SaveName">
+<code class="sig-name descname">set_SaveName</code><span class="sig-paren">(</span><em class="sig-param">SaveName=None</em>, <em class="sig-param">include=None</em>, <em class="sig-param">ForceUpdate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.set_SaveName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.set_SaveName" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the name for saving the instance (SaveName)</p>
+<dl class="simple">
+<dt>SaveName can be either:</dt><dd><ul class="simple">
+<li><p>provided by the user (no constraint) - not recommended</p></li>
+<li><p>automatically generated from Name and key attributes (cf. include)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
+<li><p><strong>include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+Each element of the list is a key str indicating whether an element
+should be present in the SaveName</p></li>
+<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <dl class="simple">
+<dt>Flag indicating the behaviour when SaveName=None:</dt><dd><ul>
+<li><p>True : A new SaveName is generated, overriding the old one</p></li>
+<li><p>False : The former SaveName is preserved (default)</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.set_dUSR">
+<code class="sig-name descname">set_dUSR</code><span class="sig-paren">(</span><em class="sig-param">dUSR={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.set_dUSR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.set_dUSR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the dUSR, containing user-defined info about the instance</p>
+<p>Useful for arbitrary info (e.g.: manufacturing date, material…)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dUSR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.set_lObj">
+<code class="sig-name descname">set_lObj</code><span class="sig-paren">(</span><em class="sig-param">lObj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.set_lObj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.set_lObj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the lObj attribute, storing objects the instance depends on</p>
+<p>For example:
+A Detect object depends on a vessel and some apertures
+That link between should be stored somewhere (for saving/loading).
+lObj does this: it stores the ID (as dict) of all objects depended on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lObj</strong> (None / dict / <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> / list of such) – <dl class="simple">
+<dt>Provide either:</dt><dd><ul class="simple">
+<li><p>A dict (derived from <code class="xref py py-meth docutils literal notranslate"><span class="pre">_todict()</span></code>)</p></li>
+<li><p>A <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> instance</p></li>
+<li><p>A list of dict or <a class="reference internal" href="#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> instances</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.shot">
+<em class="property">property </em><code class="sig-name descname">shot</code><a class="headerlink" href="#tofu.utils.ID.shot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.strip">
+<code class="sig-name descname">strip</code><span class="sig-paren">(</span><em class="sig-param">strip=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ID.strip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ID.strip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove non-essential attributes to save memory / disk usage</p>
+<p>Useful to save a very compressed version of the object
+The higher strip =&gt; the more stripped the object
+Use strip=0 to recover all atributes</p>
+<dl class="simple">
+<dt>See the difference by doing:</dt><dd><p>&gt; self.get_nbytes()
+&gt; self.strip(-1)
+&gt; self.get_nbytes()</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
+<div><p>0: Make complete (retrieve all attributes)</p>
+</div></blockquote>
+<p>-1: Equivalent to strip=0</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.usr">
+<em class="property">property </em><code class="sig-name descname">usr</code><a class="headerlink" href="#tofu.utils.ID.usr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ID.version">
+<em class="property">property </em><code class="sig-name descname">version</code><a class="headerlink" href="#tofu.utils.ID.version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tofu.utils.KeyHandler_mpl">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">KeyHandler_mpl</code><span class="sig-paren">(</span><em class="sig-param">can=None</em>, <em class="sig-param">dgroup=None</em>, <em class="sig-param">dref=None</em>, <em class="sig-param">ddata=None</em>, <em class="sig-param">dobj=None</em>, <em class="sig-param">dax=None</em>, <em class="sig-param">lax_fix=[]</em>, <em class="sig-param">groupinit='time'</em>, <em class="sig-param">follow=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.connect">
+<code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.connect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.disconnect">
+<code class="sig-name descname">disconnect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.disconnect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.disconnect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.disconnect_old">
+<code class="sig-name descname">disconnect_old</code><span class="sig-paren">(</span><em class="sig-param">force=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.disconnect_old"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.disconnect_old" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.init">
+<code class="sig-name descname">init</code><span class="sig-paren">(</span><em class="sig-param">dgroup=None</em>, <em class="sig-param">ngroup=None</em>, <em class="sig-param">dobj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.init"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.mouseclic">
+<code class="sig-name descname">mouseclic</code><span class="sig-paren">(</span><em class="sig-param">event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.mouseclic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.mouseclic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.mouserelease">
+<code class="sig-name descname">mouserelease</code><span class="sig-paren">(</span><em class="sig-param">event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.mouserelease"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.mouserelease" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.onkeypress">
+<code class="sig-name descname">onkeypress</code><span class="sig-paren">(</span><em class="sig-param">event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.onkeypress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.onkeypress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.reconnect_old">
+<code class="sig-name descname">reconnect_old</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.reconnect_old"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.reconnect_old" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.resize">
+<code class="sig-name descname">resize</code><span class="sig-paren">(</span><em class="sig-param">event</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.resize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.resize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.KeyHandler_mpl.update">
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">excluderef=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tofu.utils.ToFuObject">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">ToFuObject</code><span class="sig-paren">(</span><em class="sig-param">fromdict=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tofu.utils.ToFuObjectBase" title="tofu.utils.ToFuObjectBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObjectBase</span></code></a></p>
+<dl class="method">
+<dt id="tofu.utils.ToFuObject.Id">
+<em class="property">property </em><code class="sig-name descname">Id</code><a class="headerlink" href="#tofu.utils.ToFuObject.Id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ID instance of the object</p>
+<p>The ID class in tofu objects contains all information used for
+identifying the instance and automatically managing saving / loading
+In particular, it yields information such as:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Name of the object</p></li>
+<li><p>Name that would be used for the file in case of saving</p></li>
+<li><p>Path under which it would be saved</p></li>
+<li><p>Experiment the object is associated to</p></li>
+<li><p>Diagnostic the object is associated to</p></li>
+<li><p>Type of the object</p></li>
+<li><p>shot the object is associated to</p></li>
+<li><p>version of tofu used for creating the object</p></li>
+<li><p>…</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ToFuObject.save">
+<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param">path=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">strip=None</em>, <em class="sig-param">sep='_'</em>, <em class="sig-param">deep=True</em>, <em class="sig-param">mode='npz'</em>, <em class="sig-param">compressed=False</em>, <em class="sig-param">verb=True</em>, <em class="sig-param">return_pfe=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObject.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObject.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the ToFu object</p>
+<p>ToFu provides built-in saving and loading functions for ToFu objects.
+Specifying saving path ad name is optional (defaults recommended)
+The mode refers to the file format</p>
+<dl class="simple">
+<dt>Good practices are:</dt><dd><ul class="simple">
+<li><p>save all struct objects</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>ToFuObject subclass instance</em>) – The object to be saved</p></li>
+<li><p><strong>path</strong> (<em>None / str</em>) – The folder where to save, if None (recommended), uses obj.Id.SavePath</p></li>
+<li><p><strong>name</strong> (<em>None / str</em>) – The file name, if None (recommended), uses obj.Id.SaveName</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag specifying the saving mode</dt><dd><ul>
+<li><p>’npz’: numpy file</p></li>
+<li><p>’mat’: matlab file</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the saved object should be
+See docstring of self.strip()</p></li>
+<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <p>Flag, used when the object has other tofu objects as attributes
+Indicated whether these attribute object should be:</p>
+<blockquote>
+<div><ul>
+<li><dl class="simple">
+<dt>True: converted to dict themselves in order to be saved inside</dt><dd><p>the same file as attributes
+(-&gt; uses self.to_dict(deep=’dict’))</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>False: not converted, in that the strategy would be to save them</dt><dd><p>separately and store only the reference to the saved files
+instead of the objects themselves.
+To do this, you must:</p>
+<blockquote>
+<div><p>1/ Save all object attributes independently
+2/ Store only the reference by doing self.strip(-1)</p>
+<blockquote>
+<div><p>The strip() method will check they have been saved
+before removing them, and throw an Exception otherwise</p>
+</div></blockquote>
+<p>3/ self.save(deep=False)</p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to compress the file (slower, not recommended)</p></li>
+<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to print a summary (recommended)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tofu.utils.ToFuObjectBase">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">ToFuObjectBase</code><span class="sig-paren">(</span><em class="sig-param">fromdict=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="tofu.utils.ToFuObjectBase.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><em class="sig-param">strip=None</em>, <em class="sig-param">deep='ref'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return another instance of the object, with the same attributes</p>
+<p>If deep=True, all attributes themselves are also copies</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ToFuObjectBase.from_dict">
+<code class="sig-name descname">from_dict</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">sep='_'</em>, <em class="sig-param">strip=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase.from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase.from_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populate the instances attributes using an input dict</p>
+<p>The input dict must be properly formatted
+In practice it should be the return output of a similar class to_dict()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fd</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – The properly formatted ditionnary from which to read the attributes</p></li>
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The separator that was used to format fd keys (cf. self.to_dict())</p></li>
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the resulting object shouyld be
+(cf. self.strip())</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ToFuObjectBase.get_nbytes">
+<code class="sig-name descname">get_nbytes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase.get_nbytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase.get_nbytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute and return the object size in bytes (i.e.: octets)</p>
+<p>A flat dict containing all the objects attributes is first created
+The size of each attribute is then estimated with np.asarray().nbytes</p>
+<dl class="simple">
+<dt>Note :</dt><dd><p>if the attribute is a tofu object, get_nbytes() is recursive</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>total</strong> (<em>int</em>) – The total object estimated size, in bytes</p></li>
+<li><p><strong>dsize</strong> (<em>dict</em>) – A dictionnary giving the size of each attribute</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ToFuObjectBase.strip">
+<code class="sig-name descname">strip</code><span class="sig-paren">(</span><em class="sig-param">strip=0</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase.strip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase.strip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove non-essential attributes to save memory / disk usage</p>
+<p>Useful to save a very compressed version of the object
+The higher strip =&gt; the more stripped the object
+Use strip=0 to recover all atributes</p>
+<dl class="simple">
+<dt>See the difference by doing:</dt><dd><p>&gt; self.get_nbytes()
+&gt; self.strip(-1)
+&gt; self.get_nbytes()</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
+<div><p>0: Make complete (retrieve all attributes){0}</p>
+</div></blockquote>
+<p>-1: Equivalent to strip={1}</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.utils.ToFuObjectBase.to_dict">
+<code class="sig-name descname">to_dict</code><span class="sig-paren">(</span><em class="sig-param">strip=None</em>, <em class="sig-param">sep='_'</em>, <em class="sig-param">deep='ref'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a flat dict view of the object’s attributes</p>
+<dl class="simple">
+<dt>Useful for:</dt><dd><ul class="simple">
+<li><p>displaying all attributes</p></li>
+<li><p>saving to file</p></li>
+<li><p>exchaning data with non-tofu libraries</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the object should be
+Fed to self.strip()</p></li>
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Separator char used for flattening the dict
+The output dict is flat (i.e.: no nested dict)
+Keys are created from the keys of nested dict, separated by sep</p></li>
+<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag indicating how to behave when an attribute is itself a tofu
+object. The associated field in the exported dict can be:</p>
+<blockquote>
+<div><ul>
+<li><p>’ref’ : a simple reference to the object</p></li>
+<li><p>’copy’: a tofu object itself (i.e.: a copy of the original)</p></li>
+<li><dl class="simple">
+<dt>’dict’: the tofu object is itself exported as a dict</dt><dd><p>(using also self.to_dict())</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>dout</strong> (<em>dict</em>) – Flat dict containing all the objects attributes</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.calc_from_imas">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">calc_from_imas</code><span class="sig-paren">(</span><em class="sig-param">shot=None</em>, <em class="sig-param">run=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">tokamak=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">ids=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">out=None</em>, <em class="sig-param">tlim=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">occ=None</em>, <em class="sig-param">indch=None</em>, <em class="sig-param">indDescription=None</em>, <em class="sig-param">equilibrium=None</em>, <em class="sig-param">dsig=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">X=None</em>, <em class="sig-param">t0=None</em>, <em class="sig-param">dextra=None</em>, <em class="sig-param">Brightness=None</em>, <em class="sig-param">res=None</em>, <em class="sig-param">interp_t=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">plot_compare=True</em>, <em class="sig-param">sharex=False</em>, <em class="sig-param">bck=True</em>, <em class="sig-param">indch_auto=True</em>, <em class="sig-param">t=None</em>, <em class="sig-param">init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#calc_from_imas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.calc_from_imas" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.dict_cmp">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">dict_cmp</code><span class="sig-paren">(</span><em class="sig-param">d1</em>, <em class="sig-param">d2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#dict_cmp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.dict_cmp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.flatten_dict">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">flatten_dict</code><span class="sig-paren">(</span><em class="sig-param">d</em>, <em class="sig-param">parent_key=''</em>, <em class="sig-param">sep='_'</em>, <em class="sig-param">deep='ref'</em>, <em class="sig-param">lexcept_key=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#flatten_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.flatten_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_figuresize">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_figuresize</code><span class="sig-paren">(</span><em class="sig-param">fs</em>, <em class="sig-param">fsdef=(12</em>, <em class="sig-param">6)</em>, <em class="sig-param">orient='landscape'</em>, <em class="sig-param">method='xrandr'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_figuresize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_figuresize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic function to return figure size in inches</p>
+<dl class="simple">
+<dt>Useful for str-based flags such as:</dt><dd><ul class="simple">
+<li><p>‘a4’  : use orient=’portrait’ or ‘landscape’</p></li>
+<li><dl class="simple">
+<dt>‘full’: to get screen size</dt><dd><p>use method=’xrandr’ (recommended),
+as ‘xdpyinfo’ tends to be wrong</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_fupdate">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_fupdate</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">typ</em>, <em class="sig-param">n12=None</em>, <em class="sig-param">norm=None</em>, <em class="sig-param">bstr=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_fupdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_fupdate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_ind_fromkey">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_ind_fromkey</code><span class="sig-paren">(</span><em class="sig-param">dmovkeys={}</em>, <em class="sig-param">nn=[]</em>, <em class="sig-param">is2d=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_ind_fromkey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_ind_fromkey" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_ind_frompos">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_ind_frompos</code><span class="sig-paren">(</span><em class="sig-param">Type='x'</em>, <em class="sig-param">ref=None</em>, <em class="sig-param">ref2=None</em>, <em class="sig-param">otherid=None</em>, <em class="sig-param">indother=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_ind_frompos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_ind_frompos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_indncurind">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_indncurind</code><span class="sig-paren">(</span><em class="sig-param">dind</em>, <em class="sig-param">linds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_indncurind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_indncurind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_indrefind">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_indrefind</code><span class="sig-paren">(</span><em class="sig-param">dind</em>, <em class="sig-param">linds</em>, <em class="sig-param">drefid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_indrefind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_indrefind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_pathfileext">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_pathfileext</code><span class="sig-paren">(</span><em class="sig-param">path=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">path_def='./'</em>, <em class="sig-param">name_def='dummy'</em>, <em class="sig-param">mode='npz'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_pathfileext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_pathfileext" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_pos_fromind">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_pos_fromind</code><span class="sig-paren">(</span><em class="sig-param">ref=None</em>, <em class="sig-param">ref2=None</em>, <em class="sig-param">otherid=None</em>, <em class="sig-param">indother=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_pos_fromind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_pos_fromind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_todictfields">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_todictfields</code><span class="sig-paren">(</span><em class="sig-param">ld</em>, <em class="sig-param">ls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_todictfields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_todictfields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.get_valf">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">get_valf</code><span class="sig-paren">(</span><em class="sig-param">val</em>, <em class="sig-param">lrids</em>, <em class="sig-param">linds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#get_valf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.get_valf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.load">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">path=None</em>, <em class="sig-param">strip=None</em>, <em class="sig-param">verb=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a tofu object file</p>
+<dl class="simple">
+<dt>Can load from .npz or .txt files</dt><dd><p>In future versions, will also load from .mat</p>
+</dd>
+</dl>
+<p>The file must have been saved with tofu (i.e.: must be tofu-formatted)
+The associated tofu object will be created and returned</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the file to load from, can include the path</p></li>
+<li><p><strong>path</strong> (<em>None / str</em>) – Path where the file is located (if not provided in name), defaults ‘./’</p></li>
+<li><p><strong>strip</strong> (<em>None / int</em>) – <dl class="simple">
+<dt>FLag indicating whether to strip the object of some attributes</dt><dd><p>=&gt; see the docstring of the class strip() method for details</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indocating whether to print a summary of the loaded file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.load_from_imas">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">load_from_imas</code><span class="sig-paren">(</span><em class="sig-param">shot=None</em>, <em class="sig-param">run=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">tokamak=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">ids=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">out=None</em>, <em class="sig-param">tlim=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">occ=None</em>, <em class="sig-param">indch=None</em>, <em class="sig-param">indDescription=None</em>, <em class="sig-param">equilibrium=None</em>, <em class="sig-param">dsig=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">X=None</em>, <em class="sig-param">t0=None</em>, <em class="sig-param">dextra=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">plot_sig=None</em>, <em class="sig-param">plot_X=None</em>, <em class="sig-param">sharex=False</em>, <em class="sig-param">bck=True</em>, <em class="sig-param">indch_auto=True</em>, <em class="sig-param">t=None</em>, <em class="sig-param">init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#load_from_imas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.load_from_imas" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.reshape_dict">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">reshape_dict</code><span class="sig-paren">(</span><em class="sig-param">d</em>, <em class="sig-param">sep='_'</em>, <em class="sig-param">lcls=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#reshape_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.reshape_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.utils.save">
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">path=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">sep='_'</em>, <em class="sig-param">deep=False</em>, <em class="sig-param">mode='npz'</em>, <em class="sig-param">strip=None</em>, <em class="sig-param">compressed=False</em>, <em class="sig-param">verb=True</em>, <em class="sig-param">return_pfe=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the ToFu object</p>
+<p>ToFu provides built-in saving and loading functions for ToFu objects.
+Specifying saving path ad name is optional (defaults recommended)
+The mode refers to the file format</p>
+<dl class="simple">
+<dt>Good practices are:</dt><dd><ul class="simple">
+<li><p>save all struct objects</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>ToFuObject subclass instance</em>) – The object to be saved</p></li>
+<li><p><strong>path</strong> (<em>None / str</em>) – The folder where to save, if None (recommended), uses obj.Id.SavePath</p></li>
+<li><p><strong>name</strong> (<em>None / str</em>) – The file name, if None (recommended), uses obj.Id.SaveName</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<dt>Flag specifying the saving mode</dt><dd><ul>
+<li><p>’npz’: numpy file</p></li>
+<li><p>’mat’: matlab file</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the saved object should be
+See docstring of self.strip()</p></li>
+<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <p>Flag, used when the object has other tofu objects as attributes
+Indicated whether these attribute object should be:</p>
+<blockquote>
+<div><ul>
+<li><dl class="simple">
+<dt>True: converted to dict themselves in order to be saved inside</dt><dd><p>the same file as attributes
+(-&gt; uses self.to_dict(deep=’dict’))</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>False: not converted, in that the strategy would be to save them</dt><dd><p>separately and store only the reference to the saved files
+instead of the objects themselves.
+To do this, you must:</p>
+<blockquote>
+<div><p>1/ Save all object attributes independently
+2/ Store only the reference by doing self.strip(-1)</p>
+<blockquote>
+<div><p>The strip() method will check they have been saved
+before removing them, and throw an Exception otherwise</p>
+</div></blockquote>
+<p>3/ self.save(deep=False)</p>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to compress the file (slower, not recommended)</p></li>
+<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to print a summary (recommended)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tofu.version">
+<span id="tofu-version-module"></span><h2>tofu.version module<a class="headerlink" href="#module-tofu.version" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-tofu">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-tofu" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="tofu-a-python-library-for-tomography-for-fusion-research">
+<h3>ToFu: A python library for Tomography for Fusion research<a class="headerlink" href="#tofu-a-python-library-for-tomography-for-fusion-research" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>Provides</dt><dd><ol class="arabic simple">
+<li><p>Objects to handle 3D geometry of diagnostics</p></li>
+<li><p>Built-in methods for computing key quantities, data treatment, inversions…</p></li>
+<li><p>Visualisation tools</p></li>
+</ol>
+</dd>
+</dl>
+<div class="section" id="how-to-use-the-documentation">
+<h4>How to use the documentation<a class="headerlink" href="#how-to-use-the-documentation" title="Permalink to this headline">¶</a></h4>
+<dl class="simple">
+<dt>Documentation is available in two forms:</dt><dd><ol class="arabic simple">
+<li><p>Docstrings provided with the code</p></li>
+<li><p>A loose standing reference guide, available from <a class="reference external" href="http://www.tofu.org">the ToFu homepage</a>.</p></li>
+</ol>
+</dd>
+</dl>
+</div>
+<div class="section" id="available-subpackages">
+<h4>Available subpackages<a class="headerlink" href="#available-subpackages" title="Permalink to this headline">¶</a></h4>
+<dl class="simple">
+<dt>geom</dt><dd><p>Geometry-handling, with dedicated objects, methods and functions</p>
+</dd>
+<dt>mesh</dt><dd><p>Mesh and basis functions creation and handling, as well as 2D equilibrium storing</p>
+</dd>
+<dt>matcomp</dt><dd><p>Computation of geometry matrix from outputs of both geom and mesh</p>
+</dd>
+<dt>treat</dt><dd><p>Data-handling objects and methods for pre-treatment (visualisation, treatment…)</p>
+</dd>
+<dt>inv</dt><dd><p>Inversion-regularisation algortihms, using outputs from matcomp and data, plus visualisation</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="available-modules">
+<h4>Available modules<a class="headerlink" href="#available-modules" title="Permalink to this headline">¶</a></h4>
+<dl class="simple">
+<dt>defaults</dt><dd><p>Store most default parameters of tofu</p>
+</dd>
+<dt>pathfile</dt><dd><p>Provide a class for identification of all tofu objects, and functions for path and file handling</p>
+</dd>
+<dt>helper</dt><dd><p>miscellaneous helper functions</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="utilities">
+<h4>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h4>
+<dl class="simple">
+<dt>test</dt><dd><p>Run tofu unittests</p>
+</dd>
+<dt>show_config</dt><dd><p>Show tofu build configuration</p>
+</dd>
+<dt>__version__</dt><dd><p>tofu version string</p>
+</dd>
+</dl>
+<p>Created on Wed May 18 2016</p>
+<p>&#64;author: didiervezinet
+&#64;author_email: <a class="reference external" href="mailto:didier&#46;vezinet&#37;&#52;&#48;gmail&#46;com">didier<span>&#46;</span>vezinet<span>&#64;</span>gmail<span>&#46;</span>com</a></p>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">tofu package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-tofu._plot">tofu._plot module</a></li>
+<li><a class="reference internal" href="#module-tofu.defaults">tofu.defaults module</a></li>
+<li><a class="reference internal" href="#module-tofu.pathfile">tofu.pathfile module</a></li>
+<li><a class="reference internal" href="#module-tofu.utils">tofu.utils module</a></li>
+<li><a class="reference internal" href="#module-tofu.version">tofu.version module</a></li>
+<li><a class="reference internal" href="#module-tofu">Module contents</a><ul>
+<li><a class="reference internal" href="#tofu-a-python-library-for-tomography-for-fusion-research">ToFu: A python library for Tomography for Fusion research</a><ul>
+<li><a class="reference internal" href="#how-to-use-the-documentation">How to use the documentation</a></li>
+<li><a class="reference internal" href="#available-subpackages">Available subpackages</a></li>
+<li><a class="reference internal" href="#available-modules">Available modules</a></li>
+<li><a class="reference internal" href="#utilities">Utilities</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/tofu.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>
