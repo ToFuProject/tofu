@@ -4743,13 +4743,14 @@ class Rays(utils.ToFuObject):
                 c0 = c0 and len(lVIn) == nPoly
                 if c0:
                     c0 = c0 and all([vv.shape == (2, pp.shape[1]-1)
-                                     for vv,pp in zip(lVIn, lPoly)])
+                                     for vv, pp in zip(lVIn, lPoly)])
                     if c0:
                         lVIn = [np.ascontiguousarray(vv) for vv in lVIn]
 
             # Check normalization and direction
             for ii in range(0,nPoly):
-                lVIn[ii] = lVIn[ii]/np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None, :]
+                lVIn[ii] = (lVIn[ii]
+                            / np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None, :])
                 vect = np.diff(lPoly[ii], axis=1)
                 vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None, :]
                 det = vect[0, :]*lVIn[ii][1, :] - vect[1, :]*lVIn[ii][0, :]
@@ -4795,19 +4796,19 @@ class Rays(utils.ToFuObject):
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
-                kIn[ii,:], kOut[ii,:] = out[2], out[3]
+                kIn[ii, :], kOut[ii, :] = out[2], out[3]
         elif self._method=="optimized":
             for ii in range(0,nPoly):
                 largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
 
                 out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[:2]
-                kIn[ii,:], kOut[ii,:] = out
+                kIn[ii, :], kOut[ii, :] = out
         if kInOut:
             indok = ~np.isnan(kIn)
             ind = np.zeros((nPoly, self.nRays), dtype=bool)
-            kInref = np.tile(self.kIn, (nPoly,1))
-            kOutref = np.tile(self.kOut, (nPoly,1))
+            kInref = np.tile(self.kIn, (nPoly, 1))
+            kOutref = np.tile(self.kOut, (nPoly, 1))
             ind[indok] = (kIn[indok]<kInref[indok]) | (kIn[indok]>kOutref[indok])
             kIn[ind] = np.nan
 
