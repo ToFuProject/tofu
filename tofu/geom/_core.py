@@ -3088,13 +3088,13 @@ class Rays(utils.ToFuObject):
                 assert val.size==self._dgeom['nRays']
         return val
 
-
     def _checkformat_inputs_dgeom(self, dgeom=None):
         assert dgeom is not None
         assert isinstance(dgeom,tuple) or isinstance(dgeom,dict)
         lC = [k for k in self._dcases.keys()
               if (isinstance(dgeom, self._dcases[k]['type'])
-                  and all([kk in dgeom.keys() for kk in self._dcases[k]['lk']]))]
+                  and all([kk in dgeom.keys()
+                           for kk in self._dcases[k]['lk']]))]
         if not len(lC)==1:
             lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
