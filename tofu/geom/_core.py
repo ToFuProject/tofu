@@ -4708,9 +4708,9 @@ class Rays(utils.ToFuObject):
                     )
         else:
             for ii in range(nPoly):
-                 # Check closed and anti-clockwise
-                 if _GG.Poly_isClockwise(lPoly[ii]):
-                     lPoly[ii] = lPoly[ii][:, ::-1]
+                # Check closed and anti-clockwise
+                if _GG.Poly_isClockwise(lPoly[ii]):
+                    lPoly[ii] = lPoly[ii][:, ::-1]
             d = np.sum((lPoly[:, :, 0]-lPoly[:, :, -1])**2, axis=1)
             if np.allclose(d, 0.):
                 pass
@@ -4726,8 +4726,8 @@ class Rays(utils.ToFuObject):
             lVIn = []
             for pp in lPoly:
                 vIn = np.diff(pp, axis=1)
-                vIn = vIn/(np.sqrt(np.sum(vIn**2, axis=0))[None,:])
-                vIn = np.ascontiguousarray([-vIn[1,:], vIn[0,:]])
+                vIn = vIn/(np.sqrt(np.sum(vIn**2, axis=0))[None, :])
+                vIn = np.ascontiguousarray([-vIn[1, :], vIn[0, :]])
                 lVIn.append(vIn)
         else:
             c0 = type(lVIn) in [np.ndarray, list, tuple]
@@ -4749,10 +4749,10 @@ class Rays(utils.ToFuObject):
 
             # Check normalization and direction
             for ii in range(0,nPoly):
-                lVIn[ii] = lVIn[ii]/np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None,:]
+                lVIn[ii] = lVIn[ii]/np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None, :]
                 vect = np.diff(lPoly[ii], axis=1)
-                vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None,:]
-                det = vect[0,:]*lVIn[ii][1,:] - vect[1,:]*lVIn[ii][0,:]
+                vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None, :]
+                det = vect[0, :]*lVIn[ii][1, :] - vect[1, :]*lVIn[ii][0, :]
                 if not np.allclose(np.abs(det), 1.):
                     msg = "Each lVIn must be perp. to each lPoly segment !"
                     raise Exception(msg)
