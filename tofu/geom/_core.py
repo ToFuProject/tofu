@@ -423,7 +423,7 @@ class Struct(utils.ToFuObject):
             Typesu = np.unique(Types)
             lc = np.array([Typesu == vv
                            for vv in self._DREFLECT_DTYPES.values()])
-            assert np.all(np.any(Types, axis=0))
+            assert np.all(np.any(lc, axis=0))
 
         assert coefs is None
         return Types, coefs
