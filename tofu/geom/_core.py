@@ -423,7 +423,7 @@ class Struct(utils.ToFuObject):
             Typesu = np.unique(Types)
             lc = np.array([Typesu == vv
                            for vv in self._DREFLECT_DTYPES.values()])
-            assert np.all(np.any(Types, axis=0))
+            assert np.all(np.any(lc, axis=0))
 
         assert coefs is None
         return Types, coefs
@@ -933,8 +933,7 @@ class Struct(utils.ToFuObject):
                        VLim=np.ascontiguousarray(self.Lim), nVLim=self.noccur,
                        Out=Out, margin=1.e-9,
                        Multi=self.dgeom['Multi'], Ind=Ind)
-        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
-                self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
+        args = [self.Poly, res]
         pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
         return pts, dS, ind, reseff
 
@@ -1501,22 +1500,10 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = 'r'
 
-    def __init__(self, Poly=None, Type=None, Lim=None, pos=None, extent=None,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 nturns=None, superconducting=None, active=None,
-                 SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
-        kwdargs = locals()
-        del kwdargs['self'], kwdargs['__class__']
-        # super()
-        super(CoilPF,self).__init__(mobile=False, **kwdargs)
-
     def __init__(self, nturns=None, superconducting=None, active=None,
                  **kwdargs):
         # super()
-        super(CoilPF,self).__init__(**kwdargs)
+        super(CoilPF, self).__init__(mobile=False, **kwdargs)
 
     def _reset(self):
         # super()
@@ -3089,16 +3076,15 @@ class Rays(utils.ToFuObject):
                 assert val.size==self._dgeom['nRays']
         return val
 
-
-    @classmethod
-    def _checkformat_inputs_dgeom(cls, dgeom=None):
+    def _checkformat_inputs_dgeom(self, dgeom=None):
         assert dgeom is not None
         assert isinstance(dgeom,tuple) or isinstance(dgeom,dict)
-        lC = [k for k in cls._dcases.keys()
-              if (isinstance(dgeom,cls._dcases[k]['type'])
-                  and all([kk in dgeom.keys() for kk in cls._dcases[k]['lk']]))]
+        lC = [k for k in self._dcases.keys()
+              if (isinstance(dgeom, self._dcases[k]['type'])
+                  and all([kk in dgeom.keys()
+                           for kk in self._dcases[k]['lk']]))]
         if not len(lC)==1:
-            lstr = [v['lk'] for v in cls._dcases.values()]
+            lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
             msg += "  - dict with keys:\n"
             msg += "\n    - " + "\n    - ".join(lstr)
@@ -3141,7 +3127,7 @@ class Rays(utils.ToFuObject):
         elif case == 'C':
             D = _checkformat_Du(dgeom['D'], 'D')
             dins = {'pinhole':{'var':dgeom['pinhole'], 'vectnd':3}}
-            dins, err, msg = cls._check_InputsGeneric(dins)
+            dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
             pinhole = dins['pinhole']['var']
@@ -3170,7 +3156,7 @@ class Rays(utils.ToFuObject):
                     dins['l2'] = {'var':dgeom['l2'], 'int2float':None}
                     dins['n2'] = {'var':dgeom['n2'], 'float2int':None}
 
-            dins, err, msg = cls._check_InputsGeneric(dins)
+            dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
             dgeom = {'dX12':{}}
@@ -4640,7 +4626,7 @@ class Rays(utils.ToFuObject):
             k = np.split(k, lind, axis=-1)
         return k, reseff, lind
 
-    def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
+    def _kInOut_Isoflux_inputs(self, lPoly, lVIn=None):
 
         if self._method=='ref':
             D, u = np.ascontiguousarray(self.D), np.ascontiguousarray(self.u)
@@ -4669,52 +4655,101 @@ class Rays(utils.ToFuObject):
             pass
         return largs, dkwd
 
-    def _kInOut_IsoFlux_inputs_usr(self, lPoly, lVIn=None):
+    def _kInOut_Isoflux_inputs_usr(self, lPoly, lVIn=None):
+        c0 = type(lPoly) in [np.ndarray, list, tuple]
 
         # Check lPoly
-        if type(lPoly) is np.ndarray:
-            lPoly = [lPoly]
-        lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
-        msg = "Arg lPoly must be a list of (2,N) or (N,2) np.ndarrays !"
-        assert all([pp.ndim==2 and 2 in pp.shape for pp in lPoly]), msg
+        if c0 and type(lPoly) is np.ndarray:
+            c0 = c0 and lPoly.ndim in [2, 3]
+            if c0 and lPoly.ndim == 2:
+                c0 = c0 and lPoly.shape[0] == 2
+                if c0:
+                    lPoly = [np.ascontiguousarray(lPoly)]
+            elif c0:
+                c0 = c0 and lPoly.shape[1] == 2
+                if c0:
+                    lPoly = np.ascontiguousarray(lPoly)
+        elif c0:
+            lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
+            c0 = all([pp.ndim == 2 and pp.shape[0] == 2 for pp in lPoly])
+        if not c0:
+            msg = "Arg lPoly must be either:\n"
+            msg += "    - a (2,N) np.ndarray (signle polygon of N points)\n"
+            msg += "    - a list of M polygons, each a (2,Ni) np.ndarray\n"
+            msg += "        - where Ni is the number of pts of each polygon\n"
+            msg += "    - a (M,2,N) np.ndarray where:\n"
+            msg += "        - M is the number of polygons\n"
+            msg += "        - N is the (common) number of points per polygon\n"
+            raise Exception(msg)
         nPoly = len(lPoly)
-        for ii in range(0,nPoly):
-            if lPoly[ii].shape[0]!=2:
-                lPoly[ii] = lPoly[ii].T
+
+        # Check anti-clockwise and closed
+        if type(lPoly) is list:
+            for ii in range(nPoly):
                 # Check closed and anti-clockwise
-                lPoly[ii] = _GG.Poly_Order(lPoly[ii], Clock=False, close=True)
+                if _GG.Poly_isClockwise(lPoly[ii]):
+                    lPoly[ii] = lPoly[ii][:, ::-1]
+                if not np.allclose(lPoly[ii][:, 0], lPoly[ii][:, -1]):
+                    lPoly[ii] = np.concatenate(
+                        (lPoly[ii], lPoly[ii][:, 0:1]), axis=-1
+                    )
+        else:
+            for ii in range(nPoly):
+                # Check closed and anti-clockwise
+                if _GG.Poly_isClockwise(lPoly[ii]):
+                    lPoly[ii] = lPoly[ii][:, ::-1]
+            d = np.sum((lPoly[:, :, 0]-lPoly[:, :, -1])**2, axis=1)
+            if np.allclose(d, 0.):
+                pass
+            elif np.all(d > 0.):
+                lPoly = np.concatenate((lPoly, lPoly[:, :, 0:1]), axis=-1)
+            else:
+                msg = "All poly in lPoly should be closed or all non-closed!"
+                raise Exception(msg)
+
 
         # Check lVIn
         if lVIn is None:
             lVIn = []
             for pp in lPoly:
-                VIn = np.diff(pp, axis=1)
-                VIn = VIn/(np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:])
-                VIn = np.ascontiguousarray([-VIn[1,:],VIn[0,:]])
-                lVIn.append(VIn)
+                vIn = np.diff(pp, axis=1)
+                vIn = vIn/(np.sqrt(np.sum(vIn**2, axis=0))[None, :])
+                vIn = np.ascontiguousarray([-vIn[1, :], vIn[0, :]])
+                lVIn.append(vIn)
         else:
-            if type(lVIn) is np.ndarray:
-                lVIn = [lVIn]
-            assert len(lVIn)==nPoly
-            lVIn = [np.ascontiguousarray(pp) for pp in lVIn]
-            msg = "Arg lVIn must be a list of (2,N) or (N,2) np.ndarrays !"
-            assert all([pp.ndim==2 and 2 in pp.shape for pp in lVIn]), msg
+            c0 = type(lVIn) in [np.ndarray, list, tuple]
+            if c0 and type(lVIn) is np.ndarray and lVIn.ndim == 2:
+                c0 = c0 and lVIn.shape == (2, lPoly[0].shape[1]-1)
+                if c0:
+                    lVIn = [np.ascontiguousarray(lVIn)]
+            elif c0 and type(lVIn) is np.ndarray:
+                c0 = c0 and lVIn.shape == (nPoly, 2, lPoly.shape[-1]-1)
+                if c0:
+                    lVIn = np.ascontiguousarray(lVIn)
+            elif c0:
+                c0 = c0 and len(lVIn) == nPoly
+                if c0:
+                    c0 = c0 and all([vv.shape == (2, pp.shape[1]-1)
+                                     for vv, pp in zip(lVIn, lPoly)])
+                    if c0:
+                        lVIn = [np.ascontiguousarray(vv) for vv in lVIn]
+
+            # Check normalization and direction
             for ii in range(0,nPoly):
-                if lVIn[ii].shape[0]!=2:
-                    lVIn[ii] = lVIn[ii].T
-                    lVIn[ii] = lVIn[ii]/(np.sqrt(np.sum(lVIn[ii]**2,axis=0))[np.newaxis,:])
-                    assert lVIn[ii].shape==(2,lPoly[ii].shape[1]-1)
-                    vect = np.diff(lPoly[ii],axis=1)
-                    det = vect[0,:]*lVIn[ii][1,:] - vect[1,:]*lVIn[ii][0,:]
-                    if not np.allclose(np.abs(det),1.):
-                        msg = "Each lVIn must be perp. to each lPoly segment !"
-                        raise Exception(msg)
-                    ind = np.abs(det+1)<1.e-12
-                    lVIn[ii][:,ind] = -lVIn[ii][:,ind]
+                lVIn[ii] = (lVIn[ii]
+                            / np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None, :])
+                vect = np.diff(lPoly[ii], axis=1)
+                vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None, :]
+                det = vect[0, :]*lVIn[ii][1, :] - vect[1, :]*lVIn[ii][0, :]
+                if not np.allclose(np.abs(det), 1.):
+                    msg = "Each lVIn must be perp. to each lPoly segment !"
+                    raise Exception(msg)
+                ind = np.abs(det+1) < 1.e-12
+                lVIn[ii][:, ind] = -lVIn[ii][:, ind]
 
         return nPoly, lPoly, lVIn
 
-    def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None,
+    def calc_kInkOut_Isoflux(self, lPoly, lVIn=None, Lim=None,
                              kInOut=True):
         """ Calculate the intersection points of each ray with each isoflux
 
@@ -4734,34 +4769,33 @@ class Rays(utils.ToFuObject):
         """
 
         # Preformat input
-        nPoly, lPoly, lVIn = self._kInOut_IsoFlux_inputs_usr(lPoly, lVIn=lVIn)
+        nPoly, lPoly, lVIn = self._kInOut_Isoflux_inputs_usr(lPoly, lVIn=lVIn)
 
         # Prepare output
-        kIn = np.full((self.nRays,nPoly), np.nan)
-        kOut = np.full((self.nRays,nPoly), np.nan)
+        kIn = np.full((nPoly, self.nRays), np.nan)
+        kOut = np.full((nPoly, self.nRays), np.nan)
 
         # Compute intersections
         assert(self._method in ['ref', 'optimized'])
         if self._method=='ref':
             for ii in range(0,nPoly):
-                largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
+                largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
-                kIn[:,ii], kOut[:,ii] = out[2], out[3]
+                kIn[ii, :], kOut[ii, :] = out[2], out[3]
         elif self._method=="optimized":
             for ii in range(0,nPoly):
-                largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
+                largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
 
-                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
-                kin, kout, _, _ = out
-                kIn[:,ii], kOut[:,ii] = kin, kout
+                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[:2]
+                kIn[ii, :], kOut[ii, :] = out
         if kInOut:
             indok = ~np.isnan(kIn)
-            ind = np.zeros((self.nRays,nPoly), dtype=bool)
-            kInref = np.tile(self.kIn[:,np.newaxis],nPoly)
-            kOutref = np.tile(self.kOut[:,np.newaxis],nPoly)
+            ind = np.zeros((nPoly, self.nRays), dtype=bool)
+            kInref = np.tile(self.kIn, (nPoly, 1))
+            kOutref = np.tile(self.kOut, (nPoly, 1))
             ind[indok] = (kIn[indok]<kInref[indok]) | (kIn[indok]>kOutref[indok])
             kIn[ind] = np.nan
 
