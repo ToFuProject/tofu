@@ -3089,15 +3089,14 @@ class Rays(utils.ToFuObject):
         return val
 
 
-    @classmethod
-    def _checkformat_inputs_dgeom(cls, dgeom=None):
+    def _checkformat_inputs_dgeom(self, dgeom=None):
         assert dgeom is not None
         assert isinstance(dgeom,tuple) or isinstance(dgeom,dict)
-        lC = [k for k in cls._dcases.keys()
-              if (isinstance(dgeom,cls._dcases[k]['type'])
-                  and all([kk in dgeom.keys() for kk in cls._dcases[k]['lk']]))]
+        lC = [k for k in self._dcases.keys()
+              if (isinstance(dgeom, self._dcases[k]['type'])
+                  and all([kk in dgeom.keys() for kk in self._dcases[k]['lk']]))]
         if not len(lC)==1:
-            lstr = [v['lk'] for v in cls._dcases.values()]
+            lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
             msg += "  - dict with keys:\n"
             msg += "\n    - " + "\n    - ".join(lstr)
@@ -3140,7 +3139,7 @@ class Rays(utils.ToFuObject):
         elif case == 'C':
             D = _checkformat_Du(dgeom['D'], 'D')
             dins = {'pinhole':{'var':dgeom['pinhole'], 'vectnd':3}}
-            dins, err, msg = cls._check_InputsGeneric(dins)
+            dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
             pinhole = dins['pinhole']['var']
@@ -3169,7 +3168,7 @@ class Rays(utils.ToFuObject):
                     dins['l2'] = {'var':dgeom['l2'], 'int2float':None}
                     dins['n2'] = {'var':dgeom['n2'], 'float2int':None}
 
-            dins, err, msg = cls._check_InputsGeneric(dins)
+            dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
             dgeom = {'dX12':{}}
