@@ -14,6 +14,14 @@ Subpackages
 Submodules
 ----------
 
+tofu.\_plot module
+------------------
+
+.. automodule:: tofu._plot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 tofu.defaults module
 --------------------
 

@@ -42,15 +42,16 @@ It is modular and generic in the sense that it was developed with the objective 
 
 **Feedback - bug report - wish list**
     To provide feedback on ToFu itself please use the github_ page.
-.. _github: https://github.com/
-    
+    .. _github: https://github.com/
+
 To provide feedback on a specific plugin, please refer to that plugin's webpage where a contact will be indicated.
 
 
 **Miscellaneous**
     ToFu is tested with the nose_/1.3.4 library (not all methods are tested yet, in process...)
     ToFu can be installed using the distutils_ library.
-.. _nose: https://pypi.python.org/pypi/nose
+    .. _nose: https://pypi.python.org/pypi/nose
+
 .. _distutils: https://docs.python.org/2/distutils/
 
 
@@ -72,11 +73,12 @@ Notice that the main ToFu classes and methods have docstrings so you can access 
    :maxdepth: 2
    :numbered:
    :titlesonly:
-    
-   Auto_tofu.geom
-   Auto_tofu.treat
-   Auto_tofu.pathfile
-   Auto_tofu.plugins
+
+   tofu.geom
+   tofu.data
+   tofu.dumpro
+   tofu.imas2tofu
+   tofu.mag
 
 **Tutorials and how to's:**
     * How to create / handle a diagnostic geometry
