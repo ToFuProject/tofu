@@ -4782,8 +4782,8 @@ class Rays(utils.ToFuObject):
         nPoly, lPoly, lVIn = self._kInOut_Isoflux_inputs_usr(lPoly, lVIn=lVIn)
 
         # Prepare output
-        kIn = np.full((self.nRays,nPoly), np.nan)
-        kOut = np.full((self.nRays,nPoly), np.nan)
+        kIn = np.full((nPoly, self.nRays), np.nan)
+        kOut = np.full((nPoly, self.nRays), np.nan)
 
         # Compute intersections
         assert(self._method in ['ref', 'optimized'])
@@ -4793,20 +4793,19 @@ class Rays(utils.ToFuObject):
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
-                kIn[:,ii], kOut[:,ii] = out[2], out[3]
+                kIn[ii,:], kOut[ii,:] = out[2], out[3]
         elif self._method=="optimized":
             for ii in range(0,nPoly):
                 largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
 
-                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
-                kin, kout, _, _ = out
-                kIn[:,ii], kOut[:,ii] = kin, kout
+                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[:2]
+                kIn[ii,:], kOut[ii,:] = out
         if kInOut:
             indok = ~np.isnan(kIn)
-            ind = np.zeros((self.nRays,nPoly), dtype=bool)
-            kInref = np.tile(self.kIn[:,np.newaxis],nPoly)
-            kOutref = np.tile(self.kOut[:,np.newaxis],nPoly)
+            ind = np.zeros((nPoly, self.nRays), dtype=bool)
+            kInref = np.tile(self.kIn, (nPoly,1))
+            kOutref = np.tile(self.kOut, (nPoly,1))
             ind[indok] = (kIn[indok]<kInref[indok]) | (kIn[indok]>kOutref[indok])
             kIn[ind] = np.nan
 
