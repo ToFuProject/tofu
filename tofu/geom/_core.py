@@ -1500,22 +1500,10 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = 'r'
 
-    def __init__(self, Poly=None, Type=None, Lim=None, pos=None, extent=None,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 nturns=None, superconducting=None, active=None,
-                 SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
-        kwdargs = locals()
-        del kwdargs['self'], kwdargs['__class__']
-        # super()
-        super(CoilPF,self).__init__(mobile=False, **kwdargs)
-
     def __init__(self, nturns=None, superconducting=None, active=None,
                  **kwdargs):
         # super()
-        super(CoilPF,self).__init__(**kwdargs)
+        super(CoilPF, self).__init__(mobile=False, **kwdargs)
 
     def _reset(self):
         # super()
