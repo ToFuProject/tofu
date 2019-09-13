@@ -356,8 +356,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        'dev': ['check-manifest'],
-        'test': ['coverage','nose==1.3.4'],
+        'dev': ['check-manifest', 'coverage','nose==1.3.4', 'sphinx', 'sphinx-gallery'],
     },
 
     # If there are data files included in your packages that need to be
