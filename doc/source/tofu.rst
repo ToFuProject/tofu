@@ -10,8 +10,6 @@ Subpackages
    tofu.dumpro
    tofu.dust
    tofu.geom
-   tofu.imas2tofu
-   tofu.mag
 
 Submodules
 ----------
