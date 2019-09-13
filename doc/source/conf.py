@@ -200,6 +200,10 @@ latex_elements = {
     # 'papersize': 'letterpaper',
     # The font size ('10pt', '11pt' or '12pt').
     # 'pointsize': '10pt',
+
+    # The font size ('10pt', '11pt' or '12pt').
+    # 'pointsize': '10pt',
+
     # Additional stuff for the LaTeX preamble.
     # 'preamble': '',
 }
@@ -325,5 +329,5 @@ intersphinx_mapping = {"http://docs.python.org/": None}
 # sphinx-gallery configuration
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path where to save gallery generated output
+    "gallery_dirs": "auto_examples",  # path to save gallery generated output
 }
