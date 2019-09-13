@@ -805,7 +805,7 @@ class Test03_Rays(object):
                 assert kOut.shape == (nP, obj.nRays)
                 for ii in range(0, nP):
                     ind = ~np.isnan(kIn[ii, :])
-                    if not np.all((kIn[ii,ind] >= obj.kIn[ind])
+                    if not np.all((kIn[ii, ind] >= obj.kIn[ind])
                                   & (kIn[ii, ind] <= obj.kOut[ind])):
                         msg = typ+' '+c+' '+str(ii)
                         msg += "\n {0} {1}".format(obj.kIn[ind], obj.kOut[ind])
