@@ -42,9 +42,9 @@ np.set_printoptions(linewidth=200)
 # Defining defaults
 ###################
 
-_LRES = [-3,-3,0]
-_LLOS = [5,5,0]
-_LT = [3,3,0]
+_LRES = [-3, -3, 0]
+_LLOS = [5, 5, 0]
+_LT = [3, 3, 0]
 _NREP = 2
 
 _DRES = abs(_LRES[1] - _LRES[0])
