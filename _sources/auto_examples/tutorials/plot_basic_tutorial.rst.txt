@@ -105,10 +105,17 @@ Since `tofu` is all about tomography, let's create a 1D camera and plot its outp
 
     import numpy as np
 
-    cam1d = tf.geom.utils.create_CamLOS1D(config=configB2,
-                                          P=[3.4, 0, 0],
-                                          N12=100, F=0.1, D12=0.1, angs=[np.pi, 0, 0],
-                                          Name='', Exp='', Diag='')
+    cam1d = tf.geom.utils.create_CamLOS1D(
+        config=configB2,
+        P=[3.4, 0, 0],
+        N12=100,
+        F=0.1,
+        D12=0.1,
+        angs=[np.pi, 0, 0],
+        Name="",
+        Exp="",
+        Diag="",
+    )
     cam1d.plot_touch()
 
 
@@ -137,8 +144,17 @@ The principle is similar for 2D cameras.
 .. code-block:: default
 
 
-    cam2d = tf.geom.utils.create_CamLOS2D(config=configB2, P=[3.4, 0, 0], N12=100, F=0.1, D12=0.1, angs=[np.pi, 0, 0],
-                                          Name='', Exp='', Diag='')
+    cam2d = tf.geom.utils.create_CamLOS2D(
+        config=configB2,
+        P=[3.4, 0, 0],
+        N12=100,
+        F=0.1,
+        D12=0.1,
+        angs=[np.pi, 0, 0],
+        Name="",
+        Exp="",
+        Diag="",
+    )
     cam2d.plot_touch()
 
 
@@ -157,7 +173,7 @@ with the plots (many are interactive) or create you own tomographic configuratio
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  3.684 seconds)
+   **Total running time of the script:** ( 0 minutes  2.461 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_plot_basic_tutorial.py:

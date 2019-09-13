@@ -7,6 +7,7 @@
     <title>Getting started: 5 minutes tutorial for tofu &#8212; tofu v1.1</title>
     <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
     
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
@@ -86,10 +87,17 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
 <p>Since <cite>tofu</cite> is all about tomography, let’s create a 1D camera and plot its output.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
-                                      <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-                                      <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-                                      <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
+    <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="n">cam1d</span><span class="o">.</span><span class="n">plot_touch</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -102,8 +110,17 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
 </pre></div>
 </div>
 <p>The principle is similar for 2D cameras.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-                                      <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
+    <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="n">cam2d</span><span class="o">.</span><span class="n">plot_touch</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -111,7 +128,7 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
 <p>What comes next is up to you!
 You could now play with the function parameters (change the cameras direction, refinement, aperture),
 with the plots (many are interactive) or create you own tomographic configuration.</p>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  3.684 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.461 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-plot-basic-tutorial-py">
 <div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/1160c42f6f24c0b8cb34d385cf43ef35/plot_basic_tutorial.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_basic_tutorial.py</span></code></a></p>
