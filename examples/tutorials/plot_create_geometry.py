@@ -119,7 +119,7 @@ ves.save(path='./')
 # Define two polygons, one that does not enclose the vessel and one that does
 thet = np.linspace(0.,2.*np.pi,100)
 poly1 = [[2.5,3.5,3.5,2.5],[0.,0.,0.5,0.5]]
-poly2 = [1.5*R0+0.5*np.cos(thet),-1.+0.5*np.sin(thet)]
+poly2 = [R0+0.5*np.cos(thet),-1.+0.5*np.sin(thet)]
 # Create the structural elements with the appropriate ToFu class, specifying
 # the experiment and a shot number for keeping track of changes
 s1 = tfg.PFC(Name='S1',
