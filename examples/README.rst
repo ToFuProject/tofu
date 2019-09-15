@@ -1,4 +1,4 @@
-`tofu` examples
-===============
+**tofu** examples and tutorials
+===============================
 
-This directory contains examples for `tofu`.
+This directory contains examples and tutorials for **tofu**.
