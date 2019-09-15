@@ -1,4 +1,4 @@
-People
+Authors
 ------
 
 * Didier Vezinet (creator)
