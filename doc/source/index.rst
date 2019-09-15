@@ -62,13 +62,16 @@ Contents:
    (`print <method>.__doc__`, or `<method>?`).
 
 .. toctree::
-   :maxdepth: 2
-   :numbered:
+   :maxdepth: 1
    :titlesonly:
 
    tofu.geom
-   tofu.data
    tofu.dumpro
+   tofu.data
+   tofu.dust
+   tofucalc
+   tofuplot
+   tofu
 
 **Tutorials and how to's:**
 
