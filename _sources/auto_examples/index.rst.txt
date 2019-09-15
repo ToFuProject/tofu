@@ -4,10 +4,11 @@
 
 .. _sphx_glr_auto_examples:
 
-`tofu` examples
-===============
+**tofu** examples and tutorials
+===============================
 
-This directory contains examples for `tofu`.
+This directory contains examples and tutorials for **tofu**.
+
 
 .. raw:: html
 
@@ -24,7 +25,7 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s structure.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s  structure.">
 
 .. only:: html
 
@@ -41,6 +42,26 @@ This directory contains tutorial examples for `tofu`.
    :hidden:
 
    /auto_examples/tutorials/plot_basic_tutorial
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to create a simple geometry.">
+
+.. only:: html
+
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_plot_create_geometry_thumb.png
+
+        :ref:`sphx_glr_auto_examples_tutorials_plot_create_geometry.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/tutorials/plot_create_geometry
 .. raw:: html
 
     <div style='clear:both'></div>
