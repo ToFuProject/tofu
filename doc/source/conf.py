@@ -45,14 +45,18 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
+    "recommonmark",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
-
+source_suffix = source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
@@ -157,13 +161,7 @@ html_title = "tofu v"+tf_version
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
-html_css_files = [
-    'css/custom.css',
-]
-
-
+html_static_path = []#"_static"]
 
 html_theme_options = {
     'source_link_position': "footer",
@@ -172,7 +170,7 @@ html_theme_options = {
     'bootstrap_version': "3",
     'navbar_links': [
                      ("Gallery", "auto_examples/index"),
-                     ("Tutorial", "tutorial"),
+                     ("Tutorials", "auto_examples/index"),
                      ],
 
     }

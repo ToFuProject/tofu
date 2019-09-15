@@ -20,59 +20,85 @@ problem.
 **tofu** is **command-line oriented**, for maximum flexibility and scriptability.
 The absence of a GUI is compensated by built-in one-liners for interactive plots.
 
+**tofu** is hosted on github_.
 
+.. _github: https://github.com/tofuproject/tofu
+
+
+.. raw:: html
+
+    <div style="clear: both"></div>
+    <div class="container-fluid hidden-xs hidden-sm">
+      <div class="row">
+        <a href="auto_examples/tutorials/plot_basic_tutorial.html">
+          <div class="col-md-4 thumbnail">
+            <img src="_images/sphx_glr_plot_basic_tutorial_thumb.png">
+          </div>
+        </a>
+	<a href="auto_examples/tutorials/plot_create_geometry.html">
+          <div class="col-md-4 thumbnail">
+            <img src="_images/sphx_glr_plot_create_geometry_thumb.png">
+          </div>
+        </a>
+      </div>
+    </div>
+    </br>
 
 **Open-source:**
 
-**tofu** is distributed under the very permissive MIT_ license, thus allowing free use, keeping in mind that neither the author nor any of the laboratories in which he worked can be held responsible for unwanted behaviour or results.
- It is instead transparency, reproducibility and incremental improvements that guarantee quality on the long-term.
+**tofu** is distributed under the very permissive MIT_ license, thus allowing free
+use, keeping in mind that neither the author nor any of the laboratories in
+which he worked can be held responsible for unwanted behaviour or results.
+It is instead transparency, reproducibility and incremental improvements that
+guarantee quality on the long-term.
 
- **tofu** is hosted on github_.
 
 .. _MIT: https://opensource.org/licenses/MIT
-.. _github: https://github.com/
+
 
 **Versions:**
-    A list of the successive versions of **tofu**,  with a brief description can be found here_.
 
-.. _here: Versions.html
+A list of the successive versions of **tofu**,  with a brief description can
+be found here_.
+
+.. _here: releases.html
 
 **Dependencies:**
-    **tofu** uses the following python packages_.
+
+**tofu** uses the following python packages_.
 
 .. _packages: Dependencies.html
 
 
 **Citing tofu:**
-    If you decide to use **tofu** for research and published results please acknowledge this work by citing_ the project.
+
+If you decide to use **tofu** for research and published results please acknowledge this work by citing_ the project.
 
 .. _citing: Citation.html
 
 **Feedback - bug report - wish list**
-    To provide feedback on **tofu** itself please use the github_ page.
-    .. _github: https://github.com/
 
-To provide feedback on a specific plugin, please refer to that plugin's webpage where a contact will be indicated.
+To provide feedback on **tofu** itself please use the github_ page.
+
+.. _github: https://github.com/tofuproject/tofu
+
+
+To provide feedback on a specific plugin, please refer to that plugin's webpage
+where a contact will be indicated.
 
 
 **Miscellaneous**
-    **tofu** is tested with the nose_/1.3.4 library (not all methods are tested yet, in process...)
-    **tofu** can be installed using the distutils_ library.
-    .. _nose: https://pypi.python.org/pypi/nose
 
+**tofu** is tested with the nose_ library (not all methods are tested
+yet, in process...). **tofu** can be installed using the distutils_ library.
+
+.. _nose: https://pypi.python.org/pypi/nose
 .. _distutils: https://docs.python.org/2/distutils/
 
 
 Contents:
 ---------
 
-**Description of the library structure:**
-
-.. toctree::
-   :maxdepth: 1
-
-   overview
-   auto_examples/index.rst
 
 **Code documentation:**
 
@@ -88,6 +114,12 @@ Notice that the main **tofu** classes and methods have docstrings so you can acc
    tofu.dumpro
 
 **Tutorials and how to's:**
+
+.. toctree::
+   :maxdepth: 1
+
+   auto_examples/index.rst
+
     * How to create / handle a diagnostic geometry
         - Visit the basic_ tutorial for getting started: create, plot and save a vessel, apertures and detectors and group them
         - Check out the complete set of detailed_ tutorials for more info on each of these aspects and on others.
@@ -103,16 +135,17 @@ Notice that the main **tofu** classes and methods have docstrings so you can acc
 .. _todos: Todos.html
 
 
-**Plugin-specific tutorials:**
-    * AUG_ : load the existing geometry, load data
-    * ITER_ : load existing geometry...
-
-.. _AUG : Tutorial_AUG.html
-.. _ITER : Tutorial_ITER.html
-
-
 .. raw:: html
    :file: columns.html
+
+
+.. toctree::
+   :maxdepth: 1
+
+   About us <aboutus>
+   Modules <modules>
+   Release notes <releases>
+   Example gallery <auto_examples/index>
 
 ----------------
 
