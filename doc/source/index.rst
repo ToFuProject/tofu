@@ -54,6 +54,30 @@ Contents:
 ---------
 
 
+**Tutorials and how to's:**
+
+.. toctree::
+   :maxdepth: 1
+
+   All tutorials and examples <auto_examples/index.rst>
+
+* How to create / handle a diagnostic geometry
+    - Visit the basic_ tutorial for getting started: create, plot and save
+	  your first configuration: a vessel and its structures;
+    - To know how to load a configuration and create 1D and 2D cameras,
+	  see the cameras_ tutorial.
+* How to compute integrated signal from 2D or 3D synthetic emissivity
+    - Visit the tutorial_ for getting started: load an already-existing diagnostic geometry in a synthetic diagnostic approach to solve the direct problem and compute the line Of Sight and / or Volume of Sight integrated signals from a  simulated emissivity field that you provide as an input.
+* How to compute tomographic inversions (to do)
+        Use existing diagnostic geometry and signals to solve the inverse problem and compute tomographic inversions using a choice of discretization basis functions and regularisation functionals.
+* How to contribute (todos_)
+
+.. _basic: auto_examples/tutorials/plot_create_geometry.html
+.. _cameras: auto_examples/tutorials/plot_basic_tutorial.html
+.. _tutorial: Tutorial_Geom_SynthDiag_Basic.html
+.. _todos: Todos.html
+
+
 **Code documentation:**
 
 .. note::
@@ -65,35 +89,20 @@ Contents:
    :maxdepth: 1
    :titlesonly:
 
+   tofu
    tofu.geom
    tofu.dumpro
    tofu.data
    tofu.dust
-   tofucalc
-   tofuplot
-   tofu
 
-**Tutorials and how to's:**
+
+**Other:**
 
 .. toctree::
    :maxdepth: 1
 
-   auto_examples/index.rst
-
-    * How to create / handle a diagnostic geometry
-        - Visit the basic_ tutorial for getting started: create, plot and save a vessel, apertures and detectors and group them
-        - Check out the complete set of detailed_ tutorials for more info on each of these aspects and on others.
-    * How to compute integrated signal from 2D or 3D synthetic emissivity
-        - Visit the tutorial_ for getting started: load an already-existing diagnostic geometry in a synthetic diagnostic approach to solve the direct problem and compute the line Of Sight and / or Volume of Sight integrated signals from a  simulated emissivity field that you provide as an input.
-    * How to compute tomographic inversions (to do)
-        Use existing diagnostic geometry and signals to solve the inverse problem and compute tomographic inversions using a choice of discretization basis functions and regularisation functionals.
-    * How to contribute (todos_)
-
-.. _basic: Tutorial_Geom_HowToCreateGeometry.html
-.. _detailed: Tutorial_Geom_Advanced.html
-.. _tutorial: Tutorial_Geom_SynthDiag_Basic.html
-.. _todos: Todos.html
-
+   About us <aboutus>
+   Release notes <releases>
 
 **Open-source:**
 
@@ -144,14 +153,6 @@ yet, in process...). **tofu** can be installed using the distutils_ library.
 .. raw:: html
    :file: columns.html
 
-
-.. toctree::
-   :maxdepth: 1
-
-   About us <aboutus>
-   Modules <modules>
-   Release notes <releases>
-   Example gallery <auto_examples/index>
 
 ----------------
 

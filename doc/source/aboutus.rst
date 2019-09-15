@@ -18,6 +18,17 @@ It is continuously maintained, debugged and upgraded to this day.
 
 .. include:: authors.rst
 
+-----------
+Contact us
+-----------
+
+If you found a bug in **tofu**, or if you a suggestion, the best is to open
+an issue directly on our `github page <https://github.com/ToFuProject/tofu>`_.
+
+If you want to chat, join our `gitter chat <https://gitter.im/ToFuProject/community>`_.
+
+
+
 -------
 License
 -------
