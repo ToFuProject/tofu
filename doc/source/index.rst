@@ -15,16 +15,21 @@ full 3D description of the diagnostic geometry, thus reducing the impact of
 geometrical approximations on the direct and, most importantly, on the inverse
 problem.
 
-**tofu** is relevant for all diagnostics integrating, in a finitie field of view or along a set of lines of sight, a quantity (scalar or vector) for which the plasma can be considered transparent (e.g.: light in the visible, UV, soft and hard X-ray ranges, or electron density for interferometers).
+**tofu** is relevant for all diagnostics integrating, in a finitie field of
+view or along a set of lines of sight, a quantity (scalar or vector) for which
+the plasma can be considered transparent (e.g.: light in the visible, UV, soft
+and hard X-ray ranges, or electron density for interferometers).
 
-**tofu** is **command-line oriented**, for maximum flexibility and scriptability.
-The absence of a GUI is compensated by built-in one-liners for interactive plots.
+**tofu** is **command-line oriented**, for maximum flexibility and
+scriptability. The absence of a GUI is compensated by built-in one-liners for
+interactive plots.
 
 **tofu** is hosted on github_.
 
 .. _github: https://github.com/tofuproject/tofu
 
-
+..
+   Adding thumbnails to some tutorials
 .. raw:: html
 
     <div style="clear: both"></div>
@@ -44,57 +49,6 @@ The absence of a GUI is compensated by built-in one-liners for interactive plots
     </div>
     </br>
 
-**Open-source:**
-
-**tofu** is distributed under the very permissive MIT_ license, thus allowing free
-use, keeping in mind that neither the author nor any of the laboratories in
-which he worked can be held responsible for unwanted behaviour or results.
-It is instead transparency, reproducibility and incremental improvements that
-guarantee quality on the long-term.
-
-
-.. _MIT: https://opensource.org/licenses/MIT
-
-
-**Versions:**
-
-A list of the successive versions of **tofu**,  with a brief description can
-be found here_.
-
-.. _here: releases.html
-
-**Dependencies:**
-
-**tofu** uses the following python packages_.
-
-.. _packages: Dependencies.html
-
-
-**Citing tofu:**
-
-If you decide to use **tofu** for research and published results please acknowledge this work by citing_ the project.
-
-.. _citing: Citation.html
-
-**Feedback - bug report - wish list**
-
-To provide feedback on **tofu** itself please use the github_ page.
-
-.. _github: https://github.com/tofuproject/tofu
-
-
-To provide feedback on a specific plugin, please refer to that plugin's webpage
-where a contact will be indicated.
-
-
-**Miscellaneous**
-
-**tofu** is tested with the nose_ library (not all methods are tested
-yet, in process...). **tofu** can be installed using the distutils_ library.
-
-.. _nose: https://pypi.python.org/pypi/nose
-.. _distutils: https://docs.python.org/2/distutils/
-
 
 Contents:
 ---------
@@ -102,7 +56,10 @@ Contents:
 
 **Code documentation:**
 
-Notice that the main **tofu** classes and methods have docstrings so you can access contextual help with the usual python syntax from a iython console (print <method>.__doc__, or <method>?).
+.. note::
+   Main **tofu** classes and methods have docstrings so you can
+   access contextual help with the usual python syntax from a `ipython` console
+   (`print <method>.__doc__`, or `<method>?`).
 
 .. toctree::
    :maxdepth: 2
@@ -133,6 +90,52 @@ Notice that the main **tofu** classes and methods have docstrings so you can acc
 .. _detailed: Tutorial_Geom_Advanced.html
 .. _tutorial: Tutorial_Geom_SynthDiag_Basic.html
 .. _todos: Todos.html
+
+
+**Open-source:**
+
+**tofu** is distributed under the very permissive MIT_ license, thus allowing free
+use, keeping in mind that neither the author nor any of the laboratories in
+which he worked can be held responsible for unwanted behaviour or results.
+It is instead transparency, reproducibility and incremental improvements that
+guarantee quality on the long-term.
+
+
+.. _MIT: https://opensource.org/licenses/MIT
+
+
+**Versions:**
+
+A list of the successive versions of **tofu**,  with a brief description can
+be found here_.
+
+.. _here: releases.html
+
+
+**Citing tofu:**
+
+If you decide to use **tofu** for research and published results please acknowledge this work by citing_ the project.
+
+.. _citing: Citation.html
+
+**Feedback - bug report - wish list**
+
+To provide feedback on **tofu** itself please use the github_ page.
+
+.. _github: https://github.com/tofuproject/tofu
+
+
+To provide feedback on a specific plugin, please refer to that plugin's webpage
+where a contact will be indicated.
+
+
+**Miscellaneous**
+
+**tofu** is tested with the nose_ library (not all methods are tested
+yet, in process...). **tofu** can be installed using the distutils_ library.
+
+.. _nose: https://pypi.python.org/pypi/nose
+.. _distutils: https://docs.python.org/2/distutils/
 
 
 .. raw:: html
