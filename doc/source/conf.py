@@ -13,6 +13,7 @@
 import os
 import sys
 import tofu as tf
+import sphinx_bootstrap_theme
 
 # Getting tofu version
 tf_version = tf.__version__[:3]
@@ -59,7 +60,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"tofu_doc"
+project = u"tofu"
 copyright = u"2016, Didier VEZINET"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -123,15 +124,19 @@ napoleon_use_rtype = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "default"  #'sphinx_rtd_theme'
+html_theme = "bootstrap"  #'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+# html_theme_options = {
+#     "rightsidebar": "true",
+#     "relbarbgcolor": "black"
+# }
+
 
 # Add any paths that contain custom themes here, relative to this directory.
-# html_theme_path = []
+html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -154,6 +159,23 @@ html_title = "tofu v"+tf_version
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_css_files = [
+    'css/custom.css',
+]
+
+
+
+html_theme_options = {
+    'source_link_position': "footer",
+    'bootswatch_theme': "flatly",
+    'navbar_sidebarrel': False,
+    'bootstrap_version': "3",
+    'navbar_links': [
+                     ("Gallery", "auto_examples/index"),
+                     ("Tutorial", "tutorial"),
+                     ],
+
+    }
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'
@@ -336,3 +358,6 @@ sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to save gallery generated output
 }
+
+def setup(app):
+    app.add_stylesheet("custom.css") # also can be a full URL

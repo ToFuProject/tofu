@@ -78,8 +78,6 @@ Notice that the main ToFu classes and methods have docstrings so you can access 
    tofu.geom
    tofu.data
    tofu.dumpro
-   tofu.imas2tofu
-   tofu.mag
 
 **Tutorials and how to's:**
     * How to create / handle a diagnostic geometry
@@ -105,12 +103,9 @@ Notice that the main ToFu classes and methods have docstrings so you can access 
 .. _ITER : Tutorial_ITER.html
 
 
-Indices and tables
-==================
-* Homepage_
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. raw:: html
+   :file: columns.html
+
+----------------
 
 .. _Homepage: index.html
-
