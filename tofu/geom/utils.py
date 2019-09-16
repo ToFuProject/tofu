@@ -14,7 +14,6 @@ import numpy as np
 
 # tofu
 import tofu
-
 try:
     import tofu.geom._core as _core
 except Exception:
