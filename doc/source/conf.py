@@ -164,11 +164,13 @@ html_theme_options = {
     "bootswatch_theme": "flatly",
     "navbar_sidebarrel": False,
     "bootstrap_version": "3",
+    "nosidebar": True,
     "navbar_links": [
         ("Gallery", "auto_examples/index"),
         ("Installation", "installation"),
         ("About us", "aboutus"),
         ("Versions", "releases"),
+        ("Code doc", "tofu"),
     ],
 }
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
@@ -180,7 +182,7 @@ html_theme_options = {
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
+html_sidebars = {}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

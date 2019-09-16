@@ -47,20 +47,17 @@ interactive plots.
         </a>
       </div>
     </div>
-    </br>
-
 
 Contents:
 ---------
-
 
 **Tutorials and how to's:**
 
 .. toctree::
    :maxdepth: 1
 
-   All tutorials and examples <auto_examples/index.rst>
    How to install tofu <installation.rst>
+   All tutorials and examples <auto_examples/index.rst>
 
 * How to create / handle a diagnostic geometry
    - Visit the basic_ tutorial for getting started: create, plot and save
@@ -100,61 +97,6 @@ Contents:
    tofu.dumpro
    tofu.data
    tofu.dust
-
-
-**Other:**
-
-.. toctree::
-   :maxdepth: 1
-
-   About us <aboutus>
-   Release notes <releases>
-
-**Open-source:**
-
-**tofu** is distributed under the very permissive MIT_ license, thus allowing
-free use, keeping in mind that neither the author nor any of the laboratories in
-which he worked can be held responsible for unwanted behaviour or results.
-It is instead transparency, reproducibility and incremental improvements that
-guarantee quality on the long-term.
-
-
-.. _MIT: https://opensource.org/licenses/MIT
-
-
-**Versions:**
-
-A list of the successive versions of **tofu**,  with a brief description can
-be found here_.
-
-.. _here: releases.html
-
-
-**Citing tofu:**
-
-If you decide to use **tofu** for research and published results please
-acknowledge this work by citing_ the project.
-
-.. _citing: Citation.html
-
-**Feedback - bug report - wish list**
-
-To provide feedback on **tofu** itself please use the github_ page.
-
-.. _github: https://github.com/tofuproject/tofu
-
-
-To provide feedback on a specific plugin, please refer to that plugin's webpage
-where a contact will be indicated.
-
-
-**Miscellaneous**
-
-**tofu** is tested with the nose_ library (not all methods are tested
-yet, in process...). **tofu** can be installed using the distutils_ library.
-
-.. _nose: https://pypi.python.org/pypi/nose
-.. _distutils: https://docs.python.org/2/distutils/
 
 
 .. raw:: html
