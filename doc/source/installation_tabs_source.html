@@ -9,6 +9,9 @@
     <a class="nav-link" data-toggle="tab" href="#windows">Windows</a>
   </li>
   <li class="nav-item">
+    <a class="nav-link" data-toggle="tab" href="#iter">ITER users</a>
+  </li>
+  <li class="nav-item">
     <a class="nav-link" data-toggle="tab" href="#developer">Developer mode</a>
   </li>
 </ul>
@@ -29,18 +32,12 @@
     </ul>
     <h3> Installing tofu </h3>
     <p>Now you only need to install tofu</p>
-    <pre><code>
-	$ conda install -c tofuproject tofu
-    </code></pre>
+    <pre><code>$ conda install -c tofuproject tofu </code></pre>
     <p>For testing <b>tofu</b> we recommend you also install <code>ipython</code></p>
-    <pre><code>
-	$ conda install ipython
-    </code></pre>
+    <pre><code>$ conda install ipython </code></pre>
     <p>You are all set, open an ipython console and try importing tofu.</p>
-    <pre><code>
-	$ ipython
-	In [1]: import tofu as tf
-    </code></pre>
+    <pre><code>$ ipython
+In [1]: import tofu as tf </code></pre>
     <p>Now you can <a href="auto_examples/index.html">
 	  follow a tutorial.</a>
   </div>
@@ -60,19 +57,13 @@
     </ul>
     <h3> Installing tofu </h3>
     <p>First install the dependencies</p>
-    <pre><code>
-	$ conda install pip cython numpy scipy ipython
-    </code></pre>
+    <pre><code>$ conda install pip cython numpy scipy ipython </code></pre>
     <p><b>tofu</b> is not (yet) packaged with anaconda so we need to install it
       using <code>pip</code></p>
-    <pre><code>
-	$ pip install tofu
-    </code></pre>
+    <pre><code>$ pip install tofu </code></pre>
     <p>You are all set, open an ipython console and try importing tofu.</p>
-    <pre><code>
-	$ ipython
-	In [1]: import tofu as tf
-    </code></pre>
+    <pre><code>$ ipython
+In [1]: import tofu as tf </code></pre>
     <p>Now you can <a href="auto_examples/index.html">
 	  follow a tutorial.</a>
   </div>
@@ -92,11 +83,9 @@
     </ul>
     <h3>Creating a conda environment</h3>
     <p>We are going to create an environment specific for ToFu.</p>
-    <pre><code>
-	$ conda create -n tofu3 python=3.6 scipy numpy cython git
-	$ conda activate tofu3
-	$ conda install m2-base # Get some basic Linux/bash commands (ls, cd, mv, ...)
-    </code></pre>
+    <pre><code>$ conda create -n tofu3 python=3.6 scipy numpy cython git
+$ conda activate tofu3
+$ conda install m2-base # Get some basic Linux/bash commands (ls, cd, mv, ...)</code></pre>
     <p>This creates a conda environment named "tofu3" and installs scipy,
       numpy and cython. The second command activates this environment.</p>
     <h3>Get the repository</h3>
@@ -134,6 +123,43 @@
     <h3>Contribute</h3>
     <p>If you wish to contribute, you will probably need a text editor, you can use Visual Studio's editor.</p>
   </div>
+  <div class="tab-pane fade" id="iter">
+    <h2>Using tofu on a ITER cluster</h2>
+    <p>If you have an <strong>ITER</strong> account, you can use
+      <strong>tofu</strong> directly from ITER Computing Cluster.
+      No need to install tofu !</p>
+    <ul>
+      <li>Ask for access to ITER servers, if you don't have them already.</li>
+      <li>For information about the cluster, see
+	<a href="https://confluence.iter.org/display/IMP/ITER+Computing+Cluster">
+	  this link.</a></li>
+      <li>Open a new terminal and connect to server (see link above)</li>
+      <li>Create a new file in your <code>$HOME</code> directory, you can
+	name it <code>load_tofu_modules.sh</code></li>
+      <li>Open it and add the following lines:</li>
+    </ul>
+    <pre><code>module refresh
+source /etc/profile.d/modules.sh # make sure you have the module environment
+module purge # unload any previously loaded modules
+module load IMAS/3.24.0-4.1.5 # for IMAS data base
+module load IPython/6.3.1-intel-2018a-Python-3.6.4 # for iPython
+module load PySide2/5.12.0-intel-2018a-Python-3.6.4
+module load ToFu/1.4.0-intel-2018a-Python-3.6.4 # Load tofu :)</code></pre>
+    <ul>
+      <li>Convert it as an exectuable, from terminal:
+	<code>chmod +x ~/load_tofu_modules.sh</code></li>
+      <li>Execute it: <code>./load_tofu_modules.sh</code></li>
+      <li>If you are going to use <em>tofu</em> often, you might want to add
+	the execution of the script to your <code>.bash_profile</code>
+	(or <code>.bashrc</code> file):</li>
+    </ul>
+    <pre><code>echo './load_tofu_modules.sh' &gt;&gt; .bash_profile</code></pre>
+    <p>You are all set, open an ipython console and try importing tofu.</p>
+    <pre><code>$ ipython
+In [1]: import tofu as tf</code></pre>
+    <p>Now you can <a href="auto_examples/index.html">
+	  follow a tutorial.</a>
+  </div>
   <div class="tab-pane fade" id="developer">
     <h2> Installing tofu as a developer or contributor</h2>
     You found a bug, or you want to add something to the library ?
@@ -169,10 +195,8 @@
     </ul>
     <h3>Creating a conda environment</h3>
     <p>We are going to create an environment specific for ToFu.</p>
-    <pre><code>
-	$ conda create -n tofu3 python scipy numpy cython git ipython
-	$ conda activate tofu3
-    </code></pre>
+    <pre><code>$ conda create -n tofu3 python scipy numpy cython git ipython
+$ conda activate tofu3</code></pre>
     <p>This creates a conda environment named "tofu3" and installs scipy,
       numpy, git, ipython and cython.
       The second command activates this environment.</p>
@@ -209,14 +233,11 @@
 	this tutorial</a>, on how to contribute to a github project.
       Before modifying the code, you should create a new branch and switch to
       it.</p>
-    <pre>
-      <code>
-	git checkout -b \<theNameOfYourBranch\> # probably IssueNumber eg. Issue123
-	# change the source code
-	git add <files you changed>
-	git commit -m "[a tag] a message that explains what you changed"
-	git push -u origin \<theNameOfYourBranch\></code>
-    </pre>
+    <pre><code>git checkout -b &lt;theNameOfYourBranch&gt; # probably IssueNumber eg. Issue123
+# change the source code
+git add &lt;files you changed&gt;
+git commit -m "[a tag] a message that explains what you changed"
+git push -u origin &lt;theNameOfYourBranch&gt;</code></pre>
     <p> Now you can open a pull request in our <a href="https://github.com/ToFuProject/tofu/pulls"> github page</a>,
       from your branch, <code>theNameOfYourBranch</code> to <code>devel</code>. We will review it,
       comment it, and accept it.
