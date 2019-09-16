@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.abspath("../tofu/geom"))
 sys.path.insert(0, os.path.abspath("../tofu/data"))
 sys.path.insert(0, os.path.abspath("../tofu/dumpro"))
 
-# -- General configuration -----------------------------------------------------
+# -- General configuration ----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
@@ -51,10 +51,8 @@ extensions = [
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = source_suffix = {
-    '.rst': 'restructuredtext',
-    '.txt': 'restructuredtext',
-}
+source_suffix = source_suffix = {".rst": "restructuredtext",
+                                 ".txt": "restructuredtext"}
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
@@ -88,7 +86,7 @@ release = tf_release
 # directories to ignore when looking for source files.
 exclude_patterns = []
 
-# The reST default role (used for this markup: `text`) to use for all documents.
+# The reST default role (used for this markup: `text`) to use for all documents
 # default_role = None
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
@@ -109,7 +107,7 @@ pygments_style = "sphinx"
 # modindex_common_prefix = []
 
 
-# -- Napoleon settings ---------------------------------------------------
+# -- Napoleon settings --------------------------------------------------------
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
@@ -122,7 +120,7 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = False
 
-# -- Options for HTML output ---------------------------------------------------
+# -- Options for HTML output --------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
@@ -142,7 +140,7 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "tofu v"+tf_version
+html_title = "tofu v" + tf_version
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 # html_short_title = None
@@ -159,21 +157,20 @@ html_title = "tofu v"+tf_version
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []#"_static"]
+html_static_path = []  # "_static"]
 
 html_theme_options = {
-    'source_link_position': "footer",
-    'bootswatch_theme': "flatly",
-    'navbar_sidebarrel': False,
-    'bootstrap_version': "3",
-    'navbar_links': [
-                     ("Gallery", "auto_examples/index"),
-                     ("Installation", "installation"),
-                     ("About us", "aboutus"),
-                     ("Versions", "releases"),
-                     ],
-
-    }
+    "source_link_position": "footer",
+    "bootswatch_theme": "flatly",
+    "navbar_sidebarrel": False,
+    "bootstrap_version": "3",
+    "navbar_links": [
+        ("Gallery", "auto_examples/index"),
+        ("Installation", "installation"),
+        ("About us", "aboutus"),
+        ("Versions", "releases"),
+    ],
+}
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'
@@ -218,17 +215,15 @@ html_show_sphinx = True
 # Output file base name for HTML help builder.
 htmlhelp_basename = "tofu_docdoc"
 
-# -- Options for LaTeX output --------------------------------------------------
+# -- Options for LaTeX output -------------------------------------------------
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     # 'papersize': 'letterpaper',
     # The font size ('10pt', '11pt' or '12pt').
     # 'pointsize': '10pt',
-
     # The font size ('10pt', '11pt' or '12pt').
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     # 'preamble': '',
 }
@@ -236,13 +231,11 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    (
-        "index",
-        "tofu_doc.tex",
-        u"tofu\\_doc Documentation",
-        u"Didier VEZINET",
-        "manual",
-    )
+    ("index",
+     "tofu_doc.tex",
+     u"tofu\\_doc Documentation",
+     u"Didier VEZINET",
+     "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -266,19 +259,21 @@ latex_documents = [
 # latex_domain_indices = True
 
 
-# -- Options for manual page output --------------------------------------------
+# -- Options for manual page output -------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ("index", "tofu_doc", u"tofu_doc Documentation", [u"Didier VEZINET"], 1)
-]
+man_pages = [("index",
+              "tofu_doc",
+              u"tofu_doc Documentation",
+              u"Didier VEZINET",
+              1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
 
 
-# -- Options for Texinfo output ------------------------------------------------
+# -- Options for Texinfo output -----------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
@@ -305,7 +300,7 @@ texinfo_documents = [
 # texinfo_show_urls = 'footnote'
 
 
-# -- Options for Epub output ---------------------------------------------------
+# -- Options for Epub output --------------------------------------------------
 
 # Bibliographic Dublin Core info.
 epub_title = u"tofu_doc"
@@ -357,5 +352,6 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",  # path to save gallery generated output
 }
 
+
 def setup(app):
-    app.add_stylesheet("custom.css") # also can be a full URL
+    app.add_stylesheet("custom.css")  # also can be a full URL
