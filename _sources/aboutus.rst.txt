@@ -4,6 +4,11 @@ About us
 
 ----------------
 
+.. note::
+   If you decide to use **tofu** for research and published results please
+   acknowledge this work by citing_ the project.
+
+.. _citing: citation.html
 -------
 History
 -------

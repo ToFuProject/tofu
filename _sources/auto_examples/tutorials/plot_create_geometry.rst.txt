@@ -178,7 +178,7 @@ it so that it can be used by other ToFu objects when necessary.
  .. code-block:: none
 
     Saved in :
-        /home/lasofivec/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.1-52-g6f060e3.npz
+        /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.1-52-g6f060e3.npz
 
 
 
@@ -239,14 +239,14 @@ the type must be specified.
  .. code-block:: none
 
     Saved in :
-        /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.1-52-g6f060e3.npz
+        /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.1-52-g6f060e3.npz
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  57.061 seconds)
+   **Total running time of the script:** ( 0 minutes  58.924 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_plot_create_geometry.py:

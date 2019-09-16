@@ -1,6 +1,6 @@
-------
+--------
 Authors
-------
+--------
 
 * Didier Vezinet (creator)
 * Laura S. Mendoza (developper since 2018)

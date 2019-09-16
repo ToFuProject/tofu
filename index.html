@@ -13,17 +13,17 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="tofu examples and tutorials" href="auto_examples/index.html" />
+    <link rel="next" title="Installing tofu" href="installation.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
-<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
-<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -45,7 +45,10 @@
           <ul class="nav navbar-nav">
             
                 <li><a href="auto_examples/index.html">Gallery</a></li>
-                <li><a href="auto_examples/index.html">Tutorials</a></li>
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="aboutus.html">About us</a></li>
+                <li><a href="releases.html">Versions</a></li>
+                <li><a href="tofu.html">Code doc</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -57,6 +60,7 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">All tutorials and examples</a></li>
 </ul>
 <ul>
@@ -65,10 +69,6 @@
 <li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tofu.data.html">tofu.data package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="aboutus.html">About us</a></li>
-<li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a></li>
 </ul>
 </ul>
 </li>
@@ -115,7 +115,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="body col-md-12 content" role="main">
+    <div class="col-md-12 content">
       
   <div class="section" id="welcome-to-tofu-s-documentation">
 <h1>Welcome to tofu’s documentation!<a class="headerlink" href="#welcome-to-tofu-s-documentation" title="Permalink to this headline">¶</a></h1>
@@ -151,45 +151,46 @@ interactive plots.</p>
       </div>
     </a>
   </div>
-</div>
-</br><div class="section" id="contents">
+</div><div class="section" id="contents">
 <h2>Contents:<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
 <p><strong>Tutorials and how to’s:</strong></p>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">All tutorials and examples</a></li>
 </ul>
 </div>
 <ul class="simple">
 <li><dl class="simple">
 <dt>How to create / handle a diagnostic geometry</dt><dd><ul>
-<li><dl class="simple">
-<dt>Visit the <a class="reference external" href="auto_examples/tutorials/plot_create_geometry.html">basic</a> tutorial for getting started: create, plot and save</dt><dd><p>your first configuration: a vessel and its structures;</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>To know how to load a configuration and create 1D and 2D cameras,</dt><dd><p>see the <a class="reference external" href="auto_examples/tutorials/plot_basic_tutorial.html">cameras</a> tutorial.</p>
-</dd>
-</dl>
-</li>
+<li><p>Visit the <a class="reference external" href="auto_examples/tutorials/plot_create_geometry.html">basic</a> tutorial for getting started: create, plot and save
+your first configuration: a vessel and its structures;</p></li>
+<li><p>To know how to load a configuration and create 1D and 2D cameras,
+see the <a class="reference external" href="auto_examples/tutorials/plot_basic_tutorial.html">cameras</a> tutorial.</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
 <dt>How to compute integrated signal from 2D or 3D synthetic emissivity</dt><dd><ul>
-<li><p>Visit the <a class="reference external" href="Tutorial_Geom_SynthDiag_Basic.html">tutorial</a> for getting started: load an already-existing diagnostic geometry in a synthetic diagnostic approach to solve the direct problem and compute the line Of Sight and / or Volume of Sight integrated signals from a  simulated emissivity field that you provide as an input.</p></li>
+<li><p>Visit the <a class="reference external" href="Tutorial_Geom_SynthDiag_Basic.html">tutorial</a> for getting started: load an already-existing
+diagnostic geometry in a synthetic diagnostic approach to solve the direct
+problem and compute the line Of Sight and / or Volume of Sight integrated
+signals from a  simulated emissivity field that you provide as an input.</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>How to compute tomographic inversions (to do)</dt><dd><p>Use existing diagnostic geometry and signals to solve the inverse problem and compute tomographic inversions using a choice of discretization basis functions and regularisation functionals.</p>
+<dt>How to compute tomographic inversions (to do)</dt><dd><ul>
+<li><p>Use existing diagnostic geometry and signals to solve the inverse problem
+and compute tomographic inversions using a choice of discretization basis
+functions and regularisation functionals.
+How to contribute (<a class="reference external" href="Todos.html">todos</a>)</p></li>
+</ul>
 </dd>
 </dl>
 </li>
-<li><p>How to contribute (<a class="reference external" href="Todos.html">todos</a>)</p></li>
 </ul>
 <p><strong>Code documentation:</strong></p>
 <div class="admonition note">
@@ -207,31 +208,6 @@ access contextual help with the usual python syntax from a <cite>ipython</cite> 
 <li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
 </ul>
 </div>
-<p><strong>Other:</strong></p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="aboutus.html">About us</a></li>
-<li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a></li>
-</ul>
-</div>
-<p><strong>Open-source:</strong></p>
-<p><strong>tofu</strong> is distributed under the very permissive <a class="reference external" href="https://opensource.org/licenses/MIT">MIT</a> license, thus allowing free
-use, keeping in mind that neither the author nor any of the laboratories in
-which he worked can be held responsible for unwanted behaviour or results.
-It is instead transparency, reproducibility and incremental improvements that
-guarantee quality on the long-term.</p>
-<p><strong>Versions:</strong></p>
-<p>A list of the successive versions of <strong>tofu</strong>,  with a brief description can
-be found <a class="reference external" href="releases.html">here</a>.</p>
-<p><strong>Citing tofu:</strong></p>
-<p>If you decide to use <strong>tofu</strong> for research and published results please acknowledge this work by <a class="reference external" href="Citation.html">citing</a> the project.</p>
-<p><strong>Feedback - bug report - wish list</strong></p>
-<p>To provide feedback on <strong>tofu</strong> itself please use the <a class="reference external" href="https://github.com/tofuproject/tofu">github</a> page.</p>
-<p>To provide feedback on a specific plugin, please refer to that plugin’s webpage
-where a contact will be indicated.</p>
-<p><strong>Miscellaneous</strong></p>
-<p><strong>tofu</strong> is tested with the <a class="reference external" href="https://pypi.python.org/pypi/nose">nose</a> library (not all methods are tested
-yet, in process…). <strong>tofu</strong> can be installed using the <a class="reference external" href="https://docs.python.org/2/distutils/">distutils</a> library.</p>
 <div class="row">
   <div class="col-sm-6">
     <div class="card border-primary">

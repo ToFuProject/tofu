@@ -47,30 +47,33 @@ interactive plots.
         </a>
       </div>
     </div>
-    </br>
-
 
 Contents:
 ---------
-
 
 **Tutorials and how to's:**
 
 .. toctree::
    :maxdepth: 1
 
+   How to install tofu <installation.rst>
    All tutorials and examples <auto_examples/index.rst>
 
 * How to create / handle a diagnostic geometry
-    - Visit the basic_ tutorial for getting started: create, plot and save
-	  your first configuration: a vessel and its structures;
-    - To know how to load a configuration and create 1D and 2D cameras,
-	  see the cameras_ tutorial.
+   - Visit the basic_ tutorial for getting started: create, plot and save
+     your first configuration: a vessel and its structures;
+   - To know how to load a configuration and create 1D and 2D cameras,
+     see the cameras_ tutorial.
 * How to compute integrated signal from 2D or 3D synthetic emissivity
-    - Visit the tutorial_ for getting started: load an already-existing diagnostic geometry in a synthetic diagnostic approach to solve the direct problem and compute the line Of Sight and / or Volume of Sight integrated signals from a  simulated emissivity field that you provide as an input.
+   - Visit the tutorial_ for getting started: load an already-existing
+     diagnostic geometry in a synthetic diagnostic approach to solve the direct
+     problem and compute the line Of Sight and / or Volume of Sight integrated
+     signals from a  simulated emissivity field that you provide as an input.
 * How to compute tomographic inversions (to do)
-        Use existing diagnostic geometry and signals to solve the inverse problem and compute tomographic inversions using a choice of discretization basis functions and regularisation functionals.
-* How to contribute (todos_)
+   - Use existing diagnostic geometry and signals to solve the inverse problem
+     and compute tomographic inversions using a choice of discretization basis
+     functions and regularisation functionals.
+     How to contribute (todos_)
 
 .. _basic: auto_examples/tutorials/plot_create_geometry.html
 .. _cameras: auto_examples/tutorials/plot_basic_tutorial.html
@@ -94,60 +97,6 @@ Contents:
    tofu.dumpro
    tofu.data
    tofu.dust
-
-
-**Other:**
-
-.. toctree::
-   :maxdepth: 1
-
-   About us <aboutus>
-   Release notes <releases>
-
-**Open-source:**
-
-**tofu** is distributed under the very permissive MIT_ license, thus allowing free
-use, keeping in mind that neither the author nor any of the laboratories in
-which he worked can be held responsible for unwanted behaviour or results.
-It is instead transparency, reproducibility and incremental improvements that
-guarantee quality on the long-term.
-
-
-.. _MIT: https://opensource.org/licenses/MIT
-
-
-**Versions:**
-
-A list of the successive versions of **tofu**,  with a brief description can
-be found here_.
-
-.. _here: releases.html
-
-
-**Citing tofu:**
-
-If you decide to use **tofu** for research and published results please acknowledge this work by citing_ the project.
-
-.. _citing: Citation.html
-
-**Feedback - bug report - wish list**
-
-To provide feedback on **tofu** itself please use the github_ page.
-
-.. _github: https://github.com/tofuproject/tofu
-
-
-To provide feedback on a specific plugin, please refer to that plugin's webpage
-where a contact will be indicated.
-
-
-**Miscellaneous**
-
-**tofu** is tested with the nose_ library (not all methods are tested
-yet, in process...). **tofu** can be installed using the distutils_ library.
-
-.. _nose: https://pypi.python.org/pypi/nose
-.. _distutils: https://docs.python.org/2/distutils/
 
 
 .. raw:: html

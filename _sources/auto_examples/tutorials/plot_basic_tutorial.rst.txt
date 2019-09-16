@@ -110,7 +110,7 @@ Since `tofu` is all about tomography, let's create a 1D camera and plot its outp
 
  .. code-block:: none
 
-    /home/lasofivec/miniconda3/envs/tofu3/lib/python3.7/site-packages/tofu-.1.4.1_52_g6f060e3-py3.7-linux-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
+    /Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -153,7 +153,7 @@ with the plots (many are interactive) or create you own tomographic configuratio
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.244 seconds)
+   **Total running time of the script:** ( 0 minutes  2.083 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_plot_basic_tutorial.py:
