@@ -384,6 +384,7 @@ setup(
             "nose==1.3.4",
             "sphinx",
             "sphinx-gallery",
+            "sphinx_bootstrap_theme",
         ]
     },
     # If there are data files included in your packages that need to be
