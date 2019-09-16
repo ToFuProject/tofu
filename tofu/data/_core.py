@@ -46,10 +46,12 @@ _INTERPT = 'zero'
 #############################################
 
 def _format_ind(ind=None, n=None):
+    """Type checking routine for index variable."""
     if ind is None:
         ind = np.ones((n,),dtype=bool)
     else:
-        lInt = [int,np.int64]
+        # list of accepted integer types
+        lInt = [int, np.int64, np.int32, np.long]
         if type(ind) in lInt:
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
