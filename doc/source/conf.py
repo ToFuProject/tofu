@@ -45,7 +45,6 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx_gallery.gen_gallery",
-    "recommonmark",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -54,8 +53,7 @@ templates_path = ["_templates"]
 # The suffix of source filenames.
 source_suffix = source_suffix = {
     '.rst': 'restructuredtext',
-    '.txt': 'markdown',
-    '.md': 'markdown',
+    '.txt': 'restructuredtext',
 }
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -170,7 +168,9 @@ html_theme_options = {
     'bootstrap_version': "3",
     'navbar_links': [
                      ("Gallery", "auto_examples/index"),
-                     ("Tutorials", "auto_examples/index"),
+                     ("Installation", "installation"),
+                     ("About us", "aboutus"),
+                     ("Versions", "releases"),
                      ],
 
     }
