@@ -9,6 +9,7 @@ About us
    acknowledge this work by citing_ the project.
 
 .. _citing: citation.html
+
 -------
 History
 -------
@@ -33,11 +34,9 @@ an issue directly on our `github page <https://github.com/ToFuProject/tofu>`_.
 If you want to chat, join our `gitter chat <https://gitter.im/ToFuProject/community>`_.
 
 
-
 -------
 License
 -------
-
 
 **tofu** is distributed under the very permissive MIT license, thus allowing
 free use, keeping in mind that neither the author nor any of the laboratories

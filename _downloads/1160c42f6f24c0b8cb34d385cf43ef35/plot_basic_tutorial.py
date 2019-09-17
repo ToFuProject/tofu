@@ -65,6 +65,7 @@ cam2d.plot_touch()
 
 ###############################################################################
 # What comes next is up to you!
-# You could now play with the function parameters (change the cameras direction,
-# refinement, aperture),
-# with the plots (many are interactive) or create you own tomographic configuration.
+# You could now play with the function parameters (change the cameras
+# direction, refinement, aperture),
+# with the plots (many are interactive) or create you own tomographic
+# configuration.

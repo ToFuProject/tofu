@@ -62,6 +62,26 @@ This directory contains tutorial examples for `tofu`.
    :hidden:
 
    /auto_examples/tutorials/plot_create_geometry
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to create a simple geometry. ">
+
+.. only:: html
+
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_flycheck_plot_create_geometry_thumb.png
+
+        :ref:`sphx_glr_auto_examples_tutorials_flycheck_plot_create_geometry.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/tutorials/flycheck_plot_create_geometry
 .. raw:: html
 
     <div style='clear:both'></div>

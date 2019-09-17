@@ -146,14 +146,15 @@ The principle is similar for 2D cameras.
 
 
 What comes next is up to you!
-You could now play with the function parameters (change the cameras direction,
-refinement, aperture),
-with the plots (many are interactive) or create you own tomographic configuration.
+You could now play with the function parameters (change the cameras
+direction, refinement, aperture),
+with the plots (many are interactive) or create you own tomographic
+configuration.
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.083 seconds)
+   **Total running time of the script:** ( 0 minutes  1.653 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_plot_basic_tutorial.py:
