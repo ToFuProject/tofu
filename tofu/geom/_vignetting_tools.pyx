@@ -382,7 +382,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef int npts_vpoly
     cdef int nb_in_poly = 0
     cdef int* are_in_poly = NULL
-    cdef double* hypot
     cdef double loc_rphi
     cdef double loc_hypot
     cdef setpp[double] set_r
@@ -397,13 +396,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     npts_vpoly = vpoly.shape[1] - 1
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
-        # hypot = <double*> malloc(npts*sizeof(double))
-        # _bgt.compute_hypot_ng(pts[0,:], pts[1,:], &hypot[0], npts)
-        # nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
-        #                                         &vpoly[0][0], &vpoly[1][0],
-        #                                         npts,
-        #                                         &hypot[0], &pts[2,0],
-        #                                         are_in_poly)
         for ii in range(npts):
             loc_hypot = Csqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
@@ -415,7 +407,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 vec_vres.push_back(vol_resol[ii])
                 vec_lind.push_back(lind[ii])
                 # we create a set for the new radius in vpoly:
-                set_r.insert(hypot[ii])
+                set_r.insert(loc_hypot)
         # We initialize the arrays:
         res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
@@ -439,8 +431,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         with nogil, parallel(num_threads=48):
             for ii in prange(sz_rphi[0]):
                 res_rphi[0][ii] = vec_rphi[ii]
-        # freeing malloced local array
-        # free(hypot)
     else:
         # nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
         #                                         &vpoly[0][0], &vpoly[1][0],
