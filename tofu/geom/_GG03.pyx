@@ -875,7 +875,17 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         rstep (double): refinement along radius `r`
         zstep (double): refinement along height `z`
         phistep (double): refinement along toroidal direction `phi`
-        RMinMax: array 
+        RMinMax: array specifying the limits min and max in `r`
+        ZMinMax: array specifying the limits min and max in `z`
+        DR: array specifying the actual sub-volume limits to get in `r`
+        DZ: array specifying the actual sub-volume limits to get in `z`
+        DPhi: array specifying the actual sub-volume limits to get in `phi`
+        VPoly: array-like defining the `(R,Z)` coordinates of the poloidal cut
+            of the vessel
+        Out(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
+            coordinates
+        margin(double): tolerance error.
+            Defaults to |_VSMALL|
     """
     cdef int ii, jj, zz
     cdef int ind_loc_r0
@@ -929,7 +939,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # .. Now the actual R limited  .............................................
     _st.cythonize_subdomain_dl(DR, limits_dl) # no limits
     sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
-
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_r, reso_r, &lindex,
                                       ncells_r)

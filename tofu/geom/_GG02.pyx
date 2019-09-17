@@ -939,7 +939,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # .. Now the actual R limited  .............................................
     _st.cythonize_subdomain_dl(DR, limits_dl) # no limits
     sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
-
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_r, reso_r, &lindex,
                                       ncells_r)
