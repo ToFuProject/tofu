@@ -132,7 +132,7 @@ s2 = tfg.PFC(Name="S2",
              shot=0,
              Lim=[[0., np.pi], [np.pi/2., np.pi*3./2.]])
 # Creating a configuration with vessel and structures
-config = tfg.Config(Name="test", Exp="Misc", lStruct=[ves, s1,s 2])
+config = tfg.Config(Name="test", Exp="Misc", lStruct=[ves, s1, s2])
 config.set_colors_random()  # to see different colors
 config.plot()
 config.save()
