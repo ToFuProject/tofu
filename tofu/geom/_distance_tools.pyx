@@ -274,7 +274,8 @@ cdef inline void comp_dist_los_circle_vec_core(int num_los, int num_cir,
                                                double* circle_z,
                                                double* norm_dir_tab,
                                                double[::1] res_k,
-                                               double[::1] res_dist) nogil:
+                                               double[::1] res_dist,
+                                               int num_threads) nogil:
     """ This function computes the intersection of a Ray (or Line Of Sight)
     # and a circle in 3D. It returns `kmin`, the coefficient such that the
     # ray of origin O = [ori1, ori2, ori3] and of directional vector
@@ -294,7 +295,7 @@ cdef inline void comp_dist_los_circle_vec_core(int num_los, int num_cir,
     cdef double* dirv
     cdef double* orig
     cdef double radius, circ_z, norm_dir
-    with nogil, parallel():
+    with nogil, parallel(num_threads=num_threads):
         dirv = <double*>malloc(3*sizeof(double))
         orig = <double*>malloc(3*sizeof(double))
         loc_res = <double*>malloc(2*sizeof(double))
@@ -534,7 +535,8 @@ cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
                                               double* circle_radius,
                                               double* circle_z,
                                               double* norm_dir_tab,
-                                              int[::1] res) nogil:
+                                              int[::1] res,
+                                              int num_threads) nogil:
     """
     This function computes the intersection of a Ray (or Line Of Sight)
     and a circle in 3D. It returns `kmin`, the coefficient such that the
@@ -554,7 +556,7 @@ cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
     cdef double* dirv
     cdef double* orig
     cdef double radius, circ_z, norm_dir
-    with nogil, parallel():
+    with nogil, parallel(num_threads=num_threads):
         dirv = <double*>malloc(3*sizeof(double))
         orig = <double*>malloc(3*sizeof(double))
         for ind_los in prange(num_los):
@@ -667,7 +669,7 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                                         0, # mode = absolute
                                         _VSMALL)
     # == Defining parallel part ================================================
-    with nogil, parallel():
+    with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so...
         loc_dir = <double*>malloc(3*sizeof(double))
         loc_org = <double*>malloc(3*sizeof(double))
@@ -756,6 +758,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
            if u = [ux, uy, uz] is the direction of the ray, and D=[dx, dy, dz]
            its origin, then dpar2 = dx*dx + dy*dy
         invuz : double
+           inverse of uz (vdir[2])
         eps_<val> : double
            Small value, acceptance of error
     Returns
@@ -1106,7 +1109,7 @@ cdef inline void is_close_los_vpoly_vec_core(int num_poly, int nlos,
     cdef double crit2_base = eps_uz * eps_uz /400.
 
     # == Defining parallel part ================================================
-    with nogil, parallel():
+    with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so...
         loc_dir = <double*>malloc(3*sizeof(double))
         loc_org = <double*>malloc(3*sizeof(double))
@@ -1278,7 +1281,7 @@ cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
         ind_close_tab[indloc] = num_poly-1
 
     # == Defining parallel part ================================================
-    with nogil, parallel():
+    with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so...
         loc_dir = <double*>malloc(3*sizeof(double))
         loc_org = <double*>malloc(3*sizeof(double))

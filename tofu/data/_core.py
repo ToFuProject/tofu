@@ -2956,7 +2956,7 @@ class Plasma2D(utils.ToFuObject):
         if msg is not None:
             msg += "\n\nRequested %s could not be identified !\n"%msgstr
             msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
-            msg += '\n\n'.join(self.get_summary(verb=False, return_='msg'))
+            msg += self.get_summary(verb=False, return_='msg')
             if raise_:
                 raise Exception(msg)
         return key, msg
@@ -2968,7 +2968,7 @@ class Plasma2D(utils.ToFuObject):
 
     def get_summary(self, sep='  ', line='-', just='l',
                     table_sep=None, verb=True, return_=False):
-        """ Summary description of the object content as a pandas DataFrame """
+        """ Summary description of the object content """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
         # assert self._dstrip['strip']<2, msg
@@ -3001,6 +3001,7 @@ class Plasma2D(utils.ToFuObject):
         return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
+
 
     #---------------------
     # Methods for adding ref / quantities
@@ -3565,6 +3566,16 @@ class Plasma2D(utils.ToFuObject):
             ind = 0
         return t[ind], t
 
+    def _get_tcom(self, idquant=None, idref1d=None,
+                  idref2d=None, idq2dR=None):
+        if idquant is not None:
+            out = self._get_indtmult(idquant=idquant,
+                                     idref1d=idref1d, idref2d=idref2d)
+        else:
+            out = self._get_indtmult(idquant=idq2dR)
+        return out
+
+
     def _get_finterp(self,
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
@@ -3592,12 +3603,8 @@ class Plasma2D(utils.ToFuObject):
 
         # Get common time indices
         if interp_t == 'nearest':
-            if idquant is not None:
-                out = self._get_indtmult(idquant=idquant,
-                                         idref1d=idref1d, idref2d=idref2d)
-                tall, tbinall, ntall, indtq, indtr1, indtr2 = out
-            else:
-                tall, tbinall, ntall, indtq = self._get_indtmult(idquant=idq2dR)[:4]
+             out = self._get_tcom(idquant,idref1d, idref2d, idq2dR)
+             tall, tbinall, ntall, indtq, indtr1, indtr2= out
 
         # # Prepare output
 

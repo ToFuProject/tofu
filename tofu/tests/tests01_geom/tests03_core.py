@@ -791,8 +791,7 @@ class Test03_Rays(object):
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
                                       & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
 
-
-    def test09_calc_kInkOut_IsoFlux(self):
+    def test09_calc_kInkOut_Isoflux(self):
         nP = 10
         r = np.linspace(0.1,0.4,nP)
         theta = np.linspace(0.,2*np.pi,100)
@@ -801,33 +800,30 @@ class Test03_Rays(object):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
-                kIn, kOut = obj.calc_kInkOut_IsoFlux(lp2D)
-                assert kIn.shape==(obj.nRays, nP)
-                assert kOut.shape==(obj.nRays, nP)
-                for ii in range(0,nP):
-                    ind = ~np.isnan(kIn[:,ii])
-                    if not np.all((kIn[ind,ii]>=obj.kIn[ind])
-                                  & (kIn[ind,ii]<=obj.kOut[ind])):
+                kIn, kOut = obj.calc_kInkOut_Isoflux(lp2D)
+                assert kIn.shape == (nP, obj.nRays)
+                assert kOut.shape == (nP, obj.nRays)
+                for ii in range(0, nP):
+                    ind = ~np.isnan(kIn[ii, :])
+                    if not np.all((kIn[ii, ind] >= obj.kIn[ind])
+                                  & (kIn[ii, ind] <= obj.kOut[ind])):
                         msg = typ+' '+c+' '+str(ii)
-                        msg += "\n {0} {1}".format(obj.kIn[ind],obj.kOut[ind])
-                        msg += "\n {0}".format(str(kIn[ind,ii]))
-                        print(msg)
+                        msg += "\n {0} {1}".format(obj.kIn[ind], obj.kOut[ind])
+                        msg += "\n {0}".format(str(kIn[ii, ind]))
                         raise Exception(msg)
 
-                    ind = ~np.isnan(kOut[:,ii])
-                    if not np.all((kOut[ind,ii]>=obj.kIn[ind])
-                                  & (kOut[ind,ii]<=obj.kOut[ind])):
+                    ind = ~np.isnan(kOut[ii, :])
+                    if not np.all((kOut[ii, ind] >= obj.kIn[ind])
+                                  & (kOut[ii, ind] <= obj.kOut[ind])):
                         msg = typ+' '+c+' '+str(ii)
-                        msg += "\n {0} {1}".format(obj.kIn[ind],obj.kOut[ind])
-                        msg += "\n {0}".format(str(kOut[ind,ii]))
-                        print(msg)
+                        msg += "\n {0} {1}".format(obj.kIn[ind], obj.kOut[ind])
+                        msg += "\n {0}".format(str(kOut[ii, ind]))
                         raise Exception(msg)
-                    ind = (~np.isnan(kIn[:,ii])) & (~np.isnan(kOut[:,ii]))
-                    if not np.all(kIn[ind,ii]<=kOut[ind,ii]):
+                    ind = (~np.isnan(kIn[ii, :])) & (~np.isnan(kOut[ii, :]))
+                    if not np.all(kIn[ii, ind] <= kOut[ii, ind]):
                         msg = typ+' '+c+' '+str(ii)
-                        msg += "\n {0}".format(str(kIn[ind,ii]))
-                        msg += "\n {0}".format(str(kOut[ind,ii]))
-                        print(msg)
+                        msg += "\n {0}".format(str(kIn[ii, ind]))
+                        msg += "\n {0}".format(str(kOut[ii, ind]))
                         raise Exception(msg)
 
 
@@ -855,21 +851,29 @@ class Test03_Rays(object):
             return E
 
         ind = None#[0,10,20,30,40]
-        for typ in self.dobj.keys():
-            for c in self.dobj[typ].keys():
-                obj = self.dobj[typ][c]
-                ff = ffT if obj.config.Id.Type=='Tor' else ffL
-                t = np.arange(0,10,10)
-                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                           and getattr(plt.get_current_fig_manager(),'toolbar')
-                           is not None)
-                out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
-                                      res=0.01, DL=None, resMode='abs',
-                                      method='simps', ind=ind,
-                                      plot=False, out=np.ndarray,
-                                      fs=(12,6), connect=connect)
-                sig, units = out
-                assert not np.all(np.isnan(sig)), str(ii)
+        minimize = ["memory", "calls", "hybrid"]
+        for aa in [True, False]:
+            for rm in ["abs", "rel"]:
+                for dm in ["simps", "romb", "sum"]:
+                    for mmz in minimize:
+                        for typ in self.dobj.keys():
+                            for c in self.dobj[typ].keys():
+                                obj = self.dobj[typ][c]
+                                ff = ffT if obj.config.Id.Type=='Tor' else ffL
+                                t = np.arange(0,10,10)
+                                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                                           and getattr(plt.get_current_fig_manager(),'toolbar')
+                                           is not None)
+                                out = obj.calc_signal(ff, t=t, ani=aa,
+                                                      fkwdargs={},
+                                                      res=0.01, DL=None,
+                                                      resMode=rm,
+                                                      method=dm, minimize=mmz,
+                                                      ind=ind,
+                                                      plot=False, out=np.ndarray,
+                                                      fs=(12,6), connect=connect)
+                                sig, units = out
+                                assert not np.all(np.isnan(sig)), str(ii)
         plt.close('all')
 
     def test11_plot(self):
@@ -923,6 +927,22 @@ class Test03_Rays(object):
                 # Just to check the loaded version works fine
                 obj2.strip(0, verb=verb)
                 os.remove(pfe)
+    def test15_get_sample_same_res_unit(self):
+        dmeths = ['rel', 'abs']
+        qmeths = ['simps', 'romb', 'sum']
+        list_res = [0.25, np.r_[0.2, 0.5]]
+        DL = np.array([[1.,10.],[2.,20.]])
+
+        for dL in list_res:
+            for dm in dmeths:
+                for qm in qmeths:
+                    out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
+                    k = out[0]
+                    lind = out[2]
+                    assert np.all(k[:lind[0]] >= DL[0][0])
+                    assert np.all(k[:lind[0]] <= DL[1][0])
+                    assert np.all(k[lind[0]:] >= DL[0][1])
+                    assert np.all(k[lind[0]:] <= DL[1][1])
 
 
 """

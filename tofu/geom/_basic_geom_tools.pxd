@@ -6,7 +6,7 @@
 # Utility functions for basic geometry :
 #   - vector calculus (cross product, dot product, norm, ...)
 #   - cythonization of matplotlib path functions (is point in a path?)
-#   - cythonization of some numpy functions (hypotenus, tile)
+#   - cythonization of some numpy functions (hypotenus, tile, sum)
 ################################################################################
 cimport cython
 from cpython.array cimport array, clone
@@ -18,6 +18,15 @@ from cpython.array cimport array, clone
 cdef double _VSMALL
 cdef double _SMALL
 cdef double _TWOPI
+
+cdef extern from "_fast_sum.c":
+    void sum_rows_blocks(double *orig, double *out, int n_rows, int n_cols) nogil
+
+cdef extern from "_fast_sum.c":
+    void sum_par_mat(double *orig, double *out, int n_rows, int n_cols) nogil
+
+cdef extern from "_fast_sum.c":
+    double sum_par_one_row(double *orig, int n_rows) nogil
 
 # ==============================================================================
 # == Redifinition of functions
@@ -55,6 +64,12 @@ cdef double comp_min(double[::1] vec, int npts) nogil
 
 cdef void tile_3_to_2d(double v0, double v1, double v2, int npts,
                        double[:,::1] res) nogil
+# ==============================================================================
+# =  Polygon helpers
+# ==============================================================================
+cdef int find_ind_lowerright_corner(const double[::1] xpts,
+                                    const double[::1] ypts,
+                                    int npts) nogil
 
 # ==============================================================================
 # == Vector Calculus Helpers
@@ -94,3 +109,15 @@ cdef void compute_diff_div(const double[:, ::1] vec1,
                            const double* div,
                            const int npts,
                            double[:, ::1] res) nogil
+
+# ==============================================================================
+# == Matrix sum (np.sum)
+# ==============================================================================
+cdef void sum_by_rows(double *orig, double *out,
+                      int n_rows, int n_cols) nogil
+
+cdef void sum_naive_rows(double* orig, double* out,
+                         int n_rows, int n_cols) nogil
+cdef double sum_naive(double* orig, int n_cols) nogil
+
+cdef long sum_naive_int(long* orig, int n_cols) nogil

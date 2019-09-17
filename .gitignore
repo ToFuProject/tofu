@@ -10,7 +10,7 @@
 tofu/geom/*.html
 
 # No images
-*.png
+#*.png
 
 # Mac stuff
 *.AppleDouble
@@ -57,5 +57,17 @@ Details
 # installation dir
 usr/
 
-# tests of LOS on west and ITER
-tofu/tests/tests01_geom/laura_tmp/
+# no PyCharm config files
+.idea/
+
+# do not commit sphinx built files
+doc/build/html/
+
+# do not commit built compiled files on windows
+*.pyd
+
+# do not commit sphinx-gallery files
+doc/source/auto_examples/
+
+# do not commit nose tests files
+*.noseids

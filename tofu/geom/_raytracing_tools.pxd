@@ -50,7 +50,7 @@ cdef void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
 # ==============================================================================
 cdef bint inter_ray_aabb_box(const int[3] sign,
                              const double[3] inv_direction,
-                             const double[6] bounds,
+                             const double* bounds,
                              const double[3] ds,
                              const bint countin) nogil
 

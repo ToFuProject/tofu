@@ -63,6 +63,7 @@ Contents:
    :maxdepth: 1
 
    overview
+   auto_examples/index.rst
 
 **Code documentation:**
 

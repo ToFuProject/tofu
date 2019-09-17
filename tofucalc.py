@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 # Built-in
+import sys
+import os
 import argparse
 
 # Generic
@@ -8,9 +10,24 @@ import matplotlib.pyplot as plt
 plt.switch_backend('Qt5Agg')
 plt.ioff()
 
-# tofu-specific
-import tofu as tf
-from tofu.imas2tofu import MultiIDSLoader
+# tofu
+# test if in a tofu git repo
+_HERE = os.path.abspath(os.path.dirname(__file__))
+istofugit = False
+if '.git' in _HERE and 'tofu' in _HERE:
+    istofugit = True
+
+if istofugit:
+    # Make sure we load the corresponding tofu
+    sys.path.insert(1,_HERE)
+    import tofu as tf
+    from tofu.imas2tofu import MultiIDSLoader
+    _ = sys.path.pop(1)
+else:
+    import tofu as tf
+    from tofu.imas2tofu import MultiIDSLoader
+tforigin = tf.__file__
+tfversion = tf.__version__
 
 # if tf.__version__ < '1.4.1':
     # msg = "tofuplot only works with tofu >= 1.4.1"

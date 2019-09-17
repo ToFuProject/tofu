@@ -39,27 +39,27 @@ _cbck = (0.8,0.8,0.8)
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 
 # Generic
-def _check_Lax(Lax=None, n=2):
+def _check_Lax(lax=None, n=2):
     assert n in [1,2]
-    C0 = Lax is None
-    C1 = issubclass(Lax.__class__,Axes)
-    C2 = type(Lax) in [list,tuple]
-    if C2:
-        C2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in Lax])
-        C2 = C2 and len(Lax) in [1,2]
+    c0 = lax is None
+    c1 = issubclass(lax.__class__,Axes)
+    c2 = hasattr(lax, '__iter__')
+    if c2:
+        c2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in lax])
+        c2 = c2 and len(lax) in [1,2]
     if n==1:
-        assert C0 or C1, "Arg ax must be None or a plt.Axes instance !"
+        assert c0 or c1, "Arg ax must be None or a plt.Axes instance !"
     else:
-        assert C0 or C1 or C2, "Arg Lax must be an Axes or a list/tuple of such !"
-        if C0:
-            Lax = [None,None]
-        elif C1:
-            Lax = [Lax,None]
-        elif C2 and len(Lax)==1:
-            Lax = [Lax[0],None]
+        assert c0 or c1 or c2, "Arg lax must be an Axes or a list/tuple of such !"
+        if c0:
+            lax = [None,None]
+        elif c1:
+            lax = [lax,None]
+        elif c2 and len(lax)==1:
+            lax = [lax[0],None]
         else:
-            Lax = list(Lax)
-    return Lax, C0, C1, C2
+            lax = list(lax)
+    return lax, c0, c1, c2
 
 
 
@@ -862,8 +862,8 @@ def Get_FieldsFrom_LLOS(L,Fields):
 
 
 
-def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
-              element='LDIORP', element_config='P',
+def Rays_plot(GLos, Lax=None, Proj='all', reflections=True,
+              Lplot=_def.LOSLplot, element='LDIORP', element_config='P',
               Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
@@ -918,7 +918,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
     if len(ind)>0 and not element=='':
         if Proj=='3d':
-            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
+            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0],
+                                   reflections=reflections,
+                                   Elt=element, Lplot=Lplot,
                                    Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                    dPtO=dPtO, dPtR=dPtR, dPtP=dPtP, dLeg=None,
                                    multi=multi, ind=ind,
@@ -929,7 +931,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
                                                      fs=fs, wintit=wintit,
                                                      Type=GLos.config.Type))
             if Proj in ['cross','all']:
-                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
+                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0],
+                                          reflections=reflections,
+                                          Elt=element, Lplot=Lplot,
                                           Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                           dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                           dLeg=None, multi=multi, ind=ind,
@@ -937,7 +941,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
                                           Test=Test)
             if Proj in ['hor','all']:
                 ii = 0 if Proj=='hor' else 1
-                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii], Elt=element, Lplot=Lplot,
+                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii],
+                                         reflections=reflections,
+                                         Elt=element, Lplot=Lplot,
                                          Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                          dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                          dLeg=None, multi=multi, ind=ind,
@@ -952,7 +958,8 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
 
 
-def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
+def _Rays_plot_Cross(L,Leg=None, reflections=True,
+                     Lplot='Tot', Elt='LDIORP',ax=None,
                      dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                      dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                      dLeg=_def.TorLegd, multi=False, ind=None,
@@ -965,12 +972,13 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                                        Type=L.Ves.Type)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='Cross', ind=ind, multi=multi)
+        R, Z, _, _, _ = L._get_plotL(Lplot=Lplot, proj='Cross',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
+            for ii in range(0,len(R)):
+                ax.plot(R[ii], Z[ii], label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], label=Leg, **dL)
+            ax.plot(R, Z, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -1001,7 +1009,8 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
 
 
 
-def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
+def _Rays_plot_Hor(L, Leg=None, reflections=True,
+                   Lplot='Tot', Elt='LDIORP',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
@@ -1014,12 +1023,13 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
         ax = _def.Plot_LOSProj_DefAxes('Hor', fs=fs,
                                        wintit=wintit, Type=L.Ves.Type)
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='hor', ind=ind, multi=multi)
+        _, _, x, y, _ = L._get_plotL(Lplot=Lplot, proj='hor',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
+            for ii in range(0,len(x)):
+                ax.plot(x[ii], y[ii], label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], label=Leg, **dL)
+            ax.plot(x, y, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -1046,7 +1056,8 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
 
 
 
-def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
+def  _Rays_plot_3D(L, Leg=None, reflections=True,
+                   Lplot='Tot',Elt='LDIORr',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
@@ -1059,13 +1070,14 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='3d', ind=ind, multi=multi)
+        _, _, x, y, z = L._get_plotL(Lplot=Lplot, proj='3d',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], pts[ii][2,:],
+            for ii in range(0,len(x)):
+                ax.plot(x[ii], y[ii], z[ii],
                         label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], pts[2,:], label=Leg, **dL)
+            ax.plot(x, y, z, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -1264,7 +1276,7 @@ def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
 
     assert type(quant) in [str,np.ndarray]
     if type(quant) is str:
-        lok = ['lengths','indices','Etendues','Surfaces']
+        lok = ['lengths', 'indices', 'angles', 'Etendues', 'Surfaces']
         if not quant in lok:
             msg = "Valid flags for kwarg quant are:\n"
             msg += "    [" + ", ".join(lok) + "]\n"
@@ -1426,6 +1438,10 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         elif quant == 'indices':
             Dlab = r'index' + r' ($a.u.$)'
             data = np.arange(0,cam.nRays)
+        elif quant == 'angles':
+            Dlab = r'angle of incidence (rad.)'
+            data = np.arccos(-np.sum(cam.u*cam.dgeom['vperp'], axis=0))
+            assert np.all(data >= 0.) and np.all(data <= np.pi/2.)
         else:
             data = getattr(cam, quant)
             Dlab = quant
@@ -1473,8 +1489,10 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         dax['cross'][0], dax['hor'][0] = out
 
     if cam._isLOS():
-        lCross = cam._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-        lHor = cam._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+        lCross = cam._get_plotL(Lplot=Lplot, proj='cross',
+                                return_pts=True, multi=True)
+        lHor = cam._get_plotL(Lplot=Lplot, proj='hor',
+                              return_pts=True, multi=True)
         if Bck and nD == 2:
             crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                         lCross[indbck[2]],nan2,lCross[indbck[3]]]

@@ -11,6 +11,7 @@ from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
 from libc.math cimport NAN as Cnan
 from libc.math cimport pi as Cpi
+from libc.stdlib cimport malloc, free
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
@@ -311,6 +312,27 @@ cdef inline void tile_3_to_2d(double v0, double v1, double v2,
         res[2,ii] = v2
     return
 
+# ==============================================================================
+# =  Polygon helpers
+# ==============================================================================
+cdef inline int find_ind_lowerright_corner(const double[::1] xpts,
+                                           const double[::1] ypts,
+                                           int npts) nogil:
+    cdef int ii
+    cdef int res = 0
+    cdef double minx = xpts[0]
+    cdef double miny = ypts[0]
+    for ii in range(1,npts):
+        if miny > ypts[ii]:
+            minx = xpts[ii]
+            miny = ypts[ii]
+            res = ii
+        elif miny == ypts[ii]:
+            if minx < xpts[ii]:
+                minx = xpts[ii]
+                miny = ypts[ii]
+                res = ii
+    return res
 
 # ==============================================================================
 # =  Distance
@@ -370,3 +392,63 @@ cdef inline void compute_diff_div(const double[:, ::1] vec1,
         res[1, ii] = (vec1[1,ii] - vec2[1,ii]) * invd
         res[2, ii] = (vec1[2,ii] - vec2[2,ii]) * invd
     return
+
+# ==============================================================================
+# == Matrix sum (np.sum)
+# ==============================================================================
+cdef inline void sum_by_rows(double *orig, double *out,
+                             int n_rows, int n_cols) nogil:
+    cdef int b, i, j
+    cdef int left
+    cdef int max_r = 8
+    cdef int n_blocks = n_rows/max_r
+    cdef double* res
+    # .. initialization
+    res = <double*>malloc(max_r*sizeof(double))
+    for b in prange(n_blocks):
+        for i in range(max_r):
+            res[i] = 0
+        for j in range(n_cols):
+            for i in range(max_r): #calculate sum for max_r-rows simultaniously
+                res[i]+=orig[(b*max_r+i)*n_cols+j]
+        for i in range(max_r):
+            out[b*max_r+i]=res[i]
+    # left_overs:
+    left = n_rows - n_blocks*max_r;
+    for i in prange(max_r):
+        res[i] = 0
+    for j in prange(n_cols):
+        for i in range(left): #calculate sum for left rows simultaniously
+            res[i]+=orig[(n_blocks*max_r)*n_cols+j]
+    for i in prange(left):
+        out[n_blocks*max_r+i]=res[i]
+    free(res)
+    return
+
+
+
+# ...........
+cdef inline void sum_naive_rows(double* orig, double* out,
+                                int n_rows, int n_cols) nogil:
+    cdef int ii, jj
+    for ii in prange(n_rows):
+        out[ii] = 0
+        for jj in range(n_cols):
+            out[ii] += orig[ii*n_cols + jj]
+
+    return
+
+
+cdef inline double sum_naive(double* orig, int n_cols) nogil:
+    cdef int ii
+    cdef double out = 0.
+    for ii in prange(n_cols):
+        out += orig[ii]
+    return out
+
+cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
+    cdef int ii
+    cdef long out = 0
+    for ii in prange(n_cols):
+        out += orig[ii]
+    return out
