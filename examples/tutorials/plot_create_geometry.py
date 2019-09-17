@@ -55,7 +55,11 @@ plt.axis("equal")
 # Create a toroidal Ves instance with name 'MyFirstVessel', associated to
 # the experiment 'Misc' (for 'Miscellaneous') and shot number 0
 ves = tfg.Ves(
-    Name="MyFirstVessel", Poly=[poly_R, poly_Z], Type="Tor", Exp="Misc", shot=0
+    Name="MyFirstVessel",
+    Poly=[poly_R, poly_Z],
+    Type="Tor",
+    Exp="Misc",
+    shot=0
 )
 
 ###############################################################################
@@ -120,7 +124,10 @@ poly2 = [R0 + 0.5 * np.cos(thet), -1.0 + 0.5 * np.sin(thet)]  # a circle
 poly3 = [[0.8, 1.3, 1.3, 0.8], [-0.5, -0.5, 0.5, 0.5]]  # another rectangle
 # Create the structural elements with the appropriate ToFu class, specifying
 # the experiment and a shot number for keeping track of changes
-s1 = tfg.PFC(Name="S1", Poly=poly1, Exp="Misc", shot=0)
+s1 = tfg.PFC(Name="S1",
+             Poly=poly1,
+             Exp="Misc",
+             shot=0)
 # now we create a structure that is not continuous along phi
 # but is only defined within certain limits
 s2 = tfg.PFC(
@@ -144,7 +151,9 @@ s3 = tfg.PFC(
     shot=0,
 )
 # Creating a configuration with vessel and structures
-config = tfg.Config(Name="test", Exp="Misc", lStruct=[ves, s1, s2, s3])
+config = tfg.Config(Name="test",
+                    Exp="Misc",
+                    lStruct=[ves, s1, s2, s3])
 config.set_colors_random()  # to see different colors
 config.plot()
 config.save()
