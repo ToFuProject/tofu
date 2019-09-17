@@ -51,8 +51,9 @@ extensions = [
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = source_suffix = {".rst": "restructuredtext",
-                                 ".txt": "restructuredtext"}
+source_suffix = {".rst": "restructuredtext",
+                 ".txt": "restructuredtext"}
+
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
@@ -124,7 +125,7 @@ napoleon_use_rtype = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "bootstrap"  #'sphinx_rtd_theme'
+html_theme = "bootstrap"  # 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -287,7 +288,7 @@ texinfo_documents = [
         u"tofu_doc Documentation",
         u"Didier VEZINET",
         "tofu_doc",
-        "One line description of project.",
+        "Library for synthetic diagnostics and tomography for Fusion devices.",
         "Miscellaneous",
     )
 ]
