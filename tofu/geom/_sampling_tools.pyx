@@ -31,9 +31,10 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                         double** ldiscret_arr,
                                         double[1] resolution,
                                         long** lindex_arr, long[1] n) nogil:
+    """ Discretizes a 1D line defined over [a,b] """
     cdef int[1] nL0
     cdef long[1] nind
-
+    # ..
     first_discretize_line1d_core(lminmax, dstep,
                                  resolution, n, nind, nL0,
                                  dl, lim, mode, margin)
@@ -62,8 +63,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double margin) nogil:
     """
     Computes the resolution, the desired limits, and the number of cells when
-    discretising the segmen lminmax with the given parameters. It doesn't do the
-    actual discretization.
+    discretising the segment lminmax with the given parameters. It doesn't do
+    the actual discretization.
     For that part, please refer to: second_discretize_line1d_core
     """
     cdef int nl1, ii, jj

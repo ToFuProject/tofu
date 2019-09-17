@@ -517,9 +517,6 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef double* ldiscret = NULL
     cdef double[2] dl_array
     cdef double[1] resolution
-    cdef double* ldiscret = NULL
-    cdef long* lindex = NULL
-    cdef str mode_low = mode.lower()
     # ...
     mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
@@ -871,9 +868,14 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                    double[::1] DR=None, double[::1] DZ=None,
                                    DPhi=None, VPoly=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL):
-    """
-    Return the desired submesh indicated by the limits (DR,DZ,DPhi),
-    for the desired resolution (rstep,zstep,dRphi)
+    """Returns the desired submesh indicated by the limits (DR,DZ,DPhi),
+    for the desired resolution (rstep,zstep,dRphi).
+
+    Args:
+        rstep (double): refinement along radius `r`
+        zstep (double): refinement along height `z`
+        phistep (double): refinement along toroidal direction `phi`
+        RMinMax: array 
     """
     cdef int ii, jj, zz
     cdef int ind_loc_r0
@@ -889,7 +891,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double twopi_over_dphi
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[1] sz_rphi
-    cdef long[::1] ind_mv    
+    cdef long[::1] ind_mv
     cdef long[::1] indR0, indR, indZ, Phin
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
@@ -914,7 +916,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef np.ndarray[double,ndim=1] r_on_phi
     cdef np.ndarray[double,ndim=2] pts, indI
     cdef np.ndarray[double,ndim=1] iii, res3d
-    
+
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -927,6 +929,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # .. Now the actual R limited  .............................................
     _st.cythonize_subdomain_dl(DR, limits_dl) # no limits
     sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_r, reso_r, &lindex,
                                       ncells_r)
