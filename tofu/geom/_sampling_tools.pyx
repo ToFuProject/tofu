@@ -8,6 +8,7 @@
 from libc.math cimport ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround
 from libc.math cimport sqrt as Csqrt
+from libc.math cimport pi as Cpi, cos as Ccos, sin as Csin
 from libc.math cimport isnan as Cisnan
 from libc.math cimport NAN as Cnan
 from libc.math cimport log2 as Clog2
@@ -1590,3 +1591,85 @@ cdef inline double integrate_c_sum_vec(double* val_mv,
     # ...
     vsum = _bgt.sum_par_one_row(val_mv, nsz)
     return vsum * loc_eff_res
+
+# .................
+cdef inline void prepare_tab(long[:,:,::1] lnp,
+                             int sz_r,
+                             int sz_z,
+                             long[::1] sz_phi) nogil:
+    cdef int ii, zz, jj
+    cdef int NP = 0
+    for ii in range(sz_r):
+        for zz in range(sz_z):
+            for jj in range(sz_phi[ii]):
+                lnp[ii, zz, jj] = NP
+                NP += 1
+    return
+
+cdef inline int vmesh_double_loop_cart(int ii,
+                                        int sz_z, int NP,
+                                        long* lindex_z,
+                                        long* ncells_rphi,
+                                        long* tot_nc_plane,
+                                        double reso_r_z,
+                                        double* step_rphi,
+                                        double* disc_r,
+                                        double* disc_z,
+                                        long[:,:,::1] lnp,
+                                        long[::1] Phin,
+                                        double[::1] iii,
+                                        double[::1] dv_mv,
+                                        double[::1] r_on_phi_mv,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv) nogil:
+    cdef int zz
+    cdef int jj
+    cdef long zrphi
+    cdef double indiijj
+    cdef double phi
+    # ..
+    for zz in range(sz_z):
+        zrphi = lindex_z[zz] * ncells_rphi[ii]
+        for jj in range(Phin[ii]):
+            NP = lnp[ii,zz,jj]
+            indiijj = iii[jj]
+            phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+            pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
+            pts_mv[1,NP] = disc_r[ii]*Csin(phi)
+            pts_mv[2,NP] = disc_z[zz]
+            ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
+            dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
+    return NP
+
+cdef inline int vmesh_double_loop_polr(int ii,
+                                        int sz_z, int NP,
+                                        long* lindex_z,
+                                        long* ncells_rphi,
+                                        long* tot_nc_plane,
+                                        double reso_r_z,
+                                        double* step_rphi,
+                                        double* disc_r,
+                                        double* disc_z,
+                                        long[:,:,::1] lnp,
+                                        long[::1] Phin,
+                                        double[::1] iii,
+                                        double[::1] dv_mv,
+                                        double[::1] r_on_phi_mv,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv) nogil:
+    cdef int zz
+    cdef int jj
+    cdef long zrphi
+    cdef double indiijj
+    # ..
+    for zz in range(0,sz_z):
+        zrphi = lindex_z[zz] * ncells_rphi[ii]
+        for jj in range(0,Phin[ii]):
+            NP = lnp[ii,zz,jj]
+            indiijj = iii[jj]
+            pts_mv[0,NP] = disc_r[ii]
+            pts_mv[1,NP] = disc_z[zz]
+            pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
+            ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
+            dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
+    return NP
