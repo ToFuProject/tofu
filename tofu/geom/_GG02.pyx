@@ -1050,7 +1050,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                             reso_r_z, step_rphi,
                                             disc_r, disc_z, lnp, Phin, iii,
                                             dv_mv,
-                                            r_on_phi_mv, pts_mv, ind_mv)
+                                            reso_phi_mv, pts_mv, ind_mv)
     else:
         for ii in range(0,sz_r):
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
@@ -1058,7 +1058,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
                                             disc_r, disc_z, lnp, Phin, iii, dv_mv,
-                                            r_on_phi_mv, pts_mv, ind_mv)
+                                            reso_phi_mv, pts_mv, ind_mv)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
