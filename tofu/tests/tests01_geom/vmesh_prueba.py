@@ -1,5 +1,6 @@
 # External modules
 import os
+import timeit
 import numpy as np
 import matplotlib
 import tofu.geom as tfg
@@ -90,22 +91,14 @@ def bigger_test():
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
-                    print(
-                        ".............. about to try with :", ii, n, box, "abs"
-                    )  # noqa
                     out = obj.get_sampleV(
-                        0.1, resMode="abs", DV=box, Out="(X,Y,Z)"
+                        0.01, resMode="abs", DV=box, Out="(X,Y,Z)"
                     )  # noqa
-                    print("done")
                     pts0, ind = out[0], out[2]
                     ii = 1
-                    print(
-                        ".............. about to try with :", ii, n, ind, "abs"
-                    )  # noqa
                     out = obj.get_sampleV(
                         0.1, resMode="abs", ind=ind, Out="(X,Y,Z)"
                     )  # noqa
-                    print("done")
                     pts1 = out[0]
                 except Exception as err:
                     msg = str(err)
@@ -134,7 +127,7 @@ def small_test():
     VPoly = np.array([2.0 + 1.0 * np.cos(thet), 0.0 + 1.0 * np.sin(thet)])
     RMinMax = np.array([np.min(VPoly[0, :]), np.max(VPoly[0, :])])
     ZMinMax = np.array([np.min(VPoly[1, :]), np.max(VPoly[1, :])])
-    dR, dZ, dRPhi = 0.05, 0.05, 0.05
+    dR, dZ, dRPhi = 0.025, 0.025, 0.025
     LDPhi = [None, [3.0 * np.pi / 4.0, 5.0 * np.pi / 4.0], [-np.pi / 4.0, np.pi / 4.0]]  # noqa
     for ii in range(0, len(LDPhi)):
         Pts, dV, ind, dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(
@@ -197,12 +190,37 @@ def small_test():
         assert dRr == dRri and dZr == dZri
         assert np.allclose(dRPhir, dRPhiri)
 
+import sys, getopt
 
 if __name__ == "__main__":
-    # import timeit
-    # print("small test ran in =",
-    #       timeit.timeit("small_test()",
-    #                     setup="from __main__ import small_test",
-    #                     number=500))
-    print(".-.-.-.-.-.-.-. Bigger test .-.-.-.-.-.-.-.-")
-    bigger_test()
+    import argparse
+    parser = argparse.ArgumentParser(description='Testing vmesh algo')
+    parser.add_argument('-m',
+                        '--mode',
+                        help='small, big or timeit',
+                        required=False,
+                        choices=['big', 'small'],
+                        default='small')
+    parser.add_argument('-tm',
+                        '--timeme',
+                        help='do you wish to time it ?',
+                        type=bool,
+                        required=False,
+                        choices=[True, False],
+                        default=False)
+    args = parser.parse_args()
+    print(".-.-.-.-.-.-.-. ",args.mode," .-.-.-.-.-.-.-.-")
+    if args.mode.lower() == "small":
+        if args.timeme:
+            print(timeit.timeit("small_test()",
+                                setup="from __main__ import small_test",
+                                number=500))
+        else:
+            small_test()
+    elif args.mode.lower() == "big":
+        if args.timeme:
+            print(timeit.timeit("bigger_test()",
+                                setup="from __main__ import bigger_test",
+                                number=50))
+        else:
+            bigger_test()

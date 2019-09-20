@@ -894,9 +894,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef int sz_r0d, sz_r, sz_z
     cdef str out_low = Out.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
-    cdef long zrphi
     cdef double dRr, dZr, min_phi, max_phi
-    cdef double abs0, abs1, phi, indiijj
+    cdef double abs0, abs1
     cdef double inv_drphi
     cdef double twopi_over_dphi
     cdef long[1] ncells_r0, ncells_r, ncells_z
@@ -908,6 +907,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[::1] dv_mv
     cdef double[::1] R, Z, r_on_phi_mv, dPhir, hypot
     cdef double[:, ::1] pts_mv
+    cdef long[:, :, ::1] lnp
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
     cdef long*  lindex   = NULL
@@ -926,6 +926,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef np.ndarray[double,ndim=1] r_on_phi
     cdef np.ndarray[double,ndim=2] pts, indI
     cdef np.ndarray[double,ndim=1] iii, res3d
+    cdef int max_phin
 
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
@@ -966,7 +967,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
     r_on_phi = np.empty((sz_r,)) # we create the numpy array
     r_on_phi_mv = r_on_phi # and its associated memoryview
-    Phin   = np.empty((sz_r,), dtype=int)
+    Phin = np.empty((sz_r,), dtype=int)
     # .. Initialization Variables ..............................................
     ncells_rphi0 = 0
     ind_loc_r0 = 0
@@ -1009,14 +1010,20 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             #indI.append(list(range(nphi0,nphi1+1)))
             Phin[ii] = nphi1+1-nphi0
             if ii==0:
-                indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
+                max_phin = Phin[ii]
+            elif max_phin < Phin[ii]:
+                max_phin = Phin[ii]
+            indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
             for jj in range(Phin[ii]):
                 indI[ii,jj] = <double>( nphi0+jj )
         else:
             #indI.append(list(range(nphi0,loc_nc_rphi)+list(range(0,nphi1+1))))
             Phin[ii] = nphi1+1+loc_nc_rphi-nphi0
             if ii==0:
+                max_phin = Phin[ii]
                 indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
+            elif max_phin < Phin[ii]:
+                max_phin = Phin[ii]
             for jj in range(0,loc_nc_rphi-nphi0):
                 indI[ii,jj] = <double>( nphi0+jj )
             for jj in range(loc_nc_rphi-nphi0,Phin[ii]):
@@ -1030,36 +1037,28 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     dv_mv  = res3d
     # Compute pts, res3d and ind
     # This triple loop is the longest part, it takes ~90% of the CPU time
+    reso_r_z = reso_r[0]*reso_z[0]
     NP = 0
+    lnp = np.empty((sz_r, sz_z, max_phin), dtype=int)
+    _st.prepare_tab(lnp, sz_r, sz_z, Phin)
     if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
-            for zz in range(0,sz_z):
-                zrphi = lindex_z[zz] * ncells_rphi[ii]
-                for jj in range(0,Phin[ii]):
-                    indiijj = iii[jj]
-                    phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-                    pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
-                    pts_mv[1,NP] = disc_r[ii]*Csin(phi)
-                    pts_mv[2,NP] = disc_z[zz]
-                    ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-                    dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
-                    NP += 1
+            NP = _st.vmesh_double_loop_cart(ii, sz_z, NP, lindex_z,
+                                            ncells_rphi, tot_nc_plane,
+                                            reso_r_z, step_rphi,
+                                            disc_r, disc_z, lnp, Phin, iii,
+                                            dv_mv,
+                                            r_on_phi_mv, pts_mv, ind_mv)
     else:
         for ii in range(0,sz_r):
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
-            #assert iii.size==Phin[ii] and np.all(np.unique(iii)==iii)
-            for zz in range(0,sz_z):
-                zrphi = lindex_z[zz] * ncells_rphi[ii]
-                for jj in range(0,Phin[ii]):
-                    indiijj = iii[jj] #indI[ii,iii[jj]]
-                    pts_mv[0,NP] = disc_r[ii]
-                    pts_mv[1,NP] = disc_z[zz]
-                    pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
-                    ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-                    dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
-                    NP += 1
+            NP = _st.vmesh_double_loop_polr(ii, sz_z, NP, lindex_z,
+                                            ncells_rphi, tot_nc_plane,
+                                            reso_r_z, step_rphi,
+                                            disc_r, disc_z, lnp, Phin, iii, dv_mv,
+                                            r_on_phi_mv, pts_mv, ind_mv)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
@@ -3223,7 +3222,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # loop over LOS
         if ani:
             if n_imode == 0:
-                print("about to use new method")
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
                                                                 res_mv[ii],
