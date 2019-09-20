@@ -150,7 +150,7 @@ cdef double integrate_c_sum_vec(double* val_mv,
 cdef void prepare_tab(long[:,:,::1] lnp,
                       int sz_r,
                       int sz_z,
-                      long[::1] sz_phi) nogil
+                      long* sz_phi) nogil
 
 cdef int vmesh_double_loop_cart(int ii,
                                  int sz_z,

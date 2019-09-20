@@ -1040,7 +1040,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     reso_r_z = reso_r[0]*reso_z[0]
     NP = 0
     lnp = np.empty((sz_r, sz_z, max_phin), dtype=int)
-    _st.prepare_tab(lnp, sz_r, sz_z, Phin)
+    _st.prepare_tab(lnp, sz_r, sz_z, &Phin[0])
     if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
