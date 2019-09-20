@@ -1607,7 +1607,7 @@ cdef inline void prepare_tab(long[:,:,::1] lnp,
     return
 
 cdef inline int vmesh_double_loop_cart(int ii,
-                                        int sz_z, int NP,
+                                        int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
                                         long* tot_nc_plane,
@@ -1627,6 +1627,7 @@ cdef inline int vmesh_double_loop_cart(int ii,
     cdef long zrphi
     cdef double indiijj
     cdef double phi
+    cdef int NP
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
@@ -1639,10 +1640,10 @@ cdef inline int vmesh_double_loop_cart(int ii,
             pts_mv[2,NP] = disc_z[zz]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
             dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
-    return NP
+    return NP + 1
 
 cdef inline int vmesh_double_loop_polr(int ii,
-                                        int sz_z, int NP,
+                                        int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
                                         long* tot_nc_plane,
@@ -1659,12 +1660,13 @@ cdef inline int vmesh_double_loop_polr(int ii,
                                         long[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
+    cdef int NP
     cdef long zrphi
     cdef double indiijj
     # ..
-    for zz in range(0,sz_z):
+    for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(0,Phin[ii]):
+        for jj in range(Phin[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
             pts_mv[0,NP] = disc_r[ii]
@@ -1672,4 +1674,4 @@ cdef inline int vmesh_double_loop_polr(int ii,
             pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
             dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
-    return NP
+    return NP + 1

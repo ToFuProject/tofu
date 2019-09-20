@@ -1011,9 +1011,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             Phin[ii] = nphi1+1-nphi0
             if ii==0:
                 max_phin = Phin[ii]
+                indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
             elif max_phin < Phin[ii]:
                 max_phin = Phin[ii]
-            indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
             for jj in range(Phin[ii]):
                 indI[ii,jj] = <double>( nphi0+jj )
         else:
@@ -1045,20 +1045,20 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
-            NP = _st.vmesh_double_loop_cart(ii, sz_z, NP, lindex_z,
+            NP = _st.vmesh_double_loop_cart(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
                                             disc_r, disc_z, lnp, Phin, iii,
-                                            dv_mv,
-                                            r_on_phi_mv, pts_mv, ind_mv)
+                                            dv_mv, r_on_phi_mv, pts_mv, ind_mv)
     else:
         for ii in range(0,sz_r):
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
-            NP = _st.vmesh_double_loop_polr(ii, sz_z, NP, lindex_z,
+            NP = _st.vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
-                                            disc_r, disc_z, lnp, Phin, iii, dv_mv,
-                                            r_on_phi_mv, pts_mv, ind_mv)
+                                            disc_r, disc_z, lnp, Phin, iii,
+                                            dv_mv, r_on_phi_mv, pts_mv, ind_mv)
+
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
@@ -1071,9 +1071,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_rphi = <double**> malloc(sizeof(double*))
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts, dv_mv,
-                                                r_on_phi_mv, disc_r, ind_mv,
-                                                res_x, res_y, res_z,
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
+                                                dv_mv, r_on_phi_mv, disc_r,
+                                                ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0])
         pts = np.empty((3,nb_in_poly))

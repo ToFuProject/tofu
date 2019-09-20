@@ -146,14 +146,14 @@ cdef double integrate_c_sum_vec(double* val_mv,
                                 double loc_eff_res,
                                 int num_threads) nogil
 
-# ..
+# -- Vmesh utility functions --------------------------------------------------
 cdef void prepare_tab(long[:,:,::1] lnp,
                       int sz_r,
                       int sz_z,
                       long[::1] sz_phi) nogil
 
 cdef int vmesh_double_loop_cart(int ii,
-                                 int sz_z, int NP,
+                                 int sz_z,
                                  long* lindex_z,
                                  long* ncells_rphi,
                                  long* tot_nc_plane,
@@ -168,8 +168,9 @@ cdef int vmesh_double_loop_cart(int ii,
                                  double[::1] r_on_phi_mv,
                                  double[:, ::1] pts_mv,
                                  long[::1] ind_mv) nogil
+
 cdef int vmesh_double_loop_polr(int ii,
-                                 int sz_z, int NP,
+                                 int sz_z,
                                  long* lindex_z,
                                  long* ncells_rphi,
                                  long* tot_nc_plane,
