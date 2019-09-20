@@ -906,7 +906,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] dv_mv
-    cdef double[::1] R, Z, r_on_phi_mv, dPhir, hypot
+    cdef double[::1] R, Z, reso_phi_mv, dPhir, hypot
     cdef double[:, ::1] pts_mv
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
@@ -923,7 +923,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
     cdef np.ndarray[long,ndim=1] ind
-    cdef np.ndarray[double,ndim=1] r_on_phi
+    cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts, indI
     cdef np.ndarray[double,ndim=1] iii, res3d
 
@@ -937,14 +937,14 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(lindex) # getting rid of things we dont need
     lindex = NULL
     # .. Now the actual R limited  .............................................
-    _st.cythonize_subdomain_dl(DR, limits_dl) # no limits
+    _st.cythonize_subdomain_dl(DR, limits_dl)
     sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_r, reso_r, &lindex,
                                       ncells_r)
     free(lindex) # getting rid of things we dont need
     # .. Now Z .................................................................
-    _st.cythonize_subdomain_dl(DZ, limits_dl) # no limits
+    _st.cythonize_subdomain_dl(DZ, limits_dl)
     sz_z = _st.discretize_line1d_core(&ZMinMax[0], zstep, limits_dl,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_z, reso_z, &lindex_z,
@@ -964,8 +964,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     ncells_rphi = <long*>malloc(sz_r*sizeof(long))
     step_rphi   = <double*>malloc(sz_r*sizeof(double))
     tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
-    r_on_phi = np.empty((sz_r,)) # we create the numpy array
-    r_on_phi_mv = r_on_phi # and its associated memoryview
+    reso_phi = np.empty((sz_r,)) # we create the numpy array
+    reso_phi_mv = reso_phi # and its associated memoryview
     Phin   = np.empty((sz_r,), dtype=int)
     # .. Initialization Variables ..............................................
     ncells_rphi0 = 0
@@ -982,7 +982,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         loc_nc_rphi = ncells_rphi[ii]
         step_rphi[ii] = _TWOPI / ncells_rphi[ii]
         inv_drphi = 1. / step_rphi[ii]
-        r_on_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+        reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
         tot_nc_plane[ii] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
@@ -1044,7 +1044,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                     pts_mv[1,NP] = disc_r[ii]*Csin(phi)
                     pts_mv[2,NP] = disc_z[zz]
                     ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-                    dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
+                    dv_mv[NP] = reso_r[0]*reso_z[0]*reso_phi_mv[ii]
                     NP += 1
     else:
         for ii in range(0,sz_r):
@@ -1058,7 +1058,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                     pts_mv[1,NP] = disc_z[zz]
                     pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
                     ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-                    dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
+                    dv_mv[NP] = reso_r[0]*reso_z[0]*reso_phi_mv[ii]
                     NP += 1
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
@@ -1073,7 +1073,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
         nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts, dv_mv,
-                                                r_on_phi_mv, disc_r, ind_mv,
+                                                reso_phi_mv, disc_r, ind_mv,
                                                 res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0])
@@ -1083,7 +1083,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
         pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
         pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-        r_on_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
+        reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
         # freeing the memory
         free(res_x[0])
         free(res_y[0])
@@ -1104,7 +1104,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    return pts, res3d, ind, reso_r[0], reso_z[0], r_on_phi
+    return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
