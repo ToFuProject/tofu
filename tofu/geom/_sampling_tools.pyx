@@ -32,7 +32,12 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                         double** ldiscret_arr,
                                         double[1] resolution,
                                         long** lindex_arr, long[1] n) nogil:
-    """ Discretizes a 1D line defined over [a,b] """
+    """Discretizes a 1D line defined over [liminmax[0], lminmax[1]] with
+    a discretization step resoultion (out value) computed from dstep which
+    can be given in absolute or relative mode. It is possible to only get a
+    subdomain [dl[0], dl[1]] of the line. lindex_arr indicates the indices
+    of points to take into account depending on the subdomain dl. n indicates
+    the number of points on the discretized subdomain."""
     cdef int[1] nL0
     cdef long[1] nind
     # ..
@@ -51,6 +56,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
     second_discretize_line1d_core(lminmax, ldiscret_arr[0], lindex_arr[0],
                                   nL0[0], resolution[0], nind[0])
     return nind[0]
+
 
 cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double dstep,
@@ -193,7 +199,6 @@ cdef inline void cythonize_subdomain_dl(DL, double[2] dl_array):
 # ==============================================================================
 # =  Vessel's poloidal cut discretization
 # ==============================================================================
-
 cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
                                        int mode, double margin, double din,
                                        double[:, ::1] ves_vin,
@@ -529,8 +534,6 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
     return
 
 
-
-
 cdef inline void middle_rule_abs_var_s2(int nlos,
                                         double* los_kmin,
                                         double* los_kmax,
@@ -589,7 +592,6 @@ cdef inline void middle_rule_abs_var(int nlos,
     # ...
     free(los_nraf)
     return
-
 
 
 cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
@@ -653,6 +655,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
                                &los_coeffs[0][first_index])
     return
 
+
 cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                                      double* los_kmin,
                                      double* los_kmax,
@@ -681,6 +684,7 @@ cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                            num_threads)
     free(los_nraf)
     return
+
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
 cdef inline void left_rule_single(int num_raf,
@@ -1017,8 +1021,6 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
     return
 
 
-
-
 cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
@@ -1295,7 +1297,6 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
 # ==============================================================================
 # == Utility functions for signal computation (LOS_calc_signal)
 # ==============================================================================
-
 # -- anisotropic case ----------------------------------------------------
 cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
                                        double resol,
@@ -1334,14 +1335,17 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
         free(los_coeffs)
     return pts, usbis
 
+
 # -- not anisotropic ------------------------------------------------------
-cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
-                                   double resol,
-                                   int n_dmode, int n_imode,
-                                   double[1] eff_res,
-                                   long[1] nb_rows,
-                                   double[:,::1] ray_orig,
-                                   double[:,::1] ray_vdir):
+cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(
+    double los_kmin,
+    double los_kmax,
+    double resol,
+    int n_dmode, int n_imode,
+    double[1] eff_res,
+    long[1] nb_rows,
+    double[:,::1] ray_orig,
+    double[:,::1] ray_vdir):
     # This function doesn't compute anything new.
     # It's a utility function for LOS_calc_signal to avoid reptitions
     # It samples a LOS and recreates the points on that LOS
@@ -1438,6 +1442,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
                                num_threads=num_threads)
             return los_ind[nlos-1]
     return -1
+
 
 cdef inline void los_get_sample_core_var_res(int nlos,
                                             double* los_lim_min,
@@ -1558,6 +1563,7 @@ cdef inline void integrate_sum_nlos(int nlos, int nt,
                                 nt, jjp1 - jj,
                                 reseff_arr[ii], num_threads)
     return
+
 
 cdef inline void integrate_c_sum_mat(double[:,::1] val_mv,
                                     double* sig,
