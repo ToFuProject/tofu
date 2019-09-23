@@ -923,7 +923,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
     cdef int[:,::1] indi_mv
-    cdef np.ndarray[int, ndim=2] indI
+    cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
@@ -1012,7 +1012,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             Phin[ii] = nphi1+1-nphi0
             if ii==0:
                 max_phin = Phin[ii]
-                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1))
+                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1), dtype=int)
                 indi_mv = indI
             elif max_phin < Phin[ii]:
                 max_phin = Phin[ii]
@@ -1022,7 +1022,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             Phin[ii] = nphi1+1+loc_nc_rphi-nphi0
             if ii==0:
                 max_phin = Phin[ii]
-                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1))
+                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1), dtype=int)
                 indi_mv = indI
             elif max_phin < Phin[ii]:
                 max_phin = Phin[ii]
