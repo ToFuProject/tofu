@@ -1599,20 +1599,29 @@ cdef inline double integrate_c_sum_vec(double* val_mv,
     return vsum * loc_eff_res
 
 # .................
-cdef inline void prepare_tab(long[:,:,::1] lnp,
-                             int sz_r,
-                             int sz_z,
-                             long[::1] sz_phi) nogil:
+cdef void prepare_tab(long[:,:,::1] lnp,
+                      int sz_r,
+                      int sz_z,
+                      long* sz_phi) nogil:
     cdef int ii, zz, jj
+    cdef int kk
     cdef int NP = 0
+    cdef int rem
     for ii in range(sz_r):
         for zz in range(sz_z):
-            for jj in range(sz_phi[ii]):
+            rem = sz_phi[ii] % 4
+            for jj in range(0, sz_phi[ii]-rem, 4):
                 lnp[ii, zz, jj] = NP
+                lnp[ii, zz, jj + 1] = NP + 1
+                lnp[ii, zz, jj + 2] = NP + 2
+                lnp[ii, zz, jj + 3] = NP + 3
+                NP += 4
+            for kk in range(jj+4, sz_phi[ii]):
+                lnp[ii, zz, kk] = NP
                 NP += 1
     return
 
-cdef inline int vmesh_double_loop_cart(int ii,
+cdef int vmesh_double_loop_cart(int ii,
                                         int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
@@ -1635,7 +1644,7 @@ cdef inline int vmesh_double_loop_cart(int ii,
     cdef double phi
     cdef int NP
     # ..
-    for zz in range(sz_z):
+    for zz in prange(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
         for jj in range(Phin[ii]):
             NP = lnp[ii,zz,jj]
@@ -1648,7 +1657,7 @@ cdef inline int vmesh_double_loop_cart(int ii,
             dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
     return NP + 1
 
-cdef inline int vmesh_double_loop_polr(int ii,
+cdef int vmesh_double_loop_polr(int ii,
                                         int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
@@ -1670,14 +1679,14 @@ cdef inline int vmesh_double_loop_polr(int ii,
     cdef long zrphi
     cdef double indiijj
     # ..
-    for zz in range(sz_z):
+    for zz in prange(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
         for jj in range(Phin[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
             pts_mv[0,NP] = disc_r[ii]
             pts_mv[1,NP] = disc_z[zz]
-            pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
+            pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-            dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
+            dv_mv[NP] = reso_r_z * r_on_phi_mv[ii]
     return NP + 1
