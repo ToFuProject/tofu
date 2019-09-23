@@ -1621,7 +1621,7 @@ cdef void prepare_tab(long[:,:,::1] lnp,
                 NP += 1
     return
 
-cdef int vmesh_double_loop_cart(int ii,
+cdef inline void vmesh_double_loop_cart(int ii,
                                         int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
@@ -1631,10 +1631,10 @@ cdef int vmesh_double_loop_cart(int ii,
                                         double* disc_r,
                                         double* disc_z,
                                         long[:,:,::1] lnp,
-                                        long* phin,
+                                        long* sz_phi,
                                         long[::1] iii,
                                         double[::1] dv_mv,
-                                        double[::1] r_on_phi_mv,
+                                        double[::1] reso_phi_mv,
                                         double[:, ::1] pts_mv,
                                         long[::1] ind_mv) nogil:
     cdef int zz
@@ -1642,11 +1642,11 @@ cdef int vmesh_double_loop_cart(int ii,
     cdef long zrphi
     cdef long indiijj
     cdef double phi
-    cdef int NP
+    cdef long NP
     # ..
-    for zz in prange(sz_z):
+    for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(phin[ii]):
+        for jj in range(sz_phi[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
             phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
@@ -1654,10 +1654,10 @@ cdef int vmesh_double_loop_cart(int ii,
             pts_mv[1,NP] = disc_r[ii]*Csin(phi)
             pts_mv[2,NP] = disc_z[zz]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
-    return NP + 1
+            dv_mv[NP] = reso_r_z*reso_phi_mv[ii]
+    return
 
-cdef int vmesh_double_loop_polr(int ii,
+cdef inline void vmesh_double_loop_polr(int ii,
                                         int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
@@ -1667,26 +1667,65 @@ cdef int vmesh_double_loop_polr(int ii,
                                         double* disc_r,
                                         double* disc_z,
                                         long[:,:,::1] lnp,
-                                        long* phin,
+                                        long* sz_phi,
                                         long[::1] iii,
                                         double[::1] dv_mv,
-                                        double[::1] r_on_phi_mv,
+                                        double[::1] reso_phi_mv,
                                         double[:, ::1] pts_mv,
                                         long[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
-    cdef int NP
+    cdef long NP
     cdef long zrphi
     cdef long indiijj
     # ..
-    for zz in prange(sz_z):
+    for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(phin[ii]):
+        for jj in range(sz_phi[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
             pts_mv[0,NP] = disc_r[ii]
             pts_mv[1,NP] = disc_z[zz]
             pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            dv_mv[NP] = reso_r_z * r_on_phi_mv[ii]
-    return NP + 1
+            dv_mv[NP] = reso_r_z * reso_phi_mv[ii]
+    return
+
+cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
+                                   long[:,::1] indi_mv,
+                                   bint is_cart,
+                                   int sz_r,
+                                   int sz_z,
+                                   long* lindex_z,
+                                   long* ncells_rphi,
+                                   long* tot_nc_plane,
+                                   double reso_r_z,
+                                   double* step_rphi,
+                                   double* disc_r,
+                                   double* disc_z,
+                                   long[:,:,::1] lnp,
+                                   long* sz_phi,
+                                   double[::1] dv_mv,
+                                   double[::1] reso_phi_mv,
+                                   double[:, ::1] pts_mv,
+                                   long[::1] ind_mv) nogil:
+    cdef int ii
+    # ...
+    if is_cart:
+        for ii in prange(sz_r):
+            # To make sure the indices are in increasing order
+            vmesh_double_loop_cart(ii, sz_z, lindex_z,
+                                   ncells_rphi, tot_nc_plane,
+                                   reso_r_z, step_rphi,
+                                   disc_r, disc_z, lnp, sz_phi,
+                                   indi_mv[ii,first_ind_mv[ii]:],
+                                   dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    else:
+        for ii in prange(sz_r):
+            vmesh_double_loop_polr(ii, sz_z, lindex_z,
+                                   ncells_rphi, tot_nc_plane,
+                                   reso_r_z, step_rphi,
+                                   disc_r, disc_z, lnp, sz_phi,
+                                   indi_mv[ii,first_ind_mv[ii]:],
+                                   dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    return

@@ -924,7 +924,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
     cdef long[:,::1] indi_mv
-    cdef long[::1] iii
+    cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
@@ -1042,27 +1042,18 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # Compute pts, res3d and ind
     # This triple loop is the longest part, it takes ~90% of the CPU time
     reso_r_z = reso_r[0]*reso_z[0]
-    NP = 0
     lnp = np.empty((sz_r, sz_z, max_sz_phi), dtype=int)
     _st.prepare_tab(lnp, sz_r, sz_z, sz_phi)
     indI = np.sort(indI, axis=1)
-    if is_cart:
-        for ii in range(sz_r):
-            # To make sure the indices are in increasing order
-            iii = indI[ii,indI[ii,:] > -1]
-            NP = _st.vmesh_double_loop_cart(ii, sz_z, lindex_z,
-                                            ncells_rphi, tot_nc_plane,
-                                            reso_r_z, step_rphi,
-                                            disc_r, disc_z, lnp, sz_phi, iii,
-                                            dv_mv, reso_phi_mv, pts_mv, ind_mv)
-    else:
-        for ii in range(sz_r):
-            iii = indI[ii,indI[ii,:] > -1]
-            NP = _st.vmesh_double_loop_polr(ii, sz_z, lindex_z,
-                                            ncells_rphi, tot_nc_plane,
-                                            reso_r_z, step_rphi,
-                                            disc_r, disc_z, lnp, sz_phi, iii,
-                                            dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    indi_mv = indI
+    first_ind_mv = np.argmax(indI > -1, axis=1)
+    _st.vmesh_double_loop(first_ind_mv, indi_mv,
+                          is_cart, sz_r,
+                          sz_z, lindex_z,
+                          ncells_rphi, tot_nc_plane,
+                          reso_r_z, step_rphi,
+                          disc_r, disc_z, lnp, sz_phi,
+                          dv_mv, reso_phi_mv, pts_mv, ind_mv)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
