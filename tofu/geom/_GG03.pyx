@@ -901,7 +901,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[1] sz_rphi
     cdef long[::1] ind_mv
-    cdef long[::1] indR0, indR, indZ, Phin
+    cdef long[::1] indR0, indR, indZ
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] dv_mv
@@ -912,6 +912,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef long*  tot_nc_plane = NULL
     cdef long*  lindex   = NULL
     cdef long*  lindex_z = NULL
+    cdef long*  phin = NULL
     cdef long** res_lind = NULL
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
@@ -965,12 +966,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         max_phi = Catan2(Csin(max_phi), Ccos(max_phi))
     abs0 = Cabs(min_phi + Cpi)
     # .. Initialization ........................................................
-    ncells_rphi = <long*>malloc(sz_r*sizeof(long))
-    step_rphi   = <double*>malloc(sz_r*sizeof(double))
+    phin = <long*>malloc(sz_r*sizeof(long))
     tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
+    ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
+    step_rphi    = <double*>malloc(sz_r*sizeof(double))
     reso_phi = np.empty((sz_r,)) # we create the numpy array
     reso_phi_mv = reso_phi # and its associated memoryview
-    Phin   = np.empty((sz_r,), dtype=int)
     # .. Initialization Variables ..............................................
     ncells_rphi0 = 0
     ind_loc_r0 = 0
@@ -1010,28 +1011,28 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
 
         if min_phi < max_phi:
-            Phin[ii] = nphi1+1-nphi0
+            phin[ii] = nphi1 + 1 - nphi0
             if ii==0:
-                max_phin = Phin[ii]
-                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1), dtype=int)
+                max_phin = phin[ii]
+                indI = -np.ones((sz_r, phin[ii] * r_ratio + 1), dtype=int)
                 indi_mv = indI
-            elif max_phin < Phin[ii]:
-                max_phin = Phin[ii]
-            for jj in range(Phin[ii]):
+            elif max_phin < phin[ii]:
+                max_phin = phin[ii]
+            for jj in range(phin[ii]):
                 indi_mv[ii,jj] = nphi0+jj
         else:
-            Phin[ii] = nphi1+1+loc_nc_rphi-nphi0
+            phin[ii] = nphi1+1+loc_nc_rphi-nphi0
             if ii==0:
-                max_phin = Phin[ii]
-                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1), dtype=int)
+                max_phin = phin[ii]
+                indI = -np.ones((sz_r, phin[ii] * r_ratio + 1), dtype=int)
                 indi_mv = indI
-            elif max_phin < Phin[ii]:
-                max_phin = Phin[ii]
+            elif max_phin < phin[ii]:
+                max_phin = phin[ii]
             for jj in range(0,loc_nc_rphi-nphi0):
                 indi_mv[ii,jj] = nphi0 + jj
-            for jj in range(loc_nc_rphi-nphi0,Phin[ii]):
+            for jj in range(loc_nc_rphi - nphi0, phin[ii]):
                 indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
-        NP += sz_z * Phin[ii]
+        NP += sz_z * phin[ii]
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
@@ -1043,12 +1044,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     reso_r_z = reso_r[0]*reso_z[0]
     NP = 0
     lnp = np.empty((sz_r, sz_z, max_phin), dtype=int)
-    _st.prepare_tab(lnp, sz_r, sz_z, &Phin[0])
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # TODO !!!!!
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    _st.prepare_tab(lnp, sz_r, sz_z, &phin[0])
     indI = np.sort(indI, axis=1)
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
@@ -1056,7 +1053,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             NP = _st.vmesh_double_loop_cart(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
-                                            disc_r, disc_z, lnp, Phin, iii,
+                                            disc_r, disc_z, lnp, phin, iii,
                                             dv_mv, reso_phi_mv, pts_mv, ind_mv)
     else:
         for ii in range(sz_r):
@@ -1064,7 +1061,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             NP = _st.vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
-                                            disc_r, disc_z, lnp, Phin, iii,
+                                            disc_r, disc_z, lnp, phin, iii,
                                             dv_mv, reso_phi_mv, pts_mv, ind_mv)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:

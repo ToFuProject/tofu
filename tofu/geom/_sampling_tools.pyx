@@ -1631,7 +1631,7 @@ cdef int vmesh_double_loop_cart(int ii,
                                         double* disc_r,
                                         double* disc_z,
                                         long[:,:,::1] lnp,
-                                        long[::1] Phin,
+                                        long* phin,
                                         long[::1] iii,
                                         double[::1] dv_mv,
                                         double[::1] r_on_phi_mv,
@@ -1646,7 +1646,7 @@ cdef int vmesh_double_loop_cart(int ii,
     # ..
     for zz in prange(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(Phin[ii]):
+        for jj in range(phin[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
             phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
@@ -1667,7 +1667,7 @@ cdef int vmesh_double_loop_polr(int ii,
                                         double* disc_r,
                                         double* disc_z,
                                         long[:,:,::1] lnp,
-                                        long[::1] Phin,
+                                        long* phin,
                                         long[::1] iii,
                                         double[::1] dv_mv,
                                         double[::1] r_on_phi_mv,
@@ -1681,7 +1681,7 @@ cdef int vmesh_double_loop_polr(int ii,
     # ..
     for zz in prange(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(Phin[ii]):
+        for jj in range(phin[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
             pts_mv[0,NP] = disc_r[ii]
