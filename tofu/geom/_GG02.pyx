@@ -1047,12 +1047,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # TODO !!!!!
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # indi_mv = np.sort(indi_mv, axis=1)
+    indI = np.sort(indI, axis=1)
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
-            iii = np.sort(indI[ii,indI[ii,:] != -1])
+            iii = indI[ii,indI[ii,:] > -1]
             NP = _st.vmesh_double_loop_cart(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
@@ -1060,7 +1060,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                             dv_mv, reso_phi_mv, pts_mv, ind_mv)
     else:
         for ii in range(sz_r):
-            iii = np.sort(indI[ii,indI[ii,:] != -1])
+            iii = indI[ii,indI[ii,:] > -1]
             NP = _st.vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
