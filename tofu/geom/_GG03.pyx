@@ -866,7 +866,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
 def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                    double[::1] RMinMax, double[::1] ZMinMax,
                                    double[::1] DR=None, double[::1] DZ=None,
-                                   DPhi=None, VPoly=None,
+                                   double[::1] DPhi=None, VPoly=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL):
     """Returns the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi).
@@ -922,9 +922,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_z  = NULL
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
-    cdef np.ndarray[long,ndim=1] ind
+    cdef int[:,::1] indi_mv
+    cdef np.ndarray[int, ndim=2] indI
+    cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
-    cdef np.ndarray[double,ndim=2] pts, indI
+    cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=1] iii, res3d
     cdef int max_phin
 
@@ -1007,27 +1009,27 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
 
         if min_phi < max_phi:
-            #indI.append(list(range(nphi0,nphi1+1)))
             Phin[ii] = nphi1+1-nphi0
             if ii==0:
                 max_phin = Phin[ii]
-                indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
+                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1))
+                indi_mv = indI
             elif max_phin < Phin[ii]:
                 max_phin = Phin[ii]
             for jj in range(Phin[ii]):
-                indI[ii,jj] = <double>( nphi0+jj )
+                indi_mv[ii,jj] = nphi0+jj
         else:
-            #indI.append(list(range(nphi0,loc_nc_rphi)+list(range(0,nphi1+1))))
             Phin[ii] = nphi1+1+loc_nc_rphi-nphi0
             if ii==0:
                 max_phin = Phin[ii]
-                indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
+                indI = -np.ones((sz_r, Phin[ii] * r_ratio + 1))
+                indi_mv = indI
             elif max_phin < Phin[ii]:
                 max_phin = Phin[ii]
             for jj in range(0,loc_nc_rphi-nphi0):
-                indI[ii,jj] = <double>( nphi0+jj )
+                indi_mv[ii,jj] = nphi0 + jj
             for jj in range(loc_nc_rphi-nphi0,Phin[ii]):
-                indI[ii,jj] = <double>( jj- (loc_nc_rphi-nphi0) )
+                indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * Phin[ii]
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
@@ -1041,18 +1043,23 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     NP = 0
     lnp = np.empty((sz_r, sz_z, max_phin), dtype=int)
     _st.prepare_tab(lnp, sz_r, sz_z, &Phin[0])
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # TODO !!!!!
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # indi_mv = np.sort(indi_mv, axis=1)
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
-            iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
+            iii = np.sort(indi_mv[ii,indI[ii,:] != -1])
             NP = _st.vmesh_double_loop_cart(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
                                             disc_r, disc_z, lnp, Phin, iii,
                                             dv_mv, reso_phi_mv, pts_mv, ind_mv)
     else:
-        for ii in range(0,sz_r):
-            iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
+        for ii in range(sz_r):
+            iii = np.sort(indi_mv[ii,indI[ii,:] != -1])
             NP = _st.vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
