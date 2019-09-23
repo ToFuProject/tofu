@@ -1632,7 +1632,7 @@ cdef int vmesh_double_loop_cart(int ii,
                                         double* disc_z,
                                         long[:,:,::1] lnp,
                                         long[::1] Phin,
-                                        double[::1] iii,
+                                        long[::1] iii,
                                         double[::1] dv_mv,
                                         double[::1] r_on_phi_mv,
                                         double[:, ::1] pts_mv,
@@ -1640,7 +1640,7 @@ cdef int vmesh_double_loop_cart(int ii,
     cdef int zz
     cdef int jj
     cdef long zrphi
-    cdef double indiijj
+    cdef long indiijj
     cdef double phi
     cdef int NP
     # ..
@@ -1653,7 +1653,7 @@ cdef int vmesh_double_loop_cart(int ii,
             pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
             pts_mv[1,NP] = disc_r[ii]*Csin(phi)
             pts_mv[2,NP] = disc_z[zz]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
+            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             dv_mv[NP] = reso_r_z*r_on_phi_mv[ii]
     return NP + 1
 
@@ -1668,7 +1668,7 @@ cdef int vmesh_double_loop_polr(int ii,
                                         double* disc_z,
                                         long[:,:,::1] lnp,
                                         long[::1] Phin,
-                                        double[::1] iii,
+                                        long[::1] iii,
                                         double[::1] dv_mv,
                                         double[::1] r_on_phi_mv,
                                         double[:, ::1] pts_mv,
@@ -1677,7 +1677,7 @@ cdef int vmesh_double_loop_polr(int ii,
     cdef int jj
     cdef int NP
     cdef long zrphi
-    cdef double indiijj
+    cdef long indiijj
     # ..
     for zz in prange(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
@@ -1687,6 +1687,6 @@ cdef int vmesh_double_loop_polr(int ii,
             pts_mv[0,NP] = disc_r[ii]
             pts_mv[1,NP] = disc_z[zz]
             pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
+            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             dv_mv[NP] = reso_r_z * r_on_phi_mv[ii]
     return NP + 1

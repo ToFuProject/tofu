@@ -866,7 +866,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
 def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                    double[::1] RMinMax, double[::1] ZMinMax,
                                    double[::1] DR=None, double[::1] DZ=None,
-                                   double[::1] DPhi=None, VPoly=None,
+                                   DPhi=None, VPoly=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL):
     """Returns the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi).
@@ -922,12 +922,13 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_z  = NULL
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
-    cdef int[:,::1] indi_mv
+    cdef long[:,::1] indi_mv
+    cdef long[::1] iii
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=1] iii, res3d
+    cdef np.ndarray[double,ndim=1] res3d
     cdef int max_phin
 
     # Get the actual R and Z resolutions and mesh elements
@@ -1051,7 +1052,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
-            iii = np.sort(indi_mv[ii,indI[ii,:] != -1])
+            iii = np.sort(indI[ii,indI[ii,:] != -1])
             NP = _st.vmesh_double_loop_cart(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
@@ -1059,7 +1060,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                             dv_mv, reso_phi_mv, pts_mv, ind_mv)
     else:
         for ii in range(sz_r):
-            iii = np.sort(indi_mv[ii,indI[ii,:] != -1])
+            iii = np.sort(indI[ii,indI[ii,:] != -1])
             NP = _st.vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                             ncells_rphi, tot_nc_plane,
                                             reso_r_z, step_rphi,
