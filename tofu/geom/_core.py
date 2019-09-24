@@ -5365,7 +5365,7 @@ class Rays(utils.ToFuObject):
                           useful for assessing reflection probabilities)
             - 'indices': the index of each LOS
                          (useful for checking numbering)
-            - 'Etendues': the étendue associated to each LOS (user-provided)
+            - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
         """
         out = _plot.Rays_plot_touch(self, key=key, Bck=Bck,

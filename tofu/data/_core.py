@@ -46,7 +46,8 @@ _INTERPT = 'zero'
 #############################################
 
 def _format_ind(ind=None, n=None):
-    """Helper routine to convert selected channels (as numbers) in `ind` to a boolean array format.
+    """Helper routine to convert selected channels (as numbers) in `ind` to
+    a boolean array format.
 
     Parameters
     ----------
@@ -58,7 +59,8 @@ def _format_ind(ind=None, n=None):
     Returns
     -------
     ind : ndarray of booleans, size (n,)
-        The array with the selected channels set to True, remaining ones set to False
+        The array with the selected channels set to True, remaining ones set
+        to False
 
 
     Examples
@@ -72,7 +74,7 @@ def _format_ind(ind=None, n=None):
         ind = np.ones((n,),dtype=bool)
     else:
         # list of accepted integer types
-        lInt = [int, np.int64, np.int32, np.long]
+        lInt = [int, long, np.int64, np.int32, np.int_, np.longlong]
         if type(ind) in lInt:
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
@@ -88,7 +90,10 @@ def _format_ind(ind=None, n=None):
                 ii[ind] = True
                 ind = ii
             else:
-                msg = "Index must be int, or an iterable of bool or int (first element of index has type: {})!".format(type(ind[0]))
+                msg = ("Index must be int, or an iterable of bool or int "
+                       "(first element of index has"
+                       " type: {})!".format(type(ind[0]))
+                       )
                 raise Exception(msg)
     return ind
 
