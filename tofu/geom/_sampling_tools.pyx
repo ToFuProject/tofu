@@ -1679,14 +1679,15 @@ cdef int vmesh_double_loop_polr(int ii,
     cdef long zrphi
     cdef long indiijj
     # ..
-    for zz in prange(sz_z):
-        zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(phin[ii]):
-            NP = lnp[ii,zz,jj]
-            indiijj = iii[jj]
-            pts_mv[0,NP] = disc_r[ii]
-            pts_mv[1,NP] = disc_z[zz]
-            pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            dv_mv[NP] = reso_r_z * r_on_phi_mv[ii]
+    with nogil, parallel():
+        for zz in prange(sz_z):
+            zrphi = lindex_z[zz] * ncells_rphi[ii]
+            for jj in range(phin[ii]):
+                NP = lnp[ii,zz,jj]
+                indiijj = iii[jj]
+                pts_mv[0,NP] = disc_r[ii]
+                pts_mv[1,NP] = disc_z[zz]
+                pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                dv_mv[NP] = reso_r_z * r_on_phi_mv[ii]
     return NP + 1
