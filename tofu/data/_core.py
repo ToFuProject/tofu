@@ -74,7 +74,7 @@ def _format_ind(ind=None, n=None):
         ind = np.ones((n,),dtype=bool)
     else:
         # list of accepted integer types
-        lInt = [int, long, np.int64, np.int32, np.int_, np.longlong]
+        lInt = [int, np.int64, np.int32, np.int_, np.longlong]
         if type(ind) in lInt:
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
