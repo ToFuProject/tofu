@@ -7,6 +7,8 @@
 *.c
 *.cpp
 *.nfs*
+
+# annotated files
 tofu/geom/*.html
 
 # No images
@@ -38,21 +40,18 @@ dist/
 tofu.egg-info/
 build/
 
-#Notes_Upgrades/
-
 # Tex files
 *.aux
 *.log
 
-# .gitignore
-1
-Introduction
-computing
-Details
+# coverage output
 .coverage
 
 # Include travis
 !.travis.yml
+
+# no precommit configurations
+.pre-commit-config.yaml
 
 # installation dir
 usr/

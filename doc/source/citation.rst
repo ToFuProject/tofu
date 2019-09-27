@@ -3,7 +3,7 @@
 .. role:: file(literal)
 .. role:: ref(title-reference)
 
-Citing ToFu:
+Citing ToFu
 ============
 
 An article dedicated to describing ToFu and its capacities is in preparation, in the meantime please cite this one_ [#]_, which briefly describes it and uses it to present physics results. Since this paper may not present enough details for the interested reader, please also include a url pointing to this web-based documentation.
@@ -27,15 +27,3 @@ An article dedicated to describing ToFu and its capacities is in preparation, in
       url={http://stacks.iop.org/0029-5515/56/i=8/a=086001},
       year={2016},
     }
-
-
-
-Indices and tables
-------------------
-* Homepage_
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-.. _Homepage: index.html
-
