@@ -44,7 +44,6 @@ __all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
 _arrayorder = 'C'
 _Clock = False
 _Type = 'Tor'
-_NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
@@ -4518,7 +4517,7 @@ class Rays(utils.ToFuObject):
         return out
 
     def get_sample(self, res=None, resMode='abs', DL=None, method='sum', ind=None,
-                   pts=False, compact=True, num_threads=_NUM_THREADS, Test=True):
+                   pts=False, compact=True, num_threads=_NTHREADS, Test=True):
         """ Return a linear sampling of the LOS
 
         The LOS is sampled into a series a points and segments lengths
