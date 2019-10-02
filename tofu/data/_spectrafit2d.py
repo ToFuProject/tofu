@@ -370,7 +370,12 @@ def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
         indybin += (ny-1)/2 - (nbin_init-1)/2
 
     # get indybis
-    indybis = np.arange()
+    if ny % 2 ==0:
+        indy1 = np.arange(ny/2-1, -1, -1)
+        indy2 = np.arange(ny/2, ny, 1)
+    else:
+        indy1 = np.arange((ny-1)/2-1, -1, -1)
+        indy2 = np.arange((ny-1)/2, ny, 1)
 
 
     #####################
@@ -395,8 +400,6 @@ def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
     # compute fits
     #####################
 
-    # data.shape = (nx, ny), where nx = lamb
-
     # Get binned spectra to deduce initial guess
     databin =  None
 
@@ -404,13 +407,17 @@ def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
     for ii in range(nt):
 
         # get initial guess from center or previous result
-        if init == 'center':
+        if ii == 0 or init == 'center':
             pass
         else:
             pass
 
         for jj in range(nybis):
+            pass
+            # Upper half
 
+
+            # Lower half
 
 
 
