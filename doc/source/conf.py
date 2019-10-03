@@ -62,7 +62,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"tofu"
-copyright = u"2016, Didier VEZINET"
+copyright = u"2016-2019, Tofu contributors"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
