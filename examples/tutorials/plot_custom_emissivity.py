@@ -8,6 +8,7 @@ this emissivity.
 
 ###############################################################################
 # We start by loading a built-in `tofu` configuration and define a 2D camera.
+import matplotlib
 
 import numpy as np
 import tofu as tf
@@ -26,9 +27,12 @@ cam2d = tf.geom.utils.create_CamLOS2D(
     Diag="",
 )
 
-
 ###############################################################################
 # Now, we define an emissivity function that depends on r and z coordinates.
+# We can plot its profile in a section.
+
+import matplotlib.pyplot as plt
+
 
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
@@ -42,6 +46,18 @@ def emissivity(pts, t=None, vect=None):
     return e
 
 
+y = np.linspace(-10, 10)
+z = np.linspace(-10, 12)
+Y, Z = np.meshgrid(y, z)
+X = np.zeros_like(Y)
+pts = np.c_[X.ravel(), Y.ravel(), Z.ravel()].T
+emissivity_vals = emissivity(pts)
+emissivity_vals = emissivity_vals.reshape(X.shape)
+
+fig, ax = plt.subplots()
+ax.pcolormesh(emissivity_vals)
+plt.show()
+
 ###############################################################################
 # Finally, we compute an image using the 2D camera and this emissivity. We use the
 # `plot=True` flag to obtain a graphical output.
@@ -49,5 +65,6 @@ def emissivity(pts, t=None, vect=None):
 time_vector = np.linspace(0, 20, num=1000)
 
 sig, units = cam2d.calc_signal(emissivity,
-                               resMode='abs', plot=True,
+                               resMode='abs', plot=False,
                                t=time_vector)
+sig.plot()
