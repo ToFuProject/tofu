@@ -167,11 +167,12 @@ html_theme_options = {
     "bootstrap_version": "3",
     "nosidebar": True,
     "navbar_links": [
-        ("Gallery", "auto_examples/index"),
         ("Installation", "installation"),
-        ("About us", "aboutus"),
-        ("Versions", "releases"),
-        ("Code doc", "tofu"),
+        ("Contributing", 'contributing'),
+        ("Gallery", "auto_examples/index"),
+        ("About", "aboutus"),
+        ("Releases", "releases"),
+        ("API", "tofu"),
     ],
 }
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
