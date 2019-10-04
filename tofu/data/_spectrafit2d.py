@@ -128,7 +128,7 @@ def get_p0bounds(x, y, nmax=None):
     return p0, bounds
 
 
-def get_func(n=5):
+def get_func1d_all(n=5):
     def func_vect(x, A, x0, sigma, bck0):
         y = np.full((A.size+1, x.size), np.nan)
         for ii in range(A.size):
@@ -267,57 +267,6 @@ def multiplegaussianfit(x, spectra, nmax=None, p0=None, bounds=None,
 
 
 
-def add_gaussianfits(dimp, nmax=None, verbose=0, percent=20,
-                     path='./', save=False):
-    assert type(dimp) in [str,dict]
-
-    # Prepare
-    if type(dimp) is str:
-        imp = str(dimp)
-        if '_' in imp:
-            imp = imp.split('_')[0]
-        dimp = dict(np.load(dimp+'_spectra.npz'))
-        inds = np.argsort(dimp['angle'])
-        for k in dimp.keys():
-            if inds.size in dimp[k].shape:
-                dimp[k] = dimp[k][inds] if dimp[k].ndim==1 else dimp[k][inds,:]
-    else:
-        imp = None
-        save = False
-
-
-    # Compute
-    ind = np.arange(3,437)
-    x = np.arange(0,dimp['spectra'].shape[1])
-    spectra = dimp['spectra'][:,ind]
-    A, x0, sigma, bck0, std, lch = multiplegaussianfit(x[ind], spectra,
-                                                       nmax=nmax, percent=percent,
-                                                       verbose=verbose)
-    # Store
-    dimp['nmax'] = nmax
-    dimp['indch'] = np.r_[lch]
-    dimp['x'] = x
-    dimp['ind'] = ind
-    dimp['A'] = A[0]
-    dimp['A-std'] = A[1]
-    dimp['x0'] = x0[0]
-    dimp['x0-std'] = x0[1]
-    dimp['sigma'] = sigma[0]
-    dimp['sigma-std'] = sigma[1]
-    dimp['bck0'] = bck0[0]
-    dimp['bck0-std'] = bck0[1]
-    dimp['std'] = std
-    if imp is not None:
-        dimp['imp'] = imp
-
-    if save:
-        name = '{0}_fitted{1}'.format(imp,nmax)
-        path = os.path.abspath(path)
-        pfe = os.path.join(path,name+'.npz')
-        np.savez(pfe, **dimp)
-        print("Saved in :", pfe)
-
-    return dimp
 
 
 
@@ -331,9 +280,81 @@ def add_gaussianfits(dimp, nmax=None, verbose=0, percent=20,
 ###########################################################
 
 
+def fit_spectra2d_x0_per_row():
+
+    # Loop from centre to edges
+    for jj in range(ny):
+        out = multiplegaussianfit(x, datat[jj,:], nmax=nmax, p0=p0u, bounds=None,
+                                  max_nfev=None, xtol=1.e-8, verbose=0,
+                                  percent=20, plot_debug=False)
+        x0[jj,:], x0_std[jj,:] = out[:2]
+
+        for jj in range(nybis):
+            # Upper half
+            ju = indy1[jj]
+            out = multiplegaussianfit(x, spect, nmax=nmax, p0=p0u, bounds=None,
+                                      max_nfev=None, xtol=1.e-8, verbose=0,
+                                      percent=20, plot_debug=False)
+            x0[ju,:], x0_std[ju,:] = out[:2]
+            p0u[:nmax], p0u[nmax:2*nmax], = amp[ii,ju,:], x0[ii,ju,:]
+            p0u[2*nmax:3*nmax], p0u[3*nmax:] = sigma[ii,ju,:], bck0
+
+            # Lower half
+            jl = indy2[jj]
+    return x0
+
+def fit_spectra2d_fit_ellipses(x0):
+    # Each lamb is associated to a cone
+    # All cones have the same axis, but
+    #   - different summits
+    #   - different opening
+    # All cones are intersected by the same unique plane (detector)
+    #   => all have the same center and rotation, but
+    #   - different minor and major radius
+    ellip_C = [None, None]
+    ellip_rot = None
+    ellip_radii = np.full((2, x0.shape[1]), np.nan)
+
+    return ellip_C, ellip_rot, ellip_radii
+
+def get_func_x0_from_y():
+
+    # General ellipse equation in cartesian coordinates
+    ((x-x0)cos(theta) + (y-y0)*sin(theta))**2 / rx**2
+    + ((x-x0)sin(theta) - (y-y0)*cos(theta))**2 / ry**2
+
+    # Hence x = f(y) for x > x0
 
 
-def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
+    return
+
+
+
+def fit_spectra2d_single_from_center():
+
+
+    return
+
+
+
+
+
+
+def get_func2d(y0, y1, x0_y, bspl_n, bspl_deg):
+    knots = np.linspace(y0,y1, 6)
+    bspliney = scpinterp.LSQUnivariateSpline()
+    def func(x, y, ampy_coefs, sigy_coefs, bcky_coefs):
+        amp_bs = scpinterp.BSpline(knots, ampy_coefs, k=bspl_deg,
+                                   extrapolate=False, axis=0)
+        amp = amp_bs(y)
+        x0y = x0_y(y)
+        return np.sum(amp*np.exp((x-xoy)**2/sig**2) + bck0, axis=-1)
+    return func
+
+
+
+def fit_spectra_2d(data2d, indt=None, nbin_init=None,
+                   nmax=None, bck=None, nbsplines=None):
     """ Return fitted spectra
 
     Can handle unique or multiple time
@@ -353,30 +374,49 @@ def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
     assert data.ndim in [2,3]
     if data.ndim == 2:
         data = np.reshape((1,data.shape[0],data.shape[1]))
+    if indt is not None:
+        data = data[indt,...]
+
+    # Set bck type
+    if bck is None:
+        bck = 0
+    assert type(bck) in [int, str]
+    if type(bck) is int:
+        nbck = bck + 1
+    elif bck == 'exp':
+        nbck = 3
 
     # Extract shape
     nt = data.shape[0]
     nlamb, ny = data.shape[1:]
+    x = np.arange(0,nlamb)
+
+    # max number of spectral lines (gaussians)
+    if nmax is None:
+        nmax = 10
 
     # Check nbin_init vs ny
+    if nbin_init is None:
+        nbin_init = 100
     if ny % 2 != nbin_init % 2:
         nbin_init += 1
 
     # get indybin
     indybin = np.arange(0, nbin_init)
     if ny % 2 == 0:
-        indybin += ny/2 - nbin_init/2
+        indybin += int(ny/2 - nbin_init/2)
     else:
-        indybin += (ny-1)/2 - (nbin_init-1)/2
+        indybin += int((ny-1)/2 - (nbin_init-1)/2)
 
     # get indybis
-    if ny % 2 ==0:
+    if ny % 2 == 0:
         indy1 = np.arange(ny/2-1, -1, -1)
         indy2 = np.arange(ny/2, ny, 1)
     else:
         indy1 = np.arange((ny-1)/2-1, -1, -1)
-        indy2 = np.arange((ny-1)/2, ny, 1)
-
+        indy2 = np.arange((ny-1)/2+1, ny, 1)
+    nybis = indy1.size
+    assert nybis == indy2.size
 
     #####################
     # initialize output
@@ -384,20 +424,53 @@ def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
 
     # results
     amp = np.full((nt, ny, nmax), np.nan)
-    x0 = np.full((nt, ny, nmax), np.nan)
+    x0 = np.full((ny, nmax), np.nan)
     sigma = np.full((nt, ny, nmax), np.nan)
-    bck0 = np.full((nt, ny), np.nan)
+    bck0 = np.full((nt, ny, nbck), np.nan)
+    p0u = np.full((nmax*3 + nbck,), np.nan)
+    p0l = np.full((nmax*3 + nbck,), np.nan)
 
     # results std
     amp_std = np.full((nt, ny, nmax), np.nan)
     x0_std = np.full((nt, ny, nmax), np.nan)
     sigma_std = np.full((nt, ny, nmax), np.nan)
-    bck0_std = np.full((nt, ny), np.nan)
-    std = np.full((nt, ny), np.nan)
+    bck0_std = np.full((nt, ny, nbck), np.nan)
+    std = np.full((nt,), np.nan)
 
 
     #####################
-    # compute fits
+    # Determine x0 for each row
+    #####################
+
+    datat = np.sum(data, axis=0)
+
+    # Start with central binned (initial guess)
+
+    # if ny is odd => use binned result for central line
+
+
+    x0 = None
+
+    # Deduce ellipses
+
+    # Derive x0_func(y, x0)
+
+
+    #####################
+    # Define 2d multi-gaussian
+    #####################
+
+    # Define x0(y) law
+    import ipdb             # DB
+    ipdb.set_trace()        # DB
+
+    func = get_func2d()
+
+
+
+
+    #####################
+    # compute fits, with fixed x0
     #####################
 
     # Get binned spectra to deduce initial guess
@@ -406,22 +479,20 @@ def fit_spectra_2d_straight(data2d, nbin_init=None, nmax=None):
     # loop over y to fit spectra, start from middle, extent to edges
     for ii in range(nt):
 
-        # get initial guess from center or previous result
-        if ii == 0 or init == 'center':
-            pass
-        else:
-            pass
+            out = fit2dspectra(x, y, data[ii,:,:])
 
-        for jj in range(nybis):
-            pass
-            # Upper half
+            p0u[:nmax] = amp[ii-1,indy1[0],:]
+            p0u[nmax:2*nmax] = x0[ii-1,indy1[0],:]
+            p0u[2*nmax:3*nmax] = sigma[ii,indy1[0],:]
+            p0u[3*nmax:] = bck0[ii,indy1[0]]
 
-
-            # Lower half
-
+            p0l[:nmax] = amp[ii-1,indy2[0],:]
+            p0l[nmax:2*nmax] = x0[ii-1,indy2[0],:]
+            p0l[2*nmax:3*nmax] = sigma[ii,indy2[0],:]
+            p0l[3*nmax:] = bck0[ii,indy2[0]]
 
 
-
+    return (x0, x0_std), ( )
 
 
 ###########################################################
