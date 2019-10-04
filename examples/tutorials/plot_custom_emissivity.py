@@ -8,7 +8,6 @@ this emissivity.
 
 ###############################################################################
 # We start by loading a built-in `tofu` configuration and define a 2D camera.
-import matplotlib
 
 import numpy as np
 import tofu as tf
@@ -30,7 +29,6 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 ###############################################################################
 # Now, we define an emissivity function that depends on r and z coordinates.
 # We can plot its profile in a section.
-import numpy as np
 import matplotlib.pyplot as plt
 
 
