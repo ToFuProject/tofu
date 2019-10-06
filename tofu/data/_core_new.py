@@ -64,7 +64,11 @@ class DataHolder(utils.ToFuObject):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'include':['Mod', 'Cls',
                               'Name', 'version']}}
-    _lparams = ['origin', 'dim', 'quant', 'name', 'units']
+    _dparams = {'origin':(str, 'unknown'),
+                'dim':   (str, 'unknown'),
+                'quant': (str, 'unknown'),
+                'name':  (str, 'unknown'),
+                'units': (str, 'a.u.')}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
@@ -83,7 +87,7 @@ class DataHolder(utils.ToFuObject):
                  SavePath_Include=tfpf.defInclude):
 
         # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
+        if sys.version[0] == '2':
             self._dstrip = utils.ToFuObjectBase._dstrip.copy()
             self.__class__._strip_init()
 
@@ -96,28 +100,22 @@ class DataHolder(utils.ToFuObject):
         super(DataHolder, self).__init__(**kwdargs)
 
     def _reset(self):
+        # Run by the parent class __init__()
         # super()
-        super(Plasma2D,self)._reset()
+        super(DataHolder, self)._reset()
         self._dgroup = dict.fromkeys(self._get_keys_dgroup())
-        self._dindref = dict.fromkeys(self._get_keys_dindref())
+        self._dref = dict.fromkeys(self._get_keys_dref())
         self._ddata = dict.fromkeys(self._get_keys_ddata())
-        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
                                include=None, **kwdargs):
         if Id is not None:
-            assert isinstance(Id,utils.ID)
+            assert isinstance(Id, utils.ID)
             Name = Id.Name
-        assert type(Name) is str, Name
+        assert isinstance(Name, str), Name
         if include is None:
             include = cls._ddef['Id']['include']
-        if 'shot' in include:
-            include.remove('shot')
-        if 'Exp' in include:
-            include.remove('Exp')
-        if 'Diag' in include:
-            include.remove('Diag')
         kwdargs.update({'Name':Name, 'include':include})
         return kwdargs
 
@@ -126,14 +124,15 @@ class DataHolder(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _get_largs_dindrefdatagroup():
-        largs = ['dtime', 'dradius', 'dmesh', 'd0d', 'd1d', 'd2d']
+    def _get_largs_dref():
+        largs = ['dref']
         return largs
 
     @staticmethod
-    def _get_largs_dgeom():
-        largs = ['config']
+    def _get_largs_ddata():
+        largs = ['ddata']
         return largs
+
 
     ###########
     # Get check and format inputs
@@ -143,173 +142,177 @@ class DataHolder(utils.ToFuObject):
     # Methods for checking and formatting inputs
     #---------------------
 
-    @classmethod
-    def _checkformat_ref(ref):
-        assert type(ref) is dict
-        assert all([type(kk) is str for kk in dref.keys()])
-        for kk, vv in dref.values():
-            assert type(vv) is dict
-            assert 'group' in vv.keys() and type(vv['group']) is str
-
-
-
-    @staticmethod
-    def _extract_dnd(dnd, k0,
-                     dim_=None, quant_=None, name_=None,
-                     origin_=None, units_=None):
-        # Set defaults
-        dim_ =   k0 if dim_ is None else dim_
-        quant_ = k0 if quant_ is None else quant_
-        name_ =  k0 if name_ is None else name_
-        origin_ = 'unknown' if origin_ is None else origin_
-        units_ = 'a.u.' if units_ is None else units_
-
-        # Extrac
-        dim = dnd[k0].get('dim', None)
-        if dim is None:
-            dim = dim_
-        quant = dnd[k0].get('quant', None)
-        if quant is None:
-            quant = quant_
-        origin = dnd[k0].get('origin', None)
-        if origin is None:
-            origin = origin_
-        name = dnd[k0].get('name', None)
-        if name is None:
-            name = name_
-        units = dnd[k0].get('units', None)
-        if units is None:
-            units = units_
-        return dim, quant, origin, name, units
-
-    @staticmethod
-    def _checkformat_dtrm(dtime=None, dradius=None, dmesh=None,
-                          d0d=None, d1d=None, d2d=None):
-
-        dd = {'dtime':dtime, 'dradius':dradius, 'dmesh':dmesh,
-              'd0d':d0d, 'd1d':d1d, 'd2d':d2d}
-
-        # Define allowed keys for each dict
-        lkok = ['data', 'dim', 'quant', 'name', 'origin', 'units',
-                'depend']
-        lkmeshmax = ['type','ftype','nodes','faces',
-                     'nfaces','nnodes','mpltri','size','ntri']
-        lkmeshmin = ['type','ftype','nodes','faces']
-        dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
-                'dradius':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
-                'd0d':{'max':lkok, 'min':['data'], 'ndim':[1,2,3]},
-                'd1d':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
-                'd2d':{'max':lkok, 'min':['data'], 'ndim':[1,2]}}
-        dkok['dmesh'] = {'max':lkok + lkmeshmax, 'min':lkmeshmin}
-
-        # Check each dict independently
-        for dk, dv in dd.items():
-            if dv is None or len(dv) == 0:
-                dd[dk] = {}
-                continue
-            c0 = type(dv) is not dict or any([type(k0) is not str
-                                              for k0 in dv.keys()])
-            c0 = any([type(k0) is not str or type(v0) is not dict
-                      for k0, v0 in dv.items()])
-            if c0:
-                msg = "Arg %s must be a dict with:\n"
-                msg += "    - (key, values) of type (str, dict)"
-                raise Exception(msg)
-
-            for k0, v0 in  dv.items():
-                c0 = any([k1 not in dkok[dk]['max'] for k1 in v0.keys()])
-                c0 = c0 or any([v0.get(k1,None) is None
-                                for k1 in dkok[dk]['min']])
-                if c0:
-                    msg = "Arg %s[%s] must be a dict with keys in:\n"%(dk,k0)
-                    msg += "    - %s\n"%str(dkok[dk]['max'])
-                    msg += "And with at least the following keys:\n"
-                    msg += "    - %s\n"%str(dkok[dk]['min'])
-                    msg += "Provided:\n"
-                    msg += "    - %s\n"%str(v0.keys())
-                    msg += "Missing:\n"
-                    msg += "    - %s\n"%str(set(dkok[dk]['min']).difference(v0.keys()))
-                    msg += "Non-valid:\n"
-                    msg += "    - %s"%str(set(v0.keys()).difference(dkok[dk]['max']))
-                    raise Exception(msg)
-                if 'data' in dkok[dk]['min']:
-                    dd[dk][k0]['data'] = np.atleast_1d(np.squeeze(v0['data']))
-                    if dd[dk][k0]['data'].ndim not in dkok[dk]['ndim']:
-                        msg = "%s[%s]['data'] has wrong dimensions:\n"%(dk,k0)
-                        msg += "    - Expected: %s\n"%str(dkok[dk]['ndim'])
-                        msg += "    - Provided: %s"%str(dd[dk][k0]['data'].ndim)
-                        raise Exception(msg)
-                if dk == 'dmesh':
-                    dd[dk][k0]['nodes'] = np.atleast_2d(v0['nodes']).astype(float)
-                    dd[dk][k0]['faces'] = np.atleast_2d(v0['faces']).astype(int)
-                    nnodes = dd[dk][k0]['nodes'].shape[0]
-                    nfaces = dd[dk][k0]['faces'].shape[0]
-
-                    # Test for duplicates
-                    nodesu = np.unique(dd[dk][k0]['nodes'], axis=0)
-                    facesu = np.unique(dd[dk][k0]['faces'], axis=0)
-                    lc = [nodesu.shape[0] != nnodes,
-                          facesu.shape[0] != nfaces]
-                    if any(lc):
-                        msg = "Non-valid mesh %s[%s]:\n"%(dk,k0)
-                        if lc[0]:
-                            msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
-                            msg += "    - nodes.shape: %s\n"%str(dd[dk][k0]['nodes'].shape)
-                            msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
-                        if lc[1]:
-                            msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
-                            msg += "    - faces.shape: %s\n"%str(dd[dk][k0]['faces'].shape)
-                            msg += "    - unique faces.shape: %s"%str(facesu.shape)
-                        raise Exception(msg)
-
-                    # Test for unused nodes
-                    facesu = np.unique(facesu)
-                    c0 = np.all(facesu>=0) and facesu.size == nnodes
-                    if not c0:
-                        indnot = [ii for ii in range(0,nnodes)
-                                  if ii not in facesu]
-                        msg = "Some nodes not used in mesh %s[%s]:\n"(dk,k0)
-                        msg += "    - unused nodes indices: %s"%str(indnot)
-                        warnings.warn(msg)
-
-
-                    dd[dk][k0]['nnodes'] = dd[dk][k0].get('nnodes', nnodes)
-                    dd[dk][k0]['nfaces'] = dd[dk][k0].get('nfaces', nfaces)
-
-                    assert dd[dk][k0]['nodes'].shape == (v0['nnodes'],2)
-                    assert np.max(dd[dk][k0]['faces']) < v0['nnodes']
-                    # Only triangular meshes so far
-                    assert v0['type'] in ['tri', 'quadtri'], v0['type']
-
-                    if 'tri' in v0['type']:
-                        assert dd[dk][k0]['faces'].shape == (v0['nfaces'],3)
-                        if v0.get('mpltri', None) is None:
-                            dd[dk][k0]['mpltri'] = mplTri(dd[dk][k0]['nodes'][:,0],
-                                                          dd[dk][k0]['nodes'][:,1],
-                                                          dd[dk][k0]['faces'])
-                        assert isinstance(dd[dk][k0]['mpltri'], mplTri)
-                        assert dd[dk][k0]['ftype'] in [0,1]
-                        ntri = dd[dk][k0]['ntri']
-                        if dd[dk][k0]['ftype'] == 1:
-                            dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
-                        else:
-                            dd[dk][k0]['size'] = int(dd[dk][k0]['nfaces']/ntri)
-
-        # Check unicity of all keys
-        lk = [list(dv.keys()) for dv in dd.values()]
-        lk = list(itt.chain.from_iterable(lk))
-        lku = sorted(set(lk))
-        lk = ['%s : %s times'%(kk, str(lk.count(kk))) for kk in lku if lk.count(kk) > 1]
-        if len(lk) > 0:
-            msg = "Each key of (dtime,dradius,dmesh,d0d,d1d,d2d) must be unique !\n"
-            msg += "The following keys are repeated :\n"
-            msg += "    - " + "\n    - ".join(lk)
+    def _extract_known_params(self, key, dd):
+        # Check no reserved key is used
+        lkout = ['group', 'depend', 'ref', 'refs', 'groups',
+                 'lref', 'ldata']
+        lkind = [kk in dd.keys() for kk in lkout]
+        if any(lkind):
+            msg = "The following keys are reserved for internal use:\n"
+            msg += "    %s\n"%str(lkout)
+            msg += "  => Please do not use them !"
             raise Exception(msg)
 
-        dtime, dradius, dmesh = dd['dtime'], dd['dradius'], dd['dmesh']
-        d0d, d1d, d2d = dd['d0d'], dd['d1d'], dd['d2d']
+        dparams = {kk:vv for kk, vv in dd.items() if kk != 'data'}
+        dparams.update({kk: dd.get(kk, vv[1]) for kk, vv in self._dparams.items()})
+        for kk, vv in dparams.items():
+            if not (vv is None or isinstance(vv, self._dparams[kk][0])):
+                msg = "A parameter for %s has the wrong type:\n"%key
+                msg += "    - Provided: type(%s) = %s\n"%(kk, str(type(vv)))
+                msg += "    - Expected %s"%str(self._dparams[kk][0])
+                raise Exception(msg)
+        return dparams
 
-        return dtime, dradius, dmesh, d0d, d1d, d2d
+
+    def _checkformat_dref(self, dref):
+        c0 = isinstance(dref, dict)
+        c0 = c0 and  all([isinstance(kk, str) for kk in dref.keys()])
+        if not c0:
+            msg = "Provided dref must be dict !\n"
+            msg += "All its keys must be str !"
+            raise Exception(msg)
+
+        for kk, vv in dref.items():
+            c0 = isinstance(vv, dict)
+            c0 = c0 and 'group' in vv.keys() and isinstance(vv['group'], str)
+            c0 = c0 and 'data' in vv.keys()
+            if not c0:
+                msg = "dref must contain dict with at least the keys:\n"
+                msg += "    - 'group': a str indicating the group of refs\n"
+                msg += "    - 'data': a 1d array containing the data"
+                raise Exception(msg)
+
+            if vv['group'] not in self._dgroup.keys():
+                self._dgroup[vv['group']] = {}
+
+            if kk in self._ddata.keys():
+                msg = "key '%s' already used !\n"%kk
+                msg += "  => each key must be unique !"
+                raise Exception(msg)
+
+            data = vv['data']
+            if not isinstance(data, np.ndarray):
+                if isinstance(data, dict):
+                    size = '?'
+                elif issubclass(data.__class__, ToFuObject):
+                    size = '?'
+                else:
+                    try:
+                        data = np.atleast_1d(data).ravel()
+                        size = data.size
+                    except:
+                        msg = "Could not convert dref[%s]['data'] to array"%kk
+                        raise Exception(msg)
+            else:
+                if data.ndim != 1:
+                    data = np.atleast_1d(data).ravel()
+                size = data.size
+
+            dref[kk] = {'size':size, 'group':vv['group']}
+
+            dparams = self._extract_known_params(kk, vv)
+            self._ddata[kk] = {'data':data, 'ref':(kk,),
+                               'shape':(size,), **dparams}
+
+    def _checkformat_ddata(self, ddata):
+        c0 = isinstance(ddata, dict)
+        c0 = c0 and  all([isinstance(kk, str) for kk in ddata.keys()])
+        if not c0:
+            msg = "Provided ddata must be dict !\n"
+            msg += "All its keys must be str !"
+            raise Exception(msg)
+
+        # Start check on each key
+        for kk, vv in ddata.items():
+
+            # Check value is a dict with proper keys
+            c0 = isinstance(vv, dict)
+            c0 = c0 and 'ref' in vv.keys() and isinstance(vv['ref'], tuple)
+            c0 = c0 and 'data' in vv.keys()
+            if not c0:
+                msg = "ddata must contain dict with at least the keys:\n"
+                msg += "    - 'ref': a str indicating the ref(s) dependencies\n"
+                msg += "    - 'data': a 1d array containing the data"
+                raise Exception(msg)
+
+            # Check key unicity
+            if kk in self._ddata.keys():
+                msg = "key '%s' already used !\n"%kk
+                msg += "  => each key must be unique !"
+                raise Exception(msg)
+
+            # Extract data and shape
+            data = vv['data']
+            if not isinstance(data, np.ndarray):
+                try:
+                    data = np.asarray(data)
+                    shape = data.shape
+                except:
+                    assert type(data) in [list, tuple]
+                    shape = (len(data), '?')
+            else:
+                data = np.atleast_1d(np.squeeze(data))
+                shape = data.shape
+
+            # Check proper ref (existence and shape / size)
+            for ii, rr in enumerate(vv['ref']):
+                if rr not in self._dref.keys():
+                    msg = "ddata[%s] depends on an unknown ref !\n"%kk
+                    msg += "    - ddata[%s]['ref'] = %s\n"%(kk, rr)
+                    msg += "  => %s not in self.dref !\n"%rr
+                    msg += "  => self.add_ref( %s ) first !"%rr
+                    raise Exception(msg)
+            shaperef = (self._dref[rr]['size'] for rr in vv['ref'])
+            if not shape == shaperef:
+                msg = "Inconsistency between data shape and ref size !\n"
+                msg += "    - ddata[%s]['data'] shape: %s\n"%(kk, str(shape))
+                msg += "    - sizes of refs: %s"%(str(shaperef))
+                raise Exception(msg)
+
+            # Extract params and set self._ddata
+            dparams = self._extract_known_params(kk, vv)
+            self._ddata[kk] = {'data':data, 'ref':vv['ref'],
+                               'shape':shape,
+                               **dparams}
+
+
+    def _complement_dgrouprefdata(self):
+
+        # --------------
+        # ddata
+        for k0, v0 in self._ddata.items():
+
+            # Check all ref are in dref
+            lrefout = [ii for ii in v0['ref'] if ii not in self._dref.keys()]
+            if len(lrefout) != 0:
+                msg = "ddata[%s]['ref'] has keys not in dref:\n"%k0
+                msg += "    - " + "\n    - ".join(lrefout)
+                raise Exception(msg)
+
+            # set group
+            groups = (self._dref[rr]['group'] for rr in v0['ref'])
+            assert all([gg in self._dgroup.keys() for gg in groups])
+            self._ddata[k0]['group'] = groups
+
+        # --------------
+        # dref
+        for k0 in self._dref.keys():
+            self._dref[k0]['ldata'] = [kk for kk, vv in self._ddata.items()
+                                       if k0 in vv['ref']]
+            assert self._dref[k0]['group'] in self._dgroup.keys()
+
+        # --------------
+        # dgroup
+        for gg, vg in self._dgroup.items():
+            lref = [rr for rr, vv in self._dref.items()
+                    if vv['group'] == gg]
+            ldata = [dd for dd in self._ddata.keys()
+                     if any([dd in self._dref[vref]['ldata']
+                             for vref in lref])]
+            #assert vg['depend'] in lidindref
+            self._dgroup[gg]['lref'] = lref
+            self._dgroup[gg]['ldata'] = ldata
+
 
 
     ###########
@@ -317,30 +320,32 @@ class DataHolder(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _get_keys_dindref():
-        lk = []
+    def _get_keys_dgroup():
+        lk = ['lref', 'ldata']
+        return lk
+
+    @staticmethod
+    def _get_keys_dref():
+        lk = ['group', 'size', 'ldata']
         return lk
 
     @staticmethod
     def _get_keys_ddata():
-        lk = []
+        lk = ['data', 'ref', 'shape', 'group']
         return lk
 
     ###########
     # _init
     ###########
 
-    def _init(self, dtime=None, dradius=None, dmesh=None,
-              d0d=None, d1d=None, d2d=None,
-              config=None, **kwargs):
-        kwdargs = locals()
-        kwdargs.update(**kwargs)
-        largs = self._get_largs_dindrefdatagroup()
-        kwdindrefdatagroup = self._extract_kwdargs(kwdargs, largs)
-        largs = self._get_largs_dgeom()
-        kwdgeom = self._extract_kwdargs(kwdargs, largs)
-        self._set_dindrefdatagroup(**kwdindrefdatagroup)
-        self.set_dgeom(**kwdgeom)
+    def _init(self, dref=None, ddata=None, **kwargs):
+        kwdargs = {'dref':dref, 'ddata':ddata, **kwargs}
+        largs = self._get_largs_dref()
+        kwddref = self._extract_kwdargs(kwdargs, largs)
+        self._set_dref(**kwddref, complement=False)
+        largs = self._get_largs_ddata()
+        kwddata = self._extract_kwdargs(kwdargs, largs)
+        self._set_ddata(**kwddata)
         self._dstrip['strip'] = 0
 
 
@@ -348,274 +353,50 @@ class DataHolder(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    @staticmethod
-    def _find_lref(shape=None, k0=None, dd=None, ddstr=None,
-                   dindref=None, lrefname=['t','radius']):
-        if 'depend' in dd[k0].keys():
-            lref = dd[k0]['depend']
+    def _set_dref(self, dref, complement=True):
+        self._checkformat_dref(dref)
+        if complement:
+            self._complement_dgrouprefdata()
+
+    def _set_ddata(self, ddata):
+        self._checkformat_ddata(ddata)
+        self._complement_dgrouprefdata()
+
+    def add_ref(self, key, data=None, group=None, **kwdargs):
+        self._set_dref({key:{'data':data, 'group':group, **kwdargs}})
+
+    def remove_ref(self, key):
+        assert key in self._dref.keys()
+        lkdata = []
+        del self._dref[key]
+        for kk in lkdata:
+            del self._ddata[kk]
+        self._complement_dgrouprefdata()
+
+    def add_data(self, key, data=None, ref=None, **kwdargs):
+        self._set_ddata({key: {'data':data, 'ref':ref, **kwdargs}})
+
+    def remove_data(self, key, propagate=True):
+        if key in self._dref.keys():
+            self.remove_ref(key)
         else:
-            lref = [[kk for kk, vv in dindref.items()
-                     if vv['size'] == sh and vv['group'] in lrefname]
-                    for sh in shape]
-            lref = list(itt.chain.from_iterable(lref))
-            if len(lref) < len(shape):
-                msg = "Maybe not enoough references for %s[%s]:\n"%(ddstr,k0)
-                msg += "    - shape: %s\n"%str(shape)
-                msg += "    - lref:  %s"%str(lref)
-                warnings.warn(msg)
-
-        if len(lref) > len(shape):
-            msg = "Too many references for %s[%s]:\n"%(ddstr,k0)
-            msg += "    - shape: %s\n"%str(shape)
-            msg += "    - lref:  %s"%str(lref)
-            raise Exception(msg)
-        return lref
-
-
-
-
-    def _set_dindrefdatagroup(self, dtime=None, dradius=None, dmesh=None,
-                              d0d=None, d1d=None, d2d=None):
-
-        # Check dtime is not None
-        out = self._checkformat_dtrm(dtime=dtime, dradius=dradius, dmesh=dmesh,
-                                     d0d=d0d, d1d=d1d, d2d=d2d)
-        dtime, dradius, dmesh, d0d, d1d, d2d = out
-
-        dgroup, dindref, ddata = {}, {}, {}
-        empty = {}
-        # Get indt
-        if dtime is not None:
-            for k0 in dtime.keys():
-                out = self._extract_dnd(dtime,k0,
-                                        dim_='time', quant_='t',
-                                        name_=k0, units_='s')
-                dim, quant, origin, name, units = out
-
-                assert k0 not in dindref.keys()
-                dtime[k0]['data'] = np.atleast_1d(np.squeeze(dtime[k0]['data']))
-                assert dtime[k0]['data'].ndim == 1
-
-                dindref[k0] = {'size':dtime[k0]['data'].size,
-                               'group':'time'}
-
-                assert k0 not in ddata.keys()
-                ddata[k0] = {'data':dtime[k0]['data'],
-                             'dim':dim, 'quant':quant, 'name':name,
-                             'origin':origin, 'units':units, 'depend':(k0,)}
-
-        # d0d
-        if d0d is not None:
-            for k0 in d0d.keys():
-                out = self._extract_dnd(d0d,k0)
-                dim, quant, origin, name, units = out
-
-                # data
-                d0d[k0]['data'] = np.atleast_1d(np.squeeze(d0d[k0]['data']))
-                assert d0d[k0]['data'].ndim >= 1
-
-                depend = self._find_lref(d0d[k0]['data'].shape, k0, dd=d0d,
-                                         ddstr='d0d', dindref=dindref,
-                                         lrefname=['t'])
-                assert len(depend) == 1 and dindref[depend[0]]['group']=='time'
-                assert k0 not in ddata.keys()
-                ddata[k0] = {'data':d0d[k0]['data'],
-                             'dim':dim, 'quant':quant, 'name':name,
-                             'units':units, 'origin':origin, 'depend':depend}
-
-        # get radius
-        if dradius is not None:
-            for k0 in dradius.keys():
-                out = self._extract_dnd(dradius, k0, name_=k0)
-                dim, quant, origin, name, units = out
-                assert k0 not in dindref.keys()
-                data = np.atleast_1d(np.squeeze(dradius[k0]['data']))
-                assert data.ndim in [1,2]
-
-                if len(dradius[k0].get('depend',[1])) == 1:
-                    assert data.ndim == 1
-                    size = data.size
-                else:
-                    lkt = [k for k in dtime.keys() if k in dradius[k0]['depend']]
-                    assert len(lkt) == 1
-                    axist = dradius[k0]['depend'].index(lkt[0])
-                    size = data.shape[1-axist]
-                dindref[k0] = {'size':size,
-                               'group':'radius'}
-
-                assert k0 not in ddata.keys()
-                depend = self._find_lref(data.shape, k0, dd=dradius,
-                                         ddstr='dradius', dindref=dindref,
-                                         lrefname=['t','radius'])
-                ddata[k0] = {'data':data,
-                             'dim':dim, 'quant':quant, 'name':name,
-                             'origin':origin, 'units':units, 'depend':depend}
-
-
-        # Get d1d
-        if d1d is not None:
-            for k0 in d1d.keys():
-                out = self._extract_dnd(d1d,k0)
-                dim, quant, origin, name, units = out
-
-                d1d[k0]['data'] = np.atleast_2d(np.squeeze(d1d[k0]['data']))
-                assert d1d[k0]['data'].ndim == 2
-
-                # data
-                depend = self._find_lref(d1d[k0]['data'].shape, k0, dd=d1d,
-                                         ddstr='d1d', dindref=dindref,
-                                         lrefname=['t','radius'])
-                assert k0 not in ddata.keys()
-                ddata[k0] = {'data':d1d[k0]['data'],
-                             'dim':dim, 'quant':quant, 'name':name,
-                             'units':units, 'origin':origin, 'depend':depend}
-
-        # dmesh ref
-        if dmesh is not None:
-            for k0 in dmesh.keys():
-                out = self._extract_dnd(dmesh, k0, dim_='mesh')
-                dim, quant, origin, name, units = out
-
-                assert k0 not in dindref.keys()
-                dindref[k0] = {'size':dmesh[k0]['size'],
-                               'group':'mesh'}
-
-                assert k0 not in ddata.keys()
-                ddata[k0] = {'data':dmesh[k0],
-                             'dim':dim, 'quant':quant, 'name':name,
-                             'units':units, 'origin':origin, 'depend':(k0,)}
-
-        # d2d
-        if d2d is not None:
-            for k0 in d2d.keys():
-                out = self._extract_dnd(d2d,k0)
-                dim, quant, origin, name, units = out
-
-                d2d[k0]['data'] = np.atleast_2d(np.squeeze(d2d[k0]['data']))
-                assert d2d[k0]['data'].ndim == 2
-
-                depend = self._find_lref(d2d[k0]['data'].shape, k0, dd=d2d,
-                                         ddstr='d2d', dindref=dindref,
-                                         lrefname=['t','mesh'])
-                assert k0 not in ddata.keys()
-                ddata[k0] = {'data':d2d[k0]['data'],
-                             'dim':dim, 'quant':quant, 'name':name,
-                             'units':units, 'origin':origin, 'depend':depend}
-
-        # dgroup
-        dgroup = {}
-        if len(dtime) > 0:
-            dgroup['time'] = {'dref':list(dtime.keys())[0]}
-        if len(dradius) > 0:
-            dgroup['radius'] = {'dref':list(dradius.keys())[0]}
-        if len(dmesh) > 0:
-            dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
-
-        # Update dict
-        self._dgroup = dgroup
-        self._dindref = dindref
-        self._ddata = ddata
-        # Complement
-        self._complement()
-
-
-
-    def _complement(self):
-
-        # --------------
-        # ddata
-        for k0, v0 in self.ddata.items():
-            lindout = [ii for ii in v0['depend'] if ii not in self.dindref.keys()]
-            if not len(lindout) == 0:
-                msg = "ddata[%s]['depend'] has keys not in dindref:\n"%k0
-                msg += "    - " + "\n    - ".join(lindout)
-                raise Exception(msg)
-
-            self.ddata[k0]['lgroup'] = [self.dindref[ii]['group']
-                                        for ii in v0['depend']]
-            type_ = type(v0['data'])
-            shape = tuple([self.dindref[ii]['size'] for ii in v0['depend']])
-
-            # if only one dim => mesh or iterable or unspecified
-            if len(shape) == 1 or type_ is dict:
-                c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
-                c1 = not c0 and len(v0['data']) == shape[0]
-                if not (c0 or c1):
-                    msg = k0+'\n'
-                    msg += str([c0, c1, type_, len(v0['data']), shape])
-                    msg += "\n" + str(v0['data'])
-            else:
-                assert type(v0['data']) is np.ndarray
-                assert v0['data'].shape == shape
-
-        # --------------
-        # dindref
-        for k0 in self.dindref.keys():
-            self.dindref[k0]['ldata'] = [kk for kk, vv in self.ddata.items()
-                                    if k0 in vv['depend']]
-            assert self.dindref[k0]['group'] in self.dgroup.keys()
-
-        # --------------
-        # dgroup
-        for gg, vg in self.dgroup.items():
-            lindref = [id_ for id_,vv in self.dindref.items()
-                       if vv['group'] == gg]
-            ldata = [id_ for id_ in self.ddata.keys()
-                     if any([id_ in self.dindref[vref]['ldata']
-                             for vref in lindref])]
-            #assert vg['depend'] in lidindref
-            self.dgroup[gg]['lindref'] = lindref
-            self.dgroup[gg]['ldata'] = ldata
-
-
-    def set_dgeom(self, config=None):
-        config = self._checkformat_inputs_dgeom(config=config)
-        self._dgeom = {'config':config}
+            assert key in self._ddata.keys()
+            if propagate:
+                # Check if associated ref shall be removed too
+                lref = self._ddata[key]['ref']
+                for kref in lref:
+                    # Remove if key was the only associated data
+                    if self._dref[kref]['ldata'] == [key]:
+                        del self._dref[kref]
+            del self._ddata[key]
 
 
     ###########
     # strip dictionaries
     ###########
 
-    def _strip_ddata(self, strip=0):
+    def _strip_ddata(self, strip=0, verb=0):
         pass
-
-
-    def _strip_dgeom(self, strip=0, force=False, verb=True):
-        if self._dstrip['strip']==strip:
-            return
-
-        if strip in [0] and self._dstrip['strip'] in [1]:
-            config = None
-            if self._dgeom['config'] is not None:
-                assert type(self._dgeom['config']) is str
-                config = utils.load(self._dgeom['config'], verb=verb)
-
-            self._set_dgeom(config=config)
-
-        elif strip in [1] and self._dstrip['strip'] in [0]:
-            if self._dgeom['config'] is not None:
-                path = self._dgeom['config'].Id.SavePath
-                name = self._dgeom['config'].Id.SaveName
-                pfe = os.path.join(path, name+'.npz')
-                lf = os.listdir(path)
-                lf = [ff for ff in lf if name+'.npz' in ff]
-                exist = len(lf)==1
-                if not exist:
-                    msg = """BEWARE:
-                        You are about to delete the config object
-                        Only the path/name to saved a object will be kept
-
-                        But it appears that the following object has no
-                        saved file where specified (obj.Id.SavePath)
-                        Thus it won't be possible to retrieve it
-                        (unless available in the current console:"""
-                    msg += "\n    - {0}".format(pfe)
-                    if force:
-                        warning.warn(msg)
-                    else:
-                        raise Exception(msg)
-                self._dgeom['config'] = pfe
 
     ###########
     # _strip and get/from dict
@@ -626,33 +407,32 @@ class DataHolder(utils.ToFuObject):
         cls._dstrip['allowed'] = [0,1]
         nMax = max(cls._dstrip['allowed'])
         doc = """
-                 1: dgeom pathfiles
+                 1: None
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
+        if sys.version[0] == '2':
             cls.strip.__func__.__doc__ = doc
         else:
             cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()
-        super(Plasma2D,self).strip(strip=strip, verb=verb)
+        super(DataHolder, self).strip(strip=strip, verb=verb)
 
     def _strip(self, strip=0, verb=True):
-        self._strip_dgeom(strip=strip, verb=verb)
+        self._strip_ddata(strip=strip, verb=verb)
 
     def _to_dict(self):
         dout = {'dgroup':{'dict':self._dgroup, 'lexcept':None},
-                'dindref':{'dict':self._dindref, 'lexcept':None},
-                'ddata':{'dict':self._ddata, 'lexcept':None},
-                'dgeom':{'dict':self._dgeom, 'lexcept':None}}
+                'dref':{'dict':self._dref, 'lexcept':None},
+                'ddata':{'dict':self._ddata, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):
         self._dgroup.update(**fd['dgroup'])
-        self._dindref.update(**fd['dindref'])
+        self._dref.update(**fd['dref'])
         self._ddata.update(**fd['ddata'])
-        self._dgeom.update(**fd['dgeom'])
+        self._complement_dgrouprefdata()
 
 
     ###########
@@ -663,39 +443,17 @@ class DataHolder(utils.ToFuObject):
     def dgroup(self):
         return self._dgroup
     @property
-    def dindref(self):
-        return self._dindref
+    def dref(self):
+        return self._dref
     @property
     def ddata(self):
         return self._ddata
-    @property
-    def dtime(self):
-        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
-                     if vv['group'] == 'time'])
-    @property
-    def dradius(self):
-        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
-                     if vv['group'] == 'radius'])
-    @property
-    def dmesh(self):
-        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
-                     if vv['group'] == 'mesh'])
-    @property
-    def config(self):
-        return self._dgeom['config']
 
     #---------------------
     # Read-only for internal use
     #---------------------
 
-    @property
-    def _lquantboth(self):
-        """ Return list of quantities available both in 1d and 2d """
-        lq1 = [self._ddata[vd]['quant'] for vd in self._dgroup['radius']['ldata']]
-        lq2 = [self._ddata[vd]['quant'] for vd in self._dgroup['mesh']['ldata']]
-        lq = list(set(lq1).intersection(lq2))
-        return lq
-
+    # Replace with select !!!
     def _get_ldata(self, dim=None, quant=None, name=None,
                    units=None, origin=None,
                    indref=None, group=None, log='all', return_key=True):
