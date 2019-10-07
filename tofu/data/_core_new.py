@@ -63,13 +63,16 @@ class DataHolder(utils.ToFuObject):
     """
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'include':['Mod', 'Cls',
-                              'Name', 'version']}}
-    _dparams = {'origin':(str, 'unknown'),
-                'dim':   (str, 'unknown'),
-                'quant': (str, 'unknown'),
-                'name':  (str, 'unknown'),
-                'units': (str, 'a.u.')}
-
+                              'Name', 'version']}i,
+             'dgroup':['lref'],
+             'dref':  ['group', 'size', 'ldata'],
+             'ddata': ['refs', 'shape', 'groups', 'data'],
+             'params':{'origin':(str, 'unknown'),
+                       'dim':   (str, 'unknown'),
+                       'quant': (str, 'unknown'),
+                       'name':  (str, 'unknown'),
+                       'units': (str, 'a.u.')}
+    _reserved_all = _ddef['dgroup'] + _ddef['dref'] + _ddef['ddata']
     _show_in_summary = 'all'
 
 
@@ -106,9 +109,9 @@ class DataHolder(utils.ToFuObject):
         # Run by the parent class __init__()
         # super()
         super(DataHolder, self)._reset()
-        self._dgroup = dict.fromkeys(self._get_keys_dgroup())
-        self._dref = dict.fromkeys(self._get_keys_dref())
-        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dgroup = {kd[0]:kd[1] for kd in self._get_keys_dgroup()}
+        self._dref = {kd[0]:kd[1] for kd in self._get_keys_dref()}
+        self._ddata = {kd[0]:kd[1] for kd in self._get_keys_ddata()}
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -147,77 +150,120 @@ class DataHolder(utils.ToFuObject):
 
     def _extract_known_params(self, key, dd):
         # Check no reserved key is used
-        lkout = ['group', 'depend', 'ref', 'refs', 'groups',
-                 'lref', 'ldata']
-        lkind = [kk in dd.keys() for kk in lkout]
+        lkind = [kk in dd.keys() for kk in self._reserved_all]
         if any(lkind):
             msg = "The following keys are reserved for internal use:\n"
-            msg += "    %s\n"%str(lkout)
+            msg += "    %s\n"%str(self._reserved_all)
             msg += "  => Please do not use them !"
             raise Exception(msg)
 
-        dparams = {kk:vv for kk, vv in dd.items() if kk != 'data'}
-        dparams.update({kk: dd.get(kk, vv[1]) for kk, vv in self._dparams.items()})
-        for kk, vv in dparams.items():
-            if not (vv is None or isinstance(vv, self._dparams[kk][0])):
-                msg = "A parameter for %s has the wrong type:\n"%key
-                msg += "    - Provided: type(%s) = %s\n"%(kk, str(type(vv)))
-                msg += "    - Expected %s"%str(self._dparams[kk][0])
-                raise Exception(msg)
+        # Ectract relevant parameters
+        dparams = dict(dd)
+
+        # Add minimum default parameters if not already included
+        for kk, vv in self._ddef['params'].items():
+            if kk not in dparams.keys():
+                dparams[kk] = vv[1]
+            else:
+                # Check type if already included
+                if not isinstance(dparams[kk], vv[0]):
+                    msg = "A parameter for %s has the wrong type:\n"%key
+                    msg += "    - Provided: type(%s) = %s\n"%(kk, str(type(vv)))
+                    msg += "    - Expected %s"%str(self._dparams[kk][0])
+                    raise Exception(msg)
         return dparams
 
 
     def _checkformat_dref(self, dref):
         c0 = isinstance(dref, dict)
-        c0 = c0 and  all([isinstance(kk, str) for kk in dref.keys()])
+        c0 = c0 and all([isinstance(kk, str) and isinstance(vv, dict)
+                         for kk, vv in dref.keys()])
         if not c0:
             msg = "Provided dref must be dict !\n"
-            msg += "All its keys must be str !"
+            msg += "All its keys must be str !\n"
+            msg += "All its values must be dict !"
             raise Exception(msg)
 
+        # Two options:
+        #   (A)  - {'group0':{'t0':{'data':t0, 'units':'s'}, 't1':...}}
+        #   (B)  - {'t0':{'data':t0, 'units':'s', 'group':'group0'}, 't1':...}
+
+        cA = all([all([isinstance(v1, dict) and 'group' not in v1.keys()
+                       for v1 in v0.values()])
+                  and 'group' not in v0.keys() for v0 in dref.values()])
+        cB = all([isinstance(v0.get('group', None), str) for v0 in dref.values()])
+        if not (cA or cB):
+            msg = "Provided dref must formatted either as:\n\n"
+            msg += "    - a dict of group keys with a dict of key ref:\n"
+            msg += "        {'group0':{'t0':{'data':t0, 'units':'s'},\n"
+            msg += "                   't1':{'data':t1, 'units':'h'}},\n"
+            msg += "         'group1':{'t2':{'data':t2, 'units':'min'}}}\n\n"
+            msg += "    - a dict of key ref with a dict containing the group:\n"
+            msg += "        {'t0':{'data':t0, 'units':'s', 'group':'group0'},\n"
+            msg += "         't1':{'data':t1, 'units':'h', 'group':'group0'},\n"
+            msg += "         't2':{'data':t2, 'units':'min', 'group':'group1'}"
+            raise Exception(msg)
+
+        if cA:
+            # Convert to cB
+            drbis = {}
+            for k0, v0 in dref.items():
+                for k1, v1 in v0.items():
+                    drbis[k1] = v1
+                    drbis['group'] = k0
+            dref = drbis
+
+        # Check cB
         for kk, vv in dref.items():
-            c0 = isinstance(vv, dict)
-            c0 = c0 and 'group' in vv.keys() and isinstance(vv['group'], str)
-            c0 = c0 and 'data' in vv.keys()
-            if not c0:
-                msg = "dref must contain dict with at least the keys:\n"
-                msg += "    - 'group': a str indicating the group of refs\n"
-                msg += "    - 'data': a 1d array containing the data"
-                raise Exception(msg)
 
-            if vv['group'] not in self._dgroup.keys():
-                self._dgroup[vv['group']] = {}
+            # Check if new group
+            if vv['group'] not in self._dgroup['lkey']:
+                self._dgroup['dict'][vv['group']] = {}
 
-            if kk in self.__lkdata:
+            # Check key unicity
+            if kk in self._ddata['lkey']:
                 msg = "key '%s' already used !\n"%kk
                 msg += "  => each key must be unique !"
                 raise Exception(msg)
 
+            # Check data
+            c0 = 'data' in vv.keys()
             data = vv['data']
             if not isinstance(data, np.ndarray):
-                if isinstance(data, dict):
-                    size = '?'
-                elif issubclass(data.__class__, ToFuObject):
-                    size = '?'
-                else:
+                if isinstance(data, list) or isinstance(data, tuple):
                     try:
                         data = np.atleast_1d(data).ravel()
                         size = data.size
                     except:
-                        msg = "Could not convert dref[%s]['data'] to array"%kk
-                        raise Exception(msg)
+                        c0 = False
+                else:
+                    size = data.__class__.__name__
             else:
                 if data.ndim != 1:
                     data = np.atleast_1d(data).ravel()
                 size = data.size
 
-            dref[kk] = {'size':size, 'group':vv['group']}
+            if not c0:
+                msg = "Each dict in dref must hold an array-convertibe 'data'\n"
+                msg += "The following array conversion failed:\n"
+                msg += "    - np.atleast_1d(dref[%s]['data']).ravel()"%kk
+                raise Exception(msg)
 
+            # Fill self._dref
+            self._dref['dict'][kk] = {'size':size, 'group':vv['group']}
+
+            # Extract and check parameters
             dparams = self._extract_known_params(kk, vv)
-            self._ddata[kk] = {'data':data, 'ref':(kk,),
-                               'shape':(size,), **dparams}
-            self.__lkdata.append(kk)
-            self.__lparams = set(self.__lparams).update(dparams.keys())
+
+            # Fill self._ddata
+            self._ddata['dict'][kk] = {'data':data, 'ref':(kk,),
+                                       'shape':(size,), **dparams}
+            self._ddata['lkey'].append(kk)
+
+    # ------------- DB (start)
+    def __repr__(self):
+        return self.__class__.__name__
+    # ------------- DB (end)
 
     def _checkformat_ddata(self, ddata):
         c0 = isinstance(ddata, dict)
@@ -227,14 +273,12 @@ class DataHolder(utils.ToFuObject):
             msg += "All its keys must be str !"
             raise Exception(msg)
 
-        # ind = np.array([self._ddata[kk]['index'] for kk in self._ddata.keys()])
-
         # Start check on each key
         for kk, vv in ddata.items():
 
             # Check value is a dict with proper keys
             c0 = isinstance(vv, dict)
-            c0 = c0 and 'ref' in vv.keys() and isinstance(vv['ref'], tuple)
+            c0 = c0 and 'refs' in vv.keys() and isinstance(vv['refs'], tuple)
             c0 = c0 and 'data' in vv.keys()
             if not c0:
                 msg = "ddata must contain dict with at least the keys:\n"
@@ -243,7 +287,7 @@ class DataHolder(utils.ToFuObject):
                 raise Exception(msg)
 
             # Check key unicity
-            if kk in self._ddata.keys():
+            if kk in self._ddata['lkey']:
                 msg = "key '%s' already used !\n"%kk
                 msg += "  => each key must be unique !"
                 raise Exception(msg)
@@ -251,25 +295,28 @@ class DataHolder(utils.ToFuObject):
             # Extract data and shape
             data = vv['data']
             if not isinstance(data, np.ndarray):
-                try:
-                    data = np.asarray(data)
-                    shape = data.shape
-                except:
-                    assert type(data) in [list, tuple]
-                    shape = (len(data), '?')
+                if isinstance(data, list) or isinstance(data, tuple):
+                    try:
+                        data = np.asarray(data)
+                        shape = data.shape
+                    except:
+                        assert type(data) in [list, tuple]
+                        shape = (len(data),)
+                else:
+                    shape = data.__class__.__name__
             else:
                 data = np.atleast_1d(np.squeeze(data))
                 shape = data.shape
 
             # Check proper ref (existence and shape / size)
             for ii, rr in enumerate(vv['ref']):
-                if rr not in self._dref.keys():
+                if rr not in self._dref['lkey']:
                     msg = "ddata[%s] depends on an unknown ref !\n"%kk
                     msg += "    - ddata[%s]['ref'] = %s\n"%(kk, rr)
                     msg += "  => %s not in self.dref !\n"%rr
                     msg += "  => self.add_ref( %s ) first !"%rr
                     raise Exception(msg)
-            shaperef = (self._dref[rr]['size'] for rr in vv['ref'])
+            shaperef = tuple(self._dref[rr]['size'] for rr in vv['ref'])
             if not shape == shaperef:
                 msg = "Inconsistency between data shape and ref size !\n"
                 msg += "    - ddata[%s]['data'] shape: %s\n"%(kk, str(shape))
@@ -278,51 +325,65 @@ class DataHolder(utils.ToFuObject):
 
             # Extract params and set self._ddata
             dparams = self._extract_known_params(kk, vv)
-            self._ddata[kk] = {'data':data, 'ref':vv['ref'],
-                               'shape':shape,
-                               **dparams}
-            self.__lkdata.append(kk)
-            self.__lparams = set(self.__lparams).update(dparams.keys())
+            self._ddata['dict'][kk] = {'data':data, 'ref':vv['ref'],
+                                       'shape':shape, **dparams}
+            self._ddata['dict'].append(kk)
 
 
     def _complement_dgrouprefdata(self):
 
         # --------------
         # ddata
-        assert len(self.__lkdata) == len(self._ddata.keys())
-        for k0, v0 in self._ddata.items():
+        assert len(self._data['lkey']) == len(self._ddata['dict'].keys())
+        for k0 in self._ddata['lkey']:
+            v0 = self._ddata['dict'][k0]
 
             # Check all ref are in dref
-            lrefout = [ii for ii in v0['ref'] if ii not in self._dref.keys()]
+            lrefout = [ii for ii in v0['ref'] if ii not in self._dref['lkey']]
             if len(lrefout) != 0:
                 msg = "ddata[%s]['ref'] has keys not in dref:\n"%k0
                 msg += "    - " + "\n    - ".join(lrefout)
                 raise Exception(msg)
 
             # set group
-            groups = (self._dref[rr]['group'] for rr in v0['ref'])
-            assert all([gg in self._dgroup.keys() for gg in groups])
-            self._ddata[k0]['group'] = groups
+            groups = (self._dref['dict'][rr]['group'] for rr in v0['ref'])
+            assert all([gg in self._dgroup['lkey'] for gg in groups])
+            self._ddata['dict'][k0]['group'] = groups
 
         # --------------
         # dref
-        for k0 in self._dref.keys():
-            self._dref[k0]['ldata'] = [kk for kk, vv in self._ddata.items()
-                                       if k0 in vv['ref']]
-            assert self._dref[k0]['group'] in self._dgroup.keys()
+        for k0 in self._dref['lkey']:
+            ldata = [kk for kk in self._ddata['lkey']
+                     if k0 in self._ddata['dict'][kk]['ref']]
+            self._dref['dict'][k0]['ldata'] = ldata
+            assert self._dref['dict'][k0]['group'] in self._dgroup['lkey']
 
         # --------------
         # dgroup
-        for gg, vg in self._dgroup.items():
-            lref = [rr for rr, vv in self._dref.items()
-                    if vv['group'] == gg]
-            ldata = [dd for dd in self._ddata.keys()
-                     if any([dd in self._dref[vref]['ldata']
+        for gg in self._dgroup['lkey']:
+            vg = self._dgroup['dict'][gg]
+            lref = [rr for rr in self._dref['lkey']
+                    if self._dref['dict'][rr]['group'] == gg]
+            ldata = [dd for dd in self._ddata['lkey']
+                     if any([dd in self._dref['dict'][vref]['ldata']
                              for vref in lref])]
             #assert vg['depend'] in lidindref
-            self._dgroup[gg]['lref'] = lref
-            self._dgroup[gg]['ldata'] = ldata
+            self._dgroup['dict'][gg]['lref'] = lref
+            self._dgroup['dict'][gg]['ldata'] = ldata
 
+        # --------------
+        # params
+        lparam = self._ddata['lparam']
+        for kk in self._dddata['lkey']:
+            for pp in self._ddata['dict'][kk].keys():
+                if pp not in self._reserved_all and pp not in lparam:
+                    lparam.append(pp)
+
+        for kk in self._ddata['lkey']:
+            for pp in lparam:
+                if pp not in self._ddata['dict'][kk].keys():
+                    self._ddata[kk][pp] = None
+        self._ddata['lparam'] = lparam
 
 
     ###########
@@ -331,17 +392,17 @@ class DataHolder(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dgroup():
-        lk = ['lref', 'ldata']
+        lk = [('lkey', []), ('dict', {})]
         return lk
 
     @staticmethod
     def _get_keys_dref():
-        lk = ['group', 'size', 'ldata']
+        lk = [('lkey', []), ('dict', {})]
         return lk
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 'ref', 'shape', 'group', 'index']
+        lk = [('lkey', []), ('dict', {}), ('lparam', [])]
         return lk
 
     ###########
@@ -350,8 +411,6 @@ class DataHolder(utils.ToFuObject):
 
     def _init(self, dref=None, ddata=None, **kwargs):
         kwdargs = {'dref':dref, 'ddata':ddata, **kwargs}
-        self.__lkdata = []
-        self.__lparams = set()
         largs = self._get_largs_dref()
         kwddref = self._extract_kwdargs(kwdargs, largs)
         self._set_dref(**kwddref, complement=False)
@@ -384,12 +443,14 @@ class DataHolder(utils.ToFuObject):
 
     def remove_ref(self, key):
         """ Remove a reference (all data depending on it are removed too) """
-        assert key in self._dref.keys()
-        lkdata = []
-        del self._dref[key]
+        assert key in self._dref['lkey']
+        lkdata = self._dref['dict'][key]['ldata']
+        del self._dref['dict'][key]
+        self._dref['lkey'].remove(key)
         for kk in lkdata:
-            del self.__ddata[kk]
-            self.__lkdata.remove(kk)
+            if self._ddata['dict'][kk]['refs'] == (key,):
+                del self._ddata['dict'][kk]
+                self._ddata['lkey'].remove(kk)
         self._complement_dgrouprefdata()
 
     def add_data(self, key, data=None, ref=None, **kwdargs):
@@ -405,16 +466,17 @@ class DataHolder(utils.ToFuObject):
         if key in self._dref.keys():
             self.remove_ref(key)
         else:
-            assert key in self._ddata.keys()
+            assert key in self._ddata['dict'].keys()
             if propagate:
                 # Check if associated ref shall be removed too
-                lref = self._ddata[key]['ref']
+                lref = self._ddata['dict'][key]['refs']
                 for kref in lref:
                     # Remove if key was the only associated data
-                    if self._dref[kref]['ldata'] == [key]:
+                    if self._dref['dict'][kref]['ldata'] == [key]:
                         self.remove_ref(kref)
-            del self._ddata[key]
-            self.__lkdata.remove(key)
+            del self._ddata['dict'][key]
+            self._ddata['lkey'].remove(key)
+            self._lkdata.remove(key)
         self._complement_dgrouprefdata()
 
 
@@ -473,26 +535,37 @@ class DataHolder(utils.ToFuObject):
     @property
     def dgroup(self):
         """ The dict of groups """
-        return self._dgroup
+        return self._dgroup['dict']
+    @property
+    def lgroup(self):
+        """ The dict of groups """
+        return self._dgroup['lkey']
     @property
     def dref(self):
         """ the dict of references """
-        return self._dref
+        return self._dref['dict']
+    @property
+    def lref(self):
+        """ the dict of references """
+        return self._dref['lkey']
     @property
     def ddata(self):
         """ the dict of data """
-        return self._ddata
-    def lkdata(self):
-        """ The list of current data keys """
-        return self.__lkdata
+        return self._ddata['dict']
+    @property
+    def ldata(self):
+        """ the dict of data """
+        return self._ddata['lkey']
+    @property
     def lparam(self):
-        """ The list of current parameters """
-        return self.__lparams
-
+        """ the dict of data """
+        return self._ddata['lparam']
 
     #---------------------
     # Add / remove params
     #---------------------
+
+    # UP TO HERE
 
 
     def get_param(self, param=None, returnas=np.ndarray):
@@ -500,14 +573,14 @@ class DataHolder(utils.ToFuObject):
         # Check inputs and trivial cases
         if param is None:
             return
-        assert param in self.__lparam
+        assert param in self._lparam
         assert returnas in [np.ndarray, dict, list]
 
         # Get output
         if returnas == dict:
-            out = {kk:self._ddata[kk][param] for kk in self.__lkdata}
+            out = {kk:self._ddata[kk][param] for kk in self._lkdata}
         else:
-            out = [self._ddata[kk][param] for kk in self.__lkdata]
+            out = [self._ddata[kk][param] for kk in self._lkdata]
             if returnas == np.ndarray:
                 try:
                     out = np.asarray(out)
@@ -521,7 +594,7 @@ class DataHolder(utils.ToFuObject):
         # Check and format input
         if param is None:
             return
-        assert param in self.__lparam
+        assert param in self._lparam
 
         # Update all keys with common value
         ltypes = [str, int, np.int, float, np.float, tuple]
@@ -536,7 +609,7 @@ class DataHolder(utils.ToFuObject):
         if lc0:
             key = self._ind_tofrom_key(ind=ind, key=key, out='key')
             for kk in key:
-                self._ddata[kk]][param] = values
+                self._ddata[kk][param] = values
 
         # Update relevant keys with corresponding values
         else:
@@ -546,19 +619,19 @@ class DataHolder(utils.ToFuObject):
                 self._ddata[key[ii]][param] = values[ii]
 
     def add_param(self, param, values=None):
-        assert isinstance(param) str
-        assert param not in self.__lparams
-        self.__lparams.append(param)
+        assert isinstance(param, str)
+        assert param not in self._lparam
+        self._lparam.append(param)
         self.set_param(param=param, values=values)
 
     def remove_param(self, param=None):
         # Check and format input
         if param is None:
             return
-        assert param in self.__lparam
+        assert param in self._lparam
 
-        self.__lparams.remove(param)
-        for kk in self.__lkdata:
+        self._lparam.remove(param)
+        for kk in self._lkdata:
             del self._ddata[kk][param]
 
 
@@ -628,7 +701,7 @@ class DataHolder(utils.ToFuObject):
         assert np.sum(lc) <= 1
 
         # Initialize output
-        out = np.zeros((len(self.__lkdata),), dtype=bool)
+        out = np.zeros((len(self._lkdata),), dtype=bool)
 
         # Test
         if lc[0]:
@@ -638,7 +711,7 @@ class DataHolder(utils.ToFuObject):
             if returnas in [int, 'key']:
                 out = out.nonzero()[0]
                 if returnas == 'key':
-                    out = [self.__lkdata[ii] for ii in out]
+                    out = [self._lkdata[ii] for ii in out]
 
         elif lc[1]:
             if isinstance(key, str):
@@ -647,16 +720,16 @@ class DataHolder(utils.ToFuObject):
                 out = key
             else:
                 for kk in key:
-                    out[self.__lkdata.index(kk)] = True
+                    out[self._lkdata.index(kk)] = True
                 if returnas == int:
                     out = out.nonzero()[0]
         else:
             if returnas == bool:
                 out[:] = True
             elif returnas == int:
-                out = np.arange(0, len(self.__lkdata))
+                out = np.arange(0, len(self._lkdata))
             else:
-                out = self.__lkdata
+                out = self._lkdata
         return out
 
 
@@ -675,7 +748,7 @@ class DataHolder(utils.ToFuObject):
         # Build for groups
         col0 = ['group name', 'nb. ref', 'nb. data']
         ar0 = [(k0, len(v0['lref']), len(v0['ldata']))
-               for k0,v0 in self._dgroup.items()]
+               for k0, v0 in self._dgroup.items()]
 
         # -----------------------
         # Build for refs
