@@ -4899,7 +4899,7 @@ class Rays(utils.ToFuObject):
                 indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
                 if np.any(indok):
                     vals[indok, ii] = func(val[indok, lind[ii]:lind[ii+1]],
-                                          axis=1)
+                                           axis=1)
                     ind = funcarg(val[indok, lind[ii]:lind[ii+1]], axis=1)
                     pts[:, ii, indok] = ptsi[:, lind[ii]:lind[ii+1]][:, ind]
             pts = pts.T
