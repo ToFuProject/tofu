@@ -63,11 +63,11 @@ class DataHolder(utils.ToFuObject):
              'dgroup': ['lref'],
              'dref':   ['group', 'size', 'ldata'],
              'ddata':  ['refs', 'shape', 'groups', 'data'],
-             'params': {'origin':(str, 'unknown'),
-                        'dim':   (str, 'unknown'),
-                        'quant': (str, 'unknown'),
-                        'name':  (str, 'unknown'),
-                        'units': (str, 'a.u.')}}
+             'params': {'origin': (str, 'unknown'),
+                        'dim':    (str, 'unknown'),
+                        'quant':  (str, 'unknown'),
+                        'name':   (str, 'unknown'),
+                        'units':  (str, 'a.u.')}}
     _reserved_all = _ddef['dgroup'] + _ddef['dref'] + _ddef['ddata']
     _show_in_summary = 'all'
 
@@ -104,8 +104,8 @@ class DataHolder(utils.ToFuObject):
         # super()
         super(DataHolder, self)._reset()
         self._dgroup = {kd[0]: kd[1] for kd in self._get_keys_dgroup()}
-        self._dref =   {kd[0]: kd[1] for kd in self._get_keys_dref()}
-        self._ddata =  {kd[0]: kd[1] for kd in self._get_keys_ddata()}
+        self._dref   = {kd[0]: kd[1] for kd in self._get_keys_dref()}
+        self._ddata  = {kd[0]: kd[1] for kd in self._get_keys_ddata()}
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -116,7 +116,7 @@ class DataHolder(utils.ToFuObject):
         assert isinstance(Name, str), Name
         if include is None:
             include = cls._ddef['Id']['include']
-        kwdargs.update({'Name':Name, 'include':include})
+        kwdargs.update({'Name': Name, 'include': include})
         return kwdargs
 
     ###########
@@ -133,18 +133,17 @@ class DataHolder(utils.ToFuObject):
         largs = ['ddata']
         return largs
 
-
     ###########
     # Get check and format inputs
     ###########
 
-    #---------------------
+    # ---------------------
     # Methods for checking and formatting inputs
-    #---------------------
+    # ---------------------
 
     def _extract_known_params(self, key, dd):
         # Extract relevant parameters
-        dparams = {kk:vv for kk, vv in dd.items()
+        dparams = {kk: vv for kk, vv in dd.items()
                    if kk not in self._reserved_all}
 
         # Add minimum default parameters if not already included
@@ -154,12 +153,12 @@ class DataHolder(utils.ToFuObject):
             else:
                 # Check type if already included
                 if not isinstance(dparams[kk], vv[0]):
+                    vtyp = str(type(vv[0]))
                     msg = "A parameter for %s has the wrong type:\n"%key
-                    msg += "    - Provided: type(%s) = %s\n"%(kk, str(type(vv)))
+                    msg += "    - Provided: type(%s) = %s\n"%(kk, vtyp)
                     msg += "    - Expected %s"%str(self._ddef['params'][kk][0])
                     raise Exception(msg)
         return dparams
-
 
     def _checkformat_dref(self, dref):
         c0 = isinstance(dref, dict)
@@ -179,17 +178,18 @@ class DataHolder(utils.ToFuObject):
                        or not isinstance(v1, dict)
                        for v1 in v0.values()])
                   and 'group' not in v0.keys() for v0 in dref.values()])
-        cB = all([isinstance(v0.get('group', None), str) for v0 in dref.values()])
+        cB = all([isinstance(v0.get('group', None), str)
+                  for v0 in dref.values()])
         if not (cA or cB):
-            msg = "Provided dref must formatted either as:\n\n"
-            msg += "    - a dict of group keys with a dict of key ref:\n"
-            msg += "        {'group0':{'t0':{'data':t0, 'units':'s'},\n"
+            msg = "Provided dref must formatted either as a dict with:\n\n"
+            msg += "    - keys = group, values = {ref: data}:\n"
+            msg += "        {'g0':{'t0':{'data':t0, 'units':'s'},\n"
             msg += "                   't1':{'data':t1, 'units':'h'}},\n"
-            msg += "         'group1':{'t2':{'data':t2, 'units':'min'}}}\n\n"
-            msg += "    - a dict of key ref with a dict containing the group:\n"
-            msg += "        {'t0':{'data':t0, 'units':'s', 'group':'group0'},\n"
-            msg += "         't1':{'data':t1, 'units':'h', 'group':'group0'},\n"
-            msg += "         't2':{'data':t2, 'units':'min', 'group':'group1'}"
+            msg += "         'g1':{'t2':{'data':t2, 'units':'min'}}}\n\n"
+            msg += "    - keys = ref, values = {data, group}:\n"
+            msg += "        {'t0':{'data':t0, 'units':'s', 'group':'g0'},\n"
+            msg += "         't1':{'data':t1, 'units':'h', 'group':'g0'},\n"
+            msg += "         't2':{'data':t2, 'units':'min', 'group':'g1'}"
             raise Exception(msg)
 
         if cA:
@@ -201,7 +201,7 @@ class DataHolder(utils.ToFuObject):
                         drbis[k1] = v1
                         drbis['group'] = k0
                     else:
-                        drbis[k1] = {'data':v1, 'group':k0}
+                        drbis[k1] = {'data': v1, 'group': k0}
             dref = drbis
 
         # Check cB
@@ -226,7 +226,7 @@ class DataHolder(utils.ToFuObject):
                     try:
                         data = np.atleast_1d(data).ravel()
                         size = data.size
-                    except:
+                    except Exception as err:
                         c0 = False
                 else:
                     size = data.__class__.__name__
@@ -236,21 +236,21 @@ class DataHolder(utils.ToFuObject):
                 size = data.size
 
             if not c0:
-                msg = "Each dict in dref must hold an array-convertibe 'data'\n"
+                msg = "dref[%s]['data'] must be array-convertible\n"%kk
                 msg += "The following array conversion failed:\n"
                 msg += "    - np.atleast_1d(dref[%s]['data']).ravel()"%kk
                 raise Exception(msg)
 
             # Fill self._dref
-            self._dref['dict'][kk] = {'size':size, 'group':vv['group']}
+            self._dref['dict'][kk] = {'size': size, 'group': vv['group']}
             self._dref['lkey'].append(kk)
 
             # Extract and check parameters
             dparams = self._extract_known_params(kk, vv)
 
             # Fill self._ddata
-            self._ddata['dict'][kk] = {'data':data, 'refs':(kk,),
-                                       'shape':(size,), **dparams}
+            self._ddata['dict'][kk] = {'data': data, 'refs': (kk,),
+                                       'shape': (size,), **dparams}
             self._ddata['lkey'].append(kk)
 
     # ------------- DB (start)
@@ -260,7 +260,7 @@ class DataHolder(utils.ToFuObject):
 
     def _checkformat_ddata(self, ddata):
         c0 = isinstance(ddata, dict)
-        c0 = c0 and  all([isinstance(kk, str) for kk in ddata.keys()])
+        c0 = c0 and all([isinstance(kk, str) for kk in ddata.keys()])
         if not c0:
             msg = "Provided ddata must be dict !\n"
             msg += "All its keys must be str !"
@@ -275,7 +275,7 @@ class DataHolder(utils.ToFuObject):
             c0 = c0 and 'data' in vv.keys()
             if not c0:
                 msg = "ddata must contain dict with at least the keys:\n"
-                msg += "    - 'ref': a str indicating the ref(s) dependencies\n"
+                msg += "    - 'refs': a tuple indicating refs dependencies\n"
                 msg += "    - 'data': a 1d array containing the data"
                 raise Exception(msg)
 
@@ -292,7 +292,7 @@ class DataHolder(utils.ToFuObject):
                     try:
                         data = np.asarray(data)
                         shape = data.shape
-                    except:
+                    except Exception as err:
                         assert type(data) in [list, tuple]
                         shape = (len(data),)
                 else:
@@ -309,11 +309,11 @@ class DataHolder(utils.ToFuObject):
                     msg += "  => %s not in self.dref !\n"%rr
                     msg += "  => self.add_ref( %s ) first !"%rr
                     raise Exception(msg)
-            shaperef = tuple(self._dref['dict'][rr]['size'] for rr in vv['refs'])
-            if not shape == shaperef:
+            shapref = tuple(self._dref['dict'][rr]['size'] for rr in vv['refs'])
+            if not shape == shapref:
                 msg = "Inconsistency between data shape and ref size !\n"
                 msg += "    - ddata[%s]['data'] shape: %s\n"%(kk, str(shape))
-                msg += "    - sizes of refs: %s"%(str(shaperef))
+                msg += "    - sizes of refs: %s"%(str(shapref))
                 raise Exception(msg)
 
             # Extract params and set self._ddata
