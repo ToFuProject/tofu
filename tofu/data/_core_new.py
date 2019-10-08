@@ -35,13 +35,10 @@ except Exception:
     from . import _def as _def
     from . import _physics as _physics
 
-__all__ = ['DataHolder']#, 'Plasma0D']
+__all__ = ['DataHolder']  # , 'Plasma0D']
 
 _SAVEPATH = os.path.abspath('./')
-
-
 _INTERPT = 'zero'
-
 
 
 #############################################
@@ -49,7 +46,6 @@ _INTERPT = 'zero'
 #       Abstract Parent class
 #############################################
 #############################################
-
 
 
 class DataHolder(utils.ToFuObject):
@@ -62,30 +58,28 @@ class DataHolder(utils.ToFuObject):
 
     """
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'include':['Mod', 'Cls',
-                              'Name', 'version']},
-             'dgroup':['lref'],
-             'dref':  ['group', 'size', 'ldata'],
-             'ddata': ['refs', 'shape', 'groups', 'data'],
-             'params':{'origin':(str, 'unknown'),
-                       'dim':   (str, 'unknown'),
-                       'quant': (str, 'unknown'),
-                       'name':  (str, 'unknown'),
-                       'units': (str, 'a.u.')}}
+    _ddef = {'Id': {'include': ['Mod', 'Cls',
+                                'Name', 'version']},
+             'dgroup': ['lref'],
+             'dref':   ['group', 'size', 'ldata'],
+             'ddata':  ['refs', 'shape', 'groups', 'data'],
+             'params': {'origin':(str, 'unknown'),
+                        'dim':   (str, 'unknown'),
+                        'quant': (str, 'unknown'),
+                        'name':  (str, 'unknown'),
+                        'units': (str, 'a.u.')}}
     _reserved_all = _ddef['dgroup'] + _ddef['dref'] + _ddef['ddata']
     _show_in_summary = 'all'
 
-
-    # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
+        # Does not exist before Python 3.6 !!!
         # Python 2
         super(DataHolder, cls).__init_subclass__(**kwdargs)
         # Python 3
-        #super().__init_subclass__(**kwdargs)
+        # super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(DataHolder._ddef)
-        #cls._dplot = copy.deepcopy(Struct._dplot)
-        #cls._set_color_ddef(cls._color)
-
+        # cls._dplot = copy.deepcopy(Struct._dplot)
+        # cls._set_color_ddef(cls._color)
 
     def __init__(self, dref=None, ddata=None,
                  Id=None, Name=None,
@@ -98,7 +92,7 @@ class DataHolder(utils.ToFuObject):
             self.__class__._strip_init()
 
         # Create a dplot at instance level
-        #self._dplot = copy.deepcopy(self.__class__._dplot)
+        # self._dplot = copy.deepcopy(self.__class__._dplot)
 
         kwdargs = locals()
         del kwdargs['self']
@@ -109,9 +103,9 @@ class DataHolder(utils.ToFuObject):
         # Run by the parent class __init__()
         # super()
         super(DataHolder, self)._reset()
-        self._dgroup = {kd[0]:kd[1] for kd in self._get_keys_dgroup()}
-        self._dref = {kd[0]:kd[1] for kd in self._get_keys_dref()}
-        self._ddata = {kd[0]:kd[1] for kd in self._get_keys_ddata()}
+        self._dgroup = {kd[0]: kd[1] for kd in self._get_keys_dgroup()}
+        self._dref =   {kd[0]: kd[1] for kd in self._get_keys_dref()}
+        self._ddata =  {kd[0]: kd[1] for kd in self._get_keys_ddata()}
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
