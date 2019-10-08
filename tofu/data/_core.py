@@ -2246,12 +2246,11 @@ DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
-#####################################################################
-#####################################################################
-#####################################################################
+# ####################################################################
+# ####################################################################
 #               Plasma2D
-#####################################################################
-#####################################################################
+# ####################################################################
+# ####################################################################
 
 
 
@@ -2265,20 +2264,21 @@ class Plasma2D(utils.ToFuObject):
 
     """
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
-                              'Name','shot','version']},
-             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
-                                'indt', 'indch', 'indlamb', 'interp-t']}}
+    _ddef = {'Id': {'include': ['Mod', 'Cls', 'Exp', 'Diag',
+                                'Name', 'shot', 'version']},
+             'dtreat': {'order': ['mask', 'interp-indt', 'interp-indch',
+                                  'data0', 'dfit',
+                                  'indt', 'indch', 'indlamb', 'interp-t']}}
 
-    # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
+        # Does not exist before Python 3.6 !!!
         # Python 2
         super(Plasma2D,cls).__init_subclass__(**kwdargs)
         # Python 3
-        #super().__init_subclass__(**kwdargs)
+        # super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Plasma2D._ddef)
-        #cls._dplot = copy.deepcopy(Struct._dplot)
-        #cls._set_color_ddef(cls._color)
+        # cls._dplot = copy.deepcopy(Struct._dplot)
+        # cls._set_color_ddef(cls._color)
 
 
     def __init__(self, dtime=None, dradius=None, d0d=None, d1d=None,
