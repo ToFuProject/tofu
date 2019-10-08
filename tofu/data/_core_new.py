@@ -400,7 +400,7 @@ class DataHolder(utils.ToFuObject):
         for kk in self._ddata['lkey']:
             for pp in lparam:
                 if pp not in self._ddata['dict'][kk].keys():
-                    self._ddata[kk][pp] = None
+                    self._ddata['dict'][kk][pp] = None
         self._ddata['lparam'] = lparam
 
     ###########
@@ -464,14 +464,14 @@ class DataHolder(utils.ToFuObject):
         del self._dref['dict'][key]
         self._dref['lkey'].remove(key)
         for kk in lkdata:
-            if self._ddata['dict'][kk]['refs'] == (key,):
+            if key in self._ddata['dict'][kk]['refs']:
                 del self._ddata['dict'][kk]
                 self._ddata['lkey'].remove(kk)
         self._complement_dgrouprefdata()
 
-    def add_data(self, key, data=None, ref=None, **kwdargs):
+    def add_data(self, key, data=None, refs=None, **kwdargs):
         """ Add a data (all associated ref must be added first)) """
-        self._set_ddata({key: dict(data=data, ref=ref, **kwdargs)})
+        self._set_ddata({key: dict(data=data, refs=refs, **kwdargs)})
 
     def remove_data(self, key, propagate=True):
         """ Remove a data
@@ -492,7 +492,6 @@ class DataHolder(utils.ToFuObject):
                         self.remove_ref(kref)
             del self._ddata['dict'][key]
             self._ddata['lkey'].remove(key)
-            self._lkdata.remove(key)
         self._complement_dgrouprefdata()
 
     ###########
