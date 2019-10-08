@@ -249,8 +249,8 @@ class DataHolder(utils.ToFuObject):
             dparams = self._extract_known_params(kk, vv)
 
             # Fill self._ddata
-            self._ddata['dict'][kk] = dict('data': data, 'refs': (kk,),
-                                           'shape': (size,), **dparams)
+            self._ddata['dict'][kk] = dict(data=data, refs=(kk,),
+                                           shape=(size,), **dparams)
             self._ddata['lkey'].append(kk)
 
     # ------------- DB (start)
@@ -318,8 +318,8 @@ class DataHolder(utils.ToFuObject):
 
             # Extract params and set self._ddata
             dparams = self._extract_known_params(kk, vv)
-            self._ddata['dict'][kk] = dict('data': data, 'refs': vv['refs'],
-                                           'shape': shape, **dparams)
+            self._ddata['dict'][kk] = dict(data=data, refs=vv['refs'],
+                                           shape=shape, **dparams)
             self._ddata['lkey'].append(kk)
 
     def _complement_dgrouprefdata(self):
@@ -436,7 +436,7 @@ class DataHolder(utils.ToFuObject):
 
     def add_ref(self, key, data=None, group=None, **kwdargs):
         """ Add a reference """
-        self._set_dref({key: dict('data': data, 'group': group, **kwdargs)})
+        self._set_dref({key: dict(data=data, group=group, **kwdargs)})
 
     def remove_ref(self, key):
         """ Remove a reference (all data depending on it are removed too) """
@@ -452,7 +452,7 @@ class DataHolder(utils.ToFuObject):
 
     def add_data(self, key, data=None, ref=None, **kwdargs):
         """ Add a data (all associated ref must be added first)) """
-        self._set_ddata({key: dict('data': data, 'ref': ref, **kwdargs)})
+        self._set_ddata({key: dict(data=data, ref=ref, **kwdargs)})
 
     def remove_data(self, key, propagate=True):
         """ Remove a data
