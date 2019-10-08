@@ -411,7 +411,7 @@ class DataHolder(utils.ToFuObject):
         kwdargs = dict(dref=dref, ddata=ddata, **kwargs)
         largs = self._get_largs_dref()
         kwddref = self._extract_kwdargs(kwdargs, largs)
-        self._set_dref(**kwddref, complement=False)
+        self._set_dref(complement=False, **kwddref)
         largs = self._get_largs_ddata()
         kwddata = self._extract_kwdargs(kwdargs, largs)
         self._set_ddata(**kwddata)
