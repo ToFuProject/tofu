@@ -4806,6 +4806,110 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
+    def calc_length_in_isoflux(self, lPoly, lVIn=None, Lim=None, kInOut=True):
+        """ Return the length of each LOS inside each isoflux
+
+        Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
+        the entry points (kIn) and exit points (kOut) for each LOS
+
+        The isofluxes must be provided as a list of polygons
+
+        The length is returned as a (nPoly, nLOS) 2d array
+
+        """
+        kIn, kOut = self.calc_kInkOut_Isoflux(lPoly, lVIn=lVIn, Lim=Lim,
+                                              kInOut=kInOut)
+        return kOut-kIn
+
+    def calc_min_geom_radius(self, axis):
+        """ Return the minimum geom. radius of each LOS, from an arbitrary axis
+
+        The axis mut be provided as a (R,Z) iterable
+        Uses self.set_dsino()
+
+        Return:
+        -------
+        p:      np.ndarray
+            (nLOS,) array of minimal radius (or impact parameter)
+        theta:  np.ndarray
+            (nLOS,) array of associated theta with respect to axis
+        pts:    np.ndarray
+            (3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS
+        """
+        self.set_dsino(RefPt=axis, extra=True)
+        p, theta, pts = self.dsino['p'], self.dsino['theta'], self.dsino['pts']
+        return p, theta, pts
+
+    def calc_min_rho_from_Plasma2D(self, plasma, t=None, log='min',
+                                   res=None, resMode='abs', method='sum',
+                                   quant=None, ref1d=None, ref2d=None,
+                                   interp_t=None, interp_space=None,
+                                   fill_value=np.nan, pts=False, Test=True):
+        """ Return the min/max value of scalar field quant for each LOS
+
+        Typically used to get the minimal normalized minor radius
+        But can be used for any quantity available in plasma if:
+            - it is a 2d profile
+            - it is a 1d profile that can be interpolated on a 2d mesh
+
+        Currently sample each LOS with desired resolution and returns the
+        absolute min/max interpolated value (and associated point)
+
+        See self.get_sample() for details on sampling arguments:
+            - res, resMode, method
+        See Plasma2D.interp_pts2profile() for details on interpolation args:
+            - t, quant, q2dref, q1dref, interp_t, interp_space, fill_value
+
+        Returns:
+        --------
+        val:        np.ndarray
+            (nt, nLOS) array of min/max values
+        pts:        np.ndarray
+            (nt, nLOS, 3) array of (X,Y,Z) coordinates of associated points
+            Only returned if pts = True
+        t:          np.ndarray
+            (nt,) array of time steps at which the interpolations were made
+        """
+        assert log in ['min', 'max']
+        assert isinstance(pts, bool)
+
+        # Sample LOS
+        ptsi, reseff, lind = self.get_sample(res=res, resMode=resMode, DL=None,
+                                             method=method, ind=None,
+                                             pts=True, compact=True, Test=True)
+
+        # Interpolate values
+        val, t = plasma.interp_pts2profile(
+            pts=ptsi, t=t, quant=quant, ref1d=ref1d, ref2d=ref2d,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value)
+
+        # Separate val per LOS and compute min / max
+        func = np.nanmin if log == 'min' else np.nanmax
+        if pts:
+            funcarg = np.nanargmin if log == 'min' else np.nanargmax
+
+        if pts:
+            nt = t.size
+            pts = np.full((3, self.nRays, nt), np.nan)
+            vals = np.full((nt, self.nRays), np.nan)
+            indt = np.arange(0, nt)
+            lind = np.r_[0, lind, ptsi.shape[1]]
+            for ii in range(self.nRays):
+                indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
+                if np.any(indok):
+                    vals[indok, ii] = func(val[indok, lind[ii]:lind[ii+1]],
+                                           axis=1)
+                    ind = funcarg(val[indok, lind[ii]:lind[ii+1]], axis=1)
+                    pts[:, ii, indok] = ptsi[:, lind[ii]:lind[ii+1]][:, ind]
+            pts = pts.T
+
+        else:
+            pts = None
+            vals = np.column_stack([func(vv, axis=1)
+                                    for vv in np.split(val, lind, axis=-1)])
+        return vals, pts, t
+
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
