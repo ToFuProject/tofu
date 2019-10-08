@@ -436,7 +436,7 @@ class DataHolder(utils.ToFuObject):
 
     def add_ref(self, key, data=None, group=None, **kwdargs):
         """ Add a reference """
-        self._set_dref({key:{'data': data, 'group': group, **kwdargs}})
+        self._set_dref({key: {'data': data, 'group': group, **kwdargs}})
 
     def remove_ref(self, key):
         """ Remove a reference (all data depending on it are removed too) """
@@ -489,12 +489,12 @@ class DataHolder(utils.ToFuObject):
 
     @classmethod
     def _strip_init(cls):
-        cls._dstrip['allowed'] = [0,1]
+        cls._dstrip['allowed'] = [0, 1]
         nMax = max(cls._dstrip['allowed'])
         doc = """
                  1: None
                  """
-        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc, nMax)
         if sys.version[0] == '2':
             cls.strip.__func__.__doc__ = doc
         else:
@@ -738,7 +738,8 @@ class DataHolder(utils.ToFuObject):
     # Methods for showing data
     # ---------------------
 
-    def get_summary(self, show=None, show_core=None, sep='  ', line='-', just='l',
+    def get_summary(self, show=None, show_core=None,
+                    sep='  ', line='-', just='l',
                     table_sep=None, verb=True, return_=False):
         """ Summary description of the object content """
         # # Make sure the data is accessible
@@ -805,17 +806,17 @@ class DataHolder(utils.ToFuObject):
         according to criterion choose
         """
         # Check all data have time-dependency
-        dout = {kk: {'t':self.get_time(kk)} for kk in lkeys}
+        dout = {kk: {'t': self.get_time(kk)} for kk in lkeys}
         dtu = dict.fromkeys(set([vv['t'] for vv in dout.values()]))
         for kt in dtu.keys():
-            dtu[kt] = {'ldata':[kk for kk in lkeys if dout[kk]['t'] == kt]}
+            dtu[kt] = {'ldata': [kk for kk in lkeys if dout[kk]['t'] == kt]}
         if len(dtu) == 1:
             tref = list(dtu.keys())[0]
         else:
-            lt, lres = zip(*[(kt,np.mean(np.diff(self._ddata[kt]['data'])))
+            lt, lres = zip(*[(kt, np.mean(np.diff(self._ddata[kt]['data'])))
                              for kt in dtu.keys()])
             if choose is None:
-                choose  = 'min'
+                choose = 'min'
             if choose == 'min':
                 tref = lt[np.argmin(lres)]
         return dout, dtu, tref
@@ -826,8 +827,8 @@ class DataHolder(utils.ToFuObject):
         dtu = {}
         for k, v in dins.items():
             c0 = type(k) is str
-            c0 = c0 and all([ss in v.keys() for ss in ['val','t']])
-            c0 = c0 and all([type(v[ss]) is np.ndarray for ss in ['val','t']])
+            c0 = c0 and all([ss in v.keys() for ss in ['val', 't']])
+            c0 = c0 and all([type(v[ss]) is np.ndarray for ss in ['val', 't']])
             c0 = c0 and v['t'].size in v['val'].shape
             if not c0:
                 msg = "dins must be a dict of the form (at least):\n"
@@ -840,26 +841,26 @@ class DataHolder(utils.ToFuObject):
             if kt not in dtu.keys():
                 lisclose = [kk for kk, vv in dtu.items()
                             if (vv['val'].shape == v['t'].shape
-                                and np.allclose(vv['val'],v['t']))]
+                                and np.allclose(vv['val'], v['t']))]
                 assert len(lisclose) <= 1
                 if len(lisclose) == 1:
                     kt = lisclose[0]
                 else:
                     already = False
-                    dtu[kt] = {'val':np.atleast_1d(v['t']).ravel(),
-                               'ldata':[k]}
+                    dtu[kt] = {'val': np.atleast_1d(v['t']).ravel(),
+                               'ldata': [k]}
             if already:
                 dtu[kt]['ldata'].append(k)
             assert dtu[kt]['val'].size == v['val'].shape[0]
-            dout[k] = {'val':v['val'], 't':kt}
+            dout[k] = {'val': v['val'], 't': kt}
 
         if len(dtu) == 1:
             tref = list(dtu.keys())[0]
         else:
-            lt, lres = zip(*[(kt,np.mean(np.diff(dtu[kt]['val'])))
+            lt, lres = zip(*[(kt, np.mean(np.diff(dtu[kt]['val'])))
                              for kt in dtu.keys()])
             if choose is None:
-                choose  = 'min'
+                choose = 'min'
             if choose == 'min':
                 tref = lt[np.argmin(lres)]
         return dout, dtu, tref
@@ -895,7 +896,7 @@ class DataHolder(utils.ToFuObject):
 
         if type(tref) is not np.ndarray and tref in dtu.keys():
             for kk in dtu[tref]['ldata']:
-                 dout[kk]['val'] = self._ddata[kk]['data']
+                dout[kk]['val'] = self._ddata[kk]['data']
 
         return dout, tref
 
@@ -932,30 +933,30 @@ class DataHolder(utils.ToFuObject):
                  choose='min', interp_t=None, t=None,
                  fill_value=np.nan):
         # Check inputs
-        assert type(dkeys) in [list,dict]
+        assert type(dkeys) in [list, dict]
         if type(dkeys) is list:
-            dkeys = {kk:{'val':kk} for kk in dkeys}
+            dkeys = {kk: {'val': kk} for kk in dkeys}
         lc = [(type(kk) is str
                and type(vv) is dict
-               and type(vv.get('val',None)) in [str,np.ndarray])
-              for kk,vv in dkeys.items()]
+               and type(vv.get('val', None)) in [str, np.ndarray])
+              for kk, vv in dkeys.items()]
         assert all(lc), str(dkeys)
 
         # Separate by type
-        dk0 = dict([(kk,vv) for kk,vv in dkeys.items()
+        dk0 = dict([(kk, vv) for kk, vv in dkeys.items()
                     if type(vv['val']) is str])
-        dk1 = dict([(kk,vv) for kk,vv in dkeys.items()
+        dk1 = dict([(kk, vv) for kk, vv in dkeys.items()
                     if type(vv['val']) is np.ndarray])
         assert len(dkeys) == len(dk0) + len(dk1), str(dk0) + '\n' + str(dk1)
-
 
         if len(dk0) == len(dkeys):
             lk = [v['val'] for v in dk0.values()]
             dout, tref = self._interp_on_common_time(lk, choose=choose,
                                                      t=t, interp_t=interp_t,
                                                      fill_value=fill_value)
-            dout = {kk:{'val':dout[vv['val']]['val'], 't':dout[vv['val']]['t']}
-                    for kk,vv in dk0.items()}
+            dout = {kk: {'val': dout[vv['val']]['val'],
+                         't': dout[vv['val']]['t']}
+                    for kk, vv in dk0.items()}
         elif len(dk1) == len(dkeys):
             dout, tref = self._interp_on_common_time_arrays(dk1, choose=choose,
                                                             t=t, interp_t=interp_t,
