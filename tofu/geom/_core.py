@@ -4806,6 +4806,24 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
+
+    def calc_LOS_length_in_isoflux(self, lPoly, lVIn=None, Lim=None,
+                                   kInOut=True):
+        """ Return the length of each LOS inside each isoflux
+
+        Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
+        the entry points (kIn) and exit points (kOut) for each LOS
+
+        The isofluxes must be provided as a list of polygons
+
+        The length is returned as a (nPoly, nLOS) 2d array
+
+        """
+        kIn, kOut = self.calc_kInkOut_Isoflux(lPoly, lVIn=lVIn, Lim=Lim,
+                                              kInOut=kInOut)
+        return kOut-kIn
+
+
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
