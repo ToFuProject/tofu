@@ -271,7 +271,6 @@ class DataHolder(utils.ToFuObject):
 
             # Check value is a dict with proper keys
             c0 = isinstance(vv, dict)
-            c0 = c0 and 'refs' in vv.keys() and isinstance(vv['refs'], tuple)
             c0 = c0 and 'data' in vv.keys()
             if not c0:
                 msg = "ddata must contain dict with at least the keys:\n"
@@ -300,6 +299,26 @@ class DataHolder(utils.ToFuObject):
             else:
                 data = np.atleast_1d(np.squeeze(data))
                 shape = data.shape
+
+            # Check if refs, or try to identify
+            c0 = 'refs' in vv.keys() and isinstance(vv['refs'], tuple)
+            if not c0:
+                lr = [(rr, shape.index(vr['size']))
+                      for rr, vr in self._dref['dict'].items()
+                      if vr['size'] in shape]
+                if len(lr) == len(shape):
+                    order = np.argsort([rr[1] for rr in lr])
+                    vv['refs'] = tuple(lr[order[ii]][0] for ii in range(len(lr)))
+                else:
+                    msg = "The refs of ddata[%s] not found automatically\n"%kk
+                    msg += "  => Too many / not enough refs with good size\n"
+                    msg += "    - shape  = %s\n"%str(shape)
+                    msg += "    - available ref sizes:"
+                    msg += "\n        "
+                    msg += "\n        ".join([rr + ': ' + str(vv['size'])
+                                              for rr, vv
+                                              in self._dref['dict'].items()])
+                    raise Exception(msg)
 
             # Check proper ref (existence and shape / size)
             for ii, rr in enumerate(vv['refs']):
