@@ -2253,26 +2253,6 @@ class MultiIDSLoader(object):
             indface[::2,:] = indfaces[:,:3]
             indface[1::2,:-1] = indfaces[:,2:]
             indface[1::2,-1] = indfaces[:,0]
-
-            #### DB (begin)
-            faces = np.concatenate((nodes[indfaces,:], nodes[indfaces,:][:,0:1,:],
-                                    np.full((3936,1,2),np.nan)), axis=1)
-            faces = np.reshape(np.swapaxes(np.swapaxes(faces, 0,2), 1,2), (2,6*3936))
-            import matplotlib.pyplot as plt
-            plt.switch_backend('Qt5Agg')
-            plt.ioff()
-            fig = plt.figure()
-            plt.plot(faces[0,:], faces[1,:])
-            plt.gca().set_aspect('equal')
-            plt.show()
-            fig.savefig('Debug_JINTRACMesh.pdf', format='pdf')
-            fig.savefig('Debug_JINTRACMesh.svg', format='svg')
-            fig.savefig('Debug_JINTRACMesh.png', format='png')
-            import ipdb         # DB
-            ipdb.set_trace()    # DB
-
-            #### DB (end)
-
             indfaces = indface
             meshtype = 'quadtri'
             ntri = 2
