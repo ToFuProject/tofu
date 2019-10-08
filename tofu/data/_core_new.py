@@ -269,19 +269,19 @@ class DataHolder(utils.ToFuObject):
         # Start check on each key
         for kk, vv in ddata.items():
 
-            # Check value is a dict with proper keys
-            c0 = isinstance(vv, dict)
-            c0 = c0 and 'data' in vv.keys()
-            if not c0:
-                msg = "ddata must contain dict with at least the keys:\n"
-                msg += "    - 'refs': a tuple indicating refs dependencies\n"
-                msg += "    - 'data': a 1d array containing the data"
-                raise Exception(msg)
-
             # Check key unicity
             if kk in self._ddata['lkey']:
                 msg = "key '%s' already used !\n"%kk
                 msg += "  => each key must be unique !"
+                raise Exception(msg)
+
+            # Check value is a dict with proper keys
+            if not isinstance(vv, dict):
+                vv = {'data': vv}
+            if 'data' not in vv.keys():
+                msg = "ddata must contain dict with at least the keys:\n"
+                msg += "    - 'refs': a tuple indicating refs dependencies\n"
+                msg += "    - 'data': a 1d array containing the data"
                 raise Exception(msg)
 
             # Extract data and shape
