@@ -1002,12 +1002,12 @@ class DataHolder(utils.ToFuObject):
                         else:
                             t0, t1, tref = t1, tref1, tref1
 
-                dout, tref =  self._interp_on_common_time(
+                dout, tref = self._interp_on_common_time(
                     lk, choose=choose, t=t0,
                     interp_t=interp_t, fill_value=fill_value)
 
                 dout = {kk: {'val': dout[vv['val']]['val'],
-                            't': dout[vv['val']]['t']}
+                             't': dout[vv['val']]['t']}
                         for kk, vv in dk0.items()}
 
                 dout1, _ = self._interp_on_common_time_arrays(
@@ -1017,7 +1017,6 @@ class DataHolder(utils.ToFuObject):
             dout.update(dout1)
 
         return dout, tref
-
 
     def _get_indtmult(self, idquant=None, idref1d=None, idref2d=None):
 
@@ -1040,9 +1039,9 @@ class DataHolder(utils.ToFuObject):
             tall = tq
         else:
             if idref2d is None:
-                tbinall = np.unique(np.r_[tbinq,tbinr1])
+                tbinall = np.unique(np.r_[tbinq, tbinr1])
             else:
-                tbinall = np.unique(np.r_[tbinq,tbinr1,tbinr2])
+                tbinall = np.unique(np.r_[tbinq, tbinr1, tbinr2])
             tall = np.r_[tbinall[0] - 0.5*(tbinall[1]-tbinall[0]),
                          0.5*(tbinall[1:]+tbinall[:-1]),
                          tbinall[-1] + 0.5*(tbinall[-1]-tbinall[-2])]
@@ -1051,7 +1050,7 @@ class DataHolder(utils.ToFuObject):
         indtq, indtr1, indtr2 = None, None, None
         indtq = np.digitize(tall, tbinq)
         if idref1d is None:
-            assert np.all(indtq == np.arange(0,tall.size))
+            assert np.all(indtq == np.arange(0, tall.size))
         if idref1d is not None:
             indtr1 = np.digitize(tall, tbinr1)
         if idref2d is not None:
@@ -1115,9 +1114,6 @@ class DataHolder(utils.ToFuObject):
         else:
             out = self._get_indtmult(idquant=idq2dR)
         return out
-
-
-
 
     # ---------------------
     # Methods for plotting data
