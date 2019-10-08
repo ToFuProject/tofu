@@ -408,7 +408,7 @@ class DataHolder(utils.ToFuObject):
     ###########
 
     def _init(self, dref=None, ddata=None, **kwargs):
-        kwdargs = dict(dref= dref, ddata=ddata, **kwargs)
+        kwdargs = dict(dref=dref, ddata=ddata, **kwargs)
         largs = self._get_largs_dref()
         kwddref = self._extract_kwdargs(kwdargs, largs)
         self._set_dref(**kwddref, complement=False)
