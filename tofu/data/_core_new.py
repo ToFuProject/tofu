@@ -309,19 +309,18 @@ class DataHolder(utils.ToFuObject):
                     msg += "  => %s not in self.dref !\n"%rr
                     msg += "  => self.add_ref( %s ) first !"%rr
                     raise Exception(msg)
-            shapref = tuple(self._dref['dict'][rr]['size'] for rr in vv['refs'])
-            if not shape == shapref:
+            shaprf = tuple(self._dref['dict'][rr]['size'] for rr in vv['refs'])
+            if not shape == shaprf:
                 msg = "Inconsistency between data shape and ref size !\n"
                 msg += "    - ddata[%s]['data'] shape: %s\n"%(kk, str(shape))
-                msg += "    - sizes of refs: %s"%(str(shapref))
+                msg += "    - sizes of refs: %s"%(str(shaprf))
                 raise Exception(msg)
 
             # Extract params and set self._ddata
             dparams = self._extract_known_params(kk, vv)
-            self._ddata['dict'][kk] = {'data':data, 'refs':vv['refs'],
-                                       'shape':shape, **dparams}
+            self._ddata['dict'][kk] = {'data': data, 'refs': vv['refs'],
+                                       'shape': shape, **dparams}
             self._ddata['lkey'].append(kk)
-
 
     def _complement_dgrouprefdata(self):
 
@@ -339,16 +338,16 @@ class DataHolder(utils.ToFuObject):
                 raise Exception(msg)
 
             # set group
-            groups = tuple(self._dref['dict'][rr]['group'] for rr in v0['refs'])
-            gout = [gg for gg in groups if gg not in self._dgroup['lkey']]
+            grps = tuple(self._dref['dict'][rr]['group'] for rr in v0['refs'])
+            gout = [gg for gg in grps if gg not in self._dgroup['lkey']]
             if len(gout) > 0:
                 lg = self._dgroup['lkey']
-                msg = "Inconsistent groups from self.ddata[%s]['refs']:\n"%k0
-                msg += "    - groups = %s\n"%str(groups)
+                msg = "Inconsistent grps from self.ddata[%s]['refs']:\n"%k0
+                msg += "    - grps = %s\n"%str(grps)
                 msg += "    - self._dgroup['lkey'] = %s\n"%str(lg)
                 msg += "    - self.dgroup.keys() = %s"%str(self.dgroup.keys())
                 raise Exception(msg)
-            self._ddata['dict'][k0]['group'] = groups
+            self._ddata['dict'][k0]['group'] = grps
 
         # --------------
         # dref
@@ -367,7 +366,7 @@ class DataHolder(utils.ToFuObject):
             ldata = [dd for dd in self._ddata['lkey']
                      if any([dd in self._dref['dict'][vref]['ldata']
                              for vref in lref])]
-            #assert vg['depend'] in lidindref
+            # assert vg['depend'] in lidindref
             self._dgroup['dict'][gg]['lref'] = lref
             self._dgroup['dict'][gg]['ldata'] = ldata
 
@@ -384,7 +383,6 @@ class DataHolder(utils.ToFuObject):
                 if pp not in self._ddata['dict'][kk].keys():
                     self._ddata[kk][pp] = None
         self._ddata['lparam'] = lparam
-
 
     ###########
     # Get keys of dictionnaries
@@ -410,7 +408,7 @@ class DataHolder(utils.ToFuObject):
     ###########
 
     def _init(self, dref=None, ddata=None, **kwargs):
-        kwdargs = {'dref':dref, 'ddata':ddata, **kwargs}
+        kwdargs = {'dref': dref, 'ddata': ddata, **kwargs}
         largs = self._get_largs_dref()
         kwddref = self._extract_kwdargs(kwdargs, largs)
         self._set_dref(**kwddref, complement=False)
@@ -418,7 +416,6 @@ class DataHolder(utils.ToFuObject):
         kwddata = self._extract_kwdargs(kwdargs, largs)
         self._set_ddata(**kwddata)
         self._dstrip['strip'] = 0
-
 
     ###########
     # set dictionaries
@@ -433,13 +430,13 @@ class DataHolder(utils.ToFuObject):
         self._checkformat_ddata(ddata)
         self._complement_dgrouprefdata()
 
-    #---------------------
+    # ---------------------
     # Methods for adding ref / quantities
-    #---------------------
+    # ---------------------
 
     def add_ref(self, key, data=None, group=None, **kwdargs):
         """ Add a reference """
-        self._set_dref({key:{'data':data, 'group':group, **kwdargs}})
+        self._set_dref({key:{'data': data, 'group': group, **kwdargs}})
 
     def remove_ref(self, key):
         """ Remove a reference (all data depending on it are removed too) """
@@ -455,7 +452,7 @@ class DataHolder(utils.ToFuObject):
 
     def add_data(self, key, data=None, ref=None, **kwdargs):
         """ Add a data (all associated ref must be added first)) """
-        self._set_ddata({key: {'data':data, 'ref':ref, **kwdargs}})
+        self._set_ddata({key: {'data': data, 'ref': ref, **kwdargs}})
 
     def remove_data(self, key, propagate=True):
         """ Remove a data
@@ -478,7 +475,6 @@ class DataHolder(utils.ToFuObject):
             self._ddata['lkey'].remove(key)
             self._lkdata.remove(key)
         self._complement_dgrouprefdata()
-
 
     ###########
     # strip dictionaries
@@ -512,9 +508,9 @@ class DataHolder(utils.ToFuObject):
         self._strip_ddata(strip=strip, verb=verb)
 
     def _to_dict(self):
-        dout = {'dgroup':{'dict':self._dgroup, 'lexcept':None},
-                'dref':{'dict':self._dref, 'lexcept':None},
-                'ddata':{'dict':self._ddata, 'lexcept':None}}
+        dout = {'dgroup': {'dict': self._dgroup, 'lexcept': None},
+                'dref': {'dict': self._dref, 'lexcept': None},
+                'ddata': {'dict': self._ddata, 'lexcept': None}}
         return dout
 
     def _from_dict(self, fd):
@@ -522,7 +518,6 @@ class DataHolder(utils.ToFuObject):
         self._dref.update(**fd['dref'])
         self._ddata.update(**fd['ddata'])
         self._complement_dgrouprefdata()
-
 
     ###########
     # properties
@@ -532,41 +527,47 @@ class DataHolder(utils.ToFuObject):
     def dconfig(self):
         """ The dict of configs """
         return self._dconfig
+
     @property
     def dgroup(self):
         """ The dict of groups """
         return self._dgroup['dict']
+
     @property
     def lgroup(self):
         """ The dict of groups """
         return self._dgroup['lkey']
+
     @property
     def dref(self):
         """ the dict of references """
         return self._dref['dict']
+
     @property
     def lref(self):
         """ the dict of references """
         return self._dref['lkey']
+
     @property
     def ddata(self):
         """ the dict of data """
         return self._ddata['dict']
+
     @property
     def ldata(self):
         """ the dict of data """
         return self._ddata['lkey']
+
     @property
     def lparam(self):
         """ the dict of data """
         return self._ddata['lparam']
 
-    #---------------------
+    # ---------------------
     # Add / remove params
-    #---------------------
+    # ---------------------
 
     # UP TO HERE
-
 
     def get_param(self, param=None, returnas=np.ndarray):
 
@@ -578,7 +579,7 @@ class DataHolder(utils.ToFuObject):
 
         # Get output
         if returnas == dict:
-            out = {kk:self._ddata['dict'][kk][param]
+            out = {kk: self._ddata['dict'][kk][param]
                    for kk in self._ddata['lkey']}
         else:
             out = [self._ddata['dict'][kk][param]
@@ -636,10 +637,9 @@ class DataHolder(utils.ToFuObject):
         for kk in self._ddata['lkey']:
             del self._ddata['dict'][kk][param]
 
-
-    #---------------------
+    # ---------------------
     # Read-only for internal use
-    #---------------------
+    # ---------------------
 
     def select(self, group=None, ref=None, log='all', return_key=True,
                **kwdargs):
@@ -672,10 +672,10 @@ class DataHolder(utils.ToFuObject):
             critval = eval(lcrit[ii])
             try:
                 par = self.get_param(lcrit[ii], returnas=np.ndarray)
-                ind[ii,:] = par == critval
-            except:
-                ind[ii,:] = [self._ddata['dict'][kk][param] == critval
-                             for kk in self.__lkata]
+                ind[ii, :] = par == critval
+            except Exception as err:
+                ind[ii, :] = [self._ddata['dict'][kk][param] == critval
+                              for kk in self.__lkata]
 
         # Format output ind
         if log == 'all':
@@ -683,14 +683,14 @@ class DataHolder(utils.ToFuObject):
         elif log == 'any':
             ind = np.any(ind, axis=0)
         else:
-            ind = {lcrit[ii]: ind[ii,:] for ii in range(ncrit)}
+            ind = {lcrit[ii]: ind[ii, :] for ii in range(ncrit)}
 
         # Also return the list of keys if required
         if return_key:
             if np.any(ind):
                 out = ind, lid[ind.nonzero()[0]]
             else:
-                out = ind, np.array([],dtype=int)
+                out = ind, np.array([], dtype=int)
         else:
             out = ind
         return out
@@ -734,10 +734,9 @@ class DataHolder(utils.ToFuObject):
                 out = self._ddata['lkey']
         return out
 
-
-    #---------------------
+    # ---------------------
     # Methods for showing data
-    #---------------------
+    # ---------------------
 
     def get_summary(self, show=None, show_core=None, sep='  ', line='-', just='l',
                     table_sep=None, verb=True, return_=False):
@@ -761,7 +760,7 @@ class DataHolder(utils.ToFuObject):
                 self._dref['dict'][k0]['group'],
                 self._dref['dict'][k0]['size'],
                 len(self._dref['dict'][k0]['ldata']))
-               for k0,v0 in self._dref['lkey']]
+               for k0, v0 in self._dref['lkey']]
 
         # -----------------------
         # Build for ddata
@@ -790,16 +789,14 @@ class DataHolder(utils.ToFuObject):
             lu = [k0] + [str(v0[cc]) for cc in col2[1:]]
             ar2.append(lu)
 
-        return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
-                                  sep=sep, line=line, table_sep=table_sep,
-                                  verb=verb, return_=return_)
+        return self._get_summary(
+            [ar0, ar1, ar2], [col0, col1, col2],
+            sep=sep, line=line, table_sep=table_sep,
+            verb=verb, return_=return_)
 
-
-
-    #---------------------
+    # ---------------------
     # Method for interpolating on ref
-    #---------------------
-
+    # ---------------------
 
     def get_time_common(self, lkeys, choose=None):
         """ Return the common time vector to several quantities
@@ -1017,9 +1014,9 @@ class DataHolder(utils.ToFuObject):
 
         return dout, tref
 
-    #---------------------
+    # ---------------------
     # Methods for computing additional plasma quantities
-    #---------------------
+    # ---------------------
 
 
     def _fill_dins(self, dins):
@@ -1146,9 +1143,9 @@ class DataHolder(utils.ToFuObject):
 
 
 
-    #---------------------
+    # ---------------------
     # Methods for interpolation
-    #---------------------
+    # ---------------------
 
 
     def _get_quantrefkeys(self, qq, ref1d=None, ref2d=None):
@@ -1523,9 +1520,9 @@ class DataHolder(utils.ToFuObject):
                                              connect=connect)
 
 
-    #---------------------
+    # ---------------------
     # Methods for getting data
-    #---------------------
+    # ---------------------
 
     def get_dextra(self, dextra=None):
         lc = [dextra is None, dextra == 'all', type(dextra) is dict,
@@ -1655,9 +1652,9 @@ class DataHolder(utils.ToFuObject):
         return lout
 
 
-    #---------------------
+    # ---------------------
     # Methods for plotting data
-    #---------------------
+    # ---------------------
 
     def plot(self, lquant, X=None,
              ref1d=None, ref2d=None,
