@@ -4806,9 +4806,7 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
-
-    def calc_LOS_length_in_isoflux(self, lPoly, lVIn=None, Lim=None,
-                                   kInOut=True):
+    def calc_length_in_isoflux(self, lPoly, lVIn=None, Lim=None, kInOut=True):
         """ Return the length of each LOS inside each isoflux
 
         Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
@@ -4823,6 +4821,24 @@ class Rays(utils.ToFuObject):
                                               kInOut=kInOut)
         return kOut-kIn
 
+    def calc_min_geom_radius(self, axis):
+        """ Return the minimum geom. radius of each LOS, from an arbitrary axis
+
+        The axis mut be provided as a (R,Z) iterable
+        Uses self.set_dsino()
+
+        Return:
+        -------
+        p:      np.ndarray
+            (nLOS,) array of minimal radius (or impact parameter)
+        theta:  np.ndarray
+            (nLOS,) array of associated theta with respect to axis
+        pts:    np.ndarray
+            (3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS
+        """
+        self.set_dsino(RefPt=axis, extra=True)
+        p, theta, pts = self.dsino['p'], self.dsino['theta'], self.dsino['pts']
+        return p, theta, pts
 
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
