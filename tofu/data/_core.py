@@ -2241,18 +2241,11 @@ lp = [p for p in params.values()]
 DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
-
-
-
-
-
-#####################################################################
-#####################################################################
-#####################################################################
+# ####################################################################
+# ####################################################################
 #               Plasma2D
-#####################################################################
-#####################################################################
-
+# ####################################################################
+# ####################################################################
 
 
 class Plasma2D(utils.ToFuObject):
@@ -2265,20 +2258,21 @@ class Plasma2D(utils.ToFuObject):
 
     """
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
-                              'Name','shot','version']},
-             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
-                                'indt', 'indch', 'indlamb', 'interp-t']}}
+    _ddef = {'Id': {'include': ['Mod', 'Cls', 'Exp', 'Diag',
+                                'Name', 'shot', 'version']},
+             'dtreat': {'order': ['mask', 'interp-indt', 'interp-indch',
+                                  'data0', 'dfit',
+                                  'indt', 'indch', 'indlamb', 'interp-t']}}
 
-    # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
+        # Does not exist before Python 3.6 !!!
         # Python 2
         super(Plasma2D,cls).__init_subclass__(**kwdargs)
         # Python 3
-        #super().__init_subclass__(**kwdargs)
+        # super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Plasma2D._ddef)
-        #cls._dplot = copy.deepcopy(Struct._dplot)
-        #cls._set_color_ddef(cls._color)
+        # cls._dplot = copy.deepcopy(Struct._dplot)
+        # cls._set_color_ddef(cls._color)
 
 
     def __init__(self, dtime=None, dradius=None, d0d=None, d1d=None,
@@ -3607,8 +3601,11 @@ class Plasma2D(utils.ToFuObject):
     def _get_finterp(self,
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
-                     interp_t='nearest', interp_space=None,
+                     interp_t=None, interp_space=None,
                      fill_value=np.nan, ani=False, Type=None):
+
+        if interp_t is None:
+            interp_t = 'nearest'
 
         # Get idmesh
         if idquant is not None:
@@ -3749,7 +3746,7 @@ class Plasma2D(utils.ToFuObject):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
-            - pts are in (R,Z) coordinates
+            - pts are in (X,Y,Z) coordinates
             - space interpolation is linear on the 1d profiles
         At the desired input times (t):
             - using a nearest-neighbourg approach for time
