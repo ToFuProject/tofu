@@ -3607,8 +3607,11 @@ class Plasma2D(utils.ToFuObject):
     def _get_finterp(self,
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
-                     interp_t='nearest', interp_space=None,
+                     interp_t=None, interp_space=None,
                      fill_value=np.nan, ani=False, Type=None):
+
+        if interp_t is None:
+            interp_t = 'nearest'
 
         # Get idmesh
         if idquant is not None:
@@ -3749,7 +3752,7 @@ class Plasma2D(utils.ToFuObject):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
-            - pts are in (R,Z) coordinates
+            - pts are in (X,Y,Z) coordinates
             - space interpolation is linear on the 1d profiles
         At the desired input times (t):
             - using a nearest-neighbourg approach for time
