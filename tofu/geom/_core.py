@@ -4893,15 +4893,15 @@ class Rays(utils.ToFuObject):
             nt = t.size
             pts = np.full((3, self.nRays, nt), np.nan)
             vals = np.full((nt, self.nRays), np.nan)
-            indt = np.arange(0,nt)
+            indt = np.arange(0, nt)
             lind = np.r_[0, lind, ptsi.shape[1]]
             for ii in range(self.nRays):
-                indok = ~np.all(np.isnan(val[:,lind[ii]:lind[ii+1]]), axis=1)
+                indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
                 if np.any(indok):
-                    vals[indok,ii] = func(val[indok,lind[ii]:lind[ii+1]],
+                    vals[indok, ii] = func(val[indok, lind[ii]:lind[ii+1]],
                                           axis=1)
-                    ind = funcarg(val[indok,lind[ii]:lind[ii+1]], axis=1)
-                    pts[:,ii,indok] = ptsi[:,lind[ii]:lind[ii+1]][:,ind]
+                    ind = funcarg(val[indok, lind[ii]:lind[ii+1]], axis=1)
+                    pts[:, ii, indok] = ptsi[:, lind[ii]:lind[ii+1]][:, ind]
             pts = pts.T
 
         else:
