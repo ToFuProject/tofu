@@ -1842,6 +1842,16 @@ class ToFuObject(ToFuObjectBase):
     def save(self, path=None, name=None,
              strip=None, sep=_sep, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
+
+        if name is None and self.Id.Name is None:
+            msg = "Please set a unique name of the instance before saving using:\n"
+            msg += "    self.Id.set_Name( name )\n\n"
+            msg += "  => (to avoid saving of different instances with no name)"
+            raise Exception(msg)
+        if path is None and self.Id.SavePath is None:
+            msg = "Please specify a saving path (path=...)"
+            raise Exception(msg)
+
         return save(self, path=path, name=name,
                     sep=sep, deep=deep, mode=mode,
                     strip=strip, compressed=compressed,

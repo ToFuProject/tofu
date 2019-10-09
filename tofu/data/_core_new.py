@@ -35,7 +35,7 @@ except Exception:
     from . import _def as _def
     from . import _physics as _physics
 
-__all__ = ['DataHolder']  # , 'Plasma0D']
+__all__ = ['DataHolder', 'TimeTraceCollection']
 
 _SAVEPATH = os.path.abspath('./')
 _INTERPT = 'zero'
@@ -57,9 +57,10 @@ class DataHolder(utils.ToFuObject):
         - visualization
 
     """
+    __metaclass__ = ABCMeta
+
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id': {'include': ['Mod', 'Cls',
-                                'Name', 'version']},
+    _ddef = {'Id': {'include': ['Mod', 'Cls', 'version']},
              'dgroup': ['lref'],
              'dref':   ['group', 'size', 'ldata'],
              'ddata':  ['refs', 'shape', 'groups', 'data'],
@@ -68,6 +69,13 @@ class DataHolder(utils.ToFuObject):
                         'quant':  (str, 'unknown'),
                         'name':   (str, 'unknown'),
                         'units':  (str, 'a.u.')}}
+    _forced_group = None
+    if _forced_group is not None:
+        _allowed_groups = [_forced_group]
+    else:
+        _allowed_groups = None
+    _dallowed_params = None
+
     _reserved_all = _ddef['dgroup'] + _ddef['dref'] + _ddef['ddata']
     _show_in_summary_core = ['shape', 'refs', 'groups']
     _show_in_summary = 'all'
@@ -142,13 +150,18 @@ class DataHolder(utils.ToFuObject):
     # Methods for checking and formatting inputs
     # ---------------------
 
-    def _extract_known_params(self, key, dd):
+    def _extract_known_params(self, key, dd, ref=False, group=None):
         # Extract relevant parameters
         dparams = {kk: vv for kk, vv in dd.items()
                    if kk not in self._reserved_all}
 
+        if ref and group is not None and self._dallowed_params is not None:
+            defpars = self._dallowed_params[group]
+        else:
+            defpars = self._ddef['params']
+
         # Add minimum default parameters if not already included
-        for kk, vv in self._ddef['params'].items():
+        for kk, vv in defpars.items():
             if kk not in dparams.keys():
                 dparams[kk] = vv[1]
             else:
@@ -174,6 +187,8 @@ class DataHolder(utils.ToFuObject):
         # Two options:
         #   (A)  - {'group0':{'t0':{'data':t0, 'units':'s'}, 't1':...}}
         #   (B)  - {'t0':{'data':t0, 'units':'s', 'group':'group0'}, 't1':...}
+        #   (C)  - {'t0':{'data':t0, 'units':'s'}, 't1':...}
+        #   (D)  - {'t0':t0, 't1':t1, ...}
 
         cA = all([all([(isinstance(v1, dict) and 'group' not in v1.keys())
                        or not isinstance(v1, dict)
@@ -181,16 +196,29 @@ class DataHolder(utils.ToFuObject):
                   and 'group' not in v0.keys() for v0 in dref.values()])
         cB = all([isinstance(v0.get('group', None), str)
                   for v0 in dref.values()])
-        if not (cA or cB):
+        cC = (self._forced_group is not None
+              and all([not isinstance(v0, dict) for v0 in dref.values()]))
+        cD = (self._forced_group is not None
+              and all(['group' not in v0.keys() for v0 in dref.values()]))
+        if not (cA or cB or cC or cD):
             msg = "Provided dref must formatted either as a dict with:\n\n"
             msg += "    - keys = group, values = {ref: data}:\n"
-            msg += "        {'g0':{'t0':{'data':t0, 'units':'s'},\n"
-            msg += "                   't1':{'data':t1, 'units':'h'}},\n"
-            msg += "         'g1':{'t2':{'data':t2, 'units':'min'}}}\n\n"
-            msg += "    - keys = ref, values = {data, group}:\n"
-            msg += "        {'t0':{'data':t0, 'units':'s', 'group':'g0'},\n"
-            msg += "         't1':{'data':t1, 'units':'h', 'group':'g0'},\n"
-            msg += "         't2':{'data':t2, 'units':'min', 'group':'g1'}"
+            msg += "        {'time':{'t0':{'data':t0, 'units':'s'},\n"
+            msg += "                 't1':{'data':t1, 'units':'h'}},\n"
+            msg += "         'dist':{'x0':{'data':x0, 'units':'m'}}}\n\n"
+            msg += "    - keys = ref, values = {data, group, ...}:\n"
+            msg += "        {'t0':{'data':t0, 'units':'s', 'group':'time'},\n"
+            msg += "         't1':{'data':t1, 'units':'h', 'group':'time'},\n"
+            msg += "         'x0':{'data':x0, 'units':'m', 'group':'dist'}\n\n"
+            msg += "    If self._forced_group is not None, 2 more options:\n"
+            msg += "    - keys = ref, values = {data, ...}:\n"
+            msg += "        {'t0':{'data':t0, 'units':'s'},\n"
+            msg += "         't1':{'data':t1, 'units':'h'},\n"
+            msg += "         'x0':{'data':x0, 'units':'m'}\n"
+            msg += "    - keys = ref, values = data:\n"
+            msg += "        {'t0':t0,\n"
+            msg += "         't1':t1,\n"
+            msg += "         'x0':x0}\n"
             raise Exception(msg)
 
         if cA:
@@ -205,7 +233,20 @@ class DataHolder(utils.ToFuObject):
                         drbis[k1] = {'data': v1, 'group': k0}
             dref = drbis
 
-        # Check cB
+        # Check cC and cD and convert to cB
+        import ipdb         # DB
+        ipdb.set_trace()    # DB
+        if cC:
+            # Convert to cB
+            for k0 in dref.keys():
+                dref[k0]['group'] = self._forced_group
+        elif cD:
+            # Convert to cB
+            for k0, v0 in dref.items():
+                dref[k0] = {'data': v0, 'group': self._forced_group}
+
+
+        # Check cB = normal case
         for kk, vv in dref.items():
 
             # Check if new group
@@ -247,7 +288,8 @@ class DataHolder(utils.ToFuObject):
             self._dref['lkey'].append(kk)
 
             # Extract and check parameters
-            dparams = self._extract_known_params(kk, vv)
+            dparams = self._extract_known_params(kk, vv, ref=True,
+                                                 group=vv['group'])
 
             # Fill self._ddata
             self._ddata['dict'][kk] = dict(data=data, refs=(kk,),
@@ -384,6 +426,17 @@ class DataHolder(utils.ToFuObject):
             # assert vg['depend'] in lidindref
             self._dgroup['dict'][gg]['lref'] = lref
             self._dgroup['dict'][gg]['ldata'] = ldata
+
+        if self._forced_group is not None:
+            if len(self.lgroup) != 1 or self.lgroup[0] != self._forced_group:
+                msg = "The only allowed group is %s"%self._forced_group
+                raise Exception(msg)
+        if self._allowed_groups is not None:
+            if any([gg not in self._allowed_groups for gg in self.lgroup]):
+                msg = "Some groups are not allowed:\n"
+                msg += "    - provided: %s\n"%str(self.lgroup)
+                msg += "    - allowed:  %s"%str(self._allowed_groups)
+                raise Exception(msg)
 
         # --------------
         # params
@@ -736,7 +789,7 @@ class DataHolder(utils.ToFuObject):
     def _ind_tofrom_key(self, ind=None, key=None, returnas=int):
 
         # Check / format input
-        assert returnas in [int, bool, 'key']
+        assert returnas in [int, bool, str, 'key']
         lc = [ind is not None, key is not None]
         assert np.sum(lc) <= 1
 
@@ -748,15 +801,15 @@ class DataHolder(utils.ToFuObject):
             ind = np.atleast_1d(ind).ravel()
             assert ind.dtype == np.int or ind.dtype == np.bool
             out[ind] = True
-            if returnas in [int, 'key']:
+            if returnas in [int, str, 'key']:
                 out = out.nonzero()[0]
-                if returnas == 'key':
+                if returnas in [str, 'key']:
                     out = [self._ddata['lkey'][ii] for ii in out]
 
         elif lc[1]:
             if isinstance(key, str):
                 key = [key]
-            if returnas == 'key':
+            if returnas in ['key', str]:
                 out = key
             else:
                 for kk in key:
@@ -837,352 +890,134 @@ class DataHolder(utils.ToFuObject):
     # Method for interpolating on ref
     # ---------------------
 
-    def get_time_common(self, lkeys, choose=None):
-        """ Return the common time vector to several quantities
+    def _interp_one_dim(x=None, ind=None, key=None, group=None,
+                        kind=None, bounds_error=None, fill_value=None):
+        """ Return a dict of interpolated data
 
-        If they do not have a common time vector, a reference one is choosen
-        according to criterion choose
+        Uses scipy.inpterp1d with args:
+            - kind, bounds_error, fill_value
+
+        The interpolated data is chosen method select() with args:
+            - key, ind
+
+        The interpolation is done against a reference vector x
+            - x can be a key to an existing ref
+            - x can be user-provided array
+                in thay case the group should be specified
+                (to properly identify the interpolation dimension)
+
+        Returns:
+        --------
+        dout:       dict
+            dict of interpolated data
+        dfail:  dict of failed interpolations, with error messages
+
         """
-        # Check all data have time-dependency
-        dout = {kk: {'t': self.get_time(kk)} for kk in lkeys}
-        dtu = dict.fromkeys(set([vv['t'] for vv in dout.values()]))
-        for kt in dtu.keys():
-            dtu[kt] = {'ldata': [kk for kk in lkeys if dout[kk]['t'] == kt]}
-        if len(dtu) == 1:
-            tref = list(dtu.keys())[0]
-        else:
-            lt, lres = zip(*[(kt, np.mean(np.diff(self._ddata[kt]['data'])))
-                             for kt in dtu.keys()])
-            if choose is None:
-                choose = 'min'
-            if choose == 'min':
-                tref = lt[np.argmin(lres)]
-        return dout, dtu, tref
 
-    @staticmethod
-    def _get_time_common_arrays(dins, choose=None):
-        dout = dict.fromkeys(dins.keys())
-        dtu = {}
-        for k, v in dins.items():
-            c0 = type(k) is str
-            c0 = c0 and all([ss in v.keys() for ss in ['val', 't']])
-            c0 = c0 and all([type(v[ss]) is np.ndarray for ss in ['val', 't']])
-            c0 = c0 and v['t'].size in v['val'].shape
-            if not c0:
-                msg = "dins must be a dict of the form (at least):\n"
-                msg += "    dins[%s] = {'val': np.ndarray,\n"%str(k)
-                msg += "                't':   np.ndarray}\n"
-                msg += "Provided: %s"%str(dins)
+        # Check x
+        assert x is not None
+        if isinstance(x) is str:
+            if x not in self.lref:
+                msg = "If x is a str, it must be a valid ref!\n"
+                msg += "    - x: %s\n"%str(x)
+                msg += "    - self.lref: %s"%str(self.lref)
+                raise Exception(msg)
+            group = self._dref[x]['group']
+            x = self._ddata[x]['data']
+        else:
+            try:
+                x = np.atleast_1d(x).ravel()
+            except Exception:
+                msg = "The reference with which to interpolate, x, should be:\n"
+                msg += "    - a key to an existing ref\n"
+                msg += "    - a 1d np.ndarray"
+                raise Exception(x)
+            if group not in self.lgroup:
+                msg = "Interpolation must be with respect to a group\n"
+                msg += "Provided group is not in self.lgroup:\n"
+                msg += "    - group: %s"%str(group)
                 raise Exception(msg)
 
-            kt, already = id(v['t']), True
-            if kt not in dtu.keys():
-                lisclose = [kk for kk, vv in dtu.items()
-                            if (vv['val'].shape == v['t'].shape
-                                and np.allclose(vv['val'], v['t']))]
-                assert len(lisclose) <= 1
-                if len(lisclose) == 1:
-                    kt = lisclose[0]
+        # Get keys to interpolate
+        if ind is None and key in None:
+            lk = self._dgroup[group]['ldata']
+        else:
+            lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+
+        # Check provided keys are relevant, and get dim index
+        dind, dfail = {}, {}
+        for kk in lk:
+            if kk not in self._dgroup[group]['ldata']:
+                # gps = self._ddata[kk]['groups']
+                # msg = "Some data not in interpolation group:\n"
+                # msg += "    - self.ddata[%s]['groups'] = %s"%(kk,str(gps))
+                # msg += "    - Interpolation group: %s"%group
+                # raise Exception(msg)
+                dfail[kk] = "Not dependent on group %s"%group
+            else:
+                dind[kk] = self._ddata[kk]['groups'].index(group)
+
+        # Start loop for interpolation
+        dout = {}
+        for kk in dout.keys():
+            shape = self._ddata['dict'][kk]['shape']
+
+            if not isinstance(self._ddata[kk]['data'], np.ndarray):
+                dfail[kk] = "Not a np.ndarray !"
+                continue
+
+            kr = self._ddata['dict'][kk]['refs'][dind[kk]]
+            vr = self._ddata['dict'][kr]['data']
+            data = self._ddata['dict'][kk]['data']
+            try:
+                if dind[kk] == len(shape) - 1:
+                    dout[kk] = scpinterp.interp1d(vr, y,
+                                                  kind=kind, axis=-1,
+                                                  bounds_error=bounds_error,
+                                                  fill_value=fill_value,
+                                                  assume_sorted=True)(x)
                 else:
-                    already = False
-                    dtu[kt] = {'val': np.atleast_1d(v['t']).ravel(),
-                               'ldata': [k]}
-            if already:
-                dtu[kt]['ldata'].append(k)
-            assert dtu[kt]['val'].size == v['val'].shape[0]
-            dout[k] = {'val': v['val'], 't': kt}
+                    dout[kk] = scpinterp.interp1d(vr, y,
+                                                  kind=kind, axis=dind[kk],
+                                                  bounds_error=bounds_error,
+                                                  fill_value=fill_value,
+                                                  assume_sorted=True)(x)
 
-        if len(dtu) == 1:
-            tref = list(dtu.keys())[0]
-        else:
-            lt, lres = zip(*[(kt, np.mean(np.diff(dtu[kt]['val'])))
-                             for kt in dtu.keys()])
-            if choose is None:
-                choose = 'min'
-            if choose == 'min':
-                tref = lt[np.argmin(lres)]
-        return dout, dtu, tref
+            except Exception as err:
+                dfail[kk] = str(err)
+        return dout, dfail
 
-    def _interp_on_common_time(self, lkeys,
-                               choose='min', interp_t=None, t=None,
-                               fill_value=np.nan):
-        """ Return a dict of time-interpolated data """
-        dout, dtu, tref = self.get_time_common(lkeys)
-        if type(t) is np.ndarray:
-            tref = np.atleast_1d(t).ravel()
-            tr = tref
-            ltu = dtu.keys()
-        else:
-            if type(t) is str:
-                tref = t
-            tr = self._ddata[tref]['data']
-            ltu = set(dtu.keys())
-            if tref in dtu.keys():
-                ltu = ltu.difference([tref])
-
-        if interp_t is None:
-            interp_t = _INTERPT
-
-        # Interpolate
-        for tt in ltu:
-            for kk in dtu[tt]['ldata']:
-                dout[kk]['val'] = scpinterp.interp1d(self._ddata[tt]['data'],
-                                                     self._ddata[kk]['data'],
-                                                     kind=interp_t, axis=0,
-                                                     bounds_error=False,
-                                                     fill_value=fill_value)(tr)
-
-        if type(tref) is not np.ndarray and tref in dtu.keys():
-            for kk in dtu[tref]['ldata']:
-                dout[kk]['val'] = self._ddata[kk]['data']
-
-        return dout, tref
-
-    def _interp_on_common_time_arrays(self, dins,
-                                      choose='min', interp_t=None, t=None,
-                                      fill_value=np.nan):
-        """ Return a dict of time-interpolated data """
-        dout, dtu, tref = self._get_time_common_arrays(dins)
-        if type(t) is np.ndarray:
-            tref = np.atleast_1d(t).ravel()
-            tr = tref
-            ltu = dtu.keys()
-        else:
-            if type(t) is str:
-                assert t in dout.keys()
-                tref = dout[t]['t']
-            tr = dtu[tref]['val']
-            ltu = set(dtu.keys()).difference([tref])
-
-        if interp_t is None:
-            interp_t = _INTERPT
-
-        # Interpolate
-        for tt in ltu:
-            for kk in dtu[tt]['ldata']:
-                dout[kk]['val'] = scpinterp.interp1d(dtu[tt]['val'],
-                                                     dout[kk]['val'],
-                                                     kind=interp_t, axis=0,
-                                                     bounds_error=False,
-                                                     fill_value=fill_value)(tr)
-        return dout, tref
-
-    def interp_t(self, dkeys,
-                 choose='min', interp_t=None, t=None,
-                 fill_value=np.nan):
-        # Check inputs
-        assert type(dkeys) in [list, dict]
-        if type(dkeys) is list:
-            dkeys = {kk: {'val': kk} for kk in dkeys}
-        lc = [(type(kk) is str
-               and type(vv) is dict
-               and type(vv.get('val', None)) in [str, np.ndarray])
-              for kk, vv in dkeys.items()]
-        assert all(lc), str(dkeys)
-
-        # Separate by type
-        dk0 = dict([(kk, vv) for kk, vv in dkeys.items()
-                    if type(vv['val']) is str])
-        dk1 = dict([(kk, vv) for kk, vv in dkeys.items()
-                    if type(vv['val']) is np.ndarray])
-        assert len(dkeys) == len(dk0) + len(dk1), str(dk0) + '\n' + str(dk1)
-
-        if len(dk0) == len(dkeys):
-            lk = [v['val'] for v in dk0.values()]
-            dout, tref = self._interp_on_common_time(lk, choose=choose,
-                                                     t=t, interp_t=interp_t,
-                                                     fill_value=fill_value)
-            dout = {kk: {'val': dout[vv['val']]['val'],
-                         't': dout[vv['val']]['t']}
-                    for kk, vv in dk0.items()}
-        elif len(dk1) == len(dkeys):
-            dout, tref = self._interp_on_common_time_arrays(
-                dk1, choose=choose, t=t,
-                interp_t=interp_t, fill_value=fill_value)
-
-        else:
-            lk = [v['val'] for v in dk0.values()]
-            if type(t) is np.ndarray:
-                dout, tref = self._interp_on_common_time(
-                    lk, choose=choose, t=t,
-                    interp_t=interp_t, fill_value=fill_value)
-                dout1, _ = self._interp_on_common_time_arrays(
-                    dk1, choose=choose, t=t,
-                    interp_t=interp_t, fill_value=fill_value)
-            else:
-                dout0, dtu0, tref0 = self.get_time_common(lk,
-                                                          choose=choose)
-                dout1, dtu1, tref1 = self._get_time_common_arrays(
-                    dk1, choose=choose)
-                if type(t) is str:
-                    lc = [t in dtu0.keys(), t in dout1.keys()]
-                    if not any(lc):
-                        msg = "if t is str, it must refer to a valid key:\n"
-                        msg += "    - %s\n"%str(dtu0.keys())
-                        msg += "    - %s\n"%str(dout1.keys())
-                        msg += "Provided: %s"%t
-                        raise Exception(msg)
-                    if lc[0]:
-                        t0, t1 = t, self._ddata[t]['data']
-                    else:
-                        t0, t1 = dtu1[dout1[t]['t']]['val'], t
-                    tref = t
-                else:
-                    if choose is None:
-                        choose = 'min'
-                    if choose == 'min':
-                        t0 = self._ddata[tref0]['data']
-                        t1 = dtu1[tref1]['val']
-                        dt0 = np.mean(np.diff(t0))
-                        dt1 = np.mean(np.diff(t1))
-                        if dt0 < dt1:
-                            t0, t1, tref = tref0, t0, tref0
-                        else:
-                            t0, t1, tref = t1, tref1, tref1
-
-                dout, tref = self._interp_on_common_time(
-                    lk, choose=choose, t=t0,
-                    interp_t=interp_t, fill_value=fill_value)
-
-                dout = {kk: {'val': dout[vv['val']]['val'],
-                             't': dout[vv['val']]['t']}
-                        for kk, vv in dk0.items()}
-
-                dout1, _ = self._interp_on_common_time_arrays(
-                    dk1, choose=choose, t=t1,
-                    interp_t=interp_t, fill_value=fill_value)
-
-            dout.update(dout1)
-
-        return dout, tref
-
-    def _get_indtmult(self, idquant=None, idref1d=None, idref2d=None):
-
-        # Get time vectors and bins
-        idtq = self._ddata[idquant]['depend'][0]
-        tq = self._ddata[idtq]['data']
-        tbinq = 0.5*(tq[1:]+tq[:-1])
-        if idref1d is not None:
-            idtr1 = self._ddata[idref1d]['depend'][0]
-            tr1 = self._ddata[idtr1]['data']
-            tbinr1 = 0.5*(tr1[1:]+tr1[:-1])
-        if idref2d is not None and idref2d != idref1d:
-            idtr2 = self._ddata[idref2d]['depend'][0]
-            tr2 = self._ddata[idtr2]['data']
-            tbinr2 = 0.5*(tr2[1:]+tr2[:-1])
-
-        # Get tbinall and tall
-        if idref1d is None:
-            tbinall = tbinq
-            tall = tq
-        else:
-            if idref2d is None:
-                tbinall = np.unique(np.r_[tbinq, tbinr1])
-            else:
-                tbinall = np.unique(np.r_[tbinq, tbinr1, tbinr2])
-            tall = np.r_[tbinall[0] - 0.5*(tbinall[1]-tbinall[0]),
-                         0.5*(tbinall[1:]+tbinall[:-1]),
-                         tbinall[-1] + 0.5*(tbinall[-1]-tbinall[-2])]
-
-        # Get indtqr1r2 (tall with respect to tq, tr1, tr2)
-        indtq, indtr1, indtr2 = None, None, None
-        indtq = np.digitize(tall, tbinq)
-        if idref1d is None:
-            assert np.all(indtq == np.arange(0, tall.size))
-        if idref1d is not None:
-            indtr1 = np.digitize(tall, tbinr1)
-        if idref2d is not None:
-            indtr2 = np.digitize(tall, tbinr2)
-
-        ntall = tall.size
-        return tall, tbinall, ntall, indtq, indtr1, indtr2
-
-    @staticmethod
-    def _get_indtu(t=None, tall=None, tbinall=None,
-                   idref1d=None, idref2d=None,
-                   indtr1=None, indtr2=None):
-        # Get indt (t with respect to tbinall)
-        indt, indtu = None, None
-        if t is not None:
-            indt = np.digitize(t, tbinall)
-            indtu = np.unique(indt)
-
-            # Update
-            tall = tall[indtu]
-            if idref1d is not None:
-                assert indtr1 is not None
-                indtr1 = indtr1[indtu]
-            if idref2d is not None:
-                assert indtr2 is not None
-                indtr2 = indtr2[indtu]
-        ntall = tall.size
-        return tall, ntall, indt, indtu, indtr1, indtr2
-
-    def get_tcommon(self, lq, prefer='finer'):
-        """ Check if common t, else choose according to prefer
-
-        By default, prefer the finer time resolution
-
-        """
-        if type(lq) is str:
-            lq = [lq]
-        t = []
-        for qq in lq:
-            ltr = [kk for kk in self._ddata[qq]['depend']
-                   if self._dindref[kk]['group'] == 'time']
-            assert len(ltr) <= 1
-            if len(ltr) > 0 and ltr[0] not in t:
-                t.append(ltr[0])
-        assert len(t) >= 1
-        if len(t) > 1:
-            dt = [np.nanmean(np.diff(self._ddata[tt]['data'])) for tt in t]
-            if prefer == 'finer':
-                ind = np.argmin(dt)
-            else:
-                ind = np.argmax(dt)
-        else:
-            ind = 0
-        return t[ind], t
-
-    def _get_tcom(self, idquant=None, idref1d=None,
-                  idref2d=None, idq2dR=None):
-        if idquant is not None:
-            out = self._get_indtmult(idquant=idquant,
-                                     idref1d=idref1d, idref2d=idref2d)
-        else:
-            out = self._get_indtmult(idquant=idq2dR)
-        return out
 
     # ---------------------
     # Methods for plotting data
     # ---------------------
 
-    def plot(self, lquant, X=None,
-             ref1d=None, ref2d=None,
-             remap=False, res=0.01, interp_space=None,
-             sharex=False, bck=True):
-        lDat = self.get_Data(lquant, X=X, remap=remap,
-                             ref1d=ref1d, ref2d=ref2d,
-                             res=res, interp_space=interp_space)
-        if type(lDat) is list:
-            kh = lDat[0].plot_combine(lDat[1:], sharex=sharex, bck=bck)
-        else:
-            kh = lDat.plot(bck=bck)
-        return kh
+    # To be overloaded
+    @abstractmethod
+    def plot(self):
+        pass
 
-    def plot_combine(self, lquant, lData=None, X=None,
-                     ref1d=None, ref2d=None,
-                     remap=False, res=0.01, interp_space=None,
-                     sharex=False, bck=True):
-        """ plot combining several quantities from the Plasma2D itself and
-        optional extra list of Data instances """
-        lDat = self.get_Data(lquant, X=X, remap=remap,
-                             ref1d=ref1d, ref2d=ref2d,
-                             res=res, interp_space=interp_space)
-        if lData is not None:
-            if type(lDat) is list:
-                lData = lDat[1:] + lData
-            else:
-                lData = lDat[1:] + [lData]
-        kh = lDat[0].plot_combine(lData, sharex=sharex, bck=bck)
-        return kh
+
+
+
+#############################################
+#############################################
+#       Child classes
+#############################################
+#############################################
+
+
+class TimeTraceCollection(DataHolder):
+    """ A generic class for handling multiple time traces """
+
+    _forced_group = 'time'
+    _dallowed_params = {'time':{'origin': (str, 'unknown'),
+                                'dim':    (str, 'time'),
+                                'quant':  (str, 't'),
+                                'name':   (str, 't'),
+                                'units':  (str, 's')}}
+
+
+    def plot(self, ind=None, key=None,
+             ax=None):
+        pass
