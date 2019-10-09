@@ -69,6 +69,7 @@ class DataHolder(utils.ToFuObject):
                         'name':   (str, 'unknown'),
                         'units':  (str, 'a.u.')}}
     _reserved_all = _ddef['dgroup'] + _ddef['dref'] + _ddef['ddata']
+    _show_in_summary_core = ['shape', 'refs', 'groups']
     _show_in_summary = 'all'
 
     def __init_subclass__(cls, **kwdargs):
@@ -253,11 +254,6 @@ class DataHolder(utils.ToFuObject):
                                            shape=(size,), **dparams)
             self._ddata['lkey'].append(kk)
 
-    # ------------- DB (start)
-    def __repr__(self):
-        return self.__class__.__name__
-    # ------------- DB (end)
-
     def _checkformat_ddata(self, ddata):
         c0 = isinstance(ddata, dict)
         c0 = c0 and all([isinstance(kk, str) for kk in ddata.keys()])
@@ -366,7 +362,7 @@ class DataHolder(utils.ToFuObject):
                 msg += "    - self._dgroup['lkey'] = %s\n"%str(lg)
                 msg += "    - self.dgroup.keys() = %s"%str(self.dgroup.keys())
                 raise Exception(msg)
-            self._ddata['dict'][k0]['group'] = grps
+            self._ddata['dict'][k0]['groups'] = grps
 
         # --------------
         # dref
@@ -554,7 +550,7 @@ class DataHolder(utils.ToFuObject):
     @property
     def lgroup(self):
         """ The dict of groups """
-        return self._dgroup['lkey']
+        return np.array(self._dgroup['lkey'])
 
     @property
     def dref(self):
@@ -564,7 +560,7 @@ class DataHolder(utils.ToFuObject):
     @property
     def lref(self):
         """ the dict of references """
-        return self._dref['lkey']
+        return np.array(self._dref['lkey'])
 
     @property
     def ddata(self):
@@ -574,21 +570,19 @@ class DataHolder(utils.ToFuObject):
     @property
     def ldata(self):
         """ the dict of data """
-        return self._ddata['lkey']
+        return np.array(self._ddata['lkey'])
 
     @property
     def lparam(self):
         """ the dict of data """
-        return self._ddata['lparam']
+        return np.array(self._ddata['lparam'])
 
     # ---------------------
     # Add / remove params
     # ---------------------
 
-    # UP TO HERE
-
     def get_param(self, param=None, returnas=np.ndarray):
-
+        """ Return the array of the chosen parameter values """
         # Check inputs and trivial cases
         if param is None:
             return
@@ -611,6 +605,17 @@ class DataHolder(utils.ToFuObject):
         return out
 
     def set_param(self, param=None, values=None, ind=None, key=None):
+        """ Set the value of a parameter
+
+        values can be:
+            - None
+            - a unique value (int, float, bool, str, tuple) => common to all keys
+            - an iterable of vlues (array, list) => one for each key
+
+        A subset of keys can be chosen (ind, key, fed to self.select()) to set
+        only the values of some key
+
+        """
 
         # Check and format input
         if param is None:
@@ -621,31 +626,38 @@ class DataHolder(utils.ToFuObject):
         ltypes = [str, int, np.int, float, np.float, tuple]
         lc = [any([isinstance(values, tt) for tt in ltypes]),
               isinstance(values, list), isinstance(values, np.ndarray)]
-        if not any(lc):
+        if not (values is None or any(lc)):
             msg = "Accepted types for values include:\n"
+            msg += "    - None\n"
             msg += "    - %s: common to all\n"%str(ltypes)
             msg += "    - list, np.ndarray: key by key"
             raise Exception(msg)
 
-        if lc0:
-            key = self._ind_tofrom_key(ind=ind, key=key, out='key')
+        if values is None or lc[0]:
+            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
             for kk in key:
                 self._ddata['dict'][kk][param] = values
 
         # Update relevant keys with corresponding values
         else:
-            key = self._ind_tofrom_key(ind=ind, key=key, out='key')
+            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
             assert len(key) == len(values)
-            for kk in range(len(key)):
-                self._ddata['dict'][key[ii]][param] = values[ii]
+            for ii, kk in enumerate(key):
+                self._ddata['dict'][kk][param] = values[ii]
 
     def add_param(self, param, values=None):
+        """ Add a parameter, optionnally also set its value """
         assert isinstance(param, str)
         assert param not in self._ddata['lparam']
         self._ddata['lparam'].append(param)
-        self.set_param(param=param, values=values)
+        try:
+            self.set_param(param=param, values=values)
+        except Exception as err:
+            self._ddata['lparam'].remove(param)
+            raise err
 
     def remove_param(self, param=None):
+        """ Remove a parameters """
         # Check and format input
         if param is None:
             return
@@ -659,8 +671,7 @@ class DataHolder(utils.ToFuObject):
     # Read-only for internal use
     # ---------------------
 
-    def select(self, group=None, ref=None, log='all', return_key=True,
-               **kwdargs):
+    def select(self, log='all', return_key=True, **kwdargs):
         """ Return the indices / keys of data matching criteria
 
         The selection is done comparing the value of all provided parameters
@@ -680,20 +691,29 @@ class DataHolder(utils.ToFuObject):
             assert not return_key
 
         # Get list of relevant criteria
-        lk = ['group', 'ref'] + list(kwdargs.keys())
-        lcrit = [ss for ss in lk if ss is not None]
-        ncrit = len(lcrit)
+        lcritout = [ss for ss in kwdargs.keys()
+                    if ss not in self._ddata['lparam']]
+        if len(lcritout) > 0:
+            msg = "The following criteria correspond to no parameters:\n"
+            msg += "    - %s\n"%str(lcritout)
+            msg += "  => only use known parameters (self.lparam):\n"
+            msg += "    %s"%str(self._ddata['lparam'])
+            raise Exception(msg)
+        kwdargs = {kk: vv for kk, vv in kwdargs.items()
+                   if vv is not None and kk in self._ddata['lparam']}
+        lcrit = list(kwdargs)
+        ncrit = len(kwdargs)
 
         # Prepare array of bool indices and populate
         ind = np.ones((ncrit, len(self._ddata['lkey'])), dtype=bool)
         for ii in range(ncrit):
-            critval = eval(lcrit[ii])
+            critval = kwdargs[lcrit[ii]]
             try:
                 par = self.get_param(lcrit[ii], returnas=np.ndarray)
                 ind[ii, :] = par == critval
             except Exception as err:
-                ind[ii, :] = [self._ddata['dict'][kk][param] == critval
-                              for kk in self.__lkata]
+                ind[ii, :] = [self._ddata['dict'][kk][lcrit[ii]] == critval
+                              for kk in self._ddata['lkey']]
 
         # Format output ind
         if log == 'all':
@@ -706,9 +726,9 @@ class DataHolder(utils.ToFuObject):
         # Also return the list of keys if required
         if return_key:
             if np.any(ind):
-                out = ind, lid[ind.nonzero()[0]]
+                out = ind, self.ldata[ind.nonzero()[0]]
             else:
-                out = ind, np.array([], dtype=int)
+                out = ind, np.array([], dtype=str)
         else:
             out = ind
         return out
@@ -779,7 +799,7 @@ class DataHolder(utils.ToFuObject):
                 self._dref['dict'][k0]['group'],
                 self._dref['dict'][k0]['size'],
                 len(self._dref['dict'][k0]['ldata']))
-               for k0, v0 in self._dref['lkey']]
+               for k0 in self._dref['lkey']]
 
         # -----------------------
         # Build for ddata
@@ -788,23 +808,23 @@ class DataHolder(utils.ToFuObject):
             show_core = self._show_in_summary_core
         if isinstance(show_core, str):
             show_core = [show_core]
-        lkcore = ['shape', 'group', 'ref']
-        assert all([ss in self._lparams + lkcore for ss in show_core])
+        lkcore = ['shape', 'groups', 'refs']
+        assert all([ss in self._ddata['lparam'] + lkcore for ss in show_core])
         col2 += show_core
 
         if show is None:
             show = self._show_in_summary
         if show == 'all':
-            col2 += self._lparams
+            col2 += self._ddata['lparam']
         else:
             if isinstance(show, str):
                 show = [show]
-            assert all([ss in self._lparams for ss in show])
+            assert all([ss in self._ddata['lparam'] for ss in show])
             col2 += show
 
         ar2 = []
-        for k0 in self._lkdata:
-            v0 = self._ddata[k0]
+        for k0 in self._ddata['lkey']:
+            v0 = self._ddata['dict'][k0]
             lu = [k0] + [str(v0[cc]) for cc in col2[1:]]
             ar2.append(lu)
 
