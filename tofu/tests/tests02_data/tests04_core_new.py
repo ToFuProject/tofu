@@ -115,8 +115,8 @@ class Test01_DataHolder(object):
         # conf1 = tfg.utils.create_config(case='B3')
 
         dref = {'t0':{'data': cls.lt[0], 'group': 'time', 'units': 's'},
-                't1':{'data': cls.lt[1], 'group': 'time', 'units': 's'},
-                'r2':{'data': cls.lr[2], 'group': 'time', 'units': 's'}}
+                't1':{'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+                'r2':{'data': cls.lr[2], 'group': 'time', 'units': 'm'}}
         ddata = {'trace00': {'data': cls.ltrace[0], 'refs': ('t0',)},
                  'trace10': {'data': cls.ltrace[2], 'refs': ('t1',)},
                  'trace11': {'data': cls.ltrace[3], 'refs': ('t1','t0')},
@@ -175,6 +175,29 @@ class Test01_DataHolder(object):
         data.add_data('trace31', self.ltrace[7], refs=('t0','r2'))
         assert all([tt in data.ddata.keys()
                     for tt in ['trace00', 'trace11', 'trace31']])
+
+    def tests03_select(self):
+        data = self.lobj[0]
+
+        key = data.select(units='min', returnas=str)
+        assert len(key) == 1 and key[0] == 't1'
+
+        out = data.select(units='a.u.', returnas=int)
+        assert len(out) == 7, out
+
+    def tests04_get_summary(self):
+        data = self.lobj[0]
+        data.get_summary()
+
+    def tests05_getsetaddremove_param(self):
+        data = self.lobj[0]
+
+        out = data.get_param('units')
+        data.set_param('units', 'T', key='trace00')
+        data.add_param('shot', np.arange(0,len(data.ldata)))
+        assert np.all(data.get_param('shot') == np.arange(0,len(data.ldata)))
+        data.remove_param('shot')
+        assert 'shot' not in data.lparam
 
 
 

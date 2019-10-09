@@ -671,7 +671,7 @@ class DataHolder(utils.ToFuObject):
     # Read-only for internal use
     # ---------------------
 
-    def select(self, log='all', return_key=True, **kwdargs):
+    def select(self, log='all', returnas=int, **kwdargs):
         """ Return the indices / keys of data matching criteria
 
         The selection is done comparing the value of all provided parameters
@@ -686,9 +686,10 @@ class DataHolder(utils.ToFuObject):
         """
 
         # Format and check input
+        assert returnas in [int, bool, str, 'key']
         assert log in ['all', 'any', 'raw']
         if log == 'raw':
-            assert not return_key
+            assert returnas == bool
 
         # Get list of relevant criteria
         lcritout = [ss for ss in kwdargs.keys()
@@ -724,11 +725,10 @@ class DataHolder(utils.ToFuObject):
             ind = {lcrit[ii]: ind[ii, :] for ii in range(ncrit)}
 
         # Also return the list of keys if required
-        if return_key:
-            if np.any(ind):
-                out = ind, self.ldata[ind.nonzero()[0]]
-            else:
-                out = ind, np.array([], dtype=str)
+        if returnas == int:
+            out = ind.nonzero()[0]
+        elif returnas in [str, 'key']:
+            out = self.ldata[ind.nonzero()[0]]
         else:
             out = ind
         return out
