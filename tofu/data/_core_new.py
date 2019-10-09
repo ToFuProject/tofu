@@ -60,7 +60,7 @@ class DataHolder(utils.ToFuObject):
     __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id': {'include': ['Mod', 'Cls', 'version']},
+    _ddef = {'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
              'dgroup': ['lref'],
              'dref':   ['group', 'size', 'ldata'],
              'ddata':  ['refs', 'shape', 'groups', 'data'],
@@ -122,7 +122,7 @@ class DataHolder(utils.ToFuObject):
         if Id is not None:
             assert isinstance(Id, utils.ID)
             Name = Id.Name
-        assert isinstance(Name, str), Name
+        # assert isinstance(Name, str), Name
         if include is None:
             include = cls._ddef['Id']['include']
         kwdargs.update({'Name': Name, 'include': include})
