@@ -86,7 +86,7 @@ def teardown_module(module):
 class Test01_DataHolder(object):
 
     @classmethod
-    def setup_class(cls, SavePath='./', verb=False):
+    def setup_class(cls, Name='data1',  SavePath='./', verb=False):
 
         # time vectors
         t0 = np.linspace(0, 10, 10)
@@ -122,7 +122,7 @@ class Test01_DataHolder(object):
                  'trace11': {'data': cls.ltrace[3], 'refs': ('t1','t0')},
                  'trace30': {'data': cls.ltrace[6], 'refs': ('r2',)},
                  'trace31': {'data': cls.ltrace[7], 'refs': ('t0','r2')}}
-        data = tfd.DataHolder(dref=dref, ddata=ddata, Name='data1')
+        data = tfd.DataHolder(dref=dref, ddata=ddata, Name=Name)
         cls.lobj = [data]
 
 
@@ -227,8 +227,27 @@ class Test01_DataHolder(object):
 
     def test23_saveload(self, verb=False):
         for oo in self.lobj:
-            pfe = oo.save(deep=False, verb=verb, return_pfe=True)
-            obj = tfu.load(pfe, verb=verb)
-            # Just to check the loaded version works fine
-            assert oo == obj
-            os.remove(pfe)
+            if oo.Id.Name is None:
+                try:
+                    pfe = oo.save(deep=False, verb=verb, return_pfe=True)
+                except Exception as err:
+                    pass
+            else:
+                pfe = oo.save(deep=False, verb=verb, return_pfe=True)
+                obj = tfu.load(pfe, verb=verb)
+                # Just to check the loaded version works fine
+                assert oo == obj
+                os.remove(pfe)
+
+
+
+
+
+
+class Test02_TimeTraceCollection(Test01_DataHolder):
+
+    @classmethod
+    def setup_class(cls, Name=None,  SavePath='./', verb=False):
+        super(Test02_TimeTraceCollection, cls).setup_class(Name=Name,
+                                                           SavePath=SavePath,
+                                                           verb=verb)

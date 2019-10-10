@@ -175,13 +175,11 @@ class DataHolder(utils.ToFuObject):
         return dparams
 
     def _checkformat_dref(self, dref):
-        c0 = isinstance(dref, dict)
-        c0 = c0 and all([isinstance(kk, str) and isinstance(vv, dict)
-                         for kk, vv in dref.items()])
+        c0 = (isinstance(dref, dict)
+              and all([isinstance(kk, str) for kk in dref.keys()]))
         if not c0:
             msg = "Provided dref must be dict !\n"
             msg += "All its keys must be str !\n"
-            msg += "All its values must be dict !"
             raise Exception(msg)
 
         # Two options:
@@ -194,12 +192,14 @@ class DataHolder(utils.ToFuObject):
                        or not isinstance(v1, dict)
                        for v1 in v0.values()])
                   and 'group' not in v0.keys() for v0 in dref.values()])
-        cB = all([isinstance(v0.get('group', None), str)
+        cB = all([isinstance(v0, dict) and isinstance(v0.get('group', None), str)
                   for v0 in dref.values()])
-        cC = (self._forced_group is not None
-              and all([not isinstance(v0, dict) for v0 in dref.values()]))
+        cC = (not cA and self._forced_group is not None
+              and all([isinstance(v0, dict) and 'group' not in v0.keys()
+                       for v0 in dref.values()]))
         cD = (self._forced_group is not None
-              and all(['group' not in v0.keys() for v0 in dref.values()]))
+              and all([not isinstance(v0, dict) for v0 in dref.values()]))
+        assert np.sum([cA, cB, cC, cD]) <= 1
         if not (cA or cB or cC or cD):
             msg = "Provided dref must formatted either as a dict with:\n\n"
             msg += "    - keys = group, values = {ref: data}:\n"
@@ -234,8 +234,6 @@ class DataHolder(utils.ToFuObject):
             dref = drbis
 
         # Check cC and cD and convert to cB
-        import ipdb         # DB
-        ipdb.set_trace()    # DB
         if cC:
             # Convert to cB
             for k0 in dref.keys():
