@@ -26,11 +26,13 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
     import tofu.data._comp as _comp
+    import tofu.data._comp_new as _comp_new
     import tofu.data._plot as _plot
     import tofu.data._def as _def
     import tofu.data._physics as _physics
 except Exception:
     from . import _comp as _comp
+    from . import _comp_new as _comp_new
     from . import _plot as _plot
     from . import _def as _def
     from . import _physics as _physics
@@ -985,6 +987,41 @@ class DataHolder(utils.ToFuObject):
                 dfail[kk] = str(err)
         return dout, dfail
 
+    # ---------------------
+    # Method for fitting models in one direction
+    # ---------------------
+
+    def _fit_one_dim(ind=None, key=None, group=None,
+                     Type=None, func=None, **kwdargs):
+        """ Return the parameters of a fitted function
+
+        The interpolated data is chosen method select() with args:
+            - key, ind
+
+        Returns:
+        --------
+        dout:       dict
+            dict of interpolated data
+        dfail:  dict of failed interpolations, with error messages
+
+        """
+        # Get keys to interpolate
+        if ind is None and key in None:
+            lk = self._dgroup[group]['ldata']
+        else:
+            lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+
+        dout = {}
+        for kk in lk:
+            x = None
+            axis = None
+            dfit = _comp_new.fit(self._ddata['dict'][kk]['data'],
+                                 x=x, axis=axis,
+                                 func=func, Type=Type, **kwdargs)
+            dout[kk] = dfit
+
+        return dout
+
 
     # ---------------------
     # Methods for plotting data
@@ -1016,6 +1053,38 @@ class TimeTraceCollection(DataHolder):
                                 'units':  (str, 's')}}
 
 
+    def fit(self, ind=None, key=None, group=None,
+            Type='staircase', func=None, plot=True, **kwdargs):
+        """  Fit the times traces with a model
+
+        Typically try to fit plateaux and ramps i.e.: Type = 'staircase')
+        Return a dictionary of the fitted parameters, ordered by data key
+
+        """
+
+        dout = self._fit_one_dim(ind=ind, key=key, group=group,
+                                 Type=Type, func=func, **kwdargs)
+        return dout
+
+   def add_plateaux(self):
+
+       dout = self.fit(ind=ind, key=key, group=group,
+                       Type='staircase')
+
+       # Make Pandas Dataframe attribute
+       self.plateaux = None
+
+
     def plot(self, ind=None, key=None,
-             ax=None):
+             ax=None, fs=None, draw=True, connect=True):
+        _plot_new.plot(self, ind=ind, key=key,
+                       ax=ax, fs=fs, draw=draw, connect=connect)
+
+    def plot_plateaux(self):
+        pass
+
+    def plot_combine(self):
+        pass
+
+    def plot_compare(self):
         pass
