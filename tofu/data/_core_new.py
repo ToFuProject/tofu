@@ -786,7 +786,7 @@ class DataHolder(utils.ToFuObject):
             out = ind
         return out
 
-    def _ind_tofrom_key(self, ind=None, key=None, returnas=int):
+    def _ind_tofrom_key(self, ind=None, key=None, group=None, returnas=int):
 
         # Check / format input
         assert returnas in [int, bool, str, 'key']
@@ -795,6 +795,10 @@ class DataHolder(utils.ToFuObject):
 
         # Initialize output
         out = np.zeros((len(self._ddata['lkey']),), dtype=bool)
+
+        if not any(lc) nd group is not None:
+            key = self._dgroup[group]['ldata']
+            lc[1] = True
 
         # Test
         if lc[0]:
@@ -1006,11 +1010,9 @@ class DataHolder(utils.ToFuObject):
 
         """
         # Get keys to interpolate
-        if ind is None and key in None:
-            lk = self._dgroup[group]['ldata']
-        else:
-            lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+        lk = self._ind_tofrom_key(ind=ind, key=key, group=group, returnas=str)
 
+        # Start model fitting loop on data keys
         dout = {}
         for kk in lk:
             x = None
@@ -1051,10 +1053,12 @@ class TimeTraceCollection(DataHolder):
                                 'quant':  (str, 't'),
                                 'name':   (str, 't'),
                                 'units':  (str, 's')}}
+    _plot_vignettes = False
 
 
-    def fit(self, ind=None, key=None, group=None,
-            Type='staircase', func=None, plot=True, **kwdargs):
+    def fit(self, ind=None, key=None,
+            Type='staircase', func=None,
+            plot=True, fs=None, ax=None, draw=True, **kwdargs):
         """  Fit the times traces with a model
 
         Typically try to fit plateaux and ramps i.e.: Type = 'staircase')
@@ -1062,29 +1066,35 @@ class TimeTraceCollection(DataHolder):
 
         """
 
-        dout = self._fit_one_dim(ind=ind, key=key, group=group,
+        dout = self._fit_one_dim(ind=ind, key=key, group=self._forced_group,
                                  Type=Type, func=func, **kwdargs)
+        if plot:
+            kh = _plot_new.plot_fit_1d(self, dout)
         return dout
 
-   def add_plateaux(self):
+   def add_plateaux(self, verb=False):
 
        dout = self.fit(ind=ind, key=key, group=group,
                        Type='staircase')
 
        # Make Pandas Dataframe attribute
        self.plateaux = None
+       if verb:
+           msg = ""
 
 
-    def plot(self, ind=None, key=None,
-             ax=None, fs=None, draw=True, connect=True):
-        _plot_new.plot(self, ind=ind, key=key,
-                       ax=ax, fs=fs, draw=draw, connect=connect)
+
+
+    def plot(self, ind=None, key=None, axgrid=None,
+             c=None, ls=None, marker=None, ax=None,
+             fs=None, legend=True, draw=True, connect=True):
+        _plot_new.plot_TimeTraceColl(self, ind=ind, key=key,
+                                     c=c, ls=ls, marker=marker, ax=ax,
+                                     axgrid=axgrid, fs=fs, draw=draw,
+                                     legend=legend, connect=connect)
 
     def plot_plateaux(self):
         pass
 
     def plot_combine(self):
-        pass
-
-    def plot_compare(self):
         pass
