@@ -37,7 +37,7 @@ except Exception:
     from . import _def as _def
     from . import _physics as _physics
 
-__all__ = ['DataHolder', 'TimeTraceCollection']
+__all__ = ['DataCollection', 'TimeTraceCollection']
 
 _SAVEPATH = os.path.abspath('./')
 _INTERPT = 'zero'
@@ -50,7 +50,7 @@ _INTERPT = 'zero'
 #############################################
 
 
-class DataHolder(utils.ToFuObject):
+class DataCollection(utils.ToFuObject):
     """ A generic class for handling data
 
     Provides methods for:
@@ -85,10 +85,10 @@ class DataHolder(utils.ToFuObject):
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
         # Python 2
-        super(DataHolder, cls).__init_subclass__(**kwdargs)
+        super(DataCollection, cls).__init_subclass__(**kwdargs)
         # Python 3
         # super().__init_subclass__(**kwdargs)
-        cls._ddef = copy.deepcopy(DataHolder._ddef)
+        cls._ddef = copy.deepcopy(DataCollection._ddef)
         # cls._dplot = copy.deepcopy(Struct._dplot)
         # cls._set_color_ddef(cls._color)
 
@@ -108,12 +108,12 @@ class DataHolder(utils.ToFuObject):
         kwdargs = locals()
         del kwdargs['self']
         # super()
-        super(DataHolder, self).__init__(**kwdargs)
+        super(DataCollection, self).__init__(**kwdargs)
 
     def _reset(self):
         # Run by the parent class __init__()
         # super()
-        super(DataHolder, self)._reset()
+        super(DataCollection, self)._reset()
         self._dgroup = {kd[0]: kd[1] for kd in self._get_keys_dgroup()}
         self._dref = {kd[0]: kd[1] for kd in self._get_keys_dref()}
         self._ddata = {kd[0]: kd[1] for kd in self._get_keys_ddata()}
@@ -569,7 +569,7 @@ class DataHolder(utils.ToFuObject):
 
     def strip(self, strip=0, verb=True):
         # super()
-        super(DataHolder, self).strip(strip=strip, verb=verb)
+        super(DataCollection, self).strip(strip=strip, verb=verb)
 
     def _strip(self, strip=0, verb=True):
         self._strip_ddata(strip=strip, verb=verb)
@@ -830,6 +830,23 @@ class DataHolder(utils.ToFuObject):
         return out
 
     # ---------------------
+    # Methods for getting a subset of the collection
+    # ---------------------
+
+    def get_subset(self, key=None, ind=None, Name=None):
+        if key is None and ind is None:
+            return self
+        else:
+            lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+            lkr = [kr for kr in self._dref['lkey']
+                   if any([kr in self._ddata['dict'][kk]['refs'] for kk in lk])]
+            dref = {kr: self._dref['dict'][kr] for kr in lkr}
+            ddata = {kk: self._ddata['dict'][kk] for kk in lk}
+            if Name is None and self.Id.Name is not None:
+                Name = self.Id.Name + '-subset'
+            return self.__class__(dref=dref, ddata=ddata, Name=Name)
+
+    # ---------------------
     # Methods for showing data
     # ---------------------
 
@@ -889,6 +906,7 @@ class DataHolder(utils.ToFuObject):
             [ar0, ar1, ar2], [col0, col1, col2],
             sep=sep, line=line, table_sep=table_sep,
             verb=verb, return_=return_)
+
 
     # ---------------------
     # Method for interpolating on ref
@@ -1044,7 +1062,7 @@ class DataHolder(utils.ToFuObject):
 #############################################
 
 
-class TimeTraceCollection(DataHolder):
+class TimeTraceCollection(DataCollection):
     """ A generic class for handling multiple time traces """
 
     _forced_group = 'time'
