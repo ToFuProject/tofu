@@ -796,7 +796,7 @@ class DataCollection(utils.ToFuObject):
         # Initialize output
         out = np.zeros((len(self._ddata['lkey']),), dtype=bool)
 
-        if not any(lc) nd group is not None:
+        if not any(lc) and group is not None:
             key = self._dgroup[group]['ldata']
             lc[1] = True
 
@@ -833,18 +833,44 @@ class DataCollection(utils.ToFuObject):
     # Methods for getting a subset of the collection
     # ---------------------
 
+    def get_drefddata_as_input(self, key=None, ind=None):
+        lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+        lkr = [kr for kr in self._dref['lkey']
+               if any([kr in self._ddata['dict'][kk]['refs'] for kk in lk])]
+        dref = {kr: {'data': self._ddata['dict'][kr]['data'],
+                     'group': self._dref['dict'][kr]['group']} for kr in lkr}
+        lkr = dref.keys()
+        ddata = {kk: self._ddata['dict'][kk] for kk in lk if kk not in lkr}
+        return dref, ddata
+
+
     def get_subset(self, key=None, ind=None, Name=None):
         if key is None and ind is None:
             return self
         else:
-            lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
-            lkr = [kr for kr in self._dref['lkey']
-                   if any([kr in self._ddata['dict'][kk]['refs'] for kk in lk])]
-            dref = {kr: self._dref['dict'][kr] for kr in lkr}
-            ddata = {kk: self._ddata['dict'][kk] for kk in lk}
+            dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
             if Name is None and self.Id.Name is not None:
                 Name = self.Id.Name + '-subset'
             return self.__class__(dref=dref, ddata=ddata, Name=Name)
+
+    # ---------------------
+    # Methods for exporting plot collection (subset)
+    # ---------------------
+
+    def to_PlotCollection(self, key=None, ind=None, Name=None,
+                          dnmax=None, lib='mpl'):
+        dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
+        if Name is None and self.Id.Name is not None:
+            Name = self.Id.Name + '-plot'
+        import tofu.data._core_plot as _core_plot
+        if lib == 'mpl':
+            cls = _core_plot.DataCollectionPlot_mpl
+        else:
+            raise NotImplementedError
+        obj = cls(dref=dref, ddata=ddata, Name=Name)
+        if dnmax is not None:
+            obj.set_dnmax(dnmax)
+        return obj
 
     # ---------------------
     # Methods for showing data
@@ -1090,15 +1116,14 @@ class TimeTraceCollection(DataCollection):
             kh = _plot_new.plot_fit_1d(self, dout)
         return dout
 
-   def add_plateaux(self, verb=False):
-
-       dout = self.fit(ind=ind, key=key, group=group,
+    def add_plateaux(self, verb=False):
+        dout = self.fit(ind=ind, key=key, group=group,
                        Type='staircase')
 
-       # Make Pandas Dataframe attribute
-       self.plateaux = None
-       if verb:
-           msg = ""
+        # Make Pandas Dataframe attribute
+        self.plateaux = None
+        if verb:
+            msg = ""
 
 
 
@@ -1110,9 +1135,3 @@ class TimeTraceCollection(DataCollection):
                                      c=c, ls=ls, marker=marker, ax=ax,
                                      axgrid=axgrid, fs=fs, draw=draw,
                                      legend=legend, connect=connect)
-
-    def plot_plateaux(self):
-        pass
-
-    def plot_combine(self):
-        pass
