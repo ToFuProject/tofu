@@ -27,12 +27,14 @@ import tofu.utils as utils
 try:
     import tofu.data._comp as _comp
     import tofu.data._comp_new as _comp_new
+    import tofu.data._plot_new as _plot_new
     import tofu.data._plot as _plot
     import tofu.data._def as _def
     import tofu.data._physics as _physics
 except Exception:
     from . import _comp as _comp
     from . import _comp_new as _comp_new
+    from . import _plot_new as _plot_new
     from . import _plot as _plot
     from . import _def as _def
     from . import _physics as _physics
@@ -797,7 +799,7 @@ class DataCollection(utils.ToFuObject):
         out = np.zeros((len(self._ddata['lkey']),), dtype=bool)
 
         if not any(lc) and group is not None:
-            key = self._dgroup[group]['ldata']
+            key = self._dgroup['dict'][group]['ldata']
             lc[1] = True
 
         # Test
@@ -833,8 +835,8 @@ class DataCollection(utils.ToFuObject):
     # Methods for getting a subset of the collection
     # ---------------------
 
-    def get_drefddata_as_input(self, key=None, ind=None):
-        lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+    def get_drefddata_as_input(self, key=None, ind=None, group=None):
+        lk = self._ind_tofrom_key(ind=ind, key=key, group=group, returnas=str)
         lkr = [kr for kr in self._dref['lkey']
                if any([kr in self._ddata['dict'][kk]['refs'] for kk in lk])]
         dref = {kr: {'data': self._ddata['dict'][kr]['data'],
@@ -844,11 +846,12 @@ class DataCollection(utils.ToFuObject):
         return dref, ddata
 
 
-    def get_subset(self, key=None, ind=None, Name=None):
+    def get_subset(self, key=None, ind=None, group=None, Name=None):
         if key is None and ind is None:
             return self
         else:
-            dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
+            dref, ddata = self.get_drefddata_as_input(key=key, ind=ind,
+                                                      group=group)
             if Name is None and self.Id.Name is not None:
                 Name = self.Id.Name + '-subset'
             return self.__class__(dref=dref, ddata=ddata, Name=Name)
@@ -857,9 +860,9 @@ class DataCollection(utils.ToFuObject):
     # Methods for exporting plot collection (subset)
     # ---------------------
 
-    def to_PlotCollection(self, key=None, ind=None, Name=None,
+    def to_PlotCollection(self, key=None, ind=None, group=None, Name=None,
                           dnmax=None, lib='mpl'):
-        dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
+        dref, ddata = self.get_drefddata_as_input(key=key, ind=ind, group=group)
         if Name is None and self.Id.Name is not None:
             Name = self.Id.Name + '-plot'
         import tofu.data._core_plot as _core_plot
@@ -1078,6 +1081,19 @@ class DataCollection(utils.ToFuObject):
     def plot(self):
         pass
 
+    def _plot_timetraces(self, ntmax=1, group='time',
+                         key=None, ind=None, Name=None,
+                         color=None, ls=None, marker=None, ax=None,
+                         axgrid=None, fs=None, dmargin=None,
+                         legend=None, draw=None, connect=None, lib=None):
+        plotcoll = self.to_PlotCollection(ind=ind, key=key, group=group,
+                                          Name=Name, dnmax={group:ntmax})
+        return _plot_new.plot_DataColl(plotcoll,
+                                       color=color, ls=ls, marker=marker, ax=ax,
+                                       axgrid=axgrid, fs=fs, dmargin=dmargin,
+                                       draw=draw, legend=legend,
+                                       connect=connect, lib=lib)
+
 
 
 
@@ -1128,10 +1144,12 @@ class TimeTraceCollection(DataCollection):
 
 
 
-    def plot(self, ind=None, key=None, axgrid=None,
-             c=None, ls=None, marker=None, ax=None,
-             fs=None, legend=True, draw=True, connect=True):
-        _plot_new.plot_TimeTraceColl(self, ind=ind, key=key,
-                                     c=c, ls=ls, marker=marker, ax=ax,
-                                     axgrid=axgrid, fs=fs, draw=draw,
-                                     legend=legend, connect=connect)
+    def plot(self, **kwdargs):
+        return self._plot_timetraces(**kwdargs)
+
+    def plot_incremental(self, key=None, ind=None,
+                         plateaux=True, connect=True):
+        return
+
+    def plot_plateau_validate(self, key=None, ind=None):
+        return

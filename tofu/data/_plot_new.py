@@ -26,6 +26,7 @@ except Exception:
 
 __all__ = ['plot_TimeTraceColl']
 #__author_email__ = 'didier.vezinet@cea.fr'
+__github = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
 _nchMax, _ntMax, _nfMax, _nlbdMax = 4, 3, 3, 3
 _fontsize = 8
@@ -53,11 +54,13 @@ _BCKCOLOR = 'w'
 
 
 
-def _get_fig_dax_mpl(dcases=None, axgrid=None, dim=1, cross=False, overhead=False,
-                     ntMax=None, nchmax=None, isspectral=None, is2d=None,
-                     sharex=None, sharey=None, sharecross=None,
-                     cross_unique=None, novert=1, noverch=1, bckcolor=None,
-                     wintit=None, tit=None):
+def _get_fig_dax_mpl(dcases=None, axgrid=None,
+                     overhead=False, novert=1, noverch=1,
+                     ntmax=None, nchmax=None,
+                     sharex_t=None, sharey_t=None,
+                     sharex_ch=None, sharey_ch=None,
+                     cross=False, share_cross=None, cross_unique=None,
+                     bckcolor=None, wintit=None, tit=None):
 
     # -----------------
     # Check format input
@@ -78,6 +81,8 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None, dim=1, cross=False, overhead=Fals
         axgrid = False
     if axgrid != False:
         assert dim == 1
+    if dmargin is None:
+        dmargin = _def.dmargin1D
 
     # -----------------
     # Check all cases
@@ -87,21 +92,21 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None, dim=1, cross=False, overhead=Fals
         # Only time traces
         assert all([vv['dim'] == 1 for vv in dcases.values()])
         ncases = len(dcases)
+    elif any([vv.get('isspectral', False) for vv in dcases.values()]):
+        # Spectral case => only one case !
+        assert len(dcases) == i
+        isspectral = True
     else:
         # All time traces to overhead, not counted in ncases
-        ncases, isspectral = 0, False
+        ncases = 0
         for kk, vv in dcases.items():
             if vv['dim'] > 1:
-                if vv['isspectral']:
-                    isspectral = True
                 if vv['is2d']:
-                    dcases[kk]['naxch'] = nchMax
+                    dcases[kk]['naxch'] = nchmax
                 else:
                     dcases[kk]['naxch'] = 1
                 ncases += 1
-        if isspectral:
-            assert ncases == 1
-
+        isspectral = False
 
     # Options
     # (A) time traces vignettes
@@ -110,9 +115,6 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None, dim=1, cross=False, overhead=Fals
     # (D) cam2d with or w/o cross + overhead, nt = 1, 2
     # (E) cam1dspectral with or w/o cross + overhead, nch = 1, 2
     # (F) profile2d with or w/o cross + overhead, nch = 1, 2
-
-    if dmargin is None:
-        dmargin = _def.dmargin1D
 
 
     # -----------------
@@ -128,67 +130,92 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None, dim=1, cross=False, overhead=Fals
     # Check all cases
     # -----------------
 
+    dax = {'lkey': 0, 'dict':{}}
     if axgrid is False:
-        if cE or cF:
+        if isspectral:
             naxvgrid = nchMax + 1 + overhead
         else:
             naxvgrid = ncases + overhead
-        naxhgrid = 1 + (dim > 1) + cross
-        gridax = gridspec.GridSpec(2*naxvgrid, 2*naxhgrid, **dmargin)
+        naxhgrid = 2*2 + cross
+        gridax = gridspec.GridSpec(2*naxvgrid, naxhgrid, **dmargin)
 
         if cD and ntMax == 2:
             naxh = naxhgrid + 1
 
         # Create overead t and ch
         if overhead:
-            dax['over-t'] = [fig.add_subplot(gridax[,:4])
-                             for ii in range(novert)]
-            dax['over-ch'] = fig.add_subplot(gridax[0,:8])
+            for ii in range(novert):
+                key = 'over-t%'%str(ii)
+                i0, i1 = ii*novert, (ii+1)*novert
+                dax['dict'][key] = fig.add_subplot(gridax[i0:i1, :2])
+            for ii in range(noverch):
+                key = 'over-ch%'%str(ii)
+                i0, i1 = ii*noverch, (ii+1)*noverch
+                dax['dict'][key] = fig.add_subplot(gridax[i0:i1, 2:4])
 
             # Add hor
             if cross:
-                dax['hor'] = fig.add_subplot(gridax[:2,8:])
+                dax['dict']['hor'] = fig.add_subplot(gridax[:2,4:])
 
         # Create cross
+        i0 = 2*overhead
         if cross:
             if cross_unique:
-                dax['cross'] = [fig.add_subplot(gridax[2:,8:])]
+                dax['dict']['cross'] = fig.add_subplot(gridax[i0:, 4:])
             else:
-                dax['cross'] = [fig.add_subplot(gridax[2:,8:])
-                               for ii in range(ncases)]
+                for ii in range(ncases):
+                    key = 'cross%s'%str(ii)
+                    ii0 = i0+ii*2
+                    dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, 4:])
 
         # Create time and channel axes
-        dax['t'] = [fig.add_subplot(gridax[ii+2:ii+4, :4])
-                                    for ii in range(ncases)]
+        for ii in range(ncases):
+            key = 't%s'%str(ii)
+            ii0 = i0+ii*2
+            dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, :2])
 
         dax['ch'] = []
         for ii in range(ncases):
-            if cE:
-                dax['ch'].append(fig.add_subplot(gridax[ii+2:ii+4, 4:2*naxhgrid]))
+            if dcases[lcases[ii]].get('is2D', False) == True:
+                ii0 = i0+ii*2
+                for jj in range(nchmax):
+                    key = 'ch%s-%s'%(str(ii), str(jj))
+                    dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, 2+jj])
             else:
-                pass
-
-
+                for ii in range(ncases):
+                    key = 'ch%s'%str(ii)
+                    ii0 = i0+ii*2
+                    dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, 2:4])
 
     else:
         if axgrid == True:
-            naxv, naxh = None
+            nax = int(np.ceil(np.sqrt(ncases)))
+            naxvgrid = nax
+            naxhgrid = int(np.ceil(ncases / nax))
         else:
-            naxv, naxh = axgrid
-        assert naxv*naxh >= ncases
-        gridax = gridspec.GridSpec(naxv, naxh, **dmargin)
-        indv = np.repeat(np.arange(0,naxv), naxh)
-        indh = np.tile(np.arange(0,naxh), naxv)
-        dax = {'axt':[fig.add_subplot(gridax[ii, jj])
-                      for ii, jj in zip(indv, indh)]}
+            naxvgrid, naxhgrid = axgrid
+        assert naxvgrid*naxhgrid >= ncases
+        axgrid = gridspec.GridSpec(naxvgrid, naxhgrid+cross, **dmargin)
+        for ii in range(ncase):
+            i0 = ii % naxvgrid
+            i1 = ii - i0*naxhgrid
+            key = 't%s-%s'%(i0, i1)
+            dax['dict'][key] = fig.add_subplot(gridax[i0, i1])
+
+        if cross:
+            dax['dict']['cross'] = fig.add_subplot(gridax[:, -1])
+
+    dax['lkey'] = sorted(list(dax['dict'].keys()))
+    dax['fig'] = fig
+    dax['can'] = fig.canvas
     return dax
 
 
 
-def plot_TimeTraceColl(coll, ind=None, key=None,
-                       color=None, ls=None, marker=None, ax=None,
-                       fs=None, axgrid=None, dmargin=None,
-                       draw=None, connect=None, lib=None):
+def plot_DataColl(coll,
+                  color=None, ls=None, marker=None, ax=None,
+                  axgrid=None, dmargin=None, legend=None,
+                  fs=None, draw=None, connect=None, lib=None):
 
     # --------------------
     # Check / format input
@@ -208,35 +235,38 @@ def plot_TimeTraceColl(coll, ind=None, key=None,
     # Get keys of data to plot
     # --------------------
 
-    lk = coll._ind_tofrom_key(ind=ind, key=key, returnas=str)
-    nk = len(lk)
-
-    lkr = [kr for kr in coll.lref
-           if any([kr in coll._ddata['dict'][kk]['refs'] for kk in lk])]
-
-
-    collplot = coll.get_subset(ind=ind, key=key)
-    lparplot = ['plot_type', 'dim']
-    if 'plot_type' not in collplot.lparam:
-        collplot.add_param('plot_type')
-
-
+    if len(coll.dgroup) == 1:
+        # TimeTraces
+        dcases = None
+    else:
+        pass
 
     # --------------------
     # Get graphics dict of keys
     # --------------------
 
-    daxg = {}
-    for ss, vv in [('ax', ax), ('color', c), ('ls', ls), ('marker', marker)]:
+
+    # Case with time traces only
+    daxg, lparam = {}, coll.lparam
+    for ss, vv in [('ax', ax), ('color', color), ('ls', ls), ('marker', marker)]:
         if vv is None:
             daxg[ss] = None
             continue
 
-        if vv in coll.lparam:
+        if vv in lparam:
+
+            # get keys with matching vv
             lp = coll.get_param(vv, key=lk, returnas=str)
             dv = {pp: [kk for kk in lk if self._ddata['dict'][kk][pp] == pp]
                   for pp in set(lp)}
+
+            # Set new param ss
+            if ss not in lparam:
+                coll.add_param(ss, value=None)      # TBF
+
         daxg[ss] = dv
+
+    # Case with any type of data => only valid for time traces (True ?)
 
     # Get number of axes
 
@@ -255,21 +285,23 @@ def plot_TimeTraceColl(coll, ind=None, key=None,
     if lib == 'mpl':
         daxg = _get_fig_daxg_mpl(dcases=dcases, axgrid=axgrid,
                                  cross=cross, overhead=overhead,
-                                 ntMax=ntMax, nchMax=nchMax)
+                                 ntmax=ntmax, nchmax=nchmax)
 
-        dax, fig = _make_fig_mpl(fs=fs, dmargin=dmargin, daxg=daxg)
 
     # --------------------
-    # Populate axes
+    # Populate axes with static
     # --------------------
 
 
 
-
+    # --------------------
+    # Populate axes with dynamic (dobj)
+    # --------------------
+    dobj = {}
 
     # --------------------
     # Interactivity
     # --------------------
-    kh = None
+    collplot = None
 
-    return kh
+    return collplot

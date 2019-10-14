@@ -149,6 +149,12 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
         self._dax.update(dax)
         self._dobj.update(dobj)
 
+    # ---------------------
+    # Methods for extracting axes
+    # ---------------------
+
+    def get_lax(self, inkey):
+        return [kk for kk in self._dax['lkey'] if inkey in kk]
 
     # ---------------------
     # Methods for showing data
