@@ -215,7 +215,7 @@ def plot_TimeTraceColl(coll, ind=None, key=None,
            if any([kr in coll._ddata['dict'][kk]['refs'] for kk in lk])]
 
 
-    collplot = coll.get_subcoll(ind=ind, key=key)
+    collplot = coll.get_subset(ind=ind, key=key)
     lparplot = ['plot_type', 'dim']
     if 'plot_type' not in collplot.lparam:
         collplot.add_param('plot_type')

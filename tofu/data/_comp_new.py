@@ -11,11 +11,6 @@ import numpy as np
 # import scipy.linalg as scplin
 # import scipy.stats as scpstats
 
-# _fmin_coef = 5.
-# _ANITYPE = 'sca'
-# _FILLVALUE = np.nan
-
-_DTYPES = {'staircase': _fit1d_staircase}
 
 
 
@@ -34,6 +29,12 @@ def fit_1d(data, x=None, axis=None, Type=None, func=None,
 
 
     if lc[0]:
+
+
+        # Pre-defined models dict
+        # ------------------------
+
+        _DTYPES = {'staircase': _fit1d_staircase}
 
         # Use a pre-defined model
         # ------------------------
