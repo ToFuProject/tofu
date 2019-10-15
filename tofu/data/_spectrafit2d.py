@@ -329,11 +329,19 @@ def get_func_x0_from_y():
     return
 
 
-
-def fit_spectra2d_single_from_center():
-
-
+def coord_transform(ang_in, ang_cone, xc, yc, rot, ang_plane, ang_rot, Z):
+    x1 = None
+    X2 = None
     return
+
+
+def coord_transform(x, y, xc, yc, ang_rot, ang_plane, Z):
+    """ Return the coordinates transform of (x,y) in (ang_cone, ang_in) """
+    x1 = (x-xc)*np.cos(ang_rot)
+    X2 = None
+    X2 = None
+    return
+
 
 
 
