@@ -40,6 +40,9 @@ _cbck = (0.8,0.8,0.8)
 _dmarker = {'ax':'o', 'x':'x'}
 
 
+
+_OVERHEAD = True
+_CROSS = True
 _DRAW = True
 _CONNECT = True
 _AXGRID = False
@@ -212,8 +215,9 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
 
 
 
-def plot_DataColl(coll,
+def plot_DataColl(coll, overhead=None,
                   color=None, ls=None, marker=None, ax=None,
+                  cross=None, share_cross=None, cross_unique=None,
                   axgrid=None, dmargin=None, legend=None,
                   fs=None, draw=None, connect=None, lib=None):
 
@@ -221,6 +225,15 @@ def plot_DataColl(coll,
     # Check / format input
     # --------------------
 
+    if overhead is None:
+        overhead = _OVERHEAD
+    if cross is None:
+        if 'Plasma' in coll.__class__.__name__:
+            cross = _CROSS
+        else:
+            cross = False
+    if share_cross is None and cross:
+        share_cross = False
     if draw is None:
         draw = _DRAW
     if connect is None:
@@ -277,9 +290,6 @@ def plot_DataColl(coll,
     # Get array of axes positions as a dict
     dim = len(coll.lgroup)
     config = None
-    if overhead is None:
-        overhead = ('Plasma' in coll.__class__.__name__
-                    or 'Cam' in coll.__class__.__name__)
     spectral = coll.isspectral
 
     if lib == 'mpl':
