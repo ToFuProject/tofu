@@ -20,7 +20,7 @@ import tofu.data as tfd
 import tofu.utils as tfu
 
 _here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.data.DataHolder'
+VerbHead = 'tofu.data.DataCollection'
 
 
 #######################################################
@@ -83,7 +83,7 @@ def teardown_module(module):
 #######################################################
 
 
-class Test01_DataHolder(object):
+class Test01_DataCollection(object):
 
     @classmethod
     def setup_class(cls, Name='data1',  SavePath='./', verb=False):
@@ -122,7 +122,7 @@ class Test01_DataHolder(object):
                  'trace11': {'data': cls.ltrace[3], 'refs': ('t1','t0')},
                  'trace30': {'data': cls.ltrace[6], 'refs': ('r2',)},
                  'trace31': {'data': cls.ltrace[7], 'refs': ('t0','r2')}}
-        data = tfd.DataHolder(dref=dref, ddata=ddata, Name=Name)
+        data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
         cls.lobj = [data]
 
 
@@ -144,7 +144,7 @@ class Test01_DataHolder(object):
         ddata = {'trace00': self.ltrace[0], 'trace10': self.ltrace[2],
                  'trace11': self.ltrace[3],
                  'trace30': self.ltrace[6], 'trace31': self.ltrace[7]}
-        data2 = tfd.DataHolder(dref=dref, ddata=ddata, Name='data2')
+        data2 = tfd.DataCollection(dref=dref, ddata=ddata, Name='data2')
 
         print(self.lobj[0] == data2)
 
@@ -244,7 +244,7 @@ class Test01_DataHolder(object):
 
 
 
-class Test02_TimeTraceCollection(Test01_DataHolder):
+class Test02_TimeTraceCollection(Test01_DataCollection):
 
     @classmethod
     def setup_class(cls, Name=None,  SavePath='./', verb=False):
