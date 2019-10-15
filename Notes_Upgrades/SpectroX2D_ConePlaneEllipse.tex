@@ -1,0 +1,317 @@
+\documentclass[a4paper,11pt,twoside,titlepage,openright]{book}
+
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\usepackage[margin=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{epsfig,amsfonts}
+\usepackage{xcolor,import}
+
+
+\pagestyle{plain}
+
+\newcommand{\ud}[1]{\underline{#1}}
+\newcommand{\lt}{\left}
+\newcommand{\rt}{\right}
+\DeclareMathOperator{\e0}{\epsilon_0}
+\DeclareMathOperator{\n}{\underline{n}}
+\DeclareMathOperator{\ei}{\underline{e}_1}
+\DeclareMathOperator{\et}{\underline{e}_2}
+\DeclareMathOperator{\ex}{\underline{e}_x}
+\DeclareMathOperator{\ey}{\underline{e}_y}
+\DeclareMathOperator{\ez}{\underline{e}_z}
+\DeclareMathOperator{\DD}{\cos(\theta)^2 - \sin(\psi)^2}
+\newcommand{\wdg}{\wedge}
+\newcommand{\hypot}[1]{\textbf{\textcolor{green}{#1}}}
+
+
+\begin{document}
+
+\title{ToFu geometric tools\\ Intersection of a cone with a plane}
+\author{Didier VEZINET}
+\date{15.10.2019}
+\maketitle
+
+\tableofcontents
+
+\chapter{Geometry}
+\label{chap:Definitions}
+
+\section{Generic cone and plane}
+
+Let's consider a half-cone $C_1$ (defined only for $z > 0$), with summit on the cartesian frame's origin $(O, \ex, \ey, \ez)$.
+The cone's axis is the $(O,\ez)$ axis.
+It's angular opening is $\theta$.
+
+Let's consider plane $P_1$, of normal $\n$, intersection axis $(O,\ez)$ at point $F$ of coordinates $(0,0,Z_F)$.
+Vector $\n$ is oriented by angles $\phi$ and $\psi$ such that one can define the local frame $(F, \ei, \et, \n)$:
+$$
+\lt\{
+	\begin{array}{ll}
+		\ei & = \cos(\phi)\ex + \sin(\phi)\ey\\
+		\et & = \lt(-\sin(\phi)\ex + \cos(\phi)\ey\rt)\cos(\psi) + \sin(\psi)\ez\\
+		\n & = \ei \wdg \et\\
+		   & = \lt( \sin(\phi)\ex - \cos(\phi)\ey \rt)\sin(\psi) + \cos(\psi)\ez
+	\end{array}
+\rt.
+$$
+
+We want to find all points $M$ of coordinates $(x, y, z)$ and $(x_1, x_2)$ belonging both to the cone $C_1$ and the plane $P_1$.
+
+$$
+M \in F_1 \Leftrightarrow \underline{OM}.\ez = \cos(\theta) \|\underline{OM}\|
+$$
+
+$$
+M \in P_1 \Leftrightarrow \underline{FM}.\n = 0
+$$
+
+
+\section{Intersection}
+
+If $M$ belongs to both $P_1$ and $C_1$, then:
+$$
+(\underline{OM}.\ez)^2 = \cos(\theta)^2 \|\underline{OM}\|^2
+$$
+
+Given that:
+$$
+\begin{array}{lll}
+	\underline{OM} & = \underline{OF} + \underline{FM}\\
+		       & = Z_F\ez + x_1\ei + x_2\et\\
+		       & = Z_F\ez + x_1\lt(\cos(\phi)\ex + \sin(\phi)\ey\rt) + x_2\lt(\lt(-\sin(\phi)\ex + \cos(\phi)\ey\rt)\cos(\psi) + \sin(\psi)\ez\rt)\\
+		       & = Z_F\ez + x_1\cos(\phi)\ex + x_1\sin(\phi)\ey - x_2\sin(\phi)\cos(\psi)\ex + x_2\cos(\phi)\cos(\psi)\ey + x_2\sin(\psi)\ez\\
+	               & = \lt(x_1\cos(\phi) - x_2\sin(\phi)\cos(\psi)\rt)\ex + \lt(x_1\sin(\phi) + x_2\cos(\phi)\cos(\psi)\rt)\ey + \lt(Z_F + x_2\sin(\psi)\rt)\ez\\
+\end{array}
+$$
+
+We have:
+$$
+\begin{array}{lll}
+	(\underline{OM}.\ez)^2  & = \lt(Z_F + x_2\sin(\psi)\rt)^2\\
+				& = Z_F^2 + 2Z_Fx_2\sin(\psi) + x_2^2\sin(\psi)^2
+\end{array}
+$$
+
+And:
+$$
+\begin{array}{lll}
+	\|\underline{OM}\|^2 	& = & \| \lt(x_1\cos(\phi) - x_2\sin(\phi)\cos(\psi)\rt)\ex + \lt(x_1\sin(\phi) + x_2\cos(\phi)\cos(\psi)\rt)\ey + \lt(Z_F + x_2\sin(\psi)\rt)\ez\|^2\\
+				& = & \lt( x_1\cos(\phi) - x_2\sin(\phi)\cos(\psi) \rt)^2\\
+				&   & + \lt(x_1\sin(\phi) + x_2\cos(\phi)\cos(\psi)\rt)^2\\
+				&   & + \lt(Z_F + x_2\sin(\psi)\rt)^2\\
+				& = & x_1^2\cos(\phi)^2 - 2x_1x_2\cos(\phi)\sin(\phi)\cos(\psi) + x_2^2\sin(\phi)^2\cos(\psi)^2\\
+				&   & + x_1^2\sin(\phi)^2 + 2x_1x_2\sin(\phi)\cos(\phi)\cos(\psi) + x_2^2\cos(\phi)^2\cos(\psi)^2\\
+				&   & + Z_F^2  + 2Z_Fx_2\sin(\psi) + x_2^2\sin(\psi)^2\\
+				& = & x_1^2 + x_2^2\cos(\psi)^2\\
+				&   & + Z_F^2  + 2Z_Fx_2\sin(\psi) + x_2^2\sin(\psi)^2\\
+				& = & x_1^2 + x_2^2 + 2Z_Fx_2\sin(\psi) + Z_F^2\\
+\end{array}
+$$
+
+Thus:
+$$
+\begin{array}{lll}
+	& (\underline{OM}.\ez)^2 = \cos(\theta)^2 \|\underline{OM}\|^2\\
+	\Leftrightarrow & Z_F^2 + 2Z_Fx_2\sin(\psi) + x_2^2\sin(\psi)^2 = \cos(\theta)^2 \lt(x_1^2 + x_2^2 + 2Z_Fx_2\sin(\psi) + Z_F^2\rt)\\
+	\Leftrightarrow & Z_F^2\lt(1-\cos(\theta)^2\rt) + 2Z_Fx_2\sin(\psi)\lt(1-\cos(\theta)^2\rt) = x_1^2\cos(\theta)^2 + x_2^2\lt(\cos(\theta)^2 - \sin(\psi)^2\rt)\\
+	\Leftrightarrow & Z_F^2\sin(\theta)^2 + 2Z_Fx_2\sin(\psi)\sin(\theta)^2 = x_1^2\cos(\theta)^2 + x_2^2\lt(\cos(\theta)^2 - \sin(\psi)^2\rt)\\
+\end{array}
+$$
+
+Considering that by hypothesis $\theta>0$:
+$$
+\begin{array}{lll}
+	& (\underline{OM}.\ez)^2 = \cos(\theta)^2 \|\underline{OM}\|^2\\
+	\Leftrightarrow & x_1^2\cos(\theta)^2 + x_2^2\lt(\DD\rt) - 2Z_Fx_2\sin(\psi)\sin(\theta)^2 - Z_F^2\sin(\theta)^2 = 0\\
+\end{array}
+$$
+
+This looks like an almost reduced conic equation, except that $x_2$ needs to be rescaled, because $F$, the intersection between the axis $(O, \ez)$ and plane $P_1$ is in fact not the center of the conic but one of its focal points.\\
+Computing the $x_2$ coordinate of the center is easy by testing the particular case $x_1=0$, finding 2 solutions (the two extrema of the conic), and taking the middle.
+
+$$
+\begin{array}{lll}
+	& x_1 = 0\\
+	\Rightarrow & x_2^2\lt(\DD\rt) - 2Z_Fx_2\sin(\psi)\sin(\theta)^2 - Z_F^2\sin(\theta)^2 = 0\\
+\end{array}
+$$
+
+Introducing
+$$
+\begin{array}{lll}
+	\Delta & = 4Z_F^2\sin(\psi)^2\sin(\theta)^4 + 4Z_F^2\sin(\theta)^2\lt(\DD\rt)\\
+	       & = 4Z_F^2\sin(\theta)^2 \lt( \sin(\psi)^2\sin(\theta)^2 + \DD \rt)\\
+	       & = 4Z_F^2\sin(\theta)^2 \lt( -\sin(\psi)^2\cos(\theta)^2 + \cos(\theta)^2 \rt)\\
+	       & = 4Z_F^2\sin(\theta)^2 \cos(\theta)^2\cos(\psi)^2
+\end{array}
+$$
+
+Hence, solutions always exist.
+The solutions are:
+$$
+\begin{array}{lll}
+	x_2^{1,2} & = \frac{2Z_F\sin(\psi)\sin(\theta)^2  \pm 2Z_F\sin(\theta) \cos(\theta) \cos(\psi)}{2\lt(\DD\rt)}\\
+	          & = Z_F\sin(\theta) \frac{\sin(\psi)\sin(\theta) \pm \cos(\theta)\cos(\psi)}{\DD}
+\end{array}
+$$
+
+Thus, the average is:
+$$
+\begin{array}{lll}
+	x_2(C) = <x_2^{1,2}> & = \frac{1}{2} 2 Z_F\sin(\theta) \frac{\sin(\psi)\sin(\theta)}{\DD}
+	                      & = Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD}
+\end{array}
+$$
+
+Hence, let's introduce the new coordinate:
+$$
+X_2 = x_2 - x_2(C) = x_2 - Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD}
+$$
+
+Then:
+$$
+\begin{array}{lll}
+	& X_2^2 & = x_2^2 - 2Z_Fx_2\sin(\theta)^2 \frac{\sin(\psi)}{\DD} + \sin(\theta)^4 \lt[\frac{\sin(\psi)}{\DD}\rt]^2\\
+	\Leftrightarrow & X_2^2\lt(\DD\rt) & = x_2^2\lt(\DD\rt) - 2Z_Fx_2\sin(\theta)^2\sin(\psi) + \sin(\theta)^4 \frac{\sin(\psi)^2}{\DD}\\
+\end{array}
+$$
+
+Hence:
+
+$$
+\begin{array}{lll}
+	& (\underline{OM}.\ez)^2 = \cos(\theta)^2 \|\underline{OM}\|^2\\
+	\Leftrightarrow & x_1^2\cos(\theta)^2 + X_2^2\lt(\DD\rt) - \frac{\sin(\psi)^2\sin(\theta)^4}{\DD} - Z_F^2\sin(\theta)^2 = 0\\
+	\Leftrightarrow & x_1^2\cos(\theta)^2 + X_2^2\lt(\DD\rt) = \lt[\frac{\sin(\psi)^2\sin(\theta)^2}{\DD} + Z_F^2\rt]\sin(\theta)^2\\
+\end{array}
+$$
+
+Of the form $\frac{x_1^2}{a^2} + \frac{X_2^2}{b^2} = 1$:
+$$
+\begin{array}{lll}
+	& \frac{x_1^2}{\lt[\frac{\sin(\psi)^2\sin(\theta)^2}{\DD} + Z_F^2\rt]\tan(\theta)^2} + \frac{X_2^2}{\lt[\frac{\sin(\psi)^2\sin(\theta)^2}{\DD} + Z_F^2\rt]\frac{\sin(\theta)^2}{\DD}} = 1\\
+\end{array}
+$$
+
+With $b^2 = \lt(1-\frac{\sin(\psi)^2}{\cos(\theta)^2}\rt)a^2$
+
+\section{Focal-centered polar coordinates}
+
+In our case, only the axes $(O, \ez)$, fixed by the crystal's summit and normal, is independent from the cone's angular opening $\theta$.
+It makes sense to design an ad-hoc coordinate system centered not on the ellipse's center $C$, but on the focal point $F$.
+The ellipse will be parameterized by an angle $\epsilon$ around $F$, which is in fact the angle around the crystal's summit $O$ at which the ray beam is coming / leaving.
+The other coordinate will thus be the radius $r$, in the plane, from $F$.
+
+We have seen that the ellipse can be defined by:
+$$
+\begin{array}{lll}
+	& \frac{x_1^2}{\lt[\frac{\sin(\psi)^2\sin(\theta)^2}{\DD} + Z_F^2\rt]\tan(\theta)^2} + \frac{X_2^2}{\lt[\frac{\sin(\psi)^2\sin(\theta)^2}{\DD} + Z_F^2\rt]\frac{\sin(\theta)^2}{\DD}} = 1\\
+\end{array}
+$$
+
+By definition, in the local frame defined from the plane's orientation:
+$$
+\ud{FM} = r\cos(\epsilon)\ei + r\sin(\epsilon)\et
+$$
+
+Hence:
+$$
+\lt\{
+	\begin{array}{ll}
+		r\cos(\epsilon) = x_1\\
+		r\sin(\epsilon) = x_2 = X_2 + Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD}
+	\end{array}{ll}
+\rt.
+$$
+
+Necesarrily:
+$$
+r^2 = x_1^2 + \lt(X_2 + Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD}\rt)^2
+$$
+
+
+
+
+%\section{Coordinate Transforms}
+
+%Let's consider the same cone and plane as before.
+%But this time we are looking at a small fraction of the ellipse, the fraction intersecting a bounded box on the plane, with a local frame $(R, \ud{e}_i, \ud{e}_j)$, rotated by an angle $\ksi$ from the natural plane frame such that:
+%$$
+%\lt\{
+	%\begin{array}{lll}
+		%\ud{e}_i = \cos(\ksi)\ei + \sin(\ksi)\et\\
+		%\ud{e}_j = -\sin(\ksi)\ei + \cos(\ksi)\et\\
+	%\end{array}
+%\rt.
+%$$
+
+%And reciprocately:
+%$$
+%\lt\{
+	%\begin{array}{lll}
+		%\ei = \cos(\ksi)\ud{e}_i - \sin(\ksi)\ud{e}_j\\
+		%\et = \sin(\ksi)\ud{e}_i + \cos(\ksi)\ud{e}_j\\
+	%\end{array}
+%\rt.
+%$$
+
+%Such that:
+%$$
+%\begin{array}{lll}
+	%\ud{CM} & = \ud{CR} + \ud{RM}\\
+		%& = x_1(R)\ei + X_2(R)\et + i\ud{e}_i + j\ud{e}_j\\
+		%& = \lt(x_1(R) + i\cos(\ksi) - j\sin(\ksi)\rt)\ei + \lt(X_2(R) + i\sin(\ksi) + j\cos(\ksi)\rt)\et\\
+%\end{array}
+%$$
+
+%Keeping in mind that:
+%$$
+%X_2 = x_2 - Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD}
+%$$
+
+%We can write:
+%$$
+%x_1 = x_1(R) + i\cos(\ksi) - j\sin(\ksi)
+%X_2 = x_2(R) - Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD} + i\sin(\ksi) + j\cos(\ksi)
+%$$
+
+%We want to easily transform between $(i,j)$ and $(\theta, \espilon)$, where $\epsilon$ is the angle of a point along the ellipse of cone width $\theta$, with respect to its center $C$.
+
+
+%\subsection{From cone to local cartesian}
+
+%Knowing all geometrical parameters, we can infer:
+%$$
+%\begin{array}{lll}
+	%\underline{RM}  & = i\ud{e}_i + j\ud{e}_j\\
+			%& = \underline{RC} + \underline{CM}\\
+			%& = -x_1(R)\ei - X_2(R)\et + x_1\ei + X_2\et\\
+%\end{array}
+%$$
+
+
+
+
+%\subsection{From local cartesian to cone}
+
+%$$
+%x1 =
+%$$
+
+
+
+\appendix
+\chapter{Acceleration radiation from a unique point-like charge}
+
+\section{Retarded time and potential}
+\subsection{Retarded time}
+
+
+Hence $\frac{dR(t_r)}{c} + dt_r = dt$
+
+
+\end{document}
