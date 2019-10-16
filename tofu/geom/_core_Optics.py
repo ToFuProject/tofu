@@ -567,7 +567,7 @@ class CrystalBragg(utils.ToFuObject):
         Z = float(Z)
 
         frame_cent = np.atleast_1d(frame_cent).ravel()
-        assert frame_cent.size == 2
+        ssue202_SpectroX2DCrystalassert frame_cent.size == 2
         frame_ang = float(frame_ang)
 
         ang_bragg = np.atleast_1d(ang_bragg).ravel()
