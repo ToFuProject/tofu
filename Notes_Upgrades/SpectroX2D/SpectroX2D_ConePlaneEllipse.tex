@@ -192,7 +192,9 @@ $$
 \rt.
 $$
 
-Keep in mind that the frame $(P, \ei, \et)$ is, by definition ligned on the minor and major axes of the ellipse.
+\subsection{From bragg angle and to local cartesian coordinates}
+
+Keep in mind that the frame $(P, \ei, \et)$ is, by definition aligned on the minor and major axes of the ellipse.
 Hence, for an arbitrary frame $(R, \ud{e}_i, \ud{e}_j)$ on plane $P_1$, translated and rotated by $\alpha$ with respect to $(P, \ei, \et)$:
 
 $$
@@ -229,90 +231,87 @@ $$
 $$
 
 
+\subsection{From local cartesian coordinates to bragg angle}
+
+Knowing $(x_i, x_j)$ and all geometric parameters, we now want to derive $(\theta, \epsilon)$.
+
+From the previous equation, we can write:
+$$
+\lt\{
+	\begin{array}{lll}
+        x_i\cos(\alpha) - x_j\sin(\alpha) = a\cos(\epsilon)-x_1(R) & (1)\\
+        x_i\sin(\alpha) + x_j\cos(\alpha) = x_2(C)-x_2(R) + b\sin(\epsilon) &
+        (2)
+	\end{array}
+\rt.
+$$
+
+The dependency in $\theta$ is hidden in the expressions of $a$, $b$ and
+$x_2(C)$.
+
+By squaring and summing, it is possible to get rid of the $\epsilon$
+dependency:
+$$
+\lt\{
+	\begin{array}{lll}
+        a^2\cos(\epsilon)^2 = \lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
+        x_1(R)\rt)^2\\
+        b^2\sin(\epsilon)^2 = \lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
+        x_2(R)\rt)^2
+	\end{array}
+\rt.
+$$
+
+Hence, keeping in mind that $a^2 = b^2\frac{\DD}{\cos(\theta)^2}$:
+$$
+\begin{array}{lll}
+    & b^2 = \frac{\cos(\theta)^2}{\DD}\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
+    x_1(R)\rt)^2 + \lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
+    x_2(R)\rt)^2\\
+    \Leftrightarrow &
+    b^2\DD = \cos(\theta)^2\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
+    x_1(R)\rt)^2 + \lt(\DD\rt)\lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
+    x_2(R)\rt)^2\\
+    \Leftrightarrow &
+    Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2}{\DD} = \cos(\theta)^2\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
+    x_1(R)\rt)^2 + \lt(\DD\rt)\lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
+    x_2(R)\rt)^2\\
+    \Leftrightarrow &
+    Z_P^2\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 = \cos(\theta)^2\lt\DD\rt)\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
+    x_1(R)\rt)^2 + \lt(\DD\rt)^2\lt(x_i\sin(\alpha) + x_j\cos(\alpha) - Z_P\frac{\sin(\psi)\sin(\theta)^2}{\DD} +
+    x_2(R)\rt)^2\\
+\end{array}
+$$
 
 
 
+$$
+\lt\{
+	\begin{array}{lll}
+		x_2(c) & = z_p\frac{\sin(\psi)\sin(\theta)^2}{\dd}\\
+        a & = z_p\frac{\sin(\theta)\cos(\psi)}{\sqrt{\dd}}\\
+		b & = z_p\frac{\sin(\theta)\cos(\psi)\cos(\theta)}{\dd}
+	\end{array}
+\rt.
+$$
 
-
-
-
-
-%\section{Coordinate Transforms}
-
-%Let's consider the same cone and plane as before.
-%But this time we are looking at a small fraction of the ellipse, the fraction intersecting a bounded box on the plane, with a local frame $(R, \ud{e}_i, \ud{e}_j)$, rotated by an angle $\ksi$ from the natural plane frame such that:
-%$$
-%\lt\{
-	%\begin{array}{lll}
-		%\ud{e}_i = \cos(\ksi)\ei + \sin(\ksi)\et\\
-		%\ud{e}_j = -\sin(\ksi)\ei + \cos(\ksi)\et\\
-	%\end{array}
-%\rt.
-%$$
-
-%And reciprocately:
-%$$
-%\lt\{
-	%\begin{array}{lll}
-		%\ei = \cos(\ksi)\ud{e}_i - \sin(\ksi)\ud{e}_j\\
-		%\et = \sin(\ksi)\ud{e}_i + \cos(\ksi)\ud{e}_j\\
-	%\end{array}
-%\rt.
-%$$
-
-%Such that:
-%$$
-%\begin{array}{lll}
-	%\ud{CM} & = \ud{CR} + \ud{RM}\\
-		%& = x_1(R)\ei + X_2(R)\et + i\ud{e}_i + j\ud{e}_j\\
-		%& = \lt(x_1(R) + i\cos(\ksi) - j\sin(\ksi)\rt)\ei + \lt(X_2(R) + i\sin(\ksi) + j\cos(\ksi)\rt)\et\\
-%\end{array}
-%$$
-
-%Keeping in mind that:
-%$$
-%X_2 = x_2 - Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD}
-%$$
-
-%We can write:
-%$$
-%x_1 = x_1(R) + i\cos(\ksi) - j\sin(\ksi)
-%X_2 = x_2(R) - Z_F\sin(\theta)^2 \frac{\sin(\psi)}{\DD} + i\sin(\ksi) + j\cos(\ksi)
-%$$
-
-%We want to easily transform between $(i,j)$ and $(\theta, \espilon)$, where $\epsilon$ is the angle of a point along the ellipse of cone width $\theta$, with respect to its center $C$.
-
-
-%\subsection{From cone to local cartesian}
-
-%Knowing all geometrical parameters, we can infer:
-%$$
-%\begin{array}{lll}
-	%\underline{RM}  & = i\ud{e}_i + j\ud{e}_j\\
-			%& = \underline{RC} + \underline{CM}\\
-			%& = -x_1(R)\ei - X_2(R)\et + x_1\ei + X_2\et\\
-%\end{array}
-%$$
-
-
-
-
-%\subsection{From local cartesian to cone}
-
-%$$
-%x1 =
-%$$
+Hence:
+$$
+\lt\{
+    \begin{array}{lll}
+        \lt(x_i\cos(\alpha) - x_j\sin(\alpha) + x_1(R)\rt)\sqrt{\dd} = z_p\sin(\theta)\cos(\psi)\cos(\epsilon)\\
+        \lt(x_i\sin(\alpha) + x_j\cos(\alpha) + x_2(R)\rt)\dd =
+        z_p\sin(\theta)\lt(\sin(\psi)\sin(\theta) + \cos(\psi)\cos(\theta)\sin(\epsilon)\rt)
+    \end{array}
+\rt.
+$$
 
 
 
 \appendix
-\chapter{Acceleration radiation from a unique point-like charge}
+\chapter{Appendices}
 
-\section{Retarded time and potential}
-\subsection{Retarded time}
-
-
-Hence $\frac{dR(t_r)}{c} + dt_r = dt$
-
+\section{Section}
+\subsection{Subsection}
 
 \end{document}
