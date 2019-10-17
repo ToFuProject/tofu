@@ -452,12 +452,20 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
 
     def get_bragg_from_lamb(self, lamb, n=1):
-        """ Braggs' law: n*lamb = 2dsin(theta) """
+        """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
             msg = "Instance mesh size not set !\n"
             msg += "  => please provide d !"
             raise Exception(msg)
         return _comp_optics.get_bragg_from_lamb(lamb, d, n=n)
+
+    def get_lamb_from_bragg(self, bragg, n=1):
+        """ Braggs' law: n*lamb = 2dsin(bragg) """
+        if self._dmat['d'] is None:
+            msg = "Instance mesh size not set !\n"
+            msg += "  => please provide d !"
+            raise Exception(msg)
+        return _comp_optics.get_lamb_from_bragg(lamb, d, n=n)
 
     @classmethod
     def calc_xixj_from_braggangle(cls,
@@ -513,7 +521,8 @@ class CrystalBragg(utils.ToFuObject):
     @classmethod
     def calc_braggangle_from_xixj(cls,
                                   Z, nn, frame_cent, frame_ang,
-                                  xi, xj, plot=True, ax=None):
+                                  xi, xj,
+                                  plot=True, ax=None, **kwdargs):
 
         nIn = np.array([0., 0., 1.])
         out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
@@ -521,19 +530,47 @@ class CrystalBragg(utils.ToFuObject):
         e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nIn)
         xi = np.atleast_1d(xi).ravel()
         xj = np.atleast_1d(xj).ravel()
-        theta = _comp_optics.calc_braggangle_from_xixj(xi, xj, Z, nn,
-                                                       frame_cent, frame_ang,
-                                                       nIn, e1, e2)
+        bragg, ang = _comp_optics.calc_braggangle_from_xixj(xi, xj, Z, nn,
+                                                            frame_cent, frame_ang,
+                                                            nIn, e1, e2)
 
-        if plot:
+        if plot != False:
+            braggplot = bragg.T * 180./np.pi
+            angplot = ang.T * 180./np.pi
+            if isinstance(plot, bool):
+                plot = 'contour'
+
             if ax is None:
                 fig = plt.figure()
-                ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
-            ax.pcolor(xi, xj, theta)
-            #ax.plot(Ci[:,ii], Cj[:,ii], 'x', label='bragg %s - center'%deg)
-            ax.set_xlabel(r'xi')
-            ax.set_ylabel(r'yi')
-            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
-            return theta, ax
+                ax0 = fig.add_axes([0.1, 0.1, 0.35, 0.8], aspect='equal')
+                ax1 = fig.add_axes([0.55, 0.1, 0.35, 0.8], aspect='equal')
+                ax = [ax0, ax1]
+            if plot == 'contour':
+                if 'levels' in kwdargs.keys():
+                    lvls = kwdargs['levels']
+                    del kwdargs['levels']
+                    obj = ax[0].contour(xi, xj, braggplot, lvls, **kwdargs)
+                    obj = ax[1].contour(xi, xj, angplot, lvls, **kwdargs)
+                else:
+                    obj = ax[0].contour(xi, xj, braggplot, **kwdargs)
+                    obj = ax[1].contour(xi, xj, angplot, **kwdargs)
+            elif plot == 'imshow':
+                extent=(xi.min(), xi.max(), xj.min(), xj.max())
+                obj = ax[0].imshow(braggplot, extent=extent, aspect='equal',
+                                   adjustable='datalim', **kwdargs)
+                obj = ax[1].imshow(angplot, extent=extent, aspect='equal',
+                                   adjustable='datalim', **kwdargs)
+            elif plot == 'pcolor':
+                obj = ax[0].pcolor(xi, xj, braggplot, **kwdargs)
+                obj = ax[1].pcolor(xi, xj, angplot, **kwdargs)
+            ax[0].set_xlabel(r'xi')
+            ax[1].set_xlabel(r'xi')
+            ax[0].set_ylabel(r'yi')
+            ax[1].set_ylabel(r'yi')
+            cax0 = plt.colorbar(obj, ax=ax[0])
+            cax1 = plt.colorbar(obj, ax=ax[1])
+            cax0.ax.set_ylabel(r'$\theta_{bragg}$ (deg)')
+            cax1.ax.set_ylabel(r'$ang$ (deg)')
+            return bragg, ang, ax
         else:
-            return theta
+            return bragg, ang
