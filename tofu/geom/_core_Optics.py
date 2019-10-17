@@ -23,12 +23,12 @@ import tofu.utils as utils
 try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
-    import tofu.geom._comp as _comp
+    import tofu.geom._comp_optics as _comp_optics
     import tofu.geom._plot as _plot
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
-    from . import _comp as _comp
+    from . import _comp_optics as _comp_optics
     from . import _plot as _plot
 
 __all__ = ['CrystalBragg']
@@ -451,34 +451,19 @@ class CrystalBragg(utils.ToFuObject):
     # methods for generic first-approx
     # -----------------
 
-    @classmethod
-    def _get_bragg_from_lamb(cls, lamb, d, n=1):
-        lamb = np.atleast_1d(lamb).ravel()
-        nord = np.atleast_1d(n).ravel()
-
-        theta = np.full((lamb.size, nord.size), np.nan)
-        sin = nord[None, :]*lamb[:, None]/(2.*d)
-        indok = np.abs(sin) <= 1.
-        theta[indok] = np.arcsin(sin[indok])
-        return theta
-
-    def get_bragg_from_lamb(self, lamb, n=1, d=None):
+    def get_bragg_from_lamb(self, lamb, n=1):
         """ Braggs' law: n*lamb = 2dsin(theta) """
-
-        if d is None:
-            if self._dmat['d'] is None:
-                msg = "Instance mesh size not set !\n"
-                msg += "  => please provide d !"
-                raise Exception(msg)
-        else:
-            d = float(d)
-        return self._get_bragg_from_lamb(lamb, d, n=n)
+        if self._dmat['d'] is None:
+            msg = "Instance mesh size not set !\n"
+            msg += "  => please provide d !"
+            raise Exception(msg)
+        return _comp_optics.get_bragg_from_lamb(lamb, d, n=n)
 
     @classmethod
-    def calc_ellipses_on_plane_2d(cls,
+    def calc_xixj_from_braggangle(cls,
                                   Z, nn, frame_cent, frame_ang,
                                   ang_bragg, ang_param,
-                                  return_C=False, Test=True):
+                                  plot=True, ax=None):
         """ Assuming crystal's summit as frame origin
 
         According to [1], this assumes a local frame centered on the crystal
@@ -499,99 +484,56 @@ class CrystalBragg(utils.ToFuObject):
             normal vector
         """
 
-        if Test:
-            # Check / format inputs
-            nn = np.atleast_1d(nn).ravel()
-            assert nn.size == 3
-            nn = nn / np.linalg.norm(nn)
-            Z = float(Z)
-
-            frame_cent = np.atleast_1d(frame_cent).ravel()
-            assert frame_cent.size == 2
-            frame_ang = float(frame_ang)
-
-            ang_bragg = np.atleast_1d(ang_bragg).ravel()
-            ang_param = np.atleast_1d(ang_param).ravel()
-
-        # By definition, here, nIn = ez
         nIn = np.array([0., 0., 1.])
+        out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
+        Z, nn, frame_cent, frame_ang = out
+        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nIn)
+        ang_bragg = np.atleast_1d(ang_bragg).ravel()
+        ang_param = np.atleast_1d(ang_param).ravel()
+        xi, xj = _comp_optics.calc_xixj_from_braggangle(Z, nIn,
+                                                        frame_cent, frame_ang,
+                                                        nn, e1, e2,
+                                                        ang_bragg, ang_param)
+        if plot:
+            if ax is None:
+                fig = plt.figure()
+                ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
 
-        # Deduce natural plane frame (P, e1, e2)
-        P = np.array([0., 0., Z])
-        e1 = np.cross(nIn, nn)
-        e1n = np.linalg.norm(e1)
-        if e1n < 1.e-10:
-            e1 = np.array([1., 0., 0.])
-        else:
-            e1 = e1 / e1n
-        e2 = np.cross(nn, e1)
-        e2 = e2 / np.linalg.norm(e2)
-
-        # Deduce key angles
-        costheta = np.cos(ang_bragg)
-        sintheta = np.sin(ang_bragg)
-        cospsi = np.sum(nIn*nn)
-        sinpsi = np.sum(np.cross(nIn, nn)*e1)
-
-        # Deduce ellipse parameters
-        cos2sin2 = costheta**2 - sinpsi**2
-        x2C = Z * sinpsi * sintheta**2 / cos2sin2
-        a = Z * sintheta * cospsi / np.sqrt(cos2sin2)
-        b = Z * sintheta * cospsi * costheta / cos2sin2
-
-        # Deduce xi, xj
-        rot = np.array([np.cos(frame_ang), np.sin(frame_ang)])
-        rot2 = np.array([-np.sin(frame_ang), np.cos(frame_ang)])
-        ellipse_trans = np.array([a[None, :]*np.cos(ang_param[:, None])
-                                  - frame_cent[0],
-                                  b[None, :]*np.sin(ang_param[:, None])
-                                  - frame_cent[1] + x2C[None, :]])
-        xi = np.sum(ellipse_trans*rot[:, None,None], axis=0)
-        xj = np.sum(ellipse_trans*rot2[:, None,None], axis=0)
-
-        if return_C:
-            Ci = None
-            Cj = None
-            return xi, xj, Ci, Cj
+            for ii in range(len(ang_bragg)):
+                deg ='{0:07.3f}'.format(ang_bragg[ii]*180/np.pi)
+                ax.plot(xi[:,ii], xj[:,ii], '.', label='bragg %s'%deg)
+                #ax.plot(Ci[:,ii], Cj[:,ii], 'x', label='bragg %s - center'%deg)
+            ax.set_xlabel(r'xi')
+            ax.set_ylabel(r'yi')
+            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
+            return xi, xj, ax
         else:
             return xi, xj
 
     @classmethod
-    def plot_ellipses_on_plane_2d(cls, Z, nn, frame_cent, frame_ang,
-                                  ang_bragg, ang_param, ax=None):
+    def calc_braggangle_from_xixj(cls,
+                                  Z, nn, frame_cent, frame_ang,
+                                  xi, xj, plot=True, ax=None):
 
-        # Check / format inputs
-        nn = np.atleast_1d(nn).ravel()
-        assert nn.size == 3
-        nn = nn / np.linalg.norm(nn)
-        Z = float(Z)
-
-        frame_cent = np.atleast_1d(frame_cent).ravel()
-        ssue202_SpectroX2DCrystalassert frame_cent.size == 2
-        frame_ang = float(frame_ang)
-
-        ang_bragg = np.atleast_1d(ang_bragg).ravel()
-        ang_param = np.atleast_1d(ang_param).ravel()
-
-        # Compute
-        xi, xj, Ci, Cj = cls.calc_ellipses_on_plane_2d(Z, nn,
+        nIn = np.array([0., 0., 1.])
+        out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
+        Z, nn, frame_cent, frame_ang = out
+        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nIn)
+        xi = np.atleast_1d(xi).ravel()
+        xj = np.atleast_1d(xj).ravel()
+        theta = _comp_optics.calc_braggangle_from_xixj(xi, xj, Z, nn,
                                                        frame_cent, frame_ang,
-                                                       ang_bragg, ang_param,
-                                                       return_C=True,
-                                                       Test=False)
-        nbragg = ang_bragg.size
+                                                       nIn, e1, e2)
 
-        # Separate by bragg angle
-        if ax is None:
-            fig = plt.figure()
-            ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
-
-        for ii in range(nbragg):
-            deg ='{0:07.3f}'.format(ang_bragg[ii]*180/np.pi)
-            ax.plot(xi[:,ii], xj[:,ii], '.', label='bragg %s'%deg)
+        if plot:
+            if ax is None:
+                fig = plt.figure()
+                ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
+            ax.pcolor(xi, xj, theta)
             #ax.plot(Ci[:,ii], Cj[:,ii], 'x', label='bragg %s - center'%deg)
-        ax.set_xlabel(r'xi')
-        ax.set_ylabel(r'yi')
-        ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
-
-        return ax
+            ax.set_xlabel(r'xi')
+            ax.set_ylabel(r'yi')
+            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
+            return theta, ax
+        else:
+            return theta
