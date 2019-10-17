@@ -262,50 +262,109 @@ $$
 \rt.
 $$
 
-Hence, keeping in mind that $a^2 = b^2\frac{\DD}{\cos(\theta)^2}$:
+Hence, keeping in mind that $a^2 = b^2\frac{\DD}{\cos(\theta)^2}$ and re-using the definitions of $x_1$ and $x_2$ which do not depend on the unknowns $(\theta, \epsilon)$:
 $$
-\begin{array}{lll}
-    & b^2 = \frac{\cos(\theta)^2}{\DD}\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
-    x_1(R)\rt)^2 + \lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
-    x_2(R)\rt)^2\\
-    \Leftrightarrow &
-    b^2\DD = \cos(\theta)^2\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
-    x_1(R)\rt)^2 + \lt(\DD\rt)\lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
-    x_2(R)\rt)^2\\
-    \Leftrightarrow &
-    Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2}{\DD} = \cos(\theta)^2\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
-    x_1(R)\rt)^2 + \lt(\DD\rt)\lt(x_i\sin(\alpha) + x_j\cos(\alpha) - x_2(C) +
-    x_2(R)\rt)^2\\
-    \Leftrightarrow &
-    Z_P^2\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 = \cos(\theta)^2\lt\DD\rt)\lt(x_i\cos(\alpha) - x_j\sin(\alpha) +
-    x_1(R)\rt)^2 + \lt(\DD\rt)^2\lt(x_i\sin(\alpha) + x_j\cos(\alpha) - Z_P\frac{\sin(\psi)\sin(\theta)^2}{\DD} +
-    x_2(R)\rt)^2\\
+\begin{array}{lllll}
+	& b^2 & = & \frac{\cos(\theta)^2}{\DD}x_1^2 + \lt(x_2 - x_2(C)\rt)^2\\
+    \Leftrightarrow
+    & b^2\lt(\DD\rt) & = & \cos(\theta)^2x_1^2 + \lt(\DD\rt)\lt(x_2^2 - 2x_2x_2(C) + x_2(C)^2\rt)\\
+    \Leftrightarrow
+    &  Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2}{\DD} & = & \cos(\theta)^2x_1^2 + \lt(\DD\rt)\lt(x_2^2 - 2x_2x_2(C) + x_2(C)^2\rt)\\
+    \Leftrightarrow
+    &  Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2}{\DD} & = & \cos(\theta)^2\lt(x_1^2+x_2^2\rt) - \sin(\psi)^2x_2^2 - \lt(\DD\rt)\lt(2x_2x_2(C) - x_2(C)^2\rt)\\
+    \Leftrightarrow
+    &  Z_P^2\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 & = & \cos(\theta)^2\lt(\DD\rt)\lt(x_1^2+x_2^2\rt) - \sin(\psi)^2\lt(\DD\rt)x_2^2\\
+    \Leftrightarrow
+    & & & - \lt(\DD\rt)^2\lt(2x_2x_2(C) - x_2(C)^2\rt)\\
+    \Leftrightarrow
+    &  Z_P^2\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 & = &\cos(\theta)^4\lt(x_1^2+x_2^2\rt) - \cos(\theta)^2\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) + \sin(\psi)^4x_2^2\\
+    & & & - \lt(\DD\rt)^2\lt(2x_2x_2(C) - x_2(C)^2\rt)\\
+    \Leftrightarrow
+    &  Z_P^2\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 & = & \cos(\theta)^4\lt(x_1^2+x_2^2\rt) - \cos(\theta)^2\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) + \sin(\psi)^4x_2^2\\
+    & & & - \lt[2x_2Z_P\sin(\psi)\sin(\theta)^2\lt(\DD\rt) - Z_P^2\sin(\psi)^2\sin(\theta)^4\rt]\\
+    \Leftrightarrow
+    &  Z_P^2\cos(\psi)^2\lt(\cos(\theta)^2-\cos(\theta)^4\rt) & = &\cos(\theta)^4\lt(x_1^2+x_2^2\rt) - \cos(\theta)^2\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) + \sin(\psi)^4x_2^2\\
+    & & & - 2x_2Z_P\sin(\psi)\sin(\theta)^2\lt(\DD\rt)\\
+    & & & + Z_P^2\sin(\psi)^2\lt(1-2\cos(\theta)^2+\cos(\theta)^4\rt)\\
+    \Leftrightarrow
+    &  Z_P^2\cos(\psi)^2\lt(\cos(\theta)^2-\cos(\theta)^4\rt) & = &\cos(\theta)^4\lt(x_1^2+x_2^2\rt) - \cos(\theta)^2\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) + \sin(\psi)^4x_2^2\\
+    & & & - 2x_2Z_P\sin(\psi)\lt(\cos(\theta)^2 - \cos(\theta)^4 - \sin(\psi)^2\lt(1-\cos(\theta)^2\rt)\rt)\\
+    & & & + Z_P^2\sin(\psi)^2\lt(1-2\cos(\theta)^2+\cos(\theta)^4\rt)
 \end{array}
 $$
 
+Then introducing $X = \cos(\theta)^2$:
+$$
+\begin{array}{lllll}
+	& b^2 & = & \frac{\cos(\theta)^2}{\DD}x_1^2 + \lt(x_2 - x_2(C)\rt)^2\\
+    \Leftrightarrow
+    &  Z_P^2\cos(\psi)^2\lt(X-X^2\rt) & = & X^2\lt(x_1^2+x_2^2\rt) - X\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) + \sin(\psi)^4x_2^2\\
+    & & & - 2x_2Z_P\sin(\psi)\lt(X - X^2 - \sin(\psi)^2 + X\sin(\psi)^2\rt)\\
+    & & & + Z_P^2\sin(\psi)^2\lt(1 - 2X + X^2\rt)
+\end{array}
+$$
 
+Which boils down to:
+$$
+\begin{array}{lllll}
+    & 0 & = & X^2\lt[ x_1^2+x_2^2 + 2x_2Z_P\sin(\psi) + Z_P^2\sin(\psi)^2 + Z_P^2\cos(\psi)^2 \rt]\\
+    & & & + X\lt[ -\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) - \lt(1+\sin(\psi)^2\rt)2x_2Z_P\sin(\psi) - 2Z_P^2\sin(\psi)^2 - Z_P^2\cos(\psi)^2\rt]\\
+    & & & + \sin(\psi)^4x_2^2 + 2x_2Z_P\sin(\psi)^3 + Z_P^2\sin(\psi)^2\\
+    \Leftrightarrow
+    & 0 & = & X^2\lt[ x_1^2 + \lt(x_2 + Z_P\sin(\psi)\rt)^2 + Z_P^2\cos(\psi)^2 \rt]\\
+    & & & + X\lt[ -\sin(\psi)^2\lt(x_1^2+2x_2^2\rt) - \lt(1+\sin(\psi)^2\rt)2x_2Z_P\sin(\psi) - 2Z_P^2\sin(\psi)^2 - Z_P^2\cos(\psi)^2\rt]\\
+    & & & + \sin(\psi)^2\lt(\sin(\psi)^2x_2^2 + 2x_2Z_P\sin(\psi) + Z_P^2\rt)\\
+    \Leftrightarrow
+    & 0 & = & X^2\lt[ x_1^2 + \lt(x_2 + Z_P\sin(\psi)\rt)^2 + Z_P^2\cos(\psi)^2 \rt]\\
+    & & & - X\lt[ \sin(\psi)^2\lt(x_1^2+2x_2^2\rt) + \lt(1+\sin(\psi)^2\rt)2x_2Z_P\sin(\psi) + 2Z_P^2\sin(\psi)^2 + Z_P^2\cos(\psi)^2\rt]\\
+    & & & + \sin(\psi)^2\lt(x_2\sin(\psi) + Z_P\rt)\\
+    \Leftrightarrow
+    & 0 & = & X^2\lt[ x_1^2 + \lt(x_2 + Z_P\sin(\psi)\rt)^2 + Z_P^2\cos(\psi)^2 \rt]\\
+    & & & - X\lt[ \sin(\psi)^2\lt(x_1^2+x_2^2\rt) + x_2^2\sin(\psi)^2 + 2x_2Z_P\sin(\psi) + 2x_2Z_P\sin(\psi)^3 + Z_P^2 + Z_P^2\sin(\psi)^2\rt]\\
+    & & & + \sin(\psi)^2\lt(x_2\sin(\psi) + Z_P\rt)\\
+    \Leftrightarrow
+    & 0 & = & X^2\lt[ x_1^2 + \lt(x_2 + Z_P\sin(\psi)\rt)^2 + Z_P^2 - Z_P^2\sin(\psi)^2 \rt]\\
+    & & & - X\lt[ \sin(\psi)^2\lt(x_1^2+x_2^2\rt) + \lt(x_2\sin(\psi) + Z_P\rt)^2 + Z_P\sin(\psi)^2\lt(2x_2\sin(\psi) + Z_P\rt)\rt]\\
+    & & & + \sin(\psi)^2\lt(x_2\sin(\psi) + Z_P\rt)\\
+    \Leftrightarrow
+    & 0 & = & X^2\lt[ x_1^2 + x_2^2 + \lt(x_2\sin(\psi) + Z_P\rt)^2 - x_2^2\sin(\psi)^2 \rt]\\
+    & & & - X\lt[ \sin(\psi)^2\lt(x_1^2+x_2^2\rt) + \lt(x_2\sin(\psi) + Z_P\rt)^2 + Z_P\sin(\psi)^2\lt(2x_2\sin(\psi) + Z_P\rt)\rt]\\
+    & & & + \sin(\psi)^2\lt(x_2\sin(\psi) + Z_P\rt)\\
+    \Leftrightarrow
+    & 0 & = & AX^2 - BX + C
+\end{array}
+$$
+
+With:
 
 $$
 \lt\{
 	\begin{array}{lll}
-		x_2(c) & = z_p\frac{\sin(\psi)\sin(\theta)^2}{\dd}\\
-        a & = z_p\frac{\sin(\theta)\cos(\psi)}{\sqrt{\dd}}\\
-		b & = z_p\frac{\sin(\theta)\cos(\psi)\cos(\theta)}{\dd}
+		A = x_1^2 + x_2^2 + \lt(x_2\sin(\psi) + Z_P\rt)^2 - x_2^2\sin(\psi)^2\\
+		B = \sin(\psi)^2\lt(x_1^2+x_2^2\rt) + \lt(x_2\sin(\psi) + Z_P\rt)^2 + Z_P\sin(\psi)^2\lt(2x_2\sin(\psi) + Z_P\rt)\\
+		C = \sin(\psi)^2\lt(x_2\sin(\psi) + Z_P\rt)
 	\end{array}
 \rt.
 $$
 
-Hence:
+Solutions exist if:
 $$
-\lt\{
-    \begin{array}{lll}
-        \lt(x_i\cos(\alpha) - x_j\sin(\alpha) + x_1(R)\rt)\sqrt{\dd} = z_p\sin(\theta)\cos(\psi)\cos(\epsilon)\\
-        \lt(x_i\sin(\alpha) + x_j\cos(\alpha) + x_2(R)\rt)\dd =
-        z_p\sin(\theta)\lt(\sin(\psi)\sin(\theta) + \cos(\psi)\cos(\theta)\sin(\epsilon)\rt)
-    \end{array}
-\rt.
+\begin{array}{lllll}
+    & \Delta & \geq & 0\\
+    \Leftrightarrow
+    & B^2 - 4AC & \geq & 0\\
+\end{array}
 $$
 
+In which case, only solutions in $\lt[0,1\rt]$ are acceptable:
+$$
+\cos(\theta)^2 = \frac{B \pm \sqrt(\Delta)}{2A} \in \lt[0,1\rt]
+$$
+
+And by definition, $\theta \in \lt[0,\frac{\pi}{2}\rt]$, hence $\cos(\theta)\geq0$ and:
+$$
+\theta = \arccos\lt(\sqrt{\frac{B \pm \sqrt(\Delta)}{2A}}\rt)
+$$
 
 
 \appendix

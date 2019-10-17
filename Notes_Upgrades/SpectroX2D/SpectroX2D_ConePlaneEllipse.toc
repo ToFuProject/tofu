@@ -3,6 +3,8 @@
 \contentsline {section}{\numberline {1.1}Generic cone and plane}{5}{section.1.1}
 \contentsline {section}{\numberline {1.2}Intersection}{5}{section.1.2}
 \contentsline {section}{\numberline {1.3}Parametric equation}{7}{section.1.3}
-\contentsline {chapter}{\numberline {A}Acceleration radiation from a unique point-like charge}{9}{appendix.A}
-\contentsline {section}{\numberline {A.1}Retarded time and potential}{9}{section.A.1}
-\contentsline {subsection}{\numberline {A.1.1}Retarded time}{9}{subsection.A.1.1}
+\contentsline {subsection}{\numberline {1.3.1}From bragg angle and to local cartesian coordinates}{7}{subsection.1.3.1}
+\contentsline {subsection}{\numberline {1.3.2}From local cartesian coordinates to bragg angle}{7}{subsection.1.3.2}
+\contentsline {chapter}{\numberline {A}Appendices}{11}{appendix.A}
+\contentsline {section}{\numberline {A.1}Section}{11}{section.A.1}
+\contentsline {subsection}{\numberline {A.1.1}Subsection}{11}{subsection.A.1.1}
