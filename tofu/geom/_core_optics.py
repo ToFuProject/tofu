@@ -24,12 +24,12 @@ try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
     import tofu.geom._comp_optics as _comp_optics
-    import tofu.geom._plot as _plot
+    import tofu.geom._plot_optics as _plot_optics
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
     from . import _comp_optics as _comp_optics
-    from . import _plot as _plot
+    from . import _plot_optics as _plot_optics
 
 __all__ = ['CrystalBragg']
 
@@ -467,6 +467,44 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
         return _comp_optics.get_lamb_from_bragg(lamb, d, n=n)
 
+    @staticmethod
+    def get_approx_detector_params_from_Bragg_CurvRadius(bragg, R,
+                                                         plot=False):
+        """ See notes for details on notations """
+        Rrow = R/2.
+        theta = np.pi/2 - bragg
+        d = R*np.cos(theta)
+        l = Rrow / np.cos(2.*theta)
+        Z = Rrow + l
+        nn = np.r_[0, np.cos(2*bragg-np.pi/2.), np.sin(2*bragg-np.pi/2.)]
+        frame_cent = np.r_[0., np.sqrt(l**2-Rrow**2)]
+        frame_ang = np.pi/2.
+
+        if plot:
+            ang = np.linspace(0., 2.*np.pi, 100)
+            L = 2*R
+
+            fig = plt.figure()
+            ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
+
+            ax.axvline(0, ls='--', c='k')
+            ax.plot(Rrow*np.cos(ang), Rrow + Rrow*np.sin(ang), c='r')
+            ax.plot(R*np.cos(ang), R + R*np.sin(ang), c='b')
+            ax.plot(L*np.cos(bragg)*np.r_[-1,0,1],
+                    L*np.sin(bragg)*np.r_[1,0,1], c='k')
+            ax.plot([0, d*np.cos(bragg)], [Rrow, d*np.sin(bragg)], c='r')
+            ax.plot([0, d*np.cos(bragg)], [Z, d*np.sin(bragg)], 'g')
+            ax.plot([0, L/10*nn[1]], [Z, Z+L/10*nn[2]], c='g')
+            ax.plot(frame_cent[1]*np.cos(2*bragg-np.pi),
+                    Z + frame_cent[1]*np.sin(2*bragg-np.pi), c='k', marker='o', ms=10)
+
+            ax.set_xlabel(r'y')
+            ax.set_ylabel(r'z')
+            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
+        return Z, nn, frame_cent, frame_ang
+
+
+
     @classmethod
     def calc_xixj_from_braggangle(cls,
                                   Z, nn, frame_cent, frame_ang,
@@ -539,11 +577,11 @@ class CrystalBragg(utils.ToFuObject):
                                                             nIn, e1, e2)
 
         if plot != False:
-            braggplot = bragg.T * 180./np.pi
-            angplot = ang.T * 180./np.pi
             func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
-            lax = func(xi=xi, xj=xj, ax=ax, plot=plot,
-                       bragg=bragg.T * 180./np.pi, angle=ang.T * 180./np.pi,
+            lax = func(xi=xi, xj=xj,
+                       ax=ax, plot=plot,
+                       bragg=bragg.T * 180./np.pi,
+                       angle=ang.T * 180./np.pi,
                        braggunits='deg', angunits='deg', **kwdargs)
             return bragg, ang, lax
         else:
