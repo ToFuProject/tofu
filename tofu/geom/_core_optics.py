@@ -507,10 +507,14 @@ class CrystalBragg(utils.ToFuObject):
                 fig = plt.figure()
                 ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
 
-            for ii in range(len(bragg)):
-                deg ='{0:07.3f}'.format(bragg[ii]*180/np.pi)
-                ax.plot(xi[:,ii], xj[:,ii], '.', label='bragg %s'%deg)
-                #ax.plot(Ci[:,ii], Cj[:,ii], 'x', label='bragg %s - center'%deg)
+            if data is None:
+                for ii in range(len(bragg)):
+                    deg ='{0:07.3f}'.format(bragg[ii]*180/np.pi)
+                    ax.plot(xi[:,ii], xj[:,ii], '.', label='bragg %s'%deg)
+            else:
+                ax.scatter(xi.ravel(), xj.ravel(), c=data.ravel(),
+                           s=10, marker='s', edgecolors='None')
+
             ax.set_xlabel(r'xi')
             ax.set_ylabel(r'yi')
             ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
@@ -537,40 +541,10 @@ class CrystalBragg(utils.ToFuObject):
         if plot != False:
             braggplot = bragg.T * 180./np.pi
             angplot = ang.T * 180./np.pi
-            if isinstance(plot, bool):
-                plot = 'contour'
-
-            if ax is None:
-                fig = plt.figure()
-                ax0 = fig.add_axes([0.1, 0.1, 0.35, 0.8], aspect='equal')
-                ax1 = fig.add_axes([0.55, 0.1, 0.35, 0.8], aspect='equal')
-                ax = [ax0, ax1]
-            if plot == 'contour':
-                if 'levels' in kwdargs.keys():
-                    lvls = kwdargs['levels']
-                    del kwdargs['levels']
-                    obj0 = ax[0].contour(xi, xj, braggplot, lvls, **kwdargs)
-                    obj1 = ax[1].contour(xi, xj, angplot, lvls, **kwdargs)
-                else:
-                    obj0 = ax[0].contour(xi, xj, braggplot, **kwdargs)
-                    obj1 = ax[1].contour(xi, xj, angplot, **kwdargs)
-            elif plot == 'imshow':
-                extent=(xi.min(), xi.max(), xj.min(), xj.max())
-                obj0 = ax[0].imshow(braggplot, extent=extent, aspect='equal',
-                                   adjustable='datalim', **kwdargs)
-                obj1 = ax[1].imshow(angplot, extent=extent, aspect='equal',
-                                   adjustable='datalim', **kwdargs)
-            elif plot == 'pcolor':
-                obj0 = ax[0].pcolor(xi, xj, braggplot, **kwdargs)
-                obj1 = ax[1].pcolor(xi, xj, angplot, **kwdargs)
-            ax[0].set_xlabel(r'xi')
-            ax[1].set_xlabel(r'xi')
-            ax[0].set_ylabel(r'yi')
-            ax[1].set_ylabel(r'yi')
-            cax0 = plt.colorbar(obj0, ax=ax[0])
-            cax1 = plt.colorbar(obj1, ax=ax[1])
-            cax0.ax.set_ylabel(r'$\theta_{bragg}$ (deg)')
-            cax1.ax.set_ylabel(r'$ang$ (deg)')
-            return bragg, ang, ax
+            func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
+            lax = func(xi=xi, xj=xj, ax=ax, plot=plot,
+                       bragg=bragg.T * 180./np.pi, angle=ang.T * 180./np.pi,
+                       braggunits='deg', angunits='deg', **kwdargs)
+            return bragg, ang, lax
         else:
             return bragg, ang
