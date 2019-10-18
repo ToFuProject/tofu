@@ -549,26 +549,26 @@ class CrystalBragg(utils.ToFuObject):
                 if 'levels' in kwdargs.keys():
                     lvls = kwdargs['levels']
                     del kwdargs['levels']
-                    obj = ax[0].contour(xi, xj, braggplot, lvls, **kwdargs)
-                    obj = ax[1].contour(xi, xj, angplot, lvls, **kwdargs)
+                    obj0 = ax[0].contour(xi, xj, braggplot, lvls, **kwdargs)
+                    obj1 = ax[1].contour(xi, xj, angplot, lvls, **kwdargs)
                 else:
-                    obj = ax[0].contour(xi, xj, braggplot, **kwdargs)
-                    obj = ax[1].contour(xi, xj, angplot, **kwdargs)
+                    obj0 = ax[0].contour(xi, xj, braggplot, **kwdargs)
+                    obj1 = ax[1].contour(xi, xj, angplot, **kwdargs)
             elif plot == 'imshow':
                 extent=(xi.min(), xi.max(), xj.min(), xj.max())
-                obj = ax[0].imshow(braggplot, extent=extent, aspect='equal',
+                obj0 = ax[0].imshow(braggplot, extent=extent, aspect='equal',
                                    adjustable='datalim', **kwdargs)
-                obj = ax[1].imshow(angplot, extent=extent, aspect='equal',
+                obj1 = ax[1].imshow(angplot, extent=extent, aspect='equal',
                                    adjustable='datalim', **kwdargs)
             elif plot == 'pcolor':
-                obj = ax[0].pcolor(xi, xj, braggplot, **kwdargs)
-                obj = ax[1].pcolor(xi, xj, angplot, **kwdargs)
+                obj0 = ax[0].pcolor(xi, xj, braggplot, **kwdargs)
+                obj1 = ax[1].pcolor(xi, xj, angplot, **kwdargs)
             ax[0].set_xlabel(r'xi')
             ax[1].set_xlabel(r'xi')
             ax[0].set_ylabel(r'yi')
             ax[1].set_ylabel(r'yi')
-            cax0 = plt.colorbar(obj, ax=ax[0])
-            cax1 = plt.colorbar(obj, ax=ax[1])
+            cax0 = plt.colorbar(obj0, ax=ax[0])
+            cax1 = plt.colorbar(obj1, ax=ax[1])
             cax0.ax.set_ylabel(r'$\theta_{bragg}$ (deg)')
             cax1.ax.set_ylabel(r'$ang$ (deg)')
             return bragg, ang, ax

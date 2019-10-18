@@ -66,21 +66,19 @@ def calc_xixj_from_braggangle(Z, nIn,
         a = Z * sintheta * cospsi / np.sqrt(cos2sin2)
         b = Z * sintheta * cospsi * costheta / cos2sin2
 
-        # ang_param with respect to axis => epsilon with respect to center
-        x1 = None
-        x2 = None
-        PMnorm = np.sqrt(x1**2 + (x2-x2C)**2)
-        acose = PMnorm[None, :]*np.cos(angle[:, None])
-        bsinePx2C = PMnorm[None, :]*np.sin(angle[:, None])
+        # Get radius from axis => x1, x2 => xi, xj
+        asin2bcos2 = (b[None,:]**2*np.cos(angle[:,None])**2
+                      + a[None,:]**2*np.sin(angle[:,None])**2)
+        l = ((a[None,:]**2*x2C[None,:]*np.sin(angle[:,None])
+              + a[None,:]*b[None,:]*np.sqrt(asin2bcos2 -
+                                            x2C[None,:]**2*np.cos(angle[:,None])**2))
+             / asin2bcos2)
 
-        # Deduce xi, xj
-        rot = np.array([np.cos(frame_ang), np.sin(frame_ang)])
-        rot2 = np.array([-np.sin(frame_ang), np.cos(frame_ang)])
-        ellipse_trans = np.array([acose - frame_cent[0],
-                                  bsinePx2C - frame_cent[1]])
-        xi = np.sum(ellipse_trans*rot[:, None,None], axis=0)
-        xj = np.sum(ellipse_trans*rot2[:, None,None], axis=0)
+        x1_frame = l*np.cos(angle[:,None]) - frame_cent[0]
+        x2_frame = l*np.sin(angle[:,None]) - frame_cent[1]
 
+        xi = x1_frame*np.cos(frame_ang) + x2_frame*np.sin(frame_ang)
+        xj = -x1_frame*np.sin(frame_ang) + x2_frame*np.cos(frame_ang)
         return xi, xj
 
 def calc_braggangle_from_xixj(xi, xj, Z, nn, frame_cent, frame_ang,
@@ -99,8 +97,7 @@ def calc_braggangle_from_xixj(xi, xj, Z, nn, frame_cent, frame_ang,
         norm = np.sqrt((x1*e1[0] + x2*e2[0])**2
                        + (x1*e1[1] + x2*e2[1])**2
                        + (Z + x1*e1[2] + x2*e2[2])**2)
-        costheta = sca/norm
-        bragg = np.pi/2 - np.arccos(costheta)
+        bragg = np.pi/2 - np.arccos(sca/norm)
 
         # Get angle with respect to axis ! (not center)
         ang = np.arctan2(x2, x1)
