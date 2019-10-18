@@ -182,17 +182,101 @@ It is worth noticing that the neither the focal point nor the center correspond 
 In our case, only the axes $(O, \ez)$, fixed by the crystal's summit and normal, is independent from the cone's angular opening $\theta$.
 It makes sense to design an ad-hoc coordinate system centered on the ellipse's center $C$ to use its parameterized equation.
 
-Knowing all geometrical parameters, it is possible to compute all points on the ellipse parameterizing them with angle $\epsilon$:
+Knowing all geometrical parameters, it is possible to compute all points on the ellipse parameterizing them with $t$:
 $$
 \lt\{
 	\begin{array}{lll}
-		x_1 = a\cos(\epsilon)\\
-		x_2 = x_2(C) + b\sin(\epsilon)
+		x_1 = a\cos(t)\\
+		x_2 = x_2(C) + b\sin(t)
 	\end{array}
 \rt.
 $$
 
-\subsection{From bragg angle and to local cartesian coordinates}
+\emph{BEWARE} : parameter $t$ is not the angle of the point with respect to the ellipse's center.
+
+Now, we would like to parameterize the ellipse not with $t$ but with the angle $\beta$ with respect to the point $P$, because it is the physically relevant angle since it is taken with respect to the axis $(O, \ez)$ and relates to the impact point of the photon beam on the crystal's center. Also, it is the only common element to all ellipses.
+The angle $\epsilon$ taken with respect to the center is not relevant because each ellipse has a different center.
+
+In this perspective:
+$$
+\lt\{
+	\begin{array}{lll}
+		x_1 = l(\beta)\cos(\beta)\\
+		x_2 = l(\beta)\sin(\beta)
+	\end{array}
+\rt.
+$$
+
+Keeping in mind that the ellipse is defined as:
+$$
+\frac{x_1^2}{a^2} + \frac{(x_2-x_2(C))^2}{b^2} = 1
+$$
+
+We can write:
+$$
+\begin{array}{lll}
+	& l^2b^2\cos(\beta)^2 + a^2\lt(l^2\sin(\beta)^2 - 2lx_2(C)\sin(\beta) + x_2(C)^2\rt) = a^2b^2\\
+	\Leftrightarrow
+	& l^2\lt(b^2\cos(\beta)^2 + a^2\sin(\beta)^2\rt) - 2la^2x_2(C)\sin(\beta) + a^2x_2(C)^2 - a^2b^2 = 0
+\end{array}
+$$
+
+Has solutions if:
+$$
+\begin{array}{lll}
+	& \Delta = 4a^4x_2(C)^2\sin(\beta)^2 - 4\lt(b^2\cos(\beta)^2 + a^2\sin(\beta)^2\rt)\lt(a^2x_2(C)^2 - a^2b^2\rt) \geq 0\\
+	\Leftrightarrow
+	& \Delta = 4a^2\lt[a^2x_2(C)^2\sin(\beta)^2 - \lt(b^2\cos(\beta)^2 + a^2\sin(\beta)^2\rt)\lt(x_2(C)^2 - b^2\rt)\rt] \geq 0\\
+	\Leftrightarrow
+	& \Delta = 4a^2\lt[a^2x_2(C)^2\sin(\beta)^2 - b^2x_2(C)^2\cos(\beta)^2 - a^2x_2(C)^2\sin(\beta)^2 + b^4\cos(\beta)^2 + a^2b^2\sin(\beta)^2\rt] \geq 0\\
+	\Leftrightarrow
+	& \Delta = 4a^2\lt[-b^2x_2(C)^2\cos(\beta)^2 + b^4\cos(\beta)^2 + a^2b^2\sin(\beta)^2\rt] \geq 0\\
+	\Leftrightarrow
+	& \Delta = 4a^2b^2\lt[-x_2(C)^2\cos(\beta)^2 + b^2\cos(\beta)^2 + a^2\sin(\beta)^2\rt] \geq 0\\
+\end{array}
+$$
+
+Which is equivalent to, keeping in mind that $b^2-a^2 = d_{CF}^2$:
+$$
+\begin{array}{lll}
+	& \Delta = 4a^2b^2\lt[a^2 + \lt(b^2-a^2-x_2(C)^2\rt)\cos(\beta)^2\rt] \geq 0\\
+	\Leftrightarrow
+	& \lt(b^2-a^2-x_2(C)^2\rt)\cos(\beta)^2 \geq -a^2
+	\Leftrightarrow
+	& \lt(d_{CF}^2-x_2(C)^2\rt)\cos(\beta)^2 \geq -a^2
+\end{array}
+$$
+
+If $d_{CF}^2-x_2(C)^2 \ geq 0$, this is true for all $\beta$ values, and this condition is met if:
+$$
+\begin{array}{lll}
+	& b^2-a^2-x_2(C)^2 \geq 0\\
+	\Leftrightarrow
+	& \frac{Z_P^2}{\lt(\DD\rt)^2}\lt(\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 - \sin(\theta)^2\cos(\psi)^2\cos(\theta)^2 + \sin(\theta)^2\cos(\psi)^2\sin(\psi)^2 - \sin(\psi)^2\sin(\theta)^4\rt) \geq 0\\
+	\Leftrightarrow
+	& \sin(\theta)^2\sin(\psi)^2\lt(\cos(\psi)^2 -\sin(\theta)^2\rt) \geq 0
+\end{array}
+$$
+
+Which is true if we have an ellipse, which is the only case of interest.
+Hence $\Delta=4a^2b^2\lt[a^2 + \lt(b^2-a^2-x_2(C)^2\rt)\cos(\beta)^2\rt] \geq 0$, so:
+$$
+\begin{array}{lll}
+	& l_{1,2} = \frac{2a^2x_2(C)\sin(\beta) \pm \sqrt{\Delta}}{2\lt(b^2\cos(\beta)^2 + a^2\sin(\beta)^2\rt)}\\
+	\Leftrightarrow
+	& l_{1,2} = \frac{a^2x_2(C)\sin(\beta) \pm ab\sqrt{a^2 + \lt(b^2-a^2-x_2(C)^2\rt)\cos(\beta)^2}}{b^2\cos(\beta)^2 + a^2\sin(\beta)^2}\\
+\end{array}
+$$
+
+And we only want the positive solution:
+$$
+l = \frac{a^2x_2(C)\sin(\beta) + ab\sqrt{a^2 + \lt(b^2-a^2-x_2(C)^2\rt)\cos(\beta)^2}}{b^2\cos(\beta)^2 + a^2\sin(\beta)^2}
+$$
+
+
+
+
+\subsection{From bragg angle and parameter to local cartesian coordinates}
 
 Keep in mind that the frame $(P, \ei, \et)$ is, by definition aligned on the minor and major axes of the ellipse.
 Hence, for an arbitrary frame $(R, \ud{e}_i, \ud{e}_j)$ on plane $P_1$, translated and rotated by $\alpha$ with respect to $(P, \ei, \et)$:
@@ -229,6 +313,18 @@ $$
 	\end{array}
 \rt.
 $$
+
+But
+$$
+\lt\{
+	\begin{array}{lll}
+		\|\ud{PM}\|^2 = x_1^2 + x_2^2 = \\
+		x_1 = \|\ud{PM}\|\cos(\beta)\\
+		x_2 = \|\ud{PM}\|\sin(\beta)
+	\end{array}
+\rt.
+$$
+
 
 
 \subsection{From local cartesian coordinates to bragg angle}

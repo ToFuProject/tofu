@@ -53,10 +53,10 @@ def get_lamb_from_bragg(bragg, d, n=1):
 def calc_xixj_from_braggangle(Z, nIn,
                               frame_cent, frame_ang,
                               nn, e1, e2,
-                              ang_bragg, ang_param):
+                              bragg, angle):
         # Deduce key angles
-        costheta = np.cos(np.pi/2 - ang_bragg)
-        sintheta = np.sin(np.pi/2 - ang_bragg)
+        costheta = np.cos(np.pi/2 - bragg)
+        sintheta = np.sin(np.pi/2 - bragg)
         cospsi = np.sum(nIn*nn)
         sinpsi = np.sum(np.cross(nIn, nn)*e1)
 
@@ -67,16 +67,17 @@ def calc_xixj_from_braggangle(Z, nIn,
         b = Z * sintheta * cospsi * costheta / cos2sin2
 
         # ang_param with respect to axis => epsilon with respect to center
-        epsilon = None
-
+        x1 = None
+        x2 = None
+        PMnorm = np.sqrt(x1**2 + (x2-x2C)**2)
+        acose = PMnorm[None, :]*np.cos(angle[:, None])
+        bsinePx2C = PMnorm[None, :]*np.sin(angle[:, None])
 
         # Deduce xi, xj
         rot = np.array([np.cos(frame_ang), np.sin(frame_ang)])
         rot2 = np.array([-np.sin(frame_ang), np.cos(frame_ang)])
-        ellipse_trans = np.array([a[None, :]*np.cos(epsilon[:, None])
-                                  - frame_cent[0],
-                                  b[None, :]*np.sin(epsilon[:, None])
-                                  - frame_cent[1] + x2C[None, :]])
+        ellipse_trans = np.array([acose - frame_cent[0],
+                                  bsinePx2C - frame_cent[1]])
         xi = np.sum(ellipse_trans*rot[:, None,None], axis=0)
         xj = np.sum(ellipse_trans*rot2[:, None,None], axis=0)
 

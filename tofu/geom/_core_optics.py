@@ -470,7 +470,7 @@ class CrystalBragg(utils.ToFuObject):
     @classmethod
     def calc_xixj_from_braggangle(cls,
                                   Z, nn, frame_cent, frame_ang,
-                                  ang_bragg, ang_param,
+                                  bragg, angle,
                                   plot=True, ax=None):
         """ Assuming crystal's summit as frame origin
 
@@ -496,19 +496,19 @@ class CrystalBragg(utils.ToFuObject):
         out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
         Z, nn, frame_cent, frame_ang = out
         e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nIn)
-        ang_bragg = np.atleast_1d(ang_bragg).ravel()
-        ang_param = np.atleast_1d(ang_param).ravel()
+        bragg = np.atleast_1d(bragg).ravel()
+        angle = np.atleast_1d(angle).ravel()
         xi, xj = _comp_optics.calc_xixj_from_braggangle(Z, nIn,
                                                         frame_cent, frame_ang,
                                                         nn, e1, e2,
-                                                        ang_bragg, ang_param)
+                                                        bragg, angle)
         if plot:
             if ax is None:
                 fig = plt.figure()
                 ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
 
-            for ii in range(len(ang_bragg)):
-                deg ='{0:07.3f}'.format(ang_bragg[ii]*180/np.pi)
+            for ii in range(len(bragg)):
+                deg ='{0:07.3f}'.format(bragg[ii]*180/np.pi)
                 ax.plot(xi[:,ii], xj[:,ii], '.', label='bragg %s'%deg)
                 #ax.plot(Ci[:,ii], Cj[:,ii], 'x', label='bragg %s - center'%deg)
             ax.set_xlabel(r'xi')
