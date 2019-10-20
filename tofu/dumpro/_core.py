@@ -3,7 +3,7 @@
 Created on Fri Mar  8 08:48:58 2019
 
 @author: Arpan Khandelwal
-email: napraarpan@gmail.com
+@author_email: napraarpan@gmail.com
 """
 
 # class definitions (object-oriented codes)
@@ -148,12 +148,12 @@ class Cluster(object):
         """Returns the child id of the cluster"""
         return self.__child
 
+
 ###################################################################
 ###################################################################
 #    Class for Trajectory
 ###################################################################
-    
-    
+
 class Trajectory(object):
     """A class for all trajectories. This creates a trajectory object that 
     provides all the available relevant information for each trajectory.
@@ -240,7 +240,7 @@ class Img_dir(object):
     
     Attributes:
     --------------------------------------------
-    __filename     = Path where the images are present
+    __im_dir       = Path where the images are present
     __w_dir        = Working directory where images can be stored during 
                      computation
     __shot_name    = Name of tokomak and the shot number as a single string
@@ -248,6 +248,11 @@ class Img_dir(object):
     __reshape      = dictionary containing the croping and time slicing of the
                      frames
     __infoclusters = dictionary containing cluster information.
+    __traj         = dictionary containing traj objects
+    __c_id         = Dictionary containing information on cluster objects that
+                     are part of a trajectory
+    __im_col       = Dictionary contaning trajectory objects
+    
     
     Setters:
     --------------------------------------------
@@ -263,20 +268,8 @@ class Img_dir(object):
     resolution  = Getter for frame resolution
     meta_data   = Getter for meta data dictionary
     rehsape     = Getter for reshape dictiionary
-    infocluster = Getter for infocluster dicitonary  
-    
-    Methods:
-    --------------------------------------------
-    crop_im        = Reshape image method
-    to_gray        = Grayscale conversion method
-    remove_backgrd = Bcakground removal method
-    denoise_gray   = Grayscale image denoising method
-    denoise_col    = Coloured image denoising method
-    to_bin         = Binary image conversion method
-    play           = Play collaction of images as a Video
-    det_cluster    = Cluster detection method
-    dumpro         = Dust Movie processing method
-    
+    infocluster = Getter for infocluster dicitonary
+        
     """
     
     def __init__(self, filename, w_dir = None):
@@ -545,6 +538,9 @@ class Vid_img(object):
                      of the video
     __infocluster  = Dictionary containing all the information regarding 
                      clusters
+    __c_id         = Dictionary containing information on the cluster object 
+                     that are part of a trajectory
+    __traj         = Dictionary containing trajectory objects
     
     Setters:
     --------------------------------------------
@@ -552,6 +548,8 @@ class Vid_img(object):
     set_reshape     = Sets value for reshape dictionary attribute
     set_infocluster = Sets value for infocluster dictionary attribute
     set_im_dir      = Setter for Image directory dictionary
+    set_c_id        = Setter for Cluster object dictionary
+    set_traj        = Setter for trajectory objects dictionary
     
     Getters:
     --------------------------------------------
