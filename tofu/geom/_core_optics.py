@@ -481,26 +481,8 @@ class CrystalBragg(utils.ToFuObject):
         frame_ang = np.pi/2.
 
         if plot:
-            ang = np.linspace(0., 2.*np.pi, 100)
-            L = 2*R
-
-            fig = plt.figure()
-            ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
-
-            ax.axvline(0, ls='--', c='k')
-            ax.plot(Rrow*np.cos(ang), Rrow + Rrow*np.sin(ang), c='r')
-            ax.plot(R*np.cos(ang), R + R*np.sin(ang), c='b')
-            ax.plot(L*np.cos(bragg)*np.r_[-1,0,1],
-                    L*np.sin(bragg)*np.r_[1,0,1], c='k')
-            ax.plot([0, d*np.cos(bragg)], [Rrow, d*np.sin(bragg)], c='r')
-            ax.plot([0, d*np.cos(bragg)], [Z, d*np.sin(bragg)], 'g')
-            ax.plot([0, L/10*nn[1]], [Z, Z+L/10*nn[2]], c='g')
-            ax.plot(frame_cent[1]*np.cos(2*bragg-np.pi),
-                    Z + frame_cent[1]*np.sin(2*bragg-np.pi), c='k', marker='o', ms=10)
-
-            ax.set_xlabel(r'y')
-            ax.set_ylabel(r'z')
-            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
+            func = _plot_optics.CrystalBragg_plot_approx_detector_params
+            ax = func(Rrow, bragg, d, Z, frame_cent, nn)
         return Z, nn, frame_cent, frame_ang
 
 
@@ -541,24 +523,9 @@ class CrystalBragg(utils.ToFuObject):
                                                         nn, e1, e2,
                                                         bragg, angle)
         if plot:
-            if ax is None:
-                fig = plt.figure()
-                ax = fig.add_axes([0.1,0.1,0.8,0.8], aspect='equal')
-
-            if data is None:
-                for ii in range(len(bragg)):
-                    deg ='{0:07.3f}'.format(bragg[ii]*180/np.pi)
-                    ax.plot(xi[:,ii], xj[:,ii], '.', label='bragg %s'%deg)
-            else:
-                ax.scatter(xi.ravel(), xj.ravel(), c=data.ravel(),
-                           s=10, marker='s', edgecolors='None')
-
-            ax.set_xlabel(r'xi')
-            ax.set_ylabel(r'yi')
-            ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.), frameon=False)
-            return xi, xj, ax
-        else:
-            return xi, xj
+            func = _plot_optics.CrystalBragg_plot_approx_detector_params
+            ax = func(bragg, xi, xj, data, ax)
+        return xi, xj
 
     @classmethod
     def calc_braggangle_from_xixj(cls,
@@ -583,6 +550,33 @@ class CrystalBragg(utils.ToFuObject):
                        bragg=bragg.T * 180./np.pi,
                        angle=ang.T * 180./np.pi,
                        braggunits='deg', angunits='deg', **kwdargs)
-            return bragg, ang, lax
+        return bragg, ang
+
+    @classmethod
+    def plot_data_in_angle_vs_bragglamb(cls, xi=None, xj=None, data=None,
+                                        Z=None, nn=None, lamb=None, d=None,
+                                        frame_cent=None, frame_ang=None,
+                                        plot=True, fs=None,
+                                        cmap=None, vmin=None, vmax=None):
+
+        bragg, angle = cls.calc_braggangle_from_xixj(Z, nn, frame_cent,
+                                                     frame_ang, xi, xj,
+                                                     plot=False)
+        assert bragg.shape == angle.shape == data.shape
+
+        if lamb == True:
+            x = cls.get_lamb_from_bragg(bragg, n=1, d=None)*1.e10
+            xlab = r'$\lamb$'
+            xunits = r'$\dot{A}$'
         else:
-            return bragg, ang
+            x = bragg * 180./np.pi
+            xlab = r'$\theta_{bragg}$'
+            xunits = r'$deg$'
+
+        if plot != False:
+            func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
+            ax = func(xi, xj, x, angle*180/np.pi, data,
+                      cmap=cmap, vmin=vmin, vmax=vmax,
+                      xlab=xlab, xunits=xunits,
+                      fs=fs)
+        return ax

@@ -1,9 +1,15 @@
 
-
 import numpy as np
 
+# ###############################################
+# ###############################################
+#           CrystalBragg
+# ###############################################
+# ###############################################
 
-
+# ###############################################
+#           Coordinates transforms
+# ###############################################
 
 def checkformat_vectang(Z, nn, frame_cent, frame_ang):
     # Check / format inputs
@@ -21,12 +27,12 @@ def checkformat_vectang(Z, nn, frame_cent, frame_ang):
 
 
 def get_e1e2_detectorplane(nn, nIn):
-    e1 = np.cross(nIn, nn)
+    e1 = np.cross(nn, nIn)
     e1n = np.linalg.norm(e1)
     if e1n < 1.e-10:
         e1 = np.array([nIn[2], -nIn[1], 0.])
-    else:
-        e1 = e1 / e1n
+        e1n = np.linalg.norm(e1)
+    e1 = e1 / e1n
     e2 = np.cross(nn, e1)
     e2 = e2 / np.linalg.norm(e2)
     return e1, e2
@@ -94,9 +100,9 @@ def calc_braggangle_from_xixj(xi, xj, Z, nn, frame_cent, frame_ang,
 
         # Deduce OM
         sca = Z + x1*np.sum(e1*nIn) + x2*np.sum(e2*nIn)
-        norm = np.sqrt((x1*e1[0] + x2*e2[0])**2
-                       + (x1*e1[1] + x2*e2[1])**2
-                       + (Z + x1*e1[2] + x2*e2[2])**2)
+        norm = np.sqrt((Z*nIn[0] + x1*e1[0] + x2*e2[0])**2
+                       + (Z*nIn[1] + x1*e1[1] + x2*e2[1])**2
+                       + (Z*nIn[2] + x1*e1[2] + x2*e2[2])**2)
         bragg = np.pi/2 - np.arccos(sca/norm)
 
         # Get angle with respect to axis ! (not center)
@@ -111,3 +117,43 @@ def calc_braggangle_from_xixj(xi, xj, Z, nn, frame_cent, frame_ang,
         # ang = np.arctan2(x2-x2C, x1)
 
         return bragg, ang
+
+
+# ###############################################
+#           Spectral fit 2d
+# ###############################################
+
+def get_2dspectralfit_func(lambrest,
+                           bsamp=None, bsshift=None, bswidth=None,
+                           deg=None, knots=None):
+
+    lambrest = np.atleast_1d(lambrest).ravel()
+    nlamb = lambrest.size
+    knots = np.atleast_1d(knots).ravel()
+    nknots = knots.size
+    nbsplines = nknots - 1 + deg
+    assert bsamp.shape == bsshift.shape == bswidth.shape == (nlamb, nbsplines)
+
+    # Get 3 sets of bsplines for each lamb
+    lbsamp = [scpinterp.Bspline(knots, bsamp[ii,:], deg,
+                               extrapolate=False, axis=0)
+             for ii in range(nlamb)]
+    lbsshift = [scpinterp.Bspline(knots, bsshift[ii,:], deg,
+                                  extrapolate=False, axis=0)
+                for ii in range(nlamb)]
+    lbswidth = [scpinterp.Bspline(knots, bswidth[ii,:], deg,
+                                  extrapolate=False, axis=0)
+                for ii in range(nlamb)]
+
+    # Define function
+    def func(lamb, angle, lambrest=lambrest,
+             lbsamp=lbsamp, lbsshift=lbsshift, lbswidth=lbswidth):
+        nlamb = lambrest.size
+        ldata = np.array([lbsamps[ii](angle)[None,:]
+                          *np.exp(-(lamb[:,None]
+                                    - (lambrest[ii]
+                                       + lbsshift[ii](angle)[None,:]))**2
+                                  /lbswidth[ii](angle)[None,:]**2)
+                          for ii in range(nlamb)])
+        return np.sum(ldata, axis=0)
+    return func
