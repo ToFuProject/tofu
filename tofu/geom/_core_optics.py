@@ -8,7 +8,7 @@ It includes all functions and object classes necessary for tomography on Tokamak
 import sys
 import os
 import warnings
-#import copy
+import copy
 
 
 # Common
@@ -465,7 +465,7 @@ class CrystalBragg(utils.ToFuObject):
             msg = "Instance mesh size not set !\n"
             msg += "  => please provide d !"
             raise Exception(msg)
-        return _comp_optics.get_lamb_from_bragg(lamb, d, n=n)
+        return _comp_optics.get_lamb_from_bragg(lamb, self._dmat['d'], n=n)
 
     @staticmethod
     def get_approx_detector_params_from_Bragg_CurvRadius(bragg, R,
@@ -552,10 +552,11 @@ class CrystalBragg(utils.ToFuObject):
                        braggunits='deg', angunits='deg', **kwdargs)
         return bragg, ang
 
-    @classmethod
-    def plot_data_in_angle_vs_bragglamb(cls, xi=None, xj=None, data=None,
+    def plot_data_in_angle_vs_bragglamb(self, xi=None, xj=None, data=None,
                                         Z=None, nn=None, lamb=None, d=None,
                                         frame_cent=None, frame_ang=None,
+                                        deg=None, knots=None, lambrest=None,
+                                        camp=None, cwidth=None, cshift=None,
                                         plot=True, fs=None,
                                         cmap=None, vmin=None, vmax=None):
 
@@ -563,20 +564,12 @@ class CrystalBragg(utils.ToFuObject):
                                                      frame_ang, xi, xj,
                                                      plot=False)
         assert bragg.shape == angle.shape == data.shape
-
-        if lamb == True:
-            x = cls.get_lamb_from_bragg(bragg, n=1, d=None)*1.e10
-            xlab = r'$\lamb$'
-            xunits = r'$\dot{A}$'
-        else:
-            x = bragg * 180./np.pi
-            xlab = r'$\theta_{bragg}$'
-            xunits = r'$deg$'
-
-        if plot != False:
-            func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
-            ax = func(xi, xj, x, angle*180/np.pi, data,
-                      cmap=cmap, vmin=vmin, vmax=vmax,
-                      xlab=xlab, xunits=xunits,
-                      fs=fs)
+        lamb = self.get_lamb_from_bragg(bragg, n=1)
+        func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
+        ax = func(xi, xj, bragg, lamb, angle*180/np.pi, data,
+                  deg=deg, knots=knots, lambrest=lambrest,
+                  camp=camp, cwidth=cwidth, cshift=cshift,
+                  cmap=cmap, vmin=vmin, vmax=vmax,
+                  xlab=xlab, xunits=xunits,
+                  fs=fs)
         return ax

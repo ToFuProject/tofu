@@ -1,5 +1,6 @@
 
 import numpy as np
+import scipy.interpolate as scpinterp
 
 # ###############################################
 # ###############################################
@@ -120,40 +121,68 @@ def calc_braggangle_from_xixj(xi, xj, Z, nn, frame_cent, frame_ang,
 
 
 # ###############################################
-#           Spectral fit 2d
+#           Spectral fit 2d - user-friendly
 # ###############################################
 
-def get_2dspectralfit_func(lambrest,
-                           bsamp=None, bsshift=None, bswidth=None,
-                           deg=None, knots=None):
+def get_2dspectralfit_func(lambrest, deg=None, knots=None):
 
     lambrest = np.atleast_1d(lambrest).ravel()
     nlamb = lambrest.size
     knots = np.atleast_1d(knots).ravel()
     nknots = knots.size
-    nbsplines = nknots - 1 + deg
-    assert bsamp.shape == bsshift.shape == bswidth.shape == (nlamb, nbsplines)
+    nbsplines = np.unique(knots).size - 1 + deg
 
     # Get 3 sets of bsplines for each lamb
-    lbsamp = [scpinterp.Bspline(knots, bsamp[ii,:], deg,
-                               extrapolate=False, axis=0)
-             for ii in range(nlamb)]
-    lbsshift = [scpinterp.Bspline(knots, bsshift[ii,:], deg,
+    bsamp = scpinterp.BSpline(knots, np.ones((nbsplines,)), deg,
+                              extrapolate=False, axis=0)
+    bsshift = scpinterp.BSpline(knots, np.ones((nbsplines,)), deg,
                                   extrapolate=False, axis=0)
-                for ii in range(nlamb)]
-    lbswidth = [scpinterp.Bspline(knots, bswidth[ii,:], deg,
+    bswidth = scpinterp.BSpline(knots, np.ones((nbsplines,)), deg,
                                   extrapolate=False, axis=0)
-                for ii in range(nlamb)]
 
     # Define function
-    def func(lamb, angle, lambrest=lambrest,
-             lbsamp=lbsamp, lbsshift=lbsshift, lbswidth=lbswidth):
+    def func(lamb, angle,
+             camp=None, cwidth=None, cshift=None,
+             lambrest=lambrest, knots=knots, deg=deg, nbsplines=nbsplines,
+             mesh=True):
         nlamb = lambrest.size
-        ldata = np.array([lbsamps[ii](angle)[None,:]
-                          *np.exp(-(lamb[:,None]
-                                    - (lambrest[ii]
-                                       + lbsshift[ii](angle)[None,:]))**2
-                                  /lbswidth[ii](angle)[None,:]**2)
-                          for ii in range(nlamb)])
-        return np.sum(ldata, axis=0)
+        if camp is not None:
+            assert camp.shape[0] == nbsplines
+            bsamp = scpinterp.BSpline(knots, camp, deg,
+                                      extrapolate=False, axis=0)
+        if cwidth is not None:
+            assert cwidth.shape[0] == nbsplines
+            bswidth = scpinterp.BSpline(knots, cwidth, deg,
+                                        extrapolate=False, axis=0)
+        if cshift is not None:
+            assert cshift.shape[0] == nbsplines
+            bshift = scpinterp.BSpline(knots, cshift, deg,
+                                       extrapolate=False, axis=0)
+        assert angle.ndim in [1, 2]
+        if mesh or angle.ndim == 2:
+            lambrest = lambrest[None, None, :]
+        else:
+            lambrest = lambrest[None, :]
+
+        if mesh:
+            # shape (lamb, angle, lines)
+            return np.sum(bsamp(angle)[None,:,:]
+                          * np.exp(-(lamb[:,None,None]
+                                     - (lambrest
+                                        + bshift(angle)[None,:,:]))**2
+                                   /bswidth(angle)[None,:,:]), axis=-1)
+        else:
+            assert angle.shape == lamb.shape
+            if angle.ndim == 2:
+                lamb = lamb[:, :, None]
+            else:
+                lamb = lamb[:, None]
+            # shape (lamb/angle, lines)
+            return np.sum(bsamp(angle)
+                          * np.exp(-(lamb
+                                     - (lambrest
+                                        + bshift(angle)))**2
+                                   /bswidth(angle)), axis=-1)
+
+
     return func
