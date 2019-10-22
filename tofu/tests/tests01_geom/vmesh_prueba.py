@@ -128,7 +128,11 @@ def small_test():
     RMinMax = np.array([np.min(VPoly[0, :]), np.max(VPoly[0, :])])
     ZMinMax = np.array([np.min(VPoly[1, :]), np.max(VPoly[1, :])])
     dR, dZ, dRPhi = 0.025, 0.025, 0.025
-    LDPhi = [None, [3.0 * np.pi / 4.0, 5.0 * np.pi / 4.0], [-np.pi / 4.0, np.pi / 4.0]]  # noqa
+    LDPhi = [
+        None,  # noqa
+        [3.0 * np.pi / 4.0, 5.0 * np.pi / 4.0],  # noqa
+        [-np.pi / 4.0, np.pi / 4.0],
+    ]  # noqa
     for ii in range(0, len(LDPhi)):
         Pts, dV, ind, dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(
             dR,
@@ -157,14 +161,12 @@ def small_test():
                 np.sin(LDPhi[ii][1]), np.cos(LDPhi[ii][1])
             )  # noqa
             if LDPhi[ii][0] <= LDPhi[ii][1]:
-                assert np.all(
-                    (Pts[2, :] >= LDPhi[ii][0] - marg)
-                    & (Pts[2, :] <= LDPhi[ii][1] + marg)
-                )
+                assert np.all(Pts[2, :] >= LDPhi[ii][0] - marg)
+                assert np.all(Pts[2, :] <= LDPhi[ii][1] + marg)
             else:
                 assert np.all(
-                    (Pts[2, :] >= LDPhi[ii][0] - marg)
-                    | (Pts[2, :] <= LDPhi[ii][1] + marg)
+                    (Pts[2, :] >= LDPhi[ii][0] - marg)  # noqa
+                    | (Pts[2, :] <= LDPhi[ii][1] + marg)  # noqa
                 )
         assert dV.shape == (Pts.shape[1],)
         assert ind.shape == (Pts.shape[1],)
@@ -190,37 +192,49 @@ def small_test():
         assert dRr == dRri and dZr == dZri
         assert np.allclose(dRPhir, dRPhiri)
 
-import sys, getopt
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Testing vmesh algo')
-    parser.add_argument('-m',
-                        '--mode',
-                        help='small, big or timeit',
-                        required=False,
-                        choices=['big', 'small'],
-                        default='small')
-    parser.add_argument('-tm',
-                        '--timeme',
-                        help='do you wish to time it ?',
-                        type=bool,
-                        required=False,
-                        choices=[True, False],
-                        default=False)
+
+    parser = argparse.ArgumentParser(description="Testing vmesh algo")
+    parser.add_argument(
+        "-m",
+        "--mode",
+        help="small, big or timeit",
+        required=False,
+        choices=["big", "small"],
+        default="small",
+    )
+    parser.add_argument(
+        "-tm",
+        "--timeme",
+        help="do you wish to time it ?",
+        type=bool,
+        required=False,
+        choices=[True, False],
+        default=False,
+    )
     args = parser.parse_args()
-    print(".-.-.-.-.-.-.-. ",args.mode," .-.-.-.-.-.-.-.-")
+    print(".-.-.-.-.-.-.-. ", args.mode, " .-.-.-.-.-.-.-.-")
     if args.mode.lower() == "small":
         if args.timeme:
-            print(timeit.timeit("small_test()",
-                                setup="from __main__ import small_test",
-                                number=500))
+            print(
+                timeit.timeit(
+                    "small_test()",
+                    setup="from __main__ import small_test",
+                    number=500,  # fmt: off
+                )
+            )
         else:
             small_test()
     elif args.mode.lower() == "big":
         if args.timeme:
-            print(timeit.timeit("bigger_test()",
-                                setup="from __main__ import bigger_test",
-                                number=50))
+            print(
+                timeit.timeit(
+                    "bigger_test()",
+                    setup="from __main__ import bigger_test",
+                    number=50,  # fmt: off
+                )
+            )
         else:
             bigger_test()

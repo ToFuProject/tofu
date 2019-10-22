@@ -10,15 +10,20 @@ import shutil
 import logging
 import platform
 import subprocess
-from codecs import open
+from codecs import open as cd_open  # useless in py 3.x
 import Cython as cth
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
 import _updateversion as up
+from Cython.Compiler.Options import get_directive_defaults
 
 from distutils.command.clean import clean as Clean
 
+directive_defaults = get_directive_defaults()
+directive_defaults["profile"] = True
+directive_defaults["linetrace"] = True
+directive_defaults["binding"] = True
 
 print("cython version =", cth.__version__)
 print("numpy  version =", np.__version__)
@@ -81,12 +86,10 @@ class CleanCommand(Clean):
         Clean.run(self)
 
         cython_files = self.find(["*.pyx"])
-        cythonized_files = [
-            path.replace(".pyx", ".c") for path in cython_files
-        ]
+        cythonized_files = [path.replace(".pyx", ".c") for path in cython_files]
         cythonized_files += [
             path.replace(".pyx", ".cpp") for path in cython_files
-        ]
+        ]  # noqa
         so_files = self.find(["*.so"])
         # really remove the directories
         # and not only if they are empty
@@ -184,7 +187,7 @@ def get_version_tofu(path=_HERE):
                         "--symbolic-full-name",
                         "--abbrev-ref",
                         "HEAD",
-                    ]
+                    ]  # noqa
                 ).rstrip()
             elif sys.version[0] == "3":
                 git_branch = (
@@ -241,7 +244,7 @@ _README = [
 ]
 assert len(_README) == 1
 _README = _README[0]
-with open(os.path.join(_HERE, _README), encoding="utf-8") as f:
+with cd_open(os.path.join(_HERE, _README), encoding="utf-8") as f:
     long_description = f.read()
 if _README[-3:] == ".md":
     long_description_content_type = "text/markdown"
@@ -299,6 +302,7 @@ extensions = [
 
 extensions = cythonize(extensions, annotate=True)
 
+install_requires = ["numpy", "scipy", "matplotlib", "cython>=0.26"] + extralib
 
 setup(
     name="tofu",
@@ -370,15 +374,20 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"]
-    + extralib,
+    install_requires=install_requires,
     python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*",
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        "dev": ["check-manifest", "coverage", "nose==1.3.4", "sphinx", "sphinx-gallery"],
+        "dev": [
+            "check-manifest",  # noqa
+            "coverage",  # noqa
+            "nose==1.3.4",  # noqa
+            "sphinx",  # noqa
+            "sphinx-gallery",  # noqa
+        ]  # noqa
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here. If using Python 2.6 or less, then these
