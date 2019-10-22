@@ -2,13 +2,14 @@
 Computing a camera image with custom emissivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This tutorial defines an emissivity that varies in space and computes the signal received by a camera using
-this emissivity.
+This tutorial defines an emissivity that varies in space and computes the signal
+received by a camera using this emissivity.
 """
 
 ###############################################################################
 # We start by loading a built-in `tofu` configuration and define a 2D camera.
 
+import matplotlib.pyplot as plt
 import numpy as np
 import tofu as tf
 
@@ -29,22 +30,25 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 ###############################################################################
 # Now, we define an emissivity function that depends on r and z coordinates.
 # We can plot its profile in the (0, X, Z) plane.
-import matplotlib.pyplot as plt
-
 
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
     :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
-    :param t: optional, time parameter to add a time dependency to the emissivity function
+    :param t: optional, time parameter to add a time dependency to the
+        emissivity function
     :param vect:
     :return:
-        - emissivity - array holding the emissivity for each point in the input grid
+        - emissivity -- 2D array holding the emissivity for each point in the
+            input grid
     """
     r, z = np.hypot(pts[0, :], pts[1, :]), pts[2, :]
     e = np.exp(-(r - 2.4) ** 2 / 0.2 ** 2 - z ** 2 / 0.4 ** 2)
     if t is not None:
         e = np.cos(np.atleast_1d(t))[:, None] * e[None, :]
+    else:
+        # as stated in documentation of calc_signal, e.ndim must be 2
+        e = np.reshape(e, (1, -1))
     return e
 
 
@@ -56,9 +60,11 @@ pts = np.c_[X.ravel(), Y.ravel(), Z.ravel()].T
 emissivity_vals = emissivity(pts)
 emissivity_vals = emissivity_vals.reshape(X.shape)
 
+
 def project_to_2D(xyz):
     """Projection to (0, X, Z) plane."""
     return xyz[0], xyz[2]
+
 
 fig, ax = plt.subplots()
 ax.pcolormesh(Y, Z, emissivity_vals)
@@ -69,8 +75,9 @@ cam_center, = ax.plot(*project_to_2D(cam2d._dgeom['pinhole']), '*', ms=20)
 ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 ###############################################################################
-# Finally, we compute an image using the 2D camera and this emissivity. If we provide a time vector, the field
-# will vary in a cosinusoidal fashion (see above definition) across time.
+# Finally, we compute an image using the 2D camera and this emissivity.
+# If we provide a time vector, the field will vary in a cosinusoidal fashion
+# (see above definition) across time.
 
 time_vector = np.linspace(0, 2 * np.pi, num=100)
 
