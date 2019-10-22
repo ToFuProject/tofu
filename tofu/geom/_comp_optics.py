@@ -40,22 +40,15 @@ def get_e1e2_detectorplane(nn, nIn):
 
 def get_bragg_from_lamb(lamb, d, n=1):
     """ n*lamb = 2d*sin(bragg) """
-    lamb = np.atleast_1d(lamb).ravel()
-    nord = np.atleast_1d(n).ravel()
-
-    bragg= np.full((lamb.size, nord.size), np.nan)
-    sin = nord[None, :]*lamb[:, None]/(2.*d)
+    bragg= np.full(lamb.shape, np.nan)
+    sin = n*lamb/(2.*d)
     indok = np.abs(sin) <= 1.
     bragg[indok] = np.arcsin(sin[indok])
     return bragg
 
 def get_lamb_from_bragg(bragg, d, n=1):
     """ n*lamb = 2d*sin(bragg) """
-    bragg = np.atleast_1d(bragg).ravel()
-    nord = np.atleast_1d(n).ravel()
-
-    lamb = 2*d*np.sin(bragg[:, None]) / nord[None, :]
-    return lamb
+    return 2*d*np.sin(bragg) / n
 
 def calc_xixj_from_braggangle(Z, nIn,
                               frame_cent, frame_ang,
@@ -165,12 +158,13 @@ def get_2dspectralfit_func(lambrest, deg=None, knots=None):
             lambrest = lambrest[None, :]
 
         if mesh:
+            assert angle.ndim == lamb.ndim == 1
             # shape (lamb, angle, lines)
             return np.sum(bsamp(angle)[None,:,:]
                           * np.exp(-(lamb[:,None,None]
                                      - (lambrest
                                         + bshift(angle)[None,:,:]))**2
-                                   /bswidth(angle)[None,:,:]), axis=-1)
+                                   /(bswidth(angle)[None,:,:]**2)), axis=-1)
         else:
             assert angle.shape == lamb.shape
             if angle.ndim == 2:
@@ -182,7 +176,7 @@ def get_2dspectralfit_func(lambrest, deg=None, knots=None):
                           * np.exp(-(lamb
                                      - (lambrest
                                         + bshift(angle)))**2
-                                   /bswidth(angle)), axis=-1)
+                                   /(bswidth(angle)**2)), axis=-1)
 
 
     return func

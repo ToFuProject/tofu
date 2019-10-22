@@ -15,6 +15,7 @@ import copy
 import numpy as np
 import datetime as dtm
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -75,7 +76,7 @@ class CrystalBragg(utils.ToFuObject):
     """
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0,
+    _ddef = {'Id':{'shot':0, 'Exp':'dummy',
                    'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
              'dgeom':{'Type':'sph', 'outline_Type':'rect'},
@@ -93,7 +94,8 @@ class CrystalBragg(utils.ToFuObject):
                      'dI':{'color':'k','ls':'--'},
                      'dBs':{'color':'b','ls':'--'},
                      'dBv':{'color':'g','ls':'--'},
-                     'Nstep':50}}
+                     'Nstep':50},
+              '3d':{}}
     _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
 
     # Does not exist beofre Python 3.6 !!!
@@ -111,7 +113,7 @@ class CrystalBragg(utils.ToFuObject):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
     def __init__(self, dgeom=None, dmat=None, dbragg=None,
-                 Id=None, Name=None, Exp=None,
+                 Id=None, Name=None, Exp=None, shot=None,
                  fromdict=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
@@ -140,28 +142,31 @@ class CrystalBragg(utils.ToFuObject):
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               Exp=None, Type=None,
+                               Exp=None, shot=None, Type=None,
                                include=None,
                                **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
             Name, Exp, Type = Id.Name, Id.Exp, Id.Type
-        if shot is None:
-            shot = cls._ddef['Id']['shot']
         if Type is None:
             Type = cls._ddef['dgeom']['Type']
+        if Exp is None:
+            Exp = cls._ddef['Id']['Exp']
+        if shot is None:
+            shot = cls._ddef['Id']['shot']
         if include is None:
             include = cls._ddef['Id']['include']
 
         dins = {'Name':{'var':Name, 'cls':str},
                 'Exp': {'var':Exp, 'cls':str},
-                'Type': {'var':Type, 'in':['Tor','Lin']},
+                'shot': {'var':shot, 'cls':int},
+                'Type': {'var':Type, 'in':['sph']},
                 'include':{'var':include, 'listof':str}}
         dins, err, msg = cls._check_InputsGeneric(dins)
         if err:
             raise Exception(msg)
 
-        kwdargs.update({'Name':Name, 'Exp':Exp, 'Type':Type,
+        kwdargs.update({'Name':Name, 'shot':shot, 'Exp':Exp, 'Type':Type,
                         'include':include})
         return kwdargs
 
@@ -212,7 +217,7 @@ class CrystalBragg(utils.ToFuObject):
         if dmat is None:
             return
         assert isinstance(dmat, dict)
-        lkok = ['formula']
+        lkok = cls._get_keys_dmat()
         assert all([isinstance(ss, str) for ss in dmat.keys()])
         assert all([ss in lkok for ss in dmat.keys()])
 
@@ -233,6 +238,13 @@ class CrystalBragg(utils.ToFuObject):
             dbragg[kk] = dbragg.get(kk, cls._ddef['dbragg'][kk])
         return dbragg
 
+    @classmethod
+    def _checkformat_inputs_dmisc(cls, color=None):
+        if color is None:
+            color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
+        assert mpl.colors.is_color_like(color)
+        return tuple(mpl.colors.to_rgba(color))
+
     ###########
     # Get keys of dictionnaries
     ###########
@@ -247,12 +259,13 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dmat():
-        lk = ['lattice', 'formula', 'slice']
+        lk = ['formula', 'density', 'symmetry',
+              'lengths', 'angles', 'cut', 'd']
         return lk
 
     @staticmethod
     def _get_keys_dbragg():
-        largs = ['bragg_ang']
+        lk = ['bragg_ang']
         return lk
 
     @staticmethod
@@ -268,33 +281,33 @@ class CrystalBragg(utils.ToFuObject):
               color=None, **kwdargs):
         allkwds = dict(locals(), **kwdargs)
         largs = self._get_largs_dgeom()
-        kwd = self._extract_kwdargs(allkwds, largs)
-        self._set_dgeom(**kwds)
+        kwds = self._extract_kwdargs(allkwds, largs)
+        self.set_dgeom(**kwds)
         largs = self._get_largs_dmat()
-        kwd = self._extract_kwdargs(allkwds, largs)
+        kwds = self._extract_kwdargs(allkwds, largs)
         self.set_dmat(**kwds)
         largs = self._get_largs_dbragg()
-        kwd = self._extract_kwdargs(allkwds, largs)
-        self.set_dbragg(**kwds)
+        kwds = self._extract_kwdargs(allkwds, largs)
+        self._set_dbragg(**kwds)
         largs = self._get_largs_dmisc()
-        kwd = self._extract_kwdargs(allkwds, largs)
-        self._set_dmisc(**kwdmisc)
+        kwds = self._extract_kwdargs(allkwds, largs)
+        self._set_dmisc(**kwds)
         self._dstrip['strip'] = 0
 
     ###########
     # set dictionaries
     ###########
 
-    def _set_dgeom(self, dgeom=None):
-        dgeom = self._checkformat_inputs_dgeom(dgeom)
+    def set_dgeom(self, dgeom=None):
+        dgeom = self._checkformat_dgeom(dgeom)
         self._dgeom = dgeom
 
-    def _set_dmat(self, dmat=None):
-        dmat = self._checkformat_inputs_dgeom(dmat)
+    def set_dmat(self, dmat=None):
+        dmat = self._checkformat_dmat(dmat)
         self._dmat = dmat
 
     def _set_dbragg(self, dbragg=None):
-        dbragg = self._checkformat_inputs_dgeom(dbragg)
+        dbragg = self._checkformat_dbragg(dbragg)
         self._dbragg = dbragg
 
     def _set_color(self, color=None):
@@ -302,7 +315,7 @@ class CrystalBragg(utils.ToFuObject):
         self._dmisc['color'] = color
         self._dplot['cross']['dP']['color'] = color
         self._dplot['hor']['dP']['color'] = color
-        self._dplot['3d']['dP']['color'] = color
+        # self._dplot['3d']['dP']['color'] = color
 
     def _set_dmisc(self, color=None):
         self._set_color(color)
@@ -402,12 +415,11 @@ class CrystalBragg(utils.ToFuObject):
         return dout
 
     def _from_dict(self, fd):
-        self._dgeom.update(**fd['dgeom'])
-        self._dmat.update(**fd['dmat'])
-        self._dbragg.update(**fd['dbragg'])
-        self._dmisc.update(**fd['dmisc'])
-        if 'dplot' in fd.keys():
-            self._dplot.update(**fd['dplot'])
+        self._dgeom.update(**fd.get('dgeom', {}))
+        self._dmat.update(**fd.get('dmat', {}))
+        self._dbragg.update(**fd.get('dbragg', {}))
+        self._dmisc.update(**fd.get('dmisc', {}))
+        self._dplot.update(**fd.get('dplot', {}))
 
     # -----------
     # Properties
@@ -454,18 +466,18 @@ class CrystalBragg(utils.ToFuObject):
     def get_bragg_from_lamb(self, lamb, n=1):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
-            msg = "Instance mesh size not set !\n"
-            msg += "  => please provide d !"
+            msg = "Interplane distance d no set !\n"
+            msg += "  => self.set_dmat({'d':...})"
             raise Exception(msg)
-        return _comp_optics.get_bragg_from_lamb(lamb, d, n=n)
+        return _comp_optics.get_bragg_from_lamb(lamb, self._dmat['d'], n=n)
 
     def get_lamb_from_bragg(self, bragg, n=1):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
-            msg = "Instance mesh size not set !\n"
-            msg += "  => please provide d !"
+            msg = "Interplane distance d no set !\n"
+            msg += "  => self.set_dmat({'d':...})"
             raise Exception(msg)
-        return _comp_optics.get_lamb_from_bragg(lamb, self._dmat['d'], n=n)
+        return _comp_optics.get_lamb_from_bragg(bragg, self._dmat['d'], n=n)
 
     @staticmethod
     def get_approx_detector_params_from_Bragg_CurvRadius(bragg, R,
@@ -560,16 +572,15 @@ class CrystalBragg(utils.ToFuObject):
                                         plot=True, fs=None,
                                         cmap=None, vmin=None, vmax=None):
 
-        bragg, angle = cls.calc_braggangle_from_xixj(Z, nn, frame_cent,
-                                                     frame_ang, xi, xj,
-                                                     plot=False)
+        bragg, angle = self.calc_braggangle_from_xixj(Z, nn, frame_cent,
+                                                      frame_ang, xi, xj,
+                                                      plot=False)
         assert bragg.shape == angle.shape == data.shape
         lamb = self.get_lamb_from_bragg(bragg, n=1)
         func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
-        ax = func(xi, xj, bragg, lamb, angle*180/np.pi, data,
+        ax = func(xi, xj, bragg, lamb, angle, data,
                   deg=deg, knots=knots, lambrest=lambrest,
                   camp=camp, cwidth=cwidth, cshift=cshift,
                   cmap=cmap, vmin=vmin, vmax=vmax,
-                  xlab=xlab, xunits=xunits,
                   fs=fs)
         return ax
