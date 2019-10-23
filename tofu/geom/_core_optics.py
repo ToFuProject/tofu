@@ -203,13 +203,39 @@ class CrystalBragg(utils.ToFuObject):
         if dgeom is None:
             return
         assert isinstance(dgeom, dict)
-        lkok = ['Type', 'Type_outline', 'summit', 'extent',
-                'nIn', 'e1', 'e2', 'curve_radius']
+        lkok = cls._get_keys_dgeom()
         assert all([isinstance(ss, str) for ss in dgeom.keys()])
         assert all([ss in lkok for ss in dgeom.keys()])
-
         for kk in cls._ddef['dgeom'].keys():
             dgeom[kk] = dgeom.get(kk, cls._ddef['dgeom'][kk])
+        if dgeom['summit'] is not None:
+            dgeom['summit'] = np.atleast_1d(dgeom['summit']).ravel()
+            assert dgeom['summit'].size == 3
+        if dgeom['extenthalf'] is not None:
+            dgeom['extenthalf'] = np.atleast_1d(dgeom['extenthalf'])
+            assert dgeom['extenthalf'].size == 2
+        if dgeom['r_curve'] is not None:
+            dgeom['r_curve'] = float(dgeom['r_curve'])
+        if dgeom['nIn'] is not None:
+            dgeom['nIn'] = np.atleast_1d(dgeom['nIn'])
+            dgeom['nIn'] = dgeom['nIn'] / np.linalg.norm(dgeom['nIn'])
+            assert dgeom['nIn'].size == 3
+        if dgeom['e1'] is not None:
+            dgeom['e1'] = np.atleast_1d(dgeom['e1'])
+            dgeom['e1'] = dgeom['e1'] / np.linalg.norm(dgeom['e1'])
+            assert dgeom['e1'].size == 3
+        if dgeom['e2'] is not None:
+            dgeom['e2'] = np.atleast_1d(dgeom['e2'])
+            dgeom['e2'] = dgeom['e2'] / np.linalg.norm(dgeom['e2'])
+            assert dgeom['e2'].size == 3
+        if dgeom['e1'] is not None:
+            assert dgeom['e2'] is not None
+            assert dgeom['nIn'] is not None
+            assert np.abs(np.sum(dgeom['e1']*dgeom['e2'])) < 1.e-12
+            assert np.abs(np.sum(dgeom['e1']*dgeom['nIn'])) < 1.e-12
+            assert np.abs(np.sum(dgeom['e2']*dgeom['nIn'])) < 1.e-12
+            assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
+                                  - dgeom['nIn']) < 1.e-12
         return dgeom
 
     @classmethod
@@ -220,9 +246,21 @@ class CrystalBragg(utils.ToFuObject):
         lkok = cls._get_keys_dmat()
         assert all([isinstance(ss, str) for ss in dmat.keys()])
         assert all([ss in lkok for ss in dmat.keys()])
-
         for kk in cls._ddef['dmat'].keys():
             dmat[kk] = dmat.get(kk, cls._ddef['dmat'][kk])
+        if dmat['d'] is not None:
+            dmat['d'] = float(dmat['d'])
+        if dmat['formula'] is not None:
+            assert isinstance(dmat['formula'], str)
+        if dmat['density'] is not None:
+            dmat['density'] = float(dmat['density'])
+        if dmat['lengths'] is not None:
+            dmat['lengths'] = np.atleast_1d(dmat['lengths']).ravel()
+        if dmat['angles'] is not None:
+            dmat['angles'] = np.atleast_1d(dmat['angles']).ravel()
+        if dmat['cut'] is not None:
+            dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
+            assert dmat['cut'].size <= 4
         return dmat
 
     @classmethod
@@ -252,9 +290,9 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def _get_keys_dgeom():
         lk = ['Type', 'Type_outline',
-              'summit', 'extent',
+              'summit', 'extenthalf', 'surface',
               'nIn', 'e1', 'e2',
-              'curve_rad']
+              'r_curve', 'mobile']
         return lk
 
     @staticmethod
@@ -300,6 +338,12 @@ class CrystalBragg(utils.ToFuObject):
 
     def set_dgeom(self, dgeom=None):
         dgeom = self._checkformat_dgeom(dgeom)
+        if dgeom['extenthalf'] is not None:
+            if dgeom['Type'] == 'sph' and dgeom['Type_outline'] == 'rect':
+                ind = np.argmax(dgeom['extenthalf'])
+                dphi = dgeom['extenthalf'][ind]
+                sindtheta = np.sin(dgeom['extenthalf'][ind-1])
+                dgeom['surface'] = 4.*dgeom['r_curve']**2*dphi*sindtheta
         self._dgeom = dgeom
 
     def set_dmat(self, dmat=None):
@@ -458,6 +502,53 @@ class CrystalBragg(utils.ToFuObject):
 
     def get_color(self):
         return self._dmisc['color']
+
+    # -----------------
+    # methods for moving
+    # -----------------
+
+    def _rotate(self, angle=None, dangle=None):
+        assert 'rotateaxis' in self._dgeom.keys()
+        lc = [angle is not None, dangle is not None]
+        assert np.sum(lc) == 1
+
+        if lc[0]:
+            assert 'rotateangle' in self._dgeom.keys()
+            dangle = (angle - self._dgeom['rotateangle'])%(2*np.pi)
+        dangle = np.arctan2(np.sin(dangle), np.cos(dangle))
+        angle = (self._dgeom['rotateangle'] + dangle)%(2.*np.pi)
+        angle = np.arctan2(np.sin(angle), np.cos(angle))
+
+        # Define local frame (u, e1, e2)
+        OS = self._dgeom['summit'] - self._dgeom['rotateaxis'][0]
+        u = self._dgeom['rotateaxis'][1]
+        u = u / np.linalg.norm(u)
+        Z = np.sum(OS*u)
+        u1 = OS - Z*u
+        u1 = e1 / np.linalg.norm(u1)
+        u2 = np.cross(u, u1)
+
+        # Deduce constant distance from axis
+        dist = np.sum(OS*u1)
+        summit = dist*(np.cos(dangle)*u1 + np.sin(dangle)*u2) + Z*u
+        nIn = (np.sum(nIn*u1)*np.cos(dangle)*u1
+               + np.sum(nIn*u2)*np.cos(dangle)*u2 + np.sum(nIn*u)*u)
+        e1 = (np.sum(nIn*u1)*np.cos(dangle)*u1
+               + np.sum(nIn*u2)*np.cos(dangle)*u2 + np.sum(nIn*u)*u)
+        e2 = (np.sum(nIn*u1)*np.cos(dangle)*u1
+               + np.sum(nIn*u2)*np.cos(dangle)*u2 + np.sum(nIn*u)*u)
+        assert np.abs(np.sum(nIn*e1)) < 1.e-12
+        assert np.abs(np.sum(nIn*e2)) < 1.e-12
+        assert np.abs(np.sum(e1*e2)) < 1.e-12
+        self._dgeom.update({'summit': summit, 'nIn': nIn, 'e1': e1, 'e2': e2,
+                            'rotateangle': angle})
+
+    def move(self, kind=None, **kwdargs):
+        if kind is None or self._dgeom['mobile'] != True:
+            return
+        assert kind in ['rotate']
+        if kind == 'rotate':
+            self._rotate(**kwdargs)
 
     # -----------------
     # methods for generic first-approx
