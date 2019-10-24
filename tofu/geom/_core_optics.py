@@ -291,8 +291,8 @@ class CrystalBragg(utils.ToFuObject):
     def _get_keys_dgeom():
         lk = ['Type', 'Type_outline',
               'summit', 'extenthalf', 'surface',
-              'nIn', 'e1', 'e2',
-              'r_curve', 'mobile']
+              'nIn', 'e1', 'e2', 'r_curve',
+              'mobile', 'rotateaxis', 'rotateangle']
         return lk
 
     @staticmethod
@@ -303,7 +303,7 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dbragg():
-        lk = ['bragg_ang']
+        lk = ['rockingcurve']
         return lk
 
     @staticmethod
@@ -549,6 +549,22 @@ class CrystalBragg(utils.ToFuObject):
         assert kind in ['rotate']
         if kind == 'rotate':
             self._rotate(**kwdargs)
+
+    # -----------------
+    # methods for general plotting
+    # -----------------
+
+    def plot(self, lax=None, proj='all', element='PIBsBvV',
+             dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
+             dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
+             dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
+             dLeg=_def.TorLegd, indices=True,
+             draw=True, fs=None, wintit=None, Test=True):
+        kwdargs = locals()
+        lout = ['self']
+        for k in lout:
+            del kwdargs[k]
+        return _plot_optics.CrystBragg_plot(self, **kwdargs)
 
     # -----------------
     # methods for generic first-approx
