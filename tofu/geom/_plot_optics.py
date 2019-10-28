@@ -2,15 +2,23 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
+from matplotlib.axes._axes import Axes
+from mpl_toolkits.mplot3d import Axes3D
 
 # tofu
 from tofu.version import __version__
-import tofu.igeom._def as _def
+from . import _def as _def
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
 
+_QUIVERCOLOR = plt.cm.viridis(np.linspace(0, 1, 3))
+_QUIVERCOLOR = np.array([[1., 0., 0., 1.],
+                         [0., 1., 0., 1.],
+                         [0., 0., 1., 1.]])
+_QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
 
 
 # Generic
@@ -43,24 +51,24 @@ def _check_Lax(lax=None, n=2):
 # #################################################################
 # #################################################################
 
-def CrystalBragg_plot(cryst, lax=None, proj=None, element=None, dP=None,
+def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None, dP=None,
                       dI=None, dBs=None, dBv=None,
                       dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
-                      Lim=None, Nstep=None, dleg=None, indices=False,
+                      dleg=None, indices=False,
                       draw=True, fs=None, wintit=None, tit=None, Test=True):
 
     # ---------------------
     # Check / format inputs
 
     if proj is None:
-        proj = 'all'
+        proj = 'cross'
     proj = proj.lower()
     if Test:
         msg = "Arg proj must be in ['cross','hor','all','3d'] !"
         assert proj in ['cross','hor','all','3d'], msg
         lax, c0, c1, c2 = _check_Lax(lax, n=2)
         assert type(draw) is bool, "Arg draw must be a bool !"
-        assert issubclass(cryst.__class__.__name__, 'CrystBragg')
+        assert cryst.__class__.__name__ == 'CrystalBragg'
     if wintit is None:
         wintit = _WINTIT
 
@@ -73,7 +81,7 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, element=None, dP=None,
         dleg = None
 
     elif proj == 'cross':
-        pass
+        lax = _CrystalBragg_plot_cross(cryst, res=res, ax=lax, element=element)
 
     elif proj == 'hor':
         pass
@@ -100,11 +108,12 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, element=None, dP=None,
     lax = lax if proj=='all' else lax[0]
     return lax
 
-def _CrystalBragg_plot_cross(cryst, ax=None, element=None,
+def _CrystalBragg_plot_cross(cryst, ax=None, element=None, res=None,
                              Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
                              Bvdict=_def.TorBvd, Vdict=_def.TorVind,
+                             quiver_cmap=None,
                              LegDict=_def.TorLegd, indices=False,
-                             draw=True, fs=None, wintit=_wintit, Test=True):
+                             draw=True, fs=None, wintit=None, Test=True):
     if Test:
         ax, C0, C1, C2 = _check_Lax(ax, n=1)
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
@@ -113,9 +122,6 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None,
         assert type(Bvdict) is dict, "Arg Bvdict should be a dictionary !"
         assert type(Vdict) is dict, "Arg Vdict should be a dictionary !"
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
-        assert type(indices) is bool
-        if indices:
-            assert 'P' in Elt
 
     # ---------------------
     # Check / format inputs
@@ -123,6 +129,8 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None,
     if element is None:
         element = 'csv'
     element = element.lower()
+    if 'v' in element and quiver_cmap is None:
+        quiver_cmap = _QUIVERCOLOR
 
 
     # ---------------------
@@ -139,7 +147,7 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None,
     # plot
 
     if 'c' in element:
-        cont = cryst.get_outline_plot()
+        cont = cryst.sample_outline_plot(res=res)
         ax.plot(np.hypot(cont[0,:], cont[1,:]), cont[2,:],
                 ls='-', c='k', marker='None', label='')
     if 's' in element:
@@ -150,13 +158,10 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None,
         e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
-        # col =
-        # cmap =
-        # norm =
-        ax.quiver(p0[0,:], p0[1,:], v[0,:], v[1,:], col,
+        ax.quiver(p0[0,:], p0[1,:], v[0,:], v[1,:],
+                  np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                   angles='xy', scale_units='xy',
-                  label=V.Id.NameLTX+" unit vect",
-                  cmap=cmap, norm=norm,**Vdict)
+                  label=V.Id.NameLTX+" unit vect", **Vdict)
 
     # if indices:
         # for ii in range(0,V.dgeom['nP']):

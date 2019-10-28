@@ -79,7 +79,7 @@ class CrystalBragg(utils.ToFuObject):
     _ddef = {'Id':{'shot':0, 'Exp':'dummy',
                    'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
-             'dgeom':{'Type':'sph', 'outline_Type':'rect'},
+             'dgeom':{'Type':'sph', 'Typeoutline':'rect'},
              'dmat':{},
              'dbragg':{},
              'dmisc':{'color':'k'}}
@@ -214,12 +214,12 @@ class CrystalBragg(utils.ToFuObject):
         if dgeom['extenthalf'] is not None:
             dgeom['extenthalf'] = np.atleast_1d(dgeom['extenthalf'])
             assert dgeom['extenthalf'].size == 2
-        if dgeom['r_curve'] is not None:
-            dgeom['r_curve'] = float(dgeom['r_curve'])
-        if dgeom['nIn'] is not None:
-            dgeom['nIn'] = np.atleast_1d(dgeom['nIn'])
-            dgeom['nIn'] = dgeom['nIn'] / np.linalg.norm(dgeom['nIn'])
-            assert dgeom['nIn'].size == 3
+        if dgeom['rcurve'] is not None:
+            dgeom['rcurve'] = float(dgeom['rcurve'])
+        if dgeom['nout'] is not None:
+            dgeom['nout'] = np.atleast_1d(dgeom['nout'])
+            dgeom['nout'] = dgeom['nout'] / np.linalg.norm(dgeom['nout'])
+            assert dgeom['nin'].size == 3
         if dgeom['e1'] is not None:
             dgeom['e1'] = np.atleast_1d(dgeom['e1'])
             dgeom['e1'] = dgeom['e1'] / np.linalg.norm(dgeom['e1'])
@@ -230,12 +230,12 @@ class CrystalBragg(utils.ToFuObject):
             assert dgeom['e2'].size == 3
         if dgeom['e1'] is not None:
             assert dgeom['e2'] is not None
-            assert dgeom['nIn'] is not None
+            assert dgeom['nout'] is not None
             assert np.abs(np.sum(dgeom['e1']*dgeom['e2'])) < 1.e-12
-            assert np.abs(np.sum(dgeom['e1']*dgeom['nIn'])) < 1.e-12
-            assert np.abs(np.sum(dgeom['e2']*dgeom['nIn'])) < 1.e-12
+            assert np.abs(np.sum(dgeom['e1']*dgeom['nout'])) < 1.e-12
+            assert np.abs(np.sum(dgeom['e2']*dgeom['nout'])) < 1.e-12
             assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
-                                  - dgeom['nIn']) < 1.e-12
+                                  - dgeom['nout']) < 1.e-12
         return dgeom
 
     @classmethod
@@ -289,9 +289,9 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dgeom():
-        lk = ['Type', 'Type_outline',
+        lk = ['Type', 'Typeoutline',
               'summit', 'extenthalf', 'surface',
-              'nIn', 'e1', 'e2', 'r_curve',
+              'nout', 'e1', 'e2', 'rcurve',
               'mobile', 'rotateaxis', 'rotateangle']
         return lk
 
@@ -339,11 +339,11 @@ class CrystalBragg(utils.ToFuObject):
     def set_dgeom(self, dgeom=None):
         dgeom = self._checkformat_dgeom(dgeom)
         if dgeom['extenthalf'] is not None:
-            if dgeom['Type'] == 'sph' and dgeom['Type_outline'] == 'rect':
+            if dgeom['Type'] == 'sph' and dgeom['Typeoutline'] == 'rect':
                 ind = np.argmax(dgeom['extenthalf'])
                 dphi = dgeom['extenthalf'][ind]
                 sindtheta = np.sin(dgeom['extenthalf'][ind-1])
-                dgeom['surface'] = 4.*dgeom['r_curve']**2*dphi*sindtheta
+                dgeom['surface'] = 4.*dgeom['rcurve']**2*dphi*sindtheta
         self._dgeom = dgeom
 
     def set_dmat(self, dmat=None):
@@ -492,6 +492,17 @@ class CrystalBragg(utils.ToFuObject):
     def dmisc(self):
         return self._dmisc
 
+    @property
+    def nin(self):
+        return -self._dgeom['nout']
+
+    @property
+    def summit(self):
+        return self._dgeom['summit']
+
+    @property
+    def center(self):
+        return self._dgeom['summit'] + self._dgeom['rcurve']*self._dgeom['nin']
 
     # -----------------
     # methods for color
@@ -531,16 +542,16 @@ class CrystalBragg(utils.ToFuObject):
         # Deduce constant distance from axis
         dist = np.sum(OS*u1)
         summit = dist*(np.cos(dangle)*u1 + np.sin(dangle)*u2) + Z*u
-        nIn = (np.sum(nIn*u1)*np.cos(dangle)*u1
-               + np.sum(nIn*u2)*np.cos(dangle)*u2 + np.sum(nIn*u)*u)
-        e1 = (np.sum(nIn*u1)*np.cos(dangle)*u1
-               + np.sum(nIn*u2)*np.cos(dangle)*u2 + np.sum(nIn*u)*u)
-        e2 = (np.sum(nIn*u1)*np.cos(dangle)*u1
-               + np.sum(nIn*u2)*np.cos(dangle)*u2 + np.sum(nIn*u)*u)
-        assert np.abs(np.sum(nIn*e1)) < 1.e-12
-        assert np.abs(np.sum(nIn*e2)) < 1.e-12
+        nin = (np.sum(nin*u1)*np.cos(dangle)*u1
+               + np.sum(nin*u2)*np.cos(dangle)*u2 + np.sum(nin*u)*u)
+        e1 = (np.sum(nin*u1)*np.cos(dangle)*u1
+               + np.sum(nin*u2)*np.cos(dangle)*u2 + np.sum(nin*u)*u)
+        e2 = (np.sum(nin*u1)*np.cos(dangle)*u1
+               + np.sum(nin*u2)*np.cos(dangle)*u2 + np.sum(nin*u)*u)
+        assert np.abs(np.sum(nin*e1)) < 1.e-12
+        assert np.abs(np.sum(nin*e2)) < 1.e-12
         assert np.abs(np.sum(e1*e2)) < 1.e-12
-        self._dgeom.update({'summit': summit, 'nIn': nIn, 'e1': e1, 'e2': e2,
+        self._dgeom.update({'summit': summit, 'nin': nin, 'e1': e1, 'e2': e2,
                             'rotateangle': angle})
 
     def move(self, kind=None, **kwdargs):
@@ -551,20 +562,56 @@ class CrystalBragg(utils.ToFuObject):
             self._rotate(**kwdargs)
 
     # -----------------
+    # methods for surface and contour sampling
+    # -----------------
+
+    def sample_outline_plot(self, res=None):
+        if self._dgeom['Type'] == 'sph':
+            C = self.center
+            nout = -self._dgeom['nin']
+            r = self._dgeom['rcurve']
+            if self._dgeom['Typeoutline'] == 'rect':
+                dpsi = self._dgeom['extent'][0]
+                dtheta = self._dgeom['extent'][1]
+                if res is None:
+                    res = min(dpsi, dtheta)/5.
+                npsi = int(np.ceil(dpsi / res))
+                ntheta = int(np.ceil(dtheta / res))
+                psi = dpsi*np.linspace(-1, 1., 2*npsi+1)
+                theta = np.pi/2. + dtheta*np.linspace(-1, 1., 2*ntheta+1)
+                psimin = np.full((psi[0],), ntheta)
+                psimax = np.full((psi[-1],), ntheta)
+                thetamin = np.full((theta[0],), npsi)
+                thetamax = np.full((theta[-1],), npsi)
+                psi = np.concatenate((psi, psimax,
+                                      psi[::-1], psimin))
+                theta = np.concatenate((thetamin, theta,
+                                        thetamax, theta[::-1]))
+            elif self._dgeom['Typeoutline'] == 'circ':
+                angle = np.linspace(0., 2.*np.pi, int(np.ceil(2.*np.pi/res)))
+                raise NotImplementedError("Crystal with circular outline")
+
+            vects = ((np.cos(psi)[None, :]*nout[:, None]
+                      + np.sin(psi)[None, :]*e1[:, None])*np.sin(theta)[None, :]
+                     + np.cos(theta)[None, :]*e2[:, None])
+            outline = C[:, None] + r*vect
+        return outline
+
+
+    # -----------------
     # methods for general plotting
     # -----------------
 
-    def plot(self, lax=None, proj='all', element='PIBsBvV',
-             dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
-             dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
-             dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
-             dLeg=_def.TorLegd, indices=True,
+    def plot(self, lax=None, proj=None, res=None, element=None,
+             dP=None, dI=None, dBs=None, dBv=None,
+             dVect=None, dIHor=None, dBsHor=None,
+             dBvHor=None, dleg=None,
              draw=True, fs=None, wintit=None, Test=True):
         kwdargs = locals()
         lout = ['self']
         for k in lout:
             del kwdargs[k]
-        return _plot_optics.CrystBragg_plot(self, **kwdargs)
+        return _plot_optics.CrystalBragg_plot(self, **kwdargs)
 
     # -----------------
     # methods for generic first-approx
@@ -631,13 +678,13 @@ class CrystalBragg(utils.ToFuObject):
             normal vector
         """
 
-        nIn = np.array([0., 0., 1.])
+        nin = np.array([0., 0., 1.])
         out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
         Z, nn, frame_cent, frame_ang = out
-        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nIn)
+        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nin)
         bragg = np.atleast_1d(bragg).ravel()
         angle = np.atleast_1d(angle).ravel()
-        xi, xj = _comp_optics.calc_xixj_from_braggangle(Z, nIn,
+        xi, xj = _comp_optics.calc_xixj_from_braggangle(Z, nin,
                                                         frame_cent, frame_ang,
                                                         nn, e1, e2,
                                                         bragg, angle)
@@ -652,15 +699,15 @@ class CrystalBragg(utils.ToFuObject):
                                   xi, xj,
                                   plot=True, ax=None, **kwdargs):
 
-        nIn = np.array([0., 0., 1.])
+        nin = np.array([0., 0., 1.])
         out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
         Z, nn, frame_cent, frame_ang = out
-        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nIn)
+        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nin)
         xi = np.atleast_1d(xi).ravel()
         xj = np.atleast_1d(xj).ravel()
         bragg, ang = _comp_optics.calc_braggangle_from_xixj(xi, xj, Z, nn,
                                                             frame_cent, frame_ang,
-                                                            nIn, e1, e2)
+                                                            nin, e1, e2)
 
         if plot != False:
             func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
