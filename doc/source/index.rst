@@ -57,6 +57,7 @@ Contents:
    :maxdepth: 1
 
    How to install tofu <installation.rst>
+   How to contribute <contributing.rst>
    All tutorials and examples <auto_examples/index.rst>
 
 * How to create / handle a diagnostic geometry
