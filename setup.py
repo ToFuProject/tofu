@@ -11,14 +11,14 @@ import logging
 import platform
 import subprocess
 from codecs import open as cd_open  # useless in py 3.x
+from distutils.command.clean import clean as Clean
 import Cython as cth
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
+from Cython.Compiler.Options import get_directive_defaults
 import numpy as np
 import _updateversion as up
-from Cython.Compiler.Options import get_directive_defaults
 
-from distutils.command.clean import clean as Clean
 
 directive_defaults = get_directive_defaults()
 directive_defaults["profile"] = True
