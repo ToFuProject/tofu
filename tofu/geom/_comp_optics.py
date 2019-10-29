@@ -38,16 +38,20 @@ def get_e1e2_detectorplane(nn, nIn):
     e2 = e2 / np.linalg.norm(e2)
     return e1, e2
 
-def get_bragg_from_lamb(lamb, d, n=1):
+def get_bragg_from_lamb(lamb, d, n=None):
     """ n*lamb = 2d*sin(bragg) """
+    if n is None:
+        n = 1
     bragg= np.full(lamb.shape, np.nan)
     sin = n*lamb/(2.*d)
     indok = np.abs(sin) <= 1.
     bragg[indok] = np.arcsin(sin[indok])
     return bragg
 
-def get_lamb_from_bragg(bragg, d, n=1):
+def get_lamb_from_bragg(bragg, d, n=None):
     """ n*lamb = 2d*sin(bragg) """
+    if n is None:
+        n = 1
     return 2*d*np.sin(bragg) / n
 
 def calc_xixj_from_braggangle(Z, nIn,

@@ -32,6 +32,8 @@ except Exception:
     from . import _comp_optics as _comp_optics
     from . import _plot_optics as _plot_optics
 
+
+
 __all__ = ['CrystalBragg']
 
 
@@ -76,10 +78,10 @@ class CrystalBragg(utils.ToFuObject):
     """
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0, 'Exp':'dummy',
-                   'include':['Mod','Cls','Exp','Diag',
-                              'Name','shot','version']},
-             'dgeom':{'Type':'sph', 'Typeoutline':'rect'},
+    _ddef = {'Id':{'shot': 0, 'Exp': 'dummy', 'Diag': 'dummy',
+                   'include':['Mod', 'Cls', 'Exp', 'Diag',
+                              'Name', 'shot', 'version']},
+             'dgeom':{'Type': 'sph', 'Typeoutline': 'rect'},
              'dmat':{},
              'dbragg':{},
              'dmisc':{'color':'k'}}
@@ -145,7 +147,7 @@ class CrystalBragg(utils.ToFuObject):
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               Exp=None, shot=None, Type=None,
+                               Exp=None, Diag=None, shot=None, Type=None,
                                include=None,
                                **kwdargs):
         if Id is not None:
@@ -155,6 +157,8 @@ class CrystalBragg(utils.ToFuObject):
             Type = cls._ddef['dgeom']['Type']
         if Exp is None:
             Exp = cls._ddef['Id']['Exp']
+        if Diag is None:
+            Diag = cls._ddef['Id']['Diag']
         if shot is None:
             shot = cls._ddef['Id']['shot']
         if include is None:
@@ -162,6 +166,7 @@ class CrystalBragg(utils.ToFuObject):
 
         dins = {'Name':{'var':Name, 'cls':str},
                 'Exp': {'var':Exp, 'cls':str},
+                'Diag': {'var':Diag, 'cls':str},
                 'shot': {'var':shot, 'cls':int},
                 'Type': {'var':Type, 'in':['sph']},
                 'include':{'var':include, 'listof':str}}
@@ -709,8 +714,54 @@ class CrystalBragg(utils.ToFuObject):
     # methods for surface and contour sampling
     # -----------------
 
-    def get_CamLOS1D_from_Crystal(self, phi=None, lamb=None, bragg=None):
-        pass
+    def get_CamLOS1D_from_Crystal(self, phi=None, bragg=None,
+                                  lamb=None, n=None,
+                                  returnas=object, config=None, name=None):
+
+        # Check inputs
+        lc = [lamb is not None, bragg is not None]
+        assert np.sum(lc) == 1, "Provide lamb xor bragg!"
+        assert phi is not None
+        if lc[0]:
+            bragg = self.get_bragg_from_lamb(np.atleast_1d(lamb),
+                                             n=n)[None, ...]
+        else:
+            bragg = np.atleast_1d(bragg)[None, ...]
+        phi = np.atleast_1d(phi)[None, ...]
+        nrays = max(phi.size, bragg.size)
+        if not phi.shape == bragg.shape:
+            if phi.size == 1:
+                phi = np.full(bragg.shape, phi[0])
+            elif bragg.size == 1:
+                bragg = np.full(phi.shape, bragg[0])
+            else:
+                msg = "phi and bragg/lamb must have the same shape!\n"
+                msg += "   phi.shape:        %s\n"%str(phi.shape)
+                msg += "   bragg/lamb.shape: %s\n"%str(bragg.shape)
+                raise Exception(msg)
+
+        # Prepare
+        shape = tuple([3] + [1 for ii in range(phi.ndim)])
+        nin = self._dgeom['nin'].reshape(shape)
+        e1 = self._dgeom['e1'].reshape(shape)
+        e2 = self._dgeom['e2'].reshape(shape)
+
+        # Compute start point (D) and unit vectors (us)
+        D = self._dgeom['summit']
+        us = (np.sin(bragg)*nin
+              + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2))
+
+        # Format output
+        if returnas == tuple:
+            return (D, us)
+        elif returnas == object:
+            from ._core import CamLOS1D
+            if name is None:
+                name = self.Id.Name + 'ExtractCam'
+                if us.ndim > 2:
+                    us = us.reshape((3, phi.size))
+            return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
+                            Exp=self.Id.Exp, shot=self.Id.shot, config=config)
 
 
     # -----------------
@@ -733,7 +784,7 @@ class CrystalBragg(utils.ToFuObject):
     # methods for generic first-approx
     # -----------------
 
-    def get_bragg_from_lamb(self, lamb, n=1):
+    def get_bragg_from_lamb(self, lamb, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
             msg = "Interplane distance d no set !\n"
@@ -742,7 +793,7 @@ class CrystalBragg(utils.ToFuObject):
         return _comp_optics.get_bragg_from_lamb(np.atleast_1d(lamb),
                                                 self._dmat['d'], n=n)
 
-    def get_lamb_from_bragg(self, bragg, n=1):
+    def get_lamb_from_bragg(self, bragg, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
             msg = "Interplane distance d no set !\n"
