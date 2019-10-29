@@ -22,31 +22,66 @@ _QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
 
 
 # Generic
-def _check_Lax(lax=None, n=2):
-    assert n in [1, 2]
-    c0 = lax is None
-    c1 = issubclass(lax.__class__, Axes)
-    c2 = hasattr(lax, '__iter__')
-    if c2:
-        c2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in lax])
-        c2 = c2 and len(lax) in [1, 2]
-    if not (c0 or c1 or c2):
-        msg = "Arg lax must be an Axes or a list/tuple of such !\n"
-        msg += "    - provided ax: %s"%str(lax)
-        raise Exception(msg)
-    if n == 1:
-        if c2:
-            lax = lax[0]
+def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
+
+    # ----------------------
+    # Check proj
+    if proj is None:
+        proj = 'all'
+    assert isinstance(proj, str)
+    proj = proj.lower()
+    lproj = ['cross', 'hor', '3d']
+    assert proj in lproj + ['all']
+    if proj == 'all':
+        proj = ['cross', 'hor']
     else:
-        if c0:
-            lax = [None, None]
-        elif c1:
-            lax = [lax, None]
-        elif c2 and len(lax)==1:
-            lax = [lax[0], None]
-        else:
-            lax = list(lax)
-    return lax, c0, c1, c2
+        proj = [proj]
+
+    # ----------------------
+    # Check dax
+    lc = [dax is None, issubclass(dax.__class__, Axes),
+          isinstance(dax, dict), isinstance(dax, list)]
+    assert any(lc)
+    if lc[0]:
+        dax = dict.fromkeys(proj)
+    elif lc[1]:
+        assert len(proj) == 1
+        dax = {proj[0]: dax}
+    elif lc[2]:
+        lcax = [(kk in proj
+                 and (ax is None or issubclass(ax.__class__, Axes)))
+                for kk, ax in dax.items()]
+        if not all(lcax):
+            msg = "Wrong key or axes in dax:\n"
+            msg += "    - proj = %s"%str(proj)
+            msg += "    - dax = %s"%str(dax)
+            raise Exception(msg)
+    else:
+        assert len(dax) == 2
+        assert all([ax is None or issubclass(ax.__class__, Axes)
+                    for ax in dax])
+        dax = {'cross': dax[0], 'hor': dax[1]}
+
+    # Populate with default axes if necessary
+    if 'cross' in proj and 'hor' in proj:
+        if 'cross' in proj and 'hor' in proj:
+            if dax['cross'] is None:
+                assert dax['hor'] is None
+                lax = _def.Plot_LOSProj_DefAxes('all', fs=fs,                                                                 wintit=wintit)
+                dax['cross'], dax['hor'] = lax
+        elif 'cross' in proj and dax['cross'] is None:
+            dax['cross'] = _def.Plot_LOSProj_DefAxes('cross', fs=fs,
+                                                     wintit=wintit)
+        elif 'hor' in proj and dax['hor'] is None:
+            dax['hor'] = _def.Plot_LOSProj_DefAxes('hor', fs=fs,
+                                                     wintit=wintit)
+        elif '3d' in proj  and dax['3d'] is None:
+            dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(fs=fs,
+                                                    wintit=wintit)
+    for kk in lproj:
+        dax[kk] = dax.get(kk, None)
+    return dax
+
 
 
 # #################################################################
@@ -55,7 +90,8 @@ def _check_Lax(lax=None, n=2):
 # #################################################################
 # #################################################################
 
-def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None, dP=None,
+def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
+                      color=None, dP=None,
                       dI=None, dBs=None, dBv=None,
                       dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                       dleg=None, indices=False,
@@ -64,62 +100,51 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None, dP=Non
     # ---------------------
     # Check / format inputs
 
-    if proj is None:
-        proj = 'cross'
-    proj = proj.lower()
     if Test:
         msg = "Arg proj must be in ['cross','hor','all','3d'] !"
-        assert proj in ['cross','hor','all','3d'], msg
-        lax, c0, c1, c2 = _check_Lax(lax, n=2)
         assert type(draw) is bool, "Arg draw must be a bool !"
         assert cryst.__class__.__name__ == 'CrystalBragg'
     if wintit is None:
         wintit = _WINTIT
+    if dleg is None:
+         dleg = _def.TorLegd
 
     # ---------------------
-    # Check / format inputs
+    # call plotting functions
 
     kwa = dict(fs=fs, wintit=wintit, Test=Test)
-    if proj=='3d':
+    if proj == '3d':
         # Temporary matplotlib issue
         dleg = None
-
-    elif proj == 'cross':
-        lax = _CrystalBragg_plot_cross(cryst, res=res, ax=lax, element=element)
-
-    elif proj == 'hor':
-        pass
-
-    elif proj == 'all':
-        pass
+    else:
+        dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax, element=element,
+                                          color=color)
 
     # recompute the ax.dataLim
-    lax[0].relim()
-    lax[0].autoscale_view()
-    if proj == 'all':
-        lax[1].relim()
-        lax[1].autoscale_view()
+    ax0 = None
+    for kk, vv in dax.items():
+        if vv is None:
+            continue
+        dax[kk].relim()
+        dax[kk].autoscale_view()
+        if dleg is not None:
+            dax[kk].legend(**dleg)
+        ax0 = vv
 
     # set title
     if tit != False:
-        lax[0].figure.suptitle(tit)
-
-    # set leg
-    if dleg != False:
-        lax[0].legend(**dleg)
+        ax0.figure.suptitle(tit)
     if draw:
-        lax[0].figure.canvas.draw()
-    lax = lax if proj=='all' else lax[0]
-    return lax
+        ax0.figure.canvas.draw()
+    return dax
 
-def _CrystalBragg_plot_cross(cryst, ax=None, element=None, res=None,
-                             Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
-                             Bvdict=_def.TorBvd, Vdict=_def.TorVind,
-                             quiver_cmap=None,
-                             LegDict=_def.TorLegd, indices=False,
-                             draw=True, fs=None, wintit=None, Test=True):
+def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=None,
+                                Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
+                                Bvdict=_def.TorBvd, Vdict=_def.TorVind,
+                                color=None, ms=None, quiver_cmap=None,
+                                LegDict=_def.TorLegd, indices=False,
+                                draw=True, fs=None, wintit=None, Test=True):
     if Test:
-        ax, C0, C1, C2 = _check_Lax(ax, n=1)
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, "Arg Idict should be a dictionary !"
         assert type(Bsdict) is dict, "Arg Bsdict should be a dictionary !"
@@ -131,51 +156,94 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None, res=None,
     # Check / format inputs
 
     if element is None:
-        element = 'csv'
+        element = 'oscvr'
     element = element.lower()
     if 'v' in element and quiver_cmap is None:
         quiver_cmap = _QUIVERCOLOR
-
+    if color is None:
+        if cryst._dmisc.get('color') is not None:
+            color = cryst._dmisc['color']
+        else:
+            color = 'k'
+    if ms is None:
+        ms = 6
 
     # ---------------------
     # Prepare axe and data
 
-    if ax is None:
-        ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs,
-                                       wintit=wintit, Type='Tor')
+    dax = _check_projdax_mpl(dax=dax, proj=proj, fs=fs, wintit=wintit)
 
     if 's' in element or 'v' in element:
         summ = cryst._dgeom['summit']
+    if 'c' in element:
+        cent = cryst._dgeom['center']
+    if 'r' in element:
+        ang = np.linspace(0, 2.*np.pi, 200)
+        rr = 0.5*cryst._dgeom['rcurve']
+        row = cryst._dgeom['center'] + rr*cryst._dgeom['nout']
+        row = (row[:, None]
+               + rr*(np.cos(ang)[None, :]*cryst._dgeom['nout'][:, None]
+                     + np.sin(ang)[None, :]*cryst._dgeom['e1'][:, None]))
 
     # ---------------------
     # plot
 
-    if 'c' in element:
+    if 'o' in element:
         cont = cryst.sample_outline_plot(res=res)
-        ax.plot(np.hypot(cont[0,:], cont[1,:]), cont[2,:],
-                ls='-', c='k', marker='None', label='')
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(cont[0,:], cont[1,:]), cont[2,:],
+                              ls='-', c=color, marker='None',
+                              label=cryst.Id.NameLTX+' contour')
+        if dax['hor'] is not None:
+            dax['hor'].plot(cont[0,:], cont[1,:],
+                            ls='-', c=color, marker='None',
+                            label=cryst.Id.NameLTX+' contour')
     if 's' in element:
-        ax.plot(np.hypot(summ[0], summ[1]), summ[2],
-                marker='^', ms=10)
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(summ[0], summ[1]), summ[2],
+                              marker='^', ms=ms, c=color,
+                              label=cryst.Id.NameLTX+" summit")
+        if dax['hor'] is not None:
+            dax['hor'].plot(summ[0], summ[1],
+                            marker='^', ms=ms, c=color,
+                            label=cryst.Id.NameLTX+" summit")
+    if 'c' in element:
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(cent[0], cent[1]), cent[2],
+                              marker='o', ms=ms, c=color,
+                              label=cryst.Id.NameLTX+" center")
+        if dax['hor'] is not None:
+            dax['hor'].plot(cent[0], cent[1],
+                            marker='o', ms=ms, c=color,
+                            label=cryst.Id.NameLTX+" center")
+    if 'r' in element:
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(row[0,:], row[1,:]), row[2,:],
+                              ls='--', color=color, marker='None',
+                              label=cryst.Id.NameLTX+' rowland')
+        if dax['hor'] is not None:
+            dax['hor'].plot(row[0,:], row[1,:],
+                            ls='--', color=color, marker='None',
+                            label=cryst.Id.NameLTX+' rowland')
     if 'v' in element:
-        nin = cryst.nin
+        nin = cryst._dgeom['nin']
         e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
-        ax.quiver(p0[0,:], p0[1,:], v[0,:], v[1,:],
-                  np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                  angles='xy', scale_units='xy',
-                  label=V.Id.NameLTX+" unit vect", **Vdict)
+        if dax['cross'] is not None:
+            dax['cross'].quiver(np.hypot(p0[0,:], p0[1,:]), p0[2,:],
+                                np.hypot(v[0,:], v[1,:]), v[2,:],
+                                np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                                angles='xy', scale_units='xy',
+                                label=cryst.Id.NameLTX+" unit vect", **Vdict)
+        if dax['hor'] is not None:
+            dax['hor'].quiver(p0[0,:], p0[1,:],
+                              v[0,:], v[1,:],
+                              np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                              angles='xy', scale_units='xy',
+                              label=cryst.Id.NameLTX+" unit vect", **Vdict)
 
-    # if indices:
-        # for ii in range(0,V.dgeom['nP']):
-            # ax.annotate(r"{0}".format(ii), size=10,
-                        # xy = (midX[ii],midY[ii]),
-                        # xytext = (midX[ii]-0.01*VInX[ii],
-                                  # midY[ii]-0.01*VInY[ii]),
-                        # horizontalalignment='center',
-                        # verticalalignment='center')
-    return ax
+    return dax
 
 
 # #################################################################

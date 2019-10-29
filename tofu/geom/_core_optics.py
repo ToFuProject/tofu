@@ -259,8 +259,10 @@ class CrystalBragg(utils.ToFuObject):
                 assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
                                       + dgeom['nin']) < 1.e-12
         if dgeom['rotateaxis'] is not None:
-            dgeom['rotateaxis'] = np.asarray(dgeom['rotateaxis'], dtype=float)
-            assert dgeom['rotateaxis'].shape == (2, 3)
+            rotax = np.asarray(dgeom['rotateaxis'], dtype=float)
+            assert rotax.shape == (2, 3)
+            rotax[1,:] = rotax[1,:] / np.linalg.norm(rotax[1,:])
+            dgeom['rotateaxis'] = rotax
         if dgeom['rotateangle'] is not None:
             dgeom['rotateangle'] = float(dgeom['rotateangle'])
         if dgeom['mobile'] is None:
@@ -377,7 +379,7 @@ class CrystalBragg(utils.ToFuObject):
             if dgeom['nout'] is None:
                 dgeom['nout'] = np.cross(dgeom['e1'], dgeom['e2'])
             if dgeom['nin'] is None:
-                dgeom['nin'] = dgeom['nout']
+                dgeom['nin'] = -dgeom['nout']
             if dgeom['center'] is None:
                 dgeom['center'] = dgeom['summit'] + dgeom['nin']*dgeom['rcurve']
             if dgeom['summit'] is None:
@@ -591,10 +593,11 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Build geometry
         col1 = ['Type', 'Type outline', 'surface (cm^2)', 'rcurve',
-                'summit', 'center', 'nin', 'e1', 'e2']
+                'half-extent', 'summit', 'center', 'nin', 'e1', 'e2']
         ar1 = [self._dgeom['Type'], self._dgeom['Typeoutline'],
                '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
                '{0:5.2f}'.format(self._dgeom['rcurve']),
+               str(np.round(self._dgeom['extenthalf'], decimals=3)),
                str(np.round(self._dgeom['summit'], decimals=2)),
                str(np.round(self._dgeom['center'], decimals=2)),
                str(np.round(self._dgeom['nin'], decimals=2)),
@@ -670,35 +673,44 @@ class CrystalBragg(utils.ToFuObject):
 
     def sample_outline_plot(self, res=None):
         if self._dgeom['Type'] == 'sph':
-            C = self.center
-            nout = -self._dgeom['nin']
+            C = self._dgeom['center']
+            nout = self._dgeom['nout']
             r = self._dgeom['rcurve']
             if self._dgeom['Typeoutline'] == 'rect':
-                dpsi = self._dgeom['extent'][0]
-                dtheta = self._dgeom['extent'][1]
+                dpsi = self._dgeom['extenthalf'][0]
+                dtheta = self._dgeom['extenthalf'][1]
                 if res is None:
                     res = min(dpsi, dtheta)/5.
-                npsi = int(np.ceil(dpsi / res))
-                ntheta = int(np.ceil(dtheta / res))
-                psi = dpsi*np.linspace(-1, 1., 2*npsi+1)
-                theta = np.pi/2. + dtheta*np.linspace(-1, 1., 2*ntheta+1)
-                psimin = np.full((psi[0],), ntheta)
-                psimax = np.full((psi[-1],), ntheta)
-                thetamin = np.full((theta[0],), npsi)
-                thetamax = np.full((theta[-1],), npsi)
+                npsi = 2*int(np.ceil(dpsi / res)) + 1
+                ntheta = 2*int(np.ceil(dtheta / res)) + 1
+                psi = dpsi*np.linspace(-1, 1., npsi)
+                theta = np.pi/2. + dtheta*np.linspace(-1, 1., ntheta)
+                psimin = np.full((ntheta,), psi[0])
+                psimax = np.full((ntheta,), psi[-1])
+                thetamin = np.full((npsi,), theta[0])
+                thetamax = np.full((npsi,), theta[-1])
                 psi = np.concatenate((psi, psimax,
                                       psi[::-1], psimin))
                 theta = np.concatenate((thetamin, theta,
                                         thetamax, theta[::-1]))
+                e1 = self._dgeom['e1']
+                e2 = self._dgeom['e2']
+                vect = ((np.cos(psi)[None, :]*nout[:, None]
+                         + np.sin(psi)[None, :]*e1[:, None])*np.sin(theta)[None, :]
+                        + np.cos(theta)[None, :]*e2[:, None])
+                outline = C[:, None] + r*vect
             elif self._dgeom['Typeoutline'] == 'circ':
                 angle = np.linspace(0., 2.*np.pi, int(np.ceil(2.*np.pi/res)))
                 raise NotImplementedError("Crystal with circular outline")
 
-            vects = ((np.cos(psi)[None, :]*nout[:, None]
-                      + np.sin(psi)[None, :]*e1[:, None])*np.sin(theta)[None, :]
-                     + np.cos(theta)[None, :]*e2[:, None])
-            outline = C[:, None] + r*vect
         return outline
+
+    # -----------------
+    # methods for surface and contour sampling
+    # -----------------
+
+    def get_CamLOS1D_from_Crystal(self, phi=None, lamb=None, bragg=None):
+        pass
 
 
     # -----------------
@@ -706,6 +718,7 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
 
     def plot(self, lax=None, proj=None, res=None, element=None,
+             color=None,
              dP=None, dI=None, dBs=None, dBv=None,
              dVect=None, dIHor=None, dBsHor=None,
              dBvHor=None, dleg=None,
