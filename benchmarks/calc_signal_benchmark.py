@@ -43,9 +43,9 @@ np.set_printoptions(linewidth=200)
 # Defining defaults
 ###################
 
-_LRES = [-3, -3, 0]
-_LLOS = [5, 5, 0]
-_LT = [3, 3, 0]
+_LRES = [-2, -2, 0]
+_LLOS = [2, 2, 0]
+_LT = [2, 2, 0]
 _NREP = 2
 
 _DRES = abs(_LRES[1] - _LRES[0])
@@ -155,17 +155,19 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     # printing file
     stdout = False
+    msg_loc = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
     if txtfile is None:
         txtfile = sys.stdout
         stdout = True
+        print(msg_loc)
     elif type(txtfile) is str:
-        txtfile = open(os.path.join(path,txtfile), 'w')
+        txtfile = os.path.join(path,txtfile)
+        with open(txtfile, 'w') as f:
+            f.write(msg_loc)
     elif txtfile is True:
-        txtfile = open(os.path.join(path,name+'.txt'), 'w')
-    msg_loc = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
-    print("before first print ....................................")
-    print(msg_loc, file=txtfile)
-    print("afeter first print ....................................")
+        txtfile = os.path.join(path,name+'.txt')
+        with open(txtfile, 'w') as f:
+            f.write(msg_loc)
 
     # config
     if config is None:
@@ -227,15 +229,20 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     msg += "    algo:"
     msg = msg.ljust(lennames)
     msg += '  times:'
-    print(" second print ..................................")
-    print(msg, file=txtfile)
-    print(" second print .................................. DONE")
+    if stdout:
+        print(msg)
+    else:
+        with open(txtfile, 'w') as f:
+            f.write(msg)
 
     err0 = None
     for ii in range(nalgo):
-        print(" third print ..................................")
-        print('', file=txtfile, flush=True)
-        print(" third print .................................. DONE")
+        if stdout:
+            print('')
+            sys.stdout.flush()
+        else:
+            with open(txtfile, 'w') as f:
+                f.write(msg)
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
@@ -243,8 +250,12 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                                                 Diag='Dummy',
                                                 **_DCAM)
             msg = "    %s"%(names[ii,jj].ljust(lennames))
-            print(msg, file=txtfile, flush=True)
-
+            if stdout:
+                print(msg)
+                sys.stdout.flush()
+            else:
+                with open(txtfile, 'w') as f:
+                    f.write(msg)
             for ll in range(nres):
                 msg = "        res %s/%s"%(ll+1, nres)
                 for tt in range(nnt):
@@ -252,8 +263,8 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                     for rr in range(nrep):
                         if stdout:
                             msgi = "\r" + msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
-                            print(msgi, end='', file=txtfile, flush=True)
-
+                            print(msgi, end='')
+                            sys.stdout.flush()
                         try:
                             if func is None:
                                 t0 = dtm.datetime.now()
@@ -287,11 +298,20 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                 msgi = msg + ': %s'%str(t_av[ii,jj,ll,:])
                 if stdout:
                     msgi = '\r'+msgi
-                print(msgi, file=txtfile, flush=True)
+                    print(msgi)
+                    sys.stdout.flush()
+                else:
+                    with open(txtfile, 'w') as f:
+                        f.write(msgi)
+
             if save:
                 out = {kk:vv for kk,vv in locals().items() if kk in lk}
                 np.savez(pfe, **out)
-                print("        (saved)", file=txtfile)
+                if stdout:
+                    print("        (saved)")
+                else:
+                    with open(txtfile, 'w') as f:
+                        f.write("        (saved)")
 
 
 
@@ -320,9 +340,11 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
                                      100.*np.sum(t_av[ii,...]>=0)/ncase) + ' %'
                           for ii in range(nalgo)])
-    print(msg, file=txtfile)
-
-
+    if stdout:
+        print(msg)
+    else:
+        with open(txtfile, 'w') as f:
+            f.write(msg)
     if err0 is not None:
         raise err0
 
@@ -333,7 +355,12 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     if save:
         out = {kk:vv for kk,vv in locals().items() if kk in lk}
         np.savez(pfe, **out)
-        print('Saved in:\n    %s'%pfe, file=txtfile)
+        if stdout:
+            print('Saved in:\n    %s'%pfe)
+        else:
+            with open(txtfile, 'w') as f:
+                f.write('Saved in:\n    %s'%pfe)
+
 
     if plot:
         try:
