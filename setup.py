@@ -414,7 +414,7 @@ setup(
     #    ],
     # },
     ext_modules=extensions,
-    cmdclass={'build_ext': cth.Build.build_ext,
+    cmdclass={"build_ext": cth.Build.build_ext,
               "clean": CleanCommand},
     include_dirs=[np.get_include()],
 )
