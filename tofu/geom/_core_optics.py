@@ -96,7 +96,10 @@ class CrystalBragg(utils.ToFuObject):
                      'dBv':{'color':'g','ls':'--'},
                      'Nstep':50},
               '3d':{}}
-    _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
+    _DEFLMOVEOK = ['rotate']
+    _DEFLAMB = 3.971561e-10
+    # _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
+
 
     # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
@@ -204,13 +207,23 @@ class CrystalBragg(utils.ToFuObject):
             return
         assert isinstance(dgeom, dict)
         lkok = cls._get_keys_dgeom()
-        assert all([isinstance(ss, str) for ss in dgeom.keys()])
-        assert all([ss in lkok for ss in dgeom.keys()])
+        assert all([isinstance(ss, str) and ss in lkok for ss in dgeom.keys()])
         for kk in cls._ddef['dgeom'].keys():
             dgeom[kk] = dgeom.get(kk, cls._ddef['dgeom'][kk])
+        for kk in lkok:
+            dgeom[kk] = dgeom.get(kk, None)
+        if dgeom['center'] is not None:
+            dgeom['center'] = np.atleast_1d(dgeom['center']).ravel()
+            assert dgeom['center'].size == 3
+        else:
+            assert dgeom['summit'] is not None
+            assert dgeom['rcurve'] is not None
         if dgeom['summit'] is not None:
             dgeom['summit'] = np.atleast_1d(dgeom['summit']).ravel()
             assert dgeom['summit'].size == 3
+        else:
+            assert dgeom['center'] is not None
+            assert dgeom['rcurve'] is not None
         if dgeom['extenthalf'] is not None:
             dgeom['extenthalf'] = np.atleast_1d(dgeom['extenthalf'])
             assert dgeom['extenthalf'].size == 2
@@ -219,23 +232,45 @@ class CrystalBragg(utils.ToFuObject):
         if dgeom['nout'] is not None:
             dgeom['nout'] = np.atleast_1d(dgeom['nout'])
             dgeom['nout'] = dgeom['nout'] / np.linalg.norm(dgeom['nout'])
+            assert dgeom['nout'].size == 3
+        if dgeom['nin'] is not None:
+            dgeom['nin'] = np.atleast_1d(dgeom['nin'])
+            dgeom['nin'] = dgeom['nin'] / np.linalg.norm(dgeom['nin'])
             assert dgeom['nin'].size == 3
         if dgeom['e1'] is not None:
             dgeom['e1'] = np.atleast_1d(dgeom['e1'])
             dgeom['e1'] = dgeom['e1'] / np.linalg.norm(dgeom['e1'])
             assert dgeom['e1'].size == 3
+            assert dgeom['e2'] is not None
         if dgeom['e2'] is not None:
             dgeom['e2'] = np.atleast_1d(dgeom['e2'])
             dgeom['e2'] = dgeom['e2'] / np.linalg.norm(dgeom['e2'])
             assert dgeom['e2'].size == 3
         if dgeom['e1'] is not None:
-            assert dgeom['e2'] is not None
-            assert dgeom['nout'] is not None
             assert np.abs(np.sum(dgeom['e1']*dgeom['e2'])) < 1.e-12
-            assert np.abs(np.sum(dgeom['e1']*dgeom['nout'])) < 1.e-12
-            assert np.abs(np.sum(dgeom['e2']*dgeom['nout'])) < 1.e-12
-            assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
-                                  - dgeom['nout']) < 1.e-12
+            if dgeom['nout'] is not None:
+                assert np.abs(np.sum(dgeom['e1']*dgeom['nout'])) < 1.e-12
+                assert np.abs(np.sum(dgeom['e2']*dgeom['nout'])) < 1.e-12
+                assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
+                                      - dgeom['nout']) < 1.e-12
+            if dgeom['nin'] is not None:
+                assert np.abs(np.sum(dgeom['e1']*dgeom['nin'])) < 1.e-12
+                assert np.abs(np.sum(dgeom['e2']*dgeom['nin'])) < 1.e-12
+                assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
+                                      + dgeom['nin']) < 1.e-12
+        if dgeom['rotateaxis'] is not None:
+            dgeom['rotateaxis'] = np.asarray(dgeom['rotateaxis'], dtype=float)
+            assert dgeom['rotateaxis'].shape == (2, 3)
+        if dgeom['rotateangle'] is not None:
+            dgeom['rotateangle'] = float(dgeom['rotateangle'])
+        if dgeom['mobile'] is None:
+            if dgeom['rotateaxis'] is not None:
+                dgeom['mobile'] = 'rotate'
+            else:
+                dgeom['mobile'] = False
+        else:
+            assert isinstance(dgeom['mobile'], str)
+            assert dgeom['mobile'] in cls._DEFLMOVEOK
         return dgeom
 
     @classmethod
@@ -290,8 +325,8 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def _get_keys_dgeom():
         lk = ['Type', 'Typeoutline',
-              'summit', 'extenthalf', 'surface',
-              'nout', 'e1', 'e2', 'rcurve',
+              'summit', 'center', 'extenthalf', 'surface',
+              'nin', 'nout', 'e1', 'e2', 'rcurve',
               'mobile', 'rotateaxis', 'rotateangle']
         return lk
 
@@ -338,6 +373,16 @@ class CrystalBragg(utils.ToFuObject):
 
     def set_dgeom(self, dgeom=None):
         dgeom = self._checkformat_dgeom(dgeom)
+        if dgeom['e1'] is not None:
+            if dgeom['nout'] is None:
+                dgeom['nout'] = np.cross(dgeom['e1'], dgeom['e2'])
+            if dgeom['nin'] is None:
+                dgeom['nin'] = dgeom['nout']
+            if dgeom['center'] is None:
+                dgeom['center'] = dgeom['summit'] + dgeom['nin']*dgeom['rcurve']
+            if dgeom['summit'] is None:
+                dgeom['summit'] = dgeom['center'] + dgeom['nout']*dgeom['rcurve']
+
         if dgeom['extenthalf'] is not None:
             if dgeom['Type'] == 'sph' and dgeom['Typeoutline'] == 'rect':
                 ind = np.argmax(dgeom['extenthalf'])
@@ -494,7 +539,19 @@ class CrystalBragg(utils.ToFuObject):
 
     @property
     def nin(self):
-        return -self._dgeom['nout']
+        return self._dgeom['nin']
+
+    @property
+    def nout(self):
+        return self._dgeom['nout']
+
+    @property
+    def e1(self):
+        return self._dgeom['e1']
+
+    @property
+    def e2(self):
+        return self._dgeom['e2']
 
     @property
     def summit(self):
@@ -502,7 +559,7 @@ class CrystalBragg(utils.ToFuObject):
 
     @property
     def center(self):
-        return self._dgeom['summit'] + self._dgeom['rcurve']*self._dgeom['nin']
+        return self._dgeom['center']
 
     # -----------------
     # methods for color
@@ -514,6 +571,52 @@ class CrystalBragg(utils.ToFuObject):
     def get_color(self):
         return self._dmisc['color']
 
+    # -----------------
+    # methods for printing
+    # -----------------
+
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build material
+        col0 = ['formula', 'symmetry', 'cut', 'density',
+                'd (A)', 'bragg(%s A) (deg)'%str(self._DEFLAMB)]
+        ar0 = [self._dmat['formula'], self._dmat['symmetry'],
+               str(self._dmat['cut']), str(self._dmat['density']),
+               '{0:5.3f}'.format(self._dmat['d']*1.e10),
+               str(self.get_bragg_from_lamb(self._DEFLAMB)[0]*180./np.pi)]
+
+        # -----------------------
+        # Build geometry
+        col1 = ['Type', 'Type outline', 'surface (cm^2)', 'rcurve',
+                'summit', 'center', 'nin', 'e1', 'e2']
+        ar1 = [self._dgeom['Type'], self._dgeom['Typeoutline'],
+               '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
+               '{0:5.2f}'.format(self._dgeom['rcurve']),
+               str(np.round(self._dgeom['summit'], decimals=2)),
+               str(np.round(self._dgeom['center'], decimals=2)),
+               str(np.round(self._dgeom['nin'], decimals=2)),
+               str(np.round(self._dgeom['e1'], decimals=2)),
+               str(np.round(self._dgeom['e2'], decimals=2)),
+              ]
+
+        lcol = [col0, col1]
+        lar = [ar0, ar1]
+        # -----------------------
+        # Build mobile
+        if self._dgeom['mobile'] != False:
+            if self._dgeom['mobile'] == 'rotate':
+                col2 = ['Mov. type', 'axis pt.', 'axis vector']
+                ar2 = [self._dgeom['mobile'],
+                       str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
+                       str(np.round(self._dgeom['rotateaxis'][1], decimals=2))]
+            lcol.append(col2)
+            lar.append(ar2)
+        return self._get_summary(lar, lcol,
+                                  sep=sep, line=line, table_sep=table_sep,
+                                  verb=verb, return_=return_)
     # -----------------
     # methods for moving
     # -----------------
@@ -555,9 +658,9 @@ class CrystalBragg(utils.ToFuObject):
                             'rotateangle': angle})
 
     def move(self, kind=None, **kwdargs):
-        if kind is None or self._dgeom['mobile'] != True:
+        if kind is None or self._dgeom['mobile'] != False:
             return
-        assert kind in ['rotate']
+        assert kind in self._DEFLMOVEOK
         if kind == 'rotate':
             self._rotate(**kwdargs)
 
@@ -623,7 +726,8 @@ class CrystalBragg(utils.ToFuObject):
             msg = "Interplane distance d no set !\n"
             msg += "  => self.set_dmat({'d':...})"
             raise Exception(msg)
-        return _comp_optics.get_bragg_from_lamb(lamb, self._dmat['d'], n=n)
+        return _comp_optics.get_bragg_from_lamb(np.atleast_1d(lamb),
+                                                self._dmat['d'], n=n)
 
     def get_lamb_from_bragg(self, bragg, n=1):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
@@ -631,7 +735,8 @@ class CrystalBragg(utils.ToFuObject):
             msg = "Interplane distance d no set !\n"
             msg += "  => self.set_dmat({'d':...})"
             raise Exception(msg)
-        return _comp_optics.get_lamb_from_bragg(bragg, self._dmat['d'], n=n)
+        return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
+                                                self._dmat['d'], n=n)
 
     @staticmethod
     def get_approx_detector_params_from_Bragg_CurvRadius(bragg, R,

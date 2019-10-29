@@ -23,23 +23,27 @@ _QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
 
 # Generic
 def _check_Lax(lax=None, n=2):
-    assert n in [1,2]
+    assert n in [1, 2]
     c0 = lax is None
-    c1 = issubclass(lax.__class__,Axes)
+    c1 = issubclass(lax.__class__, Axes)
     c2 = hasattr(lax, '__iter__')
     if c2:
         c2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in lax])
-        c2 = c2 and len(lax) in [1,2]
-    if n==1:
-        assert c0 or c1, "Arg ax must be None or a plt.Axes instance !"
+        c2 = c2 and len(lax) in [1, 2]
+    if not (c0 or c1 or c2):
+        msg = "Arg lax must be an Axes or a list/tuple of such !\n"
+        msg += "    - provided ax: %s"%str(lax)
+        raise Exception(msg)
+    if n == 1:
+        if c2:
+            lax = lax[0]
     else:
-        assert c0 or c1 or c2, "Arg lax must be an Axes or a list/tuple of such !"
         if c0:
-            lax = [None,None]
+            lax = [None, None]
         elif c1:
-            lax = [lax,None]
+            lax = [lax, None]
         elif c2 and len(lax)==1:
-            lax = [lax[0],None]
+            lax = [lax[0], None]
         else:
             lax = list(lax)
     return lax, c0, c1, c2
@@ -138,7 +142,7 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None, res=None,
 
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs,
-                                       wintit=wintit, Type=V.Id.Type)
+                                       wintit=wintit, Type='Tor')
 
     if 's' in element or 'v' in element:
         summ = cryst._dgeom['summit']
@@ -154,7 +158,7 @@ def _CrystalBragg_plot_cross(cryst, ax=None, element=None, res=None,
         ax.plot(np.hypot(summ[0], summ[1]), summ[2],
                 marker='^', ms=10)
     if 'v' in element:
-        nin = cryst._dgeom['nIn']
+        nin = cryst.nin
         e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
