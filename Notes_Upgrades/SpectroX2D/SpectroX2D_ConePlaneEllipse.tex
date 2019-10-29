@@ -14,15 +14,19 @@
 \pagestyle{plain}
 
 \newcommand{\ud}[1]{\underline{#1}}
+\newcommand{\e}[1]{\underline{e}_{#1}}
 \newcommand{\lt}{\left}
 \newcommand{\rt}{\right}
-\DeclareMathOperator{\e0}{\epsilon_0}
 \DeclareMathOperator{\n}{\underline{n}}
 \DeclareMathOperator{\ei}{\underline{e}_1}
 \DeclareMathOperator{\et}{\underline{e}_2}
 \DeclareMathOperator{\ex}{\underline{e}_x}
 \DeclareMathOperator{\ey}{\underline{e}_y}
 \DeclareMathOperator{\ez}{\underline{e}_z}
+\DeclareMathOperator{\nin}{\underline{n}_{in}}
+\DeclareMathOperator{\nout}{\underline{n}_{out}}
+\DeclareMathOperator{\np}{\underline{n}_{P}}
+\DeclareMathOperator{\bragg}{\theta_{bragg}}
 \DeclareMathOperator{\DD}{\cos(\theta)^2 - \sin(\psi)^2}
 \newcommand{\wdg}{\wedge}
 \newcommand{\hypot}[1]{\textbf{\textcolor{green}{#1}}}
@@ -477,13 +481,44 @@ $$
 \end{array}
 $$
 
-
+\newpage
 \section{Generalization}
 
 This time, the crystal of curvature radius $R$ has center $C$ of coordinates $(x_C, y_C, z_C)$ in the tokamak's frame $(O, \ex, \ey, \ez)$.\\
-From $C$, a spherical coordinates system is defined with angles $(\phi, \theta)$ such that $(C, \nout, \ephi, \etheta)$ is a direct orthonormal frame, and that the crystal's summit $S$ lies at coordinates $(R, 0, \pi/2)$.
+The direct orthonormal systems are:
+
+\begin{figure}[hbt]
+	\includegraphics[width=\linewidth]{SpectroX2D_Crystal.pdf}
+	\caption{Definition of the generilazed geometry}
+	\label{fig:sketch}
+\end{figure}
 
 
+$$
+\lt\{
+	\begin{array}{lll}
+		(O, \ex, \ey, \ez)\\
+		(C, \nout, \e{1}, \e{2})\\
+		(P, \np, \e{a}, \e{b})\\
+		(R, \np, \e{i}, \e{j})
+	\end{array}
+\rt.
+$$
+
+\subsection{Direct problem}
+
+We know all geometrical parameters, in particular, we know:
+$$
+\lt\{
+	\begin{array}{lll}
+		\ud{OC} = x(C)\ex + y(C)\ey + z(C)\ez\\
+		\ud{CS} = R\nout\\
+		\ud{SP} = -L\nout\\
+		\ud{PR} = x_a(R)\e{a} + x_b(R)\e{b}\\
+		\ud{RM} = x_i\e{i} + x_j\e{j}
+	\end{array}
+\rt.
+$$
 
 
 
