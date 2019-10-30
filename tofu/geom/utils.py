@@ -34,9 +34,8 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_here = os.path.abspath(__file__)
-_root = _here[:_here.rfind('/tofu')]
-_path_testcases = os.path.join(_root,'tofu/geom/inputs')
+_root = os.getcwd()
+_path_testcases = os.path.join(_root,'tofu','geom','inputs')
 
 ###########################################################
 #       COCOS
@@ -647,8 +646,8 @@ _dconfig = {'A1': {'Exp':_ExpWest,
                            'RippleV1', 'VDEV0']},
             'B4': {'Exp':_ExpITER,
                    'Ves':['V1'],
-                   'PFC':['BLK1', 'BLK2', 'BLK3', 'BLK4', 'BLK5', 'BLK6',
-                          'BLK7', 'BLK8', 'BLK9', 'BLK10','BLK11','BLK12',
+                   'PFC':['BLK01','BLK02','BLK03','BLK04','BLK05','BLK06',
+                          'BLK07','BLK08','BLK09','BLK10','BLK11','BLK12',
                           'BLK13','BLK14','BLK15','BLK16','BLK17','BLK18',
                           'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
             }
