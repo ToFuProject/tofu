@@ -622,10 +622,11 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 ###########################################################
 
 _ExpWest = 'WEST'
+_ExpITER = 'ITER'
 
 _dconfig = {'A1': {'Exp':_ExpWest,
                    'Ves': ['V1']},
-            'A2': {'Exp':'ITER',
+            'A2': {'Exp':_ExpITER,
                    'Ves': ['V0']},
             'A3': {'Exp':_ExpWest,
                    'PlasmaDomain': ['Sep']},
@@ -643,7 +644,14 @@ _dconfig = {'A1': {'Exp':_ExpWest,
                            'BumperInnerV3', 'BumperOuterV3',
                            'IC1V1', 'IC2V1', 'IC3V1',
                            'LH1V1', 'LH2V1',
-                           'RippleV1', 'VDEV0']}}
+                           'RippleV1', 'VDEV0']},
+            'B4': {'Exp':_ExpITER,
+                   'Ves':['V1'],
+                   'PFC':['BLK1', 'BLK2', 'BLK3', 'BLK4', 'BLK5', 'BLK6',
+                          'BLK7', 'BLK8', 'BLK9', 'BLK10','BLK11','BLK12',
+                          'BLK13','BLK14','BLK15','BLK16','BLK17','BLK18',
+                          'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
+            }
 
 def _create_config_testcase(config='A1', out='object',
                             path=_path_testcases, dconfig=_dconfig):
