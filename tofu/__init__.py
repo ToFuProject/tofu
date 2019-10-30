@@ -59,7 +59,7 @@ elif sys.version[0] == '3':
     from .version import __version__
 
 # For tests without display with nosetests
-if not 'matplotlib.pyplot' in sys.modules:
+if not 'matplotlib.pyplot' in sys.modules.keys():
     import matplotlib
     matplotlib.use('agg')
     del matplotlib

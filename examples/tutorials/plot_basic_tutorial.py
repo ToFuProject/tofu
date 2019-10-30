@@ -14,7 +14,7 @@ try:
     matplotlib.use('Qt5Agg')
 except ImportError:
     matplotlib.use(matplotlib.rcParams['backend'])
-import matplotlib.pyplot as plt
+import matplotlib.pyplot
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since
@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 # be missing on the machine you are working on. This can be ignored safely.
 
 import tofu as tf
+
 
 ###############################################################################
 # We can now create our first configuration.
