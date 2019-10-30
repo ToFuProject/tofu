@@ -15,6 +15,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 #print('path 2 =', sys.path)
 
 #import mag
-from mag import magFieldLines                                                                                                                                    
+from mag import magFieldLines
 
-doctest.testmod(magFieldLines, verbose=True) 
+doctest.testmod(magFieldLines, verbose=True)
