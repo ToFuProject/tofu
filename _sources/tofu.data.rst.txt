@@ -20,6 +20,14 @@ tofu.data.\_core module
    :undoc-members:
    :show-inheritance:
 
+tofu.data.\_core\_new module
+----------------------------
+
+.. automodule:: tofu.data._core_new
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 tofu.data.\_def module
 ----------------------
 

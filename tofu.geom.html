@@ -13,10 +13,6 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="tofu.dust package" href="tofu.dust.html" />
@@ -24,6 +20,10 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -44,11 +44,12 @@
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
             
-                <li><a href="auto_examples/index.html">Gallery</a></li>
                 <li><a href="installation.html">Installation</a></li>
-                <li><a href="aboutus.html">About us</a></li>
-                <li><a href="releases.html">Versions</a></li>
-                <li><a href="tofu.html">Code doc</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -61,7 +62,8 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
-<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">All tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="tofu.html">tofu package</a></li>
@@ -127,7 +129,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <div class="section" id="tofu-geom-package">
 <h1>tofu.geom package<a class="headerlink" href="#tofu-geom-package" title="Permalink to this headline">¶</a></h1>
@@ -583,7 +585,7 @@ Actual desired limits</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Lim</strong> (<em>(</em><em>optional</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Indicated if the subdomain should be taken into account</p></li>
+<li><p><strong>Lim</strong> (<em>(</em><em>optional</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Indicated if the subdomain should be taken into account</p></li>
 <li><p><strong>mode</strong> (<em>(</em><em>optional</em><em>) </em><em>string</em>) – If <cite>mode</cite> is “abs” (absolute), then the
 segment will be discretized in cells each of size <cite>dstep</cite>. Else,
 if “rel” (relative), the meshing step is relative to the segments norm
@@ -1034,19 +1036,19 @@ block = True consider LOS collisions (with Ves, Struct…)</p>
 It includes all functions and object classes necessary for tomography on Tokamaks</p>
 <dl class="class">
 <dt id="tofu.geom._core.PlasmaDomain">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PlasmaDomain</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PlasmaDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PlasmaDomain" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PlasmaDomain</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/home/lasofivec/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PlasmaDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PlasmaDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructIn</span></code></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tofu.geom._core.Ves">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Ves</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Ves"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Ves" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Ves</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/home/lasofivec/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Ves"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Ves" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructIn</span></code></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tofu.geom._core.PFC">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PFC</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PFC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PFC" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PFC</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/home/lasofivec/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PFC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PFC" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructOut</span></code></p>
 </dd></dl>
 
@@ -1095,7 +1097,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: Remove dsino and dmag expendables
@@ -1119,7 +1121,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.Config">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">lStruct=None, Lim=None, dextraprop=None, Id=None, Name=None, Exp=None, shot=None, Type=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], fromdict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">lStruct=None, Lim=None, dextraprop=None, Id=None, Name=None, Exp=None, shot=None, Type=None, SavePath='/home/lasofivec/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], fromdict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.Config.Lim">
@@ -1276,7 +1278,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: apply strip(1) to objects in self.lStruct
@@ -1295,7 +1297,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.Rays">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Rays</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Rays</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/home/lasofivec/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
 <p>Parent class of rays (ray-tracing), LOS, CamLOS1D and CamLOS2D</p>
 <p>Focused on optimizing the computation time for many rays.</p>
@@ -1490,8 +1492,8 @@ It is possible to sample only a subset of the LOS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>res</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Desired resolution</p></li>
-<li><p><strong>resMode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>res</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Desired resolution</p></li>
+<li><p><strong>resMode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating res should be understood as:</dt><dd><ul>
 <li><p>’abs’:    an absolute distance in meters</p></li>
 <li><p>’rel’:    a relative distance (fraction of the LOS length)</p></li>
@@ -1503,7 +1505,7 @@ It is possible to sample only a subset of the LOS</p>
 L1 and L2 are distances from the starting point of the LOS (LOS.D)
 DL can be an iterable of len()==2 (identical to all los), or a
 (2,nlos) array</p></li>
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl>
 <dt>Flag indicating which to use for sampling:</dt><dd><ul>
 <li><dl>
 <dt>’sum’:    the LOS is sampled into N segments of equal length,</dt><dd><dl class="simple">
@@ -1545,9 +1547,9 @@ DL can be an iterable of len()==2 (identical to all los), or a
 </dl>
 </p></li>
 <li><p><strong>ind</strong> (<em>None / iterable of int</em>) – indices of the LOS to be sampled</p></li>
-<li><p><strong>pts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to return only the abscissa parameter k
+<li><p><strong>pts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to return only the abscissa parameter k
 (False) or the 3D pts coordinates (True)</p></li>
-<li><p><strong>compact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag incating whether to retrun the sampled pts of all los in a
+<li><p><strong>compact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag incating whether to retrun the sampled pts of all los in a
 single concatenated array (True) or splitted into
 a list of nlos arrays)</p></li>
 </ul>
@@ -1658,7 +1660,7 @@ The plot can also include:</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lax</strong> (<em>list / plt.Axes</em>) – The axes for plotting (list of 2 axes if Proj=’All’)
 If None a new figure with new axes is created</p></li>
-<li><p><strong>proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the kind of projection:</dt><dd><ul>
 <li><p>’Cross’ : cross-section</p></li>
 <li><p>’Hor’ : horizontal</p></li>
@@ -1668,9 +1670,9 @@ If None a new figure with new axes is created</p></li>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>projections</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to plot also the reflected rays
+<li><p><strong>projections</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot also the reflected rays
 Assuming some reflected rays are present (self.add_reflections())</p></li>
-<li><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag specifying which elements to plot
+<li><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <p>Flag specifying which elements to plot
 Each capital letter corresponds to an element:</p>
 <blockquote>
 <div><ul>
@@ -1687,7 +1689,7 @@ Each capital letter corresponds to an element:</p>
 </ul>
 </div></blockquote>
 </p></li>
-<li><p><strong>Lplot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Lplot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the length to plot:</dt><dd><ul>
 <li><p>’Tot’: total length, from starting point (D) to output point</p></li>
 <li><p>’In’ : only the in-vessel fraction (from input to output)</p></li>
@@ -1695,20 +1697,20 @@ Each capital letter corresponds to an element:</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>element_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Fed to self.config.plot()</p></li>
-<li><p><strong>Leg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Legend, if Leg=’’ the LOS name is used</p></li>
+<li><p><strong>element_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Fed to self.config.plot()</p></li>
+<li><p><strong>Leg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Legend, if Leg=’’ the LOS name is used</p></li>
 <li><p><strong>dL</strong> (<em>dict / None</em>) – Dictionary of properties for plotting the lines
 Fed to plt.Axes.plot(), set to default if None</p></li>
-<li><p><strong>dPtD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘D’</p></li>
-<li><p><strong>dPtI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘I’</p></li>
-<li><p><strong>dPtO</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘O’</p></li>
-<li><p><strong>dPtR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘R’</p></li>
-<li><p><strong>dPtP</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘P’</p></li>
-<li><p><strong>dLeg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a>) – Dictionary of properties for plotting the legend
+<li><p><strong>dPtD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘D’</p></li>
+<li><p><strong>dPtI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘I’</p></li>
+<li><p><strong>dPtO</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘O’</p></li>
+<li><p><strong>dPtR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘R’</p></li>
+<li><p><strong>dPtP</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘P’</p></li>
+<li><p><strong>dLeg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)"><em>None</em></a>) – Dictionary of properties for plotting the legend
 Fed to plt.legend(), the legend is not plotted if None</p></li>
-<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether fig.canvas.draw() shall be called</p></li>
-<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to plot the figure in a4 dimensions</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – </p></li>
+<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether fig.canvas.draw() shall be called</p></li>
+<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot the figure in a4 dimensions</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – </p></li>
 <li><p><strong>a4</strong> – Flag indicating whether to plot the figure in a4 dimensions</p></li>
 <li><p><strong>Test</strong> – </p></li>
 <li><p><strong>a4</strong> – Flag indicating whether to plot the figure in a4 dimensions</p></li>
@@ -1737,7 +1739,7 @@ the angle that the LOS makes with the cross-section plane
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether to plot:</dt><dd><ul>
 <li><p>’Cross’:  a classic sinogram (vessel cross-section)</p></li>
 <li><p>’3d’: an extended 3D version (‘3d’), with an additional angle</p></li>
@@ -1746,7 +1748,7 @@ the angle that the LOS makes with the cross-section plane
 </dl>
 </p></li>
 <li><p><strong>ax</strong> (<em>None / plt.Axes</em>) – The axes on which to plot, if None a new figure is created</p></li>
-<li><p><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which elements to plot (one per capital letter):</dt><dd><ul>
 <li><p>’L’: LOS</p></li>
 <li><p>’V’: Vessel</p></li>
@@ -1754,7 +1756,7 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>Ang</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Ang</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which angle to use for the impact parameter:</dt><dd><ul>
 <li><p>’xi’: the angle of the line itself</p></li>
 <li><p>’theta’: its impact parameter (theta)</p></li>
@@ -1762,7 +1764,7 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>AngUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>AngUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag for the angle units to be displayed:</dt><dd><ul>
 <li><p>’rad’: for radians</p></li>
 <li><p>’deg’: for degrees</p></li>
@@ -1770,14 +1772,14 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>Sketch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to plot a skecth with angles definitions</p></li>
-<li><p><strong>dL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting the Rays points</p></li>
-<li><p><strong>dV</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting the vessel envelopp</p></li>
+<li><p><strong>Sketch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot a skecth with angles definitions</p></li>
+<li><p><strong>dL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting the Rays points</p></li>
+<li><p><strong>dV</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting the vessel envelopp</p></li>
 <li><p><strong>dLeg</strong> (<em>None / dict</em>) – Dictionary of properties for plotting the legend
 The legend is not plotted if None</p></li>
-<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to draw the figure</p></li>
-<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether the figure should be a4</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether the inputs shall be tested for conformity</p></li>
+<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to draw the figure</p></li>
+<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether the figure should be a4</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether the inputs shall be tested for conformity</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1837,7 +1839,7 @@ The plot shows which strutural element is touched by each LOS</p>
 <li><p><strong>key</strong> (<em>None / str</em>) – A key to be found in self.dchans</p></li>
 <li><p><strong>val</strong> (<em>int / str / float / list of such</em>) – The value to be matched
 If a list of values is provided, the behaviour depends on log</p></li>
-<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>A flag indicating which behaviour to use when val is a list</dt><dd><ul>
 <li><p>any : Returns indices of rays matching any value in val</p></li>
 <li><p>all : Returns indices of rays matching all values in val</p></li>
@@ -1873,7 +1875,7 @@ Only relevant when the element has noccur&gt;1</p>
 </div></blockquote>
 <p>In this case only log=’not’ has an effect</p>
 </p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether to return:</dt><dd><ul>
 <li><p>bool : a (nRays,) boolean array of indices</p></li>
 <li><p>int :  a (N,) array of int indices (N=number of matching rays)</p></li>
@@ -1934,7 +1936,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: dgeom w/o pts + config.strip(1)
@@ -1959,7 +1961,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.CamLOS1D">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS1D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS1D" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS1D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/home/lasofivec/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS1D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tofu.geom._core.Rays" title="tofu.geom._core.Rays"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.Rays</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.CamLOS1D.get_summary">
@@ -1975,7 +1977,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.CamLOS2D">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS2D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS2D" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS2D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/home/lasofivec/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tofu.geom._core.Rays" title="tofu.geom._core.Rays"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.Rays</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.CamLOS2D.dX12">
@@ -2396,7 +2398,7 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 
 <dl class="function">
 <dt id="tofu.geom.utils.create_config">
-<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/home/lasofivec/miniconda3/envs/tofu3/lib/python3.7/site-packages/tofu-.1.4.1_52_g6f060e3-py3.7-linux-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create easily a tofu.geom.Config object</p>
 <p>In tofu, a Config (short for geometrical configuration) refers to the 3D
 geometry of a fusion device.
@@ -2410,20 +2412,20 @@ config, use directly tofu.geom.Config and provide the parameters you want.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>case</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The name of a reference test case, if provided, this arguments is
+<li><p><strong>case</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of a reference test case, if provided, this arguments is
 sufficient, the others are ignored</p></li>
-<li><p><strong>Exp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The name of the experiment</p></li>
-<li><p><strong>Type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The type of configuration (toroidal ‘Tor’ or linear ‘Lin’)</p></li>
-<li><p><strong>Lim_Bump</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – The angular (poloidal) limits, in the cross-section of the extension of
+<li><p><strong>Exp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the experiment</p></li>
+<li><p><strong>Type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The type of configuration (toroidal ‘Tor’ or linear ‘Lin’)</p></li>
+<li><p><strong>Lim_Bump</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – The angular (poloidal) limits, in the cross-section of the extension of
 the outer bumper</p></li>
-<li><p><strong>R</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – The major radius of the center of the cross-section</p></li>
-<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – The minor radius of the cross-section</p></li>
-<li><p><strong>elong</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – An elongation parameter (in [-1;1])</p></li>
-<li><p><strong>Dshape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – A parameter specifying the D-shape of the cross-section (in [-1;1])</p></li>
-<li><p><strong>divlow</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – A flag specifying whether to include a lower divertor-like shape</p></li>
-<li><p><strong>divup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – A flag specifying whether to include an upper divertor-like shape</p></li>
-<li><p><strong>nP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of points used to describe the cross-section polygon</p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>R</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The major radius of the center of the cross-section</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The minor radius of the cross-section</p></li>
+<li><p><strong>elong</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – An elongation parameter (in [-1;1])</p></li>
+<li><p><strong>Dshape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – A parameter specifying the D-shape of the cross-section (in [-1;1])</p></li>
+<li><p><strong>divlow</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – A flag specifying whether to include a lower divertor-like shape</p></li>
+<li><p><strong>divup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – A flag specifying whether to include an upper divertor-like shape</p></li>
+<li><p><strong>nP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Number of points used to describe the cross-section polygon</p></li>
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>FLag indicating whether to return:</dt><dd><ul>
 <li><p>’dict’  : the polygons as a dictionary of np.ndarrays</p></li>
 <li><p>’object’: the configuration as a tofu.geom.Config instance</p></li>
@@ -2583,7 +2585,7 @@ returned as:</p>
       
     </p>
     <p>
-        &copy; Copyright 2016, Didier VEZINET.<br/>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

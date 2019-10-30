@@ -16,9 +16,16 @@ This is a tutorial that aims to get a new user a little familiar with tofu's
 
 .. code-block:: default
 
+
+    # The following imports matplotlib, preferably using a
+    # backend that allows the plots to be interactive (Qt5Agg).
+    import numpy as np
     import matplotlib
+    try:
+        matplotlib.use('Qt5Agg')
+    except ImportError:
+        matplotlib.use(matplotlib.rcParams['backend'])
     import matplotlib.pyplot as plt
-    matplotlib.use('Qt5Agg')
 
 
 
@@ -43,8 +50,9 @@ be missing on the machine you are working on. This can be ignored safely.
 
 
 We can now create our first configuration.
-In `tofu` speak, a configuration is the geometry of the device and its structures.
-`tofu` provides pre-defined ones for your to try, so we're going to do just that:
+In `tofu` speak, a configuration is the geometry of the device and its
+structures. `tofu` provides pre-defined ones for your to try, so we're going
+to do just that:
 
 
 .. code-block:: default
@@ -75,13 +83,12 @@ The configuration can easily be visualized using the `.plot()` method:
 
 
 
-Since `tofu` is all about tomography, let's create a 1D camera and plot its output.
+Since `tofu` is all about tomography, let's create a 1D camera and plot its
+output.
 
 
 .. code-block:: default
 
-
-    import numpy as np
 
     cam1d = tf.geom.utils.create_CamLOS1D(
         config=configB2,
@@ -94,6 +101,7 @@ Since `tofu` is all about tomography, let's create a 1D camera and plot its outp
         Exp="",
         Diag="",
     )
+
     # interactive plot
     cam1d.plot_touch()
 
@@ -110,7 +118,7 @@ Since `tofu` is all about tomography, let's create a 1D camera and plot its outp
 
  .. code-block:: none
 
-    /Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
+    /home/lasofivec/miniconda3/envs/tofu3/lib/python3.7/site-packages/tofu-.1.4.1_52_g6f060e3-py3.7-linux-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -154,7 +162,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.619 seconds)
+   **Total running time of the script:** ( 0 minutes  2.408 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_plot_basic_tutorial.py:

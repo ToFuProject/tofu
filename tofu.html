@@ -13,10 +13,6 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="tofu.data package" href="tofu.data.html" />
@@ -25,6 +21,10 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -45,11 +45,12 @@
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
             
-                <li><a href="auto_examples/index.html">Gallery</a></li>
                 <li><a href="installation.html">Installation</a></li>
-                <li><a href="aboutus.html">About us</a></li>
-                <li><a href="releases.html">Versions</a></li>
-                <li><a href="#">Code doc</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="#">API</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -62,7 +63,8 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
-<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">All tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">tofu package</a></li>
@@ -130,7 +132,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <div class="section" id="tofu-package">
 <h1>tofu package<a class="headerlink" href="#tofu-package" title="Permalink to this headline">¶</a></h1>
@@ -142,6 +144,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._comp">tofu.data._comp module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._core">tofu.data._core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#tofu-data-core-new-module">tofu.data._core_new module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._def">tofu.data._def module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._physics">tofu.data._physics module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._plot">tofu.data._plot module</a></li>
@@ -439,8 +442,8 @@ Including in particular computing parameters, dictionnaries and figures</p>
 <p>&#64;author: didiervezinet</p>
 <dl class="class">
 <dt id="tofu.pathfile.ID">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">ID</code><span class="sig-paren">(</span><em class="sig-param">Cls=None, Name=None, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath='/Users/mendoza/tofu/doc/source', USRdict={}, LObj=None, fromdict=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.pathfile.</code><code class="sig-name descname">ID</code><span class="sig-paren">(</span><em class="sig-param">Cls=None, Name=None, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath='/home/lasofivec/tofu/doc/source', USRdict={}, LObj=None, fromdict=None, Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/pathfile.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.pathfile.ID" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A class used by all ToFu objects as an attribute</p>
 <p>It stores all relevant data for the identification of instances
 Stored info can be the name of the instance, the experiment and diagnostics
@@ -449,8 +452,8 @@ Also provides default names for saving the instances</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
-<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance (user-defined)
+<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of the instance (user-defined)
 Should be a str without space ‘ ‘ or underscore ‘_’
 (automatically removed if present)</p></li>
 <li><p><strong>Type</strong> (<em>None / str</em>) – Type of object (i.e.: ‘Tor’ or ‘Lin’ for a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code>)</p></li>
@@ -557,9 +560,9 @@ was not user-defined, it is automatically updated</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
 <li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
-<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – Controls how te default SaveName is generated
 Each element of the list is a key str indicating whether an element
 should be present in the SaveName</p></li>
 </ul>
@@ -582,10 +585,10 @@ should be present in the SaveName</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
-<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+<li><p><strong>Include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – Controls how te default SaveName is generated
 Each element of the list is a key str indicating whether an element
 should be present in the SaveName</p></li>
-<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <dl class="simple">
+<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – <dl class="simple">
 <dt>Flag indicating the behaviour when SaveName=None:</dt><dd><ul>
 <li><p>True : A new SaveName is generated, overriding the old one</p></li>
 <li><p>False : The former SaveName is preserved (default)</p></li>
@@ -605,7 +608,7 @@ should be present in the SaveName</p></li>
 <p>Useful for arbitrary info (e.g.: manufacturing date, material…)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>USRdict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
+<dd class="field-odd"><p><strong>USRdict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
 </dd>
 </dl>
 </dd></dl>
@@ -675,7 +678,7 @@ Used to check on quantitative criteria.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Crit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag indicating which criterion to use for discrimination
+<li><p><strong>Crit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <p>Flag indicating which criterion to use for discrimination
 Can be set to:</p>
 <blockquote>
 <div><ul>
@@ -693,7 +696,7 @@ Used for selection mechanism (2)</p></li>
 <li><p><strong>PostExp</strong> (<em>None / list / str</em>) – A str (or list of such) expression to be fed to eval()
 Placed after the criterion value
 Used for selection mechanism (2)</p></li>
-<li><p><strong>Log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether the criterion shall match:</dt><dd><ul>
 <li><p>’all’: all provided values</p></li>
 <li><p>’any’: at least one of them</p></li>
@@ -701,7 +704,7 @@ Used for selection mechanism (2)</p></li>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>InOut</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>InOut</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether the returned indices are:</dt><dd><ul>
 <li><p>’In’: the ones matching the criterion</p></li>
 <li><p>’Out’: the ones not matching it</p></li>
@@ -761,10 +764,10 @@ Used for selection mechanism (2)</p></li>
 </dl>
 </p></li>
 <li><p><strong>SavePathInp</strong> (<em>str / None</em>) – The absolute path where the input file is stored</p></li>
-<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Flag indicating in which units the polygon coordinates is expressed in the input file / object / array (will be converted to meters)</p></li>
-<li><p><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
-<li><p><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
-<li><p><strong>shape0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Specifies whether the loaded array is a (2,N) or (3,N) array (transposed it if necessary)</p></li>
+<li><p><strong>units</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Flag indicating in which units the polygon coordinates is expressed in the input file / object / array (will be converted to meters)</p></li>
+<li><p><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
+<li><p><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Parameter to be fed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">numpy.loadtxt()</span></code> if PolyFileObj is a file name</p></li>
+<li><p><strong>shape0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Specifies whether the loaded array is a (2,N) or (3,N) array (transposed it if necessary)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -801,16 +804,16 @@ like Detect or Cam objects</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>SaveName</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The file name, if None (recommended) uses obj.Id.SaveName</p></li>
-<li><p><strong>Path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Path where to save the file</p></li>
-<li><p><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>SaveName</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The file name, if None (recommended) uses obj.Id.SaveName</p></li>
+<li><p><strong>Path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Path where to save the file</p></li>
+<li><p><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the saving mode</dt><dd><ul>
 <li><p>’npz’: Only mode currently available (‘pck’ deprecated)</p></li>
 </ul>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Indicate whether to use np.savez_compressed (slower but smaller files)</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Indicate whether to use np.savez_compressed (slower but smaller files)</p></li>
 </ul>
 </dd>
 </dl>
@@ -829,10 +832,10 @@ Finally, once all the relevant data is loaded from the file, a ToFu object is re
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pathfileext</strong> (<em>None / str</em>) – If provided, the name of the file to load</p></li>
 <li><p><strong>OutPath</strong> (<em>None / str</em>) – If provided, the absolute path where the file is to be found</p></li>
-<li><p><strong>ReplacePath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – If provided, ? (to finish)</p></li>
+<li><p><strong>ReplacePath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – If provided, ? (to finish)</p></li>
 <li><p><strong>Ves</strong> (<em>None /</em>) – If provided, the <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom.Ves</span></code> object that shall be used to reconstruct the object (if not provided, the appropriate vessel will be loaded).</p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Flag indicating whether the object should be loaded completely (‘full’), in a light dismissing the heaviest attributes (‘light’) or whether only the Id or a list of Id should be returned (‘Id’), valid only for ‘.npz’</p></li>
-<li><p><strong>Verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to pring intermediate comments on the loading procedure</p></li>
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Flag indicating whether the object should be loaded completely (‘full’), in a light dismissing the heaviest attributes (‘light’) or whether only the Id or a list of Id should be returned (‘Id’), valid only for ‘.npz’</p></li>
+<li><p><strong>Verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to pring intermediate comments on the loading procedure</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -847,7 +850,7 @@ Finally, once all the relevant data is loaded from the file, a ToFu object is re
 <dl class="class">
 <dt id="tofu.utils.DChans">
 <em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">DChans</code><span class="sig-paren">(</span><em class="sig-param">dchans</em>, <em class="sig-param">fromdict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#DChans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.DChans" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for handling event on tofu interactive figures</p>
 <dl class="method">
 <dt id="tofu.utils.DChans.dchans">
@@ -879,7 +882,7 @@ Finally, once all the relevant data is loaded from the file, a ToFu object is re
 <dl class="class">
 <dt id="tofu.utils.Dictattr">
 <em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">Dictattr</code><span class="sig-paren">(</span><em class="sig-param">extra</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#Dictattr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.Dictattr" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
 </dd></dl>
 
 <dl class="function">
@@ -904,8 +907,8 @@ Also provides default names for saving the instances</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
-<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance (user-defined)
+<li><p><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Class of the object on which info should be stored:</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of the instance (user-defined)
 Should be a str without space ‘ ‘ or underscore ‘_’
 (automatically removed if present)</p></li>
 <li><p><strong>Type</strong> (<em>None / str</em>) – Type of object (i.e.: ‘Tor’ or ‘Lin’ for a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ves</span></code>)</p></li>
@@ -1019,9 +1022,9 @@ was not user-defined, it is automatically updated</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
+<li><p><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of the instance, without ‘ ‘ or ‘_’ (automatically removed)</p></li>
 <li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
-<li><p><strong>include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+<li><p><strong>include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – Controls how te default SaveName is generated
 Each element of the list is a key str indicating whether an element
 should be present in the SaveName</p></li>
 </ul>
@@ -1044,10 +1047,10 @@ should be present in the SaveName</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>SaveName</strong> (<em>None / str</em>) – If provided, overrides the default name for saving (not recommended)</p></li>
-<li><p><strong>include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Controls how te default SaveName is generated
+<li><p><strong>include</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – Controls how te default SaveName is generated
 Each element of the list is a key str indicating whether an element
 should be present in the SaveName</p></li>
-<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <dl class="simple">
+<li><p><strong>ForceUpdate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – <dl class="simple">
 <dt>Flag indicating the behaviour when SaveName=None:</dt><dd><ul>
 <li><p>True : A new SaveName is generated, overriding the old one</p></li>
 <li><p>False : The former SaveName is preserved (default)</p></li>
@@ -1067,7 +1070,7 @@ should be present in the SaveName</p></li>
 <p>Useful for arbitrary info (e.g.: manufacturing date, material…)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>dUSR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
+<dd class="field-odd"><p><strong>dUSR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – A user-defined dictionary containing info about the instance</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1115,7 +1118,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)</p>
 </div></blockquote>
@@ -1142,7 +1145,7 @@ Use strip=0 to recover all atributes</p>
 <dl class="class">
 <dt id="tofu.utils.KeyHandler_mpl">
 <em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">KeyHandler_mpl</code><span class="sig-paren">(</span><em class="sig-param">can=None</em>, <em class="sig-param">dgroup=None</em>, <em class="sig-param">dref=None</em>, <em class="sig-param">ddata=None</em>, <em class="sig-param">dobj=None</em>, <em class="sig-param">dax=None</em>, <em class="sig-param">lax_fix=[]</em>, <em class="sig-param">groupinit='time'</em>, <em class="sig-param">follow=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
 <dt id="tofu.utils.KeyHandler_mpl.connect">
 <code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#KeyHandler_mpl.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.KeyHandler_mpl.connect" title="Permalink to this definition">¶</a></dt>
@@ -1240,7 +1243,7 @@ The mode refers to the file format</p>
 <li><p><strong>obj</strong> (<em>ToFuObject subclass instance</em>) – The object to be saved</p></li>
 <li><p><strong>path</strong> (<em>None / str</em>) – The folder where to save, if None (recommended), uses obj.Id.SavePath</p></li>
 <li><p><strong>name</strong> (<em>None / str</em>) – The file name, if None (recommended), uses obj.Id.SaveName</p></li>
-<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the saving mode</dt><dd><ul>
 <li><p>’npz’: numpy file</p></li>
 <li><p>’mat’: matlab file</p></li>
@@ -1248,9 +1251,9 @@ The mode refers to the file format</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the saved object should be
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Flag indicating how stripped the saved object should be
 See docstring of self.strip()</p></li>
-<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <p>Flag, used when the object has other tofu objects as attributes
+<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – <p>Flag, used when the object has other tofu objects as attributes
 Indicated whether these attribute object should be:</p>
 <blockquote>
 <div><ul>
@@ -1279,8 +1282,8 @@ before removing them, and throw an Exception otherwise</p>
 </ul>
 </div></blockquote>
 </p></li>
-<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to compress the file (slower, not recommended)</p></li>
-<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to print a summary (recommended)</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to compress the file (slower, not recommended)</p></li>
+<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to print a summary (recommended)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1291,7 +1294,7 @@ before removing them, and throw an Exception otherwise</p>
 <dl class="class">
 <dt id="tofu.utils.ToFuObjectBase">
 <em class="property">class </em><code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">ToFuObjectBase</code><span class="sig-paren">(</span><em class="sig-param">fromdict=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
 <dt id="tofu.utils.ToFuObjectBase.copy">
 <code class="sig-name descname">copy</code><span class="sig-paren">(</span><em class="sig-param">strip=None</em>, <em class="sig-param">deep='ref'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#ToFuObjectBase.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.ToFuObjectBase.copy" title="Permalink to this definition">¶</a></dt>
@@ -1308,9 +1311,9 @@ In practice it should be the return output of a similar class to_dict()</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>fd</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – The properly formatted ditionnary from which to read the attributes</p></li>
-<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The separator that was used to format fd keys (cf. self.to_dict())</p></li>
-<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the resulting object shouyld be
+<li><p><strong>fd</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – The properly formatted ditionnary from which to read the attributes</p></li>
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The separator that was used to format fd keys (cf. self.to_dict())</p></li>
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Flag indicating how stripped the resulting object shouyld be
 (cf. self.strip())</p></li>
 </ul>
 </dd>
@@ -1353,7 +1356,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes){0}</p>
 </div></blockquote>
@@ -1380,12 +1383,12 @@ Use strip=0 to recover all atributes</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the object should be
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Flag indicating how stripped the object should be
 Fed to self.strip()</p></li>
-<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Separator char used for flattening the dict
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Separator char used for flattening the dict
 The output dict is flat (i.e.: no nested dict)
 Keys are created from the keys of nested dict, separated by sep</p></li>
-<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag indicating how to behave when an attribute is itself a tofu
+<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <p>Flag indicating how to behave when an attribute is itself a tofu
 object. The associated field in the exported dict can be:</p>
 <blockquote>
 <div><ul>
@@ -1500,14 +1503,14 @@ The associated tofu object will be created and returned</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the file to load from, can include the path</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Name of the file to load from, can include the path</p></li>
 <li><p><strong>path</strong> (<em>None / str</em>) – Path where the file is located (if not provided in name), defaults ‘./’</p></li>
 <li><p><strong>strip</strong> (<em>None / int</em>) – <dl class="simple">
 <dt>FLag indicating whether to strip the object of some attributes</dt><dd><p>=&gt; see the docstring of the class strip() method for details</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indocating whether to print a summary of the loaded file</p></li>
+<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indocating whether to print a summary of the loaded file</p></li>
 </ul>
 </dd>
 </dl>
@@ -1542,7 +1545,7 @@ The mode refers to the file format</p>
 <li><p><strong>obj</strong> (<em>ToFuObject subclass instance</em>) – The object to be saved</p></li>
 <li><p><strong>path</strong> (<em>None / str</em>) – The folder where to save, if None (recommended), uses obj.Id.SavePath</p></li>
 <li><p><strong>name</strong> (<em>None / str</em>) – The file name, if None (recommended), uses obj.Id.SaveName</p></li>
-<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the saving mode</dt><dd><ul>
 <li><p>’npz’: numpy file</p></li>
 <li><p>’mat’: matlab file</p></li>
@@ -1550,9 +1553,9 @@ The mode refers to the file format</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Flag indicating how stripped the saved object should be
+<li><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Flag indicating how stripped the saved object should be
 See docstring of self.strip()</p></li>
-<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – <p>Flag, used when the object has other tofu objects as attributes
+<li><p><strong>deep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – <p>Flag, used when the object has other tofu objects as attributes
 Indicated whether these attribute object should be:</p>
 <blockquote>
 <div><ul>
@@ -1581,8 +1584,8 @@ before removing them, and throw an Exception otherwise</p>
 </ul>
 </div></blockquote>
 </p></li>
-<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to compress the file (slower, not recommended)</p></li>
-<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to print a summary (recommended)</p></li>
+<li><p><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to compress the file (slower, not recommended)</p></li>
+<li><p><strong>verb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to print a summary (recommended)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1677,7 +1680,7 @@ before removing them, and throw an Exception otherwise</p>
       
     </p>
     <p>
-        &copy; Copyright 2016, Didier VEZINET.<br/>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

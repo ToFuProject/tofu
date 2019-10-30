@@ -13,18 +13,18 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="tofu examples and tutorials" href="auto_examples/index.html" />
+    <link rel="next" title="Contribute to tofu" href="contributing.html" />
     <link rel="prev" title="Welcome to tofu’s documentation!" href="index.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -45,11 +45,12 @@
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
             
-                <li><a href="auto_examples/index.html">Gallery</a></li>
                 <li><a href="#">Installation</a></li>
-                <li><a href="aboutus.html">About us</a></li>
-                <li><a href="releases.html">Versions</a></li>
-                <li><a href="tofu.html">Code doc</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -62,7 +63,8 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">How to install tofu</a></li>
-<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">All tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tofu.html">tofu package</a></li>
@@ -83,7 +85,14 @@
   <ul class="dropdown-menu localtoc"
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">Installing tofu</a></li>
+<li><a class="reference internal" href="#">Installing tofu</a><ul>
+<li><a class="reference internal" href="#linux">Linux</a></li>
+<li><a class="reference internal" href="#mac-os-x">Mac OS X</a></li>
+<li><a class="reference internal" href="#windows">Windows</a></li>
+<li><a class="reference internal" href="#using-tofu-on-a-iter-cluster">Using tofu on a ITER cluster</a></li>
+<li><a class="reference internal" href="#installing-tofu-as-a-developer">Installing tofu as a developer</a></li>
+</ul>
+</li>
 </ul>
 </ul>
 </li>
@@ -111,254 +120,126 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <div class="section" id="installing-tofu">
 <span id="installation"></span><h1>Installing tofu<a class="headerlink" href="#installing-tofu" title="Permalink to this headline">¶</a></h1>
-<ul class="nav nav-tabs">
-  <li class="nav-item">
-    <a class="nav-link active" data-toggle="tab" href="#linux">Linux</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" data-toggle="tab" href="#mac">Mac</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" data-toggle="tab" href="#windows">Windows</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" data-toggle="tab" href="#iter">ITER users</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" data-toggle="tab" href="#developer">Developer mode</a>
-  </li>
+<p>As of October 2019, <cite>tofu</cite> is still under heavy development. Therefore, installation
+instructions are provided officialy for Linux and ITER users. However, instructions
+for other platforms are also provided since they have been known to work out for some users.
+If installation fails for your use-case, please open an issue over
+at <a class="reference external" href="https://github.com/ToFuProject/tofu/">Github.</a> so that we can try adressing it.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#installing-tofu-on-linux"><span class="std std-ref">Linux</span></a></p></li>
+<li><p><a class="reference internal" href="#installing-tofu-on-mac"><span class="std std-ref">Mac OS X</span></a></p></li>
+<li><p><a class="reference internal" href="#installing-tofu-on-windows"><span class="std std-ref">Windows</span></a></p></li>
+<li><p><a class="reference internal" href="#iter-users"><span class="std std-ref">Using tofu on a ITER cluster</span></a></p></li>
+<li><p><a class="reference internal" href="#installing-as-a-developer"><span class="std std-ref">Installing tofu as a developer</span></a></p></li>
 </ul>
-<div id="myTabContent" class="tab-content">
-  <div class="tab-pane fade in active" id="linux">
-    <h2> Installing tofu on Linux</h2>
-    This is a quick tutorial on how to install and use ToFu on Linux.
-    <h3> Installing Anaconda </h3>
-    <p>First thing first: get a python package manager.</p>
-    <p>We recommend <code>Miniconda</code> (light version of Anaconda,
-      but you can also work with <code>Anaconda</code>, <code>pip</code>
-      or another python package manager of your choice).
-    </p>
-    <ul>
-      <li> <a href="https://docs.conda.io/en/latest/miniconda.html">Get the
-	  latest version and install it.</a></li>
-      <li> Follow the directions (you can use default options)</li>
-    </ul>
-    <h3> Installing tofu </h3>
-    <p>Now you only need to install tofu</p>
-    <pre><code>$ conda install -c tofuproject tofu </code></pre>
-    <p>For testing <b>tofu</b> we recommend you also install <code>ipython</code></p>
-    <pre><code>$ conda install ipython </code></pre>
-    <p>You are all set, open an ipython console and try importing tofu.</p>
-    <pre><code>$ ipython
-In [1]: import tofu as tf </code></pre>
-    <p>Now you can <a href="auto_examples/index.html">
-	  follow a tutorial.</a>
-  </div>
-  <div class="tab-pane fade" id="mac">
-    <h2> Installing tofu on Mac OS X</h2>
-    This is a quick tutorial on how to install and use ToFu on Linux.
-    <h3> Installing Anaconda </h3>
-    <p>First thing first: get a python package manager.</p>
-    <p>We recommend <code>Miniconda</code> (light version of Anaconda,
-      but you can also work with <code>Anaconda</code>, <code>pip</code>
-      or another python package manager of your choice).
-    </p>
-    <ul>
-      <li> <a href="https://docs.conda.io/en/latest/miniconda.html">Get the
-	  latest version and install it.</a></li>
-      <li> Follow the directions (you can use default options)</li>
-    </ul>
-    <h3> Installing tofu </h3>
-    <p>First install the dependencies</p>
-    <pre><code>$ conda install pip cython numpy scipy ipython </code></pre>
-    <p><b>tofu</b> is not (yet) packaged with anaconda so we need to install it
-      using <code>pip</code></p>
-    <pre><code>$ pip install tofu </code></pre>
-    <p>You are all set, open an ipython console and try importing tofu.</p>
-    <pre><code>$ ipython
-In [1]: import tofu as tf </code></pre>
-    <p>Now you can <a href="auto_examples/index.html">
-	  follow a tutorial.</a>
-  </div>
-  <div class="tab-pane fade" id="windows">
-    <h2> Installing tofu on Windows</h2>
-    This is a quick tutorial on how to install and use ToFu on Windows.
-    <h3> Installing Anaconda </h3>
-    <p> We will use Miniconda (light version of Anaconda,
-      but you can also work with Anaconda or another python package manager of
-      your choice) not only to install and manage the packages necessary for
-      installing ToFu, but also to have a working bash-like Terminal.</p>
-    <ul>
-      <li> <a href="https://docs.conda.io/en/latest/miniconda.html">Get the
-	  latest version and install it.</a></li>
-      <li> Follow the directions (you can use default options)</li>
-      <li> Open an <code>Anaconda prompt</code></li>
-    </ul>
-    <h3>Creating a conda environment</h3>
-    <p>We are going to create an environment specific for ToFu.</p>
-    <pre><code>$ conda create -n tofu3 python=3.6 scipy numpy cython git
+<div class="section" id="linux">
+<span id="installing-tofu-on-linux"></span><h2>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h2>
+<p>To install and use <cite>tofu</cite> on Linux, we recommend to proceed in two steps: install the
+Python package manager conda and then install tofu.
+We recommend <code class="docutils literal notranslate"><span class="pre">Miniconda</span></code> (light version of the Anaconda Python distribution for data science,
+but you can also work with <code class="docutils literal notranslate"><span class="pre">pip</span></code> or another Python package manager of
+your choice).</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Get the latest Miniconda version and install
+it.</a></p></li>
+<li><p>Install tofu</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ conda install -c tofuproject tofu
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Check that tofu works by printing its version number:</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python -c &quot;import tofu; print(tofu.__version__)&quot;
+</pre></div>
+</div>
+<p>Now you can <a class="reference external" href="auto_examples/index.html">follow a tutorial.</a></p>
+</div>
+<div class="section" id="mac-os-x">
+<span id="installing-tofu-on-mac"></span><h2>Mac OS X<a class="headerlink" href="#mac-os-x" title="Permalink to this headline">¶</a></h2>
+<p>See <a class="reference internal" href="#installing-as-a-developer"><span class="std std-ref">Installing tofu as a developer</span></a>.</p>
+</div>
+<div class="section" id="windows">
+<span id="installing-tofu-on-windows"></span><h2>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h2>
+<p>See <a class="reference internal" href="#installing-as-a-developer"><span class="std std-ref">Installing tofu as a developer</span></a>.</p>
+<p>Additional <em>caveat</em>: you may need to open an <code class="docutils literal notranslate"><span class="pre">Anaconda</span> <span class="pre">prompt</span></code> (usually found by pressing
+the Windows key) to run the commands described in the linked section.</p>
+</div>
+<div class="section" id="using-tofu-on-a-iter-cluster">
+<span id="iter-users"></span><h2>Using tofu on a ITER cluster<a class="headerlink" href="#using-tofu-on-a-iter-cluster" title="Permalink to this headline">¶</a></h2>
+<p>If you have an <strong>ITER</strong> account, you can use <strong>tofu</strong> directly from ITER
+Computing Cluster. No need to install tofu !</p>
+<ul class="simple">
+<li><p>Ask for access to ITER servers, if you don’t have them already.</p></li>
+<li><p>For information about the cluster, see <a class="reference external" href="https://confluence.iter.org/display/IMP/ITER+Computing+Cluster">this
+link.</a></p></li>
+<li><p>Open a new terminal and connect to server (see link above)</p></li>
+<li><p>Create a new file in your <code class="docutils literal notranslate"><span class="pre">$HOME</span></code> directory, you can name it
+<code class="docutils literal notranslate"><span class="pre">load_tofu_modules.sh</span></code></p></li>
+<li><p>Open it and add the following lines:</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">module</span> <span class="n">refresh</span>
+<span class="n">source</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span><span class="o">.</span><span class="n">d</span><span class="o">/</span><span class="n">modules</span><span class="o">.</span><span class="n">sh</span> <span class="c1"># make sure you have the module environment</span>
+<span class="n">module</span> <span class="n">purge</span> <span class="c1"># unload any previously loaded modules</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">IMAS</span><span class="o">/</span><span class="mf">3.24</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mf">4.1</span><span class="o">.</span><span class="mi">5</span> <span class="c1"># for IMAS data base</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">IPython</span><span class="o">/</span><span class="mf">6.3</span><span class="o">.</span><span class="mi">1</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span> <span class="c1"># for iPython</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">PySide2</span><span class="o">/</span><span class="mf">5.12</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">ToFu</span><span class="o">/</span><span class="mf">1.4</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span> <span class="c1"># Load tofu :)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Convert it to an executable, from the terminal:
+<code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">+x</span> <span class="pre">~/load_tofu_modules.sh</span></code></p></li>
+<li><p>Execute it: <code class="docutils literal notranslate"><span class="pre">./load_tofu_modules.sh</span></code></p></li>
+<li><p>If you are going to use <em>tofu</em> often, you might want to add the
+execution of the script to your <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> (or <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code>
+file):</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">echo</span> <span class="s1">&#39;./load_tofu_modules.sh&#39;</span> <span class="o">&gt;&gt;</span> <span class="o">.</span><span class="n">bash_profile</span>
+</pre></div>
+</div>
+<p>You are all set, open a Python/IPython console and try importing tofu.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python
+In [1]: import tofu as tf
+</pre></div>
+</div>
+<p>You can now <a class="reference external" href="auto_examples/index.html">follow a tutorial.</a></p>
+</div>
+<div class="section" id="installing-tofu-as-a-developer">
+<span id="installing-as-a-developer"></span><h2>Installing tofu as a developer<a class="headerlink" href="#installing-tofu-as-a-developer" title="Permalink to this headline">¶</a></h2>
+<p>To install tofu as a developer, we recommend using the conda ecosystem (Miniconda in particular):</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Get the latest Miniconda version and install
+it.</a></p></li>
+<li><p>create a dedicated (Python 3) environment for tofu development and activate it</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ conda create -n tofu3 python=3.6 scipy numpy cython git
 $ conda activate tofu3
-$ conda install m2-base # Get some basic Linux/bash commands (ls, cd, mv, ...)</code></pre>
-    <p>This creates a conda environment named "tofu3" and installs scipy,
-      numpy and cython. The second command activates this environment.</p>
-    <h3>Get the repository</h3>
-    <ul>
-      <li>Create a ssh public key and add it to your GitHub account:
-	<a href="https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account">follow this tutorial.</a></li>
-      <li>Go to ToFu's GitHub repository:  <a href="https://github.com/ToFuProject/tofu/">here.</a></li>
-      <li>Click on "clone or download" and swith to the option "Use SSH". Copy the link.</li>
-      <li>Move to where you would like to install ToFu
-	<code>$ cd some_path</code></li>
-      <li><code>$ git clone git@github.com:ToFuProject/tofu.git</code> (make
-	sure you remember the path where you are installing, if you want to
-	install it into your home repository, just make sure to
-	<code>cd ~</code> before the <code>git clone...</code>)</li>
-    </ul>
-    <h3>Installing ToFu</h3>
-    <ul>
-      <li>Move to the tofu directory, probably: <code>cd ~/tofu</code></li>
-      <li>Switch to the <code>git</code> branch you will be working on.
-	If you are just starting you probably want to start from the latest
-	develop branch: <code>git checkout devel</code>. If you are not
-	familiar with <strong>git</strong> take a look at
-	<a href="https://www.atlassian.com/git/tutorials">this tutorial (long)
-	</a> or <a href="https://rogerdudler.github.io/git-guide/">this short
-	  one</a></li>
-      <li>Compile <code>python setup.py build_ext --inplace</code></li>
-      <li>We suggest you installing python inside <code>tofu/usr</code>,
-	you will have to modify your <code>$PYTHONPATH</code> to include this
-	path.
-	<a href="https://superuser.com/questions/1360611/editing-system-environment-variables-is-allowed-only-when-opened-through-control">
-	  How to modify environment variables on Windows</a></li>
-      <li><code>python setup.py install --prefix=$TOFU_DIR\\usr</code></li>
-      <li>Make sure tests are running <code>nosetests</code></li>
-    </ul>
-    <h3>Contribute</h3>
-    <p>If you wish to contribute, you will probably need a text editor, you can use Visual Studio's editor.</p>
-  </div>
-  <div class="tab-pane fade" id="iter">
-    <h2>Using tofu on a ITER cluster</h2>
-    <p>If you have an <strong>ITER</strong> account, you can use
-      <strong>tofu</strong> directly from ITER Computing Cluster.
-      No need to install tofu !</p>
-    <ul>
-      <li>Ask for access to ITER servers, if you don't have them already.</li>
-      <li>For information about the cluster, see
-	<a href="https://confluence.iter.org/display/IMP/ITER+Computing+Cluster">
-	  this link.</a></li>
-      <li>Open a new terminal and connect to server (see link above)</li>
-      <li>Create a new file in your <code>$HOME</code> directory, you can
-	name it <code>load_tofu_modules.sh</code></li>
-      <li>Open it and add the following lines:</li>
-    </ul>
-    <pre><code>module refresh
-source /etc/profile.d/modules.sh # make sure you have the module environment
-module purge # unload any previously loaded modules
-module load IMAS/3.24.0-4.1.5 # for IMAS data base
-module load IPython/6.3.1-intel-2018a-Python-3.6.4 # for iPython
-module load PySide2/5.12.0-intel-2018a-Python-3.6.4
-module load ToFu/1.4.0-intel-2018a-Python-3.6.4 # Load tofu :)</code></pre>
-    <ul>
-      <li>Convert it as an exectuable, from terminal:
-	<code>chmod +x ~/load_tofu_modules.sh</code></li>
-      <li>Execute it: <code>./load_tofu_modules.sh</code></li>
-      <li>If you are going to use <em>tofu</em> often, you might want to add
-	the execution of the script to your <code>.bash_profile</code>
-	(or <code>.bashrc</code> file):</li>
-    </ul>
-    <pre><code>echo './load_tofu_modules.sh' &gt;&gt; .bash_profile</code></pre>
-    <p>You are all set, open an ipython console and try importing tofu.</p>
-    <pre><code>$ ipython
-In [1]: import tofu as tf</code></pre>
-    <p>Now you can <a href="auto_examples/index.html">
-	  follow a tutorial.</a>
-  </div>
-  <div class="tab-pane fade" id="developer">
-    <h2> Installing tofu as a developer or contributor</h2>
-    You found a bug, or you want to add something to the library ?
-    This tutorial will show you how to get the repository and the
-    first steps to contribute to the project.
-    <h3> First steps </h3>
-    <p> There are many tools and concepts to get familiar with when contributing
-      to an <b>open-source python library</b>. A good place to get started is
-      the <a href="https://github.com/nathanshammah/scikit-project">
-	scikit-project</a>. And here is a list of tools you should get familiar
-      with:
-      <ul>
-	<li> <code>python</code>: the main language of <b>tofu</b>
-	<li><code>ipython</code>: powerful interactive shell for python, and
-	  check this <a href="https://ipython.org/ipython-doc/3/interactive/tutorial.html">
-	    tutorial</a></li>
-	<li><code>git</code>, and the
-	  <a href="https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow">
-	    feature branch workflow</a></li>
-	<li><code>github</code>: follow and watch <a href="https://github.com/ToFuProject/tofu">our project</a>
-	<li> A text editor: <code>emacs</code>, <code>vim</code>, <code>sublime</code>, or whichever you want
-      </ul>
-      </p>
-    <h3> Installing Anaconda </h3>
-    <p> We will use Miniconda (light version of Anaconda,
-      but you can also work with Anaconda or another python package manager of
-      your choice) not only to install and manage the packages necessary for
-      installing ToFu, but also to have a working bash-like Terminal.</p>
-    <ul>
-      <li> <a href="https://docs.conda.io/en/latest/miniconda.html">Get the
-	  latest version and install it.</a></li>
-      <li> Follow the directions (you can use default options)</li>
-    </ul>
-    <h3>Creating a conda environment</h3>
-    <p>We are going to create an environment specific for ToFu.</p>
-    <pre><code>$ conda create -n tofu3 python scipy numpy cython git ipython
-$ conda activate tofu3</code></pre>
-    <p>This creates a conda environment named "tofu3" and installs scipy,
-      numpy, git, ipython and cython.
-      The second command activates this environment.</p>
-    <h3>Get the repository</h3>
-    <ul>
-      <li>Create a ssh public key and add it to your GitHub account:
-	<a href="https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account">follow this tutorial.</a></li>
-      <li>Go to ToFu's GitHub repository:  <a href="https://github.com/ToFuProject/tofu/">here.</a></li>
-      <li>Click on "clone or download" and swith to the option "Use SSH". Copy the link.</li>
-      <li>Move to where you would like to install ToFu
-	<code>$ cd some_path</code></li>
-      <li><code>$ git clone git@github.com:ToFuProject/tofu.git</code>
-	(make sure you remember the path where you are installing,
-	if you want to install it into your home repository, just make sure to
-	<code>cd ~</code> before the <code>git clone...</code>)</li>
-    </ul>
-    <h3>Installing ToFu</h3>
-    <ul>
-      <li>Move to the tofu directory, probably: <code>cd ~/tofu</code></li>
-      <li>Switch to the <code>git</code> branch you will be working on.
-	If you are just starting you probably want to start from the
-	latest develop branch: <code>git checkout devel</code>.
-	If you are not familiar with <strong>git</strong> take a look at
-	<a href="https://www.atlassian.com/git/tutorials">this tutorial
-	  (long) </a> or <a href="https://rogerdudler.github.io/git-guide/">this
-	  short one</a></li>
-      <li>Compile <code>python setup.py build_ext --inplace</code></li>
-      <li>Make sure tests are running <code>nosetests</code></li>
-    </ul>
-    <h3>Contribute</h3>
-    <p>If you wish to contribute, but don't know where to start, check
-      <a href="https://github.com/ToFuProject/tofu/issues">our open issues</a>.
-      You can also read <a href="https://github.com/firstcontributions/first-contributions">
-	this tutorial</a>, on how to contribute to a github project.
-      Before modifying the code, you should create a new branch and switch to
-      it.</p>
-    <pre><code>git checkout -b &lt;theNameOfYourBranch&gt; # probably IssueNumber eg. Issue123
-# change the source code
-git add &lt;files you changed&gt;
-git commit -m "[a tag] a message that explains what you changed"
-git push -u origin &lt;theNameOfYourBranch&gt;</code></pre>
-    <p> Now you can open a pull request in our <a href="https://github.com/ToFuProject/tofu/pulls"> github page</a>,
-      from your branch, <code>theNameOfYourBranch</code> to <code>devel</code>. We will review it,
-      comment it, and accept it.
-  </div>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Move to where you would like to install your local copy of ToFu <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">cd</span> <span class="pre">some_path</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/ToFuProject/tofu.git</span></code> (make sure you
+remember the path where you are installing, if you want to install it
+into your home repository, just make sure to <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">cd</span> <span class="pre">~</span></code> before the
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone...</span></code>)</p></li>
+<li><p>Move to the “cloned” tofu directory that has been created by the git clone command:
+<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">~/tofu</span></code></p></li>
+<li><p>Switch to the <code class="docutils literal notranslate"><span class="pre">git</span></code> branch you will be working on. If you are just
+starting you probably want to start from the latest develop branch:
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">devel</span></code>. If you are not familiar with <strong>git</strong> take a
+look at <a class="reference external" href="https://www.atlassian.com/git/tutorials">this tutorial
+(long)</a> or <a class="reference external" href="https://rogerdudler.github.io/git-guide/">this short
+one</a></p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.[dev]</span></code>. This will install dependencies, compile the
+tofu Cython extensions and install it into your conda environment while you can still
+modify the source files in the current repository.`</p></li>
+<li><p>Make sure tofu tests are running by typing <code class="docutils literal notranslate"><span class="pre">nosetests</span></code></p></li>
+</ul>
 </div>
 </div>
 
@@ -381,7 +262,7 @@ git push -u origin &lt;theNameOfYourBranch&gt;</code></pre>
       
     </p>
     <p>
-        &copy; Copyright 2016, Didier VEZINET.<br/>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>
