@@ -743,6 +743,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
                 dax['hor'][0].plot(x, y, label=lab)
+        dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'.format(shot[0], t[0]))
         return dax
 
 

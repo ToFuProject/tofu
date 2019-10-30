@@ -49,7 +49,7 @@ _TOKAMAK = 'west'
 _VERSION = '3'
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
 _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
-_LIDS = _LIDS_DIAG + _LIDS_PLASMA
+_LIDS = _LIDS_DIAG + _LIDS_PLASMA + ['magfieldlines']
 _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
@@ -75,7 +75,7 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
                     ids=None, quantity=None, X=None, t0=_T0,
                     sharex=_SHAREX, indch=None, indch_auto=None,
-                    background=_BCK):
+                    background=_BCK, t=None, dR_sep=None):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
     if t0.lower() == 'none':
@@ -85,7 +85,8 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_sig=quantity, plot_X=X,
-                      t0=t0, plot=True, sharex=sharex, bck=background)
+                      t0=t0, plot=True, sharex=sharex, bck=background,
+                      t=t, dR_sep=dR_sep)
 
     plt.show(block=True)
 
@@ -125,7 +126,7 @@ if __name__ == '__main__':
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-t','--tokamak',help=msg, required=False,
+    parser.add_argument('-tok','--tokamak',help=msg, required=False,
                         default=_TOKAMAK)
     parser.add_argument('-r','--run',help='run number',
                         required=False, type=int, default=_RUN)
@@ -143,6 +144,11 @@ if __name__ == '__main__':
                         nargs='+', default=None)
     parser.add_argument('-t0', '--t0', type=str, required=False,
                         help='Reference time event setting t = 0', default=_T0)
+    parser.add_argument('-t', '--t', type=float, required=False,
+                        help='Input time when needed')
+    parser.add_argument('-dR_sep', '--dR_sep', type=float, required=False,
+                        help='Distance to separatrix from r_ext to plot'
+                            +'magneticfield lines')
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
