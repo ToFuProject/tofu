@@ -697,56 +697,46 @@ class CrystalBragg(utils.ToFuObject):
 
     def sample_outline_plot(self, res=None):
         if self._dgeom['Type'] == 'sph':
-            C = self._dgeom['center']
-            nout = self._dgeom['nout']
-            r = self._dgeom['rcurve']
             if self._dgeom['Typeoutline'] == 'rect':
-                dpsi = self._dgeom['extenthalf'][0]
-                dtheta = self._dgeom['extenthalf'][1]
-                if res is None:
-                    res = min(dpsi, dtheta)/5.
-                npsi = 2*int(np.ceil(dpsi / res)) + 1
-                ntheta = 2*int(np.ceil(dtheta / res)) + 1
-                psi = dpsi*np.linspace(-1, 1., npsi)
-                theta = np.pi/2. + dtheta*np.linspace(-1, 1., ntheta)
-                psimin = np.full((ntheta,), psi[0])
-                psimax = np.full((ntheta,), psi[-1])
-                thetamin = np.full((npsi,), theta[0])
-                thetamax = np.full((npsi,), theta[-1])
-                psi = np.concatenate((psi, psimax,
-                                      psi[::-1], psimin))
-                theta = np.concatenate((thetamin, theta,
-                                        thetamax, theta[::-1]))
-                e1 = self._dgeom['e1']
-                e2 = self._dgeom['e2']
-                vect = ((np.cos(psi)[None, :]*nout[:, None]
-                         + np.sin(psi)[None, :]*e1[:, None])*np.sin(theta)[None, :]
-                        + np.cos(theta)[None, :]*e2[:, None])
-                outline = C[:, None] + r*vect
-            elif self._dgeom['Typeoutline'] == 'circ':
-                angle = np.linspace(0., 2.*np.pi, int(np.ceil(2.*np.pi/res)))
-                raise NotImplementedError("Crystal with circular outline")
-
+                func = _comp_optics.CrystBragg_sample_outline_plot_sphrect
+                outline = func(self._dgeom['center'], self.dgeom['nout'],
+                               self._dgeom['e1'], self._dgeom['e2'],
+                               self._dgeom['rcurve'], self._dgeom['extenthalf'],
+                               res)
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
         return outline
+
+    def sample_outline_Rays(self, res=None):
+        if self._dgeom['Type'] == 'sph':
+            if self._dgeom['Typeoutline'] == 'rect':
+                func = _comp_optics.CrystBragg_sample_outline_Rays
+                pts, phi, theta = func()
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+        return outline
+
+
 
     # -----------------
     # methods for surface and contour sampling
     # -----------------
 
-    def get_Rays_from_summit(self, phi=None, bragg=None,
-                             lamb=None, n=None,
-                             returnas=object, config=None, name=None):
-
-        # Check inputs
+    def _checkformat_get_Rays_from(self, phi=None, bragg=None,
+                                   lamb=None, n=None):
         lc = [lamb is not None, bragg is not None]
         assert np.sum(lc) == 1, "Provide lamb xor bragg!"
         assert phi is not None
         if lc[0]:
             bragg = self.get_bragg_from_lamb(np.atleast_1d(lamb),
-                                             n=n)[None, ...]
+                                             n=n)
         else:
-            bragg = np.atleast_1d(bragg)[None, ...]
-        phi = np.atleast_1d(phi)[None, ...]
+            bragg = np.atleast_1d(bragg)
+        phi = np.atleast_1d(phi)
         nrays = max(phi.size, bragg.size)
         if not phi.shape == bragg.shape:
             if phi.size == 1:
@@ -758,6 +748,18 @@ class CrystalBragg(utils.ToFuObject):
                 msg += "   phi.shape:        %s\n"%str(phi.shape)
                 msg += "   bragg/lamb.shape: %s\n"%str(bragg.shape)
                 raise Exception(msg)
+        return phi, bragg
+
+    def get_Rays_from_summit(self, phi=None, bragg=None,
+                             lamb=None, n=None,
+                             returnas=object, config=None, name=None):
+
+        # Check inputs
+        phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg,
+                                                     lamb=lamb, n=n)
+        # assert phi.ndim == 1
+        phi = phi[None, ...]
+        bragg = bragg[None, ...]
 
         # Prepare
         shape = tuple([3] + [1 for ii in range(phi.ndim)])
@@ -781,6 +783,32 @@ class CrystalBragg(utils.ToFuObject):
                     us = us.reshape((3, phi.size))
             return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
                             Exp=self.Id.Exp, shot=self.Id.shot, config=config)
+
+    def get_Rays_envelop(self,
+                         phi=None, bragg=None, lamb=None, n=None,
+                         returnas=object, config=None, name=None):
+        # Check inputs
+        phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg,
+                                                     lamb=lamb, n=n)
+        assert phi.ndim == 1
+
+        # Compute
+        func = _comp_optics.CrystBragg_sample_outline_Rays
+        D, us = func(self._dgeom['center'], self._dgeom['nout'],
+                     self._dgeom['e1'], self._dgeom['e2'],
+                     self._dgeom['rcurve'], self._dgeom['extenthalf'],
+                     bragg, phi)
+
+        # Format output
+        if returnas == tuple:
+            return (D, us)
+        elif returnas == object:
+            from ._core import CamLOS1D
+            if name is None:
+                name = self.Id.Name + 'ExtractCam'
+            return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
+                            Exp=self.Id.Exp, shot=self.Id.shot, config=config)
+
 
 
     # -----------------

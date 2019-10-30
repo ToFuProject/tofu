@@ -9,6 +9,71 @@ import scipy.interpolate as scpinterp
 # ###############################################
 
 # ###############################################
+#           sampling
+# ###############################################
+
+def CrystBragg_sample_outline_sphrect(dpsi, dtheta, npsi=None, ntheta=None):
+    psi = dpsi*np.linspace(-1, 1., npsi)
+    theta = np.pi/2. + dtheta*np.linspace(-1, 1., ntheta)
+    psimin = np.full((ntheta,), psi[0])
+    psimax = np.full((ntheta,), psi[-1])
+    thetamin = np.full((npsi,), theta[0])
+    thetamax = np.full((npsi,), theta[-1])
+    psi = np.concatenate((psi, psimax,
+                          psi[::-1], psimin))
+    theta = np.concatenate((thetamin, theta,
+                            thetamax, theta[::-1]))
+    return psi, theta
+
+def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
+                                           rcurve, extenthalf, res=None):
+    dpsi, dtheta = extenthalf
+    if res is None:
+        res = np.min(extenthalf)/5.
+    npsi = 2*int(np.ceil(dpsi / res)) + 1
+    ntheta = 2*int(np.ceil(dtheta / res)) + 1
+    psi, theta = CrystBragg_sample_outline_sphrect(dpsi, dtheta,
+                                                   npsi=npsi, ntheta=ntheta)
+    vect = ((np.cos(psi)[None, :]*nout[:, None]
+             + np.sin(psi)[None, :]*e1[:, None])*np.sin(theta)[None, :]
+            + np.cos(theta)[None, :]*e2[:, None])
+    return center[:, None] + rcurve*vect
+
+def CrystBragg_sample_outline_Rays(center, nout, e1, e2,
+                                   rcurve, extenthalf,
+                                   bragg, phi):
+    dpsi, dtheta = extenthalf
+    psi, theta = CrystBragg_sample_outline_sphrect(dpsi, dtheta,
+                                                   npsi=3, ntheta=3)
+    psi = np.append(psi, [0])
+    theta = np.append(theta, [np.pi/2.])
+    npts = psi.size
+
+    # add repetitions for rays
+    nrays = phi.size
+    psi = np.repeat(psi, nrays)
+    theta = np.repeat(theta, nrays)
+
+    # add tiling for pts
+    bragg = np.tile(bragg, npts)
+    phi = np.tile(phi, npts)
+
+    # Compute local vectors
+    vect = ((np.cos(psi)[None, :]*nout[:, None]
+             + np.sin(psi)[None, :]*e1[:, None])*np.sin(theta)[None, :]
+            + np.cos(theta)[None, :]*e2[:, None])
+    ve1 = (-np.sin(psi)[None, :]*nout[:, None] + np.cos(psi)[None, :]*e1[:, None])
+    ve2 = np.array([vect[1, :]*ve1[2, :] - vect[2, :]*ve1[1, :],
+                    vect[2, :]*ve1[0, :] - vect[0, :]*ve1[2, :],
+                    vect[0, :]*ve1[1, :] - vect[1, :]*ve1[0, :]])
+
+    # Deduce D, u
+    D = center[:, None] + rcurve*vect
+    u = (-np.sin(bragg)*vect
+         + np.cos(bragg)*(np.cos(phi)*ve1 + np.sin(phi)*ve2))
+    return D, u
+
+# ###############################################
 #           Coordinates transforms
 # ###############################################
 
@@ -17,7 +82,6 @@ def checkformat_vectang(Z, nn, frame_cent, frame_ang):
     nn = np.atleast_1d(nn).ravel()
     assert nn.size == 3
     nn = nn / np.linalg.norm(nn)
-
     Z = float(Z)
 
     frame_cent = np.atleast_1d(frame_cent).ravel()
