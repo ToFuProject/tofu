@@ -193,9 +193,9 @@ def benchmark(
     elif type(txtfile) is str:
         txtfile = open(os.path.join(path, txtfile), "w")
     elif txtfile is True:
-        txtfile = open(os.path.join(path, name + ".txt"), "w")
-    msg = "\ntofu %s loaded from:\n    %s\n" % (tfversion, tforigin)
-    print(msg, file=txtfile)
+        txtfile = open(os.path.join(path,name+'.txt'), 'w')
+    msg_loc = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+    print(msg_loc, file=txtfile)
 
     # config
     if config is None:
@@ -524,7 +524,6 @@ if __name__ == "__main__":
         required=False,
         default=_PATH,
     )
-
     args = parser.parse_args()
 
     # Call wrapper function

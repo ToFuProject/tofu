@@ -297,8 +297,6 @@ extensions = [
     ),
 ]
 
-extensions = cythonize(extensions, annotate=True)
-
 
 setup(
     name="tofu",
@@ -416,6 +414,7 @@ setup(
     #    ],
     # },
     ext_modules=extensions,
-    cmdclass={"build_ext": build_ext, "clean": CleanCommand},
+    cmdclass={"build_ext": cth.Build.build_ext,
+              "clean": CleanCommand},
     include_dirs=[np.get_include()],
 )

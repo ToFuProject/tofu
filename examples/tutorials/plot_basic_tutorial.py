@@ -5,8 +5,16 @@ Getting started: 5 minutes tutorial for `tofu`
 This is a tutorial that aims to get a new user a little familiar with tofu's
  structure.
 """
-import matplotlib.pyplot as plt
+
+# The following imports matplotlib, preferably using a
+# backend that allows the plots to be interactive (Qt5Agg).
 import numpy as np
+import matplotlib
+try:
+    matplotlib.use('Qt5Agg')
+except ImportError:
+    matplotlib.use(matplotlib.rcParams['backend'])
+import matplotlib.pyplot as plt
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since
@@ -43,7 +51,7 @@ cam1d = tf.geom.utils.create_CamLOS1D(
     Exp="",
     Diag="",
 )
-plt.clf()
+
 # interactive plot
 cam1d.plot_touch()
 
