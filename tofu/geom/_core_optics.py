@@ -118,7 +118,7 @@ class CrystalBragg(utils.ToFuObject):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
     def __init__(self, dgeom=None, dmat=None, dbragg=None,
-                 Id=None, Name=None, Exp=None, shot=None,
+                 Id=None, Name=None, Exp=None, Diag=None, shot=None,
                  fromdict=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
@@ -174,7 +174,8 @@ class CrystalBragg(utils.ToFuObject):
         if err:
             raise Exception(msg)
 
-        kwdargs.update({'Name':Name, 'shot':shot, 'Exp':Exp, 'Type':Type,
+        kwdargs.update({'Name':Name, 'shot':shot,
+                        'Exp':Exp, 'Diag':Diag, 'Type':Type,
                         'include':include})
         return kwdargs
 
@@ -607,19 +608,24 @@ class CrystalBragg(utils.ToFuObject):
                str(np.round(self._dgeom['center'], decimals=2)),
                str(np.round(self._dgeom['nin'], decimals=2)),
                str(np.round(self._dgeom['e1'], decimals=2)),
-               str(np.round(self._dgeom['e2'], decimals=2)),
-              ]
+               str(np.round(self._dgeom['e2'], decimals=2))]
+
+        if self._dmisc.get('color') is not None:
+            col1.append('color')
+            ar1.append(str(self._dmisc['color']))
 
         lcol = [col0, col1]
         lar = [ar0, ar1]
+
         # -----------------------
         # Build mobile
         if self._dgeom['mobile'] != False:
             if self._dgeom['mobile'] == 'rotate':
-                col2 = ['Mov. type', 'axis pt.', 'axis vector']
+                col2 = ['Mov. type', 'axis pt.', 'axis vector', 'pos. (deg)']
                 ar2 = [self._dgeom['mobile'],
                        str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
-                       str(np.round(self._dgeom['rotateaxis'][1], decimals=2))]
+                       str(np.round(self._dgeom['rotateaxis'][1], decimals=2)),
+                       '{0:7.3f}'.format(self._dgeom['rotateangle']*180./np.pi)]
             lcol.append(col2)
             lar.append(ar2)
         return self._get_summary(lar, lcol,
@@ -628,6 +634,15 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
     # methods for moving
     # -----------------
+
+    @staticmethod
+    def _rotate_vector(vect, dangle, u, u1, u2):
+        c1 = np.sum(vect*u1)
+        c2 = np.sum(vect*u2)
+        return (np.sum(vect*u)*u
+                + (c1*np.cos(dangle) - c2*np.sin(dangle))*u1
+                + (c2*np.cos(dangle) + c1*np.sin(dangle))*u2)
+
 
     def _rotate(self, angle=None, dangle=None):
         assert 'rotateaxis' in self._dgeom.keys()
@@ -641,33 +656,37 @@ class CrystalBragg(utils.ToFuObject):
         angle = (self._dgeom['rotateangle'] + dangle)%(2.*np.pi)
         angle = np.arctan2(np.sin(angle), np.cos(angle))
 
-        # Define local frame (u, e1, e2)
+        # Define local frame (u, u1, u2)
         OS = self._dgeom['summit'] - self._dgeom['rotateaxis'][0]
         u = self._dgeom['rotateaxis'][1]
         u = u / np.linalg.norm(u)
         Z = np.sum(OS*u)
         u1 = OS - Z*u
-        u1 = e1 / np.linalg.norm(u1)
+        u1 = u1 / np.linalg.norm(u1)
         u2 = np.cross(u, u1)
+        assert np.abs(np.linalg.norm(u2) - 1.) < 1.e-9
 
         # Deduce constant distance from axis
         dist = np.sum(OS*u1)
-        summit = dist*(np.cos(dangle)*u1 + np.sin(dangle)*u2) + Z*u
-        nin = (np.sum(nin*u1)*np.cos(dangle)*u1
-               + np.sum(nin*u2)*np.cos(dangle)*u2 + np.sum(nin*u)*u)
-        e1 = (np.sum(nin*u1)*np.cos(dangle)*u1
-               + np.sum(nin*u2)*np.cos(dangle)*u2 + np.sum(nin*u)*u)
-        e2 = (np.sum(nin*u1)*np.cos(dangle)*u1
-               + np.sum(nin*u2)*np.cos(dangle)*u2 + np.sum(nin*u)*u)
-        assert np.abs(np.sum(nin*e1)) < 1.e-12
-        assert np.abs(np.sum(nin*e2)) < 1.e-12
+
+        summit = (self._dgeom['rotateaxis'][0]
+                  + dist*(np.cos(dangle)*u1 + np.sin(dangle)*u2) + Z*u)
+        nout = self._rotate_vector(self._dgeom['nout'], dangle, u, u1, u2)
+        e1 = self._rotate_vector(self._dgeom['e1'], dangle, u, u1, u2)
+        e2 = self._rotate_vector(self._dgeom['e2'], dangle, u, u1, u2)
+        center = summit - self._dgeom['rcurve']*nout
+        assert np.abs(np.sum(nout*e1)) < 1.e-12
+        assert np.abs(np.sum(nout*e2)) < 1.e-12
         assert np.abs(np.sum(e1*e2)) < 1.e-12
-        self._dgeom.update({'summit': summit, 'nin': nin, 'e1': e1, 'e2': e2,
+        self._dgeom.update({'summit': summit, 'center':center,
+                            'nin': -nout, 'nout':nout, 'e1': e1, 'e2': e2,
                             'rotateangle': angle})
 
     def move(self, kind=None, **kwdargs):
-        if kind is None or self._dgeom['mobile'] != False:
+        if self._dgeom['mobile'] == False:
             return
+        if kind is None:
+            kind = self._dgeom['mobile']
         assert kind in self._DEFLMOVEOK
         if kind == 'rotate':
             self._rotate(**kwdargs)
@@ -714,9 +733,9 @@ class CrystalBragg(utils.ToFuObject):
     # methods for surface and contour sampling
     # -----------------
 
-    def get_CamLOS1D_from_Crystal(self, phi=None, bragg=None,
-                                  lamb=None, n=None,
-                                  returnas=object, config=None, name=None):
+    def get_Rays_from_summit(self, phi=None, bragg=None,
+                             lamb=None, n=None,
+                             returnas=object, config=None, name=None):
 
         # Check inputs
         lc = [lamb is not None, bragg is not None]

@@ -3435,15 +3435,16 @@ class Rays(utils.ToFuObject):
                                                n1=n1, n2=n2)
         return x1, x2, n1, n2, ind1, ind2, indr
 
-
     def _complete_dX12(self, dgeom):
 
         # Test if unique starting point
         if dgeom['case'] in ['A','B','C']:
             # Test if pinhole
-            if dgeom['case'] in ['A','B']:
+            if dgeom['D'].shape[1] == 1 and dgeom['nRays'] > 1:
+                dgeom['pinhole'] = dgeom['D'].ravel()
+            elif dgeom['case'] in ['A','B']:
                 u = dgeom['u'][:,0:1]
-                sca2 = np.sum(dgeom['u'][:,1:]*u,axis=0)**2
+                sca2 = np.sum(dgeom['u'][:,1:]*u, axis=0)**2
                 if np.all(sca2 < 1.-1.e-9):
                     DDb = dgeom['D'][:,1:]-dgeom['D'][:,0:1]
                     k = np.sum(DDb*(u - np.sqrt(sca2)*dgeom['u'][:,1:]),axis=0)
@@ -4190,7 +4191,7 @@ class Rays(utils.ToFuObject):
 
     @property
     def D(self):
-        if self._dgeom['D'].shape[1]<self._dgeom['nRays']:
+        if self._dgeom['D'].shape[1] < self._dgeom['nRays']:
             D = np.tile(self._dgeom['D'], self._dgeom['nRays'])
         else:
             D = self._dgeom['D']
@@ -4198,13 +4199,13 @@ class Rays(utils.ToFuObject):
 
     @property
     def u(self):
-        if self.isPinhole:
-            u = self._dgeom['pinhole'][:,np.newaxis]-self._dgeom['D']
-            u = u/np.sqrt(np.sum(u**2,axis=0))[np.newaxis,:]
-        elif self._dgeom['u'].shape[1]<self._dgeom['nRays']:
-            u = np.tile(self._dgeom['u'], self._dgeom['nRays'])
-        else:
+        if self._dgeom['u'].shape[1] == self._dgeom['nRays']:
             u = self._dgeom['u']
+        elif self.isPinhole:
+            u = self._dgeom['pinhole'][:, None] - self._dgeom['D']
+            u = u / np.sqrt(np.sum(u**2, axis=0))[None, :]
+        elif self._dgeom['u'].shape[1] < self._dgeom['nRays']:
+            u = np.tile(self._dgeom['u'], self._dgeom['nRays'])
         return u
 
     @property
