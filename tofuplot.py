@@ -75,7 +75,7 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
                     ids=None, quantity=None, X=None, t0=_T0,
                     sharex=_SHAREX, indch=None, indch_auto=None,
-                    background=_BCK, t=None, dR_sep=None):
+                    background=_BCK, t=None, dR_sep=None, init=None):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
     if t0.lower() == 'none':
@@ -86,7 +86,7 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_sig=quantity, plot_X=X,
                       t0=t0, plot=True, sharex=sharex, bck=background,
-                      t=t, dR_sep=dR_sep)
+                      t=t, dR_sep=dR_sep, init=init)
 
     plt.show(block=True)
 
@@ -149,6 +149,9 @@ if __name__ == '__main__':
     parser.add_argument('-dR_sep', '--dR_sep', type=float, required=False,
                         help='Distance to separatrix from r_ext to plot'
                             +'magneticfield lines')
+    parser.add_argument('-init', '--init', type=float, required=False, nargs=3,
+                        help='Initial point from where trace magnetic field'
+                            +'line')
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)

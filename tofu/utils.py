@@ -688,22 +688,22 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             t = equi.ddata['equilibrium.t']['data'][int(0.5*equi.ddata['equilibrium.t']['data'].size)]
             #t = np.r_[38]
         t = np.atleast_1d(t).ravel()
-        if init is None:
-            equi_ind_t     = np.abs(t - equi.ddata['equilibrium.t']['data']).argmin()
-            equi_ind_r_ext = np.argmax(equi.ddata['equilibrium.sep']['data'][equi_ind_t][0])
-            equi_r_ext     = equi.ddata['equilibrium.sep']['data'][equi_ind_t][0][equi_ind_r_ext]
-            equi_z_r_ext   = equi.ddata['equilibrium.sep']['data'][equi_ind_t][1][equi_ind_r_ext]
 
-            nbr_init = 10
-            if dR_sep is not None:
-                r_init = [equi_r_ext + dR_sep]*nbr_init
-            else:
-                r_init = [equi_r_ext]*nbr_init
-            phi_init = [ii*2.*np.pi/nbr_init for ii in range(nbr_init)]
-            z_init   = [equi_z_r_ext]*nbr_init
-            init     = [r_init, phi_init, z_init]
-            #init = [[2.9, 2.9, 2.9, 2.9], [0., np.pi/2, np.pi, 3.*np.pi/2], [0., 0., 0., 0.]]
-            #init = [[2.9], [0.], [0.]]
+        #init = [[2.9, 2.9, 2.9, 2.9], [0., np.pi/2, np.pi, 3.*np.pi/2], [0., 0., 0., 0.]]
+        #init = [[2.9], [0.], [0.]]
+        equi_ind_t     = np.abs(t - equi.ddata['equilibrium.t']['data']).argmin()
+        equi_ind_r_ext = np.argmax(equi.ddata['equilibrium.sep']['data'][equi_ind_t][0])
+        equi_r_ext     = equi.ddata['equilibrium.sep']['data'][equi_ind_t][0][equi_ind_r_ext]
+        equi_z_r_ext   = equi.ddata['equilibrium.sep']['data'][equi_ind_t][1][equi_ind_r_ext]
+
+        nbr_init = 10
+        if dR_sep is not None:
+            r_init = [equi_r_ext + dR_sep]*nbr_init
+        else:
+            r_init = [equi_r_ext]*nbr_init
+        phi_init = [ii*2.*np.pi/nbr_init for ii in range(nbr_init)]
+        z_init   = [equi_z_r_ext]*nbr_init
+        init_plt = [r_init, phi_init, z_init]
 
         if False:
             multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
@@ -715,23 +715,54 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             config = tfg.utils.create_config('B3')
         if config.nStruct > 1:
             config.set_colors_random()
-        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init_plt, t,
                                                        direction='FWD',
                                                        length_line=25,
                                                        stp=None)
-        trace_rev = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+        trace_rev = tfm.MagFieldLines(int(shot[0])).trace_mline(init_plt, t,
                                                        direction='REV',
                                                        length_line=25,
                                                        stp=None)
+
         refpt = np.r_[2.4,0.]
         dax = config.plot_phithetaproj_dist(refpt)
+
+        if init is not None:
+            trace_init = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+                                                           direction='FWD',
+                                                           length_line=25,
+                                                           stp=None)
+            trace_init_rev = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+                                                           direction='REV',
+                                                           length_line=25,
+                                                           stp=None)
+            trace_init[0] = trace_init[0] + trace_init_rev[0]
+
+            for kk in range(0,len(trace_init[0])):
+                phi_init = np.arctan2(np.sin(trace_init[0][kk]['p']),
+                                      np.cos(trace_init[0][kk]['p']))
+                theta_init = np.arctan2(trace_init[0][kk]['z']-refpt[1],
+                                        trace_init[0][kk]['r']-refpt[0])
+                indnan = ((np.abs(np.diff(phi_init)) > np.pi)
+                          | (np.abs(np.diff(theta_init)) > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi_init, indnan, np.nan),
+                                    np.insert(theta_init, indnan, np.nan),
+                                    linewidth=3, color='red')
+                dax['cross'][0].plot(trace_init[0][kk]['r'], trace_init[0][kk]['z'],
+                                     linewidth=3, color='red')
+                x = trace_init[0][kk]['r']*np.cos(trace_init[0][kk]['p'])
+                y = trace_init[0][kk]['r']*np.sin(trace_init[0][kk]['p'])
+                dax['hor'][0].plot(x, y, linewidth=3, color='red')
+
         for ii in range(0,len(trace)):
             # Concatenate trace lists
             trace[ii] = trace[ii] + trace_rev[ii]
             for jj in range(0,len(trace[ii])):
                 lab = r't = %s s'%str(t[ii])
-                phi = np.arctan2(np.sin(trace[ii][jj]['p']), np.cos(trace[ii][jj]['p']))
-                theta = np.arctan2(trace[ii][jj]['z']-refpt[1], trace[ii][jj]['r']-refpt[0])
+                phi = np.arctan2(np.sin(trace[ii][jj]['p']),
+                                 np.cos(trace[ii][jj]['p']))
+                theta = np.arctan2(trace[ii][jj]['z']-refpt[1],
+                                   trace[ii][jj]['r']-refpt[0])
                 # insert nans for clean periodicity
                 indnan = ((np.abs(np.diff(phi)) > np.pi)
                           | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
