@@ -13,10 +13,13 @@ import matplotlib.pyplot as plt
 
 
 
+#                   --------------
+#       TO BE MOVED TO tofu.data WHEN FINISHED !!!!
+#                   --------------
+
+
 
 _NPEAKMAX = 10
-
-
 
 ###########################################################
 ###########################################################
@@ -280,6 +283,7 @@ def multiplegaussianfit(x, spectra, nmax=None, p0=None, bounds=None,
 ###########################################################
 
 
+# DEPRECATED
 def fit_spectra2d_x0_per_row():
 
     # Loop from centre to edges
@@ -302,49 +306,6 @@ def fit_spectra2d_x0_per_row():
             # Lower half
             jl = indy2[jj]
     return x0
-
-def fit_spectra2d_fit_ellipses(x0):
-    # Each lamb is associated to a cone
-    # All cones have the same axis, but
-    #   - different summits
-    #   - different opening
-    # All cones are intersected by the same unique plane (detector)
-    #   => all have the same center and rotation, but
-    #   - different minor and major radius
-    ellip_C = [None, None]
-    ellip_rot = None
-    ellip_radii = np.full((2, x0.shape[1]), np.nan)
-
-    return ellip_C, ellip_rot, ellip_radii
-
-def get_func_x0_from_y():
-
-    # General ellipse equation in cartesian coordinates
-    ((x-x0)cos(theta) + (y-y0)*sin(theta))**2 / rx**2
-    + ((x-x0)sin(theta) - (y-y0)*cos(theta))**2 / ry**2
-
-    # Hence x = f(y) for x > x0
-
-
-    return
-
-
-def coord_transform(ang_in, ang_cone, xc, yc, rot, ang_plane, ang_rot, Z):
-    x1 = None
-    X2 = None
-    return
-
-
-def coord_transform(x, y, xc, yc, ang_rot, ang_plane, Z):
-    """ Return the coordinates transform of (x,y) in (ang_cone, ang_in) """
-    x1 = (x-xc)*np.cos(ang_rot)
-    X2 = None
-    X2 = None
-    return
-
-
-
-
 
 
 
