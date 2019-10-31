@@ -1384,7 +1384,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         PtsCross, dLr, indL, Rref = PtsCross[:,indin], dLr[indin], \
           indL[indin], Rref[indin]
         Ln = indin.sum()
-        Indin = indin.nonzero()[0]
+        Indin = indin.nonzero()[0].astype(np.long)
 
         dRPhir, dPhir = np.empty((Ln,)), np.empty((Ln,))
         Phin = np.zeros((Ln,),dtype=int)
@@ -1471,7 +1471,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     ind[NP] = NRPhi0[ii] + indiijj
                     dS[NP] = dLr[ii]*dRPhir[ii]
                     NP += 1
-        indok = (~np.isnan(ind)).nonzero()[0]
+        indok = (~np.isnan(ind)).nonzero()[0].astype(np.long)
         ind = ind[indok]
         dS = dS[indok]
         if len(indok)==1:
@@ -2001,7 +2001,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
     LPts, LdS = [], []
     # First face
-    ii = (ind<NY0*NZ0).nonzero()[0]
+    ii = (ind<NY0*NZ0).nonzero()[0].astype(np.long)
     nii = len(ii)
     if nii>0:
         indZ0 = ind[ii] // NY0
@@ -2013,7 +2013,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         LdS.append( dY0r*dZ0r*np.ones((nii,)) )
 
     # Cylinder
-    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0]
+    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(np.long)
     nii = len(ii)
     if nii>0:
         indX = (ind[ii]-NY0*NZ0) // Ln
@@ -2026,7 +2026,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
             LdS.append( dXr*dLr[indL] )
 
     # End face
-    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0]
+    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(np.long)
     nii = len(ii)
     if nii>0:
         indZ0 = (ind[ii]-NY0*NZ0-NX*Ln) // NY0

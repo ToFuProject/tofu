@@ -13,6 +13,7 @@ else:
 import numpy as np
 
 # tofu
+import tofu
 try:
     import tofu.geom._core as _core
 except Exception:
@@ -34,9 +35,9 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_here = os.path.abspath(__file__)
-_root = _here[:_here.rfind('/tofu')]
-_path_testcases = os.path.join(_root,'tofu/geom/inputs')
+_here = os.path.abspath(os.path.dirname(__file__))
+_root = tofu.__path__[0]
+_path_testcases = os.path.join(_root, 'geom', 'inputs')
 
 ###########################################################
 #       COCOS

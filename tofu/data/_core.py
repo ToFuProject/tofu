@@ -46,10 +46,35 @@ _INTERPT = 'zero'
 #############################################
 
 def _format_ind(ind=None, n=None):
+    """Helper routine to convert selected channels (as numbers) in `ind` to
+    a boolean array format.
+
+    Parameters
+    ----------
+    ind : integer, or list of integers
+        A channel or a list of channels that the user wants to select.
+    n : integer, or None
+        The total number of available channels.
+
+    Returns
+    -------
+    ind : ndarray of booleans, size (n,)
+        The array with the selected channels set to True, remaining ones set
+        to False
+
+
+    Examples
+    --------
+
+    >>> _format_ind(ind=[0, 3], n=4)
+    [True, False, False, True]
+
+    """
     if ind is None:
         ind = np.ones((n,),dtype=bool)
     else:
-        lInt = [int,np.int64]
+        # list of accepted integer types
+        lInt = [int, np.int64, np.int32, np.int_, np.longlong]
         if type(ind) in lInt:
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
@@ -65,7 +90,10 @@ def _format_ind(ind=None, n=None):
                 ii[ind] = True
                 ind = ii
             else:
-                msg = "Index must be a int, or an iterable of bool or int !"
+                msg = ("Index must be int, or an iterable of bool or int "
+                       "(first element of index has"
+                       " type: {})!".format(type(ind[0]))
+                       )
                 raise Exception(msg)
     return ind
 
@@ -2213,18 +2241,11 @@ lp = [p for p in params.values()]
 DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
-
-
-
-
-
-#####################################################################
-#####################################################################
-#####################################################################
+# ####################################################################
+# ####################################################################
 #               Plasma2D
-#####################################################################
-#####################################################################
-
+# ####################################################################
+# ####################################################################
 
 
 class Plasma2D(utils.ToFuObject):
@@ -2237,20 +2258,21 @@ class Plasma2D(utils.ToFuObject):
 
     """
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
-                              'Name','shot','version']},
-             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
-                                'indt', 'indch', 'indlamb', 'interp-t']}}
+    _ddef = {'Id': {'include': ['Mod', 'Cls', 'Exp', 'Diag',
+                                'Name', 'shot', 'version']},
+             'dtreat': {'order': ['mask', 'interp-indt', 'interp-indch',
+                                  'data0', 'dfit',
+                                  'indt', 'indch', 'indlamb', 'interp-t']}}
 
-    # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
+        # Does not exist before Python 3.6 !!!
         # Python 2
         super(Plasma2D,cls).__init_subclass__(**kwdargs)
         # Python 3
-        #super().__init_subclass__(**kwdargs)
+        # super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Plasma2D._ddef)
-        #cls._dplot = copy.deepcopy(Struct._dplot)
-        #cls._set_color_ddef(cls._color)
+        # cls._dplot = copy.deepcopy(Struct._dplot)
+        # cls._set_color_ddef(cls._color)
 
 
     def __init__(self, dtime=None, dradius=None, d0d=None, d1d=None,
@@ -3579,8 +3601,11 @@ class Plasma2D(utils.ToFuObject):
     def _get_finterp(self,
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
-                     interp_t='nearest', interp_space=None,
+                     interp_t=None, interp_space=None,
                      fill_value=np.nan, ani=False, Type=None):
+
+        if interp_t is None:
+            interp_t = 'nearest'
 
         # Get idmesh
         if idquant is not None:
@@ -3721,7 +3746,7 @@ class Plasma2D(utils.ToFuObject):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
-            - pts are in (R,Z) coordinates
+            - pts are in (X,Y,Z) coordinates
             - space interpolation is linear on the 1d profiles
         At the desired input times (t):
             - using a nearest-neighbourg approach for time
