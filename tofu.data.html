@@ -89,7 +89,7 @@
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-tofu.data._comp">tofu.data._comp module</a></li>
 <li><a class="reference internal" href="#module-tofu.data._core">tofu.data._core module</a></li>
-<li><a class="reference internal" href="#tofu-data-core-new-module">tofu.data._core_new module</a></li>
+<li><a class="reference internal" href="#module-tofu.data._core_new">tofu.data._core_new module</a></li>
 <li><a class="reference internal" href="#module-tofu.data._def">tofu.data._def module</a></li>
 <li><a class="reference internal" href="#module-tofu.data._physics">tofu.data._physics module</a></li>
 <li><a class="reference internal" href="#module-tofu.data._plot">tofu.data._plot module</a></li>
@@ -418,7 +418,7 @@ according to criterion choose</p>
 <dd><p>Return the value of the desired profiles_1d quantity</p>
 <dl class="simple">
 <dt>For the desired inputs points (pts):</dt><dd><ul class="simple">
-<li><p>pts are in (R,Z) coordinates</p></li>
+<li><p>pts are in (X,Y,Z) coordinates</p></li>
 <li><p>space interpolation is linear on the 1d profiles</p></li>
 </ul>
 </dd>
@@ -482,8 +482,199 @@ Use strip=0 to recover all atributes</p>
 </dd></dl>
 
 </div>
-<div class="section" id="tofu-data-core-new-module">
-<h2>tofu.data._core_new module<a class="headerlink" href="#tofu-data-core-new-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tofu.data._core_new">
+<span id="tofu-data-core-new-module"></span><h2>tofu.data._core_new module<a class="headerlink" href="#module-tofu.data._core_new" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tofu.data._core_new.DataHolder">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.data._core_new.</code><code class="sig-name descname">DataHolder</code><span class="sig-paren">(</span><em class="sig-param">dref=None, ddata=None, Id=None, Name=None, fromdict=None, SavePath='/home/lasofivec/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
+<p>A generic class for handling data</p>
+<dl class="simple">
+<dt>Provides methods for:</dt><dd><ul class="simple">
+<li><p>introspection</p></li>
+<li><p>plateaux finding</p></li>
+<li><p>visualization</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.add_data">
+<code class="sig-name descname">add_data</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">data=None</em>, <em class="sig-param">ref=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.add_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.add_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a data (all associated ref must be added first))</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.add_param">
+<code class="sig-name descname">add_param</code><span class="sig-paren">(</span><em class="sig-param">param</em>, <em class="sig-param">values=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.add_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.add_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.add_ref">
+<code class="sig-name descname">add_ref</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">data=None</em>, <em class="sig-param">group=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.add_ref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.add_ref" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a reference</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.dconfig">
+<em class="property">property </em><code class="sig-name descname">dconfig</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.dconfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>The dict of configs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.ddata">
+<em class="property">property </em><code class="sig-name descname">ddata</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.ddata" title="Permalink to this definition">¶</a></dt>
+<dd><p>the dict of data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.dgroup">
+<em class="property">property </em><code class="sig-name descname">dgroup</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.dgroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>The dict of groups</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.dref">
+<em class="property">property </em><code class="sig-name descname">dref</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.dref" title="Permalink to this definition">¶</a></dt>
+<dd><p>the dict of references</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.get_param">
+<code class="sig-name descname">get_param</code><span class="sig-paren">(</span><em class="sig-param">param=None</em>, <em class="sig-param">returnas=&lt;class 'numpy.ndarray'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.get_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.get_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.get_summary">
+<code class="sig-name descname">get_summary</code><span class="sig-paren">(</span><em class="sig-param">show=None</em>, <em class="sig-param">show_core=None</em>, <em class="sig-param">sep='  '</em>, <em class="sig-param">line='-'</em>, <em class="sig-param">just='l'</em>, <em class="sig-param">table_sep=None</em>, <em class="sig-param">verb=True</em>, <em class="sig-param">return_=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.get_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.get_summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Summary description of the object content</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.get_tcommon">
+<code class="sig-name descname">get_tcommon</code><span class="sig-paren">(</span><em class="sig-param">lq</em>, <em class="sig-param">prefer='finer'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.get_tcommon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.get_tcommon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if common t, else choose according to prefer</p>
+<p>By default, prefer the finer time resolution</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.get_time_common">
+<code class="sig-name descname">get_time_common</code><span class="sig-paren">(</span><em class="sig-param">lkeys</em>, <em class="sig-param">choose=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.get_time_common"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.get_time_common" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the common time vector to several quantities</p>
+<p>If they do not have a common time vector, a reference one is choosen
+according to criterion choose</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.interp_t">
+<code class="sig-name descname">interp_t</code><span class="sig-paren">(</span><em class="sig-param">dkeys</em>, <em class="sig-param">choose='min'</em>, <em class="sig-param">interp_t=None</em>, <em class="sig-param">t=None</em>, <em class="sig-param">fill_value=nan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.interp_t"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.interp_t" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.ldata">
+<em class="property">property </em><code class="sig-name descname">ldata</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.ldata" title="Permalink to this definition">¶</a></dt>
+<dd><p>the dict of data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.lgroup">
+<em class="property">property </em><code class="sig-name descname">lgroup</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.lgroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>The dict of groups</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.lparam">
+<em class="property">property </em><code class="sig-name descname">lparam</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.lparam" title="Permalink to this definition">¶</a></dt>
+<dd><p>the dict of data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.lref">
+<em class="property">property </em><code class="sig-name descname">lref</code><a class="headerlink" href="#tofu.data._core_new.DataHolder.lref" title="Permalink to this definition">¶</a></dt>
+<dd><p>the dict of references</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.plot">
+<code class="sig-name descname">plot</code><span class="sig-paren">(</span><em class="sig-param">lquant</em>, <em class="sig-param">X=None</em>, <em class="sig-param">ref1d=None</em>, <em class="sig-param">ref2d=None</em>, <em class="sig-param">remap=False</em>, <em class="sig-param">res=0.01</em>, <em class="sig-param">interp_space=None</em>, <em class="sig-param">sharex=False</em>, <em class="sig-param">bck=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.plot_combine">
+<code class="sig-name descname">plot_combine</code><span class="sig-paren">(</span><em class="sig-param">lquant</em>, <em class="sig-param">lData=None</em>, <em class="sig-param">X=None</em>, <em class="sig-param">ref1d=None</em>, <em class="sig-param">ref2d=None</em>, <em class="sig-param">remap=False</em>, <em class="sig-param">res=0.01</em>, <em class="sig-param">interp_space=None</em>, <em class="sig-param">sharex=False</em>, <em class="sig-param">bck=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.plot_combine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.plot_combine" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot combining several quantities from the Plasma2D itself and
+optional extra list of Data instances</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.remove_data">
+<code class="sig-name descname">remove_data</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">propagate=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.remove_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.remove_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a data</p>
+<p>Any associated ref reated to this data only is removed too (useless)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.remove_param">
+<code class="sig-name descname">remove_param</code><span class="sig-paren">(</span><em class="sig-param">param=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.remove_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.remove_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.remove_ref">
+<code class="sig-name descname">remove_ref</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.remove_ref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.remove_ref" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a reference (all data depending on it are removed too)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param">group=None</em>, <em class="sig-param">ref=None</em>, <em class="sig-param">log='all'</em>, <em class="sig-param">return_key=True</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the indices / keys of data matching criteria</p>
+<p>The selection is done comparing the value of all provided parameters
+The result is a boolean indices array, optionally with the keys list
+It can include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>log = ‘all’: only the data matching all criteria</p></li>
+<li><p>log = ‘any’: the data matching any criterion</p></li>
+</ul>
+</div></blockquote>
+<p>If log = ‘raw’, a dict of indices arrays is returned, showing the
+details for each criterion</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.set_param">
+<code class="sig-name descname">set_param</code><span class="sig-paren">(</span><em class="sig-param">param=None</em>, <em class="sig-param">values=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">key=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.set_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.set_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.data._core_new.DataHolder.strip">
+<code class="sig-name descname">strip</code><span class="sig-paren">(</span><em class="sig-param">strip=0</em>, <em class="sig-param">verb=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core_new.html#DataHolder.strip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core_new.DataHolder.strip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove non-essential attributes to save memory / disk usage</p>
+<p>Useful to save a very compressed version of the object
+The higher strip =&gt; the more stripped the object
+Use strip=0 to recover all atributes</p>
+<dl class="simple">
+<dt>See the difference by doing:</dt><dd><p>&gt; self.get_nbytes()
+&gt; self.strip(-1)
+&gt; self.get_nbytes()</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
+<div><p>0: Make complete (retrieve all attributes)
+1: None</p>
+</div></blockquote>
+<p>-1: Equivalent to strip=1</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-tofu.data._def">
 <span id="tofu-data-def-module"></span><h2>tofu.data._def module<a class="headerlink" href="#module-tofu.data._def" title="Permalink to this headline">¶</a></h2>
@@ -546,7 +737,7 @@ Where:</p>
 
 <dl class="function">
 <dt id="tofu.data._plot.Data_plot_spectrogram">
-<code class="sig-prename descclassname">tofu.data._plot.</code><code class="sig-name descname">Data_plot_spectrogram</code><span class="sig-paren">(</span><em class="sig-param">Data, tf, f, lpsd, lang, fmax=None, key=None, bck=True, indref=0, cmap_f=None, cmap_img=None, ms=4, vmin=None, vmax=None, normt=False, ntMax=None, nfMax=3, lls=['-', '--', '-.', ':'], lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], lcch=[(0.8392156862745098, 0.15294117647058825, 0.1568627450980392), (0.5803921568627451, 0.403921568627451, 0.7411764705882353), (0.5490196078431373, 0.33725490196078434, 0.29411764705882354), (1.0, 0.596078431372549, 0.5882352941176471), (0.7725490196078432, 0.6901960784313725, 0.8352941176470589), (0.7686274509803922, 0.611764705882353, 0.5803921568627451)], plotmethod='imshow', invert=False, fs=None, dmargin=None, wintit='tofu-1.4.1-52-g6f060e3        report issues / requests at https://github.com/ToFuProject/tofu/issues', tit=None, fontsize=None, draw=True, connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_plot.html#Data_plot_spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._plot.Data_plot_spectrogram" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.data._plot.</code><code class="sig-name descname">Data_plot_spectrogram</code><span class="sig-paren">(</span><em class="sig-param">Data, tf, f, lpsd, lang, fmax=None, key=None, bck=True, indref=0, cmap_f=None, cmap_img=None, ms=4, vmin=None, vmax=None, normt=False, ntMax=None, nfMax=3, lls=['-', '--', '-.', ':'], lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], lcch=[(0.8392156862745098, 0.15294117647058825, 0.1568627450980392), (0.5803921568627451, 0.403921568627451, 0.7411764705882353), (0.5490196078431373, 0.33725490196078434, 0.29411764705882354), (1.0, 0.596078431372549, 0.5882352941176471), (0.7725490196078432, 0.6901960784313725, 0.8352941176470589), (0.7686274509803922, 0.611764705882353, 0.5803921568627451)], plotmethod='imshow', invert=False, fs=None, dmargin=None, wintit='tofu-1.4.1-145-ge5ffef4        report issues / requests at https://github.com/ToFuProject/tofu/issues', tit=None, fontsize=None, draw=True, connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_plot.html#Data_plot_spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._plot.Data_plot_spectrogram" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

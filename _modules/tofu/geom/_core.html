@@ -4403,7 +4403,7 @@
         <span class="k">if</span> <span class="n">ind</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
             <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span>
-            <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">long</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">ind</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="bp">self</span><span class="o">.</span><span class="n">nRays</span>
                 <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
@@ -4918,6 +4918,110 @@
             <span class="n">kOut</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
 
         <span class="k">return</span> <span class="n">kIn</span><span class="p">,</span> <span class="n">kOut</span></div>
+
+<div class="viewcode-block" id="Rays.calc_length_in_isoflux"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.calc_length_in_isoflux">[docs]</a>    <span class="k">def</span> <span class="nf">calc_length_in_isoflux</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lPoly</span><span class="p">,</span> <span class="n">lVIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kInOut</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the length of each LOS inside each isoflux</span>
+
+<span class="sd">        Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of</span>
+<span class="sd">        the entry points (kIn) and exit points (kOut) for each LOS</span>
+
+<span class="sd">        The isofluxes must be provided as a list of polygons</span>
+
+<span class="sd">        The length is returned as a (nPoly, nLOS) 2d array</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kIn</span><span class="p">,</span> <span class="n">kOut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_kInkOut_Isoflux</span><span class="p">(</span><span class="n">lPoly</span><span class="p">,</span> <span class="n">lVIn</span><span class="o">=</span><span class="n">lVIn</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span>
+                                              <span class="n">kInOut</span><span class="o">=</span><span class="n">kInOut</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">kOut</span><span class="o">-</span><span class="n">kIn</span></div>
+
+<div class="viewcode-block" id="Rays.calc_min_geom_radius"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.calc_min_geom_radius">[docs]</a>    <span class="k">def</span> <span class="nf">calc_min_geom_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the minimum geom. radius of each LOS, from an arbitrary axis</span>
+
+<span class="sd">        The axis mut be provided as a (R,Z) iterable</span>
+<span class="sd">        Uses self.set_dsino()</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">        -------</span>
+<span class="sd">        p:      np.ndarray</span>
+<span class="sd">            (nLOS,) array of minimal radius (or impact parameter)</span>
+<span class="sd">        theta:  np.ndarray</span>
+<span class="sd">            (nLOS,) array of associated theta with respect to axis</span>
+<span class="sd">        pts:    np.ndarray</span>
+<span class="sd">            (3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_dsino</span><span class="p">(</span><span class="n">RefPt</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">pts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dsino</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dsino</span><span class="p">[</span><span class="s1">&#39;theta&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dsino</span><span class="p">[</span><span class="s1">&#39;pts&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">pts</span></div>
+
+<div class="viewcode-block" id="Rays.calc_min_rho_from_Plasma2D"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.calc_min_rho_from_Plasma2D">[docs]</a>    <span class="k">def</span> <span class="nf">calc_min_rho_from_Plasma2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plasma</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span>
+                                   <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;sum&#39;</span><span class="p">,</span>
+                                   <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the min/max value of scalar field quant for each LOS</span>
+
+<span class="sd">        Typically used to get the minimal normalized minor radius</span>
+<span class="sd">        But can be used for any quantity available in plasma if:</span>
+<span class="sd">            - it is a 2d profile</span>
+<span class="sd">            - it is a 1d profile that can be interpolated on a 2d mesh</span>
+
+<span class="sd">        Currently sample each LOS with desired resolution and returns the</span>
+<span class="sd">        absolute min/max interpolated value (and associated point)</span>
+
+<span class="sd">        See self.get_sample() for details on sampling arguments:</span>
+<span class="sd">            - res, resMode, method</span>
+<span class="sd">        See Plasma2D.interp_pts2profile() for details on interpolation args:</span>
+<span class="sd">            - t, quant, q2dref, q1dref, interp_t, interp_space, fill_value</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        --------</span>
+<span class="sd">        val:        np.ndarray</span>
+<span class="sd">            (nt, nLOS) array of min/max values</span>
+<span class="sd">        pts:        np.ndarray</span>
+<span class="sd">            (nt, nLOS, 3) array of (X,Y,Z) coordinates of associated points</span>
+<span class="sd">            Only returned if pts = True</span>
+<span class="sd">        t:          np.ndarray</span>
+<span class="sd">            (nt,) array of time steps at which the interpolations were made</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">log</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+
+        <span class="c1"># Sample LOS</span>
+        <span class="n">ptsi</span><span class="p">,</span> <span class="n">reseff</span><span class="p">,</span> <span class="n">lind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sample</span><span class="p">(</span><span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span> <span class="n">DL</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">pts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">compact</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Interpolate values</span>
+        <span class="n">val</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">interp_pts2profile</span><span class="p">(</span>
+            <span class="n">pts</span><span class="o">=</span><span class="n">ptsi</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="n">quant</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="n">ref1d</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="n">ref2d</span><span class="p">,</span>
+            <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">)</span>
+
+        <span class="c1"># Separate val per LOS and compute min / max</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span> <span class="k">if</span> <span class="n">log</span> <span class="o">==</span> <span class="s1">&#39;min&#39;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span>
+        <span class="k">if</span> <span class="n">pts</span><span class="p">:</span>
+            <span class="n">funcarg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanargmin</span> <span class="k">if</span> <span class="n">log</span> <span class="o">==</span> <span class="s1">&#39;min&#39;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span>
+
+        <span class="k">if</span> <span class="n">pts</span><span class="p">:</span>
+            <span class="n">nt</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">,</span> <span class="n">nt</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">indt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nt</span><span class="p">)</span>
+            <span class="n">lind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">lind</span><span class="p">,</span> <span class="n">ptsi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">):</span>
+                <span class="n">indok</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">[:,</span> <span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span><span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">indok</span><span class="p">):</span>
+                    <span class="n">vals</span><span class="p">[</span><span class="n">indok</span><span class="p">,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="n">indok</span><span class="p">,</span> <span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span><span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]],</span>
+                                           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">funcarg</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="n">indok</span><span class="p">,</span> <span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span><span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">pts</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">ptsi</span><span class="p">[:,</span> <span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span><span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]][:,</span> <span class="n">ind</span><span class="p">]</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">func</span><span class="p">(</span><span class="n">vv</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                                    <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">lind</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">vals</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">t</span></div>
 
     <span class="k">def</span> <span class="nf">_calc_signal_preformat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DL</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">out</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span> <span class="n">Brightness</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -5478,7 +5582,7 @@
 <span class="sd">                          useful for assessing reflection probabilities)</span>
 <span class="sd">            - &#39;indices&#39;: the index of each LOS</span>
 <span class="sd">                         (useful for checking numbering)</span>
-<span class="sd">            - &#39;Etendues&#39;: the étendue associated to each LOS (user-provided)</span>
+<span class="sd">            - &#39;Etendues&#39;: the etendue associated to each LOS (user-provided)</span>
 <span class="sd">            - &#39;Surfaces&#39;: the surfaces associated to each LOS (user-provided)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">_plot</span><span class="o">.</span><span class="n">Rays_plot_touch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">Bck</span><span class="o">=</span><span class="n">Bck</span><span class="p">,</span>

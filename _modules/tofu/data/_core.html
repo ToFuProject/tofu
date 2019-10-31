@@ -159,10 +159,35 @@
 <span class="c1">#############################################</span>
 
 <span class="k">def</span> <span class="nf">_format_ind</span><span class="p">(</span><span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper routine to convert selected channels (as numbers) in `ind` to</span>
+<span class="sd">    a boolean array format.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ind : integer, or list of integers</span>
+<span class="sd">        A channel or a list of channels that the user wants to select.</span>
+<span class="sd">    n : integer, or None</span>
+<span class="sd">        The total number of available channels.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ind : ndarray of booleans, size (n,)</span>
+<span class="sd">        The array with the selected channels set to True, remaining ones set</span>
+<span class="sd">        to False</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; _format_ind(ind=[0, 3], n=4)</span>
+<span class="sd">    [True, False, False, True]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">ind</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">lInt</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
+        <span class="c1"># list of accepted integer types</span>
+        <span class="n">lInt</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">longlong</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="ow">in</span> <span class="n">lInt</span><span class="p">:</span>
             <span class="n">ii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
             <span class="n">ii</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">ii</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
@@ -178,7 +203,10 @@
                 <span class="n">ii</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="n">ind</span> <span class="o">=</span> <span class="n">ii</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Index must be a int, or an iterable of bool or int !&quot;</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Index must be int, or an iterable of bool or int &quot;</span>
+                       <span class="s2">&quot;(first element of index has&quot;</span>
+                       <span class="s2">&quot; type: </span><span class="si">{}</span><span class="s2">)!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                       <span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ind</span>
 
@@ -2326,18 +2354,11 @@
 <span class="n">DataCam2D</span><span class="o">.</span><span class="n">__signature__</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">lp</span><span class="p">)</span>
 
 
-
-
-
-
-
-<span class="c1">#####################################################################</span>
-<span class="c1">#####################################################################</span>
-<span class="c1">#####################################################################</span>
+<span class="c1"># ####################################################################</span>
+<span class="c1"># ####################################################################</span>
 <span class="c1">#               Plasma2D</span>
-<span class="c1">#####################################################################</span>
-<span class="c1">#####################################################################</span>
-
+<span class="c1"># ####################################################################</span>
+<span class="c1"># ####################################################################</span>
 
 
 <div class="viewcode-block" id="Plasma2D"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D">[docs]</a><span class="k">class</span> <span class="nc">Plasma2D</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="p">):</span>
@@ -2350,20 +2371,21 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Fixed (class-wise) dictionary of default properties</span>
-    <span class="n">_ddef</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Id&#39;</span><span class="p">:{</span><span class="s1">&#39;include&#39;</span><span class="p">:[</span><span class="s1">&#39;Mod&#39;</span><span class="p">,</span><span class="s1">&#39;Cls&#39;</span><span class="p">,</span><span class="s1">&#39;Exp&#39;</span><span class="p">,</span><span class="s1">&#39;Diag&#39;</span><span class="p">,</span>
-                              <span class="s1">&#39;Name&#39;</span><span class="p">,</span><span class="s1">&#39;shot&#39;</span><span class="p">,</span><span class="s1">&#39;version&#39;</span><span class="p">]},</span>
-             <span class="s1">&#39;dtreat&#39;</span><span class="p">:{</span><span class="s1">&#39;order&#39;</span><span class="p">:[</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span><span class="s1">&#39;interp-indt&#39;</span><span class="p">,</span><span class="s1">&#39;interp-indch&#39;</span><span class="p">,</span><span class="s1">&#39;data0&#39;</span><span class="p">,</span><span class="s1">&#39;dfit&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;indt&#39;</span><span class="p">,</span> <span class="s1">&#39;indch&#39;</span><span class="p">,</span> <span class="s1">&#39;indlamb&#39;</span><span class="p">,</span> <span class="s1">&#39;interp-t&#39;</span><span class="p">]}}</span>
+    <span class="n">_ddef</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Id&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;include&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Mod&#39;</span><span class="p">,</span> <span class="s1">&#39;Cls&#39;</span><span class="p">,</span> <span class="s1">&#39;Exp&#39;</span><span class="p">,</span> <span class="s1">&#39;Diag&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;shot&#39;</span><span class="p">,</span> <span class="s1">&#39;version&#39;</span><span class="p">]},</span>
+             <span class="s1">&#39;dtreat&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="s1">&#39;interp-indt&#39;</span><span class="p">,</span> <span class="s1">&#39;interp-indch&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;data0&#39;</span><span class="p">,</span> <span class="s1">&#39;dfit&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;indt&#39;</span><span class="p">,</span> <span class="s1">&#39;indch&#39;</span><span class="p">,</span> <span class="s1">&#39;indlamb&#39;</span><span class="p">,</span> <span class="s1">&#39;interp-t&#39;</span><span class="p">]}}</span>
 
-    <span class="c1"># Does not exist before Python 3.6 !!!</span>
     <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+        <span class="c1"># Does not exist before Python 3.6 !!!</span>
         <span class="c1"># Python 2</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Plasma2D</span><span class="p">,</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
         <span class="c1"># Python 3</span>
-        <span class="c1">#super().__init_subclass__(**kwdargs)</span>
+        <span class="c1"># super().__init_subclass__(**kwdargs)</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">Plasma2D</span><span class="o">.</span><span class="n">_ddef</span><span class="p">)</span>
-        <span class="c1">#cls._dplot = copy.deepcopy(Struct._dplot)</span>
-        <span class="c1">#cls._set_color_ddef(cls._color)</span>
+        <span class="c1"># cls._dplot = copy.deepcopy(Struct._dplot)</span>
+        <span class="c1"># cls._set_color_ddef(cls._color)</span>
 
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d0d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -3692,8 +3714,11 @@
     <span class="k">def</span> <span class="nf">_get_finterp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">idq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">interp_t</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">interp_t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">interp_t</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
 
         <span class="c1"># Get idmesh</span>
         <span class="k">if</span> <span class="n">idquant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -3834,7 +3859,7 @@
         <span class="sd">&quot;&quot;&quot; Return the value of the desired profiles_1d quantity</span>
 
 <span class="sd">        For the desired inputs points (pts):</span>
-<span class="sd">            - pts are in (R,Z) coordinates</span>
+<span class="sd">            - pts are in (X,Y,Z) coordinates</span>
 <span class="sd">            - space interpolation is linear on the 1d profiles</span>
 <span class="sd">        At the desired input times (t):</span>
 <span class="sd">            - using a nearest-neighbourg approach for time</span>

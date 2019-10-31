@@ -1384,6 +1384,67 @@ Each array contains the length parameter along the ray for each isoflux</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="tofu.geom._core.Rays.calc_length_in_isoflux">
+<code class="sig-name descname">calc_length_in_isoflux</code><span class="sig-paren">(</span><em class="sig-param">lPoly</em>, <em class="sig-param">lVIn=None</em>, <em class="sig-param">Lim=None</em>, <em class="sig-param">kInOut=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_length_in_isoflux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_length_in_isoflux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the length of each LOS inside each isoflux</p>
+<p>Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
+the entry points (kIn) and exit points (kOut) for each LOS</p>
+<p>The isofluxes must be provided as a list of polygons</p>
+<p>The length is returned as a (nPoly, nLOS) 2d array</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Rays.calc_min_geom_radius">
+<code class="sig-name descname">calc_min_geom_radius</code><span class="sig-paren">(</span><em class="sig-param">axis</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_min_geom_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_min_geom_radius" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the minimum geom. radius of each LOS, from an arbitrary axis</p>
+<p>The axis mut be provided as a (R,Z) iterable
+Uses self.set_dsino()</p>
+<dl class="simple">
+<dt>p:      np.ndarray</dt><dd><p>(nLOS,) array of minimal radius (or impact parameter)</p>
+</dd>
+<dt>theta:  np.ndarray</dt><dd><p>(nLOS,) array of associated theta with respect to axis</p>
+</dd>
+<dt>pts:    np.ndarray</dt><dd><p>(3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Rays.calc_min_rho_from_Plasma2D">
+<code class="sig-name descname">calc_min_rho_from_Plasma2D</code><span class="sig-paren">(</span><em class="sig-param">plasma</em>, <em class="sig-param">t=None</em>, <em class="sig-param">log='min'</em>, <em class="sig-param">res=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">quant=None</em>, <em class="sig-param">ref1d=None</em>, <em class="sig-param">ref2d=None</em>, <em class="sig-param">interp_t=None</em>, <em class="sig-param">interp_space=None</em>, <em class="sig-param">fill_value=nan</em>, <em class="sig-param">pts=False</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_min_rho_from_Plasma2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_min_rho_from_Plasma2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the min/max value of scalar field quant for each LOS</p>
+<p>Typically used to get the minimal normalized minor radius
+But can be used for any quantity available in plasma if:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>it is a 2d profile</p></li>
+<li><p>it is a 1d profile that can be interpolated on a 2d mesh</p></li>
+</ul>
+</div></blockquote>
+<p>Currently sample each LOS with desired resolution and returns the
+absolute min/max interpolated value (and associated point)</p>
+<dl class="simple">
+<dt>See self.get_sample() for details on sampling arguments:</dt><dd><ul class="simple">
+<li><p>res, resMode, method</p></li>
+</ul>
+</dd>
+<dt>See Plasma2D.interp_pts2profile() for details on interpolation args:</dt><dd><ul class="simple">
+<li><p>t, quant, q2dref, q1dref, interp_t, interp_space, fill_value</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>val:        np.ndarray</dt><dd><p>(nt, nLOS) array of min/max values</p>
+</dd>
+<dt>pts:        np.ndarray</dt><dd><p>(nt, nLOS, 3) array of (X,Y,Z) coordinates of associated points
+Only returned if pts = True</p>
+</dd>
+<dt>t:          np.ndarray</dt><dd><p>(nt,) array of time steps at which the interpolations were made</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="tofu.geom._core.Rays.calc_signal">
 <code class="sig-name descname">calc_signal</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t=None</em>, <em class="sig-param">ani=None</em>, <em class="sig-param">fkwdargs={}</em>, <em class="sig-param">Brightness=True</em>, <em class="sig-param">res=None</em>, <em class="sig-param">DL=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">minimize='calls'</em>, <em class="sig-param">num_threads=16</em>, <em class="sig-param">reflections=True</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">out=&lt;class 'object'&gt;</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">dataname=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">invert=True</em>, <em class="sig-param">units=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">connect=True</em>, <em class="sig-param">newcalc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_signal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the line-integrated emissivity</p>
@@ -1811,7 +1872,7 @@ The plot shows which strutural element is touched by each LOS</p>
 </dd>
 </dl>
 </li>
-<li><p>‘Etendues’: the étendue associated to each LOS (user-provided)</p></li>
+<li><p>‘Etendues’: the etendue associated to each LOS (user-provided)</p></li>
 <li><p>‘Surfaces’: the surfaces associated to each LOS (user-provided)</p></li>
 </ul>
 </dd>
@@ -2297,7 +2358,7 @@ return ax1, ax2, ax3</p>
 
 <dl class="function">
 <dt id="tofu.geom._plot.Plot_Impact_3DPoly">
-<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.1-52-g6f060e3        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.1-145-ge5ffef4        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plotting the toroidal projection of a Ves instance</p>
 <p>D. VEZINET, Aug. 2014
 Inputs :</p>
@@ -2398,7 +2459,7 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 
 <dl class="function">
 <dt id="tofu.geom.utils.create_config">
-<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/home/lasofivec/miniconda3/envs/tofu3/lib/python3.7/site-packages/tofu-.1.4.1_52_g6f060e3-py3.7-linux-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/home/lasofivec/miniconda3/envs/tofu3/lib/python3.7/site-packages/tofu-.1.4.1_145_ge5ffef4-py3.7-linux-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create easily a tofu.geom.Config object</p>
 <p>In tofu, a Config (short for geometrical configuration) refers to the 3D
 geometry of a fusion device.
