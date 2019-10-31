@@ -19,13 +19,13 @@ import matplotlib.pyplot as plt
 
 
 
-_NPEAKMAX = 10
+_NPEAKMAX = 12
 
 ###########################################################
 ###########################################################
 #
 #           Preliminary
-#       utility tools for spectral fitting
+#       utility tools for 1d spectral fitting
 #
 ###########################################################
 ###########################################################
@@ -45,12 +45,12 @@ def get_peaks(x, y, nmax=None):
 
     # Prepare
     ybis = np.copy(y)
-    A = np.empty((nmax,),dtype=y.dtype)
-    x0 = np.empty((nmax,),dtype=x.dtype)
-    sigma = np.empty((nmax,),dtype=y.dtype)
+    A = np.empty((nmax,), dtype=y.dtype)
+    x0 = np.empty((nmax,), dtype=x.dtype)
+    sigma = np.empty((nmax,), dtype=y.dtype)
     gauss = lambda xx, A, x0, sigma: A*np.exp(-(xx-x0)**2/sigma**2)
     def gauss_jac(xx, A, x0, sigma):
-        jac = np.empty((xx.size,3),dtype=float)
+        jac = np.empty((xx.size,3), dtype=float)
         jac[:,0] = np.exp(-(xx-x0)**2/sigma**2)
         jac[:,1] = A*2*(xx-x0)/sigma**2 * np.exp(-(xx-x0)**2/sigma**2)
         jac[:,2] = A*2*(xx-x0)**2/sigma**3 * np.exp(-(xx-x0)**2/sigma**2)
@@ -83,9 +83,9 @@ def get_peaks(x, y, nmax=None):
         else:
             sig[indl<ind] = 0.5
             sig[indl>ind] = 1.5
-        p0 = (ybis[ind],x00,width)#,0.)
-        bounds = (np.r_[0.,x[wn],dx/2.],
-                  np.r_[5.*ybis[ind],x[wp],5.*width])
+        p0 = (ybis[ind], x00, width)#,0.)
+        bounds = (np.r_[0., x[wn], dx/2.],
+                  np.r_[5.*ybis[ind], x[wp], 5.*width])
         try:
             (Ai, x0i, sigi) = scpopt.curve_fit(gauss, x[indl], ybis[indl],
                                                p0=p0, bounds=bounds, jac=gauss_jac,

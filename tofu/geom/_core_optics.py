@@ -100,6 +100,7 @@ class CrystalBragg(utils.ToFuObject):
               '3d':{}}
     _DEFLMOVEOK = ['rotate']
     _DEFLAMB = 3.971561e-10
+    _DEFNPEAKS = 12
     # _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
 
 
