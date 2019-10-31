@@ -726,16 +726,20 @@ class CrystalBragg(utils.ToFuObject):
     # methods for surface and contour sampling
     # -----------------
 
-    def _checkformat_get_Rays_from(self, phi=None, bragg=None,
-                                   lamb=None, n=None):
+    def _checkformat_bragglamb(self, bragg=None, lamb=None, n=None):
         lc = [lamb is not None, bragg is not None]
         assert np.sum(lc) == 1, "Provide lamb xor bragg!"
-        assert phi is not None
         if lc[0]:
             bragg = self.get_bragg_from_lamb(np.atleast_1d(lamb),
                                              n=n)
         else:
             bragg = np.atleast_1d(bragg)
+        return bragg
+
+    def _checkformat_get_Rays_from(self, phi=None, bragg=None):
+        assert phi is not None
+        assert bragg is not None
+        bragg = np.atleast_1d(bragg)
         phi = np.atleast_1d(phi)
         nrays = max(phi.size, bragg.size)
         if not phi.shape == bragg.shape:
@@ -755,6 +759,7 @@ class CrystalBragg(utils.ToFuObject):
                              returnas=object, config=None, name=None):
 
         # Check inputs
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
         phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg,
                                                      lamb=lamb, n=n)
         # assert phi.ndim == 1
@@ -849,31 +854,63 @@ class CrystalBragg(utils.ToFuObject):
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
 
-    @staticmethod
-    def get_approx_detector_params_from_Bragg_CurvRadius(bragg, R,
-                                                         plot=False):
+    def get_approx_detector_frame(self, bragg=None, lamb=None,
+                                  rcurve=None, n=None, plot=False):
         """ See notes for details on notations """
-        Rrow = R/2.
-        theta = np.pi/2 - bragg
-        d = R*np.cos(theta)
-        l = Rrow / np.cos(2.*theta)
-        Z = Rrow + l
-        nn = np.r_[0, np.cos(2*bragg-np.pi/2.), np.sin(2*bragg-np.pi/2.)]
-        frame_cent = np.r_[0., np.sqrt(l**2-Rrow**2)]
-        frame_ang = np.pi/2.
+
+        # Check / format inputs
+        if rcurve is None:
+            rcurve = self._dgeom['rcurve']
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+
+        # Compute crystal-centered parameters in (nout, e1, e2)
+        func = _comp_optics.get_approx_detector_rel
+        det_dist, det_nout_rel, det_ei_rel = func(rcurve, bragg)
+
+        # Deduce absolute position in (x, y, z)
+        func = _comp_optics.get_det_abs_from_rel
+        det_cent, det_nout, det_ei, det_ej = func(det_dist,
+                                                  det_nout_rel, det_ei_rel,
+                                                  self._dgeom['summit'],
+                                                  self._dgeom['nout'],
+                                                  self._dgeom['e1'],
+                                                  self._dgeom['e2'])
 
         if plot:
-            func = _plot_optics.CrystalBragg_plot_approx_detector_params
-            ax = func(Rrow, bragg, d, Z, frame_cent, nn)
-        return Z, nn, frame_cent, frame_ang
+            dax = self.plot()
+            p0 = np.repeat(det_cent[:,None], 3, axis=1)
+            vv = np.vstack((det_nout, det_ei, det_ej)).T
+            dax['cross'].plot(np.hypot(det_cent[0], det_cent[1]),
+                              det_cent[2], 'xb')
+            dax['hor'].plot(det_cent[0], det_cent[1], 'xb')
+            dax['cross'].quiver(np.hypot(p0[0, :], p0[1, :]), p0[2, :],
+                                np.hypot(vv[0, :], vv[1, :]), vv[2, :],
+                                units='xy', color='b')
+            dax['hor'].quiver(p0[0, :], p0[1, :], vv[0, :], vv[1, :],
+                              units='xy', color='b')
+        return det_cent, det_nout, det_ei, det_ej
+
+    def get_local_noute1e2(self, theta, psi):
+        if np.allclose([theta, psi], [np.pi/2., 0.]):
+            summit = self._dgeom['summit']
+            nout = self._dgeom['nout']
+            e1, e2 = self._dgeom['e1'], self._dgeom['e2']
+        else:
+            func = _comp_optics.CrystBragg_get_noute1e2_from_psitheta
+            nout, e1, e2 = func(self._dgeom['nout'],
+                                self._dgeom['e1'], self._dgeom['e2'],
+                                [psi], [theta])
+            nout, e1, e2 = nout[:, 0], e1[:, 0], e2[:, 0]
+            summit = self._dgeom['center'] + self._dgeom['rcurve']*nout
+        return summit, nout, e1, e2
 
 
-
-    @classmethod
-    def calc_xixj_from_braggangle(cls,
-                                  Z, nn, frame_cent, frame_ang,
-                                  bragg, angle,
-                                  plot=True, ax=None):
+    def calc_xixj_from_phibragg(self, phi=None,
+                                bragg=None, lamb=None, n=None,
+                                theta=None, psi=None,
+                                det_cent=None, det_nout=None,
+                                det_ei=None, det_ej=None,
+                                data=None, plot=True, ax=None):
         """ Assuming crystal's summit as frame origin
 
         According to [1], this assumes a local frame centered on the crystal
@@ -893,62 +930,110 @@ class CrystalBragg(utils.ToFuObject):
             (3,) array containing local (x,y,z) coordinates of the plane's
             normal vector
         """
+        # Check / format inputs
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        phi = np.atleast_1d(phi)
+        assert bragg.ndim == phi.ndim == 1
+        nphi, nbragg = phi.size, bragg.size
+        npts = max(nphi, nbragg)
+        assert nbragg in [1, npts] and nphi in [1, npts], (nbragg, nphi)
+        if nbragg < npts:
+            bragg = np.full((npts,), bragg[0])
+        elif nphi < npts:
+            phi = np.full((npts,), phi[0])
 
-        nin = np.array([0., 0., 1.])
-        out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
-        Z, nn, frame_cent, frame_ang = out
-        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nin)
-        bragg = np.atleast_1d(bragg).ravel()
-        angle = np.atleast_1d(angle).ravel()
-        xi, xj = _comp_optics.calc_xixj_from_braggangle(Z, nin,
-                                                        frame_cent, frame_ang,
-                                                        nn, e1, e2,
-                                                        bragg, angle)
+        lc = [det_cent is None, det_nout is None,
+              det_ei is None, det_ej is None]
+        assert all(lc) or not any(lc)
+        if all(lc):
+            func = self.get_approx_detector_frame
+            det_cent, det_nout, det_ei, det_ej = func(lamb=self._DEFLAMB)
+
+        # Get local summit nout, e1, e2 if non-centered
+        if theta is None:
+            theta = np.pi/2.
+        if psi is None:
+            psi = 0.
+        summit, nout, e1, e2 = self.get_local_noute1e2(theta, psi)
+
+        # Compute
+        xi, xj = _comp_optics.calc_xixj_from_braggphi(summit,
+                                                      det_cent, det_nout,
+                                                      det_ei, det_ej,
+                                                      nout, e1, e2,
+                                                      bragg, phi)
         if plot:
             func = _plot_optics.CrystalBragg_plot_approx_detector_params
             ax = func(bragg, xi, xj, data, ax)
         return xi, xj
 
-    @classmethod
-    def calc_braggangle_from_xixj(cls,
-                                  Z, nn, frame_cent, frame_ang,
-                                  xi, xj,
-                                  plot=True, ax=None, **kwdargs):
+    @staticmethod
+    def _checkformat_xixj(xi, xj):
+        xi = np.atleast_1d(xi)
+        xj = np.atleast_1d(xj)
+        if xi.shape == xj.shape:
+            return xi, xj, (xi, xj)
+        else:
+            return xi, xj, np.meshgrid(xi, xj)
 
-        nin = np.array([0., 0., 1.])
-        out = _comp_optics.checkformat_vectang(Z, nn, frame_cent, frame_ang)
-        Z, nn, frame_cent, frame_ang = out
-        e1, e2 = _comp_optics.get_e1e2_detectorplane(nn, nin)
-        xi = np.atleast_1d(xi).ravel()
-        xj = np.atleast_1d(xj).ravel()
-        bragg, ang = _comp_optics.calc_braggangle_from_xixj(xi, xj, Z, nn,
-                                                            frame_cent, frame_ang,
-                                                            nin, e1, e2)
+    def calc_phibragg_from_xixj(self, xi, xj, n=None,
+                                det_cent=None, det_ei=None, det_ej=None,
+                                theta=None, psi=None,
+                                plot=True, ax=None, **kwdargs):
+
+        # Check / format inputs
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+
+        lc = [det_cent is None, det_ei is None, det_ej is None]
+        assert all(lc) or not any(lc)
+        if all(lc):
+            func = self.get_approx_detector_frame
+            det_cent, _, det_ei, det_ej = func(lamb=self._DEFLAMB)
+
+        # Get local summit nout, e1, e2 if non-centered
+        if theta is None:
+            theta = np.pi/2.
+        if psi is None:
+            psi = 0.
+        summit, nout, e1, e2 = self.get_local_noute1e2(theta, psi)
+        nin = -nout
+
+        # Compute
+        func = _comp_optics.calc_braggphi_from_xixj
+        bragg, phi = func(xii, xjj, det_cent, det_ei, det_ej,
+                          summit, nin, e1, e2)
 
         if plot != False:
             func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
-            lax = func(xi=xi, xj=xj,
+            lax = func(xi=xii, xj=xjj,
                        ax=ax, plot=plot,
-                       bragg=bragg.T * 180./np.pi,
-                       angle=ang.T * 180./np.pi,
+                       bragg=bragg * 180./np.pi,
+                       angle=phi * 180./np.pi,
                        braggunits='deg', angunits='deg', **kwdargs)
-        return bragg, ang
+        return bragg, phi
 
-    def plot_data_in_angle_vs_bragglamb(self, xi=None, xj=None, data=None,
-                                        Z=None, nn=None, lamb=None, d=None,
-                                        frame_cent=None, frame_ang=None,
-                                        deg=None, knots=None, lambrest=None,
-                                        camp=None, cwidth=None, cshift=None,
-                                        plot=True, fs=None,
-                                        cmap=None, vmin=None, vmax=None):
+    def plot_johannerror(self, lamb=None):
+        pass
 
-        bragg, angle = self.calc_braggangle_from_xixj(Z, nn, frame_cent,
-                                                      frame_ang, xi, xj,
-                                                      plot=False)
-        assert bragg.shape == angle.shape == data.shape
-        lamb = self.get_lamb_from_bragg(bragg, n=1)
+    def plot_data_in_phi_vs_lamb(self, xi=None, xj=None, data=None,
+                                 det_cent=None, det_ei=None, det_ej=None,
+                                 theta=None, psi=None, n=None,
+                                 deg=None, knots=None, lambrest=None,
+                                 camp=None, cwidth=None, cshift=None,
+                                 plot=True, fs=None,
+                                 cmap=None, vmin=None, vmax=None):
+        # Check / format inputs
+        assert data is not None
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+
+        func = self.calc_phibragg_from_xixj
+        bragg, phi = func(xii, xjj, n=n,
+                          det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+                          theta=theta, psi=psi, plot=False)
+        assert bragg.shape == phi.shape == data.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
         func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
-        ax = func(xi, xj, bragg, lamb, angle, data,
+        ax = func(xi, xj, bragg, lamb, phi, data,
                   deg=deg, knots=knots, lambrest=lambrest,
                   camp=camp, cwidth=cwidth, cshift=cshift,
                   cmap=cmap, vmin=vmin, vmax=vmax,

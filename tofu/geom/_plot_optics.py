@@ -252,7 +252,7 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=No
 # #################################################################
 # #################################################################
 
-
+# Deprecated ? re-use ?
 def CrystalBragg_plot_approx_detector_params(Rrow, bragg, d, Z,
                                              frame_cent, nn):
 
@@ -380,6 +380,10 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
     spectrum = np.array([np.sum(data[ind==ii]) for ii in np.unique(ind)])
 
     # Fitted spectrum
+    xfit = brlb
+    Dy = angle.max()-angle.min()
+    yfit = angle.min() + Dy*np.linspace(0, 1, xj.size)
+    extent2 = (xfit.min(), xfit.max(), yfit.min(), yfit.max())
     if camp is not None:
         assert lambrest is not None
         assert cwidth is not None
@@ -387,10 +391,6 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
             cshift = 0.*camp
 
         import tofu.geom._comp_optics as _comp_optics
-        xfit = brlb
-        Dy = angle.max()-angle.min()
-        yfit = angle.min() + Dy*np.linspace(0, 1, xj.size)
-        extent2 = (xfit.min(), xfit.max(), yfit.min(), yfit.max())
         if deg is None or knots is None:
             deg = 2
             ymin, ymax = yfit.min(), yfit.max()
@@ -406,8 +406,6 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
         verrmax = max(np.abs(np.nanmin(error)), np.abs(np.nanmax(error)))
     else:
         fitted = None
-        xfit = None
-        yfit = None
 
     # Plot
     # ------------
@@ -434,19 +432,21 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
     ax4.set_xlabel('%s'%angunits)
     ax0.set_ylabel(r'incidence angle ($deg$)')
 
-    ax0.contour(xi, xj, bragg.T, 10, cmap=cmap)
-    ax1.imshow(data.T, extent=extent, aspect='equal', vmin=vmin, vmax=vmax)
-    axs1.plot(xi, np.sum(data, axis=1), c='k', ls='-')
-    ax2.scatter(lamb.ravel(), angle.ravel(), c=data.ravel(),
+    ax0.contour(xi, xj, bragg, 10, cmap=cmap)
+    ax0.contour(xi, xj, angle, 10, cmap=cmap, ls='--')
+    ax1.imshow(data, extent=extent, aspect='equal',
+               origin='lower', vmin=vmin, vmax=vmax)
+    axs1.plot(xi, np.sum(data, axis=0), c='k', ls='-')
+    ax2.scatter(lamb.ravel(), angle.ravel(), c=data.ravel(), s=1,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
     axs2.plot(brlb, spectrum, c='k', ls='-')
     if fitted is not None:
-        ax3.imshow(fitted.T, extent=extent2, aspect='auto')
-        axs3.plot(brlb, fitted.sum(axis=1), c='k', ls='-')
-        ax4.imshow(error.T, extent=extent,
+        ax3.imshow(fitted, extent=extent2, aspect='auto', origin='lower')
+        axs3.plot(brlb, fitted.sum(axis=0), c='k', ls='-')
+        ax4.imshow(error, extent=extent,
                    aspect='equal', cmap=plt.cm.seismic,
-                   vmin=-verrmax, vmax=verrmax)
+                   vmin=-verrmax, vmax=verrmax, origin='lower')
 
     if lambrest is not None:
         for ax in [axs2, axs3]:
