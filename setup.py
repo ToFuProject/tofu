@@ -153,11 +153,6 @@ else:
     openmp_installed = not check_for_openmp("cc")
 print("................ checking if openmp installed... > ", openmp_installed)
 
-# To compile the relevant version
-if sys.version[:3] in ["3.6", "3.7"]:
-    gg = "_GG0%s" % sys.version[0]
-else:
-    raise Exception("Pb. with python version in setup.py file: " + sys.version)
 
 
 # ==============================================================================
@@ -209,14 +204,6 @@ print("Version for setup.py : ", version_tofu)
 print("")
 
 
-# Getting relevant compilable files
-if sys.version[0] == "3":
-    # if not '_GG03.pyx' in os.listdir(os.path.join(_HERE,'tofu/geom/')):
-    shutil.copy2(
-        os.path.join(_HERE, "tofu/geom/_GG02.pyx"),
-        os.path.join(_HERE, "tofu/geom/_GG03.pyx"),
-    )
-
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
 _README = [
@@ -244,8 +231,8 @@ else:
 
 extensions = [
     Extension(
-        name="tofu.geom." + gg,
-        sources=["tofu/geom/" + gg + ".pyx"],
+        name="tofu.geom._GG",
+        sources=["tofu/geom/_GG.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
     ),
@@ -351,8 +338,8 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"]
-    python_requires=">=3.5",
+    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"],
+    python_requires=">=3.6",
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
