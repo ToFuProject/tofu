@@ -15,7 +15,7 @@ before_install:
 install:
 - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export VADD="py37"; else export VADD="py36";  fi
 - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-  -O miniconda.sh; fi
+  -O miniconda.sh
 - bash miniconda.sh -b -p $HOME/miniconda
 - export PATH="$HOME/miniconda/bin:$PATH"
 - hash -r
