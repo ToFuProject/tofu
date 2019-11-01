@@ -1,13 +1,8 @@
-
 # Built-in
 import sys
 import os
 import warnings
-if sys.version[0] == '3':
-    import inspect
-else:
-    # Python 2 back-porting
-    import funcsigs as inspect
+import inspect
 
 # Common
 import numpy as np
