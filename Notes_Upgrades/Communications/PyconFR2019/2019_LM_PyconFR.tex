@@ -701,17 +701,16 @@ $$
 \frametitle{Optimization of ray-tracing algorithm}
 
 
-Cone-Ray intersection algorithm:
 	\begin{itemize}
-	\item Main steps:
+	\item Algorithmic optimizations:
 	\begin{itemize}
 		\item Test intersection \textbf{bounding-box}
 		\item \textbf{special cases} (ray direction, segment, etc.)
-		\item General case: solution of a\textbf{ quadratic equation}
+		\item Cone-Ray intersection algorithm: solution of a\textbf{ quadratic equation}
 	\end{itemize}
 	\item Pre-computation of variables
 	\item Core functions in \textbf{Cython}
-	\item Parallelization (\textbf{prange} loops)
+	\item OpenMP parallelization (Cython \textbf{prange} loops)
 	\end{itemize}
 \pause
 \begin{table}[h] % just use this specifier if really needed.
@@ -728,8 +727,6 @@ Cone-Ray intersection algorithm:
        \bottomrule
      \end{tabular}
 \end{table}
-
-	
 \end{frame}
 % =================================
 
@@ -836,6 +833,38 @@ Integration of \textbf{user-defined function} along a LOS:
   \item Integration method: \textbf{sum} (Cython or numpy) on midpoint
   \end{itemize}
   \end{frame}
+% =================================
+
+
+% =================================
+\begin{frame}
+\frametitle{What we've learned on code optimization}
+
+Importance of \textbf{cross disciplinary} expert collaborations:
+
+	\begin{itemize}
+		\item Understand and define the problem (physics)
+		\item Create optimal algorithm (mathematics)
+		\item Write efficient code (computer science)
+	\end{itemize}
+
+...and from there:
+
+	\begin{itemize}
+		\item \textbf{Profile} your code
+		\item Core functions: \textbf{Cython} (or Numba or Transonic or ...)
+		\item Cython specific:
+		\begin{itemize}
+			\item \textbf{cython --annotate}
+			\item \textbf{type} your variables and \textbf{inline} your functions!
+			\item use cython decorators: \textbf{@cython.boundscheck(False)}, \textbf{@cython.wraparound(False)}
+			\item release the gil (when possible)!
+			\item see more: \href{https://github.com/ToFuProject/tofu/blob/master/Notebooks/Cython_speedup_notes.ipynb}{\textcolor{blue}{my notes}}, \href{https://github.com/jeremiedbb/tutorial-euroscipy-2019}{\textcolor{blue}{Jeremie du Boisberranger's tutorial}}
+			
+		\end{itemize}
+	\end{itemize}
+	
+\end{frame}
 % =================================
 
 
