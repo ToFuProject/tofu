@@ -1700,9 +1700,9 @@ class Struct(utils.ToFuObject):
                 msg += "    Observed shape: {0}".format(oo.shape)
             raise Exception(msg)
         npts, noccur = int(oo[0, 0]), int(oo[0, 1])
-        poly = oo[1 : 1 + npts, :]  # noqa
+        poly = oo[1:1 + npts, :]
         if noccur > 0:
-            pos, extent = oo[1 + npts :, 0], oo[1 + npts :, 1]  # noqa
+            pos, extent = oo[1 + npts:, 0], oo[1 + npts:, 1]
         else:
             pos, extent = None, None
 
@@ -3739,7 +3739,7 @@ class Rays(utils.ToFuObject):
 
         elif case == 'C':
             D = _checkformat_Du(dgeom['D'], 'D')
-            dins = {'pinhole': {'var': dgeom['pinhole'], 'vectnd':3}}
+            dins = {'pinhole': {'var': dgeom['pinhole'], 'vectnd': 3}}
             dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
@@ -5643,8 +5643,8 @@ class Rays(utils.ToFuObject):
             ind = np.zeros((nPoly, self.nRays), dtype=bool)
             kInref = np.tile(self.kIn, (nPoly, 1))
             kOutref = np.tile(self.kOut, (nPoly, 1))
-            ind[indok] = (kIn[indok] < kInref[indok]) \
-              | (kIn[indok] > kOutref[indok])
+            ind[indok] = (kIn[indok] < kInref[indok])
+            ind[indok] = ind[indok] | (kIn[indok] > kOutref[indok])
             kIn[ind] = np.nan
 
             ind[:] = False
@@ -6056,7 +6056,8 @@ class Rays(utils.ToFuObject):
             for ii in range(0, self.nRays):
                 sig[:, ii] = (
                     np.nansum(
-                        val[:, indpts[ii] : indpts[ii + 1]], axis=-1  # noqa
+                        val[:, indpts[ii]:indpts[ii + 1]],
+                        axis=-1
                     )
                     * reseff[ii]
                 )
@@ -6156,9 +6157,9 @@ class Rays(utils.ToFuObject):
                 fill_value=fill_value,
                 Type=Type,
             )
-            funcbis = lambda *args, **kwdargs: func(*args, **kwdargs)[  # noqa
-                0
-            ]  # noqa
+
+            def funcbis(*args, **kwdargs):
+                return func(*args, **kwdargs)[0]
 
             if DL is None:
                 # set to [kIn,kOut]
@@ -6265,9 +6266,8 @@ class Rays(utils.ToFuObject):
             indpts = np.r_[0, indpts, pts.shape[1]]
             for ii in range(0, self.nRays):
                 sig[:, ii] = (
-                    np.nansum(
-                        val[:, indpts[ii] : indpts[ii + 1]], axis=-1  # noqa
-                    )
+                    np.nansum(val[:, indpts[ii]:indpts[ii + 1]],
+                              axis=-1)
                     * reseff[ii]
                 )
 
