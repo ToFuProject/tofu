@@ -1,0 +1,79 @@
+% !TEX root = ../LM_defense.tex
+% \begin{center}
+
+
+\pgfdeclareradialshading{sphere}{\pgfpoint{0cm}{0cm}}% 
+{rgb(0cm)=(1,1,1);
+rgb(0.7cm)=(0.7,0.1,0); rgb(1cm)=(0.5,0.05,0); rgb(1.05cm)=(1,1,1)}
+
+ \begin{tikzpicture}[->,>=stealth',shorten >=10pt,auto,node distance=3cm,
+ very thick, color=black]
+ 
+ \pgfdeclareradialshading{redsphere}{\pgfpoint{-0.2cm}{0.5cm}}% 
+{rgb(0cm)=(1,1,1);
+color(0.7cm)=(beaurouge); color(1cm)=(beaurouge); rgb(1.05cm)=(1,1,1)}
+
+ \pgfdeclareradialshading{greysphere}{\pgfpoint{-0.2cm}{0.5cm}}% 
+{rgb(0cm)=(1,1,1);
+color(0.7cm)=(beaubleu); color(1cm)=(SchoolColor); rgb(1.05cm)=(1,1,1)}
+
+
+  \tikzset{plus/.style = {shape          = circle,
+                                 ball color     = SchoolColor,
+                                 text           = black,
+                                 inner sep      = 0pt,
+                                 outer sep      = 0pt,
+                                 minimum size   = 16 pt,
+				 shading = redsphere}}
+				 
+  \tikzset{neutron/.style   =  {shape          = circle,
+                                 text           = black,
+                                 inner sep      = 0pt,
+                                 outer sep      = 0pt,
+                                 minimum size   = 16 pt,
+				 shading = greysphere}}
+				 
+  \tikzset{boom/.style =  {shape          = star,
+				 star points = 10,
+                                 fill    = myyellow,
+                                 text           = black,
+                                 inner sep      = 0pt,
+                                 outer sep      = 0pt,
+                                 minimum size   = 80 pt}}
+
+  \node[plus] (Dplus) {};
+  \node[neutron] (Dneutron) [below left of=Dplus,xshift=1.7cm,yshift=2.1cm]{n};
+
+  \node[boom] (star)[right of=Dplus,yshift = -1.2cm] {};
+
+  \node[plus] (Tplus2) [below of=Dplus,yshift=0.2cm,xshift=-8pt]{};
+  \node[neutron] (Tneutron) [below right of=Tplus2,xshift=-1.65cm,yshift=2.1cm]{n};
+  \node[neutron] (Tneutronbis) [below left of=Tplus2,xshift=1.65	cm,yshift=2.1cm]{n};
+
+  \node[plus] (Rplus1) [right of=Dplus,yshift = -1.2cm,xshift=0.3cm] {};
+  \node[neutron] (Rneutron1) [below left of=Rplus1,xshift=1.8cm,yshift=2.1cm]{};
+  \node[plus] (Rplus2)  [below left of=Rneutron1,xshift=1.8cm,yshift=2.1cm]{};
+  \node[neutron] (Rneutron2) [below right of=Rplus2,xshift=-2cm,yshift=1.9cm]{};
+  \node[neutron] (Rneutron3) [right of=Rneutron2,xshift=-2.6 cm,yshift=0cm]{};
+
+
+  \node[neutron] (Neutron) [right of=Rplus1,yshift=1.2cm]{n};
+
+  \node[plus] (HePlus) [right of=Rplus1,yshift=-1.2cm]{};
+  \node[neutron] (Heneu2) [below right of=HePlus,yshift=1.9cm,xshift=-1.8cm]{n};
+  \node[plus] (HePlus2) [below of=HePlus,yshift=2.5cm]{};
+  \node[neutron] (Heneu3) [below left of=HePlus,yshift=1.9cm,xshift=1.8cm]{n};
+  
+  \draw[->] (Dplus) to (Rplus2);
+  \draw[->] (Tneutron) to (Rplus2);
+  \draw[->] (Rplus1) to (Neutron);
+  \draw[->] (Rneutron3) to (Heneu3);
+  \node (texte1) [above of=Dplus,black,yshift=-2.3cm,xshift=-0.2cm] {Deuterium};
+  \node(texte2)[below of=Tplus2,black,xshift=0cm,yshift=2.3cm] {Tritium};
+  \node(texte3)[below of=HePlus,black,xshift=0cm,yshift=2cm] {Helium};
+
+\end{tikzpicture}
+
+
+
+

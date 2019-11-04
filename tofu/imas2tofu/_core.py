@@ -52,7 +52,7 @@ _IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
               'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
 
 # Root tofu path (for saving repo in IDS)
-_ROOT = os.path.abspath(__file__)
+_ROOT = os.path.abspath(os.path.dirname(__file__))
 _ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
 
 
