@@ -379,6 +379,7 @@ def _save_npz(dd, pathfileext, sep=None, compressed=False):
     dsave = _save_npzmat_dict(dd, sep=sep)
     func(pathfileext, **dsave)
 
+
 def _save_mat(dd, pathfileext, sep=None, compressed=False):
     # Create intermediate dict to make sure to get rid of None values
     dsave = _save_npzmat_dict(dd, sep=sep)
@@ -489,13 +490,13 @@ def load(name, path=None, strip=None, verb=True):
                 break
         else:
             msg = "No known separator in file keys!\n"
-            msg += "    - separators tested: %s\n"%str(lsep)
+            msg += "    - separators tested: {0}\n".format(lsep)
             msg += "    - keys:\n"
             msg += str(dd.keys())
             raise Exception(msg)
 
-        mod = importlib.import_module('tofu.%s'%dd[keyMod])
-        cls = getattr(mod, dd['dId%sdall%sCls'%(sep, sep)])
+        mod = importlib.import_module('tofu.{0}'.format(dd[keyMod]))
+        cls = getattr(mod, dd['dId{0}dall{0}Cls'.format(sep)])
         obj = cls(fromdict=dd, sep=sep)
 
     if strip is not None:
@@ -1492,7 +1493,6 @@ class ToFuObjectBase(object):
         # --------------------------------
 
         self._dstrip['strip'] = strip
-
 
     def to_dict(self, strip=None, sep=None, deep='ref'):
         """ Return a flat dict view of the object's attributes
