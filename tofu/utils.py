@@ -341,7 +341,7 @@ def save(obj, path=None, name=None, sep=None, deep=False, mode='npz',
 
 
 def _save_npzmat_dict(dd, sep=None):
-    key = 'dId%sdall%sSaveName'%(sep, sep)
+    key = 'dId{0}dall{0}SaveName'.format(sep)
     msg = "How to deal with:"
     msg += "\n SaveName : {0}".format(dd[key])
     msg += "\n Attributes:"
