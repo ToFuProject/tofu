@@ -154,6 +154,7 @@ def flatten_dict(d, parent_key='', sep=None, deep='ref',
                 items.append((new_key, v))
     return dict(items)
 
+
 def _reshape_dict(ss, vv, dinit={}, sep=None):
     if sep is None:
         sep = _SEP
@@ -172,6 +173,7 @@ def _reshape_dict(ss, vv, dinit={}, sep=None):
     else:
         assert k not in dinit.keys()
         dinit[k] = vv
+
 
 def reshape_dict(d, sep=None, lcls=[]):
     if sep is None:
@@ -216,8 +218,6 @@ class Dictattr(dict):
         return [str(k) for k in self.keys()]+self._extra
 
 
-
-
 #############################################
 #       Miscellaneous
 #############################################
@@ -242,7 +242,6 @@ def _set_arrayorder(obj, arrayorder='C', sep=None):
                 account['Failed'].append(k)
 
     return d, account
-
 
 
 #############################################
@@ -495,8 +494,8 @@ def load(name, path=None, strip=None, verb=True):
             msg += str(dd.keys())
             raise Exception(msg)
 
-        mod = importlib.import_module( 'tofu.%s'%dd[keyMod] )
-        cls = getattr( mod, dd['dId%sdall%sCls'%(sep, sep)] )
+        mod = importlib.import_module('tofu.%s'%dd[keyMod])
+        cls = getattr(mod, dd['dId%sdall%sCls'%(sep, sep)])
         obj = cls(fromdict=dd, sep=sep)
 
     if strip is not None:
@@ -1455,7 +1454,6 @@ class ToFuObjectBase(object):
             return self.get_summary(return_='msg', verb=False)
         else:
             return object.__repr__(self)
-
 
 
     #############################
