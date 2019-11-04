@@ -7,11 +7,7 @@ import os
 import copy
 import warnings
 from abc import ABCMeta, abstractmethod
-if sys.version[0] == '3':
-    import inspect
-else:
-    # Python 2 back-porting
-    import funcsigs as inspect
+import inspect
 
 # Common
 import numpy as np
@@ -85,11 +81,6 @@ class DataHolder(utils.ToFuObject):
                  Id=None, Name=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0] == '2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         # self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -495,10 +486,7 @@ class DataHolder(utils.ToFuObject):
                  1: None
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc, nMax)
-        if sys.version[0] == '2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()
