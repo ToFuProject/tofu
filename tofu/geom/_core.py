@@ -163,7 +163,7 @@ class Struct(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
-                 SavePath=os.path.abspath('./'),
+                 sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
 
         # To replace __init_subclass__ for Python 2
@@ -1686,7 +1686,7 @@ class Config(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None, Type=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
-                 fromdict=None):
+                 fromdict=None, sep=None):
 
         # To replace __init_subclass__ for Python 2
         if sys.version[0]=='2':
@@ -2958,7 +2958,7 @@ class Rays(utils.ToFuObject):
     def __init__(self, dgeom=None, lOptics=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None, method='optimized',
+                 sino_RefPt=None, fromdict=None, sep=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
 
         # To replace __init_subclass__ for Python 2

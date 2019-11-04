@@ -170,7 +170,7 @@ class DataAbstract(utils.ToFuObject):
                  dchans=None, dlabels=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  dextra=None, lCam=None, config=None,
-                 fromdict=None, SavePath=os.path.abspath('./'),
+                 fromdict=None, sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
 
         # To replace __init_subclass__ for Python 2
@@ -2278,7 +2278,7 @@ class Plasma2D(utils.ToFuObject):
     def __init__(self, dtime=None, dradius=None, d0d=None, d1d=None,
                  d2d=None, dmesh=None, config=None,
                  Id=None, Name=None, Exp=None, shot=None,
-                 fromdict=None, SavePath=os.path.abspath('./'),
+                 fromdict=None, sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
 
         # To replace __init_subclass__ for Python 2
