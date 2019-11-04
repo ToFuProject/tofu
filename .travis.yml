@@ -1,21 +1,20 @@
 language: python
 python:
+- '2.7'
 - '3.6'
-- '3.7-dev'
-
 git:
-  depth: 200
+  depth: 100
 sudo: required
 dist: trusty
 before_install:
-  - sudo apt-get update
-  - ldd --version
-  - gcc --version
-  - export START=$(pwd)
+- sudo apt-get update
+- ldd --version
+- gcc --version
+- export START=$(pwd)
 install:
-- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export VADD="py37"; else export VADD="py36";  fi
-- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-  -O miniconda.sh
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+  -O miniconda.sh; export VADD="py27"; export PCK="polygon2"; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  -O miniconda.sh; export VADD="py36"; export PCK="polygon3"; fi
 - bash miniconda.sh -b -p $HOME/miniconda
 - export PATH="$HOME/miniconda/bin:$PATH"
 - hash -r
@@ -27,10 +26,7 @@ install:
 - conda config --append channels conda-forge
 - conda config --append channels tofuproject
 - conda info -a
-- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export THIS_PY_VERSION="3.7";
-  else THIS_PY_VERSION=$TRAVIS_PYTHON_VERSION;
-  fi
-- conda install -q python=$THIS_PY_VERSION conda-build anaconda-client nose
+- conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose
   nose-timer coverage codecov
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)

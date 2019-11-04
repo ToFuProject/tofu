@@ -154,17 +154,17 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     # printing file
     stdout = False
-    msg_loc = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+    msg_loc = "\ntofu {} loaded from:\n    {}\n".format(tfversion, tforigin)
     if txtfile is None:
         txtfile = sys.stdout
         stdout = True
         print(msg_loc)
     elif type(txtfile) is str:
-        txtfile = os.path.join(path,txtfile)
+        txtfile = os.path.join(path, txtfile)
         with open(txtfile, 'w') as f:
             f.write(msg_loc)
     elif txtfile is True:
-        txtfile = os.path.join(path,name+'.txt')
+        txtfile = os.path.join(path, name+'.txt')
         with open(txtfile, 'w') as f:
             f.write(msg_loc)
 
@@ -355,10 +355,10 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
         out = {kk:vv for kk,vv in locals().items() if kk in lk}
         np.savez(pfe, **out)
         if stdout:
-            print('Saved in:\n    %s'%pfe)
+            print('Saved in:\n    {}'.format(pfe))
         else:
             with open(txtfile, 'w') as f:
-                f.write('Saved in:\n    %s'%pfe)
+                f.write('Saved in:\n    {}'.format(pfe))
 
 
     if plot:
