@@ -124,7 +124,7 @@ Do you want to use **tofu** on IMAS and don't know where to start? [See our wiki
 Install dependencies
 
 
-    python (>= 3)
+    python (>= 3.6)
     numpy
     scipy
     matplotlib
