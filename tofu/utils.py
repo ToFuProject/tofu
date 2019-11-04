@@ -325,6 +325,8 @@ def save(obj, path=None, name=None, sep=None, deep=False, mode='npz',
 
     # Get stripped dictionnary
     deep = 'dict' if deep else 'ref'
+    if sep is None:
+        sep = _SEP
     dd = obj.to_dict(strip=strip, sep=sep, deep=deep)
 
     pathfileext = os.path.join(path,name+'.'+mode)
