@@ -784,7 +784,7 @@ def test13_LOS_PInOut():
     SL2 = np.asarray([np.array([2./3.,1.])*2.*np.pi])
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
-    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.long)*5)
     lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
     lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # Linear without Struct
@@ -1804,7 +1804,7 @@ def test24_is_visible():
     SL2 = np.asarray([np.array([2./3.,1.])*2.*np.pi])
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
-    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.long)*5)
     lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
     lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # ...

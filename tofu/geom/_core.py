@@ -6,9 +6,9 @@ on Tokamaks
 
 # Built-in
 import os
-import sys
 import warnings
 import copy
+import inspect
 
 # Common
 import numpy as np
@@ -31,15 +31,6 @@ except Exception:
     from . import _GG as _GG
     from . import _comp as _comp
     from . import _plot as _plot
-# python 2 vs python 3 variables:
-if sys.version[0] == "2":
-    import re
-    import tokenize
-    import keyword
-    import funcsigs as inspect
-else:
-    import inspect
-
 
 __all__ = [
     "PlasmaDomain",
@@ -209,34 +200,15 @@ class Struct(utils.ToFuObject):
 
     @classmethod
     def _set_color_ddef(cls, color):
-        cls._ddef["dmisc"]["color"] = mpl.colors.to_rgba(color)
+        cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(
-        self,
-        Poly=None,
-        Type=None,
-        Lim=None,
-        pos=None,
-        extent=None,
-        mobile=False,
-        Id=None,
-        Name=None,
-        Exp=None,
-        shot=None,
-        sino_RefPt=None,
-        sino_nP=_def.TorNP,
-        Clock=False,
-        arrayorder="C",
-        fromdict=None,
-        SavePath=os.path.abspath("./"),
-        SavePath_Include=tfpf.defInclude,
-        color=None,
-    ):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0] == "2":
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
+    def __init__(self, Poly=None, Type=None,
+                 Lim=None, pos=None, extent=None, mobile=False,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 sino_RefPt=None, sino_nP=_def.TorNP,
+                 Clock=False, arrayorder='C', fromdict=None,
+                 sep=None, SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude, color=None):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -533,11 +505,10 @@ class Struct(utils.ToFuObject):
         else:
             Types = Types.astype(int).ravel()
             assert Types.shape == (self.nseg + 2,)
-            # Typesu = np.unique(Types)
-            # lc = np.array(
-            #     [Typesu == vv for vv in self._DREFLECT_DTYPES.values()]
-            # )
-            assert np.all(np.any(Types, axis=0))
+            Typesu = np.unique(Types)
+            lc = np.array([Typesu == vv
+                           for vv in self._DREFLECT_DTYPES.values()])
+            assert np.all(np.any(lc, axis=0))
 
         assert coefs is None
         return Types, coefs
@@ -798,10 +769,7 @@ class Struct(utils.ToFuObject):
                  1: Remove dsino expendables
                  2: Remove also dgeom, dphys, dreflect and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc, nMax)
-        if sys.version[0] == "2":
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         # super()
@@ -1341,7 +1309,7 @@ class Struct(utils.ToFuObject):
                 # Compute u2 for diffusive
                 sca = 2.0 * (np.random.random((1, inddiff.sum())) - 0.5)
                 u2[:, inddiff] = (
-                    np.sqrt(1.0 - sca ** 2) * vperp[:, inddiff]
+                    np.sqrt(1.0 - sca**2) * vperp[:, inddiff]
                     + sca * vpar[:, inddiff]
                 )
 
@@ -1908,39 +1876,10 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = "r"
 
-    # def __init__(
-    #     self,
-    #     Poly=None,
-    #     Type=None,
-    #     Lim=None,
-    #     pos=None,
-    #     extent=None,
-    #     Id=None,
-    #     Name=None,
-    #     Exp=None,
-    #     shot=None,
-    #     sino_RefPt=None,
-    #     sino_nP=_def.TorNP,
-    #     Clock=False,
-    #     arrayorder="C",
-    #     fromdict=None,
-    #     nturns=None,
-    #     superconducting=None,
-    #     active=None,
-    #     SavePath=os.path.abspath("./"),
-    #     SavePath_Include=tfpf.defInclude,
-    #     color=None,
-    # ):
-    #     kwdargs = locals()
-    #     del kwdargs["self"], kwdargs["__class__"]
-    #     # super()
-    #     super(CoilPF, self).__init__(mobile=False, **kwdargs)
-
-    def __init__(
-        self, nturns=None, superconducting=None, active=None, **kwdargs
-    ):
+    def __init__(self, nturns=None, superconducting=None, active=None,
+                 **kwdargs):
         # super()
-        super(CoilPF, self).__init__(**kwdargs)
+        super(CoilPF, self).__init__(mobile=False, **kwdargs)
 
     def _reset(self):
         # super()
@@ -2042,10 +1981,7 @@ class CoilPF(StructOut):
                  1: Remove dsino and dmag expendables
                  2: Remove also dgeom, dphys and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc, nMax)
-        if sys.version[0] == "2":
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         super(CoilPF, self).strip(strip=strip)
@@ -2122,39 +2058,22 @@ class Config(utils.ToFuObject):
     # Special dict subclass with attr-like value access
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {
-        "Id": {
-            "shot": 0,
-            "Type": "Tor",
-            "Exp": "Dummy",
-            "include": ["Mod", "Cls", "Exp", "Name", "shot", "version"],
-        },
-        "dStruct": {
-            "order": ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"],
-            "dextraprop": {"visible": True},
-        },
-    }
-    _lclsstr = ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]
+    _ddef = {'Id': {'shot': 0, 'Type': 'Tor', 'Exp': 'Dummy',
+                    'include': ['Mod', 'Cls', 'Exp',
+                                'Name', 'shot', 'version']},
+             'dStruct': {'order': ['PlasmaDomain',
+                                   'Ves',
+                                   'PFC',
+                                   'CoilPF',
+                                   'CoilCS'],
+                         'dextraprop': {'visible': True}}}
+    _lclsstr = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS']
 
-    def __init__(
-        self,
-        lStruct=None,
-        Lim=None,
-        dextraprop=None,
-        Id=None,
-        Name=None,
-        Exp=None,
-        shot=None,
-        Type=None,
-        SavePath=os.path.abspath("./"),
-        SavePath_Include=tfpf.defInclude,
-        fromdict=None,
-    ):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0] == "2":
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
+    def __init__(self, lStruct=None, Lim=None, dextraprop=None,
+                 Id=None, Name=None, Exp=None, shot=None, Type=None,
+                 SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude,
+                 fromdict=None, sep=None):
 
         kwdargs = locals()
         del kwdargs["self"]
@@ -2236,15 +2155,10 @@ class Config(utils.ToFuObject):
 
     def _checkformat_inputs_Struct(self, struct, err=True):
         assert issubclass(struct.__class__, Struct)
-        C0 = struct.Id.Exp == self.Id.Exp
-        C1 = struct.Id.Type == self.Id.Type
-        if sys.version[0] == "2":
-            C2 = re.match(
-                tokenize.Name + "$", struct.Id.Name
-            ) and not keyword.iskeyword(struct.Id.Name)
-        else:
-            C2 = struct.Id.Name.isidentifier()
-        C2 = C2 and "_" not in struct.Id.Name
+        C0 = struct.Id.Exp==self.Id.Exp
+        C1 = struct.Id.Type==self.Id.Type
+        C2 = struct.Id.Name.isidentifier()
+        C2 = C2 and '_' not in struct.Id.Name
         msgi = None
         if not (C0 and C1 and C2):
             msgi = "\n    - {0} :".format(struct.Id.SaveName)
@@ -2553,12 +2467,9 @@ class Config(utils.ToFuObject):
         # get (key, val) pairs
 
         # Purge
-        for k in self._ddef["dStruct"]["order"]:
+        for k in self._ddef['dStruct']['order']:
             if hasattr(self, k):
                 delattr(self, k)
-                # if sys.version[0]=='2':
-                # exec "del self.{0}".format(k) in locals()
-                # else:
                 # exec("del self.{0}".format(k))
 
         # Set
@@ -2726,13 +2637,9 @@ class Config(utils.ToFuObject):
         doc = """
                  1: apply strip(1) to objects in self.lStruct
                  2: apply strip(2) to objects in self.lStruct
-                 3: replace objects in self.lStruct by their
-                     SavePath+SaveName"""
+                 3: replace objects in self.lStruct by SavePath + SaveName"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc, nMax)
-        if sys.version[0] == "2":
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, force=False, verb=True):
         # super()
@@ -3650,34 +3557,13 @@ class Rays(utils.ToFuObject):
 
     @classmethod
     def _set_color_ddef(cls, color):
-        cls._ddef["dmisc"]["color"] = mpl.colors.to_rgba(color)
+        cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(
-        self,
-        dgeom=None,
-        lOptics=None,
-        Etendues=None,
-        Surfaces=None,
-        config=None,
-        dchans=None,
-        dX12="geom",
-        Id=None,
-        Name=None,
-        Exp=None,
-        shot=None,
-        Diag=None,
-        sino_RefPt=None,
-        fromdict=None,
-        method="optimized",
-        SavePath=os.path.abspath("./"),
-        color=None,
-        plotdebug=True,
-    ):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0] == "2":
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
+    def __init__(self, dgeom=None, lOptics=None, Etendues=None, Surfaces=None,
+                 config=None, dchans=None, dX12='geom',
+                 Id=None, Name=None, Exp=None, shot=None, Diag=None,
+                 sino_RefPt=None, fromdict=None, sep=None, method='optimized',
+                 SavePath=os.path.abspath('./'), color=None, plotdebug=True):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -3803,20 +3689,15 @@ class Rays(utils.ToFuObject):
                 assert val.size == self._dgeom["nRays"]
         return val
 
-    @classmethod
-    def _checkformat_inputs_dgeom(cls, dgeom=None):
+    def _checkformat_inputs_dgeom(self, dgeom=None):
         assert dgeom is not None
         assert isinstance(dgeom, tuple) or isinstance(dgeom, dict)
-        lC = [
-            k
-            for k in cls._dcases.keys()
-            if (
-                isinstance(dgeom, cls._dcases[k]["type"])
-                and all([kk in dgeom.keys() for kk in cls._dcases[k]["lk"]])
-            )
-        ]
-        if not len(lC) == 1:
-            lstr = [v["lk"] for v in cls._dcases.values()]
+        lC = [k for k in self._dcases.keys()
+              if (isinstance(dgeom, self._dcases[k]['type'])
+                  and all([kk in dgeom.keys()  # noqa
+                           for kk in self._dcases[k]['lk']]))]
+        if not len(lC)==1:
+            lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
             msg += "  - dict with keys:\n"
             msg += "\n    - " + "\n    - ".join(lstr)
@@ -3856,10 +3737,10 @@ class Rays(utils.ToFuObject):
             nRays = max(nD, nu)
             dgeom = {"D": D, "u": u, "isImage": False}
 
-        elif case == "C":
-            D = _checkformat_Du(dgeom["D"], "D")
-            dins = {"pinhole": {"var": dgeom["pinhole"], "vectnd": 3}}
-            dins, err, msg = cls._check_InputsGeneric(dins)
+        elif case == 'C':
+            D = _checkformat_Du(dgeom['D'], 'D')
+            dins = {'pinhole': {'var': dgeom['pinhole'], 'vectnd':3}}
+            dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
             pinhole = dins["pinhole"]["var"]
@@ -3890,7 +3771,7 @@ class Rays(utils.ToFuObject):
                     dins["l2"] = {"var": dgeom["l2"], "int2float": None}
                     dins["n2"] = {"var": dgeom["n2"], "float2int": None}
 
-            dins, err, msg = cls._check_InputsGeneric(dins)
+            dins, err, msg = self._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
             dgeom = {"dX12": {}}
@@ -4472,33 +4353,25 @@ class Rays(utils.ToFuObject):
                 else:
                     num_tot_structs += len(ss.Lim)
 
-            lsnvert = np.asarray(lsnvert, dtype=np.int64)
+            lsnvert = np.asarray(lsnvert, dtype=np.long)
             lSPolyx = np.asarray(lSPolyx)
             lSPolyy = np.asarray(lSPolyy)
             lSVInx = np.asarray(lSVInx)
             lSVIny = np.asarray(lSVIny)
 
-            dkwd = dict(
-                ves_lims=Lim,
-                nstruct_tot=num_tot_structs,
-                nstruct_lim=num_lim_structs,
-                lstruct_polyx=lSPolyx,
-                lstruct_polyy=lSPolyy,
-                lstruct_lims=lSLim,
-                lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
-                lstruct_normx=lSVInx,
-                lstruct_normy=lSVIny,
-                lnvert=lsnvert,
-                ves_type=VType,
-                rmin=-1,
-                forbid=True,
-                eps_uz=1.0e-6,
-                eps_vz=1.0e-9,
-                eps_a=1.0e-9,
-                eps_b=1.0e-9,
-                eps_plane=1.0e-9,
-                test=True,
-            )
+            dkwd = dict(ves_lims=Lim,
+                        nstruct_tot=num_tot_structs,
+                        nstruct_lim=num_lim_structs,
+                        lstruct_polyx=lSPolyx,
+                        lstruct_polyy=lSPolyy,
+                        lstruct_lims=lSLim,
+                        lstruct_nlim=np.asarray(lSnLim, dtype=np.long),
+                        lstruct_normx=lSVInx,
+                        lstruct_normy=lSVIny,
+                        lnvert=lsnvert,
+                        ves_type=VType,
+                        rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                        eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
 
         return indStruct, largs, dkwd
 
@@ -5047,10 +4920,7 @@ class Rays(utils.ToFuObject):
                  4: dgeom w/o pts + config=pathfile + dsino empty
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc, nMax)
-        if sys.version[0] == "2":
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()
@@ -5223,8 +5093,8 @@ class Rays(utils.ToFuObject):
     def _check_indch(self, ind, out=int):
         if ind is not None:
             ind = np.asarray(ind)
-            assert ind.ndim == 1
-            assert ind.dtype in [np.int64, np.bool_]
+            assert ind.ndim==1
+            assert ind.dtype in [np.int64, np.bool_, np.long]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
                 if out is int:
@@ -5604,7 +5474,7 @@ class Rays(utils.ToFuObject):
             k = np.split(k, lind, axis=-1)
         return k, reseff, lind
 
-    def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
+    def _kInOut_Isoflux_inputs(self, lPoly, lVIn=None):
 
         if self._method == "ref":
             D, u = np.ascontiguousarray(self.D), np.ascontiguousarray(self.u)
@@ -5633,57 +5503,101 @@ class Rays(utils.ToFuObject):
             pass
         return largs, dkwd
 
-    def _kInOut_IsoFlux_inputs_usr(self, lPoly, lVIn=None):
+    def _kInOut_Isoflux_inputs_usr(self, lPoly, lVIn=None):
+        c0 = type(lPoly) in [np.ndarray, list, tuple]
 
         # Check lPoly
-        if type(lPoly) is np.ndarray:
-            lPoly = [lPoly]
-        lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
-        msg = "Arg lPoly must be a list of (2,N) or (N,2) np.ndarrays !"
-        assert all([pp.ndim == 2 and 2 in pp.shape for pp in lPoly]), msg
+        if c0 and type(lPoly) is np.ndarray:
+            c0 = c0 and lPoly.ndim in [2, 3]
+            if c0 and lPoly.ndim == 2:
+                c0 = c0 and lPoly.shape[0] == 2
+                if c0:
+                    lPoly = [np.ascontiguousarray(lPoly)]
+            elif c0:
+                c0 = c0 and lPoly.shape[1] == 2
+                if c0:
+                    lPoly = np.ascontiguousarray(lPoly)
+        elif c0:
+            lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
+            c0 = all([pp.ndim == 2 and pp.shape[0] == 2 for pp in lPoly])
+        if not c0:
+            msg = "Arg lPoly must be either:\n"
+            msg += "    - a (2,N) np.ndarray (signle polygon of N points)\n"
+            msg += "    - a list of M polygons, each a (2,Ni) np.ndarray\n"
+            msg += "        - where Ni is the number of pts of each polygon\n"
+            msg += "    - a (M,2,N) np.ndarray where:\n"
+            msg += "        - M is the number of polygons\n"
+            msg += "        - N is the (common) number of points per polygon\n"
+            raise Exception(msg)
         nPoly = len(lPoly)
-        for ii in range(0, nPoly):
-            if lPoly[ii].shape[0] != 2:
-                lPoly[ii] = lPoly[ii].T
+
+        # Check anti-clockwise and closed
+        if type(lPoly) is list:
+            for ii in range(nPoly):
                 # Check closed and anti-clockwise
-                lPoly[ii] = _GG.Poly_Order(lPoly[ii], Clock=False, close=True)
+                if _GG.Poly_isClockwise(lPoly[ii]):
+                    lPoly[ii] = lPoly[ii][:, ::-1]
+                if not np.allclose(lPoly[ii][:, 0], lPoly[ii][:, -1]):
+                    lPoly[ii] = np.concatenate(
+                        (lPoly[ii], lPoly[ii][:, 0:1]), axis=-1
+                    )
+        else:
+            for ii in range(nPoly):
+                # Check closed and anti-clockwise
+                if _GG.Poly_isClockwise(lPoly[ii]):
+                    lPoly[ii] = lPoly[ii][:, ::-1]
+            d = np.sum((lPoly[:, :, 0]-lPoly[:, :, -1])**2, axis=1)
+            if np.allclose(d, 0.):
+                pass
+            elif np.all(d > 0.):
+                lPoly = np.concatenate((lPoly, lPoly[:, :, 0:1]), axis=-1)
+            else:
+                msg = "All poly in lPoly should be closed or all non-closed!"
+                raise Exception(msg)
 
         # Check lVIn
         if lVIn is None:
             lVIn = []
             for pp in lPoly:
-                VIn = np.diff(pp, axis=1)
-                VIn = VIn / (np.sqrt(np.sum(VIn ** 2, axis=0))[np.newaxis, :])
-                VIn = np.ascontiguousarray([-VIn[1, :], VIn[0, :]])
-                lVIn.append(VIn)
+                vIn = np.diff(pp, axis=1)
+                vIn = vIn/(np.sqrt(np.sum(vIn**2, axis=0))[None, :])
+                vIn = np.ascontiguousarray([-vIn[1, :], vIn[0, :]])
+                lVIn.append(vIn)
         else:
-            if type(lVIn) is np.ndarray:
-                lVIn = [lVIn]
-            assert len(lVIn) == nPoly
-            lVIn = [np.ascontiguousarray(pp) for pp in lVIn]
-            msg = "Arg lVIn must be a list of (2,N) or (N,2) np.ndarrays !"
-            assert all([pp.ndim == 2 and 2 in pp.shape for pp in lVIn]), msg
+            c0 = type(lVIn) in [np.ndarray, list, tuple]
+            if c0 and type(lVIn) is np.ndarray and lVIn.ndim == 2:
+                c0 = c0 and lVIn.shape == (2, lPoly[0].shape[1]-1)
+                if c0:
+                    lVIn = [np.ascontiguousarray(lVIn)]
+            elif c0 and type(lVIn) is np.ndarray:
+                c0 = c0 and lVIn.shape == (nPoly, 2, lPoly.shape[-1]-1)
+                if c0:
+                    lVIn = np.ascontiguousarray(lVIn)
+            elif c0:
+                c0 = c0 and len(lVIn) == nPoly
+                if c0:
+                    c0 = c0 and all([vv.shape == (2, pp.shape[1]-1)
+                                     for vv, pp in zip(lVIn, lPoly)])
+                    if c0:
+                        lVIn = [np.ascontiguousarray(vv) for vv in lVIn]
+
+            # Check normalization and direction
             for ii in range(0, nPoly):
-                if lVIn[ii].shape[0] != 2:
-                    lVIn[ii] = lVIn[ii].T
-                    lVIn[ii] = lVIn[ii] / (
-                        np.sqrt(np.sum(lVIn[ii] ** 2, axis=0))[np.newaxis, :]
-                    )
-                    assert lVIn[ii].shape == (2, lPoly[ii].shape[1] - 1)
-                    vect = np.diff(lPoly[ii], axis=1)
-                    det = (
-                        vect[0, :] * lVIn[ii][1, :]
-                        - vect[1, :] * lVIn[ii][0, :]
-                    )
-                    if not np.allclose(np.abs(det), 1.0):
-                        msg = "Each lVIn must be perp. to each lPoly segment !"
-                        raise Exception(msg)
-                    ind = np.abs(det + 1) < 1.0e-12
-                    lVIn[ii][:, ind] = -lVIn[ii][:, ind]
+                lVIn[ii] = (lVIn[ii]
+                            / np.sqrt(np.sum(lVIn[ii]**2, axis=0))[None, :])
+                vect = np.diff(lPoly[ii], axis=1)
+                vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None, :]
+                det = vect[0, :]*lVIn[ii][1, :] - vect[1, :]*lVIn[ii][0, :]
+                if not np.allclose(np.abs(det), 1.):
+                    msg = "Each lVIn must be perp. to each lPoly segment !"
+                    raise Exception(msg)
+                ind = np.abs(det+1) < 1.e-12
+                lVIn[ii][:, ind] = -lVIn[ii][:, ind]
 
         return nPoly, lPoly, lVIn
 
-    def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None, kInOut=True):
+    def calc_kInkOut_Isoflux(self, lPoly, lVIn=None, Lim=None,
+                             kInOut=True):
         """ Calculate the intersection points of each ray with each isoflux
 
         The isofluxes are provided as a list of 2D closed polygons
@@ -5702,39 +5616,35 @@ class Rays(utils.ToFuObject):
         """
 
         # Preformat input
-        nPoly, lPoly, lVIn = self._kInOut_IsoFlux_inputs_usr(lPoly, lVIn=lVIn)
+        nPoly, lPoly, lVIn = self._kInOut_Isoflux_inputs_usr(lPoly, lVIn=lVIn)
 
         # Prepare output
-        kIn = np.full((self.nRays, nPoly), np.nan)
-        kOut = np.full((self.nRays, nPoly), np.nan)
+        kIn = np.full((nPoly, self.nRays), np.nan)
+        kOut = np.full((nPoly, self.nRays), np.nan)
 
         # Compute intersections
-        assert self._method in ["ref", "optimized"]
-        if self._method == "ref":
+        assert(self._method in ['ref', 'optimized'])
+        if self._method=='ref':
             for ii in range(0, nPoly):
-                largs, dkwd = self._kInOut_IsoFlux_inputs(
-                    [lPoly[ii]], lVIn=[lVIn[ii]]
-                )
+                largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
+                                                          lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
-                kIn[:, ii], kOut[:, ii] = out[2], out[3]
-        elif self._method == "optimized":
+                kIn[ii, :], kOut[ii, :] = out[2], out[3]
+        elif self._method=="optimized":
             for ii in range(0, nPoly):
-                largs, dkwd = self._kInOut_IsoFlux_inputs(
-                    [lPoly[ii]], lVIn=[lVIn[ii]]
-                )
+                largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
+                                                          lVIn=[lVIn[ii]])
 
-                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
-                kin, kout, _, _ = out
-                kIn[:, ii], kOut[:, ii] = kin, kout
+                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[:2]
+                kIn[ii, :], kOut[ii, :] = out
         if kInOut:
             indok = ~np.isnan(kIn)
-            ind = np.zeros((self.nRays, nPoly), dtype=bool)
-            kInref = np.tile(self.kIn[:, np.newaxis], nPoly)
-            kOutref = np.tile(self.kOut[:, np.newaxis], nPoly)
-            ind[indok] = (kIn[indok] < kInref[indok]) | (
-                kIn[indok] > kOutref[indok]
-            )
+            ind = np.zeros((nPoly, self.nRays), dtype=bool)
+            kInref = np.tile(self.kIn, (nPoly, 1))
+            kOutref = np.tile(self.kOut, (nPoly, 1))
+            ind[indok] = (kIn[indok] < kInref[indok]) \
+              | (kIn[indok] > kOutref[indok])
             kIn[ind] = np.nan
 
             ind[:] = False
@@ -5746,9 +5656,112 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
-    def _calc_signal_preformat(
-        self, ind=None, DL=None, t=None, out=object, Brightness=True
-    ):
+    def calc_length_in_isoflux(self, lPoly, lVIn=None, Lim=None, kInOut=True):
+        """ Return the length of each LOS inside each isoflux
+
+        Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
+        the entry points (kIn) and exit points (kOut) for each LOS
+
+        The isofluxes must be provided as a list of polygons
+
+        The length is returned as a (nPoly, nLOS) 2d array
+
+        """
+        kIn, kOut = self.calc_kInkOut_Isoflux(lPoly, lVIn=lVIn, Lim=Lim,
+                                              kInOut=kInOut)
+        return kOut-kIn
+
+    def calc_min_geom_radius(self, axis):
+        """ Return the minimum geom. radius of each LOS, from an arbitrary axis
+
+        The axis mut be provided as a (R,Z) iterable
+        Uses self.set_dsino()
+
+        Return:
+        -------
+        p:      np.ndarray
+            (nLOS,) array of minimal radius (or impact parameter)
+        theta:  np.ndarray
+            (nLOS,) array of associated theta with respect to axis
+        pts:    np.ndarray
+            (3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS
+        """
+        self.set_dsino(RefPt=axis, extra=True)
+        p, theta, pts = self.dsino['p'], self.dsino['theta'], self.dsino['pts']
+        return p, theta, pts
+
+    def calc_min_rho_from_Plasma2D(self, plasma, t=None, log='min',
+                                   res=None, resMode='abs', method='sum',
+                                   quant=None, ref1d=None, ref2d=None,
+                                   interp_t=None, interp_space=None,
+                                   fill_value=np.nan, pts=False, Test=True):
+        """ Return the min/max value of scalar field quant for each LOS
+
+        Typically used to get the minimal normalized minor radius
+        But can be used for any quantity available in plasma if:
+            - it is a 2d profile
+            - it is a 1d profile that can be interpolated on a 2d mesh
+
+        Currently sample each LOS with desired resolution and returns the
+        absolute min/max interpolated value (and associated point)
+
+        See self.get_sample() for details on sampling arguments:
+            - res, resMode, method
+        See Plasma2D.interp_pts2profile() for details on interpolation args:
+            - t, quant, q2dref, q1dref, interp_t, interp_space, fill_value
+
+        Returns:
+        --------
+        val:        np.ndarray
+            (nt, nLOS) array of min/max values
+        pts:        np.ndarray
+            (nt, nLOS, 3) array of (X,Y,Z) coordinates of associated points
+            Only returned if pts = True
+        t:          np.ndarray
+            (nt,) array of time steps at which the interpolations were made
+        """
+        assert log in ['min', 'max']
+        assert isinstance(pts, bool)
+
+        # Sample LOS
+        ptsi, reseff, lind = self.get_sample(res=res, resMode=resMode, DL=None,
+                                             method=method, ind=None,
+                                             pts=True, compact=True, Test=True)
+
+        # Interpolate values
+        val, t = plasma.interp_pts2profile(
+            pts=ptsi, t=t, quant=quant, ref1d=ref1d, ref2d=ref2d,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value)
+
+        # Separate val per LOS and compute min / max
+        func = np.nanmin if log == 'min' else np.nanmax
+        if pts:
+            funcarg = np.nanargmin if log == 'min' else np.nanargmax
+
+        if pts:
+            nt = t.size
+            pts = np.full((3, self.nRays, nt), np.nan)
+            vals = np.full((nt, self.nRays), np.nan)
+            indt = np.arange(0, nt)
+            lind = np.r_[0, lind, ptsi.shape[1]]
+            for ii in range(self.nRays):
+                indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
+                if np.any(indok):
+                    vals[indok, ii] = func(val[indok, lind[ii]:lind[ii+1]],
+                                           axis=1)
+                    ind = funcarg(val[indok, lind[ii]:lind[ii+1]], axis=1)
+                    pts[:, ii, indok] = ptsi[:, lind[ii]:lind[ii+1]][:, ind]
+            pts = pts.T
+
+        else:
+            pts = None
+            vals = np.column_stack([func(vv, axis=1)
+                                    for vv in np.split(val, lind, axis=-1)])
+        return vals, pts, t
+
+    def _calc_signal_preformat(self, ind=None, DL=None, t=None,
+                               out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
         assert out in [object, np.ndarray], msg
         assert type(Brightness) is bool, "Arg Brightness must be a bool !"
@@ -6587,7 +6600,7 @@ class Rays(utils.ToFuObject):
                           useful for assessing reflection probabilities)
             - 'indices': the index of each LOS
                          (useful for checking numbering)
-            - 'Etendues': the étendue associated to each LOS (user-provided)
+            - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
         """
         out = _plot.Rays_plot_touch(

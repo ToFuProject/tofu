@@ -1,4 +1,4 @@
-What's new in 1.4.0:
+What's new in 1.4.0
 --------------------
 
 * All structures are now inherited from an abstract class (in tofu.geom) and are either of type:
