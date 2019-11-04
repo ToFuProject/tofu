@@ -153,17 +153,8 @@ else:
     openmp_installed = not check_for_openmp("cc")
 print("................ checking if openmp installed... > ", openmp_installed)
 
-# To compile the relevant version
-if sys.version[:3] in ["2.7", "3.6", "3.7"]:
-    gg = "_GG0%s" % sys.version[0]
-else:
-    raise Exception("Pb. with python version in setup.py file: " + sys.version)
 
 
-if sys.version[0] == "2":
-    extralib = ["funcsigs"]
-else:
-    extralib = []
 # ==============================================================================
 
 
@@ -176,8 +167,8 @@ def get_version_tofu(path=_HERE):
     isgit = ".git" in os.listdir(path)
     if isgit:
         try:
-            if sys.version[0] == "2":
-                git_branch = subprocess.check_output(
+            git_branch = (
+                subprocess.check_output(
                     [
                         "git",
                         "rev-parse",
@@ -185,21 +176,10 @@ def get_version_tofu(path=_HERE):
                         "--abbrev-ref",
                         "HEAD",
                     ]
-                ).rstrip()
-            elif sys.version[0] == "3":
-                git_branch = (
-                    subprocess.check_output(
-                        [
-                            "git",
-                            "rev-parse",
-                            "--symbolic-full-name",
-                            "--abbrev-ref",
-                            "HEAD",
-                        ]
-                    )
-                    .rstrip()
-                    .decode()
                 )
+                .rstrip()
+                .decode()
+            )
             if git_branch in ["master"]:
                 version_tofu = up.updateversion(os.path.join(path, "tofu"))
             else:
@@ -223,14 +203,6 @@ print("")
 print("Version for setup.py : ", version_tofu)
 print("")
 
-
-# Getting relevant compilable files
-if sys.version[0] == "3":
-    # if not '_GG03.pyx' in os.listdir(os.path.join(_HERE,'tofu/geom/')):
-    shutil.copy2(
-        os.path.join(_HERE, "tofu/geom/_GG02.pyx"),
-        os.path.join(_HERE, "tofu/geom/_GG03.pyx"),
-    )
 
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
@@ -259,8 +231,8 @@ else:
 
 extensions = [
     Extension(
-        name="tofu.geom." + gg,
-        sources=["tofu/geom/" + gg + ".pyx"],
+        name="tofu.geom._GG",
+        sources=["tofu/geom/_GG.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
     ),
@@ -300,7 +272,6 @@ extensions = [
 
 setup(
     name="tofu",
-    # version="1.2.27",
     version="{ver}".format(ver=version_tofu),
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm
@@ -335,7 +306,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         # In which language most of the code is written ?
@@ -368,9 +338,8 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"]
-    + extralib,
-    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*",
+    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"],
+    python_requires=">=3.6",
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:

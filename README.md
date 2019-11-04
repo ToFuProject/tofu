@@ -124,7 +124,7 @@ Do you want to use **tofu** on IMAS and don't know where to start? [See our wiki
 Install dependencies
 
 
-    python (2.7 or 3)
+    python (>= 3.6)
     numpy
     scipy
     matplotlib
@@ -132,7 +132,6 @@ Install dependencies
     nose
     pygments
     pandas
-    polygon3 (or polygon2 if you are using python 2.7)
 
 
 Checkout the tofu git repository and from the top directory

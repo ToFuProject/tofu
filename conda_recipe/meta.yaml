@@ -29,7 +29,6 @@ requirements:
     - cython >=0.26
     - nose
     - pygments
-    - funcsigs # [py27]
 
 
   # for running the library
@@ -43,7 +42,6 @@ requirements:
     - cython >=0.26
     - nose
     - pygments
-    - funcsigs # [py27]
 
 test:
   requires:

@@ -9,11 +9,7 @@ import sys
 import warnings
 #from abc import ABCMeta, abstractmethod
 import copy
-if sys.version[0]=='2':
-    import re, tokenize, keyword
-    import funcsigs as inspect
-else:
-    import inspect
+import inspect
 
 
 # Common
@@ -163,13 +159,8 @@ class Struct(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
-                 SavePath=os.path.abspath('./'),
+                 sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -612,10 +603,7 @@ class Struct(utils.ToFuObject):
                  1: Remove dsino expendables
                  2: Remove also dgeom, dphys, dreflect and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         # super()
@@ -1592,10 +1580,7 @@ class CoilPF(StructOut):
                  1: Remove dsino and dmag expendables
                  2: Remove also dgeom, dphys and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         super(CoilPF, self).strip(strip=strip)
@@ -1686,12 +1671,7 @@ class Config(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None, Type=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
-                 fromdict=None):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
+                 fromdict=None, sep=None):
 
         kwdargs = locals()
         del kwdargs['self']
@@ -1756,11 +1736,7 @@ class Config(utils.ToFuObject):
         assert issubclass(struct.__class__,Struct)
         C0 = struct.Id.Exp==self.Id.Exp
         C1 = struct.Id.Type==self.Id.Type
-        if sys.version[0]=='2':
-            C2 = (re.match(tokenize.Name + '$', struct.Id.Name)
-                  and not keyword.iskeyword(struct.Id.Name))
-        else:
-            C2 = struct.Id.Name.isidentifier()
+        C2 = struct.Id.Name.isidentifier()
         C2 = C2 and '_' not in struct.Id.Name
         msgi = None
         if not (C0 and C1 and C2):
@@ -2059,10 +2035,7 @@ class Config(utils.ToFuObject):
         for k in self._ddef['dStruct']['order']:
             if hasattr(self,k):
                 delattr(self,k)
-                # if sys.version[0]=='2':
-                    # exec "del self.{0}".format(k) in locals()
-                # else:
-                    # exec("del self.{0}".format(k))
+                # exec("del self.{0}".format(k))
 
         # Set
         for k in self._dStruct['dObj'].keys():
@@ -2206,10 +2179,7 @@ class Config(utils.ToFuObject):
                  2: apply strip(2) to objects in self.lStruct
                  3: replace objects in self.lStruct by their SavePath+SaveName"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, force=False, verb=True):
         # super()
@@ -2958,13 +2928,8 @@ class Rays(utils.ToFuObject):
     def __init__(self, dgeom=None, lOptics=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None, method='optimized',
+                 sino_RefPt=None, fromdict=None, sep=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -4120,10 +4085,7 @@ class Rays(utils.ToFuObject):
                  4: dgeom w/o pts + config=pathfile + dsino empty
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()

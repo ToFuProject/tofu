@@ -1,8 +1,7 @@
 language: python
 python:
-- '2.7'
 - '3.6'
-#- '3.7-dev'
+- '3.7-dev'
 
 git:
   depth: 200
@@ -13,10 +12,10 @@ before_install:
   - ldd --version
   - gcc --version
   - export START=$(pwd)
-install: travis_wait 30 mvn install
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
-  -O miniconda.sh; export VADD="py27"; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-  -O miniconda.sh; export VADD="py36";  fi
+install:
+- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export VADD="py37"; else export VADD="py36";  fi
+- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  -O miniconda.sh
 - bash miniconda.sh -b -p $HOME/miniconda
 - export PATH="$HOME/miniconda/bin:$PATH"
 - hash -r
