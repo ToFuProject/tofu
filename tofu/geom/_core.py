@@ -9,11 +9,7 @@ import sys
 import warnings
 #from abc import ABCMeta, abstractmethod
 import copy
-if sys.version[0]=='2':
-    import re, tokenize, keyword
-    import funcsigs as inspect
-else:
-    import inspect
+import inspect
 
 
 # Common
@@ -163,13 +159,8 @@ class Struct(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
-                 SavePath=os.path.abspath('./'),
+                 sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -612,10 +603,7 @@ class Struct(utils.ToFuObject):
                  1: Remove dsino expendables
                  2: Remove also dgeom, dphys, dreflect and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         # super()
@@ -1592,10 +1580,7 @@ class CoilPF(StructOut):
                  1: Remove dsino and dmag expendables
                  2: Remove also dgeom, dphys and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         super(CoilPF, self).strip(strip=strip)
@@ -1686,12 +1671,7 @@ class Config(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None, Type=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
-                 fromdict=None):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
+                 fromdict=None, sep=None):
 
         kwdargs = locals()
         del kwdargs['self']
@@ -1756,11 +1736,7 @@ class Config(utils.ToFuObject):
         assert issubclass(struct.__class__,Struct)
         C0 = struct.Id.Exp==self.Id.Exp
         C1 = struct.Id.Type==self.Id.Type
-        if sys.version[0]=='2':
-            C2 = (re.match(tokenize.Name + '$', struct.Id.Name)
-                  and not keyword.iskeyword(struct.Id.Name))
-        else:
-            C2 = struct.Id.Name.isidentifier()
+        C2 = struct.Id.Name.isidentifier()
         C2 = C2 and '_' not in struct.Id.Name
         msgi = None
         if not (C0 and C1 and C2):
@@ -2059,10 +2035,7 @@ class Config(utils.ToFuObject):
         for k in self._ddef['dStruct']['order']:
             if hasattr(self,k):
                 delattr(self,k)
-                # if sys.version[0]=='2':
-                    # exec "del self.{0}".format(k) in locals()
-                # else:
-                    # exec("del self.{0}".format(k))
+                # exec("del self.{0}".format(k))
 
         # Set
         for k in self._dStruct['dObj'].keys():
@@ -2206,10 +2179,7 @@ class Config(utils.ToFuObject):
                  2: apply strip(2) to objects in self.lStruct
                  3: replace objects in self.lStruct by their SavePath+SaveName"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, force=False, verb=True):
         # super()
@@ -2958,13 +2928,8 @@ class Rays(utils.ToFuObject):
     def __init__(self, dgeom=None, lOptics=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None, method='optimized',
+                 sino_RefPt=None, fromdict=None, sep=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -4120,10 +4085,7 @@ class Rays(utils.ToFuObject):
                  4: dgeom w/o pts + config=pathfile + dsino empty
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()
@@ -4290,7 +4252,7 @@ class Rays(utils.ToFuObject):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim==1
-            assert ind.dtype in [np.int64,np.bool_]
+            assert ind.dtype in [np.int64, np.bool_, np.long]
             if ind.dtype == np.bool_:
                 assert ind.size==self.nRays
                 if out is int:
@@ -4805,6 +4767,110 @@ class Rays(utils.ToFuObject):
             kOut[ind] = np.nan
 
         return kIn, kOut
+
+    def calc_length_in_isoflux(self, lPoly, lVIn=None, Lim=None, kInOut=True):
+        """ Return the length of each LOS inside each isoflux
+
+        Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
+        the entry points (kIn) and exit points (kOut) for each LOS
+
+        The isofluxes must be provided as a list of polygons
+
+        The length is returned as a (nPoly, nLOS) 2d array
+
+        """
+        kIn, kOut = self.calc_kInkOut_Isoflux(lPoly, lVIn=lVIn, Lim=Lim,
+                                              kInOut=kInOut)
+        return kOut-kIn
+
+    def calc_min_geom_radius(self, axis):
+        """ Return the minimum geom. radius of each LOS, from an arbitrary axis
+
+        The axis mut be provided as a (R,Z) iterable
+        Uses self.set_dsino()
+
+        Return:
+        -------
+        p:      np.ndarray
+            (nLOS,) array of minimal radius (or impact parameter)
+        theta:  np.ndarray
+            (nLOS,) array of associated theta with respect to axis
+        pts:    np.ndarray
+            (3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS
+        """
+        self.set_dsino(RefPt=axis, extra=True)
+        p, theta, pts = self.dsino['p'], self.dsino['theta'], self.dsino['pts']
+        return p, theta, pts
+
+    def calc_min_rho_from_Plasma2D(self, plasma, t=None, log='min',
+                                   res=None, resMode='abs', method='sum',
+                                   quant=None, ref1d=None, ref2d=None,
+                                   interp_t=None, interp_space=None,
+                                   fill_value=np.nan, pts=False, Test=True):
+        """ Return the min/max value of scalar field quant for each LOS
+
+        Typically used to get the minimal normalized minor radius
+        But can be used for any quantity available in plasma if:
+            - it is a 2d profile
+            - it is a 1d profile that can be interpolated on a 2d mesh
+
+        Currently sample each LOS with desired resolution and returns the
+        absolute min/max interpolated value (and associated point)
+
+        See self.get_sample() for details on sampling arguments:
+            - res, resMode, method
+        See Plasma2D.interp_pts2profile() for details on interpolation args:
+            - t, quant, q2dref, q1dref, interp_t, interp_space, fill_value
+
+        Returns:
+        --------
+        val:        np.ndarray
+            (nt, nLOS) array of min/max values
+        pts:        np.ndarray
+            (nt, nLOS, 3) array of (X,Y,Z) coordinates of associated points
+            Only returned if pts = True
+        t:          np.ndarray
+            (nt,) array of time steps at which the interpolations were made
+        """
+        assert log in ['min', 'max']
+        assert isinstance(pts, bool)
+
+        # Sample LOS
+        ptsi, reseff, lind = self.get_sample(res=res, resMode=resMode, DL=None,
+                                             method=method, ind=None,
+                                             pts=True, compact=True, Test=True)
+
+        # Interpolate values
+        val, t = plasma.interp_pts2profile(
+            pts=ptsi, t=t, quant=quant, ref1d=ref1d, ref2d=ref2d,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value)
+
+        # Separate val per LOS and compute min / max
+        func = np.nanmin if log == 'min' else np.nanmax
+        if pts:
+            funcarg = np.nanargmin if log == 'min' else np.nanargmax
+
+        if pts:
+            nt = t.size
+            pts = np.full((3, self.nRays, nt), np.nan)
+            vals = np.full((nt, self.nRays), np.nan)
+            indt = np.arange(0, nt)
+            lind = np.r_[0, lind, ptsi.shape[1]]
+            for ii in range(self.nRays):
+                indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
+                if np.any(indok):
+                    vals[indok, ii] = func(val[indok, lind[ii]:lind[ii+1]],
+                                           axis=1)
+                    ind = funcarg(val[indok, lind[ii]:lind[ii+1]], axis=1)
+                    pts[:, ii, indok] = ptsi[:, lind[ii]:lind[ii+1]][:, ind]
+            pts = pts.T
+
+        else:
+            pts = None
+            vals = np.column_stack([func(vv, axis=1)
+                                    for vv in np.split(val, lind, axis=-1)])
+        return vals, pts, t
 
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
@@ -5365,7 +5431,7 @@ class Rays(utils.ToFuObject):
                           useful for assessing reflection probabilities)
             - 'indices': the index of each LOS
                          (useful for checking numbering)
-            - 'Etendues': the étendue associated to each LOS (user-provided)
+            - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
         """
         out = _plot.Rays_plot_touch(self, key=key, Bck=Bck,

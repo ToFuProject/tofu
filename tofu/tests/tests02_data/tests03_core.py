@@ -329,7 +329,7 @@ class Test01_DataCam12D(object):
 
     def test10_dtreat_set_interp_indch(self):
         for oo in self.lobj:
-            ind = np.arange(0,oo.nch,10)
+            ind = np.arange(0, oo.nch, 10, dtype=np.long)
             oo.set_dtreat_interp_indch( ind )
             assert oo._dtreat['interp-indch'].sum() == ind.size
 
