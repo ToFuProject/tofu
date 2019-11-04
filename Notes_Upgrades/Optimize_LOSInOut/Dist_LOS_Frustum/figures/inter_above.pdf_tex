@@ -1,0 +1,67 @@
+%% Creator: Inkscape inkscape 0.92.2, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'inter_above.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{409.08997592bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,1.12003332)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{inter_above.pdf}}%
+    \put(0.70276726,0.44332352){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$A$}}}%
+    \put(0.86246388,0.44116789){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$B$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=2]{inter_above.pdf}}%
+    \put(0.3301195,0.349197){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{$\vec{N}$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=3]{inter_above.pdf}}%
+    \put(0.37045323,0.71846731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$Q$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=4]{inter_above.pdf}}%
+    \put(0.48263439,0.48175178){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\theta$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=5]{inter_above.pdf}}%
+    \put(0.27973261,0.57984393){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$A'$}}}%
+    \put(0.22508737,0.81900511){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$B'$}}}%
+    \put(0.20651798,1.02623094){\color[rgb]{1,0.16470588,0.16470588}\makebox(0,0)[lb]{\smash{$A$}}}%
+    \put(0.47202656,1.06431705){\color[rgb]{1,0.16470588,0.16470588}\makebox(0,0)[lb]{\smash{$B$}}}%
+  \end{picture}%
+\endgroup%

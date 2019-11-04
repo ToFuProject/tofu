@@ -1,0 +1,62 @@
+%% Creator: Inkscape inkscape 0.92.2, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'inter_LOS_Poly.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{487.81336008bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.97810115)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{inter_LOS_Poly.pdf}}%
+    \put(0.23223768,0.39246314){\color[rgb]{0,0,1}\makebox(0,0)[lb]{\smash{$d$}}}%
+    \put(0.13909906,0.50199047){\color[rgb]{1,0,0}\makebox(0,0)[lb]{\smash{$P$}}}%
+    \put(0.353548,0.40618712){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$Q$}}}%
+    \put(0.53524467,0.93137638){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\mathcal{C}$}}}%
+    \put(0.71642068,0.54414156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$A$}}}%
+    \put(0.81068325,0.31683967){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$B$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=2]{inter_LOS_Poly.pdf}}%
+    \put(0.53026944,0.69422076){\color[rgb]{0.50196078,0.50196078,0.50196078}\makebox(0,0)[lb]{\smash{$\vec{N}$}}}%
+  \end{picture}%
+\endgroup%
