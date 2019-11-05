@@ -24,8 +24,7 @@ except Exception as err:
     else:
         msg = str(traceback.format_exc())
         msg += "\n\n    => the optional sub-package tofu.imas2tofu is not usable\n"
-    warnings.warn(msg)
-    del msg, err
+    raise Exception(msg)
 
 __all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D',
            'load_Cam', 'load_Data']
