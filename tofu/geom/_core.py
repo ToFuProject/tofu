@@ -4692,7 +4692,7 @@ class Rays(utils.ToFuObject):
                 u=us, vperp=vperps, indout=indouts, Type=Type
             )
             outi = self._compute_kInOut(
-                largs=[Dsi, usi, largs[2], largs[3]],
+                largs=[Ds, us, largs[2], largs[3]],
                 dkwd=dkwd,
                 indStruct=indStruct,
             )
@@ -4842,7 +4842,7 @@ class Rays(utils.ToFuObject):
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
-    def _strip_dconfig(self, strip=0, verb=True):
+    def _strip_dconfig(self, strip=0, force=False, verb=True):
         if self._dstrip["strip"] == strip:
             return
 
@@ -4945,7 +4945,7 @@ class Rays(utils.ToFuObject):
     @classmethod
     def _checkformat_fromdict_dconfig(cls, dconfig):
         if dconfig["Config"] is None:
-            return Nonei
+            return None
         if type(dconfig["Config"]) is dict:
             dconfig["Config"] = Config(fromdict=dconfig["Config"])
         lC = [
@@ -5307,7 +5307,7 @@ class Rays(utils.ToFuObject):
             if ind.size == 1:
                 Ds, us = Ds[:, None], us[:, None]
             Ds, us = Ds[:, :, None], us[:, :, None]
-            kRMin = None
+            # kRMin = None
 
             # Add reflections ?
             c0 = (
@@ -5325,13 +5325,13 @@ class Rays(utils.ToFuObject):
                 Ds = np.concatenate((Ds, Dsadd), axis=-1)
                 us = np.concatenate((us, usadd), axis=-1)
                 kOuts = np.concatenate((kOuts, kOutsadd), axis=-1)
-                if self.config.Id.Type == "Tor":
-                    kRMin = _comp.LOS_PRMin(
-                        Ds, us, kOut=kOuts, Eps=1.0e-12, squeeze=False
-                    )
+                # if self.config.Id.Type == "Tor":
+                    # kRMin = _comp.LOS_PRMin(
+                        # Ds, us, kOut=kOuts, Eps=1.0e-12, squeeze=False
+                    # )
 
-            elif self.config.Id.Type == "Tor":
-                kRMin = self._dgeom["kRMin"][ind][:, None]
+            # elif self.config.Id.Type == "Tor":
+                # kRMin = self._dgeom["kRMin"][ind][:, None]
 
             out = _comp.LOS_CrossProj(
                 self.config.Id.Type,
@@ -5743,7 +5743,7 @@ class Rays(utils.ToFuObject):
             nt = t.size
             pts = np.full((3, self.nRays, nt), np.nan)
             vals = np.full((nt, self.nRays), np.nan)
-            indt = np.arange(0, nt)
+            # indt = np.arange(0, nt)
             lind = np.r_[0, lind, ptsi.shape[1]]
             for ii in range(self.nRays):
                 indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
@@ -5868,7 +5868,7 @@ class Rays(utils.ToFuObject):
             else:
                 osig = tfd.DataCam1D(**kwdargs)
             if plot:
-                kh = osig.plot(
+                _ = osig.plot(
                     fs=fs,
                     dmargin=dmargin,
                     wintit=wintit,
@@ -6214,7 +6214,7 @@ class Rays(utils.ToFuObject):
                         method=method,
                         ani=ani,
                         t=t,
-                        fkwdargs=fkwdargs,
+                        fkwdargs={},
                         minimize=minimize,
                         num_threads=num_threads,
                         Test=True,
