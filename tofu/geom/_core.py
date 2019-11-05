@@ -1700,7 +1700,7 @@ class Struct(utils.ToFuObject):
                 msg += "    Observed shape: {0}".format(oo.shape)
             raise Exception(msg)
         npts, noccur = int(oo[0, 0]), int(oo[0, 1])
-        poly = oo[1:1 + npts,:]
+        poly = oo[1:1 + npts, :]
         if noccur > 0:
             pos, extent = oo[1 + npts:, 0], oo[1 + npts:, 1]
         else:
