@@ -1700,7 +1700,7 @@ class Struct(utils.ToFuObject):
                 msg += "    Observed shape: {0}".format(oo.shape)
             raise Exception(msg)
         npts, noccur = int(oo[0, 0]), int(oo[0, 1])
-        poly = oo[1:1 + npts, :]
+        poly = oo[1:1 + npts,:]
         if noccur > 0:
             pos, extent = oo[1 + npts:, 0], oo[1 + npts:, 1]
         else:
@@ -1921,7 +1921,7 @@ class CoilPF(StructOut):
 
     @staticmethod
     def _get_keys_dmag():
-        lk = ["nturns", "superconducting", "active", "I", "nI"]
+        lk = ["nturns", "superconducting", "active", "current", "nI"]
         return lk
 
     ###########
@@ -2016,29 +2016,29 @@ class CoilPF(StructOut):
         return self._dmag["nturns"]
 
     @property
-    def I(self):
-        return self._dmag["I"]
+    def current(self):
+        return self._dmag["current"]
 
     ###########
     # public methods
     ###########
 
-    def set_I(self, I=None):
+    def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
         C0 = I is None
-        C1 = type(I) in [int, float, np.int64, np.float64]
-        C2 = type(I) in [list, tuple, np.ndarray]
-        msg = "Arg I must be None, a float or an 1D np.ndarray !"
+        C1 = type(current) in [int, float, np.int64, np.float64]
+        C2 = type(current) in [list, tuple, np.ndarray]
+        msg = "Arg current must be None, a float or an 1D np.ndarray !"
         assert C0 or C1 or C2, msg
         if C1:
-            I = np.array([I], dtype=float)
+            current = np.array([current], dtype=float)
         elif C2:
-            I = np.asarray(I, dtype=float).ravel()
-        self._dmag["I"] = I
+            current = np.asarray(current, dtype=float).ravel()
+        self._dmag["current"] = current
         if C0:
             self._dmag["nI"] = 0
         else:
-            self._dmag["nI"] = I.size
+            self._dmag["nI"] = current.size
 
 
 class CoilCS(CoilPF):
