@@ -30,8 +30,8 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_root = os.getcwd()
-_path_testcases = os.path.join(_root, 'tofu', 'geom', 'inputs')
+_root = tofu.__path__[0]
+_path_testcases = os.path.join(_root, 'geom', 'inputs')
 
 ###########################################################
 #       COCOS
