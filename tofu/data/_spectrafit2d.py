@@ -105,9 +105,34 @@ def get_peaks(x, y, nmax=None):
         nn += 1
     return A, x0, sigma
 
-def get_p0bounds(x, y, nmax=None):
+def get_p0bounds_all(x, y, nmax=None):
 
-    yflat, bck = remove_bck(x,y)
+    yflat, bck = remove_bck(x, y)
+    A, x0, sigma = get_peaks(x, yflat, nmax=nmax)
+
+    p0 = A.tolist() + x0.tolist() + sigma.tolist() + [bck]
+
+    lx = [np.nanmin(x), np.nanmax(x)]
+    Dx = np.diff(lx)
+    dx = np.nanmin(np.diff(x))
+
+    bA = (np.zeros(nmax,), np.full((nmax,),3.*np.nanmax(y)))
+    bx0 = (np.full((nmax,),lx[0]-Dx/2.), np.full((nmax,),lx[1]+Dx/2.))
+    bsigma = (np.full((nmax,),dx/2.), np.full((nmax,),Dx/2.))
+    bbck0 = (0., np.nanmax(y))
+
+    bounds = (np.r_[bA[0],bx0[0],bsigma[0], bbck0[0]],
+              np.r_[bA[1],bx0[1],bsigma[1], bbck0[1]])
+    if not np.all(bounds[0]<bounds[1]):
+        msg = "Lower bounds must be < upper bounds !\n"
+        msg += "    lower :  %s\n"+str(bounds[0])
+        msg += "    upper :  %s\n"+str(bounds[1])
+        raise Exception(msg)
+    return p0, bounds
+
+def get_p0bounds_lambfix(x, y, nmax=None, lamb0=None):
+
+    yflat, bck = remove_bck(x, y)
     A, x0, sigma = get_peaks(x, yflat, nmax=nmax)
 
     p0 = A.tolist() + x0.tolist() + sigma.tolist() + [bck]
@@ -131,62 +156,114 @@ def get_p0bounds(x, y, nmax=None):
     return p0, bounds
 
 
-def get_func1d_all(n=5):
-    def func_vect(x, A, x0, sigma, bck0):
-        y = np.full((A.size+1, x.size), np.nan)
-        for ii in range(A.size):
-            y[ii,:] = A[ii]*np.exp(-(x-x0[ii])**2/sigma[ii]**2)
-        y[-1,:] = bck0
+def get_func1d_all(n=5, lamb0=None):
+    if lamb0 is None:
+        lamb0 = np.zeros((n,), dtype=float)
+    assert lamb0.size == n
+
+    def func_vect(x, amp, dlamp, sigma, bck0, lamb0=lamb0, n=n):
+        y = np.full((n+1, x.size), np.nan)
+        y[:-1, :] = amp[:, None]*np.exp(-(x[None, :]-(lamb0+dlamb)[:, None])**2
+                                        /sigma[:, None]**2)
+        y[-1, :] = bck0
         return y
 
-    def func_sca(x, *args, n=n):
-        A = np.r_[args[0:n]]
-        x0 = np.r_[args[n:2*n]]
-        sigma = np.r_[args[2*n:3*n]]
+    def func_sca(x, *args, lamb0=lamb0, n=n):
+        amp = np.r_[args[0:n]][:, None]
+        dlamb = np.r_[args[n:2*n]][:, None]
+        sigma = np.r_[args[2*n:3*n]][:, None]
         bck0 = np.r_[args[3*n]]
-        gaus = A[:,np.newaxis]*np.exp(-(x[np.newaxis,:]-x0[:,np.newaxis])**2/sigma[:,np.newaxis]**2)
+        gaus = amp * np.exp(-(x[None, :]-(lamb0[:, None] + dlamb))**2/sigma**2)
         back = bck0
-        return np.sum( gaus, axis=0) + back
+        return np.sum(gaus, axis=0) + back
 
-    def func_sca_jac(x, *args, n=n):
-        A = np.r_[args[0:n]][np.newaxis,:]
-        x0 = np.r_[args[n:2*n]][np.newaxis,:]
-        sigma = np.r_[args[2*n:3*n]][np.newaxis,:]
+    def func_sca_jac(x, *args, lamb0=lamb0, n=n):
+        amp = np.r_[args[0:n]][None, :]
+        dlamb = np.r_[args[n:2*n]][None, :]
+        sigma = np.r_[args[2*n:3*n]][None, :]
         bck0 = np.r_[args[3*n]]
-        jac = np.full((x.size,3*n+1,), np.nan)
-        jac[:,:n] = np.exp(-(x[:,np.newaxis]-x0)**2/sigma**2)
-        jac[:,n:2*n] = A*2*(x[:,np.newaxis]-x0)/(sigma**2) * np.exp(-(x[:,np.newaxis]-x0)**2/sigma**2)
-        jac[:,2*n:3*n] = A*2*(x[:,np.newaxis]-x0)**2/sigma**3 * np.exp(-(x[:,np.newaxis]-x0)**2/sigma**2)
-        jac[:,-1] = 1.
+        lamb0 = lamb0[None, :]
+        x = x[:, None]
+        jac = np.full((x.size, 3*n+1,), np.nan)
+        jac[:, :n] = np.exp(-(x - (lamb0+dlamb))**2/sigma**2)
+        jac[:, n:2*n] = amp*2*((x - (lamb0+dlamb))/(sigma**2)
+                               * np.exp(-(x - (lamb + dlamb))**2/sigma**2))
+        jac[:, 2*n:3*n] = amp*2*((x - (lamb0+dlamb))**2/sigma**3
+                                 * np.exp(-(x - (lamb0+dlamb))**2/sigma**2))
+        jac[:, -1] = 1.
+        return jac
+
+    return func_vect, func_sca, func_sca_jac
+
+def get_func1d_lamb0fix(n=5, lamb0=None):
+    if lamb0 is None:
+        lamb0 = np.zeros((n,), dtype=float)
+    assert lamb0.size == n
+
+    def func_vect(x, amp, sigma, bck0, lamb0=lamb0, n=n):
+        y = np.full((n+1, x.size), np.nan)
+        for ii in range(n):
+            y[ii, :] = amp[ii]*np.exp(-(x-lamb0[ii])**2/sigma[ii]**2)
+        y[-1, :] = bck0
+        return y
+
+    def func_sca(x, *args, lamb0=lamb0, n=n):
+        amp = np.r_[args[0:n]][:, None]
+        sigma = np.r_[args[2*n:3*n]][:, None]
+        bck0 = np.r_[args[3*n]]
+        gaus = amp * np.exp(-(x[None, :]-lamb0[:, None])**2/sigma**2)
+        back = bck0
+        return np.sum(gaus, axis=0) + back
+
+    def func_sca_jac(x, *args, lamb0=lamb0, n=n):
+        amp = np.r_[args[0:n]][None, :]
+        sigma = np.r_[args[2*n:3*n]][None, :]
+        bck0 = np.r_[args[3*n]]
+        lamb0 = lamb0[None, :]
+        x = x[:, None]
+        jac = np.full((x.size, 2*n+1,), np.nan)
+        jac[:, :n] = np.exp(-(x - lamb0)**2/sigma**2)
+        jac[:, n:2*n] = amp*2*((x - lamb0)**2/sigma**3
+                                 * np.exp(-(x-lamb0)**2/sigma**2))
+        jac[:, -1] = 1.
         return jac
 
     return func_vect, func_sca, func_sca_jac
 
 
-def multiplegaussianfit(x, spectra, nmax=None, p0=None, bounds=None,
+def multiplegaussianfit(x, spectra, nmax=None,
+                        lamb0=None, forcelamb=None,
+                        p0=None, bounds=None,
                         max_nfev=None, xtol=1.e-8, verbose=0,
                         percent=20, plot_debug=False):
 
     # Prepare
-    if spectra.ndim==1:
+    if spectra.ndim == 1:
         spectra = spectra.reshape((1,spectra.size))
     nt = spectra.shape[0]
 
-    A = np.full((nt,nmax),np.nan)
-    x0 = np.full((nt,nmax),np.nan)
-    sigma = np.full((nt,nmax),np.nan)
+    amp = np.full((nt, nmax),np.nan)
+    sigma = np.full((nt, nmax),np.nan)
     bck0 = np.full((nt,),np.nan)
-    Astd = np.full((nt,nmax),np.nan)
-    x0std = np.full((nt,nmax),np.nan)
-    sigmastd = np.full((nt,nmax),np.nan)
+    ampstd = np.full((nt, nmax),np.nan)
+    sigmastd = np.full((nt, nmax),np.nan)
     bck0std = np.full((nt,),np.nan)
     std = np.full((nt,),np.nan)
+    if not forcelamb:
+        dlamb = np.full((nt, nmax),np.nan)
+        dlambstd = np.full((nt, nmax),np.nan)
 
     # Prepare info
     if verbose is not None:
         print("----- Fitting spectra with {0} gaussians -----".format(nmax))
     nspect = spectra.shape[0]
     nstr = max(nspect//max(int(100/percent),1),1)
+
+    # lamb0
+    if lamb0 is None:
+        p00, bounds0 = get_p0bounds(x, spectra[0,:], nmax=nmax)
+        lamb0 = None
+
 
     # bounds and initial guess
     if p0 is None or bounds is None:
@@ -197,9 +274,15 @@ def multiplegaussianfit(x, spectra, nmax=None, p0=None, bounds=None,
         bounds = bounds0
 
     # Get fit
-    func_vect, func_sca, func_sca_jac = get_func(nmax)
+    if forcelamb:
+        func_vect, func_sca, func_sca_jac = get_func1d_lambfix(n=nmax,
+                                                               lamb0=lamb0)
+    else:
+        func_vect, func_sca, func_sca_jac = get_func1d_all(n=nmax,
+                                                           lamb0=lamb0
+
     lch = []
-    for ii in range(0,nspect):
+    for ii in range(0, nspect):
 
         if verbose is not None and ii%nstr==0:
             print("=> spectrum {0} / {1}".format(ii,nspect))
@@ -266,7 +349,7 @@ def multiplegaussianfit(x, spectra, nmax=None, p0=None, bounds=None,
             import ipdb         # DB
             ipdb.set_trace()    # DB
 
-    return (A,Astd), (x0,x0std), (sigma,sigmastd), (bck0,bck0std), std, lch
+    return (A, Astd), (x0, x0std), (sigma, sigmastd), (bck0, bck0std), std, lch
 
 
 

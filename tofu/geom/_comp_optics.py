@@ -195,6 +195,13 @@ def calc_braggphi_from_xixj(xi, xj, det_cent, det_ei, det_ej,
 
     return bragg, phi
 
+def get_lambphifit(lamb, phi, nxi, nxj):
+    lambD = lamb.max()-lamb.min()
+    lambfit = lamb.min() +lambD*np.linspace(0, 1, nxi)
+    phiD = phi.max() - phi.min()
+    phifit = phi.min() + phiD*np.linspace(0, 1, nxj)
+    return lambfit, phifit
+
 
 # ###############################################
 #           Spectral fit 2d - user-friendly

@@ -1014,7 +1014,7 @@ class CrystalBragg(utils.ToFuObject):
         return bragg, phi
 
     def plot_johannerror(self, lamb=None):
-        pass
+        raise NotImplementedError
 
     def plot_data_in_phi_vs_lamb(self, xi=None, xj=None, data=None,
                                  det_cent=None, det_ei=None, det_ej=None,
@@ -1033,6 +1033,56 @@ class CrystalBragg(utils.ToFuObject):
                           theta=theta, psi=psi, plot=False)
         assert bragg.shape == phi.shape == data.shape
         lamb = self.get_lamb_from_bragg(bragg, n=n)
+        func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
+        ax = func(xi, xj, bragg, lamb, phi, data,
+                  deg=deg, knots=knots, lambrest=lambrest,
+                  camp=camp, cwidth=cwidth, cshift=cshift,
+                  cmap=cmap, vmin=vmin, vmax=vmax,
+                  fs=fs)
+        return ax
+
+    def plot_data_fit2d(self, xi=None, xj=None, data=None,
+                        det_cent=None, det_ei=None, det_ej=None,
+                        theta=None, psi=None, n=None,
+                        deg=None, knots=None,
+                        lambrest=None, forcelambrest=False
+                        camp=None, cwidth=None, cshift=None,
+                        plot=True, fs=None,
+                        cmap=None, vmin=None, vmax=None):
+        # Check / format inputs
+        assert data is not None
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        func = self.calc_phibragg_from_xixj
+        bragg, phi = func(xii, xjj, n=n,
+                          det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+                          theta=theta, psi=psi, plot=False)
+        assert bragg.shape == phi.shape == data.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        # Compute lambfit / phifit and spectrum1d
+        lambfit, phifit = _comp_optics.get_lambphifit(lamb, pĥi, nxi, nxj)
+        lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
+        ind = np.digitize(lamb, lambfitbins)
+        spectrum1d = np.array([np.sum(data[ind==ii]) for ii in np.unique(ind)])
+
+        # Compute fit for spectrum1d to get lambrest if not provided
+        import tofu.data._spectralfit2d as _spectralfit2d
+        lambrest = _comp_optics.get_lambrest_spectrum1d(lamb=lambfit,
+                                                        spectrum=spectrum1d,
+                                                        lambrest=lambrest)
+        if lambrest is None:
+            func = _spectralfit2d.multiplegaussianfit
+            lambrest = func(lambfit, spectrum1d,
+                            nmax=nlambmax)
+        else:
+            lambrest = np.atleast_1d(lambrest).ravel()
+
+
+        # plot
         func = _plot_optics.CrystalBragg_plot_data_vs_braggangle
         ax = func(xi, xj, bragg, lamb, phi, data,
                   deg=deg, knots=knots, lambrest=lambrest,
