@@ -72,42 +72,40 @@ import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
 
-lsub = []
-try:
-    import tofu.imas2tofu as imas2tofu
-    okimas2tofu = True
-except Exception as err:
-    lsub.append('imas2tofu')
-    okimas2tofu = False
 
-try:
-    import tofu.mag as mag
-    okmag = True
-except Exception as err:
-    lsub.append('mag')
-    okmag = False
+# -------------------------------------
+#   Try importing optional subpackages
+# -------------------------------------
 
-if len(lsub) > 0:
-    lsub = ['tofu.{0}'.format(ss) for ss in lsub]
+msg = None
+dsub = dict.fromkeys(['imas2tofu', 'mag'])
+for sub in dsub.keys():
+    try:
+        exec('import tofu.{0} as {0}'.format(sub))
+        dsub[sub] = True
+    except Exception as err:
+        dsub[sub] = str(err)
+
+# -------------------------------------
+# If any error, populate warning and store error message
+# -------------------------------------
+
+lsubout = [sub for sub in dsub.keys() if dsub[sub] != True]
+if len(lsubout) > 0:
+    lsubout = ['tofu.{0}'.format(ss) for ss in lsubout]
     msg = "\nThe following subpackages are not available:"
-    msg += "\n    - " + "\n    - ".join(lsub)
+    msg += "\n    - " + "\n    - ".join(lsubout)
+    msg += "\n  => see tofu.dsub[<subpackage>] for details on error messages"
     warnings.warn(msg)
 
+# -------------------------------------
+# Add optional subpackages to __all__
+# -------------------------------------
 
 __all__ = ['pathfile','utils','_plot','geom','data']
-if okimas2tofu:
-    __all__.append('imas2tofu')
-if okmag:
-    __all__.append('mag')
+for sub in dsub.keys():
+    if dsub[sub] == True:
+        __all__.append(sub)
 
-
-del sys, warnings, okimas2tofu, okmag
-
-#__all__.extend(['geom', 'mesh', 'matcomp', 'data', 'inv'])
-
-#__name__ = ""
-#__date__ = "$Mar 05, 2014$"
-#__copyright__ = ""
-#__license__ = ""
-#__url__ = ""
-#__path__ =
+# clean-up the mess
+del sys, warnings, lsubout, sub, msg

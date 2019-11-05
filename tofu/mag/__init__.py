@@ -7,6 +7,7 @@
 import warnings
 import traceback
 
+msg, err = None, None
 try:
     import imas
 except Exception as err:
@@ -37,7 +38,7 @@ except Exception:
         msg = "Could not import"
         raise Exception(msg)
 
-del warnings, traceback, magFieldLines, mag_ripple
+del warnings, traceback, magFieldLines, mag_ripple, pywed, imas
 del msg, err
 
 __all__ = ['MagFieldLines']
