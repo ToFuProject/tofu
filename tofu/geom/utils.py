@@ -642,9 +642,9 @@ _dconfig = {'A1': {'Exp': _ExpWest,
                            'RippleV1', 'VDEV0']},
             'B4': {'Exp': _ExpITER,
                    'Ves': ['V1'],
-                   'PFC': ['BLK01','BLK02','BLK03','BLK04','BLK05','BLK06',
-                           'BLK07','BLK08','BLK09','BLK10','BLK11','BLK12',
-                           'BLK13','BLK14','BLK15','BLK16','BLK17','BLK18',
+                   'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05', 'BLK06',
+                           'BLK07', 'BLK08', 'BLK09', 'BLK10', 'BLK11', 'BLK12',
+                           'BLK13', 'BLK14', 'BLK15', 'BLK16', 'BLK17', 'BLK18',
                            'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
             }
 
