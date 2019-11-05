@@ -1045,7 +1045,7 @@ class CrystalBragg(utils.ToFuObject):
                         det_cent=None, det_ei=None, det_ej=None,
                         theta=None, psi=None, n=None,
                         deg=None, knots=None,
-                        lambrest=None, forcelambrest=False
+                        lambrest=None, forcelamb=False,
                         camp=None, cwidth=None, cshift=None,
                         plot=True, fs=None,
                         cmap=None, vmin=None, vmax=None):
