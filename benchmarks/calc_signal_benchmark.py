@@ -42,10 +42,10 @@ np.set_printoptions(linewidth=200)
 # Defining defaults
 ###################
 
-_LRES = [-2, -2, 0]
-_LLOS = [2, 2, 0]
+_LRES = [-2, -1, 0]
+_LLOS = [2, 3, 0]
 _LT = [2, 2, 0]
-_NREP = 2
+_NREP = 1
 
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
@@ -147,7 +147,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                 ('nres',nres), ('nnt',nnt),
                 ('Host',socket.gethostname()), ('USR',getpass.getuser())]
         name = 'benchmark_LOScalcsignal_'
-        name += '_'.join(['{}{}'.format(nn,vv)
+        name += '_'.join(['{}{}'.format(nn, vv)
                           for nn,vv in lvar])
     if nameappend is not None:
         name += '_'+nameappend
@@ -213,7 +213,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     #------------
     # Start loop
 
-    names = np.array([['{}  los = {}'.format(lalgo[ii],int(nlos[jj]))
+    names = np.array([['{}  los = {}'.format(lalgo[ii], int(nlos[jj]))
                        for jj in range(nnlos)]
                       for ii in range(nalgo)])
     lennames = np.max(np.char.str_len(names))
@@ -299,7 +299,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                     t_av[ii,jj,ll,tt] = np.mean(dt)
                     t_std[ii,jj,ll,tt] = np.std(dt)
 
-                msgi = msg + ': {}'.format(t_av[ii,jj,ll,:])
+                msgi = msg + ': {}'.format(t_av[ii, jj, ll, :])
                 if stdout:
                     msgi = '\r'+msgi
                     print(msgi)
@@ -333,7 +333,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     winname = np.char.rjust(np.asarray(lalgo)[win], ln)
     lsblocks = ['nlos = {}'.format(nlos[jj]) + "\n        "
-                 + "\n        ".join([('res {}/{}    '.format(ll,nres)
+                 + "\n        ".join([('res {}/{}    '.format(ll, nres)
                                        + str(winname[jj,ll,:]))
                                       for ll in range(nres)])
                 for jj in range(nnlos)]
