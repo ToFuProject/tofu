@@ -334,7 +334,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     winname = np.char.rjust(np.asarray(lalgo)[win], ln)
     lsblocks = ['nlos = {}'.format(nlos[jj]) + "\n        "
                 + "\n        ".join([('res {}/{}    '.format(ll, nres)
-                                      + str(winname[jj,ll,:]))
+                                      + str(winname[jj, ll, :]))
                                      for ll in range(nres)])
                 for jj in range(nnlos)]
     msg += "\n" +  "\n    " + "\n    ".join(lsblocks)
