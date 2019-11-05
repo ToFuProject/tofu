@@ -62,7 +62,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"tofu"
-copyright = u"2016, Didier VEZINET"
+copyright = u"2016-2019, Tofu contributors"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -167,11 +167,12 @@ html_theme_options = {
     "bootstrap_version": "3",
     "nosidebar": True,
     "navbar_links": [
-        ("Gallery", "auto_examples/index"),
         ("Installation", "installation"),
-        ("About us", "aboutus"),
-        ("Versions", "releases"),
-        ("Code doc", "tofu"),
+        ("Contributing", 'contributing'),
+        ("Gallery", "auto_examples/index"),
+        ("About", "aboutus"),
+        ("Releases", "releases"),
+        ("API", "tofu"),
     ],
 }
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,

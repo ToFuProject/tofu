@@ -7,11 +7,7 @@ import itertools as itt
 import copy
 import warnings
 from abc import ABCMeta, abstractmethod
-if sys.version[0] == '3':
-    import inspect
-else:
-    # Python 2 back-porting
-    import funcsigs as inspect
+import inspect
 
 # Common
 import numpy as np
@@ -170,13 +166,8 @@ class DataAbstract(utils.ToFuObject):
                  dchans=None, dlabels=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  dextra=None, lCam=None, config=None,
-                 fromdict=None, SavePath=os.path.abspath('./'),
+                 fromdict=None, sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         #self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -817,10 +808,7 @@ class DataAbstract(utils.ToFuObject):
                  2: dgeom pathfiles + clear data
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()
@@ -2278,13 +2266,8 @@ class Plasma2D(utils.ToFuObject):
     def __init__(self, dtime=None, dradius=None, d0d=None, d1d=None,
                  d2d=None, dmesh=None, config=None,
                  Id=None, Name=None, Exp=None, shot=None,
-                 fromdict=None, SavePath=os.path.abspath('./'),
+                 fromdict=None, sep=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         # Create a dplot at instance level
         #self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -2839,10 +2822,7 @@ class Plasma2D(utils.ToFuObject):
                  1: dgeom pathfiles
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0, verb=True):
         # super()

@@ -161,8 +161,8 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
         txtfile = open(os.path.join(path,txtfile), 'w')
     elif txtfile is True:
         txtfile = open(os.path.join(path,name+'.txt'), 'w')
-    msg = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
-    print(msg, file=txtfile)
+    msg_loc = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+    print(msg_loc, file=txtfile)
 
 
     # config
@@ -391,7 +391,7 @@ if __name__ == '__main__':
 
     This is a bash wrapper around the function benchmark()
     """
-    parser = argparse.ArgumentParser(description = msg)
+    parser = argparse.ArgumentParser(description=msg)
 
     parser.add_argument('-f', '--func', type=bool,
                         help='emissivity function', required=False, default=_FUNC)
