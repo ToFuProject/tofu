@@ -5326,11 +5326,11 @@ class Rays(utils.ToFuObject):
                 us = np.concatenate((us, usadd), axis=-1)
                 kOuts = np.concatenate((kOuts, kOutsadd), axis=-1)
                 # if self.config.Id.Type == "Tor":
-                    # kRMin = _comp.LOS_PRMin(
-                        # Ds, us, kOut=kOuts, Eps=1.0e-12, squeeze=False
-                    # )
+                # kRMin = _comp.LOS_PRMin(
+                # Ds, us, kOut=kOuts, Eps=1.0e-12, squeeze=False
+                # )
 
-            # elif self.config.Id.Type == "Tor":
+                # elif self.config.Id.Type == "Tor":
                 # kRMin = self._dgeom["kRMin"][ind][:, None]
 
             out = _comp.LOS_CrossProj(
