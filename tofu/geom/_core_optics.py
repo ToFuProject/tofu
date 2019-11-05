@@ -120,7 +120,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def __init__(self, dgeom=None, dmat=None, dbragg=None,
                  Id=None, Name=None, Exp=None, Diag=None, shot=None,
-                 fromdict=None,
+                 fromdict=None, sep=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
 
