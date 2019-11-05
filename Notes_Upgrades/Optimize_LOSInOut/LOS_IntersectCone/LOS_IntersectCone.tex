@@ -48,7 +48,7 @@ We consider an orthonormal direct cylindrical coordinate system $(O,\ud{e}_R,\ud
 \begin{figure}[h]
 \centering{
 \def\svgwidth{0.75\linewidth}
-\import{figures/}{tore_cones12.pdf_tex}
+\import{figures/}{tore_cones12.pdf_tex} 
 \caption{Two examples of a circular torus approximated by a revolved octagon. For each segment $\overline{AB}$ of the octagon there is a cone with origin on the $(O,Z)$ axis.}
 \label{fig:tok-ab}
 }
@@ -62,7 +62,7 @@ In order to simplify the computations, let $A$ and $B$ be the end points of a se
 
 Then, any point $M$ with coordinates $(X,Y,Z)$ or $(R,\theta,Z)$ belongs to the frustum $\mathcal{F}$ if and only if
 $$
-\exists q \in [0;1] /
+\exists q \in [0;1] / 
 \left\{ \begin{array}{ll}
 R-R_A = q(R_B-R_A)\\
 Z-Z_A = q(Z_B-Z_A)
@@ -83,7 +83,7 @@ Let us now consider all intersections between the edge of a frustum $\mathcal{F}
 
 \begin{equation}
 \begin{array}{lll}
-\exists (q,k) \in [0;1]\times [0;\infty[ /& &
+\exists (q,k) \in [0;1]\times [0;\infty[ /& & 
 \left\{\begin{array}{ll}
 R-R_A = q(R_B-R_A)\\
 Z-Z_A = q(Z_B-Z_A)\\
@@ -143,7 +143,7 @@ Let us consider first the case where $Z_B=Z_A$, when the frustum becomes an annu
 \begin{figure}[h]
 \centering{
 \def\svgwidth{0.5\linewidth}
-\import{figures/}{horizontal_cone_hoz_LOS.pdf_tex}
+\import{figures/}{horizontal_cone_hoz_LOS.pdf_tex} 
 \caption{Plane frustum and horizontal Line of Sight on the same $Z$-plane.}
 \label{fig:hoz-frus-hoz-los}
 }
@@ -154,7 +154,7 @@ Hence, the only derivable solutions suppose that $Z_B\neq Z_A$.
 \subsection{Non-horizontal cone: $Z_B\neq Z_A$}
 
 Then $q=\dfrac{Z_D-Z_A}{Z_B-Z_A}$.
-There are acceptable solution only if $q\in[0;1]$.
+There are acceptable solution only if $q\in[0;1]$. 
 By introducing $$C = q^2(R_B-R_A)^2 + 2qR_A(R_B-R_A) + R_A^2,$$ we have
 $$
 \left(k\ud{u}_{//} + \ud{D}_{//}\right)^2 - C = 0\\
@@ -192,7 +192,7 @@ q^2 & (R_B-R_A)^2 + 2qR_A(R_B-R_A) + R_A^2\\
 & = \left(q\dfrac{Z_B-Z_A}{u_Z} - \dfrac{Z_D-Z_A}{u_Z}\right)^2\ud{u}_{//}^2 + 2\left(q\dfrac{Z_B-Z_A}{u_Z} - \dfrac{Z_D-Z_A}{u_Z}\right)\ud{u}_{//}\cdot\ud{D}_{//} + \ud{D}_{//}^2\\
 & =q^2\left(\dfrac{Z_B-Z_A}{u_Z}\right)^2\ud{u}_{//}^2 - 2q\dfrac{Z_B-Z_A}{u_Z}\dfrac{Z_D-Z_A}{u_Z}\ud{u}_{//}^2 \\
 & + \left(\dfrac{Z_D-Z_A}{u_Z}\right)^2\ud{u}_{//}^2
-+ 2q\dfrac{Z_B-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//} - 2\dfrac{Z_D-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//} + \ud{D}_{//}^2\\
++ 2q\dfrac{Z_B-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//} - 2\dfrac{Z_D-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//} + \ud{D}_{//}^2\\ 
 \end{array}
 $$
 
@@ -201,7 +201,7 @@ $$
 \begin{array}{lll}
 0 &=& q^2\left( (R_B-R_A)^2 - \left(\frac{Z_B-Z_A}{u_Z}\right)^2\ud{u}_{//}^2 \right)\\
 & + & 2q\left( R_A(R_B-R_A) + \frac{Z_B-Z_A}{u_Z}\frac{Z_D-Z_A}{u_Z}\ud{u}_{//}^2 - \frac{Z_B-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//}  \right)\\
-& - & \left(\frac{Z_D-Z_A}{u_Z}\right)^2\ud{u}_{//}^2 + 2\frac{Z_D-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//} - \ud{D}_{//}^2 + R_A^2
+& - & \left(\frac{Z_D-Z_A}{u_Z}\right)^2\ud{u}_{//}^2 + 2\frac{Z_D-Z_A}{u_Z}\ud{u}_{//}\cdot\ud{D}_{//} - \ud{D}_{//}^2 + R_A^2 
 \end{array}
 $$
 
@@ -221,7 +221,7 @@ Because of the shape of potential solutions, we have to discriminate the case $A
 \subsection{$A=0$: LOS parallel to one of the cone generatrices}
 
 Then, because of the shape of the potential solution, we have to discriminate the case $B=0$.
-But in this case we have $C=0$.
+But in this case we have $C=0$. 
 \begin{itemize}
 \item if $C=0 \Rightarrow$ no condition on q and k, the LOS is included in the cone $\Rightarrow$ we consider no solution
 \item if $C\neq 0 \Rightarrow$ Impossible, no solution
@@ -278,3 +278,12 @@ Hence $\frac{dR(t_r)}{c} + dt_r = dt$
 
 
 \end{document}
+
+
+\begin{figure}
+  \caption{A picture of a gull.}
+  \centering
+    \includegraphics[width=0.5\textwidth]{gull}
+\end{figure}
+
+
