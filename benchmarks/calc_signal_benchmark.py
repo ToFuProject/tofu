@@ -147,24 +147,24 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                 ('nres',nres), ('nnt',nnt),
                 ('Host',socket.gethostname()), ('USR',getpass.getuser())]
         name = 'benchmark_LOScalcsignal_'
-        name += '_'.join(['%s%s'%(nn,vv)
+        name += '_'.join(['{}{}'.format(nn,vv)
                           for nn,vv in lvar])
     if nameappend is not None:
         name += '_'+nameappend
 
     # printing file
     stdout = False
-    msg_loc = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+    msg_loc = "\ntofu {} loaded from:\n    {}\n".format(tfversion, tforigin)
     if txtfile is None:
         txtfile = sys.stdout
         stdout = True
         print(msg_loc)
     elif type(txtfile) is str:
-        txtfile = os.path.join(path,txtfile)
+        txtfile = os.path.join(path, txtfile)
         with open(txtfile, 'w') as f:
             f.write(msg_loc)
     elif txtfile is True:
-        txtfile = os.path.join(path,name+'.txt')
+        txtfile = os.path.join(path, name+'.txt')
         with open(txtfile, 'w') as f:
             f.write(msg_loc)
 
@@ -213,18 +213,18 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     #------------
     # Start loop
 
-    names = np.array([['%s  los = %s'%(lalgo[ii],int(nlos[jj]))
+    names = np.array([['{}  los = {}'.format(lalgo[ii],int(nlos[jj]))
                        for jj in range(nnlos)]
                       for ii in range(nalgo)])
     lennames = np.max(np.char.str_len(names))
     msg = "\n###################################"*2
     msg += "\nBenchmark about to be run with:"
     msg += "\n-------------------------------\n\n"
-    msg += "lalgo = %s\n"%str(lalgo)
-    msg += "nlos = %s\n"%str(nlos)
-    msg += "res  = %s\n"%str(res)
-    msg += "nt   = %s\n"%str(nt)
-    msg += "rep  = %s\n\n"%str(nrep)
+    msg += "lalgo = {}\n".format(lalgo)
+    msg += "nlos = {}\n".format(nlos)
+    msg += "res  = {}\n".format(res)
+    msg += "nt   = {}\n".format(nt)
+    msg += "rep  = {}\n\n".format(nrep)
     msg += "    algo:"
     msg = msg.ljust(lennames)
     msg += '  times:'
@@ -245,10 +245,11 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
-                                                Name=str(names[ii,jj]), Exp='dummy',
+                                                Name=str(names[ii,jj]),
+                                                Exp='dummy',
                                                 Diag='Dummy',
                                                 **_DCAM)
-            msg = "    %s"%(names[ii,jj].ljust(lennames))
+            msg = "    {}".format(names[ii,jj].ljust(lennames))
             if stdout:
                 print(msg)
                 sys.stdout.flush()
@@ -256,12 +257,16 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                 with open(txtfile, 'w') as f:
                     f.write(msg)
             for ll in range(nres):
-                msg = "        res %s/%s"%(ll+1, nres)
+                msg = "        res {}/{}".format(ll + 1, nres)
                 for tt in range(nnt):
                     dt = np.zeros((nrep,))
                     for rr in range(nrep):
                         if stdout:
-                            msgi = "\r" + msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
+                            msgi = "\r" + msg \
+                              + "   nt {}/{}    rep {}/{}".format(tt + 1,
+                                                                  nnt,
+                                                                  rr + 1,
+                                                                  nrep)
                             print(msgi, end='')
                             sys.stdout.flush()
                         try:
@@ -294,7 +299,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                     t_av[ii,jj,ll,tt] = np.mean(dt)
                     t_std[ii,jj,ll,tt] = np.std(dt)
 
-                msgi = msg + ': %s'%str(t_av[ii,jj,ll,:])
+                msgi = msg + ': {}'.format(t_av[ii,jj,ll,:])
                 if stdout:
                     msgi = '\r'+msgi
                     print(msgi)
@@ -322,13 +327,13 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     ln = np.max([len(aa) for aa in lalgo])
     msg = "\n  --------------------\n  --- Synthesis ---"
     msg += "\n\n  Speed score:\n    "
-    msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
+    msg += "\n    ".join(["{} : {}".format(lalgo[ii].ljust(ln),
                                      100.*np.sum(win==ii)/ncase) +' %'
                           for ii in range(nalgo)])
 
     winname = np.char.rjust(np.asarray(lalgo)[win], ln)
-    lsblocks = ['nlos = %s'%str(nlos[jj]) + "\n        "
-                 + "\n        ".join([('res %s/%s    '%(ll,nres)
+    lsblocks = ['nlos = {}'.format(nlos[jj]) + "\n        "
+                 + "\n        ".join([('res {}/{}    '.format(ll,nres)
                                        + str(winname[jj,ll,:]))
                                       for ll in range(nres)])
                 for jj in range(nnlos)]
@@ -336,7 +341,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
 
     msg += "\n\n  Memory score:\n    "
-    msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
+    msg += "\n    ".join(["{} : {}".format(lalgo[ii].ljust(ln),
                                      100.*np.sum(t_av[ii,...]>=0)/ncase) + ' %'
                           for ii in range(nalgo)])
     if stdout:
@@ -350,16 +355,14 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     #-------------
     # Plot / save
 
-
     if save:
         out = {kk:vv for kk,vv in locals().items() if kk in lk}
         np.savez(pfe, **out)
         if stdout:
-            print('Saved in:\n    %s'%pfe)
+            print('Saved in:\n    {}'.format(pfe))
         else:
             with open(txtfile, 'w') as f:
-                f.write('Saved in:\n    %s'%pfe)
-
+                f.write('Saved in:\n    {}'.format(pfe))
 
     if plot:
         try:
