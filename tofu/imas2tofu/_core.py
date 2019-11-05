@@ -2705,7 +2705,7 @@ class MultiIDSLoader(object):
                 nunav, ntot = str(indnan.sum()), str(D.shape[1])
                 msg = "Some lines of sight geometry unavailable in ids:\n"
                 msg += "    - unavailable LOS: {0} / {1}\n".format(nunav, ntot)
-                msg += "    - indices: {0}"%format(str(indnan.nonzero()[0]))
+                msg += "    - indices: {0}".format(str(indnan.nonzero()[0]))
                 warnings.warn(msg)
         else:
             dgeom = None
