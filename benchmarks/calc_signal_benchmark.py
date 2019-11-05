@@ -245,11 +245,11 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
-                                                Name=str(names[ii,jj]),
+                                                Name=str(names[ii, jj]),
                                                 Exp='dummy',
                                                 Diag='Dummy',
                                                 **_DCAM)
-            msg = "    {}".format(names[ii,jj].ljust(lennames))
+            msg = "    {}".format(names[ii, jj].ljust(lennames))
             if stdout:
                 print(msg)
                 sys.stdout.flush()
@@ -333,9 +333,9 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     winname = np.char.rjust(np.asarray(lalgo)[win], ln)
     lsblocks = ['nlos = {}'.format(nlos[jj]) + "\n        "
-                 + "\n        ".join([('res {}/{}    '.format(ll, nres)
-                                       + str(winname[jj,ll,:]))
-                                      for ll in range(nres)])
+                + "\n        ".join([('res {}/{}    '.format(ll, nres)
+                                      + str(winname[jj,ll,:]))
+                                     for ll in range(nres)])
                 for jj in range(nnlos)]
     msg += "\n" +  "\n    " + "\n    ".join(lsblocks)
 
