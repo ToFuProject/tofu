@@ -77,14 +77,18 @@ try:
     import tofu.imas2tofu as imas2tofu
     okimas2tofu = True
 except Exception as err:
-    warnings.warn(str(err))
+    msg = "\n    sub-package tofu.imas2tofu unavailable"
+    warnings.warn(msg)
+    # warnings.warn(str(err))
     okimas2tofu = False
 
 try:
     import tofu.mag as mag
     okmag = True
 except Exception as err:
-    warnings.warn(str(err))
+    msg = "\n    sub-package tofu.mag unavailable"
+    warnings.warn(msg)
+    # warnings.warn(str(err))
     okmag = False
 
 #import tofu.dust as dust
