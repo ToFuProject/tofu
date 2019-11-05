@@ -90,7 +90,7 @@ for sub in dsub.keys():
 # If any error, populate warning and store error message
 # -------------------------------------
 
-lsubout = [sub for sub in dsub.keys() if dsub[sub] != True]
+lsubout = [sub for sub in dsub.keys() if dsub[sub] is not True]
 if len(lsubout) > 0:
     lsubout = ['tofu.{0}'.format(ss) for ss in lsubout]
     msg = "\nThe following subpackages are not available:"
@@ -104,7 +104,7 @@ if len(lsubout) > 0:
 
 __all__ = ['pathfile','utils','_plot','geom','data']
 for sub in dsub.keys():
-    if dsub[sub] == True:
+    if dsub[sub] is True:
         __all__.append(sub)
 
 # clean-up the mess
