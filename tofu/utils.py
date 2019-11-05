@@ -1451,11 +1451,13 @@ class ToFuObjectBase(object):
         # pass
 
     def __repr__(self):
-        if hasattr(self, 'get_summary'):
-            return self.get_summary(return_='msg', verb=False)
-        else:
-            return object.__repr__(self)
-
+        try:
+            if hasattr(self, 'get_summary'):
+                return self.get_summary(return_='msg', verb=False)
+            else:
+                return object.__repr__(self)
+        except Exception:
+            return self.__class__.__name__
 
     #############################
     #  strip and to/from dict
