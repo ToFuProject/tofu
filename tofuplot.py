@@ -126,9 +126,9 @@ if __name__ == '__main__':
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-tok','--tokamak',help=msg, required=False,
+    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
                         default=_TOKAMAK)
-    parser.add_argument('-r','--run',help='run number',
+    parser.add_argument('-r','--run', help='run number',
                         required=False, type=int, default=_RUN)
     parser.add_argument('-v','--version',help='version number',
                         required=False, type=str, default=_VERSION)
@@ -148,16 +148,16 @@ if __name__ == '__main__':
                         help='Input time when needed')
     parser.add_argument('-dR_sep', '--dR_sep', type=float, required=False,
                         help='Distance to separatrix from r_ext to plot'
-                            +'magneticfield lines')
+                        +'magneticfield lines')
     parser.add_argument('-init', '--init', type=float, required=False, nargs=3,
                         help='Initial point from where trace magnetic field'
-                            +'line')
+                        +'line with coordinates: R [m], Phi [rad], Z [m]')
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
     parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
-                        help='automatically determine indices of channels to be loaded',
-                        default=True)
+                        help='automatically determine indices of'
+                        +'channels to be loaded', default=True)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
