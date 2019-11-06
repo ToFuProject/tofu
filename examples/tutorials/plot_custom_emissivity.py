@@ -83,6 +83,6 @@ time_vector = np.linspace(0, 2 * np.pi, num=100)
 
 sig, units = cam2d.calc_signal(emissivity,
                                resMode='rel', plot=False,
-                               t=time_vector)
+                               t=None)
 sig.plot(ntMax=1)
 plt.show()
