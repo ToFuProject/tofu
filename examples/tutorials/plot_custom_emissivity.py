@@ -21,7 +21,7 @@ cam2d = tf.geom.utils.create_CamLOS2D(
     N12=100,
     F=0.1,
     D12=0.1,
-    angs=[np.pi, 0, 0],
+    angs=[np.pi, np.pi/6, 0],
     Name="",
     Exp="",
     Diag="",
@@ -82,7 +82,10 @@ ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 time_vector = np.linspace(0, 2 * np.pi, num=100)
 
 sig, units = cam2d.calc_signal(emissivity,
-                               resMode='rel', plot=False,
-                               t=None)
+                               res=0.01,
+                               reflections=False,
+                               newcalc=False,
+                               plot=False,
+                               t=time_vector)
 sig.plot(ntMax=1)
 plt.show()
