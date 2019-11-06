@@ -341,13 +341,11 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     return ax
 
 
-def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
-                                         lambrest=None, camp=None,
-                                         cshift=None, cwidth=None,
-                                         deg=None, knots=None,
-                                         cmap=None, vmin=None, vmax=None,
-                                         fs=None, dmargin=None,
-                                         angunits='deg'):
+def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
+                                      lambfit=None, phifit=None, spect1d=None,
+                                      cmap=None, vmin=None, vmax=None,
+                                      fs=None, dmargin=None,
+                                      angunits='deg'):
 
     # Check inputs
     # ------------
@@ -362,8 +360,9 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
                    'wspace':None, 'hspace':0.4}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
-        angle = angle*180./np.pi
         bragg = bragg*180./np.pi
+        phi = phi*180./np.pi
+        phifit = phifit*180./np.pi
 
 
     # pre-compute
@@ -371,41 +370,73 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
 
     # extent
     extent = (xi.min(), xi.max(), xj.min(), xj.max())
+    extent2 = (lambfit.min(), lambfit.max(), phifit.min(), phifit.max())
 
-    # rescaled spectrum
-    Dx = lamb.max()-lamb.min()
-    brlb = lamb.min() + Dx*np.linspace(0, 1, xi.size)
-    brlbbins = 0.5*(brlb[1:] + brlb[:-1])
-    ind = np.digitize(lamb, brlbbins)
-    spectrum = np.array([np.sum(data[ind==ii]) for ii in np.unique(ind)])
+    # Plot
+    # ------------
 
-    # Fitted spectrum
-    xfit = brlb
-    Dy = angle.max()-angle.min()
-    yfit = angle.min() + Dy*np.linspace(0, 1, xj.size)
-    extent2 = (xfit.min(), xfit.max(), yfit.min(), yfit.max())
-    if camp is not None:
-        assert lambrest is not None
-        assert cwidth is not None
-        if cshift is None:
-            cshift = 0.*camp
+    fig = fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(4, 3, **dmargin)
+    ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
+    ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
+                          sharex=ax0, sharey=ax0)
+    axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
+    ax2 = fig.add_subplot(gs[:3, 2])
+    axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
 
-        import tofu.geom._comp_optics as _comp_optics
-        if deg is None or knots is None:
-            deg = 2
-            ymin, ymax = yfit.min(), yfit.max()
-            yl, yu = ymin + (ymax-ymin)/3., ymin + 2.*(ymax-ymin)/3.
-            knots = np.r_[ymin, ymin, ymin, yl, yu, ymax, ymax, ymax]
-        func = _comp_optics.get_2dspectralfit_func(lambrest,
-                                                   deg=deg, knots=knots)
-        fitted = func(xfit, yfit,
-                      camp=camp, cwidth=cwidth, cshift=cshift)
-        error = (func(lamb, angle,
-                     camp=camp, cwidth=cwidth, cshift=cshift, mesh=False)
-                 - data)
-        verrmax = max(np.abs(np.nanmin(error)), np.abs(np.nanmax(error)))
-    else:
-        fitted = None
+    ax0.set_title('Coordinates transform')
+    ax1.set_title('Camera image')
+    ax2.set_title('Camera image transformed')
+
+    ax0.set_ylabel(r'incidence angle ($deg$)')
+
+    ax0.contour(xi, xj, bragg, 10, cmap=cmap)
+    ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
+    ax1.imshow(data, extent=extent, aspect='equal',
+               origin='lower', vmin=vmin, vmax=vmax)
+    axs1.plot(xi, np.sum(data, axis=0), c='k', ls='-')
+    ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=2,
+                marker='s', edgecolors='None',
+                cmap=cmap, vmin=vmin, vmax=vmax)
+    axs2.plot(lambfit, spect1d, c='k', ls='-')
+
+    ax2.set_xlim(extent2[0], extent2[1])
+    ax2.set_ylim(extent2[2], extent2[3])
+
+    return [ax0, ax1]
+
+
+def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data,
+                                  lambfit=None, phifit=None, spect1d=None,
+                                  dfit1d=None,
+                                  cmap=None, vmin=None, vmax=None,
+                                  fs=None, dmargin=None,
+                                  angunits='deg'):
+
+    # Check inputs
+    # ------------
+
+    if fs is None:
+        fs = (14,8)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left':0.03, 'right':0.99,
+                   'bottom':0.05, 'top':0.92,
+                   'wspace':None, 'hspace':0.4}
+    assert angunits in ['deg', 'rad']
+    if angunits == 'deg':
+        bragg = bragg*180./np.pi
+        phi = phi*180./np.pi
+        phifit = phifit*180./np.pi
+
+
+    # pre-compute
+    # ------------
+
+    # extent
+    extent = (xi.min(), xi.max(), xj.min(), xj.max())
+    extent2 = (lambfit.min(), lambfit.max(), phifit.min(), phifit.max())
 
     # Plot
     # ------------
@@ -433,25 +464,23 @@ def CrystalBragg_plot_data_vs_braggangle(xi, xj, bragg, lamb, angle, data,
     ax0.set_ylabel(r'incidence angle ($deg$)')
 
     ax0.contour(xi, xj, bragg, 10, cmap=cmap)
-    ax0.contour(xi, xj, angle, 10, cmap=cmap, ls='--')
+    ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
     ax1.imshow(data, extent=extent, aspect='equal',
                origin='lower', vmin=vmin, vmax=vmax)
-    axs1.plot(xi, np.sum(data, axis=0), c='k', ls='-')
-    ax2.scatter(lamb.ravel(), angle.ravel(), c=data.ravel(), s=1,
+    axs1.plot(xi, np.nanmean(data, axis=0), c='k', ls='-')
+    ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=1,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
-    axs2.plot(brlb, spectrum, c='k', ls='-')
-    if fitted is not None:
-        ax3.imshow(fitted, extent=extent2, aspect='auto', origin='lower')
-        axs3.plot(brlb, fitted.sum(axis=0), c='k', ls='-')
-        ax4.imshow(error, extent=extent,
-                   aspect='equal', cmap=plt.cm.seismic,
-                   vmin=-verrmax, vmax=verrmax, origin='lower')
-
-    if lambrest is not None:
-        for ax in [axs2, axs3]:
-            for ii in range(len(lambrest)):
-                ax.axvline(lambrest[ii], c='k', ls='--')
+    axs2.plot(lambfit, spect1d, c='k', ls='None', marker='.', ms=4)
+    axs2.plot(lambfit, dfit1d['fit'].ravel(), c='r', ls='-', label='fit')
+    for ll in dfit1d['lamb0']:
+        axs2.axvline(ll, c='k', ls='--')
+    # if fitted is not None:
+        # ax3.imshow(fitted, extent=extent2, aspect='auto', origin='lower')
+        # axs3.plot(brlb, fitted.sum(axis=0), c='k', ls='-')
+        # ax4.imshow(error, extent=extent,
+                   # aspect='equal', cmap=plt.cm.seismic,
+                   # vmin=-verrmax, vmax=verrmax, origin='lower')
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
