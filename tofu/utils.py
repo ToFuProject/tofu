@@ -754,11 +754,11 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if init is not None:
             trace_init = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
                                                            direction='FWD',
-                                                           length_line=25,
+                                                           length_line=35,
                                                            stp=None)
             trace_init_rev = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
                                                            direction='REV',
-                                                           length_line=25,
+                                                           length_line=35,
                                                            stp=None)
             trace_init[0] = trace_init[0] + trace_init_rev[0]
 
@@ -777,6 +777,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 x = trace_init[0][kk]['r']*np.cos(trace_init[0][kk]['p'])
                 y = trace_init[0][kk]['r']*np.sin(trace_init[0][kk]['p'])
                 dax['hor'][0].plot(x, y, linewidth=3, color='red')
+            alpha_mag_lines = 0.7
+        else:
+            alpha_mag_lines = 1.
 
         for ii in range(0,len(trace)):
             # Concatenate trace lists
@@ -792,13 +795,16 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                           | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
                 dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
                                     np.insert(theta, indnan, np.nan),
-                                    label=lab)
+                                    label=lab, alpha=alpha_mag_lines)
                 dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
-                                     label=lab)
+                                     label=lab, alpha=alpha_mag_lines)
                 x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
-                dax['hor'][0].plot(x, y, label=lab)
+                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines)
 
+        dax['cross'][0].plot(equi.ddata['equilibrium.sep']['data'][equi_ind_t][0],
+                             equi.ddata['equilibrium.sep']['data'][equi_ind_t][1],
+                             linestyle='-.', color='k', alpha=0.8)
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'.format(shot[0], t[0]))
         return dax
 
