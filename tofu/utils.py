@@ -727,7 +727,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         else:
             r_init = [equi_r_ext]*nbr_init
         phi_init = [ii*2.*np.pi/nbr_init for ii in range(nbr_init)]
-        z_init   = [equi_z_r_ext]*nbr_init
+        z_init = [equi_z_r_ext]*nbr_init
         init_plt = [r_init, phi_init, z_init]
 
         if False:
@@ -766,7 +766,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                                        stp=None)
             trace_init[0] = trace_init[0] + trace_init_rev[0]
 
-            for kk in range(0,len(trace_init[0])):
+            for kk in range(0, len(trace_init[0])):
                 phi_init = np.arctan2(np.sin(trace_init[0][kk]['p']),
                                       np.cos(trace_init[0][kk]['p']))
                 theta_init = np.arctan2(trace_init[0][kk]['z']-refpt[1],
@@ -808,10 +808,13 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
                 dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines)
 
-        dax['cross'][0].plot(equi.ddata['equilibrium.sep']['data'][equi_ind_t][0],
-                             equi.ddata['equilibrium.sep']['data'][equi_ind_t][1],
+        dax['cross'][0].plot(equi.ddata['equilibrium.sep'][
+                             'data'][equi_ind_t][0],
+                             equi.ddata['equilibrium.sep'][
+                             'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'.format(shot[0], t[0]))
+        dax['t'][0].figure.suptitle(
+        'Shot {0}, t = {1:6.3f} s'.format(shot[0], t[0]))
         return dax
 
 
