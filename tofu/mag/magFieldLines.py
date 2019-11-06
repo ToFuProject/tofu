@@ -209,7 +209,8 @@ class MagFieldLines:
 
         # !!!!!!!!!!!!!!!!!!!!!
         # HARD CODED CORRECTION
-        bt_intp_t *= -1
+        if (np.nanmean(bt_intp_t) > 0):
+            bt_intp_t *= -1
         # !!!!!!!!!!!!!!!!!!!!!
 
         # Interpolate current
