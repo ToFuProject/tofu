@@ -546,7 +546,7 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
                 if out[k].ndim == 1:
                     dout[k] = out[k].tolist()
                 else:
-                    dout[k] = np.squeeze(out[k],axis=0).tolist()
+                    dout[k] = np.atleast_1d(np.squeeze(out[k],axis=0)).tolist()
                 if type(dout[k][0]) is str:
                     dout[k] = [kk.strip() for kk in dout[k]]
             else:
@@ -555,7 +555,7 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
                 dout[k] = tuple(dout[k])
         elif typ=='ndarray':
             if mode == 'mat':
-                dout[k] = np.squeeze(out[k])
+                dout[k] = np.atleast_1d(np.squeeze(out[k]))
                 if dout[k].shape == (0,0):
                     dout[k] = dout[k].ravel()
             else:
@@ -2484,11 +2484,15 @@ def get_valf(val, lrids, linds):
 
     else:
         assert type(val) is np.ndarray
-        val = val.squeeze()
+        # val = np.atleast_1d(val.squeeze())
         ndim = val.ndim
-        assert ndim >= len(lrids)
-        assert len(lrids) >= ninds
-        assert ndim >= ninds
+        c0 = ndim >= len(lrids) and len(lrids) >= ninds and ndim >= ninds
+        if not c0:
+            msg = "Wrong dimension / shape / references!\n"
+            msg += "    val.ndim  : {}\n".format(ndim)
+            msg += "    lrids     : {}\n".format(str(lrids))
+            msg += "    len(linds): {}\n".format(ninds)
+            raise Exception(msg)
 
         if ndim == ninds:
             if ndim == 1:
@@ -2566,13 +2570,17 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
-                refb = 0.5*(ref[1:]+ref[:-1])
-                if Type == 'x':
-                    def func(val, ind0=None, refb=refb):
-                        return np.digitize([val[0]], refb)[0]
+                if ref.size == 1:
+                    def func(val, ind0=None):
+                        return 0
                 else:
-                    def func(val, ind0=None, refb=refb):
-                        return np.digitize([val[1]], refb)[0]
+                    refb = 0.5*(ref[1:]+ref[:-1])
+                    if Type == 'x':
+                        def func(val, ind0=None, refb=refb):
+                            return np.digitize([val[0]], refb)[0]
+                    else:
+                        def func(val, ind0=None, refb=refb):
+                            return np.digitize([val[1]], refb)[0]
         elif indother is None:
             assert ref.ndim == 2
             if np.any(np.isnan(ref)):
