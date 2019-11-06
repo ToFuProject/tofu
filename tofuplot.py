@@ -19,7 +19,7 @@ if '.git' in _HERE and 'tofu' in _HERE:
 
 if istofugit:
     # Make sure we load the corresponding tofu
-    sys.path.insert(1,_HERE)
+    sys.path.insert(1, _HERE)
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
     _ = sys.path.pop(1)
