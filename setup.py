@@ -206,9 +206,10 @@ print("")
 
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
+
 _README = [
     ff
-    for ff in os.listdir(os.path.abspath(os.path.dirname(__file__)))
+    for ff in os.listdir(_HERE)
     if len(ff) <= 10 and ff[:7] == "README."
 ]
 assert len(_README) == 1
