@@ -709,17 +709,17 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         if t is None:
             # Get time in the middle of equilibrium time interval
-            t = equi.ddata['equilibrium.t']['data']
-                [int(0.5*equi.ddata['equilibrium.t']['data'].size)]
+            t = equi.ddata['equilibrium.t']['data'][
+                int(0.5*equi.ddata['equilibrium.t']['data'].size)]
         t = np.atleast_1d(t).ravel()
 
         equi_ind_t = np.abs(t - equi.ddata['equilibrium.t']['data']).argmin()
         equi_ind_r_ext = np.argmax(equi.ddata['equilibrium.sep']['data']
                                    [equi_ind_t][0])
-        equi_r_ext = equi.ddata['equilibrium.sep']['data'][equi_ind_t][0]
-                     [equi_ind_r_ext]
-        equi_z_r_ext = equi.ddata['equilibrium.sep']['data'][equi_ind_t][1]
-                       [equi_ind_r_ext]
+        equi_r_ext = equi.ddata['equilibrium.sep']['data'][
+                     equi_ind_t][0][equi_ind_r_ext]
+        equi_z_r_ext = equi.ddata['equilibrium.sep']['data'][
+                       equi_ind_t][1][equi_ind_r_ext]
 
         nbr_init = 10
         if dR_sep is not None:
@@ -744,26 +744,26 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                                             direction='FWD',
                                                             length_line=25,
                                                             stp=None)
-        trace_rev =
-          tfm.MagFieldLines(int(shot[0])).trace_mline(init_plt, t,
-                                                      direction='REV',
-                                                      length_line=25,
-                                                      stp=None)
+        trace_rev = tfm.MagFieldLines(
+                    int(shot[0])).trace_mline(init_plt, t,
+                                              direction='REV',
+                                              length_line=25,
+                                              stp=None)
 
         refpt = np.r_[2.4,0.]
         dax = config.plot_phithetaproj_dist(refpt, invertx=invertx)
 
         if init is not None:
-            trace_init =
-              tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
-                                                          direction='FWD',
-                                                          length_line=35,
-                                                          stp=None)
-            trace_init_rev =
-              tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
-                                                          direction='REV',
-                                                          length_line=35,
-                                                          stp=None)
+            trace_init = tfm.MagFieldLines(
+                         int(shot[0])).trace_mline(init, t,
+                                                   direction='FWD',
+                                                   length_line=35,
+                                                   stp=None)
+            trace_init_rev = tfm.MagFieldLines(
+                             int(shot[0])).trace_mline(init, t,
+                                                       direction='REV',
+                                                       length_line=35,
+                                                       stp=None)
             trace_init[0] = trace_init[0] + trace_init_rev[0]
 
             for kk in range(0,len(trace_init[0])):
