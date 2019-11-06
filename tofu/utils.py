@@ -813,8 +813,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                              equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['t'][0].figure.suptitle(
-        'Shot {0}, t = {1:6.3f} s'.format(shot[0], t[0]))
+        dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
+                                    .format(shot[0], t[0]))
         return dax
 
 
