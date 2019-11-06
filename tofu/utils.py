@@ -643,7 +643,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
-                   plot=True, plot_sig=None, plot_X=None, sharex=False,
+                   plot=True, plot_sig=None, plot_X=None,
+                   sharex=False, invertx=None,
                    bck=True, indch_auto=True, t=None, init=None, dR_sep=None):
     # -------------------
     # import imas2tofu
@@ -698,6 +699,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         assert shot.size == 1
         import tofu.mag as tfm
         plot = True
+        if invertx is None:
+            invertx = True
 
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
                                         tokamak=tokamak, version=version,
@@ -795,6 +798,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
                 dax['hor'][0].plot(x, y, label=lab)
+        if invertx is True:
+            dax['dist'][0].invert_xaxis()
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'.format(shot[0], t[0]))
         return dax
 
