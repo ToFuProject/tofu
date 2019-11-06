@@ -5,9 +5,14 @@ Getting started: 5 minutes tutorial for `tofu`
 This is a tutorial that aims to get a new user a little familiar with tofu's
  structure.
 """
+
+# The following imports matplotlib, preferably using a
+# backend that allows the plots to be interactive (Qt5Agg).
 import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.use('Qt5Agg')
+try:
+    matplotlib.use('Qt5Agg')
+except ImportError:
+    matplotlib.use(matplotlib.rcParams['backend'])
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since

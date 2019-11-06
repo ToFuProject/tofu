@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from tofu import __version__
 import tofu.pathfile as tfpf
 
-_sep = '_'
+_SEP = '.'
 _dict_lexcept_key = []
 _pyv = int(sys.version[0])
 
@@ -126,17 +126,16 @@ def get_figuresize(fs, fsdef=(12,6),
     return fs
 
 
-
-
-
-
 #############################################
 #       todict formatting
 #############################################
 
 
-def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
+def flatten_dict(d, parent_key='', sep=None, deep='ref',
                  lexcept_key=_dict_lexcept_key):
+
+    if sep is None:
+        sep = _SEP
 
     items = []
     lexcept_key = [] if lexcept_key is None else lexcept_key
@@ -155,7 +154,10 @@ def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
                 items.append((new_key, v))
     return dict(items)
 
-def _reshape_dict(ss, vv, dinit={}, sep=_sep):
+
+def _reshape_dict(ss, vv, dinit={}, sep=None):
+    if sep is None:
+        sep = _SEP
     ls = ss.split(sep)
     k = ss if len(ls)==1 else ls[0]
     if len(ls) == 2:
@@ -172,7 +174,11 @@ def _reshape_dict(ss, vv, dinit={}, sep=_sep):
         assert k not in dinit.keys()
         dinit[k] = vv
 
-def reshape_dict(d, sep=_sep, lcls=[]):
+
+def reshape_dict(d, sep=None, lcls=[]):
+    if sep is None:
+        sep = _SEP
+
     # Get all individual keys
     out = {}
     for ss, vv in d.items():
@@ -212,18 +218,16 @@ class Dictattr(dict):
         return [str(k) for k in self.keys()]+self._extra
 
 
-
-
 #############################################
 #       Miscellaneous
 #############################################
 
-def _set_arrayorder(obj, arrayorder='C'):
+def _set_arrayorder(obj, arrayorder='C', sep=None):
     """ Set the memory order of all np.ndarrays in a tofu object """
     msg = "Arg arrayorder must be in ['C','F']"
     assert arrayorder in ['C','F'], msg
 
-    d = obj.to_dict(strip=-1)
+    d = obj.to_dict(strip=-1, sep=sep)
     account = {'Success':[], 'Failed':[]}
     for k, v in d.items():
         if type(v) is np.array and v.ndim>1:
@@ -240,12 +244,11 @@ def _set_arrayorder(obj, arrayorder='C'):
     return d, account
 
 
-
 #############################################
 #       save / load
 #############################################
 
-def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
+def save(obj, path=None, name=None, sep=None, deep=False, mode='npz',
          strip=None, compressed=False, verb=True, return_pfe=False):
     """ Save the ToFu object
 
@@ -317,14 +320,16 @@ def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
 
     # Get stripped dictionnary
     deep = 'dict' if deep else 'ref'
+    if sep is None:
+        sep = _SEP
     dd = obj.to_dict(strip=strip, sep=sep, deep=deep)
 
     pathfileext = os.path.join(path,name+'.'+mode)
 
     if mode=='npz':
-        _save_npz(dd, pathfileext, compressed=compressed)
+        _save_npz(dd, pathfileext, sep=sep, compressed=compressed)
     elif mode=='mat':
-        _save_mat(dd, pathfileext, compressed=compressed)
+        _save_mat(dd, pathfileext, sep=sep, compressed=compressed)
 
     # print
     if verb:
@@ -335,9 +340,10 @@ def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
         return pathfileext
 
 
-def _save_npzmat_dict(dd):
+def _save_npzmat_dict(dd, sep=None):
+    key = 'dId{0}dall{0}SaveName'.format(sep)
     msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
+    msg += "\n SaveName : {0}".format(dd[key])
     msg += "\n Attributes:"
     err = False
     dnpzmat, dt = {}, {}
@@ -368,14 +374,15 @@ def _save_npzmat_dict(dd):
     return dnpzmat
 
 
-def _save_npz(dd, pathfileext, compressed=False):
+def _save_npz(dd, pathfileext, sep=None, compressed=False):
     func = np.savez_compressed if compressed else np.savez
-    dsave = _save_npzmat_dict(dd)
+    dsave = _save_npzmat_dict(dd, sep=sep)
     func(pathfileext, **dsave)
 
-def _save_mat(dd, pathfileext, compressed=False):
+
+def _save_mat(dd, pathfileext, sep=None, compressed=False):
     # Create intermediate dict to make sure to get rid of None values
-    dsave = _save_npzmat_dict(dd)
+    dsave = _save_npzmat_dict(dd, sep=sep)
     scpio.savemat(pathfileext, dsave, do_compression=compressed, format='5')
 
 
@@ -474,9 +481,23 @@ def load(name, path=None, strip=None, verb=True):
             dd = _load_mat(pfe)
 
         # Recreate from dict
-        mod = importlib.import_module( 'tofu.%s'%dd['dId_dall_Mod'] )
-        cls = getattr( mod, dd['dId_dall_Cls'] )
-        obj = cls(fromdict=dd)
+        lsep, sep, keyMod = ['_', '.'], None, None
+        for ss in lsep:
+            key = 'dId{0}dall{0}Mod'.format(ss)
+            if key in dd.keys():
+                sep = ss
+                keyMod = key
+                break
+        else:
+            msg = "No known separator in file keys!\n"
+            msg += "    - separators tested: {0}\n".format(lsep)
+            msg += "    - keys:\n"
+            msg += str(dd.keys())
+            raise Exception(msg)
+
+        mod = importlib.import_module('tofu.{0}'.format(dd[keyMod]))
+        cls = getattr(mod, dd['dId{0}dall{0}Cls'.format(sep)])
+        obj = cls(fromdict=dd, sep=sep)
 
     if strip is not None:
         obj.strip(strip=strip)
@@ -1274,7 +1295,7 @@ class ToFuObjectBase(object):
         self._Done = False
         self._dstrip = self.__class__._dstrip.copy()
         if fromdict is not None:
-            self.from_dict(fromdict)
+            self.from_dict(fromdict, sep=kwdargs.get('sep', None))
         else:
             self._reset()
             self._set_Id(**kwdargs)
@@ -1315,15 +1336,15 @@ class ToFuObjectBase(object):
                 dout[k] = din[k]
         return dout
 
-    def _set_arrayorder(self, arrayorder='C', verb=True):
-        d, account = _set_arrayorder(self, arrayorder=arrayorder)
+    def _set_arrayorder(self, arrayorder='C', sep=None, verb=True):
+        d, account = _set_arrayorder(self, arrayorder=arrayorder, sep=sep)
         if len(account['Failed'])>0:
             msg = "All np.ndarrays were not set to {0} :\n".format(arrayorder)
             msg += "Success : [{0}]".format(', '.join(account['Success']))
             msg += "Failed :  [{0}]".format(', '.join(account['Failed']))
             raise Exception(msg)
         else:
-            self.from_dict(d)
+            self.from_dict(d, sep=sep)
             self._dextra['arrayorder'] = arrayorder
 
     @staticmethod
@@ -1430,12 +1451,13 @@ class ToFuObjectBase(object):
         # pass
 
     def __repr__(self):
-        if hasattr(self, 'get_summary'):
-            return self.get_summary(return_='msg', verb=False)
-        else:
-            return object.__repr__(self)
-
-
+        try:
+            if hasattr(self, 'get_summary'):
+                return self.get_summary(return_='msg', verb=False)
+            else:
+                return object.__repr__(self)
+        except Exception:
+            return self.__class__.__name__
 
     #############################
     #  strip and to/from dict
@@ -1474,8 +1496,7 @@ class ToFuObjectBase(object):
 
         self._dstrip['strip'] = strip
 
-
-    def to_dict(self, strip=None, sep=_sep, deep='ref'):
+    def to_dict(self, strip=None, sep=None, deep='ref'):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -1543,7 +1564,7 @@ class ToFuObjectBase(object):
         """ To be overloaded """
         return {'dict':{}}
 
-    def from_dict(self, fd, sep=_sep, strip=None):
+    def from_dict(self, fd, sep=None, strip=None):
         """ Populate the instances attributes using an input dict
 
         The input dict must be properly formatted
@@ -1561,7 +1582,7 @@ class ToFuObjectBase(object):
         """
 
         self._reset()
-        dd = reshape_dict(fd)
+        dd = reshape_dict(fd, sep=sep)
 
         # ---------------------
         # Call class-specific
@@ -1569,7 +1590,7 @@ class ToFuObjectBase(object):
         # ---------------------
         self._dstrip.update(**dd['dstrip'])
         if 'dId' in dd.keys():
-            self._set_Id(Id=ID(fromdict=dd['dId']))
+            self._set_Id(Id=ID(fromdict=dd['dId'], sep=sep))
 
         if strip is None:
             strip = self._dstrip['strip']
@@ -1840,7 +1861,7 @@ class ToFuObject(ToFuObjectBase):
         return ind1, ind2, indr
 
     def save(self, path=None, name=None,
-             strip=None, sep=_sep, deep=True, mode='npz',
+             strip=None, sep=None, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
         return save(self, path=path, name=name,
                     sep=sep, deep=deep, mode=mode,
@@ -1908,7 +1929,7 @@ class ID(ToFuObjectBase):
     def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None,
                  SavePath=None, usr=None, dUSR=None, lObj=None,
-                 fromdict=None, include=None):
+                 fromdict=None, include=None, sep=None):
 
         # To replace __init_subclass__ for Python 2
         if sys.version[0]=='2':
