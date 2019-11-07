@@ -148,16 +148,17 @@ if __name__ == '__main__':
                         help='Input time when needed')
     parser.add_argument('-dR_sep', '--dR_sep', type=float, required=False,
                         help='Distance to separatrix from r_ext to plot'
-                        + 'magneticfield lines')
+                        + ' 10 magnetic field lines')
     parser.add_argument('-init', '--init', type=float, required=False, nargs=3,
-                        help='Initial point from where trace magnetic field'
-                        + 'line with coordinates: R [m], Phi [rad], Z [m]')
+                        help='Manual coordinates of point that a RED magnetic'
+                        + ' field line will cross on graphics,'
+                        + ' give coordinates as: R [m], Phi [rad], Z [m]')
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
     parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
                         help='automatically determine indices of'
-                        + 'channels to be loaded', default=True)
+                        + ' channels to be loaded', default=True)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
