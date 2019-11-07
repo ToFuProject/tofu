@@ -188,11 +188,10 @@ def calc_braggphi_from_xixj(xi, xj, det_cent, det_ei, det_ej,
     pts = det_cent + xi*det_ei + xj*det_ej
 
     vect = pts - summit
-    vect = vect / np.sum(vect**2, axis=0)[None, ...]
+    vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None, ...]
     bragg = np.arcsin(np.sum(vect*nin, axis=0))
 
     phi = np.arctan2(np.sum(vect*e2, axis=0), np.sum(vect*e1, axis=0))
-
     return bragg, phi
 
 def get_lambphifit(lamb, phi, nxi, nxj):
@@ -201,72 +200,3 @@ def get_lambphifit(lamb, phi, nxi, nxj):
     phiD = phi.max() - phi.min()
     phifit = phi.min() + phiD*np.linspace(0, 1, nxj)
     return lambfit, phifit
-
-
-# ###############################################
-#           Spectral fit 2d - user-friendly
-# ###############################################
-
-def get_2dspectralfit_func(lambrest, deg=None, knots=None):
-
-    lambrest = np.atleast_1d(lambrest).ravel()
-    nlamb = lambrest.size
-    knots = np.atleast_1d(knots).ravel()
-    nknots = knots.size
-    nbsplines = np.unique(knots).size - 1 + deg
-
-    # Get 3 sets of bsplines for each lamb
-    bsamp = scpinterp.BSpline(knots, np.ones((nbsplines,)), deg,
-                              extrapolate=False, axis=0)
-    bsshift = scpinterp.BSpline(knots, np.ones((nbsplines,)), deg,
-                                  extrapolate=False, axis=0)
-    bswidth = scpinterp.BSpline(knots, np.ones((nbsplines,)), deg,
-                                  extrapolate=False, axis=0)
-
-    # Define function
-    def func(lamb, angle,
-             camp=None, cwidth=None, cshift=None,
-             lambrest=lambrest, knots=knots, deg=deg, nbsplines=nbsplines,
-             mesh=True):
-        nlamb = lambrest.size
-        if camp is not None:
-            assert camp.shape[0] == nbsplines
-            bsamp = scpinterp.BSpline(knots, camp, deg,
-                                      extrapolate=False, axis=0)
-        if cwidth is not None:
-            assert cwidth.shape[0] == nbsplines
-            bswidth = scpinterp.BSpline(knots, cwidth, deg,
-                                        extrapolate=False, axis=0)
-        if cshift is not None:
-            assert cshift.shape[0] == nbsplines
-            bshift = scpinterp.BSpline(knots, cshift, deg,
-                                       extrapolate=False, axis=0)
-        assert angle.ndim in [1, 2]
-        if mesh or angle.ndim == 2:
-            lambrest = lambrest[None, None, :]
-        else:
-            lambrest = lambrest[None, :]
-
-        if mesh:
-            assert angle.ndim == lamb.ndim == 1
-            # shape (lamb, angle, lines)
-            return np.sum(bsamp(angle)[None,:,:]
-                          * np.exp(-(lamb[:,None,None]
-                                     - (lambrest
-                                        + bshift(angle)[None,:,:]))**2
-                                   /(bswidth(angle)[None,:,:]**2)), axis=-1)
-        else:
-            assert angle.shape == lamb.shape
-            if angle.ndim == 2:
-                lamb = lamb[:, :, None]
-            else:
-                lamb = lamb[:, None]
-            # shape (lamb/angle, lines)
-            return np.sum(bsamp(angle)
-                          * np.exp(-(lamb
-                                     - (lambrest
-                                        + bshift(angle)))**2
-                                   /(bswidth(angle)**2)), axis=-1)
-
-
-    return func

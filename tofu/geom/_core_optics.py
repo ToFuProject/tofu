@@ -761,8 +761,7 @@ class CrystalBragg(utils.ToFuObject):
 
         # Check inputs
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
-        phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg,
-                                                     lamb=lamb, n=n)
+        phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg)
         # assert phi.ndim == 1
         phi = phi[None, ...]
         bragg = bragg[None, ...]
@@ -997,12 +996,11 @@ class CrystalBragg(utils.ToFuObject):
         if psi is None:
             psi = 0.
         summit, nout, e1, e2 = self.get_local_noute1e2(theta, psi)
-        nin = -nout
 
         # Compute
         func = _comp_optics.calc_braggphi_from_xixj
         bragg, phi = func(xii, xjj, det_cent, det_ei, det_ej,
-                          summit, nin, e1, e2)
+                          summit, -nout, e1, e2)
 
         if plot != False:
             func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
@@ -1085,8 +1083,8 @@ class CrystalBragg(utils.ToFuObject):
                       percent=20, plot_debug=False)
 
         # Compute dfit2d
-        func = _spectrafit2d.multiplegaussianfit2d
-        dfit2d = func()
+        # func = _spectrafit2d.multiplegaussianfit2d
+        # dfit2d = func()
 
 
         # plot

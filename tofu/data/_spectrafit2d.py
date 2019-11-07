@@ -393,6 +393,183 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 ###########################################################
 ###########################################################
 
+def get_2dspectralfit_func(lamb0, forcelamb=False,
+                           deg=None, knots=None):
+
+    lamb0 = np.atleast_1d(lamb0).ravel()
+    nlamb = lamb0.size
+    knots = np.atleast_1d(knots).ravel()
+    nknots = knots.size
+    nbsplines = np.unique(knots).size - 1 + deg
+
+    # Define function
+    def func(lamb, phi,
+             camp=None, cwidth=None, cshift=None,
+             lamb0=lamb0, nlamb=nlamb,
+             knots=knots, deg=deg, forcelamb=forcelamb,
+             nbsplines=nbsplines, mesh=True):
+        assert phi.ndim in [1, 2]
+        if camp is not None:
+            assert camp.shape[0] == nbsplines
+            bsamp = scpinterp.BSpline(knots, camp, deg,
+                                      extrapolate=False, axis=0)
+        if csigma is not None:
+            assert csigma.shape[0] == nbsplines
+            bssigma = scpinterp.BSpline(knots, csigma, deg,
+                                         extrapolate=False, axis=0)
+        if mesh or phi.ndim == 2:
+            lamb0 = lamb0[None, None, :]
+        else:
+            lamb0 = lamb0[None, :]
+        if forcelamb:
+            if mesh:
+                assert angle.ndim == lamb.ndim == 1
+                # shape (lamb, angle, lines)
+                return np.sum(bsamp(phi)[None,:,:]
+                              * np.exp(-(lamb[:,None,None]
+                                         - lamb0)**2
+                                       /(bssigma(phi)[None,:,:]**2)), axis=-1)
+            else:
+                assert phi.shape == lamb.shape
+                lamb = lamb[..., None]
+                # shape (lamb/angle, lines)
+                return np.sum(bsamp(phi)
+                              * np.exp(-(lamb
+                                         - lamb0)**2
+                                       /(bssigma(phi)**2)), axis=-1)
+        else:
+            if cdlamb is not None:
+                assert cdlamb.shape[0] == nbsplines
+                bsdlamb = scpinterp.BSpline(knots, cdlamb, deg,
+                                            extrapolate=False, axis=0)
+
+    return func
+
+
+def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None,
+                                    lamb0=None, forcelamb=None,
+                                    deg=None, knots=None, robust=None):
+    lamb0 = np.atleast_1d(lamb0).ravel()
+    nlamb = lamb0.size
+    knots = np.atleast_1d(knots).ravel()
+    nknots = knots.size
+    nbs = np.unique(knots).size - 1 + deg
+    nc = nbs*nlamb
+
+    assert lamb.shape == phi.shape == data.shape
+    assert lamb.ndim == 1
+
+    if forcelamb is None:
+        forcelamb = False
+    if robust is None:
+        robust = False
+
+    # Define func assuming all inpus properly formatted
+    if forcelamb:
+        # x = [camp1-nbs*nlamb, csigma1-nbs*nlamb]
+        if robust:
+            def func(x,
+                     lamb=lamb, phi=phi, data=data,
+                     lamb0=lamb0, knots=knots, deg=deg, nc=nc):
+                bsamp = scpinterp.BSpline(knots, x[:nc], deg,
+                                          extrapolate=False, axis=0)
+                bssigma = scpinterp.BSpline(knots, x[nc:], deg,
+                                             extrapolate=False, axis=0)
+                val = np.sum(bsamp(phi)
+                             * np.exp(-(lamb - lamb0)**2
+                                      /(bssigma(phi)**2)), axis=-1)
+                return np.sqrt(np.sum(np.abs(val-data)))
+        else:
+            def func(x,
+                     lamb=lamb, phi=phi, data=data,
+                     lamb0=lamb0, knots=knots, deg=deg, nc=nc):
+                bsamp = scpinterp.BSpline(knots, x[:nc], deg,
+                                          extrapolate=False, axis=0)
+                bssigma = scpinterp.BSpline(knots, x[nc:], deg,
+                                             extrapolate=False, axis=0)
+                val = np.sum(bsamp(phi)
+                             * np.exp(-(lamb - lamb0)**2
+                                      /(bssigma(phi)**2)), axis=-1)
+                return np.sqrt(np.sum((val-data)**2))
+    else:
+        # x = [camp1-nbs*nlamb, csigma1-nbs*nlamb, cdlamb1-nbs*nlamb]
+        if robust:
+            def func(x,
+                     lamb=lamb, phi=phi, data=data,
+                     lamb0=lamb0, knots=knots, deg=deg, nc=nc):
+                nc = nbs*nlamb
+                amp = scpinterp.BSpline(knots, x[:nc], deg,
+                                        extrapolate=False, axis=0)(phi)
+                sigma = scpinterp.BSpline(knots, x[nc:2*nc], deg,
+                                          extrapolate=False, axis=0)(phi)
+                dlamb = scpinterp.BSpline(knots, x[2*nc:], deg,
+                                          extrapolate=False, axis=0)(phi)
+                val = np.sum(amp
+                             * np.exp(-(x[-nphi:] - (lamb0+dlamb))**2 / (sigma**2)),
+                             axis=-1)
+                return np.sqrt(np.sum(np.abs(val-data)))
+        else:
+            def func(x,
+                     lamb=lamb, phi=phi, data=data,
+                     lamb0=lamb0, knots=knots, deg=deg, nc=nc):
+                nc = nbs*nlamb
+                amp = scpinterp.BSpline(knots, x[:nc], deg,
+                                        extrapolate=False, axis=0)(phi)
+                sigma = scpinterp.BSpline(knots, x[nc:2*nc], deg,
+                                          extrapolate=False, axis=0)(phi)
+                dlamb = scpinterp.BSpline(knots, x[2*nc:], deg,
+                                          extrapolate=False, axis=0)(phi)
+                val = np.sum(amp
+                             * np.exp(-(x[-nphi:] - (lamb0+dlamb))**2 / (sigma**2)),
+                             axis=-1)
+                return np.sqrt(np.sum((val-data)**2))
+    return func
+
+def multigaussianfit2d(lamb, phi, data,
+                       lamb0=None, forcelamb=None,
+                       p0=None, bounds=None,
+                       phiknots=None, nbsplines=None,
+                       max_nfev=None, xtol=1.e-8, verbose=0,
+                       jac=None, loss=None, robust=None, plot_debug=False):
+
+    # Check inputs
+    if loss is None:
+        loss = 'linear'
+    if jac is None:
+        jac = '2-point'
+
+    # Get knots
+    if phiknots is None:
+        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+        phiknots = np.r_[]
+
+    # Get cost function
+    func = get_multigaussianfit2d_costfunc(lamb=lamb, phi=phi, data=data,
+                                           lamb0=lamb0, forcelamb=forcelamb,
+                                           deg=deg, knots=knots, robust=robust):
+
+    # Get initial guess
+    x0 = None
+
+    # Get bounds
+    bounds = None
+
+    # get scaling
+    x_scale = None
+
+    # Minimize
+    res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,
+                               method='trf', ftol=1e-08, xtol=xtol,
+                               gtol=1e-08, x_scale=x_scale, loss=loss,
+                               f_scale=1.0, diff_step=None, tr_solver=None,
+                               tr_options={}, jac_sparsity=None,
+                               max_nfev=max_nfev,
+                               verbose=verbose, args=(), kwargs={})
+
+
+    dout
+    return dout
+
 
 
 
