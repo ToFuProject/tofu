@@ -406,9 +406,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     return [ax0, ax1]
 
 
-def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data,
+def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
                                   lambfit=None, phifit=None, spect1d=None,
-                                  dfit1d=None,
+                                  dfit1d=None, dfit2d=None,
                                   cmap=None, vmin=None, vmax=None,
                                   fs=None, dmargin=None,
                                   angunits='deg'):
@@ -451,8 +451,8 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data,
     axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
     ax3 = fig.add_subplot(gs[:3, 3], sharex=ax2, sharey=ax2)
     axs3 = fig.add_subplot(gs[3, 3], sharex=ax2)#, sharey=axs1)
-    ax4 = fig.add_subplot(gs[:3, 4], aspect='equal', adjustable='datalim',
-                          sharex=ax0, sharey=ax0)
+    ax4 = fig.add_subplot(gs[:3, 4], sharex=ax2, sharey=ax2)
+    axs4 = fig.add_subplot(gs[3, 3], sharex=ax2)#, sharey=axs1)
 
     ax0.set_title('Coordinates transform')
     ax1.set_title('Camera image')
@@ -475,7 +475,16 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data,
     axs2.plot(lambfit, dfit1d['fit'].ravel(), c='r', ls='-', label='fit')
     for ll in dfit1d['lamb0']:
         axs2.axvline(ll, c='k', ls='--')
-    # if fitted is not None:
+
+    # dfit2d
+    ax3.scatter(lamb[mask].ravel(), phi[mask].ravel(), c=dfit2d['fit'], s=1,
+                marker='s', edgecolors='None',
+                cmap=cmap, vmin=vmin, vmax=vmax)
+    err = dfit2d['fit'] - data[mask].ravel()
+    errmax = np.max(np.abs(err))
+    ax4.scatter(lamb[mask].ravel(), phi[mask].ravel(), c=err, s=1,
+                marker='s', edgecolors='None',
+                cmap=plt.cm.seismic, vmin=-errmax, vmax=errmax)
         # ax3.imshow(fitted, extent=extent2, aspect='auto', origin='lower')
         # axs3.plot(brlb, fitted.sum(axis=0), c='k', ls='-')
         # ax4.imshow(error, extent=extent,

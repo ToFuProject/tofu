@@ -1046,10 +1046,14 @@ class CrystalBragg(utils.ToFuObject):
                   cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
         return ax
 
-    def plot_data_fit2d(self, xi=None, xj=None, data=None,
+    def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,
                         det_cent=None, det_ei=None, det_ej=None,
                         theta=None, psi=None, n=None,
                         nlamb=None, lamb0=None, forcelamb=False,
+                        deg=None, knots=None, nbsplines=None,
+                        method=None, max_nfev=None,
+                        xtol=None, ftol=None, gtol=None,
+                        loss=None, verbose=0,
                         plot=True, fs=None,
                         cmap=None, vmin=None, vmax=None):
         # Check / format inputs
@@ -1079,19 +1083,27 @@ class CrystalBragg(utils.ToFuObject):
         dfit1d = func(lambfit, spect1d,
                       nmax=nlamb, lamb0=lamb0, forcelamb=forcelamb,
                       p0=None, bounds=None,
-                      max_nfev=None, xtol=1.e-8, verbose=0,
+                      max_nfev=None, xtol=xtol, verbose=0,
                       percent=20, plot_debug=False)
 
         # Compute dfit2d
-        # func = _spectrafit2d.multiplegaussianfit2d
-        # dfit2d = func()
+        if mask is None:
+            mask = np.ones(data.shape, dtype=bool)
+        func = _spectrafit2d.multigaussianfit2d
+        dfit2d = func(lamb[mask].ravel(), phi[mask].ravel(), data[mask].ravel(),
+                      std=dfit1d['std'],
+                      lamb0=dfit1d['lamb0'], forcelamb=forcelamb,
+                      deg=deg, nbsplines=nbsplines,
+                      method=method, max_nfev=max_nfev,
+                      xtol=xtol, ftol=ftol, gtol=gtol,
+                      loss=loss, verbose=verbose)
 
 
         # plot
         func = _plot_optics.CrystalBragg_plot_data_vs_fit
-        ax = func(xi, xj, bragg, lamb, phi, data,
+        ax = func(xi, xj, bragg, lamb, phi, data, mask=mask,
                   lambfit=lambfit, phifit=phifit, spect1d=spect1d,
-                  dfit1d=dfit1d,
+                  dfit1d=dfit1d, dfit2d=dfit2d,
                   cmap=cmap, vmin=vmin, vmax=vmax,
                   fs=fs)
         return ax, dfit1d, None
