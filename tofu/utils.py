@@ -742,12 +742,12 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             config.set_colors_random()
         trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init_plt, t,
                                                             direction='FWD',
-                                                            length_line=25,
+                                                            length_line=35,
                                                             stp=None)
         trace_rev = tfm.MagFieldLines(
                     int(shot[0])).trace_mline(init_plt, t,
                                               direction='REV',
-                                              length_line=25,
+                                              length_line=35,
                                               stp=None)
 
         refpt = np.r_[2.4,0.]
