@@ -160,7 +160,7 @@ class MagFieldLines:
                            bounds_error=False)
 
     def trace_mline(self, init_state, time, direction='FWD', \
-                    length_line=None, stp=None):
+                    length_line=None, stp=None, ripple=True):
         '''
         Traces the field line given a starting point.
         Integration step defined by stp and maximum length of the field line
@@ -174,6 +174,7 @@ class MagFieldLines:
             - time : array of times requested (list or numpy array)
             - direction : direction of integration 'FWD' forward or 'REV' reverse
               (string)
+            - ripple : take into account magnetic ripple or not (boolean)
 
         output:
             returns a dictionary containing:
@@ -237,7 +238,7 @@ class MagFieldLines:
 
             for jj in range(init_state.shape[1]):
                 out_prime = self.integrate_solve_ivp(init_state[:, jj], \
-                                                     direction, s, ds)
+                                                     direction, s, ds, ripple)
                 out_prime['init_point'] = init_state[:, jj]
                 out_prime['time']       = self.ar_time[ii]
                 # Return list of dict
@@ -247,7 +248,7 @@ class MagFieldLines:
 
         return outMagLine
 
-    def integrate_solve_ivp(self, init_state, direction, s, ds):
+    def integrate_solve_ivp(self, init_state, direction, s, ds, ripple=True):
         '''
         Integration step defined by stp and maximum length of the field line
         defined by s.
@@ -259,6 +260,7 @@ class MagFieldLines:
               (string)
             - s : field line maximum length
             - ds : vector of steps
+            - ripple : boolean, take into account magnetic ripple or not
 
         output:
             returns a dictionary containing:
@@ -269,14 +271,24 @@ class MagFieldLines:
             - y  : y coordinate (np.array)
             - cp : collision point with the wall (list)
         '''
-        if (direction=='FWD'):
-            sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
-                                  method='RK23', t_eval=ds,
-                                  events=self.hit_wall_circ)
-        elif (direction=='REV'):
-            sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
-                                  method='RK23', t_eval=ds,
-                                  events=self.hit_wall_circ)
+        if (ripple):
+            if (direction=='FWD'):
+                sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
+                                      method='RK23', t_eval=ds,
+                                      events=self.hit_wall_circ)
+            elif (direction=='REV'):
+                sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
+                                      method='RK23', t_eval=ds,
+                                      events=self.hit_wall_circ)
+        else:
+            if (direction=='FWD'):
+                sol = spode.solve_ivp(self.mfld3dcylfwd_no_ripple, [0, s], init_state,
+                                      method='RK23', t_eval=ds,
+                                      events=self.hit_wall_circ)
+            elif (direction=='REV'):
+                sol = spode.solve_ivp(self.mfld3dcylrev_no_ripple, [0, s], init_state,
+                                      method='RK23', t_eval=ds,
+                                      events=self.hit_wall_circ)
         sgf = sol.t
         rgf = sol.y[0]
         pgf = sol.y[1]
@@ -331,6 +343,40 @@ class MagFieldLines:
         d_Z = -Bz/B
         return [d_R, d_P, d_Z]
 
+    def mfld3dcylfwd_no_ripple(self, s, state):
+        '''
+        Returns the right end side of the field line system of equations in
+        cyclindrical (R, Phi, Z) coord.
+        This is the case for forward integration.
+        '''
+        R, P, Z = state
+        Br, Bt, Bz = self.b_field_interp_no_ripple(R, P, Z)
+        #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
+        #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
+        #Bz=self.fBp_z(R,Z)[0]
+        B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
+        d_R = Br/B
+        d_P = Bt/B*1/R
+        d_Z = Bz/B
+        return [d_R, d_P, d_Z]
+
+    def mfld3dcylrev_no_ripple(self, s, state):
+        '''
+        Returns the right end side of the field line system of equations in
+        cyclindrical (R, Phi, Z) coord.
+        This is the case for backward integration.
+        '''
+        R, P, Z = state
+        Br, Bt, Bz = self.b_field_interp_no_ripple(R, P, Z)
+        #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
+        #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
+        #Bz=self.fBp_z(R,Z)[0]
+        B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
+        d_R = -Br/B
+        d_P = -Bt/B*1/R
+        d_Z = -Bz/B
+        return [d_R, d_P, d_Z]
+
     def hit_wall_circ(self, s, state):
         '''
         return 0 when hit wall.
@@ -363,10 +409,9 @@ class MagFieldLines:
 
     hit_wall_circ.terminal=True
 
-    def b_field_interp(self, R, Phi, Z, no_ripple=False):
+    def b_field_interp(self, R, Phi, Z):
         ''' Linear interpolation of B vector components at R, Phi, Z positions
         '''
-
         interp_points = np.vstack((R, Z)).transpose()
 
         br_intp = self.br_lin_intp.__call__(interp_points)
@@ -382,6 +427,17 @@ class MagFieldLines:
         br_intp -= br_ripple[0]
         bt_intp -= (bt_ripple[0] - np.abs(self.bt_vac))
         bz_intp -= bz_ripple[0]
+
+        return br_intp[0], bt_intp[0], bz_intp[0]
+
+    def b_field_interp_no_ripple(self, R, Phi, Z):
+        ''' Linear interpolation of B vector components at R, Phi, Z positions
+        '''
+        interp_points = np.vstack((R, Z)).transpose()
+
+        br_intp = self.br_lin_intp.__call__(interp_points)
+        bt_intp = self.bt_lin_intp.__call__(interp_points)
+        bz_intp = self.bz_lin_intp.__call__(interp_points)
 
         return br_intp[0], bt_intp[0], bz_intp[0]
 
@@ -512,3 +568,26 @@ class MagFieldLines:
         ax.set_xlabel('x [m]'); ax.set_ylabel('y [m]'); ax.set_zlabel('z [m]')
         plt.title('Magnetic field line trace')
         plt.show()
+
+    def plot_poincare(self, trace_plt, tor_angle=0):
+        '''
+        Plots Poincare plot at given toroidal angle
+
+        input:
+            - trace_plt : the magneticl field line data for several points
+                          one single time (dictionary)
+        '''
+
+        fig, ax = plt.subplots()
+
+        for ii in range(len(trace_plt)):
+            loc_cross = trace_plt[ii]['p'] % (tor_angle + 2*np.pi)
+            mask_cross = np.r_[False, loc_cross[1:]
+                               < loc_cross[:-1]] & np.r_[loc_cross[:-1]
+                                                         < loc_cross[1:],
+                                                         False]
+            ax.plot(trace_plt[ii]['r'][mask_cross],
+                    trace_plt[ii]['z'][mask_cross], 'o', markersize=3)
+
+        ax.set_aspect('equal')
+        ax.set_xlabel('R [m]'); ax.set_ylabel('Z [m]')
