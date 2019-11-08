@@ -535,6 +535,9 @@ def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
                                     - (lamb0[None, :]+dlamb[:, None]))**2
                                   / (sigma[:, None]**2)),
                          axis=-1)
+            plt.gca().plot(val[317200:317600])
+            import ipdb         # DB
+            ipdb.set_trace()    # DB
             return (val-data) / (std*data.size)
 
         def jac(x,
@@ -575,6 +578,7 @@ def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
 def multigaussianfit2d(lamb, phi, data, std=None,
                        lamb0=None, forcelamb=None,
                        knots=None, deg=None, nbsplines=None,
+                       x0=None, bounds=None,
                        method=None, max_nfev=None,
                        xtol=None, ftol=None, gtol=None,
                        loss=None, verbose=0):
@@ -634,20 +638,26 @@ def multigaussianfit2d(lamb, phi, data, std=None,
                                                 nkperbs=nkperbs, nc=nc)
 
     # Get initial guess
-    x0 = np.r_[np.ones((nc,)), np.ones((nc,))]
-    if not forcelamb:
-        x0 = np.r_[x0, np.zeros((nc,))]
+    if x0 is None:
+        x0 = np.r_[np.ones((nc,)), np.ones((nc,))]
+        if not forcelamb:
+            x0 = np.r_[x0, np.zeros((nc,))]
 
     # Get bounds
-    bounds = (np.r_[np.zeros((nc,)),
-                    np.full((nc,), nlamb0/100)],
-              np.r_[np.full((nc,), np.nanmax(data)/ampscale),
-                    np.full((nc,), nlamb0/2.)])
-    if not forcelamb:
-        bounds = (np.r_[bounds[0], -np.full((nc,), nlamb0/3.)],
-                  np.r_[bounds[1], np.full((nc,), nlamb0/3.)])
+    if bounds is None:
+        bounds = (np.r_[np.zeros((nc,)),
+                        np.full((nc,), nlamb0/100)],
+                  np.r_[np.full((nc,), np.nanmax(data)/ampscale),
+                        np.full((nc,), nlamb0/2.)])
+        if not forcelamb:
+            bounds = (np.r_[bounds[0], -np.full((nc,), nlamb0/3.)],
+                      np.r_[bounds[1], np.full((nc,), nlamb0/3.)])
 
     # Minimize
+    import ipdb         # DB
+    ipdb.set_trace()    # DB
+    plt.figure()            # DB
+    plt.plot(datascale[317200:317600], '-k')   # DB
     res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,
                                method=method, ftol=ftol, xtol=xtol,
                                gtol=gtol, x_scale=1.0, f_scale=1.0, loss=loss,
@@ -663,6 +673,9 @@ def multigaussianfit2d(lamb, phi, data, std=None,
         cdlamb = None
     else:
         cdlamb = res.x[2*nc:].reshape((nlamb0, nbs)) * dlambscale
+
+    import ipdb         # DB
+    ipdb.set_trace()    # DB
 
     # Create output dict
     dout = {'camp': camp, 'csigma': csigma, 'cdlamb': cdlamb,
