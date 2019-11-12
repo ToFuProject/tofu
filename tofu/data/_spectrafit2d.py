@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 
 
-_NPEAKMAX = 15
+_NPEAKMAX = 12
 
 ###########################################################
 ###########################################################
@@ -468,13 +468,15 @@ def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
                                     lamb0=None, forcelamb=None,
                                     deg=None, knots=None,
                                     nlamb0=None, nkperbs=None, nbs=None,
-                                    nc=None):
+                                    nc=None, debug=None):
     assert lamb.shape == phi.shape == data.shape
     assert lamb.ndim == 1
     assert nc == nbs*nlamb0
 
     if forcelamb is None:
         forcelamb = False
+    if debug is None:
+        debug = False
 
     # Define func assuming all inpus properly formatted
     if forcelamb:
@@ -522,22 +524,47 @@ def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
         # x = [camp1-nbs*nlamb, csigma1-nbs*nlamb, cdlamb1-nbs*nlamb]
         def func(x,
                  lamb=lamb, phi=phi, data=data, std=std,
-                 lamb0=lamb0, knots=knots, deg=deg, nc=nc):
-            nc = nbs*nlamb0
-            amp = BSpline(knots, x[:nc], deg,
-                          extrapolate=False, axis=0)(phi)
-            sigma = BSpline(knots, x[nc:2*nc], deg,
-                            extrapolate=False, axis=0)(phi)
-            dlamb = BSpline(knots, x[2*nc:], deg,
-                            extrapolate=False, axis=0)(phi)
-            val = np.sum(amp[:, None]
-                         * np.exp(-(lamb[:, None]
-                                    - (lamb0[None, :]+dlamb[:, None]))**2
-                                  / (sigma[:, None]**2)),
-                         axis=-1)
-            plt.gca().plot(val[317200:317600])
-            import ipdb         # DB
-            ipdb.set_trace()    # DB
+                 lamb0=lamb0, knots=knots, deg=deg,
+                 nbs=nbs, nlamb0=nlamb0, nc=nc, debug=debug):
+            amp = BSpline(knots, x[:nc].reshape((nbs, nlamb0), order='F'),
+                          deg, extrapolate=False, axis=0)(phi)
+            sigma = BSpline(knots, x[nc:2*nc].reshape((nbs, nlamb0), order='F'),
+                            deg, extrapolate=False, axis=0)(phi)
+            dlamb = BSpline(knots, x[2*nc:-1].reshape((nbs, nlamb0), order='F'),
+                            deg, extrapolate=False, axis=0)(phi)
+            val = np.nansum(amp
+                            * np.exp(-(lamb[:, None] - (lamb0[None, :]+dlamb))**2
+                                  / sigma**2),
+                            axis=-1) + x[-1]
+            if debug:
+                vmin, vmax = 0, np.nanmax(data)
+                fig = plt.figure(figsize=(14, 10));
+                ax0 = fig.add_axes([0.05,0.55,0.25,0.4])
+                ax1 = fig.add_axes([0.35,0.55,0.25,0.4], sharex=ax0, sharey=ax0)
+                ax2 = fig.add_axes([0.65,0.55,0.25,0.4], sharex=ax0, sharey=ax0)
+                ax3 = fig.add_axes([0.05,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
+                ax4 = fig.add_axes([0.35,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
+                ax5 = fig.add_axes([0.65,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
+                ax0.scatter(lamb, phi, c=data, s=2, marker='s', edgecolors='None',
+                           vmin=vmin, vmax=vmax)  # DB
+                ax1.scatter(lamb, phi, c=val, s=2, marker='s', edgecolors='None',  # DB
+                           vmin=vmin, vmax=vmax)  # DB
+                errmax = np.nanmax(np.abs((val-data) / (std*data.size)))
+                ax2.scatter(lamb, phi, c=(val-data) / (std*data.size),
+                            s=2, marker='s', edgecolors='None',  # DB
+                            vmin=-errmax, vmax=errmax, cmap=plt.cm.seismic)  # DB
+                dlamb0_amp = np.max(np.diff(lamb0))/np.nanmax(np.abs(amp))
+                dlamb0_sigma = np.max(np.diff(lamb0))/np.nanmax(np.abs(sigma))
+                dlamb0_dlamb = np.max(np.diff(lamb0))/np.nanmax(np.abs(dlamb))
+                for ii in range(nlamb0):
+                    ax3.axvline(lamb0[ii], ls='--', c='k')
+                    ax4.axvline(lamb0[ii], ls='--', c='k')
+                    ax5.axvline(lamb0[ii], ls='--', c='k')
+                    ax3.plot(lamb0[ii] + dlamb0_amp*amp[:, ii], phi, '.', ms=4)
+                    ax4.plot(lamb0[ii] + dlamb0_sigma*sigma[:, ii], phi, '.', ms=4)
+                    ax5.plot(lamb0[ii] + dlamb0_dlamb*dlamb[:, ii], phi, '.', ms=4)
+                import ipdb         # DB
+                ipdb.set_trace()    # DB
             return (val-data) / (std*data.size)
 
         def jac(x,
@@ -551,17 +578,18 @@ def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
             dlamb = BSpline(knots, x[2*nc:], deg,
                             extrapolate=False, axis=0)(phi)
             #jacx = sparse.csr_matrix((phi.size, 2*nc), dtype=float)
-            jacx = np.zeros((phi.size, 3*nc), dtype=float)
+            jacx = np.zeros((phi.size, 3*nc+1), dtype=float)
             for ii in range(nlamb0):
                 expi = np.exp(-(lamb-(lamb0[ii]+dlamb))**2/sigma**2)
+                indlamb = expi > 0.001
                 for jj in range(nbs):
                     kk = ii*nbs + jj
-                    indk = jj + np.r_[0:nkperbs]
+                    indk = jj + np.r_[:nkperbs]
                     # all bsplines are the same, only coefs (x) are changing
                     bj = BSpline.basis_element(knots[indk],
                                                extrapolate=False)(phi)
                     # bj[np.isnan(bj)] = 0.
-                    indok = ~np.isnan(bj)
+                    indok = (~np.isnan(bj)) & indlamb
                     # Differentiate wrt camp
                     jacx[indok, kk] = (bj[indok] * expi[indok])
                     # Differentiate wrt csigma
@@ -572,6 +600,7 @@ def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
                     jacx[indok, 2*nc+kk] = (
                          amp * 2*(lamb-(lamb0[ii]+dlamb))*bj/sigma**2 * expi
                     )[indok]
+            jacx[:, -1] = 1.
             return jacx/(std*phi.size)
     return func, jac
 
@@ -581,7 +610,7 @@ def multigaussianfit2d(lamb, phi, data, std=None,
                        x0=None, bounds=None,
                        method=None, max_nfev=None,
                        xtol=None, ftol=None, gtol=None,
-                       loss=None, verbose=0):
+                       loss=None, verbose=0, debug=None):
 
     # Check inputs
     if deg is None:
@@ -609,7 +638,7 @@ def multigaussianfit2d(lamb, phi, data, std=None,
     # Get knots
     if knots is None:
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
-        knots = np.linspace(phimin, phimax, nbsplines)
+        knots = np.linspace(phimin, phimax, nbsplines+1-deg)
     knots, nkperbs, nbs = get_knots_nbs_for_bsplines(np.unique(knots), deg)
 
     # Scaling
@@ -635,29 +664,29 @@ def multigaussianfit2d(lamb, phi, data, std=None,
                                                 forcelamb=forcelamb,
                                                 deg=deg, knots=knots,
                                                 nlamb0=nlamb0, nbs=nbs,
-                                                nkperbs=nkperbs, nc=nc)
+                                                nkperbs=nkperbs, nc=nc,
+                                                debug=debug)
 
     # Get initial guess
     if x0 is None:
         x0 = np.r_[np.ones((nc,)), np.ones((nc,))]
         if not forcelamb:
             x0 = np.r_[x0, np.zeros((nc,))]
+            x0 = np.r_[x0, 0.]
 
     # Get bounds
     if bounds is None:
         bounds = (np.r_[np.zeros((nc,)),
                         np.full((nc,), nlamb0/100)],
                   np.r_[np.full((nc,), np.nanmax(data)/ampscale),
-                        np.full((nc,), nlamb0/2.)])
+                        np.full((nc,), 3.)])
         if not forcelamb:
-            bounds = (np.r_[bounds[0], -np.full((nc,), nlamb0/3.)],
-                      np.r_[bounds[1], np.full((nc,), nlamb0/3.)])
+            bounds = (np.r_[bounds[0], -np.full((nc,), 2.)],
+                      np.r_[bounds[1], np.full((nc,), 2.)])
+        bounds = (np.r_[bounds[0], 0.],
+                  np.r_[bounds[1], 0.1*np.nanmax(data)/ampscale])
 
     # Minimize
-    import ipdb         # DB
-    ipdb.set_trace()    # DB
-    plt.figure()            # DB
-    plt.plot(datascale[317200:317600], '-k')   # DB
     res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,
                                method=method, ftol=ftol, xtol=xtol,
                                gtol=gtol, x_scale=1.0, f_scale=1.0, loss=loss,
@@ -672,15 +701,12 @@ def multigaussianfit2d(lamb, phi, data, std=None,
     if forcelamb:
         cdlamb = None
     else:
-        cdlamb = res.x[2*nc:].reshape((nlamb0, nbs)) * dlambscale
-
-    import ipdb         # DB
-    ipdb.set_trace()    # DB
+        cdlamb = res.x[2*nc:3*nc].reshape((nlamb0, nbs)) * dlambscale
 
     # Create output dict
-    dout = {'camp': camp, 'csigma': csigma, 'cdlamb': cdlamb,
-            'fit':func(res.x)*ampscale,
-            'lamb0':lamb0, 'knots': knots, 'nbsplines': nbsplines,
+    dout = {'camp': camp, 'csigma': csigma, 'cdlamb': cdlamb, 'bck':res.x[-1],
+            'fit':(func(res.x)*stdscale*data.size + datascale) * ampscale,
+            'lamb0':lamb0, 'knots': knots, 'deg':deg, 'nbsplines': nbsplines,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
             'nfev': res.nfev, 'njev': res.njev, 'status': res.status}
     return dout

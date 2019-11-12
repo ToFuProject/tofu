@@ -1,6 +1,7 @@
 
 
 import numpy as np
+from scipy.interpolate import BSpline
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
@@ -408,16 +409,16 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
                                   lambfit=None, phifit=None, spect1d=None,
-                                  dfit1d=None, dfit2d=None,
+                                  dfit1d=None, dfit2d=None, lambfitbins=None,
                                   cmap=None, vmin=None, vmax=None,
                                   fs=None, dmargin=None,
-                                  angunits='deg'):
+                                  angunits='deg', dmoments=None):
 
     # Check inputs
     # ------------
 
     if fs is None:
-        fs = (14,8)
+        fs = (16, 9)
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
@@ -438,11 +439,18 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
     extent = (xi.min(), xi.max(), xj.min(), xj.max())
     extent2 = (lambfit.min(), lambfit.max(), phifit.min(), phifit.max())
 
+    ind = np.digitize(lamb[mask].ravel(), lambfitbins)
+    spect2dmean = np.zeros((lambfitbins.size+1,))
+    for ii in range(lambfitbins.size+1):
+        indi = ind==ii
+        if np.any(indi):
+            spect2dmean[ii] = np.nanmean(dfit2d['fit'][indi])
+
     # Plot
     # ------------
 
-    fig = fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(4, 5, **dmargin)
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(4, 6, **dmargin)
     ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
     ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
                           sharex=ax0, sharey=ax0)
@@ -453,12 +461,14 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
     axs3 = fig.add_subplot(gs[3, 3], sharex=ax2)#, sharey=axs1)
     ax4 = fig.add_subplot(gs[:3, 4], sharex=ax2, sharey=ax2)
     axs4 = fig.add_subplot(gs[3, 3], sharex=ax2)#, sharey=axs1)
+    ax5 = fig.add_subplot(gs[:3, 5], sharey=ax2)
 
     ax0.set_title('Coordinates transform')
     ax1.set_title('Camera image')
     ax2.set_title('Camera image transformed')
     ax3.set_title('2d spectral fit')
     ax4.set_title('2d error')
+    ax5.set_title('Moments')
 
     ax4.set_xlabel('%s'%angunits)
     ax0.set_ylabel(r'incidence angle ($deg$)')
@@ -480,18 +490,38 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
     ax3.scatter(lamb[mask].ravel(), phi[mask].ravel(), c=dfit2d['fit'], s=1,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
+    axs3.plot(lambfit, spect1d, c='k', ls='None', marker='.')
+    axs3.plot(lambfit, spect2dmean, c='b', ls='-')
     err = dfit2d['fit'] - data[mask].ravel()
     errmax = np.max(np.abs(err))
     ax4.scatter(lamb[mask].ravel(), phi[mask].ravel(), c=err, s=1,
                 marker='s', edgecolors='None',
                 cmap=plt.cm.seismic, vmin=-errmax, vmax=errmax)
-        # ax3.imshow(fitted, extent=extent2, aspect='auto', origin='lower')
-        # axs3.plot(brlb, fitted.sum(axis=0), c='k', ls='-')
-        # ax4.imshow(error, extent=extent,
-                   # aspect='equal', cmap=plt.cm.seismic,
-                   # vmin=-verrmax, vmax=verrmax, origin='lower')
+
+    # Moments
+    if dmoments is not None:
+        if dmoments.get('ratio') is not None:
+            ind = dmoments['ratio'].get('ind')
+            if ind is None:
+                ind = [np.argmin(np.abs(dfit2d['lamb0']-ll))
+                        for ll in dmoments['ratio']['lamb']]
+            for indi in ind:
+                axs3.axvline(dfit2d['lamb0'][indi], c='k', ls='--')
+            amp0 = BSpline(dfit2d['knots'], dfit2d['camp'][ind[0],:], dfit2d['deg'])(phifit)
+            amp1 = BSpline(dfit2d['knots'], dfit2d['camp'][ind[1],:], dfit2d['deg'])(phifit)
+            lab = dmoments['ratio']['name'] + '{} / {}'
+            ratio = (amp0 / amp1) / np.nanmax(amp0 / amp1)
+            ax5.plot(amp0 / amp1, phifit, ls='-', c='k', label=lab)
+        if dmoments.get('sigma') is not None:
+            ind = dmoments['sigma'].get('ind')
+            if ind is None:
+                ind = np.argmin(np.abs(dfit2d['lamb0']-dmoments['sigma']['lamb']))
+            axs3.axvline(dfit2d['lamb0'][ind], c='b', ls='--')
+            sigma = BSpline(dfit2d['knots'], dfit2d['csigma'][ind,:], dfit2d['deg'])(phifit)
+            lab = r'$\sigma({} A)$'.format(np.round(dfit2d['lamb0'][ind]*1.e10),
+                                        4)
+            ax5.plot(sigma/np.nanmax(sigma), phifit, ls='-', c='b', label=lab)
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
-
     return [ax0, ax1]

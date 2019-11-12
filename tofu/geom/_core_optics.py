@@ -1053,8 +1053,8 @@ class CrystalBragg(utils.ToFuObject):
                         deg=None, knots=None, nbsplines=None,
                         method=None, max_nfev=None,
                         xtol=None, ftol=None, gtol=None,
-                        loss=None, verbose=0,
-                        plot=True, fs=None,
+                        loss=None, verbose=0, debug=None,
+                        plot=True, fs=None, dmoments=None,
                         cmap=None, vmin=None, vmax=None):
         # Check / format inputs
         assert data is not None
@@ -1086,6 +1086,16 @@ class CrystalBragg(utils.ToFuObject):
                       max_nfev=None, xtol=xtol, verbose=0,
                       percent=20, plot_debug=False)
 
+        # Reorder wrt lamb0
+        ind = np.argsort(dfit1d['lamb0'])
+        for kk in ['lamb0', 'amp', 'ampstd',
+                   'sigma', 'sigmastd', 'dlamb', 'dlambstd']:
+            if dfit1d[kk].ndim == 1:
+                dfit1d[kk] = dfit1d[kk][ind]
+            else:
+                dfit1d[kk] = dfit1d[kk][0,ind]
+
+
         # Compute dfit2d
         if mask is None:
             mask = np.ones(data.shape, dtype=bool)
@@ -1096,14 +1106,14 @@ class CrystalBragg(utils.ToFuObject):
                       deg=deg, nbsplines=nbsplines,
                       method=method, max_nfev=max_nfev,
                       xtol=xtol, ftol=ftol, gtol=gtol,
-                      loss=loss, verbose=verbose)
+                      loss=loss, verbose=verbose, debug=debug)
 
 
         # plot
         func = _plot_optics.CrystalBragg_plot_data_vs_fit
         ax = func(xi, xj, bragg, lamb, phi, data, mask=mask,
                   lambfit=lambfit, phifit=phifit, spect1d=spect1d,
-                  dfit1d=dfit1d, dfit2d=dfit2d,
+                  dfit1d=dfit1d, dfit2d=dfit2d, lambfitbins=lambfitbins,
                   cmap=cmap, vmin=vmin, vmax=vmax,
-                  fs=fs)
+                  fs=fs, dmoments=dmoments)
         return ax, dfit1d, None
