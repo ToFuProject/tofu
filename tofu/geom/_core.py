@@ -5465,6 +5465,7 @@ class Rays(utils.ToFuObject):
             num_threads=num_threads,
             Test=Test,
         )
+        print(" k =", k[0], k[1], k[2])
         if pts:
             nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
             k = np.repeat(Ds, nbrep, axis=1) + k[None, :] * np.repeat(
@@ -5886,7 +5887,7 @@ class Rays(utils.ToFuObject):
         self,
         func,
         t=None,
-        ani=None,
+        ani=False,
         fkwdargs={},
         Brightness=True,
         res=None,
@@ -5981,38 +5982,11 @@ class Rays(utils.ToFuObject):
                 num_threads=num_threads,
                 Test=True,
             )
-            c0 = (
-                reflections
-                and self._dgeom["dreflect"] is not None
-                and self._dgeom["dreflect"].get("nb", 0) > 0
-            )
-            if c0:
-                if coefs is None:
-                    coefs = 1.0
-                for ii in range(self._dgeom["dreflect"]["nb"]):
-                    Dsi = np.ascontiguousarray(
-                        self._dgeom["dreflect"]["Ds"][:, :, ii]
-                    )
-                    usi = np.ascontiguousarray(
-                        self._dgeom["dreflect"]["us"][:, :, ii]
-                    )
-                    s += coefs * _GG.LOS_calc_signal(
-                        func,
-                        Dsi,
-                        usi,
-                        res,
-                        DL,
-                        dmethod=resMode,
-                        method=method,
-                        ani=ani,
-                        t=t,
-                        fkwdargs=fkwdargs,
-                        minimize=minimize,
-                        num_threads=num_threads,
-                        Test=True,
-                    )
 
-            # Integrate
+            # I erase the reflexions part since this is not done with the old
+            # version of the algo and I 'm just trying to understand.
+
+            # Creating the arrays with null everywhere..........
             if s.ndim == 2:
                 sig = np.full((s.shape[0], self.nRays), np.nan)
             else:
@@ -6033,6 +6007,16 @@ class Rays(utils.ToFuObject):
                 compact=True,
                 pts=True,
             )
+
+            print("res =", res)
+            print("resMode=",resMode)
+            print("DL =", DL)
+            print("method =", method)
+            print("ind =", ind)
+            print("pts = ", pts.shape)
+            print("reseff =", reseff)
+            print("indpts =", indpts[:3])
+
             if ani:
                 nbrep = np.r_[
                     indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]
@@ -6045,7 +6029,17 @@ class Rays(utils.ToFuObject):
             # This is the slowest step (~3.8 s with res=0.02
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
+            if ani:
+                print("c .......... is any........ t =", t[0], " usbis =", vect[0])
+            else:
+                print("c .......... not any........ t =", t[0])
+                print("pts  =", np.hypot(pts[0,0], pts[1,0]),
+                      pts[0,0], pts[1,0],
+                      pts[2,0])
 
+            print(val[0,:3])
+            print(val[1,:3])
+            print(val[2,:3])
             # Integrate
             if val.ndim == 2:
                 sig = np.full((val.shape[0], self.nRays), np.nan)

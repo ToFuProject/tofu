@@ -456,6 +456,11 @@ cdef inline void middle_rule_abs_s2(int nlos,
     loc_x = los_kmin[0]
     middle_rule_single(num_raf, loc_x, loc_resol,
                        &los_coeffs[first_index])
+
+    with gil:
+        print("<<<< los_coeffs 0:", los_kmin[0],
+              loc_resol)
+
     # filling tab...... CANNOT BE PARALLEL !!
     for ii in range(1, nlos):
         num_raf = ind_cum[ii]
@@ -561,7 +566,12 @@ cdef inline void middle_rule_abs_var(int nlos,
     middle_rule_abs_var_s2(nlos, los_kmin, los_kmax,
                            eff_resolution, los_coeffs,
                            los_ind, los_nraf, num_threads)
-
+    with gil:
+        print(">>>>>> IN MIDDLE RULE ABS VAR")
+        print("eff res ==== > ", eff_resolution[0], eff_resolution[1], eff_resolution[2])
+        print("los_kmin === > ", los_kmin[0], los_kmin[1], los_kmin[2])
+        print("los_kmax === > ", los_kmax[0], los_kmax[1], los_kmax[2])
+        print("los_coeffs = > ", los_coeffs[0][0], los_coeffs[0][1], los_coeffs[0][2])
     # ...
     free(los_nraf)
     return
@@ -1458,7 +1468,7 @@ cdef inline void los_get_sample_core_var_res(int nlos,
     return
 
 
-# # -- utility for calc signal ---------------------------------------------------
+# -- utility for calc signal ---------------------------------------------------
 cdef inline void los_get_sample_pts(int nlos,
                                     double* ptx,
                                     double* pty,

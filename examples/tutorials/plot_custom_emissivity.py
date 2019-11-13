@@ -81,11 +81,24 @@ ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 time_vector = np.linspace(0, 2 * np.pi, num=100)
 
+print("----------------***** OLD *******-----------------")
+print(" file =", tf.__file__)
+sig, units = cam2d.calc_signal(emissivity,
+                               res=0.01,
+                               reflections=False,
+                               newcalc=False,
+                               plot=False,
+                               t=time_vector)
+
+print()
+print()
+print("----------------***** NEW *******-----------------")
+
 sig, units = cam2d.calc_signal(emissivity,
                                res=0.01,
                                reflections=False,
                                newcalc=True,
                                plot=False,
                                t=time_vector)
-sig.plot(ntMax=1)
-plt.show()
+# sig.plot(ntMax=1)
+# plt.show()

@@ -2732,6 +2732,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     n_imode = _st.get_nb_imode(imode)
     # -- Core functions --------------------------------------------------------
     if not dl_is_list:
+        print("************ dl is NOT list ***************")
         # Case with unique discretization step dL
         sz_coeff = _st.los_get_sample_core_const_res(nlos,
                                                      &los_lims[0,0],
@@ -2743,6 +2744,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                                      &los_ind_ptr[0],
                                                      num_threads)
     else:
+        print("************ dl IS list ***************")
         # Case with different resolution for each LOS
         dl_view=dL
         _st.los_get_sample_core_var_res(nlos,
@@ -2946,7 +2948,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef long* ind_arr = NULL
     cdef double* reseff_arr = NULL
     cdef double** coeff_ptr = NULL
-    # .. ray_orig shape needed for testing and in algo ...............................
+    # .. ray_orig shape needed for testing and in algo .........................
     sz1_ds = ray_orig.shape[0]
     nlos = ray_orig.shape[1]
     res_is_list = hasattr(res, '__iter__')
@@ -2959,7 +2961,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         assert sz1_ds == 3, "Dim 0 of arg ray_orig should be 3"
         assert sz1_us == 3, "Dim 0 of arg ray_vdir should be 3"
         assert sz1_dls == 2, "Dim 0 of arg lims should be 2"
-        error_message = "Args ray_orig, ray_vdir, lims should have same dimension 1"
+        error_message = ("Args ray_orig, ray_vdir, and lims "
+                         + "should have same dimension 1")
         assert nlos == sz2_us == sz2_dls, error_message
         C0 = not res_is_list and res > 0.
         C1 = res_is_list and len(res)==nlos and np.all(res>0.)
@@ -3027,8 +3030,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             ind_arr = <long*>malloc(nlos*sizeof(long))
             # we sample lines of sight
             _st.los_get_sample_core_var_res(nlos,
-                                            &lims[0,0],
-                                            &lims[1,0],
+                                            &lims[0, 0],
+                                            &lims[1, 0],
                                             n_dmode, n_imode,
                                             &res_arr[0],
                                             &coeff_ptr[0],
@@ -3051,10 +3054,22 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    coeff_ptr[0],
                                    ind_arr,
                                    num_threads)
+            print("pts = ", 3, sz_coeff)
+            print("res =", res_arr[0])
+            print("indpts =", ind_arr[0], ind_arr[1], ind_arr[2])
+
         if ani:
+            print("GG .......... is any........ t =", t[0], " usbis =", -usbis[0])
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
+            print("GG .......... not any........ t =", t[0])
             val_2d = func(pts, t=t, **fkwdargs)
+            print("pts  =", np.hypot(pts[0,0], pts[1,0]),
+                  pts[0,0], pts[1,0],
+                  pts[2,0])
+        print(val_2d[0,0], val_2d[0,1], val_2d[0,2])
+        print(val_2d[1,0], val_2d[1,1], val_2d[1,2])
+        print(val_2d[2,0], val_2d[2,1], val_2d[2,2])
         # Integrate
         if method=='sum':
             # # .. original version .....................................
