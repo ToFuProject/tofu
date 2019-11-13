@@ -5465,9 +5465,15 @@ class Rays(utils.ToFuObject):
             num_threads=num_threads,
             Test=Test,
         )
-        print(" k =", k[0], k[1], k[2])
+        print(" k =", k[0], k[1], k[2], pts)
         if pts:
             nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+            for ii in range(3):
+                print()
+                print("%%%%%%%%%%% old")
+                print("%         % coeff_ptr = ", k[ii])
+                print("%         % loc_org =", Ds[0,ii],Ds[1,ii],Ds[2,ii])
+                print("%         % loc_vdr =", us[0,ii],us[1,ii],us[2,ii])
             k = np.repeat(Ds, nbrep, axis=1) + k[None, :] * np.repeat(
                 us, nbrep, axis=1
             )
@@ -6008,14 +6014,14 @@ class Rays(utils.ToFuObject):
                 pts=True,
             )
 
-            print("res =", res)
-            print("resMode=",resMode)
-            print("DL =", DL)
-            print("method =", method)
-            print("ind =", ind)
-            print("pts = ", pts.shape)
-            print("reseff =", reseff)
-            print("indpts =", indpts[:3])
+            # print("res =", res)
+            # print("resMode=",resMode)
+            # print("DL =", DL)
+            # print("method =", method)
+            # print("ind =", ind)
+            # print("pts = ", pts.shape)
+            # print("reseff =", reseff)
+            # print("indpts =", indpts[:3])
 
             if ani:
                 nbrep = np.r_[

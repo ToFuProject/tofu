@@ -1515,9 +1515,16 @@ cdef inline void los_get_sample_pts(int nlos,
     loc_vy = ray_vdir[1,0]
     loc_vz = ray_vdir[2,0]
     for ii in range(los_ind[0]):
-        ptx[ii] = loc_ox + coeff_ptr[ii] + loc_vx
-        pty[ii] = loc_oy + coeff_ptr[ii] + loc_vy
-        ptz[ii] = loc_oz + coeff_ptr[ii] + loc_vz
+        if ii < 3:
+            with gil:
+                print()
+                print("%%%%%%%%%%% new")
+                print("%         % coeff_ptr = ", coeff_ptr[ii])
+                print("%         % loc_org =", loc_ox, loc_oy, loc_oz)
+                print("%         % loc_vdr =", loc_vx, loc_vy, loc_vz)
+        ptx[ii] = loc_ox + coeff_ptr[ii] * loc_vx
+        pty[ii] = loc_oy + coeff_ptr[ii] * loc_vy
+        ptz[ii] = loc_oz + coeff_ptr[ii] * loc_vz
         usx[ii] = loc_vx
         usy[ii] = loc_vy
         usz[ii] = loc_vz
@@ -1530,9 +1537,9 @@ cdef inline void los_get_sample_pts(int nlos,
         loc_vy = ray_vdir[1,jj]
         loc_vz = ray_vdir[2,jj]
         for ii in range(los_ind[jj-1], los_ind[jj]):
-            ptx[ii] = loc_ox + coeff_ptr[ii] + loc_vx
-            pty[ii] = loc_oy + coeff_ptr[ii] + loc_vy
-            ptz[ii] = loc_oz + coeff_ptr[ii] + loc_vz
+            ptx[ii] = loc_ox + coeff_ptr[ii] * loc_vx
+            pty[ii] = loc_oy + coeff_ptr[ii] * loc_vy
+            ptz[ii] = loc_oz + coeff_ptr[ii] * loc_vz
             usx[ii] = loc_vx
             usy[ii] = loc_vy
             usz[ii] = loc_vz
