@@ -2920,12 +2920,12 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int n_imode, n_dmode
+    cdef int nlos
+    cdef int nt=0, ii, jj
     cdef bint res_is_list
     cdef bint C0, C1
     cdef list ltime
     cdef double loc_r
-    cdef unsigned int nlos
-    cdef unsigned int nt=0, ii, jj
     cdef long[1] nb_rows
     cdef long[::1] indbis
     cdef double[1] loc_eff_res
@@ -3060,14 +3060,13 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # Integrate
         if method=='sum':
             # .. integrating function ..........................................
-            for iii in range(nlos):
-                if iii > 0:
-                    temp = np.sum(val_2d[:,ind_arr[iii-1]:ind_arr[iii]],
-                                axis=-1)
+            for ii in range(nlos):
+                if ii > 0:
+                    sig[:,ii] = np.sum(val_2d[:, ind_arr[ii-1]:ind_arr[ii]],
+                                axis=-1) * reseff_arr[ii]
                 else:
-                    temp = np.sum(val_2d[:,0:ind_arr[iii]],
-                                axis=-1)
-                sig[:,iii] = temp*reseff_arr[iii]
+                    sig[:,0] = np.sum(val_2d[:, 0:ind_arr[0]],
+                                axis=-1) * reseff_arr[0]
             # Cleaning up...
             free(coeff_ptr[0])
             free(coeff_ptr)

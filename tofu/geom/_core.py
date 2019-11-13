@@ -5982,9 +5982,38 @@ class Rays(utils.ToFuObject):
                 Test=True,
             )
 
-            # I erase the reflexions part since this is not done with the old
-            # version of the algo and I 'm just trying to understand.
+            c0 = (
+                reflections
+                and self._dgeom["dreflect"] is not None
+                and self._dgeom["dreflect"].get("nb", 0) > 0
+            )
+            if c0:
+                if coefs is None:
+                    coefs = 1.0
+                for ii in range(self._dgeom["dreflect"]["nb"]):
+                    Dsi = np.ascontiguousarray(
+                        self._dgeom["dreflect"]["Ds"][:, :, ii]
+                    )
+                    usi = np.ascontiguousarray(
+                        self._dgeom["dreflect"]["us"][:, :, ii]
+                    )
+                    s += coefs * _GG.LOS_calc_signal(
+                        func,
+                        Dsi,
+                        usi,
+                        res,
+                        DL,
+                        dmethod=resMode,
+                        method=method,
+                        ani=ani,
+                        t=t,
+                        fkwdargs=fkwdargs,
+                        minimize=minimize,
+                        num_threads=num_threads,
+                        Test=True,
+                    )
 
+            # Integrate
             # Creating the arrays with null everywhere..........
             if s.ndim == 2:
                 sig = np.full((s.shape[0], self.nRays), np.nan)
@@ -6033,7 +6062,7 @@ class Rays(utils.ToFuObject):
                     * reseff[ii]
                 )
         # Format output
-        everything = self._calc_signal_postformat(
+        return self._calc_signal_postformat(
             sig,
             Brightness=Brightness,
             dataname=dataname,
@@ -6049,7 +6078,6 @@ class Rays(utils.ToFuObject):
             draw=draw,
             connect=connect,
         )
-        return everything
 
     def calc_signal_from_Plasma2D(
         self,
