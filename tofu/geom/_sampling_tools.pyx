@@ -428,6 +428,12 @@ cdef inline void middle_rule_abs_s1(int nlos, double resol,
     with nogil, parallel(num_threads=num_threads):
         inv_resol = 1./resol
         for ii in prange(nlos):
+            if ii < 3:
+                with gil:
+                    print()
+                    print("%%%%%%%%%%% old")
+                    print("%         % seg_length =", los_kmax[ii] - los_kmin[ii])
+                    print("%         % inv_resol  =", inv_resol)
             middle_rule_abs_s1_single(inv_resol, los_kmin[ii],
                                      los_kmax[ii],
                                      &eff_resolution[ii],
@@ -497,8 +503,21 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
     eff_resolution[0] = loc_resol
     los_ind[0] = num_raf
     first_index = 0
+    with gil:
+        print()
+        print("%%%%%%%%%%% new")
+        print("%         % seg_length =", los_kmax[0] - los_kmin[0])
+        print("%         % inv_resol  =", 1./resolutions[0])
+
     # Now the rest ...................................................
     for ii in range(1,nlos):
+        if ii < 3:
+            with gil:
+                print()
+                print("%%%%%%%%%%% new")
+                print("%         % seg_length =", los_kmax[ii] - los_kmin[ii])
+                print("%         % inv_resol  =", 1./resolutions[ii])
+
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(Cceil(seg_length/resolutions[ii]))
         loc_resol = seg_length / num_raf
@@ -1398,6 +1417,8 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             return (N+1)*nlos
     else: # absolute
         if n_imode==0: #sum
+            with gil:
+                print(">>>>>>>>>> from OLD : im in abs sum mode")
             middle_rule_abs_s1(nlos, val_resol, los_lim_min, los_lim_max,
                               &dLr[0], los_ind,
                               num_threads=num_threads)
@@ -1434,6 +1455,8 @@ cdef inline void los_get_sample_core_var_res(int nlos,
                                             int num_threads) nogil:
     if n_dmode==0: #absolute
         if n_imode==0: # sum
+            with gil:
+                print("$$$$$$$$$$$$ middle_rule_abs_var")
             middle_rule_abs_var(nlos,
                                 los_lim_min, los_lim_max,
                                 resol, &eff_res[0],

@@ -2706,6 +2706,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
     los_ind = np.zeros((nlos,), dtype=int)
+    print("dL =====================", dL)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -3007,6 +3008,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         res_arr = np.asarray(res)
     else:
         res_arr = np.ones((nlos,), dtype=float) * res
+    print("$$$$$$$$$$ resolution here is ============== ", res)
     res_mv = res_arr
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
@@ -3028,7 +3030,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             coeff_ptr[0] = NULL
             reseff_arr = <double*>malloc(nlos*sizeof(double))
             ind_arr = <long*>malloc(nlos*sizeof(long))
-            # we sample lines of sight
+            # .. we sample lines of sight ......................................
             _st.los_get_sample_core_var_res(nlos,
                                             &lims[0, 0],
                                             &lims[1, 0],
@@ -3054,6 +3056,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    coeff_ptr[0],
                                    ind_arr,
                                    num_threads)
+            # ..................................................................
             print("pts = ", 3, sz_coeff)
             print("res =", res_arr[0])
             print("indpts =", ind_arr[0], ind_arr[1], ind_arr[2])
