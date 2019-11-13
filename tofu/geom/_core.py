@@ -5994,7 +5994,6 @@ class Rays(utils.ToFuObject):
                 sig[0, indok] = s
             else:
                 sig[:, indok] = s
-            print("_____________ shape sig === ", sig.shape)
         else:
             # Get ptsRZ along LOS // Which to choose ???
             pts, reseff, indpts = self.get_sample(
@@ -6024,7 +6023,6 @@ class Rays(utils.ToFuObject):
                 sig = np.full((val.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-            print("_____________ shape sig === ", sig.shape)
             indpts = np.r_[0, indpts, pts.shape[1]]
             for ii in range(0, self.nRays):
                 sig[:, ii] = (
@@ -6034,9 +6032,6 @@ class Rays(utils.ToFuObject):
                     )
                     * reseff[ii]
                 )
-        for ii in range(3):
-            print("nlos =", ii, " first sig =", sig[ :3, ii])
-            print("nlos =", ii, " lasts sig =", sig[-3:, ii])
         # Format output
         everything = self._calc_signal_postformat(
             sig,

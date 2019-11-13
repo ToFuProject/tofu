@@ -2998,7 +2998,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
-    print("............; signal = ", nt, nlos)
     sig = np.empty((nt,nlos),dtype=float,order='F')
     sig_mv = sig
     # If the resolution is the same for every LOS, we create a tab
@@ -3023,7 +3022,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             reseff_mv = reseff
             indbis = np.concatenate(([0],ind,[k.size]))
         else:
-            print("reseff arr being mallocated !!!!!!!!!!!!!!!!!!!!!")
             coeff_ptr = <double**>malloc(sizeof(double*))
             coeff_ptr[0] = NULL
             reseff_arr = <double*>malloc(nlos*sizeof(double))
@@ -3059,7 +3057,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
             val_2d = func(pts, t=t, **fkwdargs)
-        print("shape val_2d =", val_2d.shape, nlos, nt)
         # Integrate
         if method=='sum':
             # .. integrating function ..........................................
@@ -3195,14 +3192,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    # this is almost always the quickest solution... but can
-                    # probably be better. We'll investigate some time
-                    # how to make it faster, and for the time being we leave
-                    # the numpy alternative commented
-                    _st.integrate_c_sum_mat(val_2d, &sig_mv[0,ii], nt,
-                                            nb_rows[0],
-                                            loc_eff_res[0], num_threads)
-                    # sig_mv[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
+                    sig_mv[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
@@ -3240,14 +3230,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, **fkwdargs)
-                    # this is almost always the quickest solution... but can
-                    # probably be better. We'll investigate some time
-                    # how to make it faster, and for the time being we leave
-                    # the numpy alternative commented
-                    _st.integrate_c_sum_mat(val_2d, &sig_mv[0,ii],
-                                            nt, nb_rows[0],
-                                            loc_eff_res[0], num_threads)
-                    # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
+                    sig[:, ii] = np.sum(val_2d,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],

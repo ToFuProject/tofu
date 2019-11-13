@@ -124,22 +124,3 @@ cdef void los_get_sample_pts(int nlos,
                              double* coeff_ptr,
                              long* los_ind,
                              int num_threads) nogil
-
-# -- Integrations utility function ---------------------------------------------
-cdef void integrate_sum_nlos(int nlos, int nt,
-                             double[:,::1] val_2d,
-                             double[::1,:] sig_mv,
-                             long* ind_arr,
-                             double* reseff_arr,
-                             int num_threads) nogil
-
-cdef void integrate_c_sum_mat(double[:,::1] val_mv,
-                              double* sig,
-                              int nrows, int ncols,
-                              double loc_eff_res,
-                              int num_threads) nogil
-
-cdef double integrate_c_sum_vec(double* val_mv,
-                                int nza,
-                                double loc_eff_res,
-                                int num_threads) nogil
