@@ -394,6 +394,102 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 ###########################################################
 ###########################################################
 #
+#           1d spectral fitting with physics parameters
+#
+###########################################################
+###########################################################
+
+
+def get_lamb0_from_dlines(dlines):
+    lamb0, ions = zip(*[(vv['lamb0'],
+                         np.full((len(vv['lamb0']),), kk))
+                       for kk, vv in dlines.items()])
+    lamb0 = np.r_[lamb0]
+    ind = np.argsort(lamb0)
+    return lamb0[ind], np.concatenate(ions)[ind]
+
+
+def get_dindx(bckdeg=None, dlines=None, nbs=None):
+
+    nbck = bckdeg + 1
+    if nbs is None:
+        # 1d spectral fit
+        nbs = 1
+
+    i0 = nbck
+    lk = ['sigma', 'dlamb', 'amp', 'ntot', 'nlamb']
+    dindx= {'bck': np.r_[:nbck],
+            'ions':dict.fromkeys(sorted(dlines.keys())),
+            'nbs': nbs}
+    for kk in dindx['ions'].keys():
+        dindx['ions'][kk] = dict.fromkeys(lk)
+        dindx['ions'][kk]['sigma'] = i0 + np.r_[:nbs]
+        dindx['ions'][kk]['dlamb'] = i0+nbs + np.r_[:nbs]
+        nlamb = len(dlines[kk]['lamb0'])
+        dindx['ions'][kk]['amp'] = i0+2*nbs + np.r_[:nlamb*nbs]
+        dindx['ions'][kk]['nlamb'] = nlamb
+        dindx['ions'][kk]['ntot'] = (2 + nlamb)*nbs
+        i0 += dindx['ions'][kk]['ntot']
+    return dindx
+
+
+def get_x0_bounds(x01d=None, dlines=None, dindx=None,
+                  lamb=None, data=None):
+
+    if x01d is None:
+        # Get average spectral width and separation
+        lamb0_Delta = lamb0.max() - lamb0.min()
+        nlamb0 = lamb0.size
+        lamb0_delta = lamb0_Delta / nlamb0
+        lamb_delta = np.mean(np.abs(np.diff(np.unique(lamb))))
+
+        nbs = dindx['nbs']
+
+        bck = np.zeros((dindx['bck'].size,))
+        for kk in dindx['ions'].keys():
+            # sigma
+            x[] = lamb0_delta
+            # dlamb
+            x[] = 0.
+            # amp
+            x[] = ampmean
+
+    else:
+        x0[dindx['bck']] = x01d[dindx['bck']]
+        i0 = dindx['bck'].size
+        for kk in dindx['ions'].keys():
+            x0[]
+
+    return x0
+
+
+
+
+def get_funccostjac():
+
+    def func():
+        pass
+
+    def cost():
+        pass
+
+    def jac():
+        pass
+
+    return func, cost, jac
+
+
+
+
+
+
+
+
+
+
+###########################################################
+###########################################################
+#
 #           2d spectral fitting
 #
 ###########################################################

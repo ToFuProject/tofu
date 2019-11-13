@@ -1054,7 +1054,7 @@ class CrystalBragg(utils.ToFuObject):
                         method=None, max_nfev=None,
                         xtol=None, ftol=None, gtol=None,
                         loss=None, verbose=0, debug=None,
-                        plot=True, fs=None, dmoments=None,
+                        plot=True, fs=None, dlines=None, dmoments=None,
                         cmap=None, vmin=None, vmax=None):
         # Check / format inputs
         assert data is not None
