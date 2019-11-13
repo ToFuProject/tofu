@@ -2706,7 +2706,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
     los_ind = np.zeros((nlos,), dtype=int)
-    print("dL =====================", dL)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2733,7 +2732,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     n_imode = _st.get_nb_imode(imode)
     # -- Core functions --------------------------------------------------------
     if not dl_is_list:
-        print("************ dl is NOT list ***************")
         # Case with unique discretization step dL
         sz_coeff = _st.los_get_sample_core_const_res(nlos,
                                                      &los_lims[0,0],
@@ -2745,7 +2743,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                                      &los_ind_ptr[0],
                                                      num_threads)
     else:
-        print("************ dl IS list ***************")
         # Case with different resolution for each LOS
         dl_view=dL
         _st.los_get_sample_core_var_res(nlos,
@@ -3001,6 +2998,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
+    print("............; signal = ", nt, nlos)
     sig = np.empty((nt,nlos),dtype=float,order='F')
     sig_mv = sig
     # If the resolution is the same for every LOS, we create a tab
@@ -3008,7 +3006,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         res_arr = np.asarray(res)
     else:
         res_arr = np.ones((nlos,), dtype=float) * res
-    print("$$$$$$$$$$ resolution here is ============== ", res)
     res_mv = res_arr
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
@@ -3026,6 +3023,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             reseff_mv = reseff
             indbis = np.concatenate(([0],ind,[k.size]))
         else:
+            print("reseff arr being mallocated !!!!!!!!!!!!!!!!!!!!!")
             coeff_ptr = <double**>malloc(sizeof(double*))
             coeff_ptr[0] = NULL
             reseff_arr = <double*>malloc(nlos*sizeof(double))
@@ -3057,37 +3055,22 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    ind_arr,
                                    num_threads)
             # ..................................................................
-            print("pts = ", 3, sz_coeff)
-            print("res =", res_arr[0])
-            print("indpts =", ind_arr[0], ind_arr[1], ind_arr[2])
-
         if ani:
-            print("GG .......... is any........ t =", t[0], " usbis =", -usbis[0])
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
-            print("GG .......... not any........ t =", t[0])
             val_2d = func(pts, t=t, **fkwdargs)
-            print("pts  =", np.hypot(pts[0,0], pts[1,0]),
-                  pts[0,0], pts[1,0],
-                  pts[2,0])
-        print(val_2d[0,0], val_2d[0,1], val_2d[0,2])
-        print(val_2d[1,0], val_2d[1,1], val_2d[1,2])
-        print(val_2d[2,0], val_2d[2,1], val_2d[2,2])
+        print("shape val_2d =", val_2d.shape, nlos, nt)
         # Integrate
         if method=='sum':
-            # # .. original version .....................................
-            # indbis = np.concatenate(([0],ind,[k.size]))
-            # for ii in range(1,nlos):
-            #     sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
-            #                        axis=-1)*reseff_mv[ii]
-            # # ..........................................................
-            # Calling integration function
-            _st.integrate_sum_nlos(nlos, nt,
-                                   val_2d,
-                                   sig_mv,
-                                   ind_arr,
-                                   reseff_arr,
-                                   num_threads)
+            # .. integrating function ..........................................
+            for iii in range(nlos):
+                if iii > 0:
+                    temp = np.sum(val_2d[:,ind_arr[iii-1]:ind_arr[iii]],
+                                axis=-1)
+                else:
+                    temp = np.sum(val_2d[:,0:ind_arr[iii]],
+                                axis=-1)
+                sig[:,iii] = temp*reseff_arr[iii]
             # Cleaning up...
             free(coeff_ptr[0])
             free(coeff_ptr)
@@ -3203,7 +3186,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # loop over LOS
         if ani:
             if n_imode == 0:
-                print("about to use new method")
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
                                                                 res_mv[ii],

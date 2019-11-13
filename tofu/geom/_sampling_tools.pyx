@@ -428,12 +428,6 @@ cdef inline void middle_rule_abs_s1(int nlos, double resol,
     with nogil, parallel(num_threads=num_threads):
         inv_resol = 1./resol
         for ii in prange(nlos):
-            if ii < 3:
-                with gil:
-                    print()
-                    print("%%%%%%%%%%% old")
-                    print("%         % seg_length =", los_kmax[ii] - los_kmin[ii])
-                    print("%         % inv_resol  =", inv_resol)
             middle_rule_abs_s1_single(inv_resol, los_kmin[ii],
                                      los_kmax[ii],
                                      &eff_resolution[ii],
@@ -462,10 +456,6 @@ cdef inline void middle_rule_abs_s2(int nlos,
     loc_x = los_kmin[0]
     middle_rule_single(num_raf, loc_x, loc_resol,
                        &los_coeffs[first_index])
-
-    with gil:
-        print("<<<< los_coeffs 0:", los_kmin[0],
-              loc_resol)
 
     # filling tab...... CANNOT BE PARALLEL !!
     for ii in range(1, nlos):
@@ -503,21 +493,8 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
     eff_resolution[0] = loc_resol
     los_ind[0] = num_raf
     first_index = 0
-    with gil:
-        print()
-        print("%%%%%%%%%%% new")
-        print("%         % seg_length =", los_kmax[0] - los_kmin[0])
-        print("%         % inv_resol  =", 1./resolutions[0])
-
     # Now the rest ...................................................
     for ii in range(1,nlos):
-        if ii < 3:
-            with gil:
-                print()
-                print("%%%%%%%%%%% new")
-                print("%         % seg_length =", los_kmax[ii] - los_kmin[ii])
-                print("%         % inv_resol  =", 1./resolutions[ii])
-
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(Cceil(seg_length/resolutions[ii]))
         loc_resol = seg_length / num_raf
@@ -585,12 +562,6 @@ cdef inline void middle_rule_abs_var(int nlos,
     middle_rule_abs_var_s2(nlos, los_kmin, los_kmax,
                            eff_resolution, los_coeffs,
                            los_ind, los_nraf, num_threads)
-    with gil:
-        print(">>>>>> IN MIDDLE RULE ABS VAR")
-        print("eff res ==== > ", eff_resolution[0], eff_resolution[1], eff_resolution[2])
-        print("los_kmin === > ", los_kmin[0], los_kmin[1], los_kmin[2])
-        print("los_kmax === > ", los_kmax[0], los_kmax[1], los_kmax[2])
-        print("los_coeffs = > ", los_coeffs[0][0], los_coeffs[0][1], los_coeffs[0][2])
     # ...
     free(los_nraf)
     return
@@ -1417,8 +1388,6 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             return (N+1)*nlos
     else: # absolute
         if n_imode==0: #sum
-            with gil:
-                print(">>>>>>>>>> from OLD : im in abs sum mode")
             middle_rule_abs_s1(nlos, val_resol, los_lim_min, los_lim_max,
                               &dLr[0], los_ind,
                               num_threads=num_threads)
@@ -1455,8 +1424,6 @@ cdef inline void los_get_sample_core_var_res(int nlos,
                                             int num_threads) nogil:
     if n_dmode==0: #absolute
         if n_imode==0: # sum
-            with gil:
-                print("$$$$$$$$$$$$ middle_rule_abs_var")
             middle_rule_abs_var(nlos,
                                 los_lim_min, los_lim_max,
                                 resol, &eff_res[0],
@@ -1515,13 +1482,6 @@ cdef inline void los_get_sample_pts(int nlos,
     loc_vy = ray_vdir[1,0]
     loc_vz = ray_vdir[2,0]
     for ii in range(los_ind[0]):
-        if ii < 3:
-            with gil:
-                print()
-                print("%%%%%%%%%%% new")
-                print("%         % coeff_ptr = ", coeff_ptr[ii])
-                print("%         % loc_org =", loc_ox, loc_oy, loc_oz)
-                print("%         % loc_vdr =", loc_vx, loc_vy, loc_vz)
         ptx[ii] = loc_ox + coeff_ptr[ii] * loc_vx
         pty[ii] = loc_oy + coeff_ptr[ii] * loc_vy
         ptz[ii] = loc_oz + coeff_ptr[ii] * loc_vz
@@ -1557,10 +1517,17 @@ cdef inline void integrate_sum_nlos(int nlos, int nt,
     cdef int jjp1
     jj = 0
     jjp1 = ind_arr[0]
+    with gil:
+        print(">>> NEW >>> integrating")
     integrate_c_sum_mat(val_2d[:,jj:jjp1],
                         &sig_mv[0,0],
                         nt, jjp1 - jj,
                         reseff_arr[0], num_threads)
+    with gil:
+        print(".... Res 0 :", reseff_arr[0])
+        print("ind arr : ",ind_arr[0])
+        sig_mv[:,0] = np.sum(val_2d[:,0:ind_arr[0]],
+                             axis=-1)*reseff_arr[0]
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(1,nlos):
             # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
@@ -1582,7 +1549,7 @@ cdef inline void integrate_c_sum_mat(double[:,::1] val_mv,
     cdef int jj
     # ...
     vsum = <double*>malloc(nrows*sizeof(double))
-    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0],
+    _bgt.sum_columns_blocks(&val_mv[0,0], &vsum[0],
                          nrows, ncols)
     # _bgt.sum_by_rows(val_mv, &vsum[0],
     #                  nrows, ncols)

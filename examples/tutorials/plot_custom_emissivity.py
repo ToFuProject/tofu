@@ -100,5 +100,5 @@ sig, units = cam2d.calc_signal(emissivity,
                                newcalc=True,
                                plot=False,
                                t=time_vector)
-sig.plot(ntMax=1)
-plt.show()
+# sig.plot(ntMax=1)
+# plt.show()

@@ -22,6 +22,9 @@ cdef extern from "_fast_sum.c":
     void sum_rows_blocks(double *orig, double *out, int n_rows, int n_cols) nogil
 
 cdef extern from "_fast_sum.c":
+    void sum_columns_blocks(double *orig, double *out, int n_rows, int n_cols) nogil
+
+cdef extern from "_fast_sum.c":
     void sum_par_mat(double *orig, double *out, int n_rows, int n_cols) nogil
 
 cdef extern from "_fast_sum.c":

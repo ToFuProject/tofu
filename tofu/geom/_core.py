@@ -5465,15 +5465,8 @@ class Rays(utils.ToFuObject):
             num_threads=num_threads,
             Test=Test,
         )
-        print(" k =", k[0], k[1], k[2], pts)
         if pts:
             nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
-            for ii in range(3):
-                print()
-                print("%%%%%%%%%%% old")
-                print("%         % coeff_ptr = ", k[ii])
-                print("%         % loc_org =", Ds[0,ii],Ds[1,ii],Ds[2,ii])
-                print("%         % loc_vdr =", us[0,ii],us[1,ii],us[2,ii])
             k = np.repeat(Ds, nbrep, axis=1) + k[None, :] * np.repeat(
                 us, nbrep, axis=1
             )
@@ -5997,11 +5990,11 @@ class Rays(utils.ToFuObject):
                 sig = np.full((s.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-
             if t is None or len(t) == 1:
                 sig[0, indok] = s
             else:
                 sig[:, indok] = s
+            print("_____________ shape sig === ", sig.shape)
         else:
             # Get ptsRZ along LOS // Which to choose ???
             pts, reseff, indpts = self.get_sample(
@@ -6013,15 +6006,6 @@ class Rays(utils.ToFuObject):
                 compact=True,
                 pts=True,
             )
-
-            # print("res =", res)
-            # print("resMode=",resMode)
-            # print("DL =", DL)
-            # print("method =", method)
-            # print("ind =", ind)
-            # print("pts = ", pts.shape)
-            # print("reseff =", reseff)
-            # print("indpts =", indpts[:3])
 
             if ani:
                 nbrep = np.r_[
@@ -6035,23 +6019,12 @@ class Rays(utils.ToFuObject):
             # This is the slowest step (~3.8 s with res=0.02
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
-            if ani:
-                print("c .......... is any........ t =", t[0], " usbis =", vect[0])
-            else:
-                print("c .......... not any........ t =", t[0])
-                print("pts  =", np.hypot(pts[0,0], pts[1,0]),
-                      pts[0,0], pts[1,0],
-                      pts[2,0])
-
-            print(val[0,:3])
-            print(val[1,:3])
-            print(val[2,:3])
             # Integrate
             if val.ndim == 2:
                 sig = np.full((val.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-
+            print("_____________ shape sig === ", sig.shape)
             indpts = np.r_[0, indpts, pts.shape[1]]
             for ii in range(0, self.nRays):
                 sig[:, ii] = (
@@ -6061,9 +6034,11 @@ class Rays(utils.ToFuObject):
                     )
                     * reseff[ii]
                 )
-
+        for ii in range(3):
+            print("nlos =", ii, " first sig =", sig[ :3, ii])
+            print("nlos =", ii, " lasts sig =", sig[-3:, ii])
         # Format output
-        return self._calc_signal_postformat(
+        everything = self._calc_signal_postformat(
             sig,
             Brightness=Brightness,
             dataname=dataname,
@@ -6079,6 +6054,7 @@ class Rays(utils.ToFuObject):
             draw=draw,
             connect=connect,
         )
+        return everything
 
     def calc_signal_from_Plasma2D(
         self,
