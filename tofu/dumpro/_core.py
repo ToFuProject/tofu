@@ -420,18 +420,18 @@ class Img_dir(object):
 #   dumpro
 #####################################################################        
         
-    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, blur = True,
-               im_out = None, verb = True):
+    def dumpro(self, vid = False, rate = None, tlim = None, hlim = None, 
+               wlim = None, blur = True, im_out = None, verb = True):
         
         #starting time counter
         start_time = time.perf_counter()
         #performing DUMPRO 
-        infocluster, reshape, im_col = _i_comp.dumpro_img.dumpro_img(self.im_dir, 
-                                                                     self.w_dir,
-                                                                     self.shotname, 
-                                                                     rate, tlim, 
-                                                                     hlim, wlim, blur,
-                                                                     im_out, verb)
+        infocluster, reshape, im_col = _i_comp.dumpro.dumpro(self.im_dir, 
+                                                             self.w_dir,
+                                                             self.shotname,
+                                                             vid, rate, tlim, 
+                                                             hlim, wlim, blur,
+                                                             im_out, verb)
         #setting infocluster dictionary
         self.set_infocluster(infocluster)
         #setting reshape dictionary
@@ -502,7 +502,7 @@ class Img_dir(object):
 #############################################################################
         
 Img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
-Img_dir.dumpro.__doc__ = _i_comp.dumpro_img.dumpro_img.__doc__                  
+Img_dir.dumpro.__doc__ = _i_comp.dumpro.dumpro.__doc__                  
 
 #####################################################################
 #####################################################################
@@ -746,19 +746,19 @@ class Vid_img(object):
 #############################################################################
     
     #dumpro
-    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, 
-               blur = True, im_out = None, verb = True):
+    def dumpro(self, vid = True, rate = None, tlim = None, hlim = None, 
+               wlim = None, blur = True, im_out = None, verb = True):
         #starting time counter
         start_time = time.perf_counter()
         #performing preprocessing and cluster detection on the video
-        infoclus, reshp, im_dir = _i_comp.dumpro_vid.dumpro_vid(self.filename,
-                                                                self.w_dir,
-                                                                self.shotname,
-                                                                rate, tlim,
-                                                                hlim, wlim, 
-                                                                blur, im_out, 
-                                                                self.meta_data,
-                                                                verb)
+        infoclus, reshp, im_dir = _i_comp.dumpro.dumpro(self.filename,
+                                                        self.w_dir,
+                                                        self.shotname,
+                                                        vid, rate, tlim,
+                                                        hlim, wlim, 
+                                                        blur, im_out, 
+                                                        self.meta_data,
+                                                        verb)
         #setting infocluster dictionary
         self.set_infocluster(infoclus)
         #setting reshape dictionary
