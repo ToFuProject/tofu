@@ -430,37 +430,62 @@ def get_dindx(bckdeg=None, dlines=None, nbs=None):
         dindx['ions'][kk]['nlamb'] = nlamb
         dindx['ions'][kk]['ntot'] = (2 + nlamb)*nbs
         i0 += dindx['ions'][kk]['ntot']
+    dindx['nall'] = i0
     return dindx
 
 
 def get_x0_bounds(x01d=None, dlines=None, dindx=None,
                   lamb=None, data=None):
 
+    x0 = np.zeros((dindx['nall'],), dtype=float)
     if x01d is None:
         # Get average spectral width and separation
         lamb0_Delta = lamb0.max() - lamb0.min()
         nlamb0 = lamb0.size
         lamb0_delta = lamb0_Delta / nlamb0
-        lamb_delta = np.mean(np.abs(np.diff(np.unique(lamb))))
 
         nbs = dindx['nbs']
 
-        bck = np.zeros((dindx['bck'].size,))
+        x0[dindx['bck']] = np.zeros((dindx['bck'].size,))
         for kk in dindx['ions'].keys():
             # sigma
-            x[:] = lamb0_delta
+            x0[dindx[kk]['sigma']] = lamb0_delta
             # dlamb
-            x[:] = 0.
+            x0[dindx[kk]['dlamb']] = 0.
             # amp
-            x[:] = ampmean
+            x0[dindx[kk]['amp']] = ampmean
 
     else:
         x0[dindx['bck']] = x01d[dindx['bck']]
         i0 = dindx['bck'].size
         for kk in dindx['ions'].keys():
-            x0[:] = None
+            # TBF
+            x0[dindx[kk]['sigma']] = x01d[]
 
-    return x0
+    # Get bounds
+    lamb_delta = np.mean(np.abs(np.diff(np.unique(lamb))))
+    datamax = np.nanmax(data)
+    bampup = min(datamax, np.nanmean(data) + np.nanstd(data))
+
+    bounds0 = np.zeros((dindx['nall'],), dtype=float)
+    bounds1 = np.zeros((dindx['nall'],), dtype=float)
+    if dindx['bck'].size == 1:
+        bounds0[dindx['bck']] = 0.
+        bounds1[dindx['bck']] = bampup
+    elif dindx['bck'].size == 2:
+        bounds0[dindx['bck'][0]] = 0.
+        bounds1[dindx['bck'][0]] = bampup
+        bounds0[dindx['bck'][0]] = 0.           # TBC
+        bounds1[dindx['bck'][0]] = bampup       # TBC
+    for kk in dindx['ions'].keys():
+        bounds0[dindx[kk]['sigma']] = 2.*lamb_delta
+        bounds1[dindx[kk]['sigma']] = lamb0_delta*5.
+        bounds0[dindx[kk]['dlamb']] = -3.*lamb0_delta
+        bounds1[dindx[kk]['dlamb']] = 3.*lamb0_delta
+        bounds0[dindx[kk]['amp']] = 0.
+        bounds1[dindx[kk]['amp']] = datamax
+
+    return x0, bounds
 
 
 
