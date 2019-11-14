@@ -448,17 +448,17 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
         bck = np.zeros((dindx['bck'].size,))
         for kk in dindx['ions'].keys():
             # sigma
-            x[] = lamb0_delta
+            x[:] = lamb0_delta
             # dlamb
-            x[] = 0.
+            x[:] = 0.
             # amp
-            x[] = ampmean
+            x[:] = ampmean
 
     else:
         x0[dindx['bck']] = x01d[dindx['bck']]
         i0 = dindx['bck'].size
         for kk in dindx['ions'].keys():
-            x0[]
+            x0[:] = None
 
     return x0
 
