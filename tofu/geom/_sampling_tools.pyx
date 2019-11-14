@@ -506,8 +506,6 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
     return
 
 
-
-
 cdef inline void middle_rule_abs_var_s2(int nlos,
                                         double* los_kmin,
                                         double* los_kmax,
@@ -1301,7 +1299,8 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
     # computing points
     usbis = np.repeat(ray_vdir, sz_coeff, axis=1)
     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-    pts = ray_orig + ksbis[None,:] * usbis
+    pts = ray_orig + ksbis[None, :] * usbis
+    # freeing memory used
     if los_coeffs != NULL:
         if los_coeffs[0] != NULL:
             free(los_coeffs[0])
