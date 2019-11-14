@@ -5,8 +5,14 @@ Created on Sun Aug 11 23:37:30 2019
 @author: napra
 """
 
+#standard
+import numpy as np
+
 def trace_traj(traj):
-    """ This subroutine converts every trajectory into an object
+    """ This subroutine converts every trajectory into a list of cluster
+    objects
+       
+    
     """
     #get the list of keys from the trajectory dictionary
     listofkeys = list(traj.keys())
@@ -14,7 +20,7 @@ def trace_traj(traj):
     end_pt = []
     #total number of points in the traj dictionary
     n_points = len(listofkeys)
-    print('total number of points in the traj dictionary', n_points)
+    print('total number of points in the traj dictionary ', n_points,'\n')
     traj_obs = {}
     #looping over all the points to detect end points
     for ii in range(0, n_points):
@@ -27,7 +33,7 @@ def trace_traj(traj):
     
     #total  number of trajectories detected is equal to the number of endpoints
     n_traj = len(end_pt)
-    print('end points detected :',n_traj)
+    print('end points detected :',n_traj,'\n')
     #looping over the start points and tracing the trajectory
     for ii in range(0, n_traj):
         #empty trace list for each trajectory
@@ -43,6 +49,7 @@ def trace_traj(traj):
             trace.append(obj)
             #get parent
             parent = obj.parent
+        trace.reverse()
         if len(trace) <2:
             continue
         traj_obs[ii] = trace

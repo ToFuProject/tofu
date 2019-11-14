@@ -120,10 +120,14 @@ def reshape_image(im_path, w_dir, shot_name,
             #cropping the frame
             if hlim == None and wlim == None:
                 img = img
+                hlim = (0,img.shape[0])
+                wlim = (0,img.shape[1])
             elif wlim == None and hlim != None:
                 img = img[hlim[0]:hlim[1],:]
+                wlim = (0,img.shape[1])
             elif wlim != None and hlim == None:
                 img = img[:,wlim[0]:wlim[1]]
+                hlim = (0,img.shape[0])
             elif hlim != None and wlim != None:
                 img = img[hlim[0]:hlim[1],wlim[0]:wlim[1]]
                 

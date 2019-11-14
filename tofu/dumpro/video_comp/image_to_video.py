@@ -73,7 +73,7 @@ def image2video(image_path, meta_data = None, path = None, video_name = None, vi
     files = [f for f in os.listdir(image_path) if os.path.isfile(os.path.join(image_path,f))]    
     
     #sorting files according to names using lambda function
-    files.sort(key = lambda x: int(x[5:]))
+    files.sort(key = lambda x: int(x[5:-4]))
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:

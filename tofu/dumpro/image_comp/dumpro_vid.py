@@ -5,7 +5,6 @@ Created on Tue Jul  9 13:20:48 2019
 @author: Arpan Khandelwal
 @email: napraarpan@gmail.com
 """
-
 # Built-in
 import os
 
@@ -31,9 +30,9 @@ from . import get_distance
 from . import guassian_blur
 from . import vid2img
 
-def dumpro_vid(filename, w_dir, shot_name, rate = None, tlim = None,
-               hlim = None, wlim = None, blur = True, im_out = None, 
-               meta_data = None, verb = True):
+def dumpro_vid(filename, w_dir, shot_name, vid = True, rate = None, 
+               tlim = None, hlim = None, wlim = None, blur = True, 
+               im_out = None, meta_data = None, verb = True):
     """This is the dust movie processing computattion subroutine
     
     Among the parameters present, if used as a part of dumpro, 
@@ -51,6 +50,7 @@ def dumpro_vid(filename, w_dir, shot_name, rate = None, tlim = None,
     shot_name:        String
      The name of the tokomak machine and the shot number. Generally
      follows the nomenclature followed by the lab
+    
     tlim:             tuple
      The time limits for the image files, i.e the frames of interest
     hlim, wlim:       tuple
