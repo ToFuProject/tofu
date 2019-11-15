@@ -39,7 +39,7 @@ def setup_module(module, here=_HERE):
     for f in lf:
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
-             if fff[:len(keyVers)]==keyVers]
+             if fff[:len(keyVers)] == keyVers]
         msg = f + "\n    " + str(ff) + "\n    " + str(v)
         assert len(v) == 1, msg
         v = v[0]
@@ -52,13 +52,14 @@ def setup_module(module, here=_HERE):
         print("Removing the following previous test files:")
         for f in lF:
             os.remove(os.path.join(here, f))
-        #print("setup_module before anything in this file")
+        # print("setup_module before anything in this file")
+
 
 def teardown_module(module, here=_HERE):
-    #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
-    #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
-    #print("teardown_module after everything in this file")
-    #print("") # this is to get a newline
+    # os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
+    # os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
+    # print("teardown_module after everything in this file")
+    # print("") # this is to get a newline
     lf = os.listdir(here)
     lf = [f for f in lf
           if all([s in f for s in ['.npz']])]
@@ -81,25 +82,21 @@ def teardown_module(module, here=_HERE):
             os.remove(os.path.join(here, f))
 
 
-#def my_setup_function():
+# def my_setup_function():
 #    print ("my_setup_function")
 
-#def my_teardown_function():
+# def my_teardown_function():
 #    print ("my_teardown_function")
 
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_numbers_3_4():
+# @with_setup(my_setup_function, my_teardown_function)
+# def test_numbers_3_4():
 #    print 'test_numbers_3_4  <============================ actual test code'
 #    assert multiply(3,4) == 12
 
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_strings_a_3():
+# @with_setup(my_setup_function, my_teardown_function)
+# def test_strings_a_3():
 #    print 'test_strings_a_3  <============================ actual test code'
 #    assert multiply('a',3) == 'aaa'
-
-
-
-
 
 
 #######################################################
@@ -120,8 +117,8 @@ class Test00_tuto(object):
 
     @classmethod
     def setup_class(cls, here=_HERE, pathtuto=_PATHTUTO, root=_TFROOT):
-        #print("")
-        #print("---- "+cls.__name__)
+        # print("")
+        # print("---- "+cls.__name__)
         # ii = 0
         # for tuto in get_list_toturials(path=pathtuto):
             # # Create local temporary copy to make sure the local version of tofu is
@@ -135,16 +132,16 @@ class Test00_tuto(object):
 
     @classmethod
     def teardown_class(cls):
-        #print("teardown_class() after any methods in this class")
+        # print("teardown_class() after any methods in this class")
         pass
 
     def setup(self):
-        #print("TestUM:setup() before each test method")
+        # print("TestUM:setup() before each test method")
         # self.setup_class()
         pass
 
     def teardown(self):
-        #print("TestUM:teardown() after each test method")
+        # print("TestUM:teardown() after each test method")
         pass
 
     @classmethod
