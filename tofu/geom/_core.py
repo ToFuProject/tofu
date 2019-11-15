@@ -5769,7 +5769,7 @@ class Rays(utils.ToFuObject):
                                          and pp.default is not pp.empty)]
         return na, kw
 
-    def check_ff(self, ff, t=None, ani=None, vuniq=False):
+    def check_ff(self, ff, t=None, ani=None):
         time_steps = -1
         # .. Checking basic definition of function .............................
         str_error = "Input emissivity function (ff): "
@@ -5815,19 +5815,15 @@ class Rays(utils.ToFuObject):
                        + " If ani=True, ff must take a keyword argument:"
                        + " 'vect=None'!")
             assert 'vect' in kw, err_msg
-            vect = np.array([1, 2, 3]) if vuniq else np.ones(test_pts.shape)
+            vect = np.ones(test_pts.shape)
             try:
                 out = ff(test_pts, vect=vect, t=t)
             except Exception:
                 err_msg = (str_error
                            + " If ani=True, ff must handle multiple"
-                           + " points Pts (3, npts) with ")
-                if vuniq:
-                    err_msg += ("a unique common vector"
-                                + " (vect as a len()=3 iterable)")
-                else:
-                    err_msg += ("multiple vectors (vect as a"
-                                + " (3, npts) np.ndarray)")
+                           + " points Pts (3, npts) with "
+                           + "multiple vectors (vect as a"
+                           + " (3, npts) np.ndarray)")
                 assert False, err_msg
             if hasattr(t, '__iter__'):
                 err_msg = (str_error
@@ -6050,6 +6046,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
+            self.check_ff(func, t=t, ani=ani):
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,
