@@ -109,7 +109,7 @@ def get_list_toturials(path=_PATHTUTO):
     ltut = os.listdir(path)
     ltut = [tt[:-3] for tt in ltut
             if (all([ss in tt for ss in ['.py']])
-               and not any([ss in tt for ss in ['__init__', '.swp']]))]
+                and not any([ss in tt for ss in ['__init__', '.swp']]))]
     return ltut
 
 
@@ -121,13 +121,13 @@ class Test00_tuto(object):
         # print("---- "+cls.__name__)
         # ii = 0
         # for tuto in get_list_toturials(path=pathtuto):
-            # # Create local temporary copy to make sure the local version of tofu is
-            # # imported
-            # method = 'test{0:02.0f}_{1}'.format(ii, tuto)
-            # fmethod = lambda tuto=tuto: cls.Test_tuto._test_tuto(tuto)
-            # setattr(cls, method, types.MethodType(fmethod, cls))
-            # # setattr(cls, method, lambda cls: cls._test_tuto(tuto))
-            # ii += 1
+        # # Create local temporary copy to make sure the
+        # local version of tofu is imported
+        # method = 'test{0:02.0f}_{1}'.format(ii, tuto)
+        # fmethod = lambda tuto=tuto: cls.Test_tuto._test_tuto(tuto)
+        # setattr(cls, method, types.MethodType(fmethod, cls))
+        # # setattr(cls, method, lambda cls: cls._test_tuto(tuto))
+        # ii += 1
         pass
 
     @classmethod
@@ -152,7 +152,8 @@ class Test00_tuto(object):
         try:
             cmd = 'python ' + target
             out = subprocess.run(cmd, shell=True, check=True,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
         except Exception as err:
             raise err
         plt.close('all')
@@ -164,7 +165,6 @@ class Test00_tuto(object):
               if 'saved in:' in stdout[ii-1].lower()]
         for ii in range(len(lf)):
             os.remove(lf[ii])
-
 
     def test01_plot_basic_tutorial(self):
         self._test_tuto('plot_basic_tutorial')
