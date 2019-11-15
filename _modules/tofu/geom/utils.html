@@ -43,11 +43,12 @@
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
             
-                <li><a href="../../../auto_examples/index.html">Gallery</a></li>
                 <li><a href="../../../installation.html">Installation</a></li>
-                <li><a href="../../../aboutus.html">About us</a></li>
-                <li><a href="../../../releases.html">Versions</a></li>
-                <li><a href="../../../tofu.html">Code doc</a></li>
+                <li><a href="../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../aboutus.html">About</a></li>
+                <li><a href="../../../releases.html">Releases</a></li>
+                <li><a href="../../../tofu.html">API</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -60,7 +61,8 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">How to install tofu</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">All tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
@@ -109,16 +111,11 @@
     <div class="col-md-12 content">
       
   <h1>Source code for tofu.geom.utils</h1><div class="highlight"><pre>
-<span></span>
-<span class="c1"># Built-in</span>
+<span></span><span class="c1"># Built-in</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">inspect</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># Python 2 back-porting</span>
-    <span class="kn">import</span> <span class="nn">funcsigs</span> <span class="k">as</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -146,7 +143,6 @@
 <span class="n">_lok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">)</span>
 <span class="n">_lok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_lok</span><span class="p">,</span> <span class="n">_lok</span><span class="o">+</span><span class="mi">10</span><span class="p">])</span>
 
-<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 <span class="n">_root</span> <span class="o">=</span> <span class="n">tofu</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">_path_testcases</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_root</span><span class="p">,</span> <span class="s1">&#39;geom&#39;</span><span class="p">,</span> <span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
 
@@ -734,28 +730,36 @@
 <span class="c1">###########################################################</span>
 
 <span class="n">_ExpWest</span> <span class="o">=</span> <span class="s1">&#39;WEST&#39;</span>
+<span class="n">_ExpITER</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
 
-<span class="n">_dconfig</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+<span class="n">_dconfig</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
                    <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="s1">&#39;ITER&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
                    <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+            <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
                    <span class="s1">&#39;PlasmaDomain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Sep&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+            <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
                    <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
                    <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV0&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+            <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
                    <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
                    <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV2&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;BumperInnerV1&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV1&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">_ExpWest</span><span class="p">,</span>
+            <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
                    <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
                    <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV3&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV3&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;BumperInnerV3&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV3&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;LH1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;LH2V1&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;RippleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;VDEV0&#39;</span><span class="p">]}}</span>
+                           <span class="s1">&#39;RippleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;VDEV0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
+                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">],</span>
+                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BLK01&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK02&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK03&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK04&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK05&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK06&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;BLK07&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK08&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK09&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK10&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK11&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK12&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;BLK13&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK14&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK15&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK16&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK17&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK18&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;Div1&#39;</span><span class="p">,</span> <span class="s1">&#39;Div2&#39;</span><span class="p">,</span> <span class="s1">&#39;Div3&#39;</span><span class="p">,</span> <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]}</span>
+            <span class="p">}</span>
 
 <span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="s1">&#39;A1&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span>
                             <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span> <span class="n">dconfig</span><span class="o">=</span><span class="n">_dconfig</span><span class="p">):</span>
@@ -1054,7 +1058,7 @@
       
     </p>
     <p>
-        &copy; Copyright 2016, Didier VEZINET.<br/>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

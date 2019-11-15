@@ -44,11 +44,12 @@
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
             
-                <li><a href="auto_examples/index.html">Gallery</a></li>
                 <li><a href="installation.html">Installation</a></li>
-                <li><a href="aboutus.html">About us</a></li>
-                <li><a href="releases.html">Versions</a></li>
-                <li><a href="tofu.html">Code doc</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -61,7 +62,8 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
-<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">All tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="tofu.html">tofu package</a></li>
@@ -86,7 +88,7 @@
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._GG">tofu.geom._GG module</a></li>
 <li><a class="reference internal" href="#tofu-geom-gg02-module">tofu.geom._GG02 module</a></li>
-<li><a class="reference internal" href="#module-tofu.geom._GG03">tofu.geom._GG03 module</a></li>
+<li><a class="reference internal" href="#tofu-geom-gg03-module">tofu.geom._GG03 module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._basic_geom_tools">tofu.geom._basic_geom_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._comp">tofu.geom._comp module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._core">tofu.geom._core module</a></li>
@@ -136,25 +138,17 @@
 </div>
 <div class="section" id="module-tofu.geom._GG">
 <span id="tofu-geom-gg-module"></span><h2>tofu.geom._GG module<a class="headerlink" href="#module-tofu.geom._GG" title="Permalink to this headline">¶</a></h2>
-<p>The intermediate module automatically choosing whether to use the Py2 or Py3
-version of the cython-compiled numerical core of tofu.geom</p>
-</div>
-<div class="section" id="tofu-geom-gg02-module">
-<h2>tofu.geom._GG02 module<a class="headerlink" href="#tofu-geom-gg02-module" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-tofu.geom._GG03">
-<span id="tofu-geom-gg03-module"></span><h2>tofu.geom._GG03 module<a class="headerlink" href="#module-tofu.geom._GG03" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tofu.geom._GG03.CoordShift">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">CoordShift</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.CoordShift" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.CoordShift">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">CoordShift</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.CoordShift" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check the shape of an array of points coordinates and/or converts from
 2D to 3D, 3D to 2D, cylindrical to cartesian…
 (CrossRef is an angle (Tor) or a distance (X for Lin))</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.comp_dist_los_circle">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">comp_dist_los_circle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.comp_dist_los_circle" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.comp_dist_los_circle">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">comp_dist_los_circle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.comp_dist_los_circle" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function computes the intersection of a Ray (or Line Of Sight)
 and a circle in 3D. It returns <cite>kmin</cite> and <cite>dist</cite>. Where <cite>kmin</cite> is the
 coefficient such that the ray of origin O = [ori1, ori2, ori3]
@@ -204,8 +198,8 @@ to the circle</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.comp_dist_los_circle_vec">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">comp_dist_los_circle_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.comp_dist_los_circle_vec" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.comp_dist_los_circle_vec">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">comp_dist_los_circle_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.comp_dist_los_circle_vec" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function computes the intersection of a Ray (or Line Of Sight)
 and a circle in 3D. It returns <cite>kmin</cite>, the coefficient such that the
 ray of origin O = [ori1, ori2, ori3] and of directional vector
@@ -232,8 +226,8 @@ with the distance between each LOS to each circle</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.comp_dist_los_vpoly">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">comp_dist_los_vpoly</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.comp_dist_los_vpoly" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.comp_dist_los_vpoly">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">comp_dist_los_vpoly</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.comp_dist_los_vpoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function computes the distance (and the associated k) between nlos
 Rays (or LOS) and an <cite>IN</cite> structure (a polygon extruded around the axis
 (0,0,1), eg. a flux surface).
@@ -268,8 +262,8 @@ Python, if you need it from Cython, use <cite>simple_dist_los_vpoly_core</cite><
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.comp_dist_los_vpoly_vec">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">comp_dist_los_vpoly_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.comp_dist_los_vpoly_vec" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.comp_dist_los_vpoly_vec">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">comp_dist_los_vpoly_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.comp_dist_los_vpoly_vec" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function computes the distance (and the associated k) between nlos
 Rays (or LOS) and several <cite>IN</cite> structures (polygons extruded around the axis
 (0,0,1), eg. flux surfaces).
@@ -314,8 +308,8 @@ Python, if you need it from Cython, use <cite>comp_dist_los_vpoly_vec_core</cite
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.is_close_los_vpoly_vec">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">is_close_los_vpoly_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.is_close_los_vpoly_vec" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.is_close_los_vpoly_vec">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">is_close_los_vpoly_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.is_close_los_vpoly_vec" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function tests if the distance between nlos Rays (or LOS) and
 several <cite>IN</cite> structures (polygons extruded around the axis (0,0,1),
 eg. flux surfaces) is smaller than <cite>epsilon</cite>.
@@ -355,8 +349,8 @@ Python, if you need it from Cython, use <cite>is_close_los_vpoly_vec_core</cite>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.is_close_los_circle">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">is_close_los_circle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.is_close_los_circle" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.is_close_los_circle">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">is_close_los_circle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.is_close_los_circle" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function checks if at maximum a LOS is at a distance epsilon
 form a cirlce
 The result is True when distance &lt; epsilon
@@ -366,8 +360,8 @@ Python, if you need it from Cython, use <cite>is_los_close_circle_core</cite></p
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.is_close_los_circle_vec">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">is_close_los_circle_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.is_close_los_circle_vec" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.is_close_los_circle_vec">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">is_close_los_circle_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.is_close_los_circle_vec" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function checks if at maximum a LOS is at a distance epsilon
 form a cirlce. Vectorial version
 The result is True when distance &lt; epsilon
@@ -377,8 +371,8 @@ Python, if you need it from Cython, use <cite>is_los_close_circle_core</cite></p
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.which_los_closer_vpoly_vec">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">which_los_closer_vpoly_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.which_los_closer_vpoly_vec" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.which_los_closer_vpoly_vec">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">which_los_closer_vpoly_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.which_los_closer_vpoly_vec" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div><dl>
 <dt>nvpoly<span class="classifier">int</span></dt><dd><p>Number of flux surfaces</p>
@@ -414,8 +408,8 @@ Python, if you need it from Cython, use <cite>which_los_closer_vpoly_vec_core</c
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.which_vpoly_closer_los_vec">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">which_vpoly_closer_los_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.which_vpoly_closer_los_vec" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.which_vpoly_closer_los_vec">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">which_vpoly_closer_los_vec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.which_vpoly_closer_los_vec" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div><dl>
 <dt>nvpoly<span class="classifier">int</span></dt><dd><p>Number of flux surfaces</p>
@@ -451,8 +445,8 @@ Python, if you need it from Cython, use <cite>which_vpoly_closer_los_vec_core</c
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_sino_findRootkPMin_Tor">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_sino_findRootkPMin_Tor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_sino_findRootkPMin_Tor" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_sino_findRootkPMin_Tor">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_sino_findRootkPMin_Tor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_sino_findRootkPMin_Tor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rendre “vectoriel” sur LOS et sur les cercles (deux boucles “for”)
 intersection ligne et cercle
 double uParN : composante de u parallel au plan (x,y)</p>
@@ -475,8 +469,8 @@ TODO: ……….. &#64;LM</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.Poly_isClockwise">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">Poly_isClockwise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.Poly_isClockwise" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.Poly_isClockwise">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">Poly_isClockwise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.Poly_isClockwise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Assuming 2D closed Poly !
 TODO &#64;LM :
 <a class="reference external" href="http://www.faqs.org/faqs/graphics/algorithms-faq/">http://www.faqs.org/faqs/graphics/algorithms-faq/</a>
@@ -491,8 +485,8 @@ available at <a class="reference external" href="ftp://cs.smith.edu/pub/code/pol
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.Poly_Order">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">Poly_Order</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.Poly_Order" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.Poly_Order">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">Poly_Order</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.Poly_Order" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a polygon Poly as a np.ndarray formatted according to parameters</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -524,23 +518,23 @@ or ‘(N,cc)’</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.Poly_VolAngTor">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">Poly_VolAngTor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.Poly_VolAngTor" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.Poly_VolAngTor">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">Poly_VolAngTor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.Poly_VolAngTor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.poly_area">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">poly_area</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.poly_area" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.poly_area">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">poly_area</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.poly_area" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.poly_area_and_barycenter">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">poly_area_and_barycenter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.poly_area_and_barycenter" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.poly_area_and_barycenter">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">poly_area_and_barycenter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.poly_area_and_barycenter" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.Sino_ImpactEnv">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">Sino_ImpactEnv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.Sino_ImpactEnv" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.Sino_ImpactEnv">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">Sino_ImpactEnv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.Sino_ImpactEnv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes impact parameters of a Tor enveloppe
 (a <cite>Tor</cite> is a closed 2D polygon)</p>
 <p>D. VEZINET, Aug. 2014
@@ -558,13 +552,13 @@ or ‘(N,cc)’</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.ConvertImpact_Theta2Xi">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">ConvertImpact_Theta2Xi</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.ConvertImpact_Theta2Xi" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.ConvertImpact_Theta2Xi">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">ConvertImpact_Theta2Xi</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.ConvertImpact_Theta2Xi" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.discretize_line1d">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">discretize_line1d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.discretize_line1d" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.discretize_line1d">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">discretize_line1d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.discretize_line1d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Discretize a 1D segment LMin-LMax. If <cite>mode</cite> is “abs” (absolute), then the
 segment will be discretized in cells each of size <cite>dstep</cite>. Else, if <cite>mode</cite>
 is “rel” (relative), the meshing step is relative to the segments norm (ie.
@@ -583,7 +577,7 @@ Actual desired limits</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Lim</strong> (<em>(</em><em>optional</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Indicated if the subdomain should be taken into account</p></li>
+<li><p><strong>Lim</strong> (<em>(</em><em>optional</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Indicated if the subdomain should be taken into account</p></li>
 <li><p><strong>mode</strong> (<em>(</em><em>optional</em><em>) </em><em>string</em>) – If <cite>mode</cite> is “abs” (absolute), then the
 segment will be discretized in cells each of size <cite>dstep</cite>. Else,
 if “rel” (relative), the meshing step is relative to the segments norm
@@ -605,8 +599,8 @@ original segment LMinMax (if no DL, from 0 to N-1)</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.discretize_segment2d">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">discretize_segment2d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.discretize_segment2d" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.discretize_segment2d">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">discretize_segment2d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.discretize_segment2d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Discretizes a 2D segment where the 1st coordinates are defined in LMinMax1
 and the second ones in LMinMax2. The refinement in x is defined by dstep1,
 and dstep2 defines the resolution on y.
@@ -650,8 +644,8 @@ original segment LMinMax (if no DL, from 0 to N-1)</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.discretize_vpoly">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">discretize_vpoly</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.discretize_vpoly" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.discretize_vpoly">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">discretize_vpoly</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.discretize_vpoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Discretizes a VPoly (2D polygon of a cross section in (R,Z) coordinates).
 The refinement on R and Z is defined dL.
 Optionnally you can give a coefficient (DIn) and the normal vectors going
@@ -692,8 +686,8 @@ If DIn == 0, then Rref_arr = PtsCross[0, …]</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_Calc_PInOut_VesStruct">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_Calc_PInOut_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_Calc_PInOut_VesStruct" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_Calc_PInOut_VesStruct">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_Calc_PInOut_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_Calc_PInOut_VesStruct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the entry and exit point of all provided LOS for the provided
 vessel polygon (toroidal or linear) with its associated structures.
 Return the normal vector at impact and the index of the impact segment</p>
@@ -752,8 +746,8 @@ structure number i. If the LOS impacted the vessel i=j=0</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_Calc_kMinkMax_VesStruct">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_Calc_kMinkMax_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_Calc_kMinkMax_VesStruct" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_Calc_kMinkMax_VesStruct">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_Calc_kMinkMax_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_Calc_kMinkMax_VesStruct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the entry and exit point of all provided LOS for the provided
 polygons (toroidal or linear)  of IN structures (non-solid, or <cite>empty</cite>
 inside for the LOS).
@@ -806,8 +800,8 @@ each surface
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_isVis_PtFromPts_VesStruct">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_isVis_PtFromPts_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_isVis_PtFromPts_VesStruct" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_isVis_PtFromPts_VesStruct">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_isVis_PtFromPts_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_isVis_PtFromPts_VesStruct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an array of booleans indicating whether each point in pts is
 visible from the point P = [pt0, pt1, pt2] considering vignetting a given
 configuration.</p>
@@ -819,8 +813,8 @@ ray_vdir = (pts-ray_orig)/k</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_areVis_PtsFromPts_VesStruct">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_areVis_PtsFromPts_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_areVis_PtsFromPts_VesStruct" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_areVis_PtsFromPts_VesStruct">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_areVis_PtsFromPts_VesStruct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_areVis_PtsFromPts_VesStruct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an array of booleans indicating whether each point in pts is
 visible from the point P = [pt0, pt1, pt2] considering vignetting a given
 configuration.</p>
@@ -832,13 +826,13 @@ ray_vdir = (pts-ray_orig)/k</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.check_ff">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">check_ff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.check_ff" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.check_ff">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">check_ff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.check_ff" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_get_sample">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_get_sample</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_get_sample" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_get_sample">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_get_sample</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_get_sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the sampled line, with the specified method
 -   ‘sum’ :     return N segments centers
 -   ‘simps’:    return N+1 egdes, N even (for scipy.integrate.simps)
@@ -868,8 +862,8 @@ Pts = np.repeat(ray_orig, nbrepet, axis=1) + kus</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_calc_signal">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_calc_signal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_calc_signal" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_calc_signal">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_calc_signal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_calc_signal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the synthetic signal, minimizing either function calls or memory
 Params
 =====
@@ -915,26 +909,26 @@ step for each nlos.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.LOS_sino">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">LOS_sino</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.LOS_sino" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.LOS_sino">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_sino</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_sino" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.integrate1d">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">integrate1d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.integrate1d" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.integrate1d">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">integrate1d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.integrate1d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic integration method [‘sum’,’simps’,’romb’]</p>
 <p>Not used internally
 Useful when the sampling points need to be interpolated via equilibrium</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.triangulate_by_earclipping">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">triangulate_by_earclipping</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.triangulate_by_earclipping" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.triangulate_by_earclipping">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">triangulate_by_earclipping</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.triangulate_by_earclipping" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.vignetting">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">vignetting</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.vignetting" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.vignetting">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">vignetting</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.vignetting" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="simple">
 <dt>ray_orig<span class="classifier">(3, nlos) double array</span></dt><dd><p>LOS origin points coordinates</p>
 </dd>
@@ -954,14 +948,20 @@ POLY CLOSED</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG03.Dust_calc_SolidAngle">
-<code class="sig-prename descclassname">tofu.geom._GG03.</code><code class="sig-name descname">Dust_calc_SolidAngle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG03.Dust_calc_SolidAngle" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._GG.Dust_calc_SolidAngle">
+<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">Dust_calc_SolidAngle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.Dust_calc_SolidAngle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the solid angle of a moving particle of varying radius as seen
 from any number of pixed points</p>
 <p>Can be done w/o the approximation that r&lt;&lt;d
 If Ves (and optionally LSPoly) are provided, takes into account vignetting</p>
 </dd></dl>
 
+</div>
+<div class="section" id="tofu-geom-gg02-module">
+<h2>tofu.geom._GG02 module<a class="headerlink" href="#tofu-geom-gg02-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="tofu-geom-gg03-module">
+<h2>tofu.geom._GG03 module<a class="headerlink" href="#tofu-geom-gg03-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-tofu.geom._basic_geom_tools">
 <span id="tofu-geom-basic-geom-tools-module"></span><h2>tofu.geom._basic_geom_tools module<a class="headerlink" href="#module-tofu.geom._basic_geom_tools" title="Permalink to this headline">¶</a></h2>
@@ -1031,22 +1031,23 @@ block = True consider LOS collisions (with Ves, Struct…)</p>
 <div class="section" id="module-tofu.geom._core">
 <span id="tofu-geom-core-module"></span><h2>tofu.geom._core module<a class="headerlink" href="#module-tofu.geom._core" title="Permalink to this headline">¶</a></h2>
 <p>This module is the geometrical part of the ToFu general package
-It includes all functions and object classes necessary for tomography on Tokamaks</p>
+It includes all functions and object classes necessary for tomography
+on Tokamaks</p>
 <dl class="class">
 <dt id="tofu.geom._core.PlasmaDomain">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PlasmaDomain</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PlasmaDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PlasmaDomain" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PlasmaDomain</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, sep=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PlasmaDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PlasmaDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructIn</span></code></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tofu.geom._core.Ves">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Ves</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Ves"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Ves" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Ves</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, sep=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Ves"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Ves" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructIn</span></code></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tofu.geom._core.PFC">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PFC</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PFC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PFC" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">PFC</code><span class="sig-paren">(</span><em class="sig-param">Poly=None, Type=None, Lim=None, pos=None, extent=None, mobile=False, Id=None, Name=None, Exp=None, shot=None, sino_RefPt=None, sino_nP=50, Clock=False, arrayorder='C', fromdict=None, sep=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#PFC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.PFC" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructOut</span></code></p>
 </dd></dl>
 
@@ -1055,8 +1056,8 @@ It includes all functions and object classes necessary for tomography on Tokamak
 <em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CoilPF</code><span class="sig-paren">(</span><em class="sig-param">nturns=None</em>, <em class="sig-param">superconducting=None</em>, <em class="sig-param">active=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CoilPF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CoilPF" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.StructOut</span></code></p>
 <dl class="method">
-<dt id="tofu.geom._core.CoilPF.I">
-<em class="property">property </em><code class="sig-name descname">I</code><a class="headerlink" href="#tofu.geom._core.CoilPF.I" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._core.CoilPF.current">
+<em class="property">property </em><code class="sig-name descname">current</code><a class="headerlink" href="#tofu.geom._core.CoilPF.current" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1070,8 +1071,8 @@ It includes all functions and object classes necessary for tomography on Tokamak
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tofu.geom._core.CoilPF.set_I">
-<code class="sig-name descname">set_I</code><span class="sig-paren">(</span><em class="sig-param">I=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CoilPF.set_I"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CoilPF.set_I" title="Permalink to this definition">¶</a></dt>
+<dt id="tofu.geom._core.CoilPF.set_current">
+<code class="sig-name descname">set_current</code><span class="sig-paren">(</span><em class="sig-param">current=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CoilPF.set_current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CoilPF.set_current" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the current circulating on the coil (A)</p>
 </dd></dl>
 
@@ -1095,7 +1096,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: Remove dsino and dmag expendables
@@ -1119,7 +1120,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.Config">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">lStruct=None, Lim=None, dextraprop=None, Id=None, Name=None, Exp=None, shot=None, Type=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], fromdict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">lStruct=None, Lim=None, dextraprop=None, Id=None, Name=None, Exp=None, shot=None, Type=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], fromdict=None, sep=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.Config.Lim">
@@ -1157,7 +1158,8 @@ Or it will be created from the (Cls,Name,Poly,Lim) keyword args</p>
 <dl class="method">
 <dt id="tofu.geom._core.Config.fdistfromwall">
 <code class="sig-name descname">fdistfromwall</code><span class="sig-paren">(</span><em class="sig-param">r</em>, <em class="sig-param">z</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config.fdistfromwall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config.fdistfromwall" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a callable (function) for detecting trajectory collisions with wall</p>
+<dd><p>Return a callable (function) for detecting trajectory collisions
+with wall</p>
 <p>The function is continuous wrt time and space
 It takes into account all Struct in Config, including non-axisymmetric
 ones</p>
@@ -1276,12 +1278,12 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: apply strip(1) to objects in self.lStruct
 2: apply strip(2) to objects in self.lStruct
-3: replace objects in self.lStruct by their SavePath+SaveName</p>
+3: replace objects in self.lStruct by SavePath + SaveName</p>
 </div></blockquote>
 <p>-1: Equivalent to strip=3</p>
 </dd>
@@ -1295,7 +1297,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.Rays">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Rays</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Rays</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
 <p>Parent class of rays (ray-tracing), LOS, CamLOS1D and CamLOS2D</p>
 <p>Focused on optimizing the computation time for many rays.</p>
@@ -1306,7 +1308,8 @@ the intersection points are automatically computed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Id</strong> (str  / <a class="reference internal" href="tofu.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>) – A name string or a <a class="reference internal" href="tofu.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> to identify this instance,
+<li><p><strong>Id</strong> (str  / <a class="reference internal" href="tofu.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a>) – A name string or a <a class="reference internal" href="tofu.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a> to identify this
+instance,
 if a string is provided, it is fed to <a class="reference internal" href="tofu.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal notranslate"><span class="pre">ID</span></code></a></p></li>
 <li><p><strong>Du</strong> (<em>iterable</em>) – <dl class="simple">
 <dt>Iterable of len=2, containing 2 np.ndarrays represnting, for N rays:</dt><dd><ul>
@@ -1382,8 +1385,69 @@ Each array contains the length parameter along the ray for each isoflux</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="tofu.geom._core.Rays.calc_length_in_isoflux">
+<code class="sig-name descname">calc_length_in_isoflux</code><span class="sig-paren">(</span><em class="sig-param">lPoly</em>, <em class="sig-param">lVIn=None</em>, <em class="sig-param">Lim=None</em>, <em class="sig-param">kInOut=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_length_in_isoflux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_length_in_isoflux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the length of each LOS inside each isoflux</p>
+<p>Uses self.calc_kInkOut_Isoflux() to compute the linear abscissa (k) of
+the entry points (kIn) and exit points (kOut) for each LOS</p>
+<p>The isofluxes must be provided as a list of polygons</p>
+<p>The length is returned as a (nPoly, nLOS) 2d array</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Rays.calc_min_geom_radius">
+<code class="sig-name descname">calc_min_geom_radius</code><span class="sig-paren">(</span><em class="sig-param">axis</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_min_geom_radius"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_min_geom_radius" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the minimum geom. radius of each LOS, from an arbitrary axis</p>
+<p>The axis mut be provided as a (R,Z) iterable
+Uses self.set_dsino()</p>
+<dl class="simple">
+<dt>p:      np.ndarray</dt><dd><p>(nLOS,) array of minimal radius (or impact parameter)</p>
+</dd>
+<dt>theta:  np.ndarray</dt><dd><p>(nLOS,) array of associated theta with respect to axis</p>
+</dd>
+<dt>pts:    np.ndarray</dt><dd><p>(3,nLOS) array of (X,Y,Z) coordinates of associated points on LOS</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Rays.calc_min_rho_from_Plasma2D">
+<code class="sig-name descname">calc_min_rho_from_Plasma2D</code><span class="sig-paren">(</span><em class="sig-param">plasma</em>, <em class="sig-param">t=None</em>, <em class="sig-param">log='min'</em>, <em class="sig-param">res=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">quant=None</em>, <em class="sig-param">ref1d=None</em>, <em class="sig-param">ref2d=None</em>, <em class="sig-param">interp_t=None</em>, <em class="sig-param">interp_space=None</em>, <em class="sig-param">fill_value=nan</em>, <em class="sig-param">pts=False</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_min_rho_from_Plasma2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_min_rho_from_Plasma2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the min/max value of scalar field quant for each LOS</p>
+<p>Typically used to get the minimal normalized minor radius
+But can be used for any quantity available in plasma if:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>it is a 2d profile</p></li>
+<li><p>it is a 1d profile that can be interpolated on a 2d mesh</p></li>
+</ul>
+</div></blockquote>
+<p>Currently sample each LOS with desired resolution and returns the
+absolute min/max interpolated value (and associated point)</p>
+<dl class="simple">
+<dt>See self.get_sample() for details on sampling arguments:</dt><dd><ul class="simple">
+<li><p>res, resMode, method</p></li>
+</ul>
+</dd>
+<dt>See Plasma2D.interp_pts2profile() for details on interpolation args:</dt><dd><ul class="simple">
+<li><p>t, quant, q2dref, q1dref, interp_t, interp_space, fill_value</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>val:        np.ndarray</dt><dd><p>(nt, nLOS) array of min/max values</p>
+</dd>
+<dt>pts:        np.ndarray</dt><dd><p>(nt, nLOS, 3) array of (X,Y,Z) coordinates of associated points
+Only returned if pts = True</p>
+</dd>
+<dt>t:          np.ndarray</dt><dd><p>(nt,) array of time steps at which the interpolations were made</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="tofu.geom._core.Rays.calc_signal">
-<code class="sig-name descname">calc_signal</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t=None</em>, <em class="sig-param">ani=None</em>, <em class="sig-param">fkwdargs={}</em>, <em class="sig-param">Brightness=True</em>, <em class="sig-param">res=None</em>, <em class="sig-param">DL=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">minimize='calls'</em>, <em class="sig-param">num_threads=16</em>, <em class="sig-param">reflections=True</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">out=&lt;class 'object'&gt;</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">dataname=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">invert=True</em>, <em class="sig-param">units=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">connect=True</em>, <em class="sig-param">newcalc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_signal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">calc_signal</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t=None</em>, <em class="sig-param">ani=False</em>, <em class="sig-param">fkwdargs={}</em>, <em class="sig-param">Brightness=True</em>, <em class="sig-param">res=None</em>, <em class="sig-param">DL=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">minimize='calls'</em>, <em class="sig-param">num_threads=16</em>, <em class="sig-param">reflections=True</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">out=&lt;class 'object'&gt;</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">dataname=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">invert=True</em>, <em class="sig-param">units=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">connect=True</em>, <em class="sig-param">newcalc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_signal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the line-integrated emissivity</p>
 <p>Beware, by default, Brightness=True and it is only a line-integral !</p>
 <p>Indeed, to get the received power, you need an estimate of the Etendue
@@ -1490,8 +1554,8 @@ It is possible to sample only a subset of the LOS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>res</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Desired resolution</p></li>
-<li><p><strong>resMode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>res</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Desired resolution</p></li>
+<li><p><strong>resMode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating res should be understood as:</dt><dd><ul>
 <li><p>’abs’:    an absolute distance in meters</p></li>
 <li><p>’rel’:    a relative distance (fraction of the LOS length)</p></li>
@@ -1503,7 +1567,7 @@ It is possible to sample only a subset of the LOS</p>
 L1 and L2 are distances from the starting point of the LOS (LOS.D)
 DL can be an iterable of len()==2 (identical to all los), or a
 (2,nlos) array</p></li>
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl>
 <dt>Flag indicating which to use for sampling:</dt><dd><ul>
 <li><dl>
 <dt>’sum’:    the LOS is sampled into N segments of equal length,</dt><dd><dl class="simple">
@@ -1545,9 +1609,9 @@ DL can be an iterable of len()==2 (identical to all los), or a
 </dl>
 </p></li>
 <li><p><strong>ind</strong> (<em>None / iterable of int</em>) – indices of the LOS to be sampled</p></li>
-<li><p><strong>pts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to return only the abscissa parameter k
+<li><p><strong>pts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to return only the abscissa parameter k
 (False) or the 3D pts coordinates (True)</p></li>
-<li><p><strong>compact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag incating whether to retrun the sampled pts of all los in a
+<li><p><strong>compact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag incating whether to retrun the sampled pts of all los in a
 single concatenated array (True) or splitted into
 a list of nlos arrays)</p></li>
 </ul>
@@ -1566,7 +1630,8 @@ a list of nlos arrays)</p></li>
 </dd>
 </dl>
 </li>
-<li><p><strong>reseff</strong> (<em>np.ndarray</em>) – A (nlos,) array of the effective resolution (&lt;= res input), as an absolute distance</p></li>
+<li><p><strong>reseff</strong> (<em>np.ndarray</em>) – A (nlos,) array of the effective resolution (&lt;= res input), as an
+absolute distance</p></li>
 <li><p><strong>ind</strong> (<em>np.ndarray</em>) – A (nlos-1,) array of integere indices (where to split k to separate
 the points of each los). e.g.: lk = np.split(k,ind)</p></li>
 </ul>
@@ -1658,7 +1723,7 @@ The plot can also include:</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lax</strong> (<em>list / plt.Axes</em>) – The axes for plotting (list of 2 axes if Proj=’All’)
 If None a new figure with new axes is created</p></li>
-<li><p><strong>proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the kind of projection:</dt><dd><ul>
 <li><p>’Cross’ : cross-section</p></li>
 <li><p>’Hor’ : horizontal</p></li>
@@ -1668,9 +1733,9 @@ If None a new figure with new axes is created</p></li>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>projections</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to plot also the reflected rays
+<li><p><strong>projections</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot also the reflected rays
 Assuming some reflected rays are present (self.add_reflections())</p></li>
-<li><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>Flag specifying which elements to plot
+<li><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <p>Flag specifying which elements to plot
 Each capital letter corresponds to an element:</p>
 <blockquote>
 <div><ul>
@@ -1687,7 +1752,7 @@ Each capital letter corresponds to an element:</p>
 </ul>
 </div></blockquote>
 </p></li>
-<li><p><strong>Lplot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Lplot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the length to plot:</dt><dd><ul>
 <li><p>’Tot’: total length, from starting point (D) to output point</p></li>
 <li><p>’In’ : only the in-vessel fraction (from input to output)</p></li>
@@ -1695,20 +1760,20 @@ Each capital letter corresponds to an element:</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>element_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Fed to self.config.plot()</p></li>
-<li><p><strong>Leg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Legend, if Leg=’’ the LOS name is used</p></li>
+<li><p><strong>element_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Fed to self.config.plot()</p></li>
+<li><p><strong>Leg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Legend, if Leg=’’ the LOS name is used</p></li>
 <li><p><strong>dL</strong> (<em>dict / None</em>) – Dictionary of properties for plotting the lines
 Fed to plt.Axes.plot(), set to default if None</p></li>
-<li><p><strong>dPtD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘D’</p></li>
-<li><p><strong>dPtI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘I’</p></li>
-<li><p><strong>dPtO</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘O’</p></li>
-<li><p><strong>dPtR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘R’</p></li>
-<li><p><strong>dPtP</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘P’</p></li>
-<li><p><strong>dLeg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a>) – Dictionary of properties for plotting the legend
+<li><p><strong>dPtD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘D’</p></li>
+<li><p><strong>dPtI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘I’</p></li>
+<li><p><strong>dPtO</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘O’</p></li>
+<li><p><strong>dPtR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘R’</p></li>
+<li><p><strong>dPtP</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘P’</p></li>
+<li><p><strong>dLeg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)"><em>None</em></a>) – Dictionary of properties for plotting the legend
 Fed to plt.legend(), the legend is not plotted if None</p></li>
-<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether fig.canvas.draw() shall be called</p></li>
-<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to plot the figure in a4 dimensions</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – </p></li>
+<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether fig.canvas.draw() shall be called</p></li>
+<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot the figure in a4 dimensions</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – </p></li>
 <li><p><strong>a4</strong> – Flag indicating whether to plot the figure in a4 dimensions</p></li>
 <li><p><strong>Test</strong> – </p></li>
 <li><p><strong>a4</strong> – Flag indicating whether to plot the figure in a4 dimensions</p></li>
@@ -1737,7 +1802,7 @@ the angle that the LOS makes with the cross-section plane
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether to plot:</dt><dd><ul>
 <li><p>’Cross’:  a classic sinogram (vessel cross-section)</p></li>
 <li><p>’3d’: an extended 3D version (‘3d’), with an additional angle</p></li>
@@ -1746,7 +1811,7 @@ the angle that the LOS makes with the cross-section plane
 </dl>
 </p></li>
 <li><p><strong>ax</strong> (<em>None / plt.Axes</em>) – The axes on which to plot, if None a new figure is created</p></li>
-<li><p><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which elements to plot (one per capital letter):</dt><dd><ul>
 <li><p>’L’: LOS</p></li>
 <li><p>’V’: Vessel</p></li>
@@ -1754,7 +1819,7 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>Ang</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Ang</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which angle to use for the impact parameter:</dt><dd><ul>
 <li><p>’xi’: the angle of the line itself</p></li>
 <li><p>’theta’: its impact parameter (theta)</p></li>
@@ -1762,7 +1827,7 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>AngUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>AngUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag for the angle units to be displayed:</dt><dd><ul>
 <li><p>’rad’: for radians</p></li>
 <li><p>’deg’: for degrees</p></li>
@@ -1770,14 +1835,14 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>Sketch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to plot a skecth with angles definitions</p></li>
-<li><p><strong>dL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting the Rays points</p></li>
-<li><p><strong>dV</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary of properties for plotting the vessel envelopp</p></li>
+<li><p><strong>Sketch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot a skecth with angles definitions</p></li>
+<li><p><strong>dL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting the Rays points</p></li>
+<li><p><strong>dV</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting the vessel envelopp</p></li>
 <li><p><strong>dLeg</strong> (<em>None / dict</em>) – Dictionary of properties for plotting the legend
 The legend is not plotted if None</p></li>
-<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether to draw the figure</p></li>
-<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether the figure should be a4</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Flag indicating whether the inputs shall be tested for conformity</p></li>
+<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to draw the figure</p></li>
+<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether the figure should be a4</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether the inputs shall be tested for conformity</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1809,7 +1874,7 @@ The plot shows which strutural element is touched by each LOS</p>
 </dd>
 </dl>
 </li>
-<li><p>‘Etendues’: the étendue associated to each LOS (user-provided)</p></li>
+<li><p>‘Etendues’: the etendue associated to each LOS (user-provided)</p></li>
 <li><p>‘Surfaces’: the surfaces associated to each LOS (user-provided)</p></li>
 </ul>
 </dd>
@@ -1837,7 +1902,7 @@ The plot shows which strutural element is touched by each LOS</p>
 <li><p><strong>key</strong> (<em>None / str</em>) – A key to be found in self.dchans</p></li>
 <li><p><strong>val</strong> (<em>int / str / float / list of such</em>) – The value to be matched
 If a list of values is provided, the behaviour depends on log</p></li>
-<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>A flag indicating which behaviour to use when val is a list</dt><dd><ul>
 <li><p>any : Returns indices of rays matching any value in val</p></li>
 <li><p>all : Returns indices of rays matching all values in val</p></li>
@@ -1848,7 +1913,8 @@ If a list of values is provided, the behaviour depends on log</p></li>
 </p></li>
 <li><p><strong>touch</strong> (<em>None / str / int / tuple</em>) – <p>Used if key is None
 Tuple that can be of len()=1, 2 or 3
-Tuple indicating you want the rays that are touching some specific elements of self.config:</p>
+Tuple indicating you want the rays that are touching some specific
+elements of self.config:</p>
 <blockquote>
 <div><ul>
 <li><dl class="simple">
@@ -1873,10 +1939,14 @@ Only relevant when the element has noccur&gt;1</p>
 </div></blockquote>
 <p>In this case only log=’not’ has an effect</p>
 </p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether to return:</dt><dd><ul>
 <li><p>bool : a (nRays,) boolean array of indices</p></li>
-<li><p>int :  a (N,) array of int indices (N=number of matching rays)</p></li>
+<li><dl class="simple">
+<dt>int<span class="classifier">a (N,) array of int indices (N=number of matching</span></dt><dd><p>rays)</p>
+</dd>
+</dl>
+</li>
 </ul>
 </dd>
 </dl>
@@ -1934,7 +2004,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: dgeom w/o pts + config.strip(1)
@@ -1959,7 +2029,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.CamLOS1D">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS1D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS1D" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS1D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS1D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tofu.geom._core.Rays" title="tofu.geom._core.Rays"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.Rays</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.CamLOS1D.get_summary">
@@ -1975,7 +2045,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.CamLOS2D">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS2D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS2D" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS2D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tofu.geom._core.Rays" title="tofu.geom._core.Rays"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.Rays</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.CamLOS2D.dX12">
@@ -2295,7 +2365,7 @@ return ax1, ax2, ax3</p>
 
 <dl class="function">
 <dt id="tofu.geom._plot.Plot_Impact_3DPoly">
-<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.1-52-g6f060e3        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.1-217-g754c8bb        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plotting the toroidal projection of a Ves instance</p>
 <p>D. VEZINET, Aug. 2014
 Inputs :</p>
@@ -2396,7 +2466,7 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 
 <dl class="function">
 <dt id="tofu.geom.utils.create_config">
-<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_217_g754c8bb-py3.6-macosx-10.7-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create easily a tofu.geom.Config object</p>
 <p>In tofu, a Config (short for geometrical configuration) refers to the 3D
 geometry of a fusion device.
@@ -2410,20 +2480,20 @@ config, use directly tofu.geom.Config and provide the parameters you want.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>case</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The name of a reference test case, if provided, this arguments is
+<li><p><strong>case</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of a reference test case, if provided, this arguments is
 sufficient, the others are ignored</p></li>
-<li><p><strong>Exp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The name of the experiment</p></li>
-<li><p><strong>Type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – The type of configuration (toroidal ‘Tor’ or linear ‘Lin’)</p></li>
-<li><p><strong>Lim_Bump</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – The angular (poloidal) limits, in the cross-section of the extension of
+<li><p><strong>Exp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the experiment</p></li>
+<li><p><strong>Type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The type of configuration (toroidal ‘Tor’ or linear ‘Lin’)</p></li>
+<li><p><strong>Lim_Bump</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – The angular (poloidal) limits, in the cross-section of the extension of
 the outer bumper</p></li>
-<li><p><strong>R</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – The major radius of the center of the cross-section</p></li>
-<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – The minor radius of the cross-section</p></li>
-<li><p><strong>elong</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – An elongation parameter (in [-1;1])</p></li>
-<li><p><strong>Dshape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – A parameter specifying the D-shape of the cross-section (in [-1;1])</p></li>
-<li><p><strong>divlow</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – A flag specifying whether to include a lower divertor-like shape</p></li>
-<li><p><strong>divup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – A flag specifying whether to include an upper divertor-like shape</p></li>
-<li><p><strong>nP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of points used to describe the cross-section polygon</p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>R</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The major radius of the center of the cross-section</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The minor radius of the cross-section</p></li>
+<li><p><strong>elong</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – An elongation parameter (in [-1;1])</p></li>
+<li><p><strong>Dshape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – A parameter specifying the D-shape of the cross-section (in [-1;1])</p></li>
+<li><p><strong>divlow</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – A flag specifying whether to include a lower divertor-like shape</p></li>
+<li><p><strong>divup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – A flag specifying whether to include an upper divertor-like shape</p></li>
+<li><p><strong>nP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Number of points used to describe the cross-section polygon</p></li>
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
 <dt>FLag indicating whether to return:</dt><dd><ul>
 <li><p>’dict’  : the polygons as a dictionary of np.ndarrays</p></li>
 <li><p>’object’: the configuration as a tofu.geom.Config instance</p></li>
@@ -2583,7 +2653,7 @@ returned as:</p>
       
     </p>
     <p>
-        &copy; Copyright 2016, Didier VEZINET.<br/>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

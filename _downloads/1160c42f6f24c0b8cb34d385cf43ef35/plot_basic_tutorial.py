@@ -5,9 +5,16 @@ Getting started: 5 minutes tutorial for `tofu`
 This is a tutorial that aims to get a new user a little familiar with tofu's
  structure.
 """
+
+# The following imports matplotlib, preferably using a
+# backend that allows the plots to be interactive (Qt5Agg).
+import numpy as np
 import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.use('Qt5Agg')
+try:
+    matplotlib.use('Qt5Agg')
+except ImportError:
+    matplotlib.use(matplotlib.rcParams['backend'])
+import matplotlib.pyplot
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since
@@ -16,10 +23,12 @@ matplotlib.use('Qt5Agg')
 
 import tofu as tf
 
+
 ###############################################################################
 # We can now create our first configuration.
-# In `tofu` speak, a configuration is the geometry of the device and its structures.
-# `tofu` provides pre-defined ones for your to try, so we're going to do just that:
+# In `tofu` speak, a configuration is the geometry of the device and its
+# structures. `tofu` provides pre-defined ones for your to try, so we're going
+# to do just that:
 
 configB2 = tf.geom.utils.create_config("B2")
 
@@ -29,9 +38,8 @@ configB2 = tf.geom.utils.create_config("B2")
 configB2.plot()
 
 ###############################################################################
-# Since `tofu` is all about tomography, let's create a 1D camera and plot its output.
-
-import numpy as np
+# Since `tofu` is all about tomography, let's create a 1D camera and plot its
+# output.
 
 cam1d = tf.geom.utils.create_CamLOS1D(
     config=configB2,
@@ -44,6 +52,7 @@ cam1d = tf.geom.utils.create_CamLOS1D(
     Exp="",
     Diag="",
 )
+
 # interactive plot
 cam1d.plot_touch()
 

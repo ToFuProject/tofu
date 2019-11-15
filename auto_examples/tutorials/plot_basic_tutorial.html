@@ -45,11 +45,12 @@
         <div class="collapse navbar-collapse nav-collapse">
           <ul class="nav navbar-nav">
             
-                <li><a href="../index.html">Gallery</a></li>
                 <li><a href="../../installation.html">Installation</a></li>
-                <li><a href="../../aboutus.html">About us</a></li>
-                <li><a href="../../releases.html">Versions</a></li>
-                <li><a href="../../tofu.html">Code doc</a></li>
+                <li><a href="../../contributing.html">Contributing</a></li>
+                <li><a href="../index.html">Gallery</a></li>
+                <li><a href="../../aboutus.html">About</a></li>
+                <li><a href="../../releases.html">Releases</a></li>
+                <li><a href="../../tofu.html">API</a></li>
             
             
               <li class="dropdown globaltoc-container">
@@ -62,7 +63,8 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">How to install tofu</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">All tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials and examples</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tofu.html">tofu package</a></li>
@@ -123,9 +125,15 @@
 <dt>This is a tutorial that aims to get a new user a little familiar with tofu’s</dt><dd><p>structure.</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Qt5Agg&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># The following imports matplotlib, preferably using a</span>
+<span class="c1"># backend that allows the plots to be interactive (Qt5Agg).</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Qt5Agg&#39;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">])</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span>
 </pre></div>
 </div>
 <p>We start by loading <cite>tofu</cite>. You might see some warnings at this stage since
@@ -135,8 +143,9 @@ be missing on the machine you are working on. This can be ignored safely.</p>
 </pre></div>
 </div>
 <p>We can now create our first configuration.
-In <cite>tofu</cite> speak, a configuration is the geometry of the device and its structures.
-<cite>tofu</cite> provides pre-defined ones for your to try, so we’re going to do just that:</p>
+In <cite>tofu</cite> speak, a configuration is the geometry of the device and its
+structures. <cite>tofu</cite> provides pre-defined ones for your to try, so we’re going
+to do just that:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">configB2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="s2">&quot;B2&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -145,10 +154,9 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
 </pre></div>
 </div>
 <img alt="../../_images/sphx_glr_plot_basic_tutorial_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_plot_basic_tutorial_001.png" />
-<p>Since <cite>tofu</cite> is all about tomography, let’s create a 1D camera and plot its output.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span>
+<p>Since <cite>tofu</cite> is all about tomography, let’s create a 1D camera and plot its
+output.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span>
     <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
     <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
     <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
@@ -159,13 +167,14 @@ In <cite>tofu</cite> speak, a configuration is the geometry of the device and it
     <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
 <span class="p">)</span>
+
 <span class="c1"># interactive plot</span>
 <span class="n">cam1d</span><span class="o">.</span><span class="n">plot_touch</span><span class="p">()</span>
 </pre></div>
 </div>
 <img alt="../../_images/sphx_glr_plot_basic_tutorial_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_plot_basic_tutorial_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_52_g6f060e3-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2722: UserWarning: Not interactive backend!:
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_217_g754c8bb-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2751: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
@@ -192,7 +201,7 @@ You could now play with the function parameters (change the cameras
 direction, refinement, aperture),
 with the plots (many are interactive) or create you own tomographic
 configuration.</p>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  1.619 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  1.586 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-plot-basic-tutorial-py">
 <div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/1160c42f6f24c0b8cb34d385cf43ef35/plot_basic_tutorial.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_basic_tutorial.py</span></code></a></p>
@@ -223,7 +232,7 @@ configuration.</p>
       
     </p>
     <p>
-        &copy; Copyright 2016, Didier VEZINET.<br/>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

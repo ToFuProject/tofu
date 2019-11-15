@@ -62,6 +62,26 @@ This directory contains tutorial examples for `tofu`.
    :hidden:
 
    /auto_examples/tutorials/plot_create_geometry
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial defines an emissivity that varies in space and computes the signal received by a ...">
+
+.. only:: html
+
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_plot_custom_emissivity_thumb.png
+
+        :ref:`sphx_glr_auto_examples_tutorials_plot_custom_emissivity.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/tutorials/plot_custom_emissivity
 .. raw:: html
 
     <div style='clear:both'></div>

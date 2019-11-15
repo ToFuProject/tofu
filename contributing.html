@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Contribute to tofu &#8212; tofu v1.4</title>
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="tofu examples and tutorials" href="auto_examples/index.html" />
+    <link rel="prev" title="Installing tofu" href="installation.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="#">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Contribute to tofu</a><ul>
+<li><a class="reference internal" href="#bug-reports-and-suggestions">Bug reports and suggestions</a></li>
+<li><a class="reference internal" href="#developping-in-the-code">Developping in the code</a><ul>
+<li><a class="reference internal" href="#the-basic-tools">The basic tools</a></li>
+<li><a class="reference internal" href="#where-to-start">Where to start?</a></li>
+<li><a class="reference internal" href="#git-branches-and-pull-requests">Git branches and pull requests</a></li>
+<li><a class="reference internal" href="#continuous-integration">Continuous integration</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  <div class="section" id="contribute-to-tofu">
+<h1>Contribute to tofu<a class="headerlink" href="#contribute-to-tofu" title="Permalink to this headline">¶</a></h1>
+<p>You found a bug, or you want to add something to the library? This
+tutorial will show you how to get the repository and the first steps to
+contribute to the project.</p>
+<div class="section" id="bug-reports-and-suggestions">
+<h2>Bug reports and suggestions<a class="headerlink" href="#bug-reports-and-suggestions" title="Permalink to this headline">¶</a></h2>
+<p>If you found a bug in <strong>tofu</strong>, or if you have a suggestion, the best is to open
+an issue directly on our <a class="reference external" href="https://github.com/ToFuProject/tofu/issues">github page</a>.
+If you are opening an issue related to a bug found, please specify the version
+of the librairies (<strong>tofu</strong>, python, etc.) you are using, any configuration
+information that might be helpful to us (OS, server, how you installed
+<strong>tofu</strong>), a minimal example to recreate the bug (if possible), and the log
+files or errors you might have got.</p>
+</div>
+<div class="section" id="developping-in-the-code">
+<h2>Developping in the code<a class="headerlink" href="#developping-in-the-code" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="the-basic-tools">
+<h3>The basic tools<a class="headerlink" href="#the-basic-tools" title="Permalink to this headline">¶</a></h3>
+<p>There are many tools and concepts to get familiar with when contributing
+to an <strong>open-source python library</strong>. A good place to get started is the
+<a class="reference external" href="https://github.com/nathanshammah/scikit-project">scikit-project</a>.
+And here is a list of tools you should get familiar with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Python</span></code>: the main language of <strong>tofu</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">IPython</span></code>: powerful interactive shell for python, and check this
+<a class="reference external" href="https://ipython.org/ipython-doc/3/interactive/tutorial.html">tutorial</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span></code>, and the <a class="reference external" href="https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow">feature branch
+workflow</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">github</span></code>: follow and watch <a class="reference external" href="https://github.com/ToFuProject/tofu">our
+project</a></p></li>
+<li><p>A text editor: <code class="docutils literal notranslate"><span class="pre">emacs</span></code>, <code class="docutils literal notranslate"><span class="pre">vim</span></code>, <code class="docutils literal notranslate"><span class="pre">sublime</span></code>, or whichever you want</p></li>
+</ul>
+<p>We will use Miniconda (light version of Anaconda, but you can also work
+with Anaconda or another python package manager of your choice) not only
+to install and manage the packages necessary for installing ToFu, but
+also to have a working bash-like Terminal.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Get the latest version and install
+it.</a></p></li>
+<li><p>Follow the directions (you can use default options)</p></li>
+</ul>
+<p>We are going to create an environment specific for ToFu.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ conda create -n tofu3 python scipy numpy cython git ipython
+$ conda activate tofu3
+</pre></div>
+</div>
+<p>This creates a conda environment named “tofu3” and installs scipy,
+numpy, git, ipython and cython. The second command activates this
+environment.</p>
+<ul class="simple">
+<li><p>Create a ssh public key and add it to your GitHub account: <a class="reference external" href="https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account">follow
+this
+tutorial.</a></p></li>
+<li><p>Go to ToFu’s GitHub repository:
+<a class="reference external" href="https://github.com/ToFuProject/tofu/">here.</a></p></li>
+<li><p>Click on “clone or download” and swith to the option “Use SSH”. Copy
+the link.</p></li>
+<li><p>Move to where you would like to install ToFu <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">cd</span> <span class="pre">some_path</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:ToFuProject/tofu.git</span></code> (make sure you
+remember the path where you are installing, if you want to install it
+into your home repository, just make sure to <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">~</span></code> before the
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone...</span></code>)</p></li>
+<li><p>Move to the tofu directory, probably: <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">~/tofu</span></code></p></li>
+<li><p>Switch to the <code class="docutils literal notranslate"><span class="pre">git</span></code> branch you will be working on. If you are just
+starting you probably want to start from the latest develop branch:
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">devel</span></code>. If you are not familiar with <strong>git</strong> take a
+look at <a class="reference external" href="https://www.atlassian.com/git/tutorials">this tutorial
+(long)</a> or <a class="reference external" href="https://rogerdudler.github.io/git-guide/">this short
+one</a></p></li>
+<li><p>Compile <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">build_ext</span> <span class="pre">--inplace</span></code></p></li>
+<li><p>Make sure tests are running <code class="docutils literal notranslate"><span class="pre">nosetests</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="where-to-start">
+<h3>Where to start?<a class="headerlink" href="#where-to-start" title="Permalink to this headline">¶</a></h3>
+<p>If you wish to contribute, but don’t know where to start, check <a class="reference external" href="https://github.com/ToFuProject/tofu/issues">our
+open issues</a>. You can
+also read <a class="reference external" href="https://github.com/firstcontributions/first-contributions">this
+tutorial</a>,
+on how to contribute to a github project.</p>
+</div>
+<div class="section" id="git-branches-and-pull-requests">
+<h3>Git branches and pull requests<a class="headerlink" href="#git-branches-and-pull-requests" title="Permalink to this headline">¶</a></h3>
+<p>Before modifying the code, you
+should create a new branch (based on the <em>devel</em> branch) and switch to it.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">checkout</span> <span class="o">-</span><span class="n">b</span> <span class="o">&lt;</span><span class="n">theNameOfYourBranch</span><span class="o">&gt;</span> <span class="c1"># probably IssueNumber eg. Issue123</span>
+<span class="c1"># change the source code</span>
+<span class="n">git</span> <span class="n">add</span> <span class="o">&lt;</span><span class="n">files</span> <span class="n">you</span> <span class="n">changed</span><span class="o">&gt;</span>
+<span class="n">git</span> <span class="n">commit</span> <span class="o">-</span><span class="n">m</span> <span class="s2">&quot;[a tag] a message that explains what you changed&quot;</span>
+<span class="n">git</span> <span class="n">push</span> <span class="o">-</span><span class="n">u</span> <span class="n">origin</span> <span class="o">&lt;</span><span class="n">theNameOfYourBranch</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Now you can open a pull request in our <a class="reference external" href="https://github.com/ToFuProject/tofu/pulls">github
+page</a>, from your branch,
+<code class="docutils literal notranslate"><span class="pre">theNameOfYourBranch</span></code> to <code class="docutils literal notranslate"><span class="pre">devel</span></code>. We will review it, comment it, and
+accept it.</p>
+</div>
+<div class="section" id="continuous-integration">
+<h3>Continuous integration<a class="headerlink" href="#continuous-integration" title="Permalink to this headline">¶</a></h3>
+<p>For each pull request (PR) on github, there will be a series of tests run to
+make sure the modifications introduced to the library did not introduce any
+errors. If all tests pass, you should see something like the image below.</p>
+<img alt="_images/travis.png" src="_images/travis.png" />
+<p>If there is an error (red cross instead of green check) it can be either that
+your code is breaking the normal functionning of the code, or (less probably)
+that there is a bug in the unit tests. Please try and understand what went wrong.
+If you cannot find the problem, you can ask for help by commenting on the PR.
+Additionally to the unit tests, we have integrated <a class="reference external" href="https://pep8speaks.com/">pep8speaks</a>, a bot that will
+check your coding style.</p>
+<img alt="_images/pep8speaks.png" src="_images/pep8speaks.png" />
+</div>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="_sources/contributing.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
