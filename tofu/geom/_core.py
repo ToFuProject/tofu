@@ -2025,7 +2025,7 @@ class CoilPF(StructOut):
 
     def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
-        C0 = I is None
+        C0 = current is None
         C1 = type(current) in [int, float, np.int64, np.float64]
         C2 = type(current) in [list, tuple, np.ndarray]
         msg = "Arg current must be None, a float or an 1D np.ndarray !"
