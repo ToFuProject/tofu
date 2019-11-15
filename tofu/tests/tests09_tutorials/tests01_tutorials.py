@@ -7,15 +7,14 @@ import subprocess
 import numpy as np
 import warnings as warn
 import matplotlib.pyplot as plt
-plt.ion()
 
 # Nose-specific
-from nose import with_setup # optional
-
+from nose import with_setup     # optional
 
 # Importing package tofu.geom
 import tofu as tf
 from tofu import __version__
+plt.ion()
 
 
 _HERE = os.path.abspath(os.path.dirname(__file__))
@@ -32,24 +31,24 @@ keyVers = 'Vers'
 #######################################################
 
 def setup_module(module, here=_HERE):
-    print("") # this is to get a newline after the dots
+    print("")   # this is to get a newline after the dots
     lf = os.listdir(here)
     lf = [f for f in lf
-         if all([s in f for s in ['.npz']])]
+          if all([s in f for s in ['.npz']])]
     lF = []
     for f in lf:
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
              if fff[:len(keyVers)]==keyVers]
-        msg = f + "\n    "+str(ff) + "\n    " + str(v)
-        assert len(v)==1, msg
+        msg = f + "\n    " + str(ff) + "\n    " + str(v)
+        assert len(v) == 1, msg
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
         # print(v, __version__)
-        if v!=__version__:
+        if v != __version__:
             lF.append(f)
-    if len(lF)>0:
+    if len(lF) > 0:
         print("Removing the following previous test files:")
         for f in lF:
             os.remove(os.path.join(here, f))
@@ -62,24 +61,24 @@ def teardown_module(module, here=_HERE):
     #print("") # this is to get a newline
     lf = os.listdir(here)
     lf = [f for f in lf
-         if all([s in f for s in ['.npz']])]
+          if all([s in f for s in ['.npz']])]
     lF = []
     for f in lf:
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
-             if fff[:len(keyVers)]==keyVers]
+             if fff[:len(keyVers)] == keyVers]
         msg = f + "\n    "+str(ff) + "\n    " + str(v)
-        assert len(v)==1, msg
+        assert len(v) == 1, msg
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
         # print(v, __version__)
-        if v==__version__:
+        if v == __version__:
             lF.append(f)
-    if len(lF)>0:
+    if len(lF) > 0:
         print("Removing the following test files:")
         for f in lF:
-            os.remove(os.path.join(here,f))
+            os.remove(os.path.join(here, f))
 
 
 #def my_setup_function():
@@ -154,7 +153,7 @@ class Test00_tuto(object):
         target = os.path.join(root, tuto + '.py')
         shutil.copyfile(src, target)
         try:
-            cmd = 'python '+target
+            cmd = 'python ' + target
             out = subprocess.run(cmd, shell=True, check=True,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as err:
