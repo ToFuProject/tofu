@@ -862,10 +862,12 @@ class Test03_Rays(object):
                 sigref, ii = None, 0
                 for dm in ["simps", "romb", "sum"]:
                     for mmz in minimize:
-                        ff = ffT if obj.config.Id.Type=='Tor' else ffL
-                        t = np.arange(0,10,10)
-                        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                                   and getattr(plt.get_current_fig_manager(),'toolbar')
+                        ff = ffT if obj.config.Id.Type == 'Tor' else ffL
+                        t = np.arange(0, 10, 10)
+                        connect = (hasattr(plt.get_current_fig_manager(),
+                                           'toolbar')
+                                   and getattr(plt.get_current_fig_manager(),
+                                               'toolbar')
                                    is not None)
                         out = obj.calc_signal(ff, t=t, ani=aa,
                                               fkwdargs={},
@@ -874,7 +876,7 @@ class Test03_Rays(object):
                                               method=dm, minimize=mmz,
                                               ind=ind,
                                               plot=False, out=np.ndarray,
-                                              fs=(12,6), connect=connect)
+                                              fs=(12, 6), connect=connect)
                         sig, units = out
                         assert not np.all(np.isnan(sig)), str(ii)
                         if sigref is not None:
