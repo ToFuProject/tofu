@@ -6046,7 +6046,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
-            self.check_ff(func, t=t, ani=ani):
+            self.check_ff(func, t=t, ani=ani)
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,
