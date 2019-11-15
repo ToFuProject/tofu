@@ -5760,6 +5760,90 @@ class Rays(utils.ToFuObject):
                                     for vv in np.split(val, lind, axis=-1)])
         return vals, pts, t
 
+    def get_inspector(self, ff):
+        out = inspect.signature(ff)
+        pars = out.parameters.values()
+        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD
+                      and pp.default is pp.empty) for pp in pars])
+        kw = [pp.name for pp in pars if (pp.kind==pp.POSITIONAL_OR_KEYWORD
+                                         and pp.default is not pp.empty)]
+        return na, kw
+
+    def check_ff(self, ff, t=None, ani=None, vuniq=False):
+        time_steps = -1
+        # .. Checking basic definition of function .............................
+        str_error = "Input emissivity function (ff): "
+        assert hasattr(ff, '__call__'), (str_error
+                                         + " must be a callable (function)!")
+        npos_args, kw = self.get_inspector(ff)
+        assert npos_args==1, (str_error
+                              + " must take only one positional argument:"
+                              + " ff(Pts)!")
+        assert 't' in kw, (str_error
+                           + " must have kwarg 't=None' for time vector!")
+        is_t_type_valid = (type(t) in [int, float, np.int64, np.float64]
+                           or hasattr(t, '__iter__'))
+        assert t is None or is_t_type_valid, (str_error
+                                              + "Arg t must be None,"
+                                              + " a scalar or an iterable!")
+        # .. Testing outputs ...................................................
+        test_pts = np.array([[1, 2], [3, 4], [5, 6]])
+        npts = test_pts.shape[1]
+        try:
+            out = ff(test_pts, t=t)
+        except Exception:
+            assert False, (str_error
+                           + " must take one positional arg:"
+                           + " a (3, npts) np.ndarray")
+        if hasattr(t, '__iter__'):
+            time_steps = len(t)
+            err_msg = (str_error
+                       + " ff(Pts, t=t), where Pts is a (3, npts) np.array and"
+                       + " t a len()=nt iterable,"
+                       + " must return a (nt, npts) np.ndarray!")
+            assert (type(out) is np.ndarray
+                    and out.shape==(time_steps, npts)), err_msg
+        else:
+            err_msg = (str_error
+                       + " When t=None or t is a scalar,"
+                       + " ff must return a 2D (1, npts) np.ndarray!")
+            assert type(out) is np.ndarray and out.shape==(1, npts), err_msg
+
+        is_ani = ('vect' in kw) if ani is None else ani
+        if is_ani:
+            err_msg = (str_error
+                       + " If ani=True, ff must take a keyword argument:"
+                       + " 'vect=None'!")
+            assert 'vect' in kw, err_msg
+            vect = np.array([1, 2, 3]) if vuniq else np.ones(test_pts.shape)
+            try:
+                out = ff(test_pts, vect=vect, t=t)
+            except Exception:
+                err_msg = (str_error
+                           + " If ani=True, ff must handle multiple"
+                           + " points Pts (3, npts) with ")
+                if vuniq:
+                    err_msg += ("a unique common vector"
+                                + " (vect as a len()=3 iterable)")
+                else:
+                    err_msg += ("multiple vectors (vect as a"
+                                + " (3, npts) np.ndarray)")
+                assert False, err_msg
+            if hasattr(t, '__iter__'):
+                err_msg = (str_error
+                           + " If ani=True, ff must return a (nt, npts)"
+                           + " np.ndarray when Pts is (3,N), vect is provided"
+                           + " and t is a list (nt,)")
+                assert (type(out) is np.ndarray
+                        and out.shape==(time_steps, npts)), err_msg
+            else:
+                err_msg = (str_error
+                           + "If ani=True, ff must return a (1, npts)"
+                           + " np.ndarray when Pts is (3, npts), vect is"
+                           + " provided and t is None or a scalar")
+                assert type(out) is np.ndarray and out.shape==(1, npts), err_msg
+        return
+
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"

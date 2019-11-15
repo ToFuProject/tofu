@@ -9,10 +9,7 @@ from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
-if sys.version[0]=='3':
-    from inspect import signature as insp
-elif sys.version[0]=='2':
-    from inspect import getargspec as insp
+
 # -- Cython libraries imports --------------------------------------------------
 from cpython cimport bool
 from cpython.array cimport array, clone
@@ -851,7 +848,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
         reference Radius coordinates, not shifted even if DIn <> 0.
         If DIn == 0, then Rref_arr = PtsCross[0, ...]
     VPolybis :
-        
+
     """
     cdef int NP=VPoly.shape[1]
     cdef int[1] sz_vb, sz_ot
@@ -2771,74 +2768,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
 ######################################################################
 #               Signal calculation
 ######################################################################
-cdef get_insp(ff):
-    out = insp(ff)
-    if sys.version[0]=='3':
-        pars = out.parameters.values()
-        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD
-                      and pp.default is pp.empty) for pp in pars])
-        kw = [pp.name for pp in pars if (pp.kind==pp.POSITIONAL_OR_KEYWORD
-                                         and pp.default is not pp.empty)]
-    else:
-        nat, nak = len(out.args), len(out.defaults)
-        na = nat-nak
-        kw = [out.args[ii] for ii in range(nat-1,na-1,-1)][::-1]
-    return na, kw
-
-
-
-def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
-    cdef bool ani
-    cdef int nt = -1
-    # ...
-    stre = "Input emissivity function (ff)"
-    assert hasattr(ff,'__call__'), stre+" must be a callable (function)!"
-    na, kw = get_insp(ff)
-    assert na==1, stre+" must take only one positional argument: ff(Pts)!"
-    assert 't' in kw, stre+" must have kwarg 't=None' for time vector!"
-    C = type(t) in [int,float,np.int64,np.float64] or hasattr(t,'__iter__')
-    assert t is None or C, "Arg t must be None, a scalar or an iterable!"
-    Pts = np.array([[1,2],[3,4],[5,6]])
-    NP = Pts.shape[1]
-    try:
-        out = ff(Pts, t=t)
-    except Exception:
-        Str = stre+" must take one positional arg: a (3,N) np.ndarray"
-        assert False, Str
-    if hasattr(t,'__iter__'):
-        nt = len(t)
-        Str = ("ff(Pts,t=t), where Pts is a (3,N) np.array and "
-               +"t a len()=nt iterable, must return a (nt,N) np.ndarray!")
-        assert type(out) is np.ndarray and out.shape==(nt,NP), Str
-    else:
-        Str = ("When fed a (3,N) np.array only, or if t is a scalar,"
-               +" ff must return a (N,) np.ndarray!")
-        assert type(out) is np.ndarray and out.shape==(NP,), Str
-
-    ani = ('Vect' in kw) if Ani is None else Ani
-    if ani:
-        Str = "If Ani=True, ff must take a keyword argument 'Vect=None'!"
-        assert 'Vect' in kw, Str
-        Vect = np.array([1,2,3]) if Vuniq else np.ones(Pts.shape)
-        try:
-            out = ff(Pts, Vect=Vect, t=t)
-        except Exception:
-            Str = "If Ani=True, ff must handle multiple points Pts (3,N) with "
-            if Vuniq:
-                Str += "a unique common vector (Vect as a len()=3 iterable)"
-            else:
-                Str += "multiple vectors (Vect as a (3,N) np.ndarray)"
-            assert False, Str
-        if hasattr(t,'__iter__'):
-            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
-                   +"Pts is (3,N), Vect is provided and t is (nt,)")
-            assert type(out) is np.ndarray and out.shape==(nt,NP), Str
-        else:
-            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
-                   +"Pts is (3,N), Vect is provided and t is (nt,)")
-            assert type(out) is np.ndarray and out.shape==(NP,), Str
-    return ani
-
 
 def integrate1d(y, double dx, t=None, str method='sum'):
     """ Generic integration method ['sum','simps','romb']
@@ -3385,7 +3314,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
         kPMin = res[0]
         if is_LOS_Mode and kPMin > kOut:
             kPMin = kOut
- 
+
     # Computing the point's coordinates.........................................
     cdef double PMin0 = orig0 + kPMin * dirv0
     cdef double PMin1 = orig1 + kPMin * dirv1
