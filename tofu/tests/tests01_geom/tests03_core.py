@@ -852,13 +852,14 @@ class Test03_Rays(object):
 
         ind = None#[0,10,20,30,40]
         minimize = ["memory", "calls", "hybrid"]
-        for aa in [True, False]:
-            for rm in ["abs", "rel"]:
-                for dm in ["simps", "romb", "sum"]:
-                    for mmz in minimize:
-                        for typ in self.dobj.keys():
-                            for c in self.dobj[typ].keys():
-                                obj = self.dobj[typ][c]
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                for aa in [True, False]:
+                    for rm in ["abs", "rel"]:
+                        sigref, ii = None, 0
+                        for dm in ["simps", "romb", "sum"]:
+                            for mmz in minimize:
                                 ff = ffT if obj.config.Id.Type=='Tor' else ffL
                                 t = np.arange(0,10,10)
                                 connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
@@ -874,6 +875,11 @@ class Test03_Rays(object):
                                                       fs=(12,6), connect=connect)
                                 sig, units = out
                                 assert not np.all(np.isnan(sig)), str(ii)
+                                if sigref is not None:
+                                    assert np.allclose(sig, sigref)
+                                if obj.nRays <= 100 and ii == 0:
+                                    sigref = sig
+                                    ii += 1
         plt.close('all')
 
     def test11_plot(self):
