@@ -25,7 +25,7 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s  structure. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s  structure.">
 
 .. only:: html
 
@@ -45,7 +45,7 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to create a simple geometry. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to create a simple geometry.">
 
 .. only:: html
 
@@ -96,13 +96,13 @@ This directory contains tutorial examples for `tofu`.
 
   .. container:: sphx-glr-download
 
-    :download:`Download all examples in Python source code: auto_examples_python.zip <//Users/mendoza/tofu/doc/source/auto_examples/auto_examples_python.zip>`
+    :download:`Download all examples in Python source code: auto_examples_python.zip <//home/lasofivec/tofu/doc/source/auto_examples/auto_examples_python.zip>`
 
 
 
   .. container:: sphx-glr-download
 
-    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip <//Users/mendoza/tofu/doc/source/auto_examples/auto_examples_jupyter.zip>`
+    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip <//home/lasofivec/tofu/doc/source/auto_examples/auto_examples_jupyter.zip>`
 
 
 .. only:: html
