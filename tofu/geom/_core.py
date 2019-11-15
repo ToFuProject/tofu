@@ -5763,22 +5763,22 @@ class Rays(utils.ToFuObject):
     def get_inspector(self, ff):
         out = inspect.signature(ff)
         pars = out.parameters.values()
-        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD
+        na = np.sum([(pp.kind == pp.POSITIONAL_OR_KEYWORD
                       and pp.default is pp.empty) for pp in pars])
-        kw = [pp.name for pp in pars if (pp.kind==pp.POSITIONAL_OR_KEYWORD
+        kw = [pp.name for pp in pars if (pp.kind == pp.POSITIONAL_OR_KEYWORD
                                          and pp.default is not pp.empty)]
         return na, kw
 
     def check_ff(self, ff, t=None, ani=None):
         time_steps = -1
-        # .. Checking basic definition of function .............................
+        # .. Checking basic definition of function ............................
         str_error = "Input emissivity function (ff): "
         assert hasattr(ff, '__call__'), (str_error
                                          + " must be a callable (function)!")
         npos_args, kw = self.get_inspector(ff)
-        assert npos_args==1, (str_error
-                              + " must take only one positional argument:"
-                              + " ff(Pts)!")
+        assert npos_args == 1, (str_error
+                                + " must take only one positional argument:"
+                                + " ff(Pts)!")
         assert 't' in kw, (str_error
                            + " must have kwarg 't=None' for time vector!")
         is_t_type_valid = (type(t) in [int, float, np.int64, np.float64]
@@ -5786,7 +5786,7 @@ class Rays(utils.ToFuObject):
         assert t is None or is_t_type_valid, (str_error
                                               + "Arg t must be None,"
                                               + " a scalar or an iterable!")
-        # .. Testing outputs ...................................................
+        # .. Testing outputs ..................................................
         test_pts = np.array([[1, 2], [3, 4], [5, 6]])
         npts = test_pts.shape[1]
         try:
@@ -5802,13 +5802,18 @@ class Rays(utils.ToFuObject):
                        + " t a len()=nt iterable,"
                        + " must return a (nt, npts) np.ndarray!")
             assert (type(out) is np.ndarray
-                    and out.shape==(time_steps, npts)), err_msg
+                    and out.shape == (time_steps, npts)), err_msg
         else:
             err_msg = (str_error
                        + " When t=None or t is a scalar,"
                        + " ff must return a 2D (1, npts) np.ndarray!")
-            assert type(out) is np.ndarray and out.shape==(1, npts), err_msg
-
+            assert ((out.shape == (1, npts) or out.shape == (npts,))
+                    and type(out) is np.ndarray), err_msg
+            if out.shape == (npts,):
+                def wrapped(ff, *args, **kwargs):
+                    return np.reshape(ff(*args, **kwargs), (1,npts))
+                loc_ff = wrapped(ff, *args, **kwargs)
+                return loc_ff
         is_ani = ('vect' in kw) if ani is None else ani
         if is_ani:
             err_msg = (str_error
@@ -5831,14 +5836,20 @@ class Rays(utils.ToFuObject):
                            + " np.ndarray when Pts is (3,N), vect is provided"
                            + " and t is a list (nt,)")
                 assert (type(out) is np.ndarray
-                        and out.shape==(time_steps, npts)), err_msg
+                        and out.shape == (time_steps, npts)), err_msg
             else:
                 err_msg = (str_error
                            + "If ani=True, ff must return a (1, npts)"
                            + " np.ndarray when Pts is (3, npts), vect is"
                            + " provided and t is None or a scalar")
-                assert type(out) is np.ndarray and out.shape==(1, npts), err_msg
-        return
+                assert (type(out) is np.ndarray
+                        and (out.shape == (1, npts)
+                             or out.shape == (npts,))), err_msg
+                if out.shape == (npts,):
+                    def wrapped(*args, **kwargs):
+                        return np.reshape(ff(*args, **kwargs), (1,npts))
+                    return wrapped(ff)
+        return ff
 
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
@@ -6046,7 +6057,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
-            self.check_ff(func, t=t, ani=ani)
+            func = self.check_ff(func, t=t, ani=ani)
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,

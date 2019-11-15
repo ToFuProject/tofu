@@ -51,6 +51,11 @@ def emissivity(pts, t=None, vect=None):
         e = np.reshape(e, (1, -1))
     return e
 
+def ff(Pts, t=None):
+    print("pts =", Pts)
+    print("t=", t)
+    print("--------")
+    return np.zeros(Pts.shape[1])+1
 
 y = np.linspace(2, 3, num=90)
 z = np.linspace(-0.5, 0.5, num=100)
@@ -81,11 +86,11 @@ ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 time_vector = np.linspace(0, 2 * np.pi, num=100)
 
-sig, units = cam2d.calc_signal(emissivity,
+sig, units = cam2d.calc_signal(ff,
                                res=0.01,
                                reflections=False,
                                newcalc=True,
                                plot=False,
-                               t=time_vector)
+                               t=None)
 sig.plot(ntMax=1)
 plt.show()
