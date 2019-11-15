@@ -14,6 +14,7 @@ import os
 import sys
 import tofu as tf
 import sphinx_bootstrap_theme
+from sphinx_gallery.sorting import FileNameSortKey
 
 # Getting tofu version
 tf_version = tf.__version__[:3]
@@ -354,6 +355,7 @@ intersphinx_mapping = {"http://docs.python.org/": None}
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to save gallery generated output
+    "within_subsection_order": FileNameSortKey,
 }
 
 

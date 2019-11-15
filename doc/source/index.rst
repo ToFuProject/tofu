@@ -36,13 +36,18 @@ interactive plots.
     <div class="container-fluid hidden-xs hidden-sm">
       <div class="row">
         <a href="auto_examples/tutorials/plot_basic_tutorial.html">
-          <div class="col-md-4 thumbnail">
+          <div class="col-md-3 thumbnail">
             <img src="_images/sphx_glr_plot_basic_tutorial_thumb.png">
           </div>
         </a>
 	<a href="auto_examples/tutorials/plot_create_geometry.html">
-          <div class="col-md-4 thumbnail">
+          <div class="col-md-3 thumbnail">
             <img src="_images/sphx_glr_plot_create_geometry_thumb.png">
+          </div>
+        </a>
+	<a href="auto_examples/tutorials/plot_custom_emissivity.html">
+          <div class="col-md-3 thumbnail">
+            <img src="_images/sphx_glr_plot_custom_emissivity_thumb.png">
           </div>
         </a>
       </div>

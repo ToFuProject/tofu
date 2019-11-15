@@ -89,3 +89,4 @@ sig, units = cam2d.calc_signal(emissivity,
                                t=time_vector)
 sig.plot(ntMax=1)
 plt.show()
+# sphinx_gallery_thumbnail_number = 2
