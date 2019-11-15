@@ -147,7 +147,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  4.640 seconds)
+   **Total running time of the script:** ( 0 minutes  6.097 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_plot_custom_emissivity.py:
