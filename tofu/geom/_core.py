@@ -5886,7 +5886,7 @@ class Rays(utils.ToFuObject):
         self,
         func,
         t=None,
-        ani=None,
+        ani=False,
         fkwdargs={},
         Brightness=True,
         res=None,
@@ -5981,6 +5981,7 @@ class Rays(utils.ToFuObject):
                 num_threads=num_threads,
                 Test=True,
             )
+
             c0 = (
                 reflections
                 and self._dgeom["dreflect"] is not None
@@ -6013,11 +6014,11 @@ class Rays(utils.ToFuObject):
                     )
 
             # Integrate
+            # Creating the arrays with null everywhere..........
             if s.ndim == 2:
                 sig = np.full((s.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-
             if t is None or len(t) == 1:
                 sig[0, indok] = s
             else:
@@ -6033,6 +6034,7 @@ class Rays(utils.ToFuObject):
                 compact=True,
                 pts=True,
             )
+
             if ani:
                 nbrep = np.r_[
                     indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]
@@ -6045,13 +6047,11 @@ class Rays(utils.ToFuObject):
             # This is the slowest step (~3.8 s with res=0.02
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
-
             # Integrate
             if val.ndim == 2:
                 sig = np.full((val.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-
             indpts = np.r_[0, indpts, pts.shape[1]]
             for ii in range(0, self.nRays):
                 sig[:, ii] = (
@@ -6061,7 +6061,6 @@ class Rays(utils.ToFuObject):
                     )
                     * reseff[ii]
                 )
-
         # Format output
         return self._calc_signal_postformat(
             sig,
