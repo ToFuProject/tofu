@@ -161,7 +161,7 @@ class Test00_tuto(object):
         os.remove(target)
         stdout = out.stdout.decode().split('\n')
         lf = [stdout[ii].strip() for ii in range(len(stdout))
-              if 'saved in:' in stdout[ii-1].lower()]
+              if 'saved' in stdout[ii-1].lower()]
         for ii in range(len(lf)):
             os.remove(lf[ii])
 
