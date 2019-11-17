@@ -2,8 +2,8 @@
 Computing a camera image with custom emissivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This tutorial defines an emissivity that varies in space and computes the signal
-received by a camera using this emissivity.
+This tutorial defines an emissivity that varies in space and computes
+the signal received by a camera using this emissivity.
 """
 
 ###############################################################################
@@ -31,10 +31,11 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 # Now, we define an emissivity function that depends on r and z coordinates.
 # We can plot its profile in the (0, X, Z) plane.
 
+
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
-    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
+    :param pts: ndarray of shape (3, n_points) (each column is a xyz)
     :param t: optional, time parameter to add a time dependency to the
         emissivity function
     :param vect:
