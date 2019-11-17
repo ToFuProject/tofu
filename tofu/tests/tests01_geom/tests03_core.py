@@ -852,9 +852,8 @@ class Test03_Rays(object):
 
         ind = None#[0,10,20,30,40]
         minimize = ["memory", "calls", "hybrid"]
-        # for typ in self.dobj.keys():
-        typ = 'CamLOS1D'
-        for c in self.dobj[typ].keys():
+        for typ in self.dobj.keys():
+            c = 'CamLOS1D'
             obj = self.dobj[typ][c]
             for aa in [True, False]:
                 rm = 'rel'

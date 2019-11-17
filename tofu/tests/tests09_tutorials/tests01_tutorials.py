@@ -14,11 +14,10 @@ from nose import with_setup     # optional
 # Importing package tofu.geom
 import tofu as tf
 from tofu import __version__
-plt.ion()
 
 
 _HERE = os.path.abspath(os.path.dirname(__file__))
-_TFROOT = '/Home/DV226270/ToFu_All/tofu_git/tofu'
+_TFROOT = _HERE[:-_HERE[::-1].index('/tofu'[::-1])-len('/tofu')]
 # _TFROOT = tf.__path__[0][:-5]
 _PATHTUTO = os.path.join(_TFROOT, 'examples', 'tutorials')
 keyVers = 'Vers'
