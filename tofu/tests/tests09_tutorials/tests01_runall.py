@@ -166,7 +166,7 @@ class Test00_tuto(object):
             os.remove(lf[ii])
 
     def test01_plot_basic_tutorial(self):
-        self._test_tuto('tuto_plot_basic_tutorial')
+        self._test_tuto('tuto_plot_basic')
 
     def test02_plot_create_geometry(self):
         self._test_tuto('tuto_plot_create_geometry')
