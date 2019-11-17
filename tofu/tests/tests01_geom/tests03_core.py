@@ -937,6 +937,7 @@ class Test03_Rays(object):
                 # Just to check the loaded version works fine
                 obj2.strip(0, verb=verb)
                 os.remove(pfe)
+
     def test15_get_sample_same_res_unit(self):
         dmeths = ['rel', 'abs']
         qmeths = ['simps', 'romb', 'sum']
