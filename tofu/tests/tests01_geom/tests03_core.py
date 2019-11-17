@@ -893,17 +893,17 @@ class Test03_Rays(object):
                     ind = np.arange(0,obj.nRays,100)
                 else:
                     ind = None
-                try:
-                    lax = obj.plot(proj='all', element='LDIORP',
-                                   Leg='', draw=False)
-                    lax = obj.plot(proj='cross', element='L',
-                                   Leg=None, draw=False)
-                    lax = obj.plot(proj='hor', element='LDIO',
-                                   Leg='KD', draw=False)
-                except Exception as err:
-                    msg = str(err)
-                    msg += typ+' '+c
-                    print(msg)
+                # try:
+                lax = obj.plot(proj='all', element='LDIORP',
+                               Leg='', draw=False)
+                lax = obj.plot(proj='cross', element='L',
+                               Leg=None, draw=False)
+                lax = obj.plot(proj='hor', element='LDIO',
+                               Leg='KD', draw=False)
+                # except Exception as err:
+                #     msg = str(err)
+                #     msg += typ+' '+c
+                #     print(msg)
                 plt.close('all')
 
     def test12_plot_sino(self):
