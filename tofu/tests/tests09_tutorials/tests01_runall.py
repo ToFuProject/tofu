@@ -19,7 +19,7 @@ from tofu import __version__
 _HERE = os.path.abspath(os.path.dirname(__file__))
 _TFROOT = _HERE[:-_HERE[::-1].index('/tofu'[::-1])-len('/tofu')]
 # _TFROOT = tf.__path__[0][:-5]
-_PATHTUTO = os.path.join(_TFROOT, 'examples', 'tutorials')
+#_PATHTUTO = os.path.join(_TFROOT, 'examples', 'tutorials')
 keyVers = 'Vers'
 
 
@@ -104,10 +104,10 @@ def teardown_module(module, here=_HERE):
 #
 #######################################################
 
-def get_list_toturials(path=_PATHTUTO):
+def get_list_toturials(path=_HERE):
     ltut = os.listdir(path)
     ltut = [tt[:-3] for tt in ltut
-            if (all([ss in tt for ss in ['.py']])
+            if (all([ss in tt for ss in ['tuto', '.py']])
                 and not any([ss in tt for ss in ['__init__', '.swp']]))]
     return ltut
 
@@ -115,7 +115,7 @@ def get_list_toturials(path=_PATHTUTO):
 class Test00_tuto(object):
 
     @classmethod
-    def setup_class(cls, here=_HERE, pathtuto=_PATHTUTO, root=_TFROOT):
+    def setup_class(cls, here=_HERE, pathtuto=_HERE, root=_TFROOT):
         # print("")
         # print("---- "+cls.__name__)
         # ii = 0
@@ -144,7 +144,7 @@ class Test00_tuto(object):
         pass
 
     @classmethod
-    def _test_tuto(cls, tuto=None, pathtuto=_PATHTUTO, root=_TFROOT):
+    def _test_tuto(cls, tuto=None, pathtuto=_HERE, root=_TFROOT):
         src = os.path.join(pathtuto, tuto + '.py')
         target = os.path.join(root, tuto + '.py')
         shutil.copyfile(src, target)
@@ -166,10 +166,10 @@ class Test00_tuto(object):
             os.remove(lf[ii])
 
     def test01_plot_basic_tutorial(self):
-        self._test_tuto('plot_basic_tutorial')
+        self._test_tuto('tuto_plot_basic_tutorial')
 
     def test02_plot_create_geometry(self):
-        self._test_tuto('plot_create_geometry')
+        self._test_tuto('tuto_plot_create_geometry')
 
     def test03_plot_custom_emissivity(self):
-        self._test_tuto('plot_custom_emissivity')
+        self._test_tuto('tuto_plot_custom_emissivity')
