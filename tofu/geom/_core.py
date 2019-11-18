@@ -5771,6 +5771,7 @@ class Rays(utils.ToFuObject):
 
     def check_ff(self, ff, t=None, ani=None):
         time_steps = -1
+        wrapped_ff = ff
         # .. Checking basic definition of function ............................
         str_error = "Input emissivity function (ff): "
         assert hasattr(ff, '__call__'), (str_error
@@ -5810,10 +5811,10 @@ class Rays(utils.ToFuObject):
             assert ((out.shape == (1, npts) or out.shape == (npts,))
                     and type(out) is np.ndarray), err_msg
             if out.shape == (npts,):
-                def wrapped(ff, *args, **kwargs):
-                    return np.reshape(ff(*args, **kwargs), (1,npts))
-                loc_ff = wrapped(ff, *args, **kwargs)
-                return loc_ff
+                def wrapped_ff(*args, **kwargs):
+                    res_ff = ff(*args, **kwargs)
+                    npts_loc = res_ff.size
+                    return np.reshape(res_ff, (1, npts_loc))
         is_ani = ('vect' in kw) if ani is None else ani
         if is_ani:
             err_msg = (str_error
@@ -5846,10 +5847,11 @@ class Rays(utils.ToFuObject):
                         and (out.shape == (1, npts)
                              or out.shape == (npts,))), err_msg
                 if out.shape == (npts,):
-                    def wrapped(*args, **kwargs):
-                        return np.reshape(ff(*args, **kwargs), (1,npts))
-                    return wrapped(ff)
-        return ff
+                    def wrapped_ff(*args, **kwargs):
+                        res_ff = ff(*args, **kwargs)
+                        npts_loc = res_ff.size
+                        return np.reshape(res_ff, (1, npts_loc))
+        return wrapped_ff
 
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
