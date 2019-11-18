@@ -9,6 +9,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tofu.geom as tfg
 
+import os
+import tofu as tf
+print(os.getcwd())
+print(tf.__version__)
+print(tf.__path__)
+
 
 ###############################################################################
 # Creating an empty Vessel
@@ -86,7 +92,7 @@ print(ves.Id.SaveName)
 
 # Plot the polygon by default in two projections (cross-section and horizontal)
 # and return the list of axes
-Lax = ves.plot(element="P")
+lax = ves.plot(element="P")
 
 
 ###############################################################################
