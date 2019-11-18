@@ -5773,21 +5773,23 @@ class Rays(utils.ToFuObject):
 
         # Define unique error message giving all info in a concise way
         # Optionnally add error-specific line afterwards
-        msg = ("User-defined ieemissivity function ff must:\n"
+        msg = ("User-defined emissivity function ff must:\n"
                + "\t- be a callable (function)\n"
-               + "\t- take only one positional arg"
+               + "\t- take only one positional arg "
                + "and at least one keyword arg:\n"
                + "\t\t - ff(pts, t=None), where:\n"
                + "\t\t\t - pts is a (3, npts) of (x, y, z) coordinates\n"
                + "\t\t\t - t can be None / scalar / iterable of len(t) = nt\n"
                + "\t- Always return a 2d (nt, npts) np.ndarray, where:\n"
-               + "\t\t - nt = len(t) or nt = 1 if t is None or scalar\n"
-               + "\t\t - npts is the number of pts (shape[1])\n\n"
+               + "\t\t - nt = len(t) if t is an iterable\n"
+               + "\t\t - nt = 1 if t is None or scalar\n"
+               + "\t\t - npts is the number of pts (pts.shape[1])\n\n"
                + "\t- Optionally, ff can take an extra keyword arg:\n"
                + "\t\t - ff(pts, vect=None, t=None), where:\n"
-               + "\t\t\t - vect is a (3, npts) of the (x, y, z) coordinates"
-               + "of the units vectors of the direction of emission"
-               + "of photons for each pts. Used for anisotropic emissivity.\n"
+               + "\t\t\t - vect is a (3, npts) np.ndarray\n"
+               + "\t\t\t - vect contains the (x, y, z) coordinates "
+               + "of the units vectors of the photon emission directions"
+               + "for each pts. Used for anisotropic emissivity.\n"
                + "\t\t\tDoes not affect the outpout shape (still (nt, npts))")
 
         # .. Checking basic definition of function ..........................
@@ -5797,7 +5799,7 @@ class Rays(utils.ToFuObject):
 
         npos_args, kw = self.get_inspector(ff)
         if npos_args != 1:
-            msg += "\n\n  => ff must take only one positional argument: ff(pts)!"
+            msg += "\n\n  => ff must take only 1 positional arg: ff(pts)!"
             raise Exception(msg)
 
         if 't' not in kw:
@@ -5813,7 +5815,11 @@ class Rays(utils.ToFuObject):
         nt = len(t) if hasattr(t, '__iter__') else 1
 
         # .. Test anisotropic case .......................................
-        is_ani = ('vect' in kw) if ani is None else ani
+        if ani is None:
+            is_ani = ('vect' in kw)
+        else:
+            assert isinstance(ani, bool)
+            is_ani = ani
 
         # .. Testing outputs ...............................................
         test_pts = np.array([[1, 2], [3, 4], [5, 6]])
@@ -5963,7 +5969,7 @@ class Rays(utils.ToFuObject):
         self,
         func,
         t=None,
-        ani=False,
+        ani=None,
         fkwdargs={},
         Brightness=True,
         res=None,
@@ -6043,7 +6049,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
-            self.check_ff(func, t=t, ani=ani)
+            ani = self.check_ff(func, t=t, ani=ani)
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,
