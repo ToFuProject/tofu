@@ -31,6 +31,7 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 # Now, we define an emissivity function that depends on r and z coordinates.
 # We can plot its profile in the (0, X, Z) plane.
 
+
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
@@ -51,11 +52,6 @@ def emissivity(pts, t=None, vect=None):
         e = np.reshape(e, (1, -1))
     return e
 
-def ff(Pts, t=None):
-    print("pts =", Pts)
-    print("t=", t)
-    print("--------")
-    return np.zeros(Pts.shape[1])+1
 
 y = np.linspace(2, 3, num=90)
 z = np.linspace(-0.5, 0.5, num=100)
@@ -86,7 +82,7 @@ ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 time_vector = np.linspace(0, 2 * np.pi, num=100)
 
-sig, units = cam2d.calc_signal(ff,
+sig, units = cam2d.calc_signal(emissivity,
                                res=0.01,
                                reflections=False,
                                minimize="hybrid",
