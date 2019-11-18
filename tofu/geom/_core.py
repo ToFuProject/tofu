@@ -5770,88 +5770,88 @@ class Rays(utils.ToFuObject):
         return na, kw
 
     def check_ff(self, ff, t=None, ani=None):
-        time_steps = -1
+        # Initialization of function wrapper
         wrapped_ff = ff
-        # .. Checking basic definition of function ............................
-        str_error = "Input emissivity function (ff): "
-        assert hasattr(ff, '__call__'), (str_error
-                                         + " must be a callable (function)!")
+
+        # Define unique error message giving all info in a concise way
+        # Optionnally add error-specific line afterwards
+        msg = ("User-defined emissivity function ff must:\n"
+               + "\t- be a callable (function)\n"
+               + "\t- take only one positional arg "
+               + "and at least one keyword arg:\n"
+               + "\t\t - ff(pts, t=None), where:\n"
+               + "\t\t\t - pts is a (3, npts) of (x, y, z) coordinates\n"
+               + "\t\t\t - t can be None / scalar / iterable of len(t) = nt\n"
+               + "\t- Always return a 2d (nt, npts) np.ndarray, where:\n"
+               + "\t\t - nt = len(t) if t is an iterable\n"
+               + "\t\t - nt = 1 if t is None or scalar\n"
+               + "\t\t - npts is the number of pts (pts.shape[1])\n\n"
+               + "\t- Optionally, ff can take an extra keyword arg:\n"
+               + "\t\t - ff(pts, vect=None, t=None), where:\n"
+               + "\t\t\t - vect is a (3, npts) np.ndarray\n"
+               + "\t\t\t - vect contains the (x, y, z) coordinates "
+               + "of the units vectors of the photon emission directions"
+               + "for each pts. Used for anisotropic emissivity.\n"
+               + "\t\t\tDoes not affect the outpout shape (still (nt, npts))")
+
+        # .. Checking basic definition of function ..........................
+        if not hasattr(ff, '__call__'):
+            msg += "\n\n  => ff must be a callable (function)!"
+            raise Exception(msg)
+
         npos_args, kw = self.get_inspector(ff)
-        assert npos_args == 1, (str_error
-                                + " must take only one positional argument:"
-                                + " ff(Pts)!")
-        assert 't' in kw, (str_error
-                           + " must have kwarg 't=None' for time vector!")
-        is_t_type_valid = (type(t) in [int, float, np.int64, np.float64]
-                           or hasattr(t, '__iter__'))
-        assert t is None or is_t_type_valid, (str_error
-                                              + "Arg t must be None,"
-                                              + " a scalar or an iterable!")
-        # .. Testing outputs ..................................................
+        if npos_args != 1:
+            msg += "\n\n  => ff must take only 1 positional arg: ff(pts)!"
+            raise Exception(msg)
+
+        if 't' not in kw:
+            msg += "\n\n  => ff must have kwarg 't=None' for time vector!"
+            raise Exception(msg)
+
+        # .. Checking time vector .........................................
+        ltypeok = [int, float, np.int64, np.float64]
+        is_t_type_valid = (type(t) in ltypeok or hasattr(t, '__iter__'))
+        if not (t is None or is_t_type_valid):
+            msg += "\n\n  => t must be None, scalar or iterable !"
+            raise Exception(msg)
+        nt = len(t) if hasattr(t, '__iter__') else 1
+
+        # .. Test anisotropic case .......................................
+        if ani is None:
+            is_ani = ('vect' in kw)
+        else:
+            assert isinstance(ani, bool)
+            is_ani = ani
+
+        # .. Testing outputs ...............................................
         test_pts = np.array([[1, 2], [3, 4], [5, 6]])
         npts = test_pts.shape[1]
-        try:
-            out = ff(test_pts, t=t)
-        except Exception:
-            assert False, (str_error
-                           + " must take one positional arg:"
-                           + " a (3, npts) np.ndarray")
-        if hasattr(t, '__iter__'):
-            time_steps = len(t)
-            err_msg = (str_error
-                       + " ff(Pts, t=t), where Pts is a (3, npts) np.array and"
-                       + " t a len()=nt iterable,"
-                       + " must return a (nt, npts) np.ndarray!")
-            assert (type(out) is np.ndarray
-                    and out.shape == (time_steps, npts)), err_msg
-        else:
-            err_msg = (str_error
-                       + " When t=None or t is a scalar,"
-                       + " ff must return a 2D (1, npts) np.ndarray!")
-            assert ((out.shape == (1, npts) or out.shape == (npts,))
-                    and type(out) is np.ndarray), err_msg
-            if out.shape == (npts,):
-                def wrapped_ff(*args, **kwargs):
-                    res_ff = ff(*args, **kwargs)
-                    npts_loc = res_ff.size
-                    return np.reshape(res_ff, (1, npts_loc))
-        is_ani = ('vect' in kw) if ani is None else ani
         if is_ani:
-            err_msg = (str_error
-                       + " If ani=True, ff must take a keyword argument:"
-                       + " 'vect=None'!")
-            assert 'vect' in kw, err_msg
             vect = np.ones(test_pts.shape)
             try:
                 out = ff(test_pts, vect=vect, t=t)
             except Exception:
-                err_msg = (str_error
-                           + " If ani=True, ff must handle multiple"
-                           + " points Pts (3, npts) with "
-                           + "multiple vectors (vect as a"
-                           + " (3, npts) np.ndarray)")
-                assert False, err_msg
-            if hasattr(t, '__iter__'):
-                err_msg = (str_error
-                           + " If ani=True, ff must return a (nt, npts)"
-                           + " np.ndarray when Pts is (3,N), vect is provided"
-                           + " and t is a list (nt,)")
-                assert (type(out) is np.ndarray
-                        and out.shape == (time_steps, npts)), err_msg
-            else:
-                err_msg = (str_error
-                           + "If ani=True, ff must return a (1, npts)"
-                           + " np.ndarray when Pts is (3, npts), vect is"
-                           + " provided and t is None or a scalar")
-                assert (type(out) is np.ndarray
-                        and (out.shape == (1, npts)
-                             or out.shape == (npts,))), err_msg
-                if out.shape == (npts,):
-                    def wrapped_ff(*args, **kwargs):
-                        res_ff = ff(*args, **kwargs)
-                        npts_loc = res_ff.size
-                        return np.reshape(res_ff, (1, npts_loc))
-        return wrapped_ff
+                msg += "\n\n  => ff must take ff(pts, vect=vect, t=t) !"
+                raise Exception(msg)
+        else:
+            try:
+                out = ff(test_pts, t=t)
+            except Exception:
+                msg += "\n\n  => ff must take a ff(pts, t=t) !"
+                raise Exception(msg)
+
+        if not (isinstance(out, np.ndarray) and (out.shape == (nt, npts)
+                                                 or out.shape == (npts,))):
+            msg += "\n\n  => wrong output (always 2d np.ndarray) !"
+            raise Exception(msg)
+
+        if nt == 1 and out.shape == (npts,):
+            def wrapped_ff(*args, **kwargs):
+                res_ff = ff(*args, **kwargs)
+                npts_loc = res_ff.size
+                return np.reshape(res_ff, (1, npts_loc))
+
+        return is_ani, wrapped_ff
 
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
@@ -5979,7 +5979,7 @@ class Rays(utils.ToFuObject):
         self,
         func,
         t=None,
-        ani=False,
+        ani=None,
         fkwdargs={},
         Brightness=True,
         res=None,
@@ -6059,7 +6059,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
-            func = self.check_ff(func, t=t, ani=ani)
+            ani, func = self.check_ff(func, t=t, ani=ani)
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,
