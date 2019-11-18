@@ -148,13 +148,20 @@ class Test00_tuto(object):
         src = os.path.join(pathtuto, tuto + '.py')
         target = os.path.join(root, tuto + '.py')
         shutil.copyfile(src, target)
+        error = None
         try:
             cmd = 'python ' + target
-            out = subprocess.run(cmd, shell=True, check=True,
+            out = subprocess.run(cmd, shell=True, check=False,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
+            if 'error' in out.stderr.decode().lower():
+                error = out.stderr.decode()
         except Exception as err:
-            raise err
+            error = err
+
+        if error is not None:
+            msg = str(error)
+            raise Exception(msg)
         plt.close('all')
 
         # Remove temporary files and saved files

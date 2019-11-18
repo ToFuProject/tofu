@@ -2484,7 +2484,8 @@ def get_valf(val, lrids, linds):
 
     else:
         assert type(val) is np.ndarray
-        # val = np.atleast_1d(val.squeeze())
+        if val.ndim > len(lrids) and val.ndim > ninds:
+            val = np.atleast_1d(np.squeeze(val))
         ndim = val.ndim
         c0 = ndim >= len(lrids) and len(lrids) >= ninds and ndim >= ninds
         if not c0:
