@@ -1621,7 +1621,7 @@ cdef void prepare_tab(long[:,:,::1] lnp,
                 NP += 1
     return
 
-cdef inline void vmesh_double_loop_cart(int ii,
+cdef void vmesh_double_loop_cart(int ii,
                                         int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
@@ -1657,7 +1657,7 @@ cdef inline void vmesh_double_loop_cart(int ii,
             dv_mv[NP] = reso_r_z*reso_phi_mv[ii]
     return
 
-cdef inline void vmesh_double_loop_polr(int ii,
+cdef void vmesh_double_loop_polr(int ii,
                                         int sz_z,
                                         long* lindex_z,
                                         long* ncells_rphi,
