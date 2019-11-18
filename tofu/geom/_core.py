@@ -5848,8 +5848,7 @@ class Rays(utils.ToFuObject):
         if nt == 1 and out.shape == (npts,):
             def wrapped_ff(*args, **kwargs):
                 res_ff = ff(*args, **kwargs)
-                npts_loc = res_ff.size
-                return np.reshape(res_ff, (1, npts_loc))
+                return np.reshape(res_ff, (1, -1))
 
         return is_ani, wrapped_ff
 
