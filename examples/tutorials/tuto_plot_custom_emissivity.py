@@ -31,13 +31,15 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 # Now, we define an emissivity function that depends on r and z coordinates.
 # We can plot its profile in the (0, X, Z) plane.
 
+
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
     :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
     :param t: optional, time parameter to add a time dependency to the
         emissivity function
-    :param vect:
+    :param vect: optional, ndarray of shape (3, n_points), if anisotropic
+        emissivity, unit direction vectors (X,Y,Z)
     :return:
         - emissivity -- 2D array holding the emissivity for each point in the
             input grid
@@ -88,6 +90,7 @@ sig, units = cam2d.calc_signal(emissivity,
                                method="sum",
                                newcalc=True,
                                plot=False,
+                               ani=False,
                                t=time_vector)
 
 sig.plot(ntMax=1)

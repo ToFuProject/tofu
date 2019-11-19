@@ -5769,7 +5769,7 @@ class Rays(utils.ToFuObject):
                                          and pp.default is not pp.empty)]
         return na, kw
 
-    def check_ff(self, ff, t=None, ani=None):
+    def check_ff(self, ff, t=None, ani=False):
 
         # Define unique error message giving all info in a concise way
         # Optionnally add error-specific line afterwards
@@ -5789,7 +5789,9 @@ class Rays(utils.ToFuObject):
                + "\t\t\t - vect is a (3, npts) np.ndarray\n"
                + "\t\t\t - vect contains the (x, y, z) coordinates "
                + "of the units vectors of the photon emission directions"
-               + "for each pts. Used for anisotropic emissivity.\n"
+               + "for each pts. Present only for anisotropic emissivity, "
+               + "unless specifically indicated otherwise "
+               + "(with ani=False in LOS_calc_signal).\n"
                + "\t\t\tDoes not affect the outpout shape (still (nt, npts))")
 
         # .. Checking basic definition of function ..........................
@@ -5815,7 +5817,7 @@ class Rays(utils.ToFuObject):
         nt = len(t) if hasattr(t, '__iter__') else 1
 
         # .. Test anisotropic case .......................................
-        if ani is None:
+        if ani is False:
             is_ani = ('vect' in kw)
         else:
             assert isinstance(ani, bool)
@@ -5969,7 +5971,7 @@ class Rays(utils.ToFuObject):
         self,
         func,
         t=None,
-        ani=None,
+        ani=False,
         fkwdargs={},
         Brightness=True,
         res=None,
@@ -6005,11 +6007,6 @@ class Rays(utils.ToFuObject):
         => the method returns W/m2 (resp. W/m2/sr)
         The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
 
-        The integral can be computed using three different methods:
-            - 'sum':    A numpy.sum() on the local values (x segments lengths)
-            - 'simps':  using :meth:`scipy.integrate.simps`
-            - 'romb':   using :meth:`scipy.integrate.romb`
-
         Except func, arguments common to :meth:`~tofu.geom.LOS.get_sample`
 
         Parameters
@@ -6024,6 +6021,15 @@ class Rays(utils.ToFuObject):
                 - vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)
             Should return at least:
                 - val : (N,) np.ndarray, local emissivity values
+        method : string, the integral can be computed using 3 different methods:
+            - 'sum':    A numpy.sum() on the local values (x segments) DEFAULT
+            - 'simps':  using :meth:`scipy.integrate.simps`
+            - 'romb':   using :meth:`scipy.integrate.romb`
+        minimize : string, method to minimize for computation optimization
+            - "calls": minimal number of calls to `func` (default)
+            - "memory": slowest method, to use only if "out of memory" error
+            - "hybrid": mix of before mentioned method.
+
 
         Returns
         -------
