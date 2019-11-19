@@ -1,6 +1,11 @@
 tofu.dust package
 =================
 
+.. automodule:: tofu.dust
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -28,11 +33,3 @@ tofu.dust.\_plot module
    :undoc-members:
    :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: tofu.dust
-   :members:
-   :undoc-members:
-   :show-inheritance:

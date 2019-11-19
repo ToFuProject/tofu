@@ -1,6 +1,11 @@
 tofu.geom package
 =================
 
+.. automodule:: tofu.geom
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -92,11 +97,3 @@ tofu.geom.utils module
    :undoc-members:
    :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: tofu.geom
-   :members:
-   :undoc-members:
-   :show-inheritance:

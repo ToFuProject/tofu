@@ -53,7 +53,7 @@ interactive plots.
       </div>
     </div>
 
-Contents:
+Contents
 ---------
 
 **Tutorials and how to's:**
