@@ -1846,6 +1846,7 @@ class ToFuObject(ToFuObjectBase):
                     strip=strip, compressed=compressed,
                     return_pfe=return_pfe, verb=verb)
 
+
 ToFuObject.save.__doc__ = save.__doc__
 
 

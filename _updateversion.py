@@ -12,7 +12,8 @@ def updateversion(path=_HERE):
     # Also, when git is not available (PyPi package), use stored version.py
     version_py = os.path.join(path,"version.py")
     try:
-        version_git = subprocess.check_output(["git","describe"]).rstrip().decode()
+        version_git = subprocess.check_output(["git",
+                                               "describe"]).rstrip().decode()
     except:
         with open(version_py,'r') as fh:
             version_git = fh.read().strip().split("=")[-1].replace("'",'')
