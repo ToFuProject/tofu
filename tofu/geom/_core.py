@@ -2025,7 +2025,7 @@ class CoilPF(StructOut):
 
     def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
-        C0 = I is None
+        C0 = current is None
         C1 = type(current) in [int, float, np.int64, np.float64]
         C2 = type(current) in [list, tuple, np.ndarray]
         msg = "Arg current must be None, a float or an 1D np.ndarray !"
@@ -5744,6 +5744,100 @@ class Rays(utils.ToFuObject):
                                     for vv in np.split(val, lind, axis=-1)])
         return vals, pts, t
 
+    def get_inspector(self, ff):
+        out = inspect.signature(ff)
+        pars = out.parameters.values()
+        na = np.sum([(pp.kind == pp.POSITIONAL_OR_KEYWORD
+                      and pp.default is pp.empty) for pp in pars])
+        kw = [pp.name for pp in pars if (pp.kind == pp.POSITIONAL_OR_KEYWORD
+                                         and pp.default is not pp.empty)]
+        return na, kw
+
+    def check_ff(self, ff, t=None, ani=None):
+        # Initialization of function wrapper
+        wrapped_ff = ff
+
+        # Define unique error message giving all info in a concise way
+        # Optionnally add error-specific line afterwards
+        msg = ("User-defined emissivity function ff must:\n"
+               + "\t- be a callable (function)\n"
+               + "\t- take only one positional arg "
+               + "and at least one keyword arg:\n"
+               + "\t\t - ff(pts, t=None), where:\n"
+               + "\t\t\t - pts is a (3, npts) of (x, y, z) coordinates\n"
+               + "\t\t\t - t can be None / scalar / iterable of len(t) = nt\n"
+               + "\t- Always return a 2d (nt, npts) np.ndarray, where:\n"
+               + "\t\t - nt = len(t) if t is an iterable\n"
+               + "\t\t - nt = 1 if t is None or scalar\n"
+               + "\t\t - npts is the number of pts (pts.shape[1])\n\n"
+               + "\t- Optionally, ff can take an extra keyword arg:\n"
+               + "\t\t - ff(pts, vect=None, t=None), where:\n"
+               + "\t\t\t - vect is a (3, npts) np.ndarray\n"
+               + "\t\t\t - vect contains the (x, y, z) coordinates "
+               + "of the units vectors of the photon emission directions"
+               + "for each pts. Present only for anisotropic emissivity, "
+               + "unless specifically indicated otherwise "
+               + "(with ani=False in LOS_calc_signal).\n"
+               + "\t\t\tDoes not affect the outpout shape (still (nt, npts))")
+
+        # .. Checking basic definition of function ..........................
+        if not hasattr(ff, '__call__'):
+            msg += "\n\n  => ff must be a callable (function)!"
+            raise Exception(msg)
+
+        npos_args, kw = self.get_inspector(ff)
+        if npos_args != 1:
+            msg += "\n\n  => ff must take only 1 positional arg: ff(pts)!"
+            raise Exception(msg)
+
+        if 't' not in kw:
+            msg += "\n\n  => ff must have kwarg 't=None' for time vector!"
+            raise Exception(msg)
+
+        # .. Checking time vector .........................................
+        ltypeok = [int, float, np.int64, np.float64]
+        is_t_type_valid = (type(t) in ltypeok or hasattr(t, '__iter__'))
+        if not (t is None or is_t_type_valid):
+            msg += "\n\n  => t must be None, scalar or iterable !"
+            raise Exception(msg)
+        nt = len(t) if hasattr(t, '__iter__') else 1
+
+        # .. Test anisotropic case .......................................
+        if ani is None:
+            is_ani = ('vect' in kw)
+        else:
+            assert isinstance(ani, bool)
+            is_ani = ani
+
+        # .. Testing outputs ...............................................
+        test_pts = np.array([[1, 2], [3, 4], [5, 6]])
+        npts = test_pts.shape[1]
+        if is_ani:
+            vect = np.ones(test_pts.shape)
+            try:
+                out = ff(test_pts, vect=vect, t=t)
+            except Exception:
+                msg += "\n\n  => ff must take ff(pts, vect=vect, t=t) !"
+                raise Exception(msg)
+        else:
+            try:
+                out = ff(test_pts, t=t)
+            except Exception:
+                msg += "\n\n  => ff must take a ff(pts, t=t) !"
+                raise Exception(msg)
+
+        if not (isinstance(out, np.ndarray) and (out.shape == (nt, npts)
+                                                 or out.shape == (npts,))):
+            msg += "\n\n  => wrong output (always 2d np.ndarray) !"
+            raise Exception(msg)
+
+        if nt == 1 and out.shape == (npts,):
+            def wrapped_ff(*args, **kwargs):
+                res_ff = ff(*args, **kwargs)
+                return np.reshape(res_ff, (1, -1))
+
+        return is_ani, wrapped_ff
+
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
@@ -5906,11 +6000,6 @@ class Rays(utils.ToFuObject):
         => the method returns W/m2 (resp. W/m2/sr)
         The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
 
-        The integral can be computed using three different methods:
-            - 'sum':    A numpy.sum() on the local values (x segments lengths)
-            - 'simps':  using :meth:`scipy.integrate.simps`
-            - 'romb':   using :meth:`scipy.integrate.romb`
-
         Except func, arguments common to :meth:`~tofu.geom.LOS.get_sample`
 
         Parameters
@@ -5925,6 +6014,15 @@ class Rays(utils.ToFuObject):
                 - vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)
             Should return at least:
                 - val : (N,) np.ndarray, local emissivity values
+        method : string, the integral can be computed using 3 different methods
+            - 'sum':    A numpy.sum() on the local values (x segments) DEFAULT
+            - 'simps':  using :meth:`scipy.integrate.simps`
+            - 'romb':   using :meth:`scipy.integrate.romb`
+        minimize : string, method to minimize for computation optimization
+            - "calls": minimal number of calls to `func` (default)
+            - "memory": slowest method, to use only if "out of memory" error
+            - "hybrid": mix of before-mentioned methods.
+
 
         Returns
         -------
@@ -5950,6 +6048,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
+            ani, func = self.check_ff(func, t=t, ani=ani)
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,
@@ -5965,6 +6064,7 @@ class Rays(utils.ToFuObject):
                 num_threads=num_threads,
                 Test=True,
             )
+
             c0 = (
                 reflections
                 and self._dgeom["dreflect"] is not None
@@ -5997,11 +6097,11 @@ class Rays(utils.ToFuObject):
                     )
 
             # Integrate
+            # Creating the arrays with null everywhere..........
             if s.ndim == 2:
                 sig = np.full((s.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-
             if t is None or len(t) == 1:
                 sig[0, indok] = s
             else:
@@ -6017,6 +6117,7 @@ class Rays(utils.ToFuObject):
                 compact=True,
                 pts=True,
             )
+
             if ani:
                 nbrep = np.r_[
                     indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]
@@ -6029,13 +6130,11 @@ class Rays(utils.ToFuObject):
             # This is the slowest step (~3.8 s with res=0.02
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
-
             # Integrate
             if val.ndim == 2:
                 sig = np.full((val.shape[0], self.nRays), np.nan)
             else:
                 sig = np.full((1, self.nRays), np.nan)
-
             indpts = np.r_[0, indpts, pts.shape[1]]
             for ii in range(0, self.nRays):
                 sig[:, ii] = (
@@ -6045,7 +6144,6 @@ class Rays(utils.ToFuObject):
                     )
                     * reseff[ii]
                 )
-
         # Format output
         return self._calc_signal_postformat(
             sig,
