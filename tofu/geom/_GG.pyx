@@ -2860,7 +2860,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double[1] loc_eff_res
     cdef double[::1] reseff_mv
     cdef double[::1] res_mv
-    cdef double[::1,:] sig_mv
     cdef double[:,::1] val_mv
     cdef double[:,::1] pts_mv
     cdef double[:,::1] usbis_mv
@@ -2928,7 +2927,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
     sig = np.empty((nt, nlos), dtype=float, order='F')
-    sig_mv = sig
     # If the resolution is the same for every LOS, we create a tab
     if res_is_list :
         res_arr = np.asarray(res)
@@ -3025,11 +3023,12 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     pts, usbis = _st.call_get_sample_single_ani(lims[0, ii],
                                                                 lims[1, ii],
                                                                 res_mv[ii],
-                                                                n_dmode, n_imode,
+                                                                n_dmode,
+                                                                n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
-                                                                ray_orig[:,ii:ii+1],
-                                                                ray_vdir[:,ii:ii+1])
+                                                                ray_orig[:, ii:ii+1],
+                                                                ray_vdir[:, ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
@@ -3129,7 +3128,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:, ii:ii+1],
                                                                 ray_vdir[:, ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    sig_mv[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
+                    sig[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:  # simpson integration mode
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0, ii],
@@ -3162,39 +3161,42 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # -- not anisotropic -----------------------------------------------
             if n_imode == 0:  # "sum" integration mode
                 for ii in range(nlos):
-                    pts = _st.call_get_sample_single(lims[0,ii], lims[1,ii],
+                    pts = _st.call_get_sample_single(lims[0, ii],
+                                                     lims[1, ii],
                                                      res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
-                                                     ray_orig[:,ii:ii+1],
-                                                     ray_vdir[:,ii:ii+1])
+                                                     ray_orig[:, ii:ii+1],
+                                                     ray_vdir[:, ii:ii+1])
                     val_2d = func(pts, t=t, **fkwdargs)
-                    sig[:, ii] = np.sum(val_2d,axis=-1)*loc_eff_res[0]
+                    sig[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:  # "simpson" integration mode
                 for ii in range(nlos):
-                    pts = _st.call_get_sample_single(lims[0,ii], lims[1,ii],
+                    pts = _st.call_get_sample_single(lims[0, ii],
+                                                     lims[1, ii],
                                                      res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
-                                                     ray_orig[:,ii:ii+1],
-                                                     ray_vdir[:,ii:ii+1])
+                                                     ray_orig[:, ii:ii+1],
+                                                     ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:  # "romberg" integration mode
                 for ii in range(nlos):
-                    pts = _st.call_get_sample_single(lims[0,ii], lims[1,ii],
+                    pts = _st.call_get_sample_single(lims[0, ii],
+                                                     lims[1, ii],
                                                      res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
-                                                     ray_orig[:,ii:ii+1],
-                                                     ray_vdir[:,ii:ii+1])
+                                                     ray_orig[:, ii:ii+1],
+                                                     ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
-                                               dx=loc_eff_res[0])
+                                              dx=loc_eff_res[0])
     return sig
 
 

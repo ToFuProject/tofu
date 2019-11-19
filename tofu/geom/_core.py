@@ -5789,7 +5789,9 @@ class Rays(utils.ToFuObject):
                + "\t\t\t - vect is a (3, npts) np.ndarray\n"
                + "\t\t\t - vect contains the (x, y, z) coordinates "
                + "of the units vectors of the photon emission directions"
-               + "for each pts. Used for anisotropic emissivity.\n"
+               + "for each pts. Present only for anisotropic emissivity, "
+               + "unless specifically indicated otherwise "
+               + "(with ani=False in LOS_calc_signal).\n"
                + "\t\t\tDoes not affect the outpout shape (still (nt, npts))")
 
         # .. Checking basic definition of function ..........................
@@ -6005,11 +6007,6 @@ class Rays(utils.ToFuObject):
         => the method returns W/m2 (resp. W/m2/sr)
         The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
 
-        The integral can be computed using three different methods:
-            - 'sum':    A numpy.sum() on the local values (x segments lengths)
-            - 'simps':  using :meth:`scipy.integrate.simps`
-            - 'romb':   using :meth:`scipy.integrate.romb`
-
         Except func, arguments common to :meth:`~tofu.geom.LOS.get_sample`
 
         Parameters
@@ -6024,6 +6021,15 @@ class Rays(utils.ToFuObject):
                 - vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)
             Should return at least:
                 - val : (N,) np.ndarray, local emissivity values
+        method : string, the integral can be computed using 3 different methods
+            - 'sum':    A numpy.sum() on the local values (x segments) DEFAULT
+            - 'simps':  using :meth:`scipy.integrate.simps`
+            - 'romb':   using :meth:`scipy.integrate.romb`
+        minimize : string, method to minimize for computation optimization
+            - "calls": minimal number of calls to `func` (default)
+            - "memory": slowest method, to use only if "out of memory" error
+            - "hybrid": mix of before-mentioned methods.
+
 
         Returns
         -------
