@@ -5770,6 +5770,8 @@ class Rays(utils.ToFuObject):
         return na, kw
 
     def check_ff(self, ff, t=None, ani=None):
+        # Initialization of function wrapper
+        wrapped_ff = ff
 
         # Define unique error message giving all info in a concise way
         # Optionnally add error-specific line afterwards
@@ -5840,10 +5842,17 @@ class Rays(utils.ToFuObject):
                 msg += "\n\n  => ff must take a ff(pts, t=t) !"
                 raise Exception(msg)
 
-        if not (isinstance(out, np.ndarray) and out.shape == (nt, npts)):
+        if not (isinstance(out, np.ndarray) and (out.shape == (nt, npts)
+                                                 or out.shape == (npts,))):
             msg += "\n\n  => wrong output (always 2d np.ndarray) !"
             raise Exception(msg)
-        return is_ani
+
+        if nt == 1 and out.shape == (npts,):
+            def wrapped_ff(*args, **kwargs):
+                res_ff = ff(*args, **kwargs)
+                return np.reshape(res_ff, (1, -1))
+
+        return is_ani, wrapped_ff
 
     def _calc_signal_preformat(self, ind=None, DL=None, t=None,
                                out=object, Brightness=True):
@@ -6055,7 +6064,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
         if newcalc:
-            ani = self.check_ff(func, t=t, ani=ani)
+            ani, func = self.check_ff(func, t=t, ani=ani)
             s = _GG.LOS_calc_signal(
                 func,
                 Ds,
