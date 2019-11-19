@@ -1,6 +1,11 @@
 tofu.data package
 =================
 
+.. automodule:: tofu.data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -52,11 +57,3 @@ tofu.data.\_plot module
    :undoc-members:
    :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: tofu.data
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,10 +1,10 @@
 .. note::
     :class: sphx-glr-download-link-note
 
-    Click :ref:`here <sphx_glr_download_auto_examples_tutorials_plot_custom_emissivity.py>` to download the full example code
+    Click :ref:`here <sphx_glr_download_auto_examples_tutorials_tuto_plot_custom_emissivity.py>` to download the full example code
 .. rst-class:: sphx-glr-example-title
 
-.. _sphx_glr_auto_examples_tutorials_plot_custom_emissivity.py:
+.. _sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py:
 
 
 Computing a camera image with custom emissivity
@@ -48,6 +48,7 @@ We can plot its profile in the (0, X, Z) plane.
 
 
 .. code-block:: default
+
 
 
     def emissivity(pts, t=None, vect=None):
@@ -96,7 +97,7 @@ We can plot its profile in the (0, X, Z) plane.
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_plot_custom_emissivity_001.png
+.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_custom_emissivity_001.png
     :class: sphx-glr-single-img
 
 
@@ -115,16 +116,19 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
     sig, units = cam2d.calc_signal(emissivity,
                                    res=0.01,
                                    reflections=False,
+                                   minimize="hybrid",
+                                   method="sum",
                                    newcalc=True,
                                    plot=False,
                                    t=time_vector)
+
     sig.plot(ntMax=1)
-    plt.show()
+    plt.show(block=False)
     # sphinx_gallery_thumbnail_number = 2
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_plot_custom_emissivity_002.png
+.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_custom_emissivity_002.png
     :class: sphx-glr-single-img
 
 
@@ -135,7 +139,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
  .. code-block:: none
 
     No handles with labels found to put in legend.
-    /Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_217_g754c8bb-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2751: UserWarning: Not interactive backend!:
+    /Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_232_g56df4eb-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2751: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -147,10 +151,10 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  6.097 seconds)
+   **Total running time of the script:** ( 0 minutes  2.015 seconds)
 
 
-.. _sphx_glr_download_auto_examples_tutorials_plot_custom_emissivity.py:
+.. _sphx_glr_download_auto_examples_tutorials_tuto_plot_custom_emissivity.py:
 
 
 .. only :: html
@@ -162,13 +166,13 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
   .. container:: sphx-glr-download
 
-     :download:`Download Python source code: plot_custom_emissivity.py <plot_custom_emissivity.py>`
+     :download:`Download Python source code: tuto_plot_custom_emissivity.py <tuto_plot_custom_emissivity.py>`
 
 
 
   .. container:: sphx-glr-download
 
-     :download:`Download Jupyter notebook: plot_custom_emissivity.ipynb <plot_custom_emissivity.ipynb>`
+     :download:`Download Jupyter notebook: tuto_plot_custom_emissivity.ipynb <tuto_plot_custom_emissivity.ipynb>`
 
 
 .. only:: html

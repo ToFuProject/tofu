@@ -29,9 +29,9 @@ This directory contains tutorial examples for `tofu`.
 
 .. only:: html
 
-    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_plot_basic_tutorial_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_basic_thumb.png
 
-        :ref:`sphx_glr_auto_examples_tutorials_plot_basic_tutorial.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_basic.py`
 
 .. raw:: html
 
@@ -41,7 +41,7 @@ This directory contains tutorial examples for `tofu`.
 .. toctree::
    :hidden:
 
-   /auto_examples/tutorials/plot_basic_tutorial
+   /auto_examples/tutorials/tuto_plot_basic
 
 .. raw:: html
 
@@ -49,9 +49,9 @@ This directory contains tutorial examples for `tofu`.
 
 .. only:: html
 
-    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_plot_create_geometry_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_create_geometry_thumb.png
 
-        :ref:`sphx_glr_auto_examples_tutorials_plot_create_geometry.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py`
 
 .. raw:: html
 
@@ -61,7 +61,7 @@ This directory contains tutorial examples for `tofu`.
 .. toctree::
    :hidden:
 
-   /auto_examples/tutorials/plot_create_geometry
+   /auto_examples/tutorials/tuto_plot_create_geometry
 
 .. raw:: html
 
@@ -69,9 +69,9 @@ This directory contains tutorial examples for `tofu`.
 
 .. only:: html
 
-    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_plot_custom_emissivity_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_custom_emissivity_thumb.png
 
-        :ref:`sphx_glr_auto_examples_tutorials_plot_custom_emissivity.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py`
 
 .. raw:: html
 
@@ -81,7 +81,7 @@ This directory contains tutorial examples for `tofu`.
 .. toctree::
    :hidden:
 
-   /auto_examples/tutorials/plot_custom_emissivity
+   /auto_examples/tutorials/tuto_plot_custom_emissivity
 .. raw:: html
 
     <div style='clear:both'></div>

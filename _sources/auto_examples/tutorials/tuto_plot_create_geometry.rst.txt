@@ -1,10 +1,10 @@
 .. note::
     :class: sphx-glr-download-link-note
 
-    Click :ref:`here <sphx_glr_download_auto_examples_tutorials_plot_create_geometry.py>` to download the full example code
+    Click :ref:`here <sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry.py>` to download the full example code
 .. rst-class:: sphx-glr-example-title
 
-.. _sphx_glr_auto_examples_tutorials_plot_create_geometry.py:
+.. _sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py:
 
 
 Creating your first Geometry
@@ -65,7 +65,7 @@ shape at the bottom:
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_plot_create_geometry_001.png
+.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_001.png
     :class: sphx-glr-single-img
 
 
@@ -129,7 +129,7 @@ object, it is advised not to modify it.
 
  .. code-block:: none
 
-    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.1-217-g754c8bb
+    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.1-232-g56df4eb
 
 
 
@@ -144,13 +144,13 @@ polygon):
 
     # Plot the polygon by default in two projections (cross-section and horizontal)
     # and return the list of axes
-    Lax = ves.plot(element="P")
+    lax = ves.plot(element="P")
 
 
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_plot_create_geometry_002.png
+.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_002.png
     :class: sphx-glr-single-img
 
 
@@ -179,7 +179,7 @@ it so that it can be used by other ToFu objects when necessary.
  .. code-block:: none
 
     Saved in :
-        /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.1-217-g754c8bb.npz
+        /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.1-232-g56df4eb.npz
 
 
 
@@ -248,7 +248,7 @@ otherwise the type must be specified.
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_plot_create_geometry_003.png
+.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_003.png
     :class: sphx-glr-single-img
 
 
@@ -259,17 +259,17 @@ otherwise the type must be specified.
  .. code-block:: none
 
     Saved in :
-        /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.1-217-g754c8bb.npz
+        /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.1-232-g56df4eb.npz
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.911 seconds)
+   **Total running time of the script:** ( 0 minutes  0.912 seconds)
 
 
-.. _sphx_glr_download_auto_examples_tutorials_plot_create_geometry.py:
+.. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry.py:
 
 
 .. only :: html
@@ -281,13 +281,13 @@ otherwise the type must be specified.
 
   .. container:: sphx-glr-download
 
-     :download:`Download Python source code: plot_create_geometry.py <plot_create_geometry.py>`
+     :download:`Download Python source code: tuto_plot_create_geometry.py <tuto_plot_create_geometry.py>`
 
 
 
   .. container:: sphx-glr-download
 
-     :download:`Download Jupyter notebook: plot_create_geometry.ipynb <plot_create_geometry.ipynb>`
+     :download:`Download Jupyter notebook: tuto_plot_create_geometry.ipynb <tuto_plot_create_geometry.ipynb>`
 
 
 .. only:: html

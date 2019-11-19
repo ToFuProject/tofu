@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="tofu package" href="../../tofu.html" />
-    <link rel="prev" title="Creating your first Geometry" href="plot_create_geometry.html" />
+    <link rel="prev" title="Creating your first Geometry" href="tuto_plot_create_geometry.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -117,10 +117,10 @@
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
-<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-plot-custom-emissivity-py"><span class="std std-ref">here</span></a> to download the full example code</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py"><span class="std std-ref">here</span></a> to download the full example code</p>
 </div>
 <div class="sphx-glr-example-title section" id="computing-a-camera-image-with-custom-emissivity">
-<span id="sphx-glr-auto-examples-tutorials-plot-custom-emissivity-py"></span><h1>Computing a camera image with custom emissivity<a class="headerlink" href="#computing-a-camera-image-with-custom-emissivity" title="Permalink to this headline">¶</a></h1>
+<span id="sphx-glr-auto-examples-tutorials-tuto-plot-custom-emissivity-py"></span><h1>Computing a camera image with custom emissivity<a class="headerlink" href="#computing-a-camera-image-with-custom-emissivity" title="Permalink to this headline">¶</a></h1>
 <p>This tutorial defines an emissivity that varies in space and computes the signal
 received by a camera using this emissivity.</p>
 <p>We start by loading a built-in <cite>tofu</cite> configuration and define a 2D camera.</p>
@@ -189,7 +189,7 @@ We can plot its profile in the (0, X, Z) plane.</p>
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="p">[</span><span class="n">cam_center</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;camera pinhole&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="../../_images/sphx_glr_plot_custom_emissivity_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_plot_custom_emissivity_001.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_custom_emissivity_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_001.png" />
 <p>Finally, we compute an image using the 2D camera and this emissivity.
 If we provide a time vector, the field will vary in a cosinusoidal fashion
 (see above definition) across time.</p>
@@ -198,18 +198,21 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 <span class="n">sig</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="n">cam2d</span><span class="o">.</span><span class="n">calc_signal</span><span class="p">(</span><span class="n">emissivity</span><span class="p">,</span>
                                <span class="n">res</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
                                <span class="n">reflections</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">minimize</span><span class="o">=</span><span class="s2">&quot;hybrid&quot;</span><span class="p">,</span>
+                               <span class="n">method</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
                                <span class="n">newcalc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                <span class="n">t</span><span class="o">=</span><span class="n">time_vector</span><span class="p">)</span>
+
 <span class="n">sig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ntMax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="c1"># sphinx_gallery_thumbnail_number = 2</span>
 </pre></div>
 </div>
-<img alt="../../_images/sphx_glr_plot_custom_emissivity_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_plot_custom_emissivity_002.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>No handles with labels found to put in legend.
-/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_217_g754c8bb-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2751: UserWarning: Not interactive backend!:
+/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_232_g56df4eb-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2751: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
@@ -217,13 +220,13 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
   % get_backend())
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  6.097 seconds)</p>
-<div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-plot-custom-emissivity-py">
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.015 seconds)</p>
+<div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py">
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/c0232ed8587a1ba151f9132bd04d2edb/plot_custom_emissivity.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_custom_emissivity.py</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/da0c7ddf24d7fd383b65bb69859c3bcb/tuto_plot_custom_emissivity.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_custom_emissivity.py</span></code></a></p>
 </div>
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/fb3947a38810a00df4e0edf8a3acc809/plot_custom_emissivity.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_custom_emissivity.ipynb</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/c560b0b8b096ef02f03c71f44ee225b2/tuto_plot_custom_emissivity.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_custom_emissivity.ipynb</span></code></a></p>
 </div>
 </div>
 <p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
@@ -242,7 +245,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
         <br/>
         
 <div id="sourcelink">
-  <a href="../../_sources/auto_examples/tutorials/plot_custom_emissivity.rst.txt"
+  <a href="../../_sources/auto_examples/tutorials/tuto_plot_custom_emissivity.rst.txt"
      rel="nofollow">Source</a>
 </div>
       

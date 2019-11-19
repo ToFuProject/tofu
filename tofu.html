@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="tofu.data package" href="tofu.data.html" />
-    <link rel="prev" title="Computing a camera image with custom emissivity" href="auto_examples/tutorials/plot_custom_emissivity.html" />
+    <link rel="prev" title="Computing a camera image with custom emissivity" href="auto_examples/tutorials/tuto_plot_custom_emissivity.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -86,14 +86,6 @@
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">tofu package</a><ul>
-<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-tofu._plot">tofu._plot module</a></li>
-<li><a class="reference internal" href="#module-tofu.defaults">tofu.defaults module</a></li>
-<li><a class="reference internal" href="#module-tofu.pathfile">tofu.pathfile module</a></li>
-<li><a class="reference internal" href="#module-tofu.utils">tofu.utils module</a></li>
-<li><a class="reference internal" href="#module-tofu.version">tofu.version module</a></li>
-<li><a class="reference internal" href="#module-tofu">Module contents</a><ul>
 <li><a class="reference internal" href="#tofu-a-python-library-for-tomography-for-fusion-research">ToFu: A python library for Tomography for Fusion research</a><ul>
 <li><a class="reference internal" href="#how-to-use-the-documentation">How to use the documentation</a></li>
 <li><a class="reference internal" href="#available-subpackages">Available subpackages</a></li>
@@ -101,8 +93,13 @@
 <li><a class="reference internal" href="#utilities">Utilities</a></li>
 </ul>
 </li>
-</ul>
-</li>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-tofu._plot">tofu._plot module</a></li>
+<li><a class="reference internal" href="#module-tofu.defaults">tofu.defaults module</a></li>
+<li><a class="reference internal" href="#module-tofu.pathfile">tofu.pathfile module</a></li>
+<li><a class="reference internal" href="#module-tofu.utils">tofu.utils module</a></li>
+<li><a class="reference internal" href="#module-tofu.version">tofu.version module</a></li>
 </ul>
 </li>
 </ul>
@@ -134,8 +131,68 @@
   <div class="row">
     <div class="col-md-12 content">
       
-  <div class="section" id="tofu-package">
-<h1>tofu package<a class="headerlink" href="#tofu-package" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tofu">
+<span id="tofu-package"></span><h1>tofu package<a class="headerlink" href="#module-tofu" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="tofu-a-python-library-for-tomography-for-fusion-research">
+<h2>ToFu: A python library for Tomography for Fusion research<a class="headerlink" href="#tofu-a-python-library-for-tomography-for-fusion-research" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>Provides</dt><dd><ol class="arabic simple">
+<li><p>Objects to handle 3D geometry of diagnostics</p></li>
+<li><p>Built-in methods for computing key quantities, data treatment, inversions…</p></li>
+<li><p>Visualisation tools</p></li>
+</ol>
+</dd>
+</dl>
+<div class="section" id="how-to-use-the-documentation">
+<h3>How to use the documentation<a class="headerlink" href="#how-to-use-the-documentation" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>Documentation is available in two forms:</dt><dd><ol class="arabic simple">
+<li><p>Docstrings provided with the code</p></li>
+<li><p>Online sphinx-generated documentation, available from <a class="reference external" href="www.tofuproject.github.io">ToFu’s homepage</a>.</p></li>
+</ol>
+</dd>
+</dl>
+</div>
+<div class="section" id="available-subpackages">
+<h3>Available subpackages<a class="headerlink" href="#available-subpackages" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt><a class="reference external" href="tofu.geom.html">geom</a></dt><dd><p>Geometry classes to model the 3D geometry (vacuum vessel, structural elements, LOS, etc.)</p>
+</dd>
+<dt>data</dt><dd><p>Data-handling classes (storing, processing, plotting, etc.)</p>
+</dd>
+<dt>dumpro</dt><dd><p>Package for dust movie processing</p>
+</dd>
+<dt>dust</dt><dd><p>Dust module</p>
+</dd>
+<dt>imas2tofu</dt><dd><p>The imas-compatibility module of tofu</p>
+</dd>
+<dt>mag</dt><dd><p>Magnetic field lines package</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="available-modules">
+<h3>Available modules<a class="headerlink" href="#available-modules" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>_plot</dt><dd><p>Module providing a basic routine for plotting a shot overview</p>
+</dd>
+<dt>defaults</dt><dd><p>Store most default parameters of tofu</p>
+</dd>
+<dt>pathfile</dt><dd><p>Provide a class for identification of all tofu objects, and functions for path and file handling</p>
+</dd>
+<dt>utils</dt><dd><p>Miscellaneous helper functions</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="utilities">
+<h3>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>tests</dt><dd><p>tofu’s unit-tests</p>
+</dd>
+<dt>__version__</dt><dd><p>tofu version string</p>
+</dd>
+</dl>
+</div>
+</div>
 <div class="section" id="subpackages">
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
@@ -148,7 +205,6 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._def">tofu.data._def module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._physics">tofu.data._physics module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._plot">tofu.data._plot module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a><ul>
@@ -159,7 +215,6 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._def">tofu.dumpro._def module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._draft">tofu.dumpro._draft module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro._plot">tofu.dumpro._plot module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tofu.dumpro.html#module-tofu.dumpro">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a><ul>
@@ -167,14 +222,11 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust._comp">tofu.dust._comp module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust._core">tofu.dust._core module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust._plot">tofu.dust._plot module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tofu.dust.html#module-tofu.dust">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">tofu.geom package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._GG">tofu.geom._GG module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#tofu-geom-gg02-module">tofu.geom._GG02 module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#tofu-geom-gg03-module">tofu.geom._GG03 module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._basic_geom_tools">tofu.geom._basic_geom_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._comp">tofu.geom._comp module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._core">tofu.geom._core module</a></li>
@@ -185,7 +237,6 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._sampling_tools">tofu.geom._sampling_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._vignetting_tools">tofu.geom._vignetting_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom.utils">tofu.geom.utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -1594,70 +1645,6 @@ before removing them, and throw an Exception otherwise</p>
 </div>
 <div class="section" id="module-tofu.version">
 <span id="tofu-version-module"></span><h2>tofu.version module<a class="headerlink" href="#module-tofu.version" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-tofu">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-tofu" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="tofu-a-python-library-for-tomography-for-fusion-research">
-<h3>ToFu: A python library for Tomography for Fusion research<a class="headerlink" href="#tofu-a-python-library-for-tomography-for-fusion-research" title="Permalink to this headline">¶</a></h3>
-<dl class="simple">
-<dt>Provides</dt><dd><ol class="arabic simple">
-<li><p>Objects to handle 3D geometry of diagnostics</p></li>
-<li><p>Built-in methods for computing key quantities, data treatment, inversions…</p></li>
-<li><p>Visualisation tools</p></li>
-</ol>
-</dd>
-</dl>
-<div class="section" id="how-to-use-the-documentation">
-<h4>How to use the documentation<a class="headerlink" href="#how-to-use-the-documentation" title="Permalink to this headline">¶</a></h4>
-<dl class="simple">
-<dt>Documentation is available in two forms:</dt><dd><ol class="arabic simple">
-<li><p>Docstrings provided with the code</p></li>
-<li><p>A loose standing reference guide, available from <a class="reference external" href="http://www.tofu.org">the ToFu homepage</a>.</p></li>
-</ol>
-</dd>
-</dl>
-</div>
-<div class="section" id="available-subpackages">
-<h4>Available subpackages<a class="headerlink" href="#available-subpackages" title="Permalink to this headline">¶</a></h4>
-<dl class="simple">
-<dt>geom</dt><dd><p>Geometry-handling, with dedicated objects, methods and functions</p>
-</dd>
-<dt>mesh</dt><dd><p>Mesh and basis functions creation and handling, as well as 2D equilibrium storing</p>
-</dd>
-<dt>matcomp</dt><dd><p>Computation of geometry matrix from outputs of both geom and mesh</p>
-</dd>
-<dt>treat</dt><dd><p>Data-handling objects and methods for pre-treatment (visualisation, treatment…)</p>
-</dd>
-<dt>inv</dt><dd><p>Inversion-regularisation algortihms, using outputs from matcomp and data, plus visualisation</p>
-</dd>
-</dl>
-</div>
-<div class="section" id="available-modules">
-<h4>Available modules<a class="headerlink" href="#available-modules" title="Permalink to this headline">¶</a></h4>
-<dl class="simple">
-<dt>defaults</dt><dd><p>Store most default parameters of tofu</p>
-</dd>
-<dt>pathfile</dt><dd><p>Provide a class for identification of all tofu objects, and functions for path and file handling</p>
-</dd>
-<dt>helper</dt><dd><p>miscellaneous helper functions</p>
-</dd>
-</dl>
-</div>
-<div class="section" id="utilities">
-<h4>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h4>
-<dl class="simple">
-<dt>test</dt><dd><p>Run tofu unittests</p>
-</dd>
-<dt>show_config</dt><dd><p>Show tofu build configuration</p>
-</dd>
-<dt>__version__</dt><dd><p>tofu version string</p>
-</dd>
-</dl>
-<p>Created on Wed May 18 2016</p>
-<p>&#64;author: didiervezinet
-&#64;author_email: <a class="reference external" href="mailto:didier&#46;vezinet&#37;&#52;&#48;gmail&#46;com">didier<span>&#46;</span>vezinet<span>&#64;</span>gmail<span>&#46;</span>com</a></p>
-</div>
-</div>
 </div>
 </div>
 

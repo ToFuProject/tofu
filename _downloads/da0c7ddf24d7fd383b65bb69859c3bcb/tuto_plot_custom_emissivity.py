@@ -31,6 +31,7 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 # Now, we define an emissivity function that depends on r and z coordinates.
 # We can plot its profile in the (0, X, Z) plane.
 
+
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
@@ -84,9 +85,12 @@ time_vector = np.linspace(0, 2 * np.pi, num=100)
 sig, units = cam2d.calc_signal(emissivity,
                                res=0.01,
                                reflections=False,
+                               minimize="hybrid",
+                               method="sum",
                                newcalc=True,
                                plot=False,
                                t=time_vector)
+
 sig.plot(ntMax=1)
-plt.show()
+plt.show(block=False)
 # sphinx_gallery_thumbnail_number = 2
