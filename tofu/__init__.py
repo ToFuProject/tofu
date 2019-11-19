@@ -11,7 +11,7 @@ How to use the documentation
 ----------------------------
 Documentation is available in two forms:
   1. Docstrings provided with the code
-  2. Online sphinx-generated documentation, available from `ToFu's homepage <www.tofuproject.github.io>`_.
+  2. Online sphinx-generated documentation, available from `ToFu's homepage <https://tofuproject.github.io/tofu/>`_.
 
 
 Available subpackages
