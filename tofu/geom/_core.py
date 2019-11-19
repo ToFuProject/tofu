@@ -6021,7 +6021,7 @@ class Rays(utils.ToFuObject):
                 - vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)
             Should return at least:
                 - val : (N,) np.ndarray, local emissivity values
-        method : string, the integral can be computed using 3 different methods:
+        method : string, the integral can be computed using 3 different methods
             - 'sum':    A numpy.sum() on the local values (x segments) DEFAULT
             - 'simps':  using :meth:`scipy.integrate.simps`
             - 'romb':   using :meth:`scipy.integrate.romb`
