@@ -154,8 +154,10 @@ class Test00_tuto(object):
             out = subprocess.run(cmd, shell=True, check=False,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-            if 'error' in out.stderr.decode().lower():
-                error = out.stderr.decode()
+            ls = out.stderr.decode().split('\n')
+            if any(['Error' in ss and not 'ModuleNotFoundError' in ss
+                    for ss in ls]):
+                error = '\n'.join(ls)
         except Exception as err:
             error = err
 
