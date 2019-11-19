@@ -35,19 +35,19 @@ interactive plots.
     <div style="clear: both"></div>
     <div class="container-fluid hidden-xs hidden-sm">
       <div class="row">
-        <a href="auto_examples/tutorials/plot_basic_tutorial.html">
+        <a href="auto_examples/tutorials/tuto_plot_basic.html">
           <div class="col-md-3 thumbnail">
-            <img src="_images/sphx_glr_plot_basic_tutorial_thumb.png">
+            <img src="_images/sphx_glr_tuto_plot_basic_thumb.png">
           </div>
         </a>
-	<a href="auto_examples/tutorials/plot_create_geometry.html">
+	<a href="auto_examples/tutorials/tuto_plot_create_geometry.html">
           <div class="col-md-3 thumbnail">
-            <img src="_images/sphx_glr_plot_create_geometry_thumb.png">
+            <img src="_images/sphx_glr_tuto_plot_create_geometry_thumb.png">
           </div>
         </a>
-	<a href="auto_examples/tutorials/plot_custom_emissivity.html">
+	<a href="auto_examples/tutorials/tuto_plot_custom_emissivity.html">
           <div class="col-md-3 thumbnail">
-            <img src="_images/sphx_glr_plot_custom_emissivity_thumb.png">
+            <img src="_images/sphx_glr_tuto_plot_custom_emissivity_thumb.png">
           </div>
         </a>
       </div>
@@ -81,9 +81,9 @@ Contents:
      functions and regularisation functionals.
      How to contribute (todos_)
 
-.. _basic: auto_examples/tutorials/plot_create_geometry.html
-.. _cameras: auto_examples/tutorials/plot_basic_tutorial.html
-.. _tutorial: Tutorial_Geom_SynthDiag_Basic.html
+.. _basic: auto_examples/tutorials/tuto_plot_create_geometry.html
+.. _cameras: auto_examples/tutorials/tuto_plot_basic_tutorial.html
+.. _tutorial: auto_examples/tutorials/tuto_plot_custom_emissivity.html
 .. _todos: Todos.html
 
 

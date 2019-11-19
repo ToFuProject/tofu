@@ -12,22 +12,6 @@ tofu.geom.\_GG module
    :undoc-members:
    :show-inheritance:
 
-tofu.geom.\_GG02 module
------------------------
-
-.. automodule:: tofu.geom._GG02
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-tofu.geom.\_GG03 module
------------------------
-
-.. automodule:: tofu.geom._GG03
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 tofu.geom.\_basic\_geom\_tools module
 -------------------------------------
 

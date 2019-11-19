@@ -10,7 +10,6 @@ Subpackages
    tofu.dumpro
    tofu.dust
    tofu.geom
-   tofu.tests
 
 Submodules
 ----------
