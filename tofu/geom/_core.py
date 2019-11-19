@@ -5769,7 +5769,7 @@ class Rays(utils.ToFuObject):
                                          and pp.default is not pp.empty)]
         return na, kw
 
-    def check_ff(self, ff, t=None, ani=False):
+    def check_ff(self, ff, t=None, ani=None):
 
         # Define unique error message giving all info in a concise way
         # Optionnally add error-specific line afterwards
@@ -5817,7 +5817,7 @@ class Rays(utils.ToFuObject):
         nt = len(t) if hasattr(t, '__iter__') else 1
 
         # .. Test anisotropic case .......................................
-        if ani is False:
+        if ani is None:
             is_ani = ('vect' in kw)
         else:
             assert isinstance(ani, bool)
@@ -5971,7 +5971,7 @@ class Rays(utils.ToFuObject):
         self,
         func,
         t=None,
-        ani=False,
+        ani=None,
         fkwdargs={},
         Brightness=True,
         res=None,
