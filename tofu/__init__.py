@@ -53,6 +53,7 @@ Created on Wed May 18 2016
 """
 import sys
 import warnings
+from .version import __version__
 
 # For tests without display with nosetests
 if not 'matplotlib.pyplot' in sys.modules:
