@@ -6028,7 +6028,7 @@ class Rays(utils.ToFuObject):
         minimize : string, method to minimize for computation optimization
             - "calls": minimal number of calls to `func` (default)
             - "memory": slowest method, to use only if "out of memory" error
-            - "hybrid": mix of before mentioned method.
+            - "hybrid": mix of before-mentioned methods.
 
 
         Returns
