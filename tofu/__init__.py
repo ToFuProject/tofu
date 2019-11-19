@@ -53,10 +53,6 @@ Created on Wed May 18 2016
 """
 import sys
 import warnings
-if sys.version[0] == '2':
-    from .version import __version__
-elif sys.version[0] == '3':
-    from .version import __version__
 
 # For tests without display with nosetests
 if not 'matplotlib.pyplot' in sys.modules:
