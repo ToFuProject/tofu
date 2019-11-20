@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
+from inspect import signature as insp
 
 # ToFu-specific
 try:
