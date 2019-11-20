@@ -86,7 +86,7 @@ print(ves.Id.SaveName)
 
 # Plot the polygon by default in two projections (cross-section and horizontal)
 # and return the list of axes
-Lax = ves.plot(element="P")
+lax = ves.plot(element="P")
 
 
 ###############################################################################

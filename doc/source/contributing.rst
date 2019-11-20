@@ -1,10 +1,28 @@
+Contribute to tofu
+==================
 
-Contributing to tofu
-====================
-
-You found a bug, or you want to add something to the library ? This
+You found a bug, or you want to add something to the library? This
 tutorial will show you how to get the repository and the first steps to
 contribute to the project.
+
+Bug reports and suggestions
+----------------------------
+
+If you found a bug in **tofu**, or if you have a suggestion, the best is to open
+an issue directly on our `github page <https://github.com/ToFuProject/tofu/issues>`_.
+If you are opening an issue related to a bug found, please specify the version
+of the librairies (**tofu**, python, etc.) you are using, any configuration
+information that might be helpful to us (OS, server, how you installed
+**tofu**), a minimal example to recreate the bug (if possible), and the log
+files or errors you might have got.
+
+
+
+Developping in the code
+-----------------------
+
+The basic tools
+"""""""""""""""
 
 There are many tools and concepts to get familiar with when contributing
 to an **open-source python library**. A good place to get started is the
@@ -66,12 +84,20 @@ environment.
 -  Make sure tests are running ``nosetests``
 
 
+Where to start?
+"""""""""""""""
 
 If you wish to contribute, but don't know where to start, check `our
 open issues <https://github.com/ToFuProject/tofu/issues>`__. You can
 also read `this
 tutorial <https://github.com/firstcontributions/first-contributions>`__,
-on how to contribute to a github project. Before modifying the code, you
+on how to contribute to a github project.
+
+
+Git branches and pull requests
+""""""""""""""""""""""""""""""
+
+Before modifying the code, you
 should create a new branch (based on the *devel* branch) and switch to it.
 
 ::
@@ -86,3 +112,24 @@ Now you can open a pull request in our `github
 page <https://github.com/ToFuProject/tofu/pulls>`__, from your branch,
 ``theNameOfYourBranch`` to ``devel``. We will review it, comment it, and
 accept it.
+
+
+Continuous integration
+""""""""""""""""""""""
+
+For each pull request (PR) on github, there will be a series of tests run to
+make sure the modifications introduced to the library did not introduce any
+errors. If all tests pass, you should see something like the image below.
+
+.. image:: images/travis.png
+
+If there is an error (red cross instead of green check) it can be either that
+your code is breaking the normal functionning of the code, or (less probably)
+that there is a bug in the unit tests. Please try and understand what went wrong.
+If you cannot find the problem, you can ask for help by commenting on the PR.
+Additionally to the unit tests, we have integrated pep8speaks_, a bot that will
+check your coding style.
+
+.. _pep8speaks: https://pep8speaks.com/
+
+.. image:: images/pep8speaks.png

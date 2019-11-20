@@ -1,6 +1,11 @@
 tofu package
 ============
 
+.. automodule:: tofu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -50,15 +55,6 @@ tofu.version module
 -------------------
 
 .. automodule:: tofu.version
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: tofu
    :members:
    :undoc-members:
    :show-inheritance:

@@ -24,7 +24,6 @@ import tofu.pathfile as tfpf
 
 _SEP = '.'
 _dict_lexcept_key = []
-_pyv = int(sys.version[0])
 
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
@@ -546,7 +545,7 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
                 if out[k].ndim == 1:
                     dout[k] = out[k].tolist()
                 else:
-                    dout[k] = np.squeeze(out[k],axis=0).tolist()
+                    dout[k] = np.atleast_1d(np.squeeze(out[k],axis=0)).tolist()
                 if type(dout[k][0]) is str:
                     dout[k] = [kk.strip() for kk in dout[k]]
             else:
@@ -555,7 +554,7 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
                 dout[k] = tuple(dout[k])
         elif typ=='ndarray':
             if mode == 'mat':
-                dout[k] = np.squeeze(out[k])
+                dout[k] = np.atleast_1d(np.squeeze(out[k]))
                 if dout[k].shape == (0,0):
                     dout[k] = dout[k].ravel()
             else:
@@ -643,8 +642,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
-                   plot=True, plot_sig=None, plot_X=None, sharex=False,
-                   bck=True, indch_auto=True, t=None, init=None):
+                   plot=True, plot_sig=None, plot_X=None,
+                   sharex=False, invertx=None,
+                   bck=True, indch_auto=True, t=None, init=None, dR_sep=None):
     # -------------------
     # import imas2tofu
     try:
@@ -698,11 +698,36 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         assert shot.size == 1
         import tofu.mag as tfm
         plot = True
+        if invertx is None:
+            invertx = True
+
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids='equilibrium')
+        equi = multi.to_Plasma2D()
+
         if t is None:
-            t = np.r_[38]
+            # Get time in the middle of equilibrium time interval
+            t = equi.ddata['equilibrium.t']['data'][
+                int(0.5*equi.ddata['equilibrium.t']['data'].size)]
         t = np.atleast_1d(t).ravel()
-        if init is None:
-            init = [[2.9],[0.],[0.]]
+
+        equi_ind_t = np.abs(t - equi.ddata['equilibrium.t']['data']).argmin()
+        equi_ind_r_ext = np.argmax(equi.ddata['equilibrium.sep']['data']
+                                   [equi_ind_t][0])
+        equi_r_ext = equi.ddata['equilibrium.sep']['data'][
+                     equi_ind_t][0][equi_ind_r_ext]
+        equi_z_r_ext = equi.ddata['equilibrium.sep']['data'][
+                       equi_ind_t][1][equi_ind_r_ext]
+
+        nbr_init = 10
+        if dR_sep is not None:
+            r_init = [equi_r_ext + dR_sep]*nbr_init
+        else:
+            r_init = [equi_r_ext]*nbr_init
+        phi_init = [ii*2.*np.pi/nbr_init for ii in range(nbr_init)]
+        z_init = [equi_z_r_ext]*nbr_init
+        init_plt = [r_init, phi_init, z_init]
 
         if False:
             multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
@@ -711,31 +736,92 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             config = multi.to_Config(plot=False)
         else:
             import tofu.geom as tfg
-            config = tfg.utils.create_config('B2')
+            config = tfg.utils.create_config('B3')
         if config.nStruct > 1:
             config.set_colors_random()
-        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
-                                                       direction='FWD',
-                                                       length_line=None,
-                                                       stp=None)
+        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init_plt, t,
+                                                            direction='FWD',
+                                                            length_line=35,
+                                                            stp=None)
+        trace_rev = tfm.MagFieldLines(
+                    int(shot[0])).trace_mline(init_plt, t,
+                                              direction='REV',
+                                              length_line=35,
+                                              stp=None)
+
         refpt = np.r_[2.4,0.]
-        dax = config.plot_phithetaproj_dist(refpt)
+        dax = config.plot_phithetaproj_dist(refpt, invertx=invertx)
+
+        if init is not None:
+            trace_init = tfm.MagFieldLines(
+                         int(shot[0])).trace_mline(init, t,
+                                                   direction='FWD',
+                                                   length_line=35,
+                                                   stp=None)
+            trace_init_rev = tfm.MagFieldLines(
+                             int(shot[0])).trace_mline(init, t,
+                                                       direction='REV',
+                                                       length_line=35,
+                                                       stp=None)
+            trace_init[0] = trace_init[0] + trace_init_rev[0]
+
+            for kk in range(0, len(trace_init[0])):
+                phi_init = np.arctan2(np.sin(trace_init[0][kk]['p']),
+                                      np.cos(trace_init[0][kk]['p']))
+                theta_init = np.arctan2(trace_init[0][kk]['z']-refpt[1],
+                                        trace_init[0][kk]['r']-refpt[0])
+                indnan = ((np.abs(np.diff(phi_init)) > np.pi)
+                          | (np.abs(np.diff(theta_init))
+                             > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi_init, indnan, np.nan),
+                                    np.insert(theta_init, indnan, np.nan),
+                                    linewidth=3, color='red')
+                dax['cross'][0].plot(trace_init[0][kk]['r'],
+                                     trace_init[0][kk]['z'],
+                                     linewidth=3, color='red')
+                x = trace_init[0][kk]['r']*np.cos(trace_init[0][kk]['p'])
+                y = trace_init[0][kk]['r']*np.sin(trace_init[0][kk]['p'])
+                dax['hor'][0].plot(x, y, linewidth=3, color='red')
+            alpha_mag_lines = 0.7
+        else:
+            alpha_mag_lines = 1.
+
         for ii in range(0,len(trace)):
+            # Concatenate trace lists
+            trace[ii] = trace[ii] + trace_rev[ii]
             for jj in range(0,len(trace[ii])):
                 lab = r't = %s s'%str(t[ii])
-                phi = np.arctan2(np.sin(trace[ii][jj]['p']), np.cos(trace[ii][jj]['p']))
-                theta = np.arctan2(trace[ii][jj]['z']-refpt[1], trace[ii][jj]['r']-refpt[0])
+                phi = np.arctan2(np.sin(trace[ii][jj]['p']),
+                                 np.cos(trace[ii][jj]['p']))
+                theta = np.arctan2(trace[ii][jj]['z']-refpt[1],
+                                   trace[ii][jj]['r']-refpt[0])
                 # insert nans for clean periodicity
                 indnan = ((np.abs(np.diff(phi)) > np.pi)
                           | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
                 dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
                                     np.insert(theta, indnan, np.nan),
-                                    label=lab)
+                                    label=lab, alpha=alpha_mag_lines)
                 dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
-                                     label=lab)
+                                     label=lab, alpha=alpha_mag_lines)
                 x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
-                dax['hor'][0].plot(x, y, label=lab)
+                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines)
+
+        dax['cross'][0].plot(equi.ddata['equilibrium.sep'][
+                             'data'][equi_ind_t][0],
+                             equi.ddata['equilibrium.sep'][
+                             'data'][equi_ind_t][1],
+                             linestyle='-.', color='k', alpha=0.8)
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0'][
+                             equi_ind_t][0],
+                             multi.get_data('equilibrium')['strike0'][
+                             equi_ind_t][1], '+', color='k', markersize=10)
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1'][
+                             equi_ind_t][0],
+                             multi.get_data('equilibrium')['strike1'][
+                             equi_ind_t][1], '+', color='k', markersize=10)
+        dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
+                                    .format(shot[0], t[0]))
         return dax
 
 
@@ -1868,10 +1954,8 @@ class ToFuObject(ToFuObjectBase):
                     strip=strip, compressed=compressed,
                     return_pfe=return_pfe, verb=verb)
 
-if sys.version[0]=='2':
-    ToFuObject.save.__func__.__doc__ = save.__doc__
-else:
-    ToFuObject.save.__doc__ = save.__doc__
+
+ToFuObject.save.__doc__ = save.__doc__
 
 
 #############################################
@@ -1930,11 +2014,6 @@ class ID(ToFuObjectBase):
                  Exp=None, Diag=None, shot=None, SaveName=None,
                  SavePath=None, usr=None, dUSR=None, lObj=None,
                  fromdict=None, include=None, sep=None):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         kwdargs = locals()
         del kwdargs['self']
@@ -2059,10 +2138,7 @@ class ID(ToFuObjectBase):
         nMax = max(cls._dstrip['allowed'])
         doc = ""
         doc = ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         #super()
@@ -2484,11 +2560,16 @@ def get_valf(val, lrids, linds):
 
     else:
         assert type(val) is np.ndarray
-        val = val.squeeze()
+        if val.ndim > len(lrids) and val.ndim > ninds:
+            val = np.atleast_1d(np.squeeze(val))
         ndim = val.ndim
-        assert ndim >= len(lrids)
-        assert len(lrids) >= ninds
-        assert ndim >= ninds
+        c0 = ndim >= len(lrids) and len(lrids) >= ninds and ndim >= ninds
+        if not c0:
+            msg = "Wrong dimension / shape / references!\n"
+            msg += "    val.ndim  : {}\n".format(ndim)
+            msg += "    lrids     : {}\n".format(str(lrids))
+            msg += "    len(linds): {}\n".format(ninds)
+            raise Exception(msg)
 
         if ndim == ninds:
             if ndim == 1:
@@ -2566,13 +2647,17 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
-                refb = 0.5*(ref[1:]+ref[:-1])
-                if Type == 'x':
-                    def func(val, ind0=None, refb=refb):
-                        return np.digitize([val[0]], refb)[0]
+                if ref.size == 1:
+                    def func(val, ind0=None):
+                        return 0
                 else:
-                    def func(val, ind0=None, refb=refb):
-                        return np.digitize([val[1]], refb)[0]
+                    refb = 0.5*(ref[1:]+ref[:-1])
+                    if Type == 'x':
+                        def func(val, ind0=None, refb=refb):
+                            return np.digitize([val[0]], refb)[0]
+                    else:
+                        def func(val, ind0=None, refb=refb):
+                            return np.digitize([val[1]], refb)[0]
         elif indother is None:
             assert ref.ndim == 2
             if np.any(np.isnan(ref)):
