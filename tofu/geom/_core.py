@@ -3074,37 +3074,21 @@ class Config(utils.ToFuObject):
 
         return dist, indStruct
 
-    def plot_phithetaproj_dist(
-        self,
-        refpt=None,
-        ntheta=None,
-        nphi=None,
-        theta=None,
-        phi=None,
-        cmap=None,
-        ax=None,
-        fs=None,
-        tit=None,
-        wintit=None,
-        draw=None,
-    ):
-        dist, indStruct = self._get_phithetaproj_dist(
-            refpt=refpt, ntheta=ntheta, nphi=nphi, theta=theta, phi=phi
-        )
-        return _plot.Config_phithetaproj_dist(
-            self,
-            refpt,
-            dist,
-            indStruct,
-            cmap=cmap,
-            ax=ax,
-            fs=fs,
-            tit=tit,
-            wintit=wintit,
-            draw=draw,
-        )
+    def plot_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None, cmap=None, invertx=None,
+                               ax=None, fs=None, tit=None, wintit=None,
+                               draw=None):
+        dist, indStruct = self._get_phithetaproj_dist(refpt=refpt,
+                                                      ntheta=ntheta, nphi=nphi,
+                                                      theta=theta, phi=phi)
+        return _plot.Config_phithetaproj_dist(self, refpt, dist, indStruct,
+                                              cmap=cmap, ax=ax, fs=fs,
+                                              tit=tit, wintit=wintit,
+                                              invertx=invertx, draw=draw)
+
 
     def isInside(self, pts, In="(X,Y,Z)", log="any"):
+
         """ Return a 2D array of bool
 
         Equivalent to applying isInside to each Struct

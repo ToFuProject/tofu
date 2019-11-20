@@ -20,19 +20,19 @@ try:
     import imas_west
 except ImportError as err:
     pass
-#    print(err)
+    print(err)
 try:
     import pywed as pw
 except ImportError as err:
     pass
-#    print(err)
+    print(err)
 
 # Project modules
 try:
     import mag_ripple as mr
 except ImportError as err:
     pass
-#    print(err)
+    print(err)
 
 __all__ = ['get']
 
