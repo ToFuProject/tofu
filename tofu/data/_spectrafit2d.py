@@ -1,6 +1,4 @@
 
-
-
 # Built-in
 import os
 import warnings
@@ -14,12 +12,9 @@ from scipy.interpolate import BSpline
 import matplotlib.pyplot as plt
 
 
-
-
 #                   --------------
 #       TO BE MOVED TO tofu.data WHEN FINISHED !!!!
 #                   --------------
-
 
 
 _NPEAKMAX = 12
@@ -34,9 +29,8 @@ _NPEAKMAX = 12
 ###########################################################
 
 
-
 def remove_bck(x, y):
-    #opt = np.polyfit(x, y, deg=0)
+    # opt = np.polyfit(x, y, deg=0)
     opt = [np.nanmin(y)]
     return y-opt[0], opt[0]
 
@@ -51,12 +45,12 @@ def get_peaks(x, y, nmax=None):
     A = np.empty((nmax,), dtype=y.dtype)
     x0 = np.empty((nmax,), dtype=x.dtype)
     sigma = np.empty((nmax,), dtype=y.dtype)
-    gauss = lambda xx, A, x0, sigma: A*np.exp(-(xx-x0)**2/sigma**2)
+    def gauss(xx, A, x0, sigma): return A*np.exp(-(xx-x0)**2/sigma**2)
     def gauss_jac(xx, A, x0, sigma):
-        jac = np.empty((xx.size,3), dtype=float)
-        jac[:,0] = np.exp(-(xx-x0)**2/sigma**2)
-        jac[:,1] = A*2*(xx-x0)/sigma**2 * np.exp(-(xx-x0)**2/sigma**2)
-        jac[:,2] = A*2*(xx-x0)**2/sigma**3 * np.exp(-(xx-x0)**2/sigma**2)
+        jac = np.empty((xx.size, 3), dtype=float)
+        jac[:, 0] = np.exp(-(xx-x0)**2/sigma**2)
+        jac[:, 1] = A*2*(xx-x0)/sigma**2 * np.exp(-(xx-x0)**2/sigma**2)
+        jac[:, 2] = A*2*(xx-x0)**2/sigma**3 * np.exp(-(xx-x0)**2/sigma**2)
         return jac
 
     dx = np.nanmin(np.diff(x))
@@ -66,26 +60,26 @@ def get_peaks(x, y, nmax=None):
     while nn < nmax:
         ind = np.nanargmax(ybis)
         x00 = x[ind]
-        if np.any(np.diff(ybis[ind:],n=2)>=0.):
+        if np.any(np.diff(ybis[ind:], n=2) >= 0.):
             wp = min(x.size-1,
                      ind + np.nonzero(np.diff(ybis[ind:],n=2)>=0.)[0][0] + 1)
         else:
             wp = ybis.size-1
-        if np.any(np.diff(ybis[:ind+1],n=2)>=0.):
+        if np.any(np.diff(ybis[:ind+1], n=2) >= 0.):
             wn = max(0, np.nonzero(np.diff(ybis[:ind+1],n=2)>=0.)[0][-1] - 1)
         else:
             wn = 0
         width = x[wp]-x[wn]
         assert width>0.
-        indl = np.arange(wn,wp+1)
+        indl = np.arange(wn, wp+1)
         sig = np.ones((indl.size,))
         if (np.abs(np.mean(np.diff(ybis[ind:wp+1])))
             > np.abs(np.mean(np.diff(ybis[wn:ind+1])))):
-            sig[indl<ind] = 1.5
-            sig[indl>ind] = 0.5
+            sig[indl < ind] = 1.5
+            sig[indl > ind] = 0.5
         else:
-            sig[indl<ind] = 0.5
-            sig[indl>ind] = 1.5
+            sig[indl < ind] = 0.5
+            sig[indl > ind] = 1.5
         p0 = (ybis[ind], x00, width)#,0.)
         bounds = (np.r_[0., x[wn], dx/2.],
                   np.r_[5.*ybis[ind], x[wp], 5.*width])
