@@ -374,7 +374,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     lt = [dd.t for dd in lData]
     nt = lData[0].nt
     if nt == 1:
-        Dt = [t[0]-0.001,t[0]+0.001]
+        Dt = [lt[0][0]-0.001, lt[0][0]+0.001]
     else:
         Dt = np.array([[np.nanmin(t), np.nanmax(t)] for t in lt])
         Dt = [np.min(Dt[:,0]), np.max(Dt[:,1])]

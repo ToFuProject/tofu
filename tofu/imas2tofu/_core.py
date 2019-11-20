@@ -2699,7 +2699,14 @@ class MultiIDSLoader(object):
             u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
                           oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
             u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
-            dgeom = (D,u)
+            dgeom = (D, u)
+            indnan = np.any(np.isnan(D), axis=0) | np.any(np.isnan(u), axis=0)
+            if np.any(indnan):
+                nunav, ntot = str(indnan.sum()), str(D.shape[1])
+                msg = "Some lines of sight geometry unavailable in ids:\n"
+                msg += "    - unavailable LOS: {0} / {1}\n".format(nunav, ntot)
+                msg += "    - indices: {0}".format(str(indnan.nonzero()[0]))
+                warnings.warn(msg)
         else:
             dgeom = None
 
@@ -2934,6 +2941,7 @@ class MultiIDSLoader(object):
                                             Name=Name, Diag=ids, Exp=Exp,
                                             dchans=dchans)
                 cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
+
 
         # -----------------------
         # data

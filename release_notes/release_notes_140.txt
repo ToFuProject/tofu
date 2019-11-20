@@ -1,4 +1,5 @@
 What's new in 1.4.0:
+--------------------
 
 * All structures are now inherited from an abstract class (in tofu.geom) and are either of type:
     - 'In': there can be plasma inside, they are empty structures (e.g.: Vessel)
