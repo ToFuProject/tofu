@@ -18,15 +18,15 @@ Available subpackages
 ---------------------
 `geom <tofu.geom.html>`_
     Geometry classes to model the 3D geometry (vacuum vessel, structural elements, LOS, etc.)
-data
+`data <tofu.data.html>`_
     Data-handling classes (storing, processing, plotting, etc.)
-dumpro
+`dumpro <tofu.dumpro.html>`_
     Package for dust movie processing
-dust
+`dust <tofu.dust.html>`_
     Dust module
-imas2tofu
+`imas2tofu <tofu.imas2tofu.html>`_
     The imas-compatibility module of tofu
-mag
+`mag <tofu.mag.html>`_
     Magnetic field lines package
 
 Available modules

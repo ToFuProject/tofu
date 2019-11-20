@@ -79,10 +79,9 @@ Contents
    - Use existing diagnostic geometry and signals to solve the inverse problem
      and compute tomographic inversions using a choice of discretization basis
      functions and regularisation functionals.
-     How to contribute (todos_)
 
 .. _basic: auto_examples/tutorials/tuto_plot_create_geometry.html
-.. _cameras: auto_examples/tutorials/tuto_plot_basic_tutorial.html
+.. _cameras: auto_examples/tutorials/tuto_plot_basic.html
 .. _tutorial: auto_examples/tutorials/tuto_plot_custom_emissivity.html
 .. _todos: Todos.html
 
