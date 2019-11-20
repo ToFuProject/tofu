@@ -148,13 +148,22 @@ class Test00_tuto(object):
         src = os.path.join(pathtuto, tuto + '.py')
         target = os.path.join(root, tuto + '.py')
         shutil.copyfile(src, target)
+        error = None
         try:
             cmd = 'python ' + target
-            out = subprocess.run(cmd, shell=True, check=True,
+            out = subprocess.run(cmd, shell=True, check=False,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
+            ls = out.stderr.decode().split('\n')
+            if any(['Error' in ss and not 'ModuleNotFoundError' in ss
+                    for ss in ls]):
+                error = '\n'.join(ls)
         except Exception as err:
-            raise err
+            error = err
+
+        if error is not None:
+            msg = str(error)
+            raise Exception(msg)
         plt.close('all')
 
         # Remove temporary files and saved files

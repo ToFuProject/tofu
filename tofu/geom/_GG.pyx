@@ -9,10 +9,7 @@ from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
-if sys.version[0]=='3':
-    from inspect import signature as insp
-elif sys.version[0]=='2':
-    from inspect import getargspec as insp
+
 # -- Cython libraries imports --------------------------------------------------
 from cpython cimport bool
 from cpython.array cimport array, clone
@@ -851,7 +848,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
         reference Radius coordinates, not shifted even if DIn <> 0.
         If DIn == 0, then Rref_arr = PtsCross[0, ...]
     VPolybis :
-        
+
     """
     cdef int NP=VPoly.shape[1]
     cdef int[1] sz_vb, sz_ot
@@ -2771,74 +2768,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
 ######################################################################
 #               Signal calculation
 ######################################################################
-cdef get_insp(ff):
-    out = insp(ff)
-    if sys.version[0]=='3':
-        pars = out.parameters.values()
-        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD
-                      and pp.default is pp.empty) for pp in pars])
-        kw = [pp.name for pp in pars if (pp.kind==pp.POSITIONAL_OR_KEYWORD
-                                         and pp.default is not pp.empty)]
-    else:
-        nat, nak = len(out.args), len(out.defaults)
-        na = nat-nak
-        kw = [out.args[ii] for ii in range(nat-1,na-1,-1)][::-1]
-    return na, kw
-
-
-
-def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
-    cdef bool ani
-    cdef int nt = -1
-    # ...
-    stre = "Input emissivity function (ff)"
-    assert hasattr(ff,'__call__'), stre+" must be a callable (function)!"
-    na, kw = get_insp(ff)
-    assert na==1, stre+" must take only one positional argument: ff(Pts)!"
-    assert 't' in kw, stre+" must have kwarg 't=None' for time vector!"
-    C = type(t) in [int,float,np.int64,np.float64] or hasattr(t,'__iter__')
-    assert t is None or C, "Arg t must be None, a scalar or an iterable!"
-    Pts = np.array([[1,2],[3,4],[5,6]])
-    NP = Pts.shape[1]
-    try:
-        out = ff(Pts, t=t)
-    except Exception:
-        Str = stre+" must take one positional arg: a (3,N) np.ndarray"
-        assert False, Str
-    if hasattr(t,'__iter__'):
-        nt = len(t)
-        Str = ("ff(Pts,t=t), where Pts is a (3,N) np.array and "
-               +"t a len()=nt iterable, must return a (nt,N) np.ndarray!")
-        assert type(out) is np.ndarray and out.shape==(nt,NP), Str
-    else:
-        Str = ("When fed a (3,N) np.array only, or if t is a scalar,"
-               +" ff must return a (N,) np.ndarray!")
-        assert type(out) is np.ndarray and out.shape==(NP,), Str
-
-    ani = ('Vect' in kw) if Ani is None else Ani
-    if ani:
-        Str = "If Ani=True, ff must take a keyword argument 'Vect=None'!"
-        assert 'Vect' in kw, Str
-        Vect = np.array([1,2,3]) if Vuniq else np.ones(Pts.shape)
-        try:
-            out = ff(Pts, Vect=Vect, t=t)
-        except Exception:
-            Str = "If Ani=True, ff must handle multiple points Pts (3,N) with "
-            if Vuniq:
-                Str += "a unique common vector (Vect as a len()=3 iterable)"
-            else:
-                Str += "multiple vectors (Vect as a (3,N) np.ndarray)"
-            assert False, Str
-        if hasattr(t,'__iter__'):
-            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
-                   +"Pts is (3,N), Vect is provided and t is (nt,)")
-            assert type(out) is np.ndarray and out.shape==(nt,NP), Str
-        else:
-            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
-                   +"Pts is (3,N), Vect is provided and t is (nt,)")
-            assert type(out) is np.ndarray and out.shape==(NP,), Str
-    return ani
-
 
 def integrate1d(y, double dx, t=None, str method='sum'):
     """ Generic integration method ['sum','simps','romb']
@@ -2931,7 +2860,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double[1] loc_eff_res
     cdef double[::1] reseff_mv
     cdef double[::1] res_mv
-    cdef double[::1,:] sig_mv
     cdef double[:,::1] val_mv
     cdef double[:,::1] pts_mv
     cdef double[:,::1] usbis_mv
@@ -2999,7 +2927,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
     sig = np.empty((nt, nlos), dtype=float, order='F')
-    sig_mv = sig
     # If the resolution is the same for every LOS, we create a tab
     if res_is_list :
         res_arr = np.asarray(res)
@@ -3096,11 +3023,12 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     pts, usbis = _st.call_get_sample_single_ani(lims[0, ii],
                                                                 lims[1, ii],
                                                                 res_mv[ii],
-                                                                n_dmode, n_imode,
+                                                                n_dmode,
+                                                                n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
-                                                                ray_orig[:,ii:ii+1],
-                                                                ray_vdir[:,ii:ii+1])
+                                                                ray_orig[:, ii:ii+1],
+                                                                ray_vdir[:, ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
@@ -3200,7 +3128,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:, ii:ii+1],
                                                                 ray_vdir[:, ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    sig_mv[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
+                    sig[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:  # simpson integration mode
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0, ii],
@@ -3233,39 +3161,42 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # -- not anisotropic -----------------------------------------------
             if n_imode == 0:  # "sum" integration mode
                 for ii in range(nlos):
-                    pts = _st.call_get_sample_single(lims[0,ii], lims[1,ii],
+                    pts = _st.call_get_sample_single(lims[0, ii],
+                                                     lims[1, ii],
                                                      res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
-                                                     ray_orig[:,ii:ii+1],
-                                                     ray_vdir[:,ii:ii+1])
+                                                     ray_orig[:, ii:ii+1],
+                                                     ray_vdir[:, ii:ii+1])
                     val_2d = func(pts, t=t, **fkwdargs)
-                    sig[:, ii] = np.sum(val_2d,axis=-1)*loc_eff_res[0]
+                    sig[:, ii] = np.sum(val_2d, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:  # "simpson" integration mode
                 for ii in range(nlos):
-                    pts = _st.call_get_sample_single(lims[0,ii], lims[1,ii],
+                    pts = _st.call_get_sample_single(lims[0, ii],
+                                                     lims[1, ii],
                                                      res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
-                                                     ray_orig[:,ii:ii+1],
-                                                     ray_vdir[:,ii:ii+1])
+                                                     ray_orig[:, ii:ii+1],
+                                                     ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:  # "romberg" integration mode
                 for ii in range(nlos):
-                    pts = _st.call_get_sample_single(lims[0,ii], lims[1,ii],
+                    pts = _st.call_get_sample_single(lims[0, ii],
+                                                     lims[1, ii],
                                                      res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
-                                                     ray_orig[:,ii:ii+1],
-                                                     ray_vdir[:,ii:ii+1])
+                                                     ray_orig[:, ii:ii+1],
+                                                     ray_vdir[:, ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
-                                               dx=loc_eff_res[0])
+                                              dx=loc_eff_res[0])
     return sig
 
 
@@ -3379,7 +3310,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
         kPMin = res[0]
         if is_LOS_Mode and kPMin > kOut:
             kPMin = kOut
- 
+
     # Computing the point's coordinates.........................................
     cdef double PMin0 = orig0 + kPMin * dirv0
     cdef double PMin1 = orig1 + kPMin * dirv1

@@ -50,7 +50,6 @@ __version__
 
 import sys
 import warnings
-
 from .version import __version__
 
 # For tests without display with nosetests
