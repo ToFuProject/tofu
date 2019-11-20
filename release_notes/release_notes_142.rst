@@ -1,4 +1,4 @@
-in changes:
+Main changes:
 ==========
 
 - Python 2.7 is not supported anymore
@@ -9,6 +9,7 @@ in changes:
 - Minor bug fixes in interactive figures
 - Minor bug fixes in Plasma2D interpolation
 - New configuration (ITER) available
+- First version of a class handling 2D XRay bragg spectrometers
 - First tools for magnetic field line tracing available on WEST
 - Better documentation, more ressources
 - More informative error messages
@@ -21,12 +22,12 @@ Detailed changes:
 
 Installation / portability:
 ---------------------------
-- Bug fixes for installation on ITER and Gateway clusters
-- Easier installation on Mac (`requirements.txt`)
+- Bug fixes for installation on ITER and Gateway clusters #250
+- Easier installation on Mac #183 (`requirements.txt`)
 - Removed explicit compiler specification in `setup.py` for more flexibility
-- When sub-packages imas2tofu or mag are missing, the warning is much more concise, but the error traceback is still accessible in a hidden dictionnary for developpers
+- When sub-packages imas2tofu or mag are missing, the warning is much more concise, but the error traceback is still accessible in a hidden dictionnary for developpers #243
 - `python setup.py clean` now doesn't cythonize
-- Dropped python 2 support:
+- Dropped python 2 support: #228
   - merged `_GG02` and `_GG03` into the `_GG` file
   - no longer being tested in travis
   - no longer packaged in conda
@@ -37,16 +38,18 @@ Installation / portability:
 
 Bug fixes:
 -----------
-- Major bug fix in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,
+- Major bug fix in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,  #247 #255
 - Majour bug fix in `LOS_get_sample()` when `minimize='hybrid'` and `minimize='memory'` the limits were not set correctly
   in some cases the formula for sampling a LOS was wrong (`los_get_sample_core_var_res`).
 - Minor bug fixes in interactive figures when `t=None` was used (the interactivity was lost due to wrong formatting of the time array)
-- Minor bug fixed in Plasma 2D interpolation (`interp_t` was not being set), imporved error messages
-- Removed unused variable in `_Ves_get_sampleS` (_GG), in `_core.py`
-- Gave more explicit names to some variables in `_core.py` to avoid bugs/typos (eg. `I` to `current`)
-- Removed a secondary `init` function for the class `tf.geom.CoilsPF`
+- Minor bug fixed in Plasma 2D interpolation (`interp_t` was not being set), imporved error messages #209
+- Removed unused variable in `_Ves_get_sampleS` (_GG), in `_core.py` #190
+- Gave more explicit names to some variables in `_core.py` to avoid bugs/typos (eg. `I` to `current`) #186
+- Removed a secondary `init` function for the class `tf.geom.CoilsPF` #187
 - `_checkformat_inputs_dgeom` now is a function of `Rays` class
-- Change default separator in `to_dict()` from '_' to '.'
+- Change default separator in `to_dict()` from '_' to '.', #228
+- Rays.calc_kInOut_IsoFlux() is now more flexible (accepts 3d np.arrays as well as lists of np.ndarrays), #188
+- __repr__() is now overloaded in a more robust way so it falls back to printing the class if get_summary() fails to avoid crashing in debug mode #242
 
 Documentation:
 --------------
@@ -65,15 +68,16 @@ Documentation:
 
 New features:
 ---------------
-- First version of magnetic field line tracing (for WEST only so far, to be improved)
-- First version of Spectro X 2D crystal for synthetic diagnostics (to be improved)
+- First version of magnetic field line tracing (for WEST only so far, to be improved) #213 #235
+- First version of 2D XRay Bragg spectrometers for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved)
 - When computing a signal `LOS_calc_signal` emissivity function can now return
-  a 1D array if `t=None`
-- Three functions added to `tf.geom.Rays`:
+  a 1D array if `t=None` #217 #252
+- Three functions added to `tf.geom.Rays`: #211
 	- `calc_length_in_isoflux()`: compute the length inside a set of isoflux surfaces of each LOS
 	- `calc_min_geom_radius()`: compute the minimal geometrical radius (impact parameter) of each LOS
 	- `calc_min_rho_from_Plasma2D()`: compute the minimum normalized radius (or any field with a minimum on the axis) for each LOS
-- New ITER configuration available!
+- New ITER configuration available! #220 #227
+- More explicit names for default configurations #264
 
 Contributors:
 =============
@@ -94,7 +98,7 @@ What's next (indicative):
 - Easier binary and source installs from pip and conda for all platforms, including unit tests on alla platforms (ongoing for @lasofivec and @flothesof : issue #92 and #259 )
 - Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing for @lasofivec : Issues #71, #72, #73, #74, #75, #76, #77, #78 )
 - Tools and classes to handle 2D Bragg X-Ray crystal spectrometer (ongoing for @Didou09 : Issues #202 and #263)
-- Generic data classe to incorporate plateau-finding, data analysis and 1d Bayesian fitting routines and classes (ongoing for @Didou09 and @jmoralesFusion and : issues #208, #260 and #262)
+- Generic data classe to incorporate plateau-finding, data analysis and 1d Bayesian fitting routines and classes (ongoing for @Didou09 and @jmoralesFusion and @MohammadKozeiha: issues #208, #260 and #262)
 - More general magnetic field line tracing workflow
 - Better unit tests coverage
 - More complete documentation
