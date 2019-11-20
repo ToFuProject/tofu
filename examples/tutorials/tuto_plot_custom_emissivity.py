@@ -74,6 +74,7 @@ ax.set_xlabel('y')
 ax.set_ylabel('z')
 configB2.plot(lax=ax, proj='cross')
 cam_center, = ax.plot(*project_to_2D(cam2d._dgeom['pinhole']), '*', ms=20)
+ax.set_aspect("equal")
 ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 ###############################################################################
