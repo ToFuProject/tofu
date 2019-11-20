@@ -43,6 +43,17 @@ New features:
 - First version of Spectro X 2D crystal for synthetic diagnostics (to be improved),
 -
 
+Contributors:
+=============
+
+Many thanks to all developpers:
+
+- Didier Vezinet (@Didou09)
+- Laura Mendoza (@lasofivec)
+- Florian Le Bourdais (@flothesof)
+- Jorge Morales (@jmoralesFusion)
+- Koyo Munechika (@munechika-koyo)
+
 
 What's next (indicative):
 =========================
