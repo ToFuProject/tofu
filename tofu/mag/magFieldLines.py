@@ -389,12 +389,15 @@ class MagFieldLines:
             mat file
         '''
         R, P, Z = state
-        # if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(89.5)<=P<=np.deg2rad(90.5):
+        # if (np.abs(Z) <= 0.5 and R > 3.01
+        #     and np.deg2rad(89.5) <= P <= np.deg2rad(90.5)):
         #     return 0
-        # if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(179.5)<=P<=np.deg2rad(180.5):
+        # if (np.abs(Z) <= 0.5 and R > 3.01
+        #     and np.deg2rad(179.5) <= P <= np.deg2rad(180.5)):
         #     print('Got 2')
         #     return 0
-        # elif np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(269.5)<=P<=np.deg2rad(270.5):
+        # elif (np.abs(Z) <= 0.5 and R > 3.01
+        #       and np.deg2rad(269.5) <= P <= np.deg2rad(270.5)):
         #     print('Got 3')
         #     return 0
         if self.wall_ck==False:
