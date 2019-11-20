@@ -114,7 +114,6 @@ page <https://github.com/ToFuProject/tofu/pulls>`__, from your branch,
 accept it.
 
 
-
 Continuous integration
 """"""""""""""""""""""
 

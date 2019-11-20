@@ -52,7 +52,6 @@ _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
-_NTHREADS = 16
 _DREFLECT = {"specular": 0, "diffusive": 1, "ccube": 2}
 
 """
@@ -4083,20 +4082,19 @@ class Rays(utils.ToFuObject):
         # Test if unique starting point
         if dgeom["case"] in ["A", "B", "C"]:
             # Test if pinhole
-            if dgeom["case"] in ["A", "B"]:
-                u = dgeom["u"][:, 0:1]
-                sca2 = np.sum(dgeom["u"][:, 1:] * u, axis=0) ** 2
-                if np.all(sca2 < 1.0 - 1.0e-9):
-                    DDb = dgeom["D"][:, 1:] - dgeom["D"][:, 0:1]
-                    k = np.sum(
-                        DDb * (u - np.sqrt(sca2) * dgeom["u"][:, 1:]), axis=0
-                    )
-                    k = k / (1.0 - sca2)
-                    if k[0] > 0 and np.allclose(
-                        k, k[0], atol=1.0e-3, rtol=1.0e-6
-                    ):
-                        pinhole = dgeom["D"][:, 0] + k[0] * u[:, 0]
-                        dgeom["pinhole"] = pinhole
+            if dgeom['D'].shape[1] == 1 and dgeom['nRays'] > 1:
+                dgeom['pinhole'] = dgeom['D'].ravel()
+            elif dgeom['case'] in ['A', 'B']:
+                u = dgeom['u'][:, 0:1]
+                sca2 = np.sum(dgeom['u'][:, 1:]*u, axis=0)**2
+                if np.all(sca2 < 1.0 - 1.e-9):
+                    DDb = dgeom['D'][:, 1:]-dgeom['D'][:, 0:1]
+                    k = np.sum(DDb*(u - np.sqrt(sca2)*dgeom['u'][:, 1:]),
+                               axis=0)
+                    k = k / (1.0-sca2)
+                    if k[0] > 0 and np.allclose(k, k[0], atol=1.e-3, rtol=1.e-6):
+                        pinhole = dgeom['D'][:, 0] + k[0]*u[:, 0]
+                        dgeom['pinhole'] = pinhole
 
             # Test if all D are on a common plane or line
             va = dgeom["D"] - dgeom["D"][:, 0:1]
@@ -4984,13 +4982,14 @@ class Rays(utils.ToFuObject):
 
     @property
     def u(self):
-        if self.isPinhole:
-            u = self._dgeom["pinhole"][:, np.newaxis] - self._dgeom["D"]
-            u = u / np.sqrt(np.sum(u ** 2, axis=0))[np.newaxis, :]
-        elif self._dgeom["u"].shape[1] < self._dgeom["nRays"]:
-            u = np.tile(self._dgeom["u"], self._dgeom["nRays"])
-        else:
-            u = self._dgeom["u"]
+        if (self._dgeom['u'] is not None
+            and self._dgeom['u'].shape[1] == self._dgeom['nRays']):
+            u = self._dgeom['u']
+        elif self.isPinhole:
+            u = self._dgeom['pinhole'][:, None] - self._dgeom['D']
+            u = u / np.sqrt(np.sum(u**2, axis=0))[None, :]
+        elif self._dgeom['u'].shape[1] < self._dgeom['nRays']:
+            u = np.tile(self._dgeom['u'], self._dgeom['nRays'])
         return u
 
     @property
@@ -6248,7 +6247,7 @@ class Rays(utils.ToFuObject):
                 DL = None
             ani = quant is None
             if num_threads is None:
-                num_threads = _NTHREADS
+                num_threads = _NUM_THREADS
 
             if np.all(indok):
                 D, u = self.D, self.u
