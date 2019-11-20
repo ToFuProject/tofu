@@ -10,11 +10,7 @@ import warnings
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
-
-if sys.version[0] == "3":
-    from inspect import signature as insp
-elif sys.version[0] == "2":
-    from inspect import getargspec as insp
+from inspect import signature as insp
 
 # ToFu-specific
 try:
@@ -1027,18 +1023,15 @@ def LOS_calc_signal(
         D, u, dL, DL=DL, dLMode=dLMode, method=method, Test=Test
     )
     out = insp(ff)
-    if sys.version[0] == "3":
-        N = np.sum(
-            [
-                (
-                    pp.kind == pp.POSITIONAL_OR_KEYWORD
-                    and pp.default is pp.empty
-                )
-                for pp in out.parameters.values()
-            ]
-        )
-    else:
-        N = len(out.args)
+    N = np.sum(
+        [
+            (
+                pp.kind == pp.POSITIONAL_OR_KEYWORD
+                and pp.default is pp.empty
+            )
+            for pp in out.parameters.values()
+        ]
+    )
 
     if N == 1:
         Vals = ff(Pts)

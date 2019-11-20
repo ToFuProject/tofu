@@ -24,7 +24,6 @@ import tofu.pathfile as tfpf
 
 _SEP = '.'
 _dict_lexcept_key = []
-_pyv = int(sys.version[0])
 
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
@@ -1955,10 +1954,8 @@ class ToFuObject(ToFuObjectBase):
                     strip=strip, compressed=compressed,
                     return_pfe=return_pfe, verb=verb)
 
-if sys.version[0]=='2':
-    ToFuObject.save.__func__.__doc__ = save.__doc__
-else:
-    ToFuObject.save.__doc__ = save.__doc__
+
+ToFuObject.save.__doc__ = save.__doc__
 
 
 #############################################
@@ -2017,11 +2014,6 @@ class ID(ToFuObjectBase):
                  Exp=None, Diag=None, shot=None, SaveName=None,
                  SavePath=None, usr=None, dUSR=None, lObj=None,
                  fromdict=None, include=None, sep=None):
-
-        # To replace __init_subclass__ for Python 2
-        if sys.version[0]=='2':
-            self._dstrip = ToFuObjectBase._dstrip.copy()
-            self.__class__._strip_init()
 
         kwdargs = locals()
         del kwdargs['self']
@@ -2146,10 +2138,7 @@ class ID(ToFuObjectBase):
         nMax = max(cls._dstrip['allowed'])
         doc = ""
         doc = ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        if sys.version[0]=='2':
-            cls.strip.__func__.__doc__ = doc
-        else:
-            cls.strip.__doc__ = doc
+        cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         #super()
