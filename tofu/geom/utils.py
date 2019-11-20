@@ -236,8 +236,8 @@ def compute_RaysCones(Ds, us, angs=np.pi/90., nP=40):
 ###########################################################
 
 
-def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
-                    divlow=True, divup=True, nP=200):
+def _compute_VesPoly(R=None, r=None, elong=None, Dshape=None,
+                     divlow=None, divup=None, nP=None):
     """ Utility to compute three 2D (R,Z) polygons
 
     One represents a vacuum vessel, one an outer bumper, one a baffle
@@ -252,20 +252,27 @@ def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
 
     Parameters
     ----------
-    R:          int / float
+    R:          None / int / float
         Major radius used as a center of the vessel
-    r :         int / float
+        If None, defaults to 2.4
+    r :         None / int / float
         Minor radius of the vessel
-    elong:      int / float
+        If None, defaults to 1.
+    elong:      None / int / float
         Dimensionless elongation parameter in [-1;1]
-    Dshape:     int / float
+        If None, defaults to 0.
+    Dshape:     None / int / float
         Dimensionless parameter for the D-shape (in-out asymmetry) in [0;1]
-    divlow:     bool
+        If None, defaults to 0.
+    divlow:     None / bool
         Flag indicating whether to incude a lower divertor-like shape
-    divup:      bool
+        If None, defaults to True
+    divup:      None / bool
         Flag indicating whether to incude an upper divertor-like shape
-    nP :        int
+        If None, defaults to True
+    nP :        None / int
         Parameter specifying approximately the number of points of the vessel
+        If None, defaults to 200
 
     Return
     ------
@@ -276,6 +283,22 @@ def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     pbaffle:    np.ndarray
         Closed (2,N) polygon defining the lower baffle
     """
+
+    # Check inputs
+    if R is None:
+        R = 2.4
+    if r is None:
+        r = 1.
+    if elong is None:
+        elong = 0.
+    if Dshape is None:
+        Dshape = 0.
+    if divlow is None:
+        divlow = True
+    if divup is None:
+        divup = True
+    if nP is None:
+        nP = 200
 
     # Basics (center, theta, unit vectors)
     cent = np.r_[R,0.]
@@ -728,8 +751,8 @@ def _create_config_testcase(config=None, returnas='object',
 
 def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
-                  R=2.4, r=1., elong=0., Dshape=0.,
-                  divlow=True, divup=True, nP=200,
+                  R=None, r=None, elong=None, Dshape=None,
+                  divlow=None, divup=None, nP=None,
                   returnas='object', SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
@@ -784,6 +807,19 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
             - a dictionary of the polygons and their pos/extent (if any)
     """
 
+    lp = [R, r, elong, Dshape, divlow, divup, nP]
+    lpstr = '[R, r, elong, Dshape, divlow, divup, nP]'
+    lc = [case is not None,
+          any([pp is not None for pp in lp])]
+    if np.sum(lc) > 1:
+        msg = ("Please provide either:\n"
+               + "\t- case: the name of a stored case\n"
+               + "\t- geometrical parameters {}".format(lpstr))
+        raise Exception(msg)
+    elif not any(lc):
+        case = _DEFCONFIG
+
+    # Get config, either from known case or geometrical parameterization
     if case is not None:
         conf = _create_config_testcase(config=case, returnas=returnas, path=path)
     else:
