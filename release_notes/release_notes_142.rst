@@ -69,7 +69,7 @@ Documentation:
 New features:
 ---------------
 - First version of `magnetic field line tracing` (for WEST only so far, to be improved) #213 #235
-- First version of `2D XRay Bragg spectrometers` for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved)
+- First version of `2D XRay Bragg spectrometers` for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved) #267
 - When computing a signal `LOS_calc_signal` emissivity function can now return
   a 1D array if `t=None` #217 #252
 - Three functions added to `tf.geom.Rays`: #211
@@ -108,4 +108,4 @@ List of issues and PR closed:
 =============================
 - Issues: #30, #180, #183, #185, #186, #187, #188, #189, #190, #201, #209, #211, #213, #217, #220, #224, #227, #228, #230, #235, #243, #247, #248, #250, #252, #255, #264
 - PR: #173, #175, #179, #181, #182, #184, #191, #192, #193, #194, #195, #196, #197, #199, #206, #207, #210, #212, #222, #223, #225, #226, #229, #231, #233, #234, #236, #237, #238, #240, #242, #244, #245, #246, #249, #251, #253, #254, #256, #257, #258,
-  #261, #265
+  #261, #265, #267
