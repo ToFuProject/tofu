@@ -670,7 +670,8 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10',
                                 'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
                                 'BLK16', 'BLK17', 'BLK18',
-                                'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
+                                'Div1', 'Div2', 'Div3',
+                                'Div4', 'Div5', 'Div6']}
             }
 
 # Each config can be called by various names (for benchmark and
@@ -741,7 +742,7 @@ def _create_config_testcase(config=None, returnas='object',
             obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
                                              Exp=dconfig[config]['Exp'],
                                              out=returnas)
-            if returnas not in ['object',object]:
+            if returnas not in ['object', object]:
                 obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
             lS.append(obj)
     if returnas == 'dict':
