@@ -11,13 +11,15 @@ How to use the documentation
 ----------------------------
 Documentation is available in two forms:
   1. Docstrings provided with the code
-  2. Online sphinx-generated documentation, available from `ToFu's homepage <https://tofuproject.github.io/tofu/>`_.
+  2. Online sphinx-generated documentation, available from
+`ToFu's homepage <https://tofuproject.github.io/tofu/>`_.
 
 
 Available subpackages
 ---------------------
 `geom <tofu.geom.html>`_
-    Geometry classes to model the 3D geometry (vacuum vessel, structural elements, LOS, etc.)
+    Geometry classes to model the 3D geometry (vacuum vessel, structural
+    elements, LOS, etc.)
 `data <tofu.data.html>`_
     Data-handling classes (storing, processing, plotting, etc.)
 `dumpro <tofu.dumpro.html>`_
