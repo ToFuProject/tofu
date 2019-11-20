@@ -619,50 +619,84 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 _ExpWest = 'WEST'
 _ExpITER = 'ITER'
 
-_dconfig = {'A1': {'Exp': _ExpWest,
-                   'Ves': ['V1']},
-            'A2': {'Exp': _ExpITER,
-                   'Ves': ['V0']},
-            'A3': {'Exp': _ExpWest,
-                   'PlasmaDomain': ['Sep']},
-            'B1': {'Exp': _ExpWest,
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'B2': {'Exp': _ExpWest,
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
-                           'BumperInnerV1', 'BumperOuterV1',
-                           'IC1V1', 'IC2V1', 'IC3V1']},
-            'B3': {'Exp': _ExpWest,
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                           'BumperInnerV3', 'BumperOuterV3',
-                           'IC1V1', 'IC2V1', 'IC3V1',
-                           'LH1V1', 'LH2V1',
-                           'RippleV1', 'VDEV0']},
-            'B4': {'Exp': _ExpITER,
-                   'Ves': ['V1'],
-                   'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05', 'BLK06',
-                           'BLK07', 'BLK08', 'BLK09', 'BLK10', 'BLK11', 'BLK12',
-                           'BLK13', 'BLK14', 'BLK15', 'BLK16', 'BLK17', 'BLK18',
-                           'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
+# Dictionnary of unique config names
+_DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
+                        'Ves': ['V1']},
+            'ITER-V1': {'Exp': _ExpITER,
+                        'Ves': ['V0']},
+            'WEST-Sep': {'Exp': _ExpWest,
+                         'PlasmaDomain': ['Sep']},
+            'WEST-V2': {'Exp': _ExpWest,
+                        'Ves': ['V2'],
+                        'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
+            'WEST-V3': {'Exp': _ExpWest,
+                        'Ves': ['V2'],
+                        'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
+                                'BumperInnerV1', 'BumperOuterV1',
+                                'IC1V1', 'IC2V1', 'IC3V1']},
+            'WEST-V4': {'Exp': _ExpWest,
+                        'Ves': ['V2'],
+                        'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
+                                'BumperInnerV3', 'BumperOuterV3',
+                                'IC1V1', 'IC2V1', 'IC3V1',
+                                'LH1V1', 'LH2V1',
+                                'RippleV1', 'VDEV0']},
+            'ITER-V2': {'Exp': _ExpITER,
+                        'Ves': ['V1'],
+                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05', 'BLK06',
+                                'BLK07', 'BLK08', 'BLK09', 'BLK10', 'BLK11', 'BLK12',
+                                'BLK13', 'BLK14', 'BLK15', 'BLK16', 'BLK17', 'BLK18',
+                                'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
             }
 
-def _create_config_testcase(config='A1', out='object',
-                            path=_path_testcases, dconfig=_dconfig):
+# Each config can be called by various names (for benchmark and
+# retro-compatibility), this table stores the available names for each unique
+# config in _DCONFIG
+_DCONFIG_TABLE = {'ITER': 'ITER-V2',
+                  'WEST': 'WEST-V4',
+                  'A1': 'WEST-V1',
+                  'A2': 'ITER-V1',
+                  'A3': 'WEST-Sep',
+                  'B1': 'WEST-V2',
+                  'B2': 'WEST-V3',
+                  'B3': 'WEST-V4',
+                  'B4': 'ITER-V2'}
+
+# Default config
+_DEFCONFIG = 'ITER'
+
+
+def _create_config_testcase(config=None, returnas='object',
+                            path=_path_testcases, dconfig=_DCONFIG,
+                            dconfig_table=_DCONFIG_TABLE):
     """ Load the desired test case configuration
 
     Choose from one of the reference preset configurations:
         {0}
 
     """.format('['+', '.join(dconfig.keys())+']')
-    assert all([type(ss) is str for ss in [config,path]])
+    # Check input
+    if config is None:
+        config = _DEFCONFIG
+    assert all([type(ss) is str for ss in [config, path]])
     assert type(dconfig) is dict
-    if not config in dconfig.keys():
-        msg = "Please a valid config, from one of the following:\n"
-        msg += "["+", ".join(dconfig.keys())+"+]"
-        raise Exception(msg)
     path = os.path.abspath(path)
+
+    # Check config is available
+    if config in dconfig.keys():
+        pass
+
+    elif config in dconfig_table.keys():
+        # Get corresponding config
+        config = dconfig_table[config]
+
+    else:
+        msg = ("The provided config name is not valid:\n"
+               + "Please choose among either:\n"
+               + "\t - unique keys: {}\n".format(list(dconfig.keys()))
+               + "\t - shortcuts  : {}\n\n".format(list(dconfig_table.keys()))
+               + "  => you provided: case = {}\n".format(config))
+        raise Exception(msg)
 
     # Get file names for config
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
@@ -682,11 +716,11 @@ def _create_config_testcase(config='A1', out='object',
             pfe = os.path.join(path,ff[0])
             obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
                                              Exp=dconfig[config]['Exp'],
-                                             out=out)
-            if out not in ['object',object]:
+                                             out=returnas)
+            if returnas not in ['object',object]:
                 obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
             lS.append(obj)
-    if out == 'dict':
+    if returnas == 'dict':
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
@@ -696,7 +730,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=2.4, r=1., elong=0., Dshape=0.,
                   divlow=True, divup=True, nP=200,
-                  out='object', SavePath='./', path=_path_testcases):
+                  returnas='object', SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -751,12 +785,12 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
     """
 
     if case is not None:
-        conf = _create_config_testcase(config=case, out=out, path=path)
+        conf = _create_config_testcase(config=case, returnas=returnas, path=path)
     else:
         poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
                                                 divlow=divlow, divup=divup, nP=nP)
 
-        if out=='dict':
+        if returnas == 'dict':
             conf = {'Ves':{'Poly':poly},
                     'Baffle':{'Poly':pbaffle},
                     'Bumper':{'Poly':pbump,
