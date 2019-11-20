@@ -666,9 +666,10 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'RippleV1', 'VDEV0']},
             'ITER-V2': {'Exp': _ExpITER,
                         'Ves': ['V1'],
-                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05', 'BLK06',
-                                'BLK07', 'BLK08', 'BLK09', 'BLK10', 'BLK11', 'BLK12',
-                                'BLK13', 'BLK14', 'BLK15', 'BLK16', 'BLK17', 'BLK18',
+                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
+                                'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10',
+                                'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
+                                'BLK16', 'BLK17', 'BLK18',
                                 'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6']}
             }
 
@@ -821,10 +822,13 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
 
     # Get config, either from known case or geometrical parameterization
     if case is not None:
-        conf = _create_config_testcase(config=case, returnas=returnas, path=path)
+        conf = _create_config_testcase(config=case,
+                                       returnas=returnas, path=path)
     else:
-        poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
-                                                divlow=divlow, divup=divup, nP=nP)
+        poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r,
+                                                elong=elong, Dshape=Dshape,
+                                                divlow=divlow, divup=divup,
+                                                nP=nP)
 
         if returnas == 'dict':
             conf = {'Ves':{'Poly':poly},
