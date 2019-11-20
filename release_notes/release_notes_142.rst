@@ -23,9 +23,10 @@ Detailed changes:
 Installation / portability:
 ---------------------------
 - Bug fixes for installation on ITER and Gateway clusters #250
-- Easier installation on Mac #183
+- Easier installation on Mac #183 (`requirements.txt`)
 - Removed explicit compiler specification in `setup.py` for more flexibility
 - When sub-packages imas2tofu or mag are missing, the warning is much more concise, but the error traceback is still accessible in a hidden dictionnary for developpers #243
+- `python setup.py clean` now doesn't cythonize
 - Dropped python 2 support: #228
   - merged `_GG02` and `_GG03` into the `_GG` file
   - no longer being tested in travis
@@ -33,10 +34,13 @@ Installation / portability:
   - updated README file accordingly
   - dropped `funcsigs` dependency
   - made necessary changes in `setup.py`
+  - `benchmarks/calc_signal_benchmark.py`: now working with python 3
 
 Bug fixes:
 -----------
-- Major bug fixed in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True, #247 #255
+- Major bug fix in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,  #247 #255
+- Major bug fix in `LOS_get_sample()` when `minimize='hybrid'` and `minimize='memory'` the limits were not set correctly
+  in some cases the formula for sampling a LOS was wrong (`los_get_sample_core_var_res`).
 - Minor bug fixes in interactive figures when `t=None` was used (the interactivity was lost due to wrong formatting of the time array)
 - Minor bug fixed in Plasma 2D interpolation (`interp_t` was not being set), imporved error messages #209
 - Removed unused variable in `_Ves_get_sampleS` (_GG), in `_core.py` #190
@@ -50,18 +54,29 @@ Bug fixes:
 Documentation:
 --------------
 - Updated information about support of python version
+- Added slides of talk given at PyConFR 2019 conference
+- Added a `gallery` in our documentation with 3 different tutorials:
+  - 5 minutes tutorial to show to create a geometry and 1D/2D cameras
+  - Guide on how to create your own Geometry from scratch (vacuum vessel, structures, etc.)
+  - How to compute the signal received by a camera using a synthetic signal.
+  For all of these tutorial, you can see directly the codes and the
+  resulting images, and you can get the source code or download it as a
+  Jupyter notebook!
+- Minor changes to the web doc: updated install instructions to be "cleaner"
+  now in rST and not HTML), small changes in navigation bar.
+- Guide on how to contribute to ToFu.
 
 New features:
 ---------------
-- First version of magnetic field line tracing (for WEST only so far, to be improved) #213 #235
-- First version of 2D XRay Bragg spectrometers for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved)
+- First version of `magnetic field line tracing` (for WEST only so far, to be improved) #213 #235
+- First version of `2D XRay Bragg spectrometers` for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved)
 - When computing a signal `LOS_calc_signal` emissivity function can now return
   a 1D array if `t=None` #217 #252
 - Three functions added to `tf.geom.Rays`: #211
 	- `calc_length_in_isoflux()`: compute the length inside a set of isoflux surfaces of each LOS
 	- `calc_min_geom_radius()`: compute the minimal geometrical radius (impact parameter) of each LOS
 	- `calc_min_rho_from_Plasma2D()`: compute the minimum normalized radius (or any field with a minimum on the axis) for each LOS
-- New ITER configuration available! #220 #227
+- New `ITER configuration` available! #220 #227
 - More explicit names for default configurations #264
 
 Contributors:
@@ -74,6 +89,7 @@ Many thanks to all developpers:
 - Florian Le Bourdais (@flothesof)
 - Jorge Morales (@jmoralesFusion)
 - Koyo Munechika (@munechika-koyo)
+- Louwrens Van Dellen (@Louwrensth)
 
 
 What's next (indicative):

@@ -50,6 +50,10 @@ Mac OS X
 
 See :ref:`installing-as-a-developer`.
 
+Additional *caveat*: if you are using a version of `gcc < 8` be sure to
+turn off all parallelizations since there is a `known bug with cython
+<https://github.com/ToFuProject/tofu/issues/183>`__.
+
 .. _installing-tofu-on-windows:
 
 Windows
