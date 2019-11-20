@@ -14,6 +14,7 @@ import os
 import sys
 import tofu as tf
 import sphinx_bootstrap_theme
+from sphinx_gallery.sorting import FileNameSortKey
 
 # Getting tofu version
 tf_version = tf.__version__[:3]
@@ -62,7 +63,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"tofu"
-copyright = u"2016, Didier VEZINET"
+copyright = u"2016-2019, Tofu contributors"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -167,11 +168,12 @@ html_theme_options = {
     "bootstrap_version": "3",
     "nosidebar": True,
     "navbar_links": [
-        ("Gallery", "auto_examples/index"),
         ("Installation", "installation"),
-        ("About us", "aboutus"),
-        ("Versions", "releases"),
-        ("Code doc", "tofu"),
+        ("Contributing", 'contributing'),
+        ("Gallery", "auto_examples/index"),
+        ("About", "aboutus"),
+        ("Releases", "releases"),
+        ("API", "tofu"),
     ],
 }
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
@@ -353,6 +355,8 @@ intersphinx_mapping = {"http://docs.python.org/": None}
 sphinx_gallery_conf = {
     "examples_dirs": "../../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to save gallery generated output
+    "within_subsection_order": FileNameSortKey,
+    'filename_pattern': '/tuto_plot_',
 }
 
 

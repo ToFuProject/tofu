@@ -1,6 +1,11 @@
 tofu.dumpro package
 ===================
 
+.. automodule:: tofu.dumpro
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -48,15 +53,6 @@ tofu.dumpro.\_plot module
 -------------------------
 
 .. automodule:: tofu.dumpro._plot
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: tofu.dumpro
    :members:
    :undoc-members:
    :show-inheritance:

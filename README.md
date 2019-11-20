@@ -100,69 +100,46 @@ If IMAS is not available, tofu will simply display a warning stating that the im
 tofu can thus easily load and handle multiple IDSs (IMAS data structure units) and provide command-line tools for exporting IMAS data to other general tofu classes (e.g.: Cameras, Plasma2D...) and for interactive plotting.
 All tofu objects have methods to facailitate in-python-console introspection, the ``__repr__`` method is overloaded to display relevant information, an dthis is widely used to explore the data loaded from IMAS.
 
-Do you want to use **tofu** on IMAS and don't know where to start? [See our wiki.](https://github.com/ToFuProject/tofu/wiki/Using-tofu-on-IMAS-server)
+Do you want to use **tofu** on IMAS and don't know where to start?
+[See our documetation.](https://tofuproject.github.io/tofu/installation.html#using-tofu-on-a-iter-cluster)
 
 ----
 
 
 ## Installing tofu
 
-
-### For Windows
-
-
-- [Follow this link to know how to configure your Windows to code on ToFu !](https://github.com/ToFuProject/tofu/wiki/Installing-tofu-on-windows)
-
-### For Ubuntu / Mac
+### For Ubuntu
 
 #### Standard mode
 
    ``` conda install -c tofuproject tofu ```
 
-#### Developer mode
+## For Developers and other platforms
 
-Install dependencies
-
-
-    python (2.7 or 3)
-    numpy
-    scipy
-    matplotlib
-    cython >= 0.26
-    nose
-    pygments
-    pandas
-    polygon3 (or polygon2 if you are using python 2.7)
-
-
-Checkout the tofu git repository and from the top directory
-
-
-    python setup.py build_ext --inplace
-    python setup.py install
-
-
-## Getting Started
-
-See our wiki's page: [Getting started](https://github.com/ToFuProject/tofu/wiki/Getting-started)
-
+[See our documentation.](https://tofuproject.github.io/tofu/installation.html)
 -----
 
 
-**Licensing** 
+**Licensing**
 
-It is distributed under the MIT license and aims at providing the fusion community with 
-a transparent and modular tool for creating / designing diagnostics and using them for 
-synthetic diagnostic (direct problem) and tomography (inverse problem).
+It is distributed under the MIT license and aims at providing the fusion
+community with a transparent and modular tool for creating / designing
+diagnostics and using them for synthetic diagnostic (direct problem)
+and tomography (inverse problem).
 
 **History**
 
-It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
-by Didier Vezinet, and is now maintained / debugged / updated by a team of contributors.
+It was first created at the Max-Planck Institute for Plasma Physics (IPP)
+in Garching, Germany, by Didier Vezinet, and is now maintained, debugged
+and updated by a team of contributors.
 
 
 -----
 
 **Warning**
 This Pypi package focuses on tomography for fusion research.
-It uses the same name as a previous package dedicated to a testing framework coupling fixtures and tests loosely, now renamed **reahl-tofu** and developped by Iwan Vosloo since 2006. If you ended up here looking for a web-oriented library, you should probably redirect to the more recent [**reahl-tofu**](https://pypi.python.org/pypi/reahl-tofu) page.
+It uses the same name as a previous package dedicated to a testing framework
+coupling fixtures and tests loosely, now renamed **reahl-tofu** and developped
+by Iwan Vosloo since 2006. If you ended up here looking for a web-oriented
+library, you should probably redirect to the more recent
+[**reahl-tofu**](https://pypi.python.org/pypi/reahl-tofu) page.

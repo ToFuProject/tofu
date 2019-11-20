@@ -456,13 +456,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
             [[3.*np.pi/4.,5.*np.pi/4.], [np.pi/2.,np.pi]],
             [[3.*np.pi/4.,5.*np.pi/4.], [7.*np.pi/6.,5.*np.pi/6.]]]
 
-    if plot and sys.version[0]=='2':
-        f = plt.figure(figsize=(11.7,8.3),facecolor="w")
-        axarr = mplgrid.GridSpec(2,len(LPhi)/2)
-        axarr.update(left=0.05, right=0.95, top=0.95, bottom=0.05,
-                     wspace=0.05, hspace=0.05)
-        Lax = []
-
     for ii in range(0,len(LPhi)):
         Pts, dS, ind,\
             NL, dLr, Rref,\
@@ -475,20 +468,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
                                                           LPhi[ii][0]),
                                                       Out='(R,Z,Phi)',
                                                       margin=1.e-9)
-
-        if plot and sys.version[0]=='2':
-            Lax.append( f.add_subplot(axarr[ii], facecolor='w',
-                                      projection='3d') )
-            pts = GG.CoordShift(Pts, In='(R,Z,Phi)', Out='(X,Y,Z)',
-                                CrossRef=None)
-            Lax[-1].plot(pts[0,:],pts[1,:],pts[2,:], '.k', ms=3.)
-            rad180 = 180./np.pi
-            Lax[-1].set_title(
-                "Phi = [{0:02.0f},{1:02.0f}]\n"
-                "DPhi = [{2:02.0f},{3:02.0f}] ".format(LPhi[ii][0][0]*rad180,
-                                                       LPhi[ii][0][1]*rad180,
-                                                       LPhi[ii][1][0]*rad180,
-                                                       LPhi[ii][1][1]*rad180))
 
         #try:
         assert Pts.ndim==2 and Pts.shape[0]==3
@@ -549,12 +528,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         # range(0,len(ind)) if ind[jj]==lii[ii]]])
 
 
-    if plot and sys.version[0]=='2':
-        f.canvas.draw()
-        f.savefig('./test_GG_test07_Ves_Smesh_Tor_PhiMinMax.png', format='png')
-        plt.close(f)
-
-
 
 def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
@@ -573,14 +546,6 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
             [[3.*np.pi/4.,5.*np.pi/4.], [np.pi/2.,np.pi]],
             [[3.*np.pi/4.,5.*np.pi/4.], [7.*np.pi/6.,5.*np.pi/6.]]]
 
-
-    if plot and sys.version[0]=='2':
-        f = plt.figure(figsize=(11.7,8.3),facecolor="w")
-        axarr = mplgrid.GridSpec(2,len(LPhi)/2)
-        axarr.update(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.05,
-                     hspace=0.05)
-        Lax = []
-
     for ii in range(0,len(LPhi)):
         Pts, dS, ind, NL, \
             dLr, Rref, \
@@ -594,19 +559,6 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
                                                             DIn=DIn, VIn=VIn,
                                                             Out='(R,Z,Phi)',
                                                             margin=1.e-9)
-
-        if plot and sys.version[0]=='2':
-            Lax.append(f.add_subplot(axarr[ii], facecolor='w', projection='3d'))
-            pts = GG.CoordShift(Pts, In='(R,Z,Phi)', Out='(X,Y,Z)',
-                                CrossRef=None)
-            Lax[-1].plot(pts[0,:],pts[1,:],pts[2,:], '.k', ms=3.)
-            rad180 = 180./np.pi
-            Lax[-1].set_title(
-                "Phi = [{0:02.0f},{1:02.0f}]\n"
-                "DPhi = [{2:02.0f},{3:02.0f}] ".format(LPhi[ii][0][0]*rad180,
-                                                       LPhi[ii][0][1]*rad180,
-                                                       LPhi[ii][1][0]*rad180,
-                                                       LPhi[ii][1][1]*rad180))
 
         #try:
         assert Pts.ndim==2 and Pts.shape[0]==3
@@ -677,15 +629,6 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
                 print([Pts[:,liib[ii]]==Pts[:,hh]
         for hh in [jj for jj in range(0,len(ind)) if ind[jj]==lii[ii]]])
         """
-
-    if plot and sys.version[0]=='2':
-        f.canvas.draw()
-        f.savefig('./test_GG_test08_Ves_Smesh_TorStruct.png', format='png')
-        plt.close(f)
-
-
-
-
 
 def test12_Ves_Smesh_Lin(VPoly=VPoly):
 

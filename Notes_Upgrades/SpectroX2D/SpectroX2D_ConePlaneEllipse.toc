@@ -1,0 +1,13 @@
+\select@language {english}
+\contentsline {chapter}{\numberline {1}Geometry}{5}{chapter.1}
+\contentsline {section}{\numberline {1.1}Generic cone and plane}{5}{section.1.1}
+\contentsline {section}{\numberline {1.2}Intersection}{5}{section.1.2}
+\contentsline {section}{\numberline {1.3}Parametric equation}{7}{section.1.3}
+\contentsline {subsection}{\numberline {1.3.1}From bragg angle and parameter to local cartesian coordinates}{8}{subsection.1.3.1}
+\contentsline {subsection}{\numberline {1.3.2}From local cartesian coordinates to bragg angle}{8}{subsection.1.3.2}
+\contentsline {subsubsection}{Alternative method for $\theta $}{10}{section*.2}
+\contentsline {section}{\numberline {1.4}Generalization}{11}{section.1.4}
+\contentsline {subsection}{\numberline {1.4.1}Direct problem}{11}{subsection.1.4.1}
+\contentsline {chapter}{\numberline {A}Appendices}{13}{appendix.A}
+\contentsline {section}{\numberline {A.1}Section}{13}{section.A.1}
+\contentsline {subsection}{\numberline {A.1.1}Subsection}{13}{subsection.A.1.1}

@@ -1,0 +1,7 @@
+####### Requirements without Version Specifiers #######
+numpy
+scipy
+matplotlib
+
+######## Requirements with Version Specifier ########
+cython>=0.26
