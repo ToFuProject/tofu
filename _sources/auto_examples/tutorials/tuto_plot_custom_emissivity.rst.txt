@@ -57,7 +57,8 @@ We can plot its profile in the (0, X, Z) plane.
         :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
         :param t: optional, time parameter to add a time dependency to the
             emissivity function
-        :param vect:
+        :param vect: optional, ndarray of shape (3, n_points), if anisotropic
+            emissivity, unit direction vectors (X,Y,Z)
         :return:
             - emissivity -- 2D array holding the emissivity for each point in the
                 input grid
@@ -92,6 +93,7 @@ We can plot its profile in the (0, X, Z) plane.
     ax.set_ylabel('z')
     configB2.plot(lax=ax, proj='cross')
     cam_center, = ax.plot(*project_to_2D(cam2d._dgeom['pinhole']), '*', ms=20)
+    ax.set_aspect("equal")
     ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 
@@ -120,11 +122,11 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
                                    method="sum",
                                    newcalc=True,
                                    plot=False,
+                                   ani=False,
                                    t=time_vector)
 
     sig.plot(ntMax=1)
     plt.show(block=False)
-    # sphinx_gallery_thumbnail_number = 2
 
 
 
@@ -151,7 +153,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.961 seconds)
+   **Total running time of the script:** ( 0 minutes  2.655 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_custom_emissivity.py:

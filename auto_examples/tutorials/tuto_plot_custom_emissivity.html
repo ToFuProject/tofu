@@ -151,7 +151,8 @@ We can plot its profile in the (0, X, Z) plane.</p>
 <span class="sd">    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)</span>
 <span class="sd">    :param t: optional, time parameter to add a time dependency to the</span>
 <span class="sd">        emissivity function</span>
-<span class="sd">    :param vect:</span>
+<span class="sd">    :param vect: optional, ndarray of shape (3, n_points), if anisotropic</span>
+<span class="sd">        emissivity, unit direction vectors (X,Y,Z)</span>
 <span class="sd">    :return:</span>
 <span class="sd">        - emissivity -- 2D array holding the emissivity for each point in the</span>
 <span class="sd">            input grid</span>
@@ -186,6 +187,7 @@ We can plot its profile in the (0, X, Z) plane.</p>
 <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">)</span>
 <span class="n">configB2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;cross&#39;</span><span class="p">)</span>
 <span class="n">cam_center</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">project_to_2D</span><span class="p">(</span><span class="n">cam2d</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">]),</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="p">[</span><span class="n">cam_center</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;camera pinhole&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -202,11 +204,11 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
                                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
                                <span class="n">newcalc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">ani</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                <span class="n">t</span><span class="o">=</span><span class="n">time_vector</span><span class="p">)</span>
 
 <span class="n">sig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ntMax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="c1"># sphinx_gallery_thumbnail_number = 2</span>
 </pre></div>
 </div>
 <img alt="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" />
@@ -220,7 +222,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
   % get_backend())
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  1.961 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.655 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py">
 <div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/da0c7ddf24d7fd383b65bb69859c3bcb/tuto_plot_custom_emissivity.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_custom_emissivity.py</span></code></a></p>
