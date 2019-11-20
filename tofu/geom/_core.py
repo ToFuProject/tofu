@@ -3074,12 +3074,12 @@ class Config(utils.ToFuObject):
 
         return dist, indStruct
 
-
     def plot_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
                                theta=None, phi=None, cmap=None, invertx=None,
                                ax=None, fs=None, tit=None, wintit=None,
                                draw=None):
-        dist, indStruct = self._get_phithetaproj_dist(refpt=refpt, ntheta=ntheta, nphi=nphi,
+        dist, indStruct = self._get_phithetaproj_dist(refpt=refpt,
+                                                      ntheta=ntheta, nphi=nphi,
                                                       theta=theta, phi=phi)
         return _plot.Config_phithetaproj_dist(self, refpt, dist, indStruct,
                                               cmap=cmap, ax=ax, fs=fs,

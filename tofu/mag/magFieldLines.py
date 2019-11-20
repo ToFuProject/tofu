@@ -272,21 +272,23 @@ class MagFieldLines:
             - cp : collision point with the wall (list)
         '''
         if (ripple):
-            if (direction=='FWD'):
+            if direction == 'FWD':
                 sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
                                       method='RK23', t_eval=ds,
                                       events=self.hit_wall_circ)
-            elif (direction=='REV'):
+            elif direction == 'REV':
                 sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
                                       method='RK23', t_eval=ds,
                                       events=self.hit_wall_circ)
         else:
-            if (direction=='FWD'):
-                sol = spode.solve_ivp(self.mfld3dcylfwd_no_ripple, [0, s], init_state,
+            if direction == 'FWD':
+                sol = spode.solve_ivp(self.mfld3dcylfwd_no_ripple,
+                                      [0, s], init_state,
                                       method='RK23', t_eval=ds,
                                       events=self.hit_wall_circ)
-            elif (direction=='REV'):
-                sol = spode.solve_ivp(self.mfld3dcylrev_no_ripple, [0, s], init_state,
+            elif direction == 'REV':
+                sol = spode.solve_ivp(self.mfld3dcylrev_no_ripple,
+                                      [0, s], init_state,
                                       method='RK23', t_eval=ds,
                                       events=self.hit_wall_circ)
         sgf = sol.t
@@ -334,9 +336,9 @@ class MagFieldLines:
         '''
         R, P, Z = state
         Br, Bt, Bz = self.b_field_interp(R, P, Z)
-        #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
-        #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
-        #Bz=self.fBp_z(R,Z)[0]
+        # Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
+        # Bt=self.fBt_t(P,self.ftheta(R,Z),R)
+        # Bz=self.fBp_z(R,Z)[0]
         B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
         d_R = -Br/B
         d_P = -Bt/B*1/R
@@ -351,9 +353,9 @@ class MagFieldLines:
         '''
         R, P, Z = state
         Br, Bt, Bz = self.b_field_interp_no_ripple(R, P, Z)
-        #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
-        #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
-        #Bz=self.fBp_z(R,Z)[0]
+        # Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
+        # Bt=self.fBt_t(P,self.ftheta(R,Z),R)
+        # Bz=self.fBp_z(R,Z)[0]
         B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
         d_R = Br/B
         d_P = Bt/B*1/R
@@ -368,9 +370,9 @@ class MagFieldLines:
         '''
         R, P, Z = state
         Br, Bt, Bz = self.b_field_interp_no_ripple(R, P, Z)
-        #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
-        #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
-        #Bz=self.fBp_z(R,Z)[0]
+        # Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
+        # Bt=self.fBt_t(P,self.ftheta(R,Z),R)
+        # Bz=self.fBp_z(R,Z)[0]
         B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
         d_R = -Br/B
         d_P = -Bt/B*1/R
@@ -387,14 +389,14 @@ class MagFieldLines:
             mat file
         '''
         R, P, Z = state
-        #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(89.5)<=P<=np.deg2rad(90.5):
-        #    return 0
-        #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(179.5)<=P<=np.deg2rad(180.5):
-        #    print('Got 2')
-        #    return 0
-        #elif np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(269.5)<=P<=np.deg2rad(270.5):
-        #    print('Got 3')
-        #    return 0
+        # if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(89.5)<=P<=np.deg2rad(90.5):
+        #     return 0
+        # if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(179.5)<=P<=np.deg2rad(180.5):
+        #     print('Got 2')
+        #     return 0
+        # elif np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(269.5)<=P<=np.deg2rad(270.5):
+        #     print('Got 3')
+        #     return 0
         if self.wall_ck==False:
             Rc=2.460
             Zc=0.0
@@ -590,4 +592,5 @@ class MagFieldLines:
                     trace_plt[ii]['z'][mask_cross], 'o', markersize=3)
 
         ax.set_aspect('equal')
-        ax.set_xlabel('R [m]'); ax.set_ylabel('Z [m]')
+        ax.set_xlabel('R [m]')
+        ax.set_ylabel('Z [m]')
