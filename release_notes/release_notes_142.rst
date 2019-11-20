@@ -39,7 +39,7 @@ Installation / portability:
 Bug fixes:
 -----------
 - Major bug fix in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,  #247 #255
-- Majour bug fix in `LOS_get_sample()` when `minimize='hybrid'` and `minimize='memory'` the limits were not set correctly
+- Major bug fix in `LOS_get_sample()` when `minimize='hybrid'` and `minimize='memory'` the limits were not set correctly
   in some cases the formula for sampling a LOS was wrong (`los_get_sample_core_var_res`).
 - Minor bug fixes in interactive figures when `t=None` was used (the interactivity was lost due to wrong formatting of the time array)
 - Minor bug fixed in Plasma 2D interpolation (`interp_t` was not being set), imporved error messages #209
@@ -68,15 +68,15 @@ Documentation:
 
 New features:
 ---------------
-- First version of magnetic field line tracing (for WEST only so far, to be improved) #213 #235
-- First version of 2D XRay Bragg spectrometers for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved)
+- First version of `magnetic field line tracing` (for WEST only so far, to be improved) #213 #235
+- First version of `2D XRay Bragg spectrometers` for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved)
 - When computing a signal `LOS_calc_signal` emissivity function can now return
   a 1D array if `t=None` #217 #252
 - Three functions added to `tf.geom.Rays`: #211
 	- `calc_length_in_isoflux()`: compute the length inside a set of isoflux surfaces of each LOS
 	- `calc_min_geom_radius()`: compute the minimal geometrical radius (impact parameter) of each LOS
 	- `calc_min_rho_from_Plasma2D()`: compute the minimum normalized radius (or any field with a minimum on the axis) for each LOS
-- New ITER configuration available! #220 #227
+- New `ITER configuration` available! #220 #227
 - More explicit names for default configurations #264
 
 Contributors:
