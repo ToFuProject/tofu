@@ -460,7 +460,8 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
         i0 = dindx['bck'].size
         for kk in dindx['ions'].keys():
             # TBF
-            x0[dindx[kk]['sigma']] = x01d[]
+            # x0[dindx[kk]['sigma']] = x01d[]
+            pass
 
     # Get bounds
     lamb_delta = np.mean(np.abs(np.diff(np.unique(lamb))))
