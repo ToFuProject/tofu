@@ -24,10 +24,10 @@ Available subpackages
     Package for dust movie processing
 `dust <tofu.dust.html>`_
     Dust module
-`imas2tofu <tofu.imas2tofu.html>`_
-    The imas-compatibility module of tofu
-`mag <tofu.mag.html>`_
-    Magnetic field lines package
+imas2tofu
+    The imas-compatibility module of tofu (optional)
+mag
+    Magnetic field lines package (optional)
 
 Available modules
 -----------------
