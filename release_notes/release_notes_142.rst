@@ -21,27 +21,44 @@ Detailed changes:
 
 Installation / portability:
 ---------------------------
-- Bug fixes for installation on ITER and Gateway clusters ()
+- Bug fixes for installation on ITER and Gateway clusters
 - Easier installation on Mac
-- Removed explicit compiler specification in setup.py for more flexibility
+- Removed explicit compiler specification in `setup.py` for more flexibility
 - When sub-packages imas2tofu or mag are missing, the warning is much more concise, but the error traceback is still accessible in a hidden dictionnary for developpers
--
+- Dropped python 2 support:
+  - merged `_GG02` and `_GG03` into the `_GG` file
+  - no longer being tested in travis
+  - no longer packaged in conda
+  - updated README file accordingly
+  - dropped `funcsigs` dependency
+  - made necessary changes in `setup.py`
 
 Bug fixes:
 -----------
-- Major bug fixed in LOS_calc_signal() for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,
-- Minor bug fixes in interactive figures when t=None was used (the interactivity was lost due to wrong formatting of the time array)
--
+- Major bug fixed in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,
+- Minor bug fixes in interactive figures when `t=None` was used (the interactivity was lost due to wrong formatting of the time array)
+- Minor bug fixed in Plasma 2D interpolation (`interp_t` was not being set), imporved error messages
+- Removed unused variable in `_Ves_get_sampleS` (_GG), in `_core.py`
+- Gave more explicit names to some variables in `_core.py` to avoid bugs/typos (eg. `I` to `current`)
+- Removed a secondary `init` function for the class `tf.geom.CoilsPF`
+- `_checkformat_inputs_dgeom` now is a function of `Rays` class
+- Change default separator in `to_dict()` from '_' to '.'
 
 Documentation:
 --------------
--
+- Updated information about support of python version
 
 New features:
 ---------------
-- First version of magnetic field line tracing (for WEST only so far, to be improved),
-- First version of Spectro X 2D crystal for synthetic diagnostics (to be improved),
--
+- First version of magnetic field line tracing (for WEST only so far, to be improved)
+- First version of Spectro X 2D crystal for synthetic diagnostics (to be improved)
+- When computing a signal `LOS_calc_signal` emissivity function can now return
+  a 1D array if `t=None`
+- Three functions added to `tf.geom.Rays`:
+	- `calc_length_in_isoflux()`: compute the length inside a set of isoflux surfaces of each LOS
+	- `calc_min_geom_radius()`: compute the minimal geometrical radius (impact parameter) of each LOS
+	- `calc_min_rho_from_Plasma2D()`: compute the minimum normalized radius (or any field with a minimum on the axis) for each LOS
+- New ITER configuration available!
 
 Contributors:
 =============
@@ -69,5 +86,6 @@ What's next (indicative):
 
 List of issues and PR closed:
 =============================
-- Issues: #30, #180, #183, #185, #186, #187, #188, #189, #190, #201, #209, #211, #213, #217, #220, #224, #227, #228, #230, #235, #243, #247, #248, #250, #252, #255
-- PR: #173, #175, #179, #181, #182, #184, #191, #192, #193, #194, #195, #196, #197, #199, #206, #207, #210, #212, #222, #223, #225, #226, #229, #231, #233, #234, #236, #237, #238, #240, #242, #244, #245, #246, #249, #251, #253, #254, #256, #257, #258
+- Issues: #30, #180, #183, #185, #186, #187, #188, #189, #190, #201, #209, #211, #213, #217, #220, #224, #227, #228, #230, #235, #243, #247, #248, #250, #252, #255, #264
+- PR: #173, #175, #179, #181, #182, #184, #191, #192, #193, #194, #195, #196, #197, #199, #206, #207, #210, #212, #222, #223, #225, #226, #229, #231, #233, #234, #236, #237, #238, #240, #242, #244, #245, #246, #249, #251, #253, #254, #256, #257, #258,
+  #261, #265
