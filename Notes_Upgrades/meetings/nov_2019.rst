@@ -11,4 +11,6 @@ Agenda
 - [ ] Which testing package to use ?
   - nose2
   - pytest
-- [ ] Travis ?
+- [ ] Travis
+  - platforms / matrix
+- [ ] tutorials as tests ?
