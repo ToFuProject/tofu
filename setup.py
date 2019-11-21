@@ -11,6 +11,7 @@ import logging
 import platform
 import subprocess
 from codecs import open
+
 import Cython as cth
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
@@ -282,7 +283,10 @@ setup(
     # The version is stored only in the setup.py file and read from it (option
     # 1 in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
-    # setup_requires=['setuptools_scm'],
+    setup_requires=[
+        "cython>=0.26",
+        "numpy",
+    ],
     description="A python library for Tomography for Fusion",
     long_description=long_description,
     long_description_content_type=long_description_content_type,
