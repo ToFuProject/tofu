@@ -1,5 +1,9 @@
+====================
+What's new in 1.4.2
+====================
+
 Main changes:
-==========
+=============
 
 - Python 2.7 is not supported anymore
 - Python 3.6 and 3.7 are supported
@@ -18,10 +22,10 @@ Main changes:
 
 
 Detailed changes:
-============
+=================
 
 Installation / portability:
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Bug fixes for installation on ITER and Gateway clusters #250
 - Easier installation on Mac #183 (`requirements.txt`)
 - Removed explicit compiler specification in `setup.py` for more flexibility
@@ -37,7 +41,7 @@ Installation / portability:
   - `benchmarks/calc_signal_benchmark.py`: now working with python 3
 
 Bug fixes:
------------
+~~~~~~~~~~
 - Major bug fix in `LOS_calc_signal()` for computing the synthetic signal of a LOS camera using a particular algortihm : method='sum', minimize='hybrid', ani=True,  #247 #255
 - Major bug fix in `LOS_get_sample()` when `minimize='hybrid'` and `minimize='memory'` the limits were not set correctly
   in some cases the formula for sampling a LOS was wrong (`los_get_sample_core_var_res`).
@@ -52,7 +56,7 @@ Bug fixes:
 - __repr__() is now overloaded in a more robust way so it falls back to printing the class if get_summary() fails to avoid crashing in debug mode #242
 
 Documentation:
---------------
+~~~~~~~~~~~~~~
 - Updated information about support of python version
 - Added slides of talk given at PyConFR 2019 conference
 - Added a `gallery` in our documentation with 3 different tutorials:
@@ -67,7 +71,7 @@ Documentation:
 - Guide on how to contribute to ToFu.
 
 New features:
----------------
+~~~~~~~~~~~~~
 - First version of `magnetic field line tracing` (for WEST only so far, to be improved) #213 #235
 - First version of `2D XRay Bragg spectrometers` for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved) #267
 - When computing a signal `LOS_calc_signal` emissivity function can now return
