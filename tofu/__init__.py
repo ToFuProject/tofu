@@ -91,14 +91,14 @@ if len(lsubout) > 0:
     lsubout = ['tofu.{0}'.format(ss) for ss in lsubout]
     msg = "\nThe following subpackages are not available:"
     msg += "\n    - " + "\n    - ".join(lsubout)
-    msg += "\n  => see tofu.dsub[<subpackage>] for details on error messages"
+    msg += "\n  => see tofu.dsub[<subpackage>] for details."
     warnings.warn(msg)
 
 # -------------------------------------
 # Add optional subpackages to __all__
 # -------------------------------------
 
-__all__ = ['pathfile','utils','_plot','geom','data']
+__all__ = ['pathfile', 'utils', '_plot', 'geom', 'data']
 for sub in dsub.keys():
     if dsub[sub] is True:
         __all__.append(sub)
