@@ -89,10 +89,13 @@
 <li><a class="reference internal" href="#module-tofu.geom._GG">tofu.geom._GG module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._basic_geom_tools">tofu.geom._basic_geom_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._comp">tofu.geom._comp module</a></li>
+<li><a class="reference internal" href="#module-tofu.geom._comp_optics">tofu.geom._comp_optics module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._core">tofu.geom._core module</a></li>
+<li><a class="reference internal" href="#module-tofu.geom._core_optics">tofu.geom._core_optics module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._def">tofu.geom._def module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._distance_tools">tofu.geom._distance_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._plot">tofu.geom._plot module</a></li>
+<li><a class="reference internal" href="#module-tofu.geom._plot_optics">tofu.geom._plot_optics module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._raytracing_tools">tofu.geom._raytracing_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._sampling_tools">tofu.geom._sampling_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._vignetting_tools">tofu.geom._vignetting_tools module</a></li>
@@ -828,11 +831,6 @@ ray_vdir = (pts-ray_orig)/k</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="tofu.geom._GG.check_ff">
-<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">check_ff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.check_ff" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
 <dt id="tofu.geom._GG.LOS_get_sample">
 <code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">LOS_get_sample</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.LOS_get_sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the sampled line, with the specified method
@@ -1021,6 +1019,76 @@ block = True consider LOS collisions (with Ves, Struct…)</p>
 <dl class="function">
 <dt id="tofu.geom._comp.calc_solidangle_particle_integ">
 <code class="sig-prename descclassname">tofu.geom._comp.</code><code class="sig-name descname">calc_solidangle_particle_integ</code><span class="sig-paren">(</span><em class="sig-param">traj</em>, <em class="sig-param">r=1.0</em>, <em class="sig-param">config=None</em>, <em class="sig-param">approx=True</em>, <em class="sig-param">block=True</em>, <em class="sig-param">res=0.01</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp.html#calc_solidangle_particle_integ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp.calc_solidangle_particle_integ" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.geom._comp_optics">
+<span id="tofu-geom-comp-optics-module"></span><h2>tofu.geom._comp_optics module<a class="headerlink" href="#module-tofu.geom._comp_optics" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tofu.geom._comp_optics.CrystBragg_get_noute1e2_from_psitheta">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">CrystBragg_get_noute1e2_from_psitheta</code><span class="sig-paren">(</span><em class="sig-param">nout</em>, <em class="sig-param">e1</em>, <em class="sig-param">e2</em>, <em class="sig-param">psi</em>, <em class="sig-param">theta</em>, <em class="sig-param">e1e2=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#CrystBragg_get_noute1e2_from_psitheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.CrystBragg_get_noute1e2_from_psitheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.CrystBragg_sample_outline_Rays">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">CrystBragg_sample_outline_Rays</code><span class="sig-paren">(</span><em class="sig-param">center</em>, <em class="sig-param">nout</em>, <em class="sig-param">e1</em>, <em class="sig-param">e2</em>, <em class="sig-param">rcurve</em>, <em class="sig-param">extenthalf</em>, <em class="sig-param">bragg</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#CrystBragg_sample_outline_Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.CrystBragg_sample_outline_Rays" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.CrystBragg_sample_outline_plot_sphrect">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">CrystBragg_sample_outline_plot_sphrect</code><span class="sig-paren">(</span><em class="sig-param">center</em>, <em class="sig-param">nout</em>, <em class="sig-param">e1</em>, <em class="sig-param">e2</em>, <em class="sig-param">rcurve</em>, <em class="sig-param">extenthalf</em>, <em class="sig-param">res=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#CrystBragg_sample_outline_plot_sphrect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.CrystBragg_sample_outline_plot_sphrect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.CrystBragg_sample_outline_sphrect">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">CrystBragg_sample_outline_sphrect</code><span class="sig-paren">(</span><em class="sig-param">dpsi</em>, <em class="sig-param">dtheta</em>, <em class="sig-param">npsi=None</em>, <em class="sig-param">ntheta=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#CrystBragg_sample_outline_sphrect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.CrystBragg_sample_outline_sphrect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.calc_braggphi_from_xixj">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">calc_braggphi_from_xixj</code><span class="sig-paren">(</span><em class="sig-param">xi</em>, <em class="sig-param">xj</em>, <em class="sig-param">det_cent</em>, <em class="sig-param">det_ei</em>, <em class="sig-param">det_ej</em>, <em class="sig-param">summit</em>, <em class="sig-param">nin</em>, <em class="sig-param">e1</em>, <em class="sig-param">e2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#calc_braggphi_from_xixj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.calc_braggphi_from_xixj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.calc_xixj_from_braggphi">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">calc_xixj_from_braggphi</code><span class="sig-paren">(</span><em class="sig-param">summit</em>, <em class="sig-param">det_cent</em>, <em class="sig-param">det_nout</em>, <em class="sig-param">det_ei</em>, <em class="sig-param">det_ej</em>, <em class="sig-param">nout</em>, <em class="sig-param">e1</em>, <em class="sig-param">e2</em>, <em class="sig-param">bragg</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#calc_xixj_from_braggphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.calc_xixj_from_braggphi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.checkformat_vectang">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">checkformat_vectang</code><span class="sig-paren">(</span><em class="sig-param">Z</em>, <em class="sig-param">nn</em>, <em class="sig-param">frame_cent</em>, <em class="sig-param">frame_ang</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#checkformat_vectang"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.checkformat_vectang" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.get_approx_detector_rel">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">get_approx_detector_rel</code><span class="sig-paren">(</span><em class="sig-param">rcurve</em>, <em class="sig-param">bragg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#get_approx_detector_rel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.get_approx_detector_rel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.get_bragg_from_lamb">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">get_bragg_from_lamb</code><span class="sig-paren">(</span><em class="sig-param">lamb</em>, <em class="sig-param">d</em>, <em class="sig-param">n=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#get_bragg_from_lamb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.get_bragg_from_lamb" title="Permalink to this definition">¶</a></dt>
+<dd><p>n*lamb = 2d*sin(bragg)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.get_det_abs_from_rel">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">get_det_abs_from_rel</code><span class="sig-paren">(</span><em class="sig-param">det_dist</em>, <em class="sig-param">det_nout_rel</em>, <em class="sig-param">det_ei_rel</em>, <em class="sig-param">summit</em>, <em class="sig-param">nout</em>, <em class="sig-param">e1</em>, <em class="sig-param">e2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#get_det_abs_from_rel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.get_det_abs_from_rel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.get_e1e2_detectorplane">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">get_e1e2_detectorplane</code><span class="sig-paren">(</span><em class="sig-param">nn</em>, <em class="sig-param">nIn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#get_e1e2_detectorplane"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.get_e1e2_detectorplane" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.get_lamb_from_bragg">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">get_lamb_from_bragg</code><span class="sig-paren">(</span><em class="sig-param">bragg</em>, <em class="sig-param">d</em>, <em class="sig-param">n=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#get_lamb_from_bragg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.get_lamb_from_bragg" title="Permalink to this definition">¶</a></dt>
+<dd><p>n*lamb = 2d*sin(bragg)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._comp_optics.get_lambphifit">
+<code class="sig-prename descclassname">tofu.geom._comp_optics.</code><code class="sig-name descname">get_lambphifit</code><span class="sig-paren">(</span><em class="sig-param">lamb</em>, <em class="sig-param">phi</em>, <em class="sig-param">nxi</em>, <em class="sig-param">nxj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_comp_optics.html#get_lambphifit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._comp_optics.get_lambphifit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -1231,7 +1299,7 @@ Check self.lStruct[0].isInside? for details</p>
 
 <dl class="method">
 <dt id="tofu.geom._core.Config.plot_phithetaproj_dist">
-<code class="sig-name descname">plot_phithetaproj_dist</code><span class="sig-paren">(</span><em class="sig-param">refpt=None</em>, <em class="sig-param">ntheta=None</em>, <em class="sig-param">nphi=None</em>, <em class="sig-param">theta=None</em>, <em class="sig-param">phi=None</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">tit=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">draw=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config.plot_phithetaproj_dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config.plot_phithetaproj_dist" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">plot_phithetaproj_dist</code><span class="sig-paren">(</span><em class="sig-param">refpt=None</em>, <em class="sig-param">ntheta=None</em>, <em class="sig-param">nphi=None</em>, <em class="sig-param">theta=None</em>, <em class="sig-param">phi=None</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">invertx=None</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">tit=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">draw=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config.plot_phithetaproj_dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config.plot_phithetaproj_dist" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1443,7 +1511,7 @@ Only returned if pts = True</p>
 
 <dl class="method">
 <dt id="tofu.geom._core.Rays.calc_signal">
-<code class="sig-name descname">calc_signal</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t=None</em>, <em class="sig-param">ani=False</em>, <em class="sig-param">fkwdargs={}</em>, <em class="sig-param">Brightness=True</em>, <em class="sig-param">res=None</em>, <em class="sig-param">DL=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">minimize='calls'</em>, <em class="sig-param">num_threads=16</em>, <em class="sig-param">reflections=True</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">out=&lt;class 'object'&gt;</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">dataname=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">invert=True</em>, <em class="sig-param">units=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">connect=True</em>, <em class="sig-param">newcalc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_signal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">calc_signal</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t=None</em>, <em class="sig-param">ani=None</em>, <em class="sig-param">fkwdargs={}</em>, <em class="sig-param">Brightness=True</em>, <em class="sig-param">res=None</em>, <em class="sig-param">DL=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">minimize='calls'</em>, <em class="sig-param">num_threads=16</em>, <em class="sig-param">reflections=True</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">out=&lt;class 'object'&gt;</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">dataname=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">invert=True</em>, <em class="sig-param">units=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">connect=True</em>, <em class="sig-param">newcalc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_signal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the line-integrated emissivity</p>
 <p>Beware, by default, Brightness=True and it is only a line-integral !</p>
 <p>Indeed, to get the received power, you need an estimate of the Etendue
@@ -1452,35 +1520,41 @@ Only returned if pts = True</p>
 the emissivity is provided in W/m3 (resp. W/m3/sr),
 =&gt; the method returns W/m2 (resp. W/m2/sr)
 The line is sampled using <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_sample()</span></code>,</p>
-<dl class="simple">
-<dt>The integral can be computed using three different methods:</dt><dd><ul class="simple">
-<li><p>‘sum’:    A numpy.sum() on the local values (x segments lengths)</p></li>
-<li><p>‘simps’:  using <code class="xref py py-meth docutils literal notranslate"><span class="pre">scipy.integrate.simps()</span></code></p></li>
-<li><p>‘romb’:   using <code class="xref py py-meth docutils literal notranslate"><span class="pre">scipy.integrate.romb()</span></code></p></li>
-</ul>
-</dd>
-</dl>
 <p>Except func, arguments common to <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_sample()</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>func</strong> (<em>callable</em>) – <p>The user-provided emissivity function
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>callable</em>) – <p>The user-provided emissivity function
 Shall take at least:</p>
 <blockquote>
 <div><p>func(pts, t=None, vect=None)</p>
 </div></blockquote>
 <dl class="simple">
-<dt>where:</dt><dd><ul class="simple">
+<dt>where:</dt><dd><ul>
 <li><p>pts : (3,N) np.ndarray, (X,Y,Z) coordinates of points</p></li>
 <li><p>t   : None / (nt,) np.ndarray, time vector</p></li>
 <li><p>vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)</p></li>
 </ul>
 </dd>
-<dt>Should return at least:</dt><dd><ul class="simple">
+<dt>Should return at least:</dt><dd><ul>
 <li><p>val : (N,) np.ndarray, local emissivity values</p></li>
 </ul>
 </dd>
 </dl>
-</p>
+</p></li>
+<li><p><strong>method</strong> (<em>string</em><em>, </em><em>the integral can be computed using 3 different methods</em>) – <ul>
+<li><p>‘sum’:    A numpy.sum() on the local values (x segments) DEFAULT</p></li>
+<li><p>’simps’:  using <code class="xref py py-meth docutils literal notranslate"><span class="pre">scipy.integrate.simps()</span></code></p></li>
+<li><p>’romb’:   using <code class="xref py py-meth docutils literal notranslate"><span class="pre">scipy.integrate.romb()</span></code></p></li>
+</ul>
+</p></li>
+<li><p><strong>minimize</strong> (<em>string</em><em>, </em><em>method to minimize for computation optimization</em>) – <ul>
+<li><p>“calls”: minimal number of calls to <cite>func</cite> (default)</p></li>
+<li><p>”memory”: slowest method, to use only if “out of memory” error</p></li>
+<li><p>”hybrid”: mix of before-mentioned methods.</p></li>
+</ul>
+</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
@@ -1496,6 +1570,11 @@ vector was provided.</p></li>
 <dl class="method">
 <dt id="tofu.geom._core.Rays.calc_signal_from_Plasma2D">
 <code class="sig-name descname">calc_signal_from_Plasma2D</code><span class="sig-paren">(</span><em class="sig-param">plasma2d</em>, <em class="sig-param">t=None</em>, <em class="sig-param">newcalc=False</em>, <em class="sig-param">quant=None</em>, <em class="sig-param">ref1d=None</em>, <em class="sig-param">ref2d=None</em>, <em class="sig-param">q2dR=None</em>, <em class="sig-param">q2dPhi=None</em>, <em class="sig-param">q2dZ=None</em>, <em class="sig-param">Type=None</em>, <em class="sig-param">Brightness=True</em>, <em class="sig-param">interp_t='nearest'</em>, <em class="sig-param">interp_space=None</em>, <em class="sig-param">fill_value=None</em>, <em class="sig-param">res=None</em>, <em class="sig-param">DL=None</em>, <em class="sig-param">resMode='abs'</em>, <em class="sig-param">method='sum'</em>, <em class="sig-param">minimize='calls'</em>, <em class="sig-param">num_threads=16</em>, <em class="sig-param">reflections=True</em>, <em class="sig-param">coefs=None</em>, <em class="sig-param">ind=None</em>, <em class="sig-param">out=&lt;class 'object'&gt;</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">dataname=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">invert=True</em>, <em class="sig-param">units=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.calc_signal_from_Plasma2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.calc_signal_from_Plasma2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Rays.check_ff">
+<code class="sig-name descname">check_ff</code><span class="sig-paren">(</span><em class="sig-param">ff</em>, <em class="sig-param">t=None</em>, <em class="sig-param">ani=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.check_ff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.check_ff" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1521,6 +1600,11 @@ vector was provided.</p></li>
 <dl class="method">
 <dt id="tofu.geom._core.Rays.dsino">
 <em class="property">property </em><code class="sig-name descname">dsino</code><a class="headerlink" href="#tofu.geom._core.Rays.dsino" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Rays.get_inspector">
+<code class="sig-name descname">get_inspector</code><span class="sig-paren">(</span><em class="sig-param">ff</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.get_inspector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.get_inspector" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -2056,6 +2140,251 @@ Use strip=0 to recover all atributes</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-tofu.geom._core_optics">
+<span id="tofu-geom-core-optics-module"></span><h2>tofu.geom._core_optics module<a class="headerlink" href="#module-tofu.geom._core_optics" title="Permalink to this headline">¶</a></h2>
+<p>This module is the geometrical part of the ToFu general package
+It includes all functions and object classes necessary for tomography on Tokamaks</p>
+<dl class="class">
+<dt id="tofu.geom._core_optics.CrystalBragg">
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core_optics.</code><code class="sig-name descname">CrystalBragg</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None, dmat=None, dbragg=None, Id=None, Name=None, Exp=None, Diag=None, shot=None, fromdict=None, sep=None, SavePath='/Users/mendoza/tofu/doc/source', SavePath_Include=['Mod', 'Cls', 'Type', 'Exp', 'Deg', 'Diag', 'Name', 'shot'], color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
+<p>A class defining crystals for Bragg diffraction</p>
+<p>A crystal can be of Type flat, cylindrical or spherical
+It is characterized by its:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>geometry (Type, dimensions, curvature radii and position/orientation)</p></li>
+<li><p>Material and lattice</p></li>
+<li><p>Bragg parameters (angle vs lambda)</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Id</strong> (<em>str / tfpf.ID</em>) – A name string or a pre-built tfpf.ID class to be used to identify this
+particular instance, if a string is provided, it is fed to tfpf.ID()</p></li>
+<li><p><strong>dgeom</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – <dl class="simple">
+<dt>An array (2,N) or (N,2) defining the contour of the vacuum vessel in a</dt><dd><p>cross-section, if not closed, will be closed automatically</p>
+</dd>
+<dt>dspectral:     str</dt><dd><p>Flag indicating whether the vessel will be a torus (‘Tor’) or a linear
+device (‘Lin’)</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>SavePath</strong> (<em>None / str</em>) – If provided, forces the default saving path of the object to the
+provided value</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.Type">
+<em class="property">property </em><code class="sig-name descname">Type</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.Type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the type of structure</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.calc_phibragg_from_xixj">
+<code class="sig-name descname">calc_phibragg_from_xixj</code><span class="sig-paren">(</span><em class="sig-param">xi</em>, <em class="sig-param">xj</em>, <em class="sig-param">n=None</em>, <em class="sig-param">det_cent=None</em>, <em class="sig-param">det_ei=None</em>, <em class="sig-param">det_ej=None</em>, <em class="sig-param">theta=None</em>, <em class="sig-param">psi=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.calc_phibragg_from_xixj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.calc_phibragg_from_xixj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.calc_xixj_from_phibragg">
+<code class="sig-name descname">calc_xixj_from_phibragg</code><span class="sig-paren">(</span><em class="sig-param">phi=None</em>, <em class="sig-param">bragg=None</em>, <em class="sig-param">lamb=None</em>, <em class="sig-param">n=None</em>, <em class="sig-param">theta=None</em>, <em class="sig-param">psi=None</em>, <em class="sig-param">det_cent=None</em>, <em class="sig-param">det_nout=None</em>, <em class="sig-param">det_ei=None</em>, <em class="sig-param">det_ej=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.calc_xixj_from_phibragg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.calc_xixj_from_phibragg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assuming crystal’s summit as frame origin</p>
+<p>According to [1], this assumes a local frame centered on the crystal</p>
+<dl class="simple">
+<dt>These calculations are independent from the tokamak’s frame:</dt><dd><p>The origin of the local frame is the crystal’s summit
+The (O, ez) axis is the crystal’s normal
+The crystal is tangent to (O, ex, ey)</p>
+</dd>
+</dl>
+<p>[1] tofu/Notes_Upgrades/SpectroX2D/SpectroX2D_EllipsesOnPlane.pdf</p>
+<dl class="simple">
+<dt>Z:      float</dt><dd><p>Detector’s plane intersection with (O, ez) axis</p>
+</dd>
+<dt>n:      np.ndarray</dt><dd><p>(3,) array containing local (x,y,z) coordinates of the plane’s
+normal vector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.center">
+<em class="property">property </em><code class="sig-name descname">center</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.center" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.dbragg">
+<em class="property">property </em><code class="sig-name descname">dbragg</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.dbragg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the polygon defining the structure cross-section</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.dgeom">
+<em class="property">property </em><code class="sig-name descname">dgeom</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.dgeom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.dmat">
+<em class="property">property </em><code class="sig-name descname">dmat</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.dmat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the polygon defining the structure cross-section</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.dmisc">
+<em class="property">property </em><code class="sig-name descname">dmisc</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.dmisc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.e1">
+<em class="property">property </em><code class="sig-name descname">e1</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.e1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.e2">
+<em class="property">property </em><code class="sig-name descname">e2</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.e2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_Rays_envelop">
+<code class="sig-name descname">get_Rays_envelop</code><span class="sig-paren">(</span><em class="sig-param">phi=None</em>, <em class="sig-param">bragg=None</em>, <em class="sig-param">lamb=None</em>, <em class="sig-param">n=None</em>, <em class="sig-param">returnas=&lt;class 'object'&gt;</em>, <em class="sig-param">config=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_Rays_envelop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_Rays_envelop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_Rays_from_summit">
+<code class="sig-name descname">get_Rays_from_summit</code><span class="sig-paren">(</span><em class="sig-param">phi=None</em>, <em class="sig-param">bragg=None</em>, <em class="sig-param">lamb=None</em>, <em class="sig-param">n=None</em>, <em class="sig-param">returnas=&lt;class 'object'&gt;</em>, <em class="sig-param">config=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_Rays_from_summit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_Rays_from_summit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_approx_detector_frame">
+<code class="sig-name descname">get_approx_detector_frame</code><span class="sig-paren">(</span><em class="sig-param">bragg=None</em>, <em class="sig-param">lamb=None</em>, <em class="sig-param">rcurve=None</em>, <em class="sig-param">n=None</em>, <em class="sig-param">plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_approx_detector_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_approx_detector_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>See notes for details on notations</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_bragg_from_lamb">
+<code class="sig-name descname">get_bragg_from_lamb</code><span class="sig-paren">(</span><em class="sig-param">lamb</em>, <em class="sig-param">n=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_bragg_from_lamb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_bragg_from_lamb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Braggs’ law: n*lamb = 2dsin(bragg)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_color">
+<code class="sig-name descname">get_color</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_color"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_color" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_lamb_from_bragg">
+<code class="sig-name descname">get_lamb_from_bragg</code><span class="sig-paren">(</span><em class="sig-param">bragg</em>, <em class="sig-param">n=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_lamb_from_bragg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_lamb_from_bragg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Braggs’ law: n*lamb = 2dsin(bragg)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_local_noute1e2">
+<code class="sig-name descname">get_local_noute1e2</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">psi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_local_noute1e2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_local_noute1e2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.get_summary">
+<code class="sig-name descname">get_summary</code><span class="sig-paren">(</span><em class="sig-param">sep='  '</em>, <em class="sig-param">line='-'</em>, <em class="sig-param">just='l'</em>, <em class="sig-param">table_sep=None</em>, <em class="sig-param">verb=True</em>, <em class="sig-param">return_=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.get_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.get_summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Summary description of the object content</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.move">
+<code class="sig-name descname">move</code><span class="sig-paren">(</span><em class="sig-param">kind=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.move"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.move" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.nin">
+<em class="property">property </em><code class="sig-name descname">nin</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.nin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.nout">
+<em class="property">property </em><code class="sig-name descname">nout</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.nout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.plot">
+<code class="sig-name descname">plot</code><span class="sig-paren">(</span><em class="sig-param">lax=None</em>, <em class="sig-param">proj=None</em>, <em class="sig-param">res=None</em>, <em class="sig-param">element=None</em>, <em class="sig-param">color=None</em>, <em class="sig-param">dP=None</em>, <em class="sig-param">dI=None</em>, <em class="sig-param">dBs=None</em>, <em class="sig-param">dBv=None</em>, <em class="sig-param">dVect=None</em>, <em class="sig-param">dIHor=None</em>, <em class="sig-param">dBsHor=None</em>, <em class="sig-param">dBvHor=None</em>, <em class="sig-param">dleg=None</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.plot_data_fit2d">
+<code class="sig-name descname">plot_data_fit2d</code><span class="sig-paren">(</span><em class="sig-param">xi=None</em>, <em class="sig-param">xj=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">mask=None</em>, <em class="sig-param">det_cent=None</em>, <em class="sig-param">det_ei=None</em>, <em class="sig-param">det_ej=None</em>, <em class="sig-param">theta=None</em>, <em class="sig-param">psi=None</em>, <em class="sig-param">n=None</em>, <em class="sig-param">nlamb=None</em>, <em class="sig-param">lamb0=None</em>, <em class="sig-param">forcelamb=False</em>, <em class="sig-param">deg=None</em>, <em class="sig-param">knots=None</em>, <em class="sig-param">nbsplines=None</em>, <em class="sig-param">method=None</em>, <em class="sig-param">max_nfev=None</em>, <em class="sig-param">xtol=None</em>, <em class="sig-param">ftol=None</em>, <em class="sig-param">gtol=None</em>, <em class="sig-param">loss=None</em>, <em class="sig-param">verbose=0</em>, <em class="sig-param">debug=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dlines=None</em>, <em class="sig-param">dmoments=None</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">vmin=None</em>, <em class="sig-param">vmax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.plot_data_fit2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.plot_data_fit2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.plot_data_vs_lambphi">
+<code class="sig-name descname">plot_data_vs_lambphi</code><span class="sig-paren">(</span><em class="sig-param">xi=None</em>, <em class="sig-param">xj=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">det_cent=None</em>, <em class="sig-param">det_ei=None</em>, <em class="sig-param">det_ej=None</em>, <em class="sig-param">theta=None</em>, <em class="sig-param">psi=None</em>, <em class="sig-param">n=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">vmin=None</em>, <em class="sig-param">vmax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.plot_data_vs_lambphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.plot_data_vs_lambphi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.plot_johannerror">
+<code class="sig-name descname">plot_johannerror</code><span class="sig-paren">(</span><em class="sig-param">lamb=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.plot_johannerror"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.plot_johannerror" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.sample_outline_Rays">
+<code class="sig-name descname">sample_outline_Rays</code><span class="sig-paren">(</span><em class="sig-param">res=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.sample_outline_Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.sample_outline_Rays" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.sample_outline_plot">
+<code class="sig-name descname">sample_outline_plot</code><span class="sig-paren">(</span><em class="sig-param">res=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.sample_outline_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.sample_outline_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.set_color">
+<code class="sig-name descname">set_color</code><span class="sig-paren">(</span><em class="sig-param">col</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.set_color"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.set_color" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.set_dgeom">
+<code class="sig-name descname">set_dgeom</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.set_dgeom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.set_dgeom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.set_dmat">
+<code class="sig-name descname">set_dmat</code><span class="sig-paren">(</span><em class="sig-param">dmat=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.set_dmat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.set_dmat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.strip">
+<code class="sig-name descname">strip</code><span class="sig-paren">(</span><em class="sig-param">strip=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core_optics.html#CrystalBragg.strip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.strip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove non-essential attributes to save memory / disk usage</p>
+<p>Useful to save a very compressed version of the object
+The higher strip =&gt; the more stripped the object
+Use strip=0 to recover all atributes</p>
+<dl class="simple">
+<dt>See the difference by doing:</dt><dd><p>&gt; self.get_nbytes()
+&gt; self.strip(-1)
+&gt; self.get_nbytes()</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
+<div><p>0: Make complete (retrieve all attributes)
+1: Remove nothing</p>
+</div></blockquote>
+<p>-1: Equivalent to strip=1</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core_optics.CrystalBragg.summit">
+<em class="property">property </em><code class="sig-name descname">summit</code><a class="headerlink" href="#tofu.geom._core_optics.CrystalBragg.summit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-tofu.geom._def">
 <span id="tofu-geom-def-module"></span><h2>tofu.geom._def module<a class="headerlink" href="#module-tofu.geom._def" title="Permalink to this headline">¶</a></h2>
 <p>This module stores all the default setting of ToFu
@@ -2346,7 +2675,7 @@ return ax1, ax2, ax3</p>
 <span id="tofu-geom-plot-module"></span><h2>tofu.geom._plot module<a class="headerlink" href="#module-tofu.geom._plot" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="tofu.geom._plot.Config_phithetaproj_dist">
-<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Config_phithetaproj_dist</code><span class="sig-paren">(</span><em class="sig-param">config</em>, <em class="sig-param">refpt</em>, <em class="sig-param">dist</em>, <em class="sig-param">indStruct</em>, <em class="sig-param">distonly=False</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">vmin=None</em>, <em class="sig-param">vmax=None</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">cbck=(0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8)</em>, <em class="sig-param">tit=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">legend=None</em>, <em class="sig-param">draw=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Config_phithetaproj_dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Config_phithetaproj_dist" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Config_phithetaproj_dist</code><span class="sig-paren">(</span><em class="sig-param">config</em>, <em class="sig-param">refpt</em>, <em class="sig-param">dist</em>, <em class="sig-param">indStruct</em>, <em class="sig-param">distonly=False</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">vmin=None</em>, <em class="sig-param">vmax=None</em>, <em class="sig-param">invertx=None</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">cbck=(0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8)</em>, <em class="sig-param">tit=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">legend=None</em>, <em class="sig-param">draw=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Config_phithetaproj_dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Config_phithetaproj_dist" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -2361,7 +2690,7 @@ return ax1, ax2, ax3</p>
 
 <dl class="function">
 <dt id="tofu.geom._plot.Plot_Impact_3DPoly">
-<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.1-232-g56df4eb        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.2-alpha2        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plotting the toroidal projection of a Ves instance</p>
 <p>D. VEZINET, Aug. 2014
 Inputs :</p>
@@ -2429,6 +2758,39 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-tofu.geom._plot_optics">
+<span id="tofu-geom-plot-optics-module"></span><h2>tofu.geom._plot_optics module<a class="headerlink" href="#module-tofu.geom._plot_optics" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tofu.geom._plot_optics.CrystalBragg_plot">
+<code class="sig-prename descclassname">tofu.geom._plot_optics.</code><code class="sig-name descname">CrystalBragg_plot</code><span class="sig-paren">(</span><em class="sig-param">cryst</em>, <em class="sig-param">lax=None</em>, <em class="sig-param">proj=None</em>, <em class="sig-param">res=None</em>, <em class="sig-param">element=None</em>, <em class="sig-param">color=None</em>, <em class="sig-param">dP=None</em>, <em class="sig-param">dI=None</em>, <em class="sig-param">dBs=None</em>, <em class="sig-param">dBv=None</em>, <em class="sig-param">dVect=None</em>, <em class="sig-param">dIHor=None</em>, <em class="sig-param">dBsHor=None</em>, <em class="sig-param">dBvHor=None</em>, <em class="sig-param">dleg=None</em>, <em class="sig-param">indices=False</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit=None</em>, <em class="sig-param">tit=None</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot_optics.html#CrystalBragg_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot_optics.CrystalBragg_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._plot_optics.CrystalBragg_plot_approx_detector_params">
+<code class="sig-prename descclassname">tofu.geom._plot_optics.</code><code class="sig-name descname">CrystalBragg_plot_approx_detector_params</code><span class="sig-paren">(</span><em class="sig-param">Rrow</em>, <em class="sig-param">bragg</em>, <em class="sig-param">d</em>, <em class="sig-param">Z</em>, <em class="sig-param">frame_cent</em>, <em class="sig-param">nn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot_optics.html#CrystalBragg_plot_approx_detector_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot_optics.CrystalBragg_plot_approx_detector_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._plot_optics.CrystalBragg_plot_braggangle_from_xixj">
+<code class="sig-prename descclassname">tofu.geom._plot_optics.</code><code class="sig-name descname">CrystalBragg_plot_braggangle_from_xixj</code><span class="sig-paren">(</span><em class="sig-param">xi=None</em>, <em class="sig-param">xj=None</em>, <em class="sig-param">bragg=None</em>, <em class="sig-param">angle=None</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">plot=None</em>, <em class="sig-param">braggunits='rad'</em>, <em class="sig-param">angunits='rad'</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot_optics.html#CrystalBragg_plot_braggangle_from_xixj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot_optics.CrystalBragg_plot_braggangle_from_xixj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._plot_optics.CrystalBragg_plot_data_vs_fit">
+<code class="sig-prename descclassname">tofu.geom._plot_optics.</code><code class="sig-name descname">CrystalBragg_plot_data_vs_fit</code><span class="sig-paren">(</span><em class="sig-param">xi</em>, <em class="sig-param">xj</em>, <em class="sig-param">bragg</em>, <em class="sig-param">lamb</em>, <em class="sig-param">phi</em>, <em class="sig-param">data</em>, <em class="sig-param">mask=None</em>, <em class="sig-param">lambfit=None</em>, <em class="sig-param">phifit=None</em>, <em class="sig-param">spect1d=None</em>, <em class="sig-param">dfit1d=None</em>, <em class="sig-param">dfit2d=None</em>, <em class="sig-param">lambfitbins=None</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">vmin=None</em>, <em class="sig-param">vmax=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">angunits='deg'</em>, <em class="sig-param">dmoments=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot_optics.html#CrystalBragg_plot_data_vs_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot_optics.CrystalBragg_plot_data_vs_fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._plot_optics.CrystalBragg_plot_data_vs_lambphi">
+<code class="sig-prename descclassname">tofu.geom._plot_optics.</code><code class="sig-name descname">CrystalBragg_plot_data_vs_lambphi</code><span class="sig-paren">(</span><em class="sig-param">xi</em>, <em class="sig-param">xj</em>, <em class="sig-param">bragg</em>, <em class="sig-param">lamb</em>, <em class="sig-param">phi</em>, <em class="sig-param">data</em>, <em class="sig-param">lambfit=None</em>, <em class="sig-param">phifit=None</em>, <em class="sig-param">spect1d=None</em>, <em class="sig-param">cmap=None</em>, <em class="sig-param">vmin=None</em>, <em class="sig-param">vmax=None</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">dmargin=None</em>, <em class="sig-param">angunits='deg'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot_optics.html#CrystalBragg_plot_data_vs_lambphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot_optics.CrystalBragg_plot_data_vs_lambphi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.geom._plot_optics.CrystalBragg_plot_xixj_from_braggangle">
+<code class="sig-prename descclassname">tofu.geom._plot_optics.</code><code class="sig-name descname">CrystalBragg_plot_xixj_from_braggangle</code><span class="sig-paren">(</span><em class="sig-param">bragg=None</em>, <em class="sig-param">xi=None</em>, <em class="sig-param">xj=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot_optics.html#CrystalBragg_plot_xixj_from_braggangle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot_optics.CrystalBragg_plot_xixj_from_braggangle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
 <div class="section" id="module-tofu.geom._raytracing_tools">
 <span id="tofu-geom-raytracing-tools-module"></span><h2>tofu.geom._raytracing_tools module<a class="headerlink" href="#module-tofu.geom._raytracing_tools" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -2462,7 +2824,7 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 
 <dl class="function">
 <dt id="tofu.geom.utils.create_config">
-<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=2.4, r=1.0, elong=0.0, Dshape=0.0, divlow=True, divup=True, nP=200, out='object', SavePath='./', path='/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.1_232_g56df4eb-py3.6-macosx-10.7-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=None, r=None, elong=None, Dshape=None, divlow=None, divup=None, nP=None, returnas='object', SavePath='./', path='/Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-1.4.2a2-py3.6-macosx-10.7-x86_64.egg/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create easily a tofu.geom.Config object</p>
 <p>In tofu, a Config (short for geometrical configuration) refers to the 3D
 geometry of a fusion device.

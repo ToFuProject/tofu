@@ -805,13 +805,15 @@
 
 <div class="viewcode-block" id="Config_phithetaproj_dist"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot.Config_phithetaproj_dist">[docs]</a><span class="k">def</span> <span class="nf">Config_phithetaproj_dist</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">refpt</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">indStruct</span><span class="p">,</span>
                              <span class="n">distonly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                             <span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">invertx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                              <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cbck</span><span class="o">=</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">),</span>
                              <span class="n">tit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">cmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">cmap</span> <span class="o">=</span> <span class="s1">&#39;touch&#39;</span>
     <span class="n">lS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">lStruct</span>
     <span class="n">indsu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">indStruct</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">invertx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">invertx</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="c1"># set extent</span>
     <span class="n">ratio</span> <span class="o">=</span> <span class="n">refpt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
@@ -858,6 +860,8 @@
             <span class="c1"># labels.append( &#39;%s_%s&#39;%(lS[ii].Id.Cls, lS[ii].Id.Name) )</span>
         <span class="c1"># dax[&#39;cross&#39;][0].legend(handles, labels, frameon=False,</span>
                                <span class="c1"># bbox_to_anchor=(1.01,1.), loc=2, borderaxespad=0.)</span>
+    <span class="k">if</span> <span class="n">invertx</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;dist&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">invert_xaxis</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>

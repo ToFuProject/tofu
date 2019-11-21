@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tutorials For Developers &#8212; tofu v1.4</title>
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Tutorials For Developers</a><ul>
+<li><a class="reference internal" href="#how-to-do-a-release">How To Do A Release</a></li>
+<li><a class="reference internal" href="#how-to-construct-the-doc">How To Construct The Doc</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  <div class="section" id="tutorials-for-developers">
+<span id="devtutos"></span><h1>Tutorials For Developers<a class="headerlink" href="#tutorials-for-developers" title="Permalink to this headline">¶</a></h1>
+<p>Some tutorials for developers.</p>
+<hr class="docutils" />
+<div class="section" id="how-to-do-a-release">
+<h2>How To Do A Release<a class="headerlink" href="#how-to-do-a-release" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>Write down the release_notes:</p>
+<ol class="loweralpha simple">
+<li><p>in <strong>rST</strong> format: <code class="docutils literal notranslate"><span class="pre">realeas_notes_XYZ.rst</span></code></p></li>
+<li><p>Start with a summary <strong>Main Changes</strong> (TL;DR version of the whole file)</p></li>
+<li><p>add all issues and PR related references</p></li>
+<li><p>add list of contributors</p></li>
+<li><p>add list of perspectives and tag contributors</p></li>
+</ol>
+</li>
+<li><p>Release an alpha version:</p>
+<ol class="loweralpha">
+<li><p>Create an annotaded tag (do not use GitHub’s release system) <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">X.Y.Z-alpha0</span> <span class="pre">-m</span> <span class="pre">&quot;annotation&quot;</span></code></p></li>
+<li><p>Update the version of the repo: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-c</span> <span class="pre">&quot;import</span> <span class="pre">_updateversion</span> <span class="pre">as</span> <span class="pre">up;</span> <span class="pre">out</span> <span class="pre">=</span> <span class="pre">up.updateversion();</span> <span class="pre">print(out)&quot;</span></code></p></li>
+<li><p>push on GitHub server</p></li>
+<li><p>Verify that ONE build passes on travis:
+the deployment on conda should pass for all travis-build, but for pypi only
+the first build will pass</p></li>
+<li><p>Install it locally on all available platforms and environments (by hand),
+with all different packaging tools. And try some tests.</p></li>
+<li><p>Easybuild: try to create a tarball for Jira machines</p></li>
+<li><p>For IRFM servers, build the conda_recipe by hand:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>$ if [[ &quot;$TRAVIS_PYTHON_VERSION&quot; == &quot;3.7-dev&quot; ]]; then export VADD=&quot;py37&quot;; else export VADD=&quot;py36&quot;;  fi
+$ export CONDA_BLD_PATH=$(pwd)/conda-bld/ # you should be in the tofu dir
+$ export REV=$(python -c &quot;import _updateversion as up; out=up.updateversion(); print(out)&quot;)
+$ export VERSION=$(echo $REV | tr - .)
+$ echo $REV
+</pre></div>
+</div>
+</li>
+</ol>
+</li>
+<li><p>Update the <code class="docutils literal notranslate"><span class="pre">releases.rst</span></code> file in the web documentation:</p>
+<ol class="arabic simple">
+<li><p>create a symbolic link from <code class="docutils literal notranslate"><span class="pre">$TOFU_DIR/release_notes/release_notes_XYZ.rst</span></code> to <code class="docutils literal notranslate"><span class="pre">$TOFU_DIR/doc/source/release_notes/release_notes_XYZ.rst</span></code></p></li>
+<li><p>Update the <code class="docutils literal notranslate"><span class="pre">.rst</span></code> file</p></li>
+<li><p>Make and publish doc (see tutorial below)</p></li>
+</ol>
+</li>
+<li><p>Release the real version:</p>
+<ol class="loweralpha simple">
+<li><p>Follow the same steps as for alpha version, just change the tag and annotation.</p></li>
+</ol>
+</li>
+<li><p>Send an email to users.</p></li>
+</ol>
+</div>
+<div class="section" id="how-to-construct-the-doc">
+<h2>How To Construct The Doc<a class="headerlink" href="#how-to-construct-the-doc" title="Permalink to this headline">¶</a></h2>
+<p>Adding text, updating the API:</p>
+<ol class="arabic simple">
+<li><p>The easiest way is to have two different repo: <code class="docutils literal notranslate"><span class="pre">$TOFU_DIR</span></code>, for building the doc and <code class="docutils literal notranslate"><span class="pre">$TOFU_DIR/../test_doc/tofu/</span></code> for seeing the resulting html (always in the <code class="docutils literal notranslate"><span class="pre">gh-pages</span></code> branch)</p></li>
+<li><p>If updating the API, make sure that you have installed the right version of <strong>tofu</strong></p></li>
+<li><p>Change to the <code class="docutils literal notranslate"><span class="pre">new-doc</span></code> branch</p></li>
+<li><p>Go to <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">cd</span> <span class="pre">$TOFU_DIR/doc/</span></code></p></li>
+<li><p>Modify the corresponding file (somewhere in <code class="docutils literal notranslate"><span class="pre">src/a-file.rst</span></code>)</p></li>
+<li><p>If you added a file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sphinx-apidoc</span> <span class="pre">-Mf</span> <span class="pre">-P</span> <span class="pre">-d</span> <span class="pre">5</span> <span class="pre">-o</span> <span class="pre">source/</span> <span class="pre">../tofu/</span> <span class="pre">{../*test*,../*mag*,../*imas2tofu*,../*geom/inputs}</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">make</span> <span class="pre">clean</span></code> (to make sure only the needed files will be stored)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">make</span> <span class="pre">html</span></code></p></li>
+<li><p>Go to the <code class="docutils literal notranslate"><span class="pre">gh-pages</span></code> branch and open the <code class="docutils literal notranslate"><span class="pre">index.html</span></code> file (from the top)</p></li>
+<li><p>Commit and push the changes to the <code class="docutils literal notranslate"><span class="pre">new-doc</span></code> branch: to keep the changes in the sources</p></li>
+<li><p>Commit and push the changes to the <code class="docutils literal notranslate"><span class="pre">gh-pages</span></code>, this will update the website.</p></li>
+</ol>
+<p>Adding a tutorial:</p>
+<ol class="arabic simple">
+<li><p>Add your tutorial in <code class="docutils literal notranslate"><span class="pre">$TOFU_DIR/examples/tutorials</span></code> with the proper naming conventions</p></li>
+<li><p>The sphinx gallery is automatically updated when building the doc (as above)</p></li>
+<li><p>Change the <code class="docutils literal notranslate"><span class="pre">index.rst</span></code> file to include a thumbnail of your tutorial</p></li>
+</ol>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="_sources/dev_tutos.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

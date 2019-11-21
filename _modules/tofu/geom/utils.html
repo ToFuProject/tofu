@@ -349,8 +349,8 @@
 <span class="c1">###########################################################</span>
 
 
-<span class="k">def</span> <span class="nf">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mf">2.4</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
-                    <span class="n">divlow</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">divlow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Utility to compute three 2D (R,Z) polygons</span>
 
 <span class="sd">    One represents a vacuum vessel, one an outer bumper, one a baffle</span>
@@ -365,20 +365,27 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    R:          int / float</span>
+<span class="sd">    R:          None / int / float</span>
 <span class="sd">        Major radius used as a center of the vessel</span>
-<span class="sd">    r :         int / float</span>
+<span class="sd">        If None, defaults to 2.4</span>
+<span class="sd">    r :         None / int / float</span>
 <span class="sd">        Minor radius of the vessel</span>
-<span class="sd">    elong:      int / float</span>
+<span class="sd">        If None, defaults to 1.</span>
+<span class="sd">    elong:      None / int / float</span>
 <span class="sd">        Dimensionless elongation parameter in [-1;1]</span>
-<span class="sd">    Dshape:     int / float</span>
+<span class="sd">        If None, defaults to 0.</span>
+<span class="sd">    Dshape:     None / int / float</span>
 <span class="sd">        Dimensionless parameter for the D-shape (in-out asymmetry) in [0;1]</span>
-<span class="sd">    divlow:     bool</span>
+<span class="sd">        If None, defaults to 0.</span>
+<span class="sd">    divlow:     None / bool</span>
 <span class="sd">        Flag indicating whether to incude a lower divertor-like shape</span>
-<span class="sd">    divup:      bool</span>
+<span class="sd">        If None, defaults to True</span>
+<span class="sd">    divup:      None / bool</span>
 <span class="sd">        Flag indicating whether to incude an upper divertor-like shape</span>
-<span class="sd">    nP :        int</span>
+<span class="sd">        If None, defaults to True</span>
+<span class="sd">    nP :        None / int</span>
 <span class="sd">        Parameter specifying approximately the number of points of the vessel</span>
+<span class="sd">        If None, defaults to 200</span>
 
 <span class="sd">    Return</span>
 <span class="sd">    ------</span>
@@ -389,6 +396,22 @@
 <span class="sd">    pbaffle:    np.ndarray</span>
 <span class="sd">        Closed (2,N) polygon defining the lower baffle</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">R</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="mf">2.4</span>
+    <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="mf">1.</span>
+    <span class="k">if</span> <span class="n">elong</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">elong</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">if</span> <span class="n">Dshape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Dshape</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">if</span> <span class="n">divlow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">divlow</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">divup</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">divup</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">nP</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nP</span> <span class="o">=</span> <span class="mi">200</span>
 
     <span class="c1"># Basics (center, theta, unit vectors)</span>
     <span class="n">cent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">R</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
@@ -732,50 +755,86 @@
 <span class="n">_ExpWest</span> <span class="o">=</span> <span class="s1">&#39;WEST&#39;</span>
 <span class="n">_ExpITER</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
 
-<span class="n">_dconfig</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
-                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                   <span class="s1">&#39;PlasmaDomain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Sep&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
-                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV0&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
-                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV2&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;BumperInnerV1&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV1&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
-                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV3&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV3&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;BumperInnerV3&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV3&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;LH1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;LH2V1&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;RippleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;VDEV0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
-                   <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">],</span>
-                   <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BLK01&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK02&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK03&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK04&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK05&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK06&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;BLK07&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK08&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK09&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK10&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK11&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK12&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;BLK13&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK14&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK15&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK16&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK17&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK18&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;Div1&#39;</span><span class="p">,</span> <span class="s1">&#39;Div2&#39;</span><span class="p">,</span> <span class="s1">&#39;Div3&#39;</span><span class="p">,</span> <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]}</span>
+<span class="c1"># Dictionnary of unique config names</span>
+<span class="n">_DCONFIG</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;WEST-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;ITER-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;WEST-Sep&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
+                         <span class="s1">&#39;PlasmaDomain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Sep&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;WEST-V2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
+                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV0&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV1&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;WEST-V3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
+                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV2&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;BumperInnerV1&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV1&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;WEST-V4&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
+                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV3&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV3&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;BumperInnerV3&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV3&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;LH1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;LH2V1&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;RippleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;VDEV0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;ITER-V2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">],</span>
+                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BLK01&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK02&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK03&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK04&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK05&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;BLK06&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK07&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK08&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK09&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK10&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;BLK11&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK12&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK13&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK14&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK15&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;BLK16&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK17&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK18&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;Div1&#39;</span><span class="p">,</span> <span class="s1">&#39;Div2&#39;</span><span class="p">,</span> <span class="s1">&#39;Div3&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]}</span>
             <span class="p">}</span>
 
-<span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="s1">&#39;A1&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span>
-                            <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span> <span class="n">dconfig</span><span class="o">=</span><span class="n">_dconfig</span><span class="p">):</span>
+<span class="c1"># Each config can be called by various names (for benchmark and</span>
+<span class="c1"># retro-compatibility), this table stores the available names for each unique</span>
+<span class="c1"># config in _DCONFIG</span>
+<span class="n">_DCONFIG_TABLE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ITER&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;WEST&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V1&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V1&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-Sep&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V2&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V3&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">}</span>
+
+<span class="c1"># Default config</span>
+<span class="n">_DEFCONFIG</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span>
+                            <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span> <span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
+                            <span class="n">dconfig_table</span><span class="o">=</span><span class="n">_DCONFIG_TABLE</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Load the desired test case configuration</span>
 
 <span class="sd">    Choose from one of the reference preset configurations:</span>
 <span class="sd">        {0}</span>
 
 <span class="sd">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;]&#39;</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">config</span><span class="p">,</span><span class="n">path</span><span class="p">]])</span>
+    <span class="c1"># Check input</span>
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">_DEFCONFIG</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">]])</span>
     <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dconfig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Please a valid config, from one of the following:</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;[&quot;</span><span class="o">+</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot;+]&quot;</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># Check config is available</span>
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">pass</span>
+
+    <span class="k">elif</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig_table</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="c1"># Get corresponding config</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">dconfig_table</span><span class="p">[</span><span class="n">config</span><span class="p">]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The provided config name is not valid:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;Please choose among either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> - unique keys: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> - shortcuts  : </span><span class="si">{}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dconfig_table</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+               <span class="o">+</span> <span class="s2">&quot;  =&gt; you provided: case = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c1"># Get file names for config</span>
     <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span><span class="o">==</span><span class="s1">&#39;.txt&#39;</span><span class="p">]</span>
@@ -795,11 +854,11 @@
             <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">ff</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">obj</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;_core.&#39;</span><span class="o">+</span><span class="n">cc</span><span class="p">)</span><span class="o">.</span><span class="n">from_txt</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
                                              <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span>
-                                             <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">out</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;object&#39;</span><span class="p">,</span><span class="nb">object</span><span class="p">]:</span>
+                                             <span class="n">out</span><span class="o">=</span><span class="n">returnas</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">returnas</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
                 <span class="n">obj</span> <span class="o">=</span> <span class="p">((</span><span class="n">ss</span><span class="p">,{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;pos&#39;</span><span class="p">:</span><span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;extent&#39;</span><span class="p">:</span><span class="n">obj</span><span class="p">[</span><span class="mi">2</span><span class="p">]}),)</span>
             <span class="n">lS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">tt</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span> <span class="n">lStruct</span><span class="o">=</span><span class="n">lS</span><span class="p">)</span>
@@ -807,9 +866,9 @@
 
 <div class="viewcode-block" id="create_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_config">[docs]</a><span class="k">def</span> <span class="nf">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
                   <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Bump_posextent</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">],</span>
-                  <span class="n">R</span><span class="o">=</span><span class="mf">2.4</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
-                  <span class="n">divlow</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-                  <span class="n">out</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">):</span>
+                  <span class="n">R</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">divlow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Create easily a tofu.geom.Config object</span>
 
 <span class="sd">    In tofu, a Config (short for geometrical configuration) refers to the 3D</span>
@@ -863,13 +922,29 @@
 <span class="sd">            - a dictionary of the polygons and their pos/extent (if any)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">conf</span> <span class="o">=</span> <span class="n">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">case</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">poly</span><span class="p">,</span> <span class="n">pbump</span><span class="p">,</span> <span class="n">pbaffle</span> <span class="o">=</span> <span class="n">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="n">R</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="n">elong</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="n">Dshape</span><span class="p">,</span>
-                                                <span class="n">divlow</span><span class="o">=</span><span class="n">divlow</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="n">divup</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="n">nP</span><span class="p">)</span>
+    <span class="n">lp</span> <span class="o">=</span> <span class="p">[</span><span class="n">R</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">elong</span><span class="p">,</span> <span class="n">Dshape</span><span class="p">,</span> <span class="n">divlow</span><span class="p">,</span> <span class="n">divup</span><span class="p">,</span> <span class="n">nP</span><span class="p">]</span>
+    <span class="n">lpstr</span> <span class="o">=</span> <span class="s1">&#39;[R, r, elong, Dshape, divlow, divup, nP]&#39;</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="nb">any</span><span class="p">([</span><span class="n">pp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">lp</span><span class="p">])]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Please provide either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- case: the name of a stored case</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- geometrical parameters </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lpstr</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="n">case</span> <span class="o">=</span> <span class="n">_DEFCONFIG</span>
 
-        <span class="k">if</span> <span class="n">out</span><span class="o">==</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+    <span class="c1"># Get config, either from known case or geometrical parameterization</span>
+    <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">case</span><span class="p">,</span>
+                                       <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">poly</span><span class="p">,</span> <span class="n">pbump</span><span class="p">,</span> <span class="n">pbaffle</span> <span class="o">=</span> <span class="n">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="n">R</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+                                                <span class="n">elong</span><span class="o">=</span><span class="n">elong</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="n">Dshape</span><span class="p">,</span>
+                                                <span class="n">divlow</span><span class="o">=</span><span class="n">divlow</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="n">divup</span><span class="p">,</span>
+                                                <span class="n">nP</span><span class="o">=</span><span class="n">nP</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">returnas</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
             <span class="n">conf</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Ves&#39;</span><span class="p">:{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">poly</span><span class="p">},</span>
                     <span class="s1">&#39;Baffle&#39;</span><span class="p">:{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">pbaffle</span><span class="p">},</span>
                     <span class="s1">&#39;Bumper&#39;</span><span class="p">:{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span><span class="n">pbump</span><span class="p">,</span>

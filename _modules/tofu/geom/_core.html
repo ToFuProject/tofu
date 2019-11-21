@@ -165,7 +165,6 @@
 <span class="n">_PHITHETAPROJ_NPHI</span> <span class="o">=</span> <span class="mi">2000</span>
 <span class="n">_PHITHETAPROJ_NTHETA</span> <span class="o">=</span> <span class="mi">1000</span>
 <span class="n">_RES</span> <span class="o">=</span> <span class="mf">0.005</span>
-<span class="n">_NTHREADS</span> <span class="o">=</span> <span class="mi">16</span>
 <span class="n">_DREFLECT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;specular&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;diffusive&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;ccube&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -3187,37 +3186,21 @@
 
         <span class="k">return</span> <span class="n">dist</span><span class="p">,</span> <span class="n">indStruct</span>
 
-<div class="viewcode-block" id="Config.plot_phithetaproj_dist"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Config.plot_phithetaproj_dist">[docs]</a>    <span class="k">def</span> <span class="nf">plot_phithetaproj_dist</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">refpt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">ntheta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">nphi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">tit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">wintit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">draw</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="n">dist</span><span class="p">,</span> <span class="n">indStruct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_phithetaproj_dist</span><span class="p">(</span>
-            <span class="n">refpt</span><span class="o">=</span><span class="n">refpt</span><span class="p">,</span> <span class="n">ntheta</span><span class="o">=</span><span class="n">ntheta</span><span class="p">,</span> <span class="n">nphi</span><span class="o">=</span><span class="n">nphi</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="n">phi</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">_plot</span><span class="o">.</span><span class="n">Config_phithetaproj_dist</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">refpt</span><span class="p">,</span>
-            <span class="n">dist</span><span class="p">,</span>
-            <span class="n">indStruct</span><span class="p">,</span>
-            <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
-            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
-            <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
-            <span class="n">tit</span><span class="o">=</span><span class="n">tit</span><span class="p">,</span>
-            <span class="n">wintit</span><span class="o">=</span><span class="n">wintit</span><span class="p">,</span>
-            <span class="n">draw</span><span class="o">=</span><span class="n">draw</span><span class="p">,</span>
-        <span class="p">)</span></div>
+<div class="viewcode-block" id="Config.plot_phithetaproj_dist"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Config.plot_phithetaproj_dist">[docs]</a>    <span class="k">def</span> <span class="nf">plot_phithetaproj_dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">refpt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntheta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nphi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">invertx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">draw</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">dist</span><span class="p">,</span> <span class="n">indStruct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_phithetaproj_dist</span><span class="p">(</span><span class="n">refpt</span><span class="o">=</span><span class="n">refpt</span><span class="p">,</span>
+                                                      <span class="n">ntheta</span><span class="o">=</span><span class="n">ntheta</span><span class="p">,</span> <span class="n">nphi</span><span class="o">=</span><span class="n">nphi</span><span class="p">,</span>
+                                                      <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="n">phi</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_plot</span><span class="o">.</span><span class="n">Config_phithetaproj_dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">refpt</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">indStruct</span><span class="p">,</span>
+                                              <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+                                              <span class="n">tit</span><span class="o">=</span><span class="n">tit</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="n">wintit</span><span class="p">,</span>
+                                              <span class="n">invertx</span><span class="o">=</span><span class="n">invertx</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="n">draw</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Config.isInside"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Config.isInside">[docs]</a>    <span class="k">def</span> <span class="nf">isInside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">In</span><span class="o">=</span><span class="s2">&quot;(X,Y,Z)&quot;</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="s2">&quot;any&quot;</span><span class="p">):</span>
+
         <span class="sd">&quot;&quot;&quot; Return a 2D array of bool</span>
 
 <span class="sd">        Equivalent to applying isInside to each Struct</span>
@@ -4212,20 +4195,19 @@
         <span class="c1"># Test if unique starting point</span>
         <span class="k">if</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;case&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">]:</span>
             <span class="c1"># Test if pinhole</span>
-            <span class="k">if</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;case&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">]:</span>
-                <span class="n">u</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">sca2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sca2</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1.0e-9</span><span class="p">):</span>
-                    <span class="n">DDb</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                        <span class="n">DDb</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sca2</span><span class="p">)</span> <span class="o">*</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
-                    <span class="p">)</span>
-                    <span class="n">k</span> <span class="o">=</span> <span class="n">k</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">sca2</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
-                        <span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1.0e-3</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1.0e-6</span>
-                    <span class="p">):</span>
-                        <span class="n">pinhole</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
-                        <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;pinhole&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pinhole</span>
+            <span class="k">if</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;nRays&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;case&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">]:</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">sca2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">*</span><span class="n">u</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sca2</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1.e-9</span><span class="p">):</span>
+                    <span class="n">DDb</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">-</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">DDb</span><span class="o">*</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sca2</span><span class="p">)</span><span class="o">*</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]),</span>
+                               <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="n">k</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="n">sca2</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1.e-3</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1.e-6</span><span class="p">):</span>
+                        <span class="n">pinhole</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+                        <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pinhole</span>
 
             <span class="c1"># Test if all D are on a common plane or line</span>
             <span class="n">va</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
@@ -5113,13 +5095,14 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">u</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span><span class="p">:</span>
-            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;pinhole&quot;</span><span class="p">][:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span>
-            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;nRays&quot;</span><span class="p">]:</span>
-            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;nRays&quot;</span><span class="p">])</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;nRays&#39;</span><span class="p">]):</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span><span class="p">:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">]</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;nRays&#39;</span><span class="p">]:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;u&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;nRays&#39;</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">u</span>
 
     <span class="nd">@property</span>
@@ -5873,6 +5856,100 @@
                                     <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">lind</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)])</span>
         <span class="k">return</span> <span class="n">vals</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">t</span></div>
 
+<div class="viewcode-block" id="Rays.get_inspector"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.get_inspector">[docs]</a>    <span class="k">def</span> <span class="nf">get_inspector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ff</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+        <span class="n">pars</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="n">na</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([(</span><span class="n">pp</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">pp</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span>
+                      <span class="ow">and</span> <span class="n">pp</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="n">pp</span><span class="o">.</span><span class="n">empty</span><span class="p">)</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">pars</span><span class="p">])</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="p">[</span><span class="n">pp</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">pars</span> <span class="k">if</span> <span class="p">(</span><span class="n">pp</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">pp</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span>
+                                         <span class="ow">and</span> <span class="n">pp</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">pp</span><span class="o">.</span><span class="n">empty</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">na</span><span class="p">,</span> <span class="n">kw</span></div>
+
+<div class="viewcode-block" id="Rays.check_ff"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.check_ff">[docs]</a>    <span class="k">def</span> <span class="nf">check_ff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ff</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Initialization of function wrapper</span>
+        <span class="n">wrapped_ff</span> <span class="o">=</span> <span class="n">ff</span>
+
+        <span class="c1"># Define unique error message giving all info in a concise way</span>
+        <span class="c1"># Optionnally add error-specific line afterwards</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;User-defined emissivity function ff must:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- be a callable (function)</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- take only one positional arg &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;and at least one keyword arg:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> - ff(pts, t=None), where:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2"> - pts is a (3, npts) of (x, y, z) coordinates</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2"> - t can be None / scalar / iterable of len(t) = nt</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- Always return a 2d (nt, npts) np.ndarray, where:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> - nt = len(t) if t is an iterable</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> - nt = 1 if t is None or scalar</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> - npts is the number of pts (pts.shape[1])</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- Optionally, ff can take an extra keyword arg:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> - ff(pts, vect=None, t=None), where:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2"> - vect is a (3, npts) np.ndarray</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2"> - vect contains the (x, y, z) coordinates &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;of the units vectors of the photon emission directions&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;for each pts. Present only for anisotropic emissivity, &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;unless specifically indicated otherwise &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;(with ani=False in LOS_calc_signal).</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2">Does not affect the outpout shape (still (nt, npts))&quot;</span><span class="p">)</span>
+
+        <span class="c1"># .. Checking basic definition of function ..........................</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="s1">&#39;__call__&#39;</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; ff must be a callable (function)!&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">npos_args</span><span class="p">,</span> <span class="n">kw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_inspector</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">npos_args</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; ff must take only 1 positional arg: ff(pts)!&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;t&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; ff must have kwarg &#39;t=None&#39; for time vector!&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># .. Checking time vector .........................................</span>
+        <span class="n">ltypeok</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+        <span class="n">is_t_type_valid</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ltypeok</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">is_t_type_valid</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; t must be None, scalar or iterable !&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">nt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+
+        <span class="c1"># .. Test anisotropic case .......................................</span>
+        <span class="k">if</span> <span class="n">ani</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">is_ani</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;vect&#39;</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ani</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+            <span class="n">is_ani</span> <span class="o">=</span> <span class="n">ani</span>
+
+        <span class="c1"># .. Testing outputs ...............................................</span>
+        <span class="n">test_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]])</span>
+        <span class="n">npts</span> <span class="o">=</span> <span class="n">test_pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">is_ani</span><span class="p">:</span>
+            <span class="n">vect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">test_pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">ff</span><span class="p">(</span><span class="n">test_pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="n">vect</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; ff must take ff(pts, vect=vect, t=t) !&quot;</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">ff</span><span class="p">(</span><span class="n">test_pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; ff must take a ff(pts, t=t) !&quot;</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+                                                 <span class="ow">or</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">npts</span><span class="p">,))):</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; wrong output (always 2d np.ndarray) !&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nt</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">npts</span><span class="p">,):</span>
+            <span class="k">def</span> <span class="nf">wrapped_ff</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">res_ff</span> <span class="o">=</span> <span class="n">ff</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">res_ff</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">is_ani</span><span class="p">,</span> <span class="n">wrapped_ff</span></div>
+
     <span class="k">def</span> <span class="nf">_calc_signal_preformat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DL</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">out</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span> <span class="n">Brightness</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg out must be in [object,np.ndarray]&quot;</span>
@@ -5999,7 +6076,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">func</span><span class="p">,</span>
         <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">ani</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">ani</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">fkwdargs</span><span class="o">=</span><span class="p">{},</span>
         <span class="n">Brightness</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -6035,11 +6112,6 @@
 <span class="sd">        =&gt; the method returns W/m2 (resp. W/m2/sr)</span>
 <span class="sd">        The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,</span>
 
-<span class="sd">        The integral can be computed using three different methods:</span>
-<span class="sd">            - &#39;sum&#39;:    A numpy.sum() on the local values (x segments lengths)</span>
-<span class="sd">            - &#39;simps&#39;:  using :meth:`scipy.integrate.simps`</span>
-<span class="sd">            - &#39;romb&#39;:   using :meth:`scipy.integrate.romb`</span>
-
 <span class="sd">        Except func, arguments common to :meth:`~tofu.geom.LOS.get_sample`</span>
 
 <span class="sd">        Parameters</span>
@@ -6054,6 +6126,15 @@
 <span class="sd">                - vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)</span>
 <span class="sd">            Should return at least:</span>
 <span class="sd">                - val : (N,) np.ndarray, local emissivity values</span>
+<span class="sd">        method : string, the integral can be computed using 3 different methods</span>
+<span class="sd">            - &#39;sum&#39;:    A numpy.sum() on the local values (x segments) DEFAULT</span>
+<span class="sd">            - &#39;simps&#39;:  using :meth:`scipy.integrate.simps`</span>
+<span class="sd">            - &#39;romb&#39;:   using :meth:`scipy.integrate.romb`</span>
+<span class="sd">        minimize : string, method to minimize for computation optimization</span>
+<span class="sd">            - &quot;calls&quot;: minimal number of calls to `func` (default)</span>
+<span class="sd">            - &quot;memory&quot;: slowest method, to use only if &quot;out of memory&quot; error</span>
+<span class="sd">            - &quot;hybrid&quot;: mix of before-mentioned methods.</span>
+
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -6079,6 +6160,7 @@
         <span class="c1"># Launch    # NB : find a way to exclude cases with DL[0,:]&gt;=DL[1,:] !!</span>
         <span class="c1"># Exclude Rays not seeing the plasma</span>
         <span class="k">if</span> <span class="n">newcalc</span><span class="p">:</span>
+            <span class="n">ani</span><span class="p">,</span> <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_ff</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="n">ani</span><span class="p">)</span>
             <span class="n">s</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_calc_signal</span><span class="p">(</span>
                 <span class="n">func</span><span class="p">,</span>
                 <span class="n">Ds</span><span class="p">,</span>
@@ -6278,7 +6360,7 @@
                 <span class="n">DL</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">ani</span> <span class="o">=</span> <span class="n">quant</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">num_threads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">num_threads</span> <span class="o">=</span> <span class="n">_NTHREADS</span>
+                <span class="n">num_threads</span> <span class="o">=</span> <span class="n">_NUM_THREADS</span>
 
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">indok</span><span class="p">):</span>
                 <span class="n">D</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span>

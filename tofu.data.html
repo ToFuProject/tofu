@@ -93,6 +93,7 @@
 <li><a class="reference internal" href="#module-tofu.data._def">tofu.data._def module</a></li>
 <li><a class="reference internal" href="#module-tofu.data._physics">tofu.data._physics module</a></li>
 <li><a class="reference internal" href="#module-tofu.data._plot">tofu.data._plot module</a></li>
+<li><a class="reference internal" href="#module-tofu.data._spectrafit2d">tofu.data._spectrafit2d module</a></li>
 </ul>
 </li>
 </ul>
@@ -737,7 +738,110 @@ Where:</p>
 
 <dl class="function">
 <dt id="tofu.data._plot.Data_plot_spectrogram">
-<code class="sig-prename descclassname">tofu.data._plot.</code><code class="sig-name descname">Data_plot_spectrogram</code><span class="sig-paren">(</span><em class="sig-param">Data, tf, f, lpsd, lang, fmax=None, key=None, bck=True, indref=0, cmap_f=None, cmap_img=None, ms=4, vmin=None, vmax=None, normt=False, ntMax=None, nfMax=3, lls=['-', '--', '-.', ':'], lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], lcch=[(0.8392156862745098, 0.15294117647058825, 0.1568627450980392), (0.5803921568627451, 0.403921568627451, 0.7411764705882353), (0.5490196078431373, 0.33725490196078434, 0.29411764705882354), (1.0, 0.596078431372549, 0.5882352941176471), (0.7725490196078432, 0.6901960784313725, 0.8352941176470589), (0.7686274509803922, 0.611764705882353, 0.5803921568627451)], plotmethod='imshow', invert=False, fs=None, dmargin=None, wintit='tofu-1.4.1-232-g56df4eb        report issues / requests at https://github.com/ToFuProject/tofu/issues', tit=None, fontsize=None, draw=True, connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_plot.html#Data_plot_spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._plot.Data_plot_spectrogram" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.data._plot.</code><code class="sig-name descname">Data_plot_spectrogram</code><span class="sig-paren">(</span><em class="sig-param">Data, tf, f, lpsd, lang, fmax=None, key=None, bck=True, indref=0, cmap_f=None, cmap_img=None, ms=4, vmin=None, vmax=None, normt=False, ntMax=None, nfMax=3, lls=['-', '--', '-.', ':'], lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], lcch=[(0.8392156862745098, 0.15294117647058825, 0.1568627450980392), (0.5803921568627451, 0.403921568627451, 0.7411764705882353), (0.5490196078431373, 0.33725490196078434, 0.29411764705882354), (1.0, 0.596078431372549, 0.5882352941176471), (0.7725490196078432, 0.6901960784313725, 0.8352941176470589), (0.7686274509803922, 0.611764705882353, 0.5803921568627451)], plotmethod='imshow', invert=False, fs=None, dmargin=None, wintit='tofu-1.4.2-alpha2        report issues / requests at https://github.com/ToFuProject/tofu/issues', tit=None, fontsize=None, draw=True, connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_plot.html#Data_plot_spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._plot.Data_plot_spectrogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.data._spectrafit2d">
+<span id="tofu-data-spectrafit2d-module"></span><h2>tofu.data._spectrafit2d module<a class="headerlink" href="#module-tofu.data._spectrafit2d" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.fit_spectra2d_x0_per_row">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">fit_spectra2d_x0_per_row</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#fit_spectra2d_x0_per_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.fit_spectra2d_x0_per_row" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.fit_spectra_2d">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">fit_spectra_2d</code><span class="sig-paren">(</span><em class="sig-param">data2d</em>, <em class="sig-param">indt=None</em>, <em class="sig-param">nbin_init=None</em>, <em class="sig-param">nmax=None</em>, <em class="sig-param">bck=None</em>, <em class="sig-param">nbsplines=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#fit_spectra_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.fit_spectra_2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return fitted spectra</p>
+<p>Can handle unique or multiple time
+Takes already formatted 2d data:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>(nx, ny)</p></li>
+<li><p>(nt, nx, ny)</p></li>
+</ul>
+</div></blockquote>
+<p>x being the horizontal / spectral direction (lambda)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_2dspectralfit_func">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_2dspectralfit_func</code><span class="sig-paren">(</span><em class="sig-param">lamb0</em>, <em class="sig-param">forcelamb=False</em>, <em class="sig-param">deg=None</em>, <em class="sig-param">knots=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_2dspectralfit_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_2dspectralfit_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_dindx">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_dindx</code><span class="sig-paren">(</span><em class="sig-param">bckdeg=None</em>, <em class="sig-param">dlines=None</em>, <em class="sig-param">nbs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_dindx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_dindx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_func1d_all">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_func1d_all</code><span class="sig-paren">(</span><em class="sig-param">n=5</em>, <em class="sig-param">lamb0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_func1d_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_func1d_all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_func1d_lamb0fix">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_func1d_lamb0fix</code><span class="sig-paren">(</span><em class="sig-param">n=5</em>, <em class="sig-param">lamb0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_func1d_lamb0fix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_func1d_lamb0fix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_func2d">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_func2d</code><span class="sig-paren">(</span><em class="sig-param">y0</em>, <em class="sig-param">y1</em>, <em class="sig-param">x0_y</em>, <em class="sig-param">bspl_n</em>, <em class="sig-param">bspl_deg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_func2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_func2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_funccostjac">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_funccostjac</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_funccostjac"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_funccostjac" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_knots_nbs_for_bsplines">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_knots_nbs_for_bsplines</code><span class="sig-paren">(</span><em class="sig-param">knots_unique</em>, <em class="sig-param">deg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_knots_nbs_for_bsplines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_knots_nbs_for_bsplines" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_lamb0_from_dlines">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_lamb0_from_dlines</code><span class="sig-paren">(</span><em class="sig-param">dlines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_lamb0_from_dlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_lamb0_from_dlines" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_multigaussianfit2d_costfunc">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_multigaussianfit2d_costfunc</code><span class="sig-paren">(</span><em class="sig-param">lamb=None</em>, <em class="sig-param">phi=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">std=None</em>, <em class="sig-param">lamb0=None</em>, <em class="sig-param">forcelamb=None</em>, <em class="sig-param">deg=None</em>, <em class="sig-param">knots=None</em>, <em class="sig-param">nlamb0=None</em>, <em class="sig-param">nkperbs=None</em>, <em class="sig-param">nbs=None</em>, <em class="sig-param">nc=None</em>, <em class="sig-param">debug=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_multigaussianfit2d_costfunc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_multigaussianfit2d_costfunc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_p0bounds_all">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_p0bounds_all</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">nmax=None</em>, <em class="sig-param">lamb0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_p0bounds_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_p0bounds_all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_p0bounds_lambfix">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_p0bounds_lambfix</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">nmax=None</em>, <em class="sig-param">lamb0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_p0bounds_lambfix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_p0bounds_lambfix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_peaks">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_peaks</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">nmax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_peaks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_peaks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.get_x0_bounds">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">get_x0_bounds</code><span class="sig-paren">(</span><em class="sig-param">x01d=None</em>, <em class="sig-param">dlines=None</em>, <em class="sig-param">dindx=None</em>, <em class="sig-param">lamb=None</em>, <em class="sig-param">data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#get_x0_bounds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.get_x0_bounds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.multigaussianfit2d">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">multigaussianfit2d</code><span class="sig-paren">(</span><em class="sig-param">lamb</em>, <em class="sig-param">phi</em>, <em class="sig-param">data</em>, <em class="sig-param">std=None</em>, <em class="sig-param">lamb0=None</em>, <em class="sig-param">forcelamb=None</em>, <em class="sig-param">knots=None</em>, <em class="sig-param">deg=None</em>, <em class="sig-param">nbsplines=None</em>, <em class="sig-param">x0=None</em>, <em class="sig-param">bounds=None</em>, <em class="sig-param">method=None</em>, <em class="sig-param">max_nfev=None</em>, <em class="sig-param">xtol=None</em>, <em class="sig-param">ftol=None</em>, <em class="sig-param">gtol=None</em>, <em class="sig-param">loss=None</em>, <em class="sig-param">verbose=0</em>, <em class="sig-param">debug=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#multigaussianfit2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.multigaussianfit2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.multiplegaussianfit1d">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">multiplegaussianfit1d</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">spectra</em>, <em class="sig-param">nmax=None</em>, <em class="sig-param">lamb0=None</em>, <em class="sig-param">forcelamb=None</em>, <em class="sig-param">p0=None</em>, <em class="sig-param">bounds=None</em>, <em class="sig-param">max_nfev=None</em>, <em class="sig-param">xtol=None</em>, <em class="sig-param">verbose=0</em>, <em class="sig-param">percent=None</em>, <em class="sig-param">plot_debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#multiplegaussianfit1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.multiplegaussianfit1d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tofu.data._spectrafit2d.remove_bck">
+<code class="sig-prename descclassname">tofu.data._spectrafit2d.</code><code class="sig-name descname">remove_bck</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_spectrafit2d.html#remove_bck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._spectrafit2d.remove_bck" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

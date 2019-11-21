@@ -148,15 +148,17 @@
 <dl class="simple">
 <dt>Documentation is available in two forms:</dt><dd><ol class="arabic simple">
 <li><p>Docstrings provided with the code</p></li>
-<li><p>Online sphinx-generated documentation, available from <a class="reference external" href="https://tofuproject.github.io/tofu/">ToFu’s homepage</a>.</p></li>
+<li><p>Online sphinx-generated documentation, available from</p></li>
 </ol>
 </dd>
 </dl>
+<p><a class="reference external" href="https://tofuproject.github.io/tofu/">ToFu’s homepage</a>.</p>
 </div>
 <div class="section" id="available-subpackages">
 <h3>Available subpackages<a class="headerlink" href="#available-subpackages" title="Permalink to this headline">¶</a></h3>
 <dl class="simple">
-<dt><a class="reference external" href="tofu.geom.html">geom</a></dt><dd><p>Geometry classes to model the 3D geometry (vacuum vessel, structural elements, LOS, etc.)</p>
+<dt><a class="reference external" href="tofu.geom.html">geom</a></dt><dd><p>Geometry classes to model the 3D geometry (vacuum vessel, structural
+elements, LOS, etc.)</p>
 </dd>
 <dt><a class="reference external" href="tofu.data.html">data</a></dt><dd><p>Data-handling classes (storing, processing, plotting, etc.)</p>
 </dd>
@@ -205,6 +207,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._def">tofu.data._def module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._physics">tofu.data._physics module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._plot">tofu.data._plot module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.data.html#module-tofu.data._spectrafit2d">tofu.data._spectrafit2d module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a><ul>
@@ -229,10 +232,13 @@
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._GG">tofu.geom._GG module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._basic_geom_tools">tofu.geom._basic_geom_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._comp">tofu.geom._comp module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._comp_optics">tofu.geom._comp_optics module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._core">tofu.geom._core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._core_optics">tofu.geom._core_optics module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._def">tofu.geom._def module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._distance_tools">tofu.geom._distance_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._plot">tofu.geom._plot module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._plot_optics">tofu.geom._plot_optics module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._raytracing_tools">tofu.geom._raytracing_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._sampling_tools">tofu.geom._sampling_tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tofu.geom.html#module-tofu.geom._vignetting_tools">tofu.geom._vignetting_tools module</a></li>
@@ -1569,7 +1575,7 @@ The associated tofu object will be created and returned</p>
 
 <dl class="function">
 <dt id="tofu.utils.load_from_imas">
-<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">load_from_imas</code><span class="sig-paren">(</span><em class="sig-param">shot=None</em>, <em class="sig-param">run=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">tokamak=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">ids=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">out=None</em>, <em class="sig-param">tlim=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">occ=None</em>, <em class="sig-param">indch=None</em>, <em class="sig-param">indDescription=None</em>, <em class="sig-param">equilibrium=None</em>, <em class="sig-param">dsig=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">X=None</em>, <em class="sig-param">t0=None</em>, <em class="sig-param">dextra=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">plot_sig=None</em>, <em class="sig-param">plot_X=None</em>, <em class="sig-param">sharex=False</em>, <em class="sig-param">bck=True</em>, <em class="sig-param">indch_auto=True</em>, <em class="sig-param">t=None</em>, <em class="sig-param">init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#load_from_imas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.load_from_imas" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.utils.</code><code class="sig-name descname">load_from_imas</code><span class="sig-paren">(</span><em class="sig-param">shot=None</em>, <em class="sig-param">run=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">tokamak=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">ids=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">out=None</em>, <em class="sig-param">tlim=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">occ=None</em>, <em class="sig-param">indch=None</em>, <em class="sig-param">indDescription=None</em>, <em class="sig-param">equilibrium=None</em>, <em class="sig-param">dsig=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">X=None</em>, <em class="sig-param">t0=None</em>, <em class="sig-param">dextra=None</em>, <em class="sig-param">plot=True</em>, <em class="sig-param">plot_sig=None</em>, <em class="sig-param">plot_X=None</em>, <em class="sig-param">sharex=False</em>, <em class="sig-param">invertx=None</em>, <em class="sig-param">bck=True</em>, <em class="sig-param">indch_auto=True</em>, <em class="sig-param">t=None</em>, <em class="sig-param">init=None</em>, <em class="sig-param">dR_sep=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/utils.html#load_from_imas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.utils.load_from_imas" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">

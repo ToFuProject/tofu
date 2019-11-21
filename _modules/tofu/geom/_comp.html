@@ -123,11 +123,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
 <span class="kn">import</span> <span class="nn">scipy.integrate</span> <span class="k">as</span> <span class="nn">scpintg</span>
-
-<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;3&quot;</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
-<span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">getargspec</span> <span class="k">as</span> <span class="n">insp</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
 
 <span class="c1"># ToFu-specific</span>
 <span class="k">try</span><span class="p">:</span>
@@ -1140,18 +1136,15 @@
         <span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">dL</span><span class="p">,</span> <span class="n">DL</span><span class="o">=</span><span class="n">DL</span><span class="p">,</span> <span class="n">dLMode</span><span class="o">=</span><span class="n">dLMode</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="n">Test</span>
     <span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">insp</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;3&quot;</span><span class="p">:</span>
-        <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="p">(</span>
-                    <span class="n">pp</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">pp</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span>
-                    <span class="ow">and</span> <span class="n">pp</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="n">pp</span><span class="o">.</span><span class="n">empty</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">pp</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">pp</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span>
+                <span class="ow">and</span> <span class="n">pp</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="n">pp</span><span class="o">.</span><span class="n">empty</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">Vals</span> <span class="o">=</span> <span class="n">ff</span><span class="p">(</span><span class="n">Pts</span><span class="p">)</span>
