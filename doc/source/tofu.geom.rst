@@ -33,10 +33,26 @@ tofu.geom.\_comp module
    :undoc-members:
    :show-inheritance:
 
+tofu.geom.\_comp\_optics module
+-------------------------------
+
+.. automodule:: tofu.geom._comp_optics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 tofu.geom.\_core module
 -----------------------
 
 .. automodule:: tofu.geom._core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+tofu.geom.\_core\_optics module
+-------------------------------
+
+.. automodule:: tofu.geom._core_optics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -61,6 +77,14 @@ tofu.geom.\_plot module
 -----------------------
 
 .. automodule:: tofu.geom._plot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+tofu.geom.\_plot\_optics module
+-------------------------------
+
+.. automodule:: tofu.geom._plot_optics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -96,3 +120,4 @@ tofu.geom.utils module
    :members:
    :undoc-members:
    :show-inheritance:
+
