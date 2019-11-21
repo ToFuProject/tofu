@@ -225,7 +225,7 @@ Code structure and format
 Restructuring of the geometry modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Created Cython include files ``*.pxd`` and ``*.pyx`` for the following
+Created cython include files ``*.pxd`` and ``*.pyx`` for the following
 group of functions: - ``_basic_geom_tools.*``: global variables
 definition (``_VSMALL`` and ``_SMALL``), and basic geometric tools
 (vector calculus, path distance point-point, point-vector,...) -
@@ -244,7 +244,7 @@ Installation and portability
    impossible
 -  git dependency is now optional (issue #67 )
 -  changes in ``setup.py`` for **Windows** portability
--  Now only supporting ``Cython`` versions ``>=0.26``
+-  Now only supporting ``cython`` versions ``>=0.26``
 -  Removed all **pandas** dependencies
 -  Using ``-O3`` flag instead of ``-O0`` for faster execution time even
    if compilation is slower

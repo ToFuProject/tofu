@@ -11,9 +11,9 @@ import logging
 import platform
 import subprocess
 from codecs import open
-import Cython as cth
-from Cython.Distutils import build_ext
-from Cython.Build import cythonize
+import cython as cth
+from cython.Distutils import build_ext
+from cython.Build import cythonize
 import numpy as np
 import _updateversion as up
 
