@@ -19,13 +19,12 @@ except Exception as err:
         msg += "\n\nIMAS python API issue\n"
         msg += "imas could not be imported into tofu ('import imas' failed):\n"
         msg += "  - it may not be installed (optional dependency)\n"
-        msg += "  - or you not have loaded the good working environment\n\n"
+        msg += "  - or you have loaded the wrong working environment\n\n"
         msg += "    => the optional sub-package tofu.imas2tofu is not usable\n"
     else:
         msg = str(traceback.format_exc())
         msg += "\n\n    => the optional sub-package tofu.imas2tofu is not usable\n"
-    warnings.warn(msg)
-    del msg, err
+    raise Exception(msg)
 
 __all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D',
            'load_Cam', 'load_Data']

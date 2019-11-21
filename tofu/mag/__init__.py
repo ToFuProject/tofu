@@ -7,13 +7,9 @@
 import warnings
 import traceback
 
+msg, err = None, None
 try:
     import imas
-    try:
-        from tofu.mag.magFieldLines import *
-    except Exception:
-        from .magFieldLines import *
-    del warnings, traceback, magFieldLines, mag_ripple
 except Exception as err:
     if str(err) == 'imas not available':
         msg = ""
@@ -25,7 +21,24 @@ except Exception as err:
     else:
         msg = str(traceback.format_exc())
         msg += "\n\n    => the optional sub-package tofu.mag is not usable\n"
-    warnings.warn(msg)
-    del msg, err
+    raise Exception(msg)
+
+try:
+    import pywed
+except Exception:
+    msg = "pywed not available => no tofu.mag"
+    raise Exception(msg)
+
+try:
+    from tofu.mag.magFieldLines import *
+except Exception:
+    try:
+        from .magFieldLines import *
+    except Exception:
+        msg = "Could not import"
+        raise Exception(msg)
+
+del warnings, traceback, magFieldLines, mag_ripple, pywed, imas
+del msg, err
 
 __all__ = ['MagFieldLines']
