@@ -11,9 +11,9 @@ import logging
 import platform
 import subprocess
 from codecs import open
-import cython as cth
-from cython.Distutils import build_ext
-from cython.Build import cythonize
+import Cython as cth
+from Cython.Distutils import build_ext
+from Cython.Build import cythonize
 import numpy as np
 import _updateversion as up
 
@@ -339,7 +339,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"],
+    install_requires=["numpy", "scipy", "matplotlib", "Cython>=0.26"],
     python_requires=">=3.6",
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
