@@ -692,13 +692,15 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 
 def Config_phithetaproj_dist(config, refpt, dist, indStruct,
                              distonly=False,
-                             cmap=None, vmin=None, vmax=None,
+                             cmap=None, vmin=None, vmax=None, invertx=None,
                              ax=None, fs=None, cbck=(0.8,0.8,0.8,0.8),
                              tit=None, wintit=None, legend=None, draw=None):
     if cmap is None:
         cmap = 'touch'
     lS = config.lStruct
     indsu = np.unique(indStruct)
+    if invertx is None:
+        invertx = True
 
     # set extent
     ratio = refpt[0] / np.nanmin(dist)
@@ -745,6 +747,8 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
             # labels.append( '%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) )
         # dax['cross'][0].legend(handles, labels, frameon=False,
                                # bbox_to_anchor=(1.01,1.), loc=2, borderaxespad=0.)
+    if invertx is True:
+        dax['dist'][0].invert_xaxis()
 
     if draw:
         fig.canvas.draw()

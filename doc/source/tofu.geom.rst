@@ -1,6 +1,11 @@
 tofu.geom package
 =================
 
+.. automodule:: tofu.geom
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -8,22 +13,6 @@ tofu.geom.\_GG module
 ---------------------
 
 .. automodule:: tofu.geom._GG
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-tofu.geom.\_GG02 module
------------------------
-
-.. automodule:: tofu.geom._GG02
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-tofu.geom.\_GG03 module
------------------------
-
-.. automodule:: tofu.geom._GG03
    :members:
    :undoc-members:
    :show-inheritance:
@@ -104,15 +93,6 @@ tofu.geom.utils module
 ----------------------
 
 .. automodule:: tofu.geom.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: tofu.geom
    :members:
    :undoc-members:
    :show-inheritance:

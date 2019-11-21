@@ -50,7 +50,7 @@
 %{
 %  \leavevmode%
 %  \hbox{%
-%  \begin{beamercolorbox}[wd=.6\paperwidth,ht=2.25ex,dp=1ex,center]{institute in head/foot}% 
+%  \begin{beamercolorbox}[wd=.6\paperwidth,ht=2.25ex,dp=1ex,center]{institute in head/foot}%
 %    \usebeamerfont{institute in head/foot}\insertshortinstitute
 %  \end{beamercolorbox}%
 %  \begin{beamercolorbox}[wd=.4\paperwidth,ht=2.25ex,dp=1ex,center]{date in head/foot}%
@@ -94,7 +94,7 @@
 	\inst{1}%
 	INRIA Grand-Est,
 	TONUS Team, Strasbourg, France\\
-	
+
 	\inst{2}%
 	CEA,
 	Cadarache, France
@@ -119,7 +119,7 @@
 %\usebackgroundtemplate{\includegraphics[height=\paperheight,width=\paperwidth]{figures/background.png}}%
 \begin{frame}
     \titlepage
-\end{frame} 
+\end{frame}
 % =================================
 
 % =================================
@@ -162,27 +162,27 @@ $\quad \Rightarrow$ Need for cleaner, more reliable, more powerful energy source
 % =================================
 \begin{frame}
 \frametitle{Context: Controlled fusion and magnetic confinement}
-    
+
 \begin{columns}
-    	\begin{column}{0.65\textwidth}
-    	    	\begin{center}
+	\begin{column}{0.65\textwidth}
+		\begin{center}
 		\textbf{D-T Fusion reaction\;\;\;}\vspace{0.3cm}
 		%\includegraphics[width=3.5cm]{figures/DT_reaction3.png}
-    		\resizebox{0.5\textwidth}{!}{\input{figures/reaction.tex}}       
-    		\end{center}
-    		\vspace{-0.5cm}
+		\resizebox{0.5\textwidth}{!}{\input{figures/reaction.tex}}
+		\end{center}
+		\vspace{-0.5cm}
 		\begin{itemize}%[leftmargin=1em]
-    			\item Gas $>$ 100 Million\degree K composed of positive ions and negative electrons: plasma
-    			\item Confinement using electromagnetic fields
+			\item Gas $>$ 100 Million\degree K composed of positive ions and negative electrons: plasma
+			\item Confinement using electromagnetic fields
 			\item break-even not obtained yet
 		\end{itemize}
 
-    	\end{column}
-    	
-    	\begin{column}{0.35\textwidth}
-	\includegraphics[width=1.\textwidth]{figures/ITER.pdf}
-    	\end{column}
-    	
+	\end{column}
+
+	\begin{column}{0.35\textwidth}
+		\includegraphics[width=1.\textwidth]{figures/ITER.pdf}
+	\end{column}
+
 \end{columns}
 
 %\begin{itemize}%[leftmargin=1em]
@@ -204,8 +204,8 @@ In a nutshell: toroidal vacuum vessel, filled with H plasma
 % =================================
 \begin{frame}
 \frametitle{Tokamak diagnostics to measure plasma quantities}
-    
- \metroset{block=fill}
+
+\metroset{block=fill}
 \begin{alertblock}{Diagnostics}
 Set of instruments to measure plasma quantities, for understanding, control, optimization.
 \end{alertblock}
@@ -214,7 +214,7 @@ e.g: magnetic field, neutrons, \textbf{emitted light}, temperature, density...\\
 
 
 $\quad \Rightarrow$ cameras (1D or 2D) for measuring light in various wavelengths
- 
+
 
 %
 %\begin{itemize}
@@ -239,20 +239,20 @@ $\quad \Rightarrow$ cameras (1D or 2D) for measuring light in various wavelength
 %% =================================
 %\begin{frame}
 %\frametitle{A tokamak as a poloidal + horizontal projections}
-%    
+%
 %\begin{columns}
-%    	
+%
 %    \begin{column}{0.25\textwidth}
 %		\includegraphics[width=1.\textwidth]{figures/ITER.pdf}
 %    \end{column}
-%    	
+%
 %	\begin{column}{0.75\textwidth}
 %		\begin{center}
 %			\textbf{tofu.geom.Config class}
 %		\end{center}
 %		\includegraphics[width=1.\textwidth]{figures/Config01.pdf}
-%    \end{column}    	
-%    	
+%    \end{column}
+%
 %\end{columns}
 %
 %
@@ -268,41 +268,41 @@ $\quad \Rightarrow$ cameras (1D or 2D) for measuring light in various wavelength
     $$M_i(t) = \iiint\limits_{V_i} \vv{\varepsilon(x,t)}\cdot\vv{n} \,\Omega_i \;{d}V$$
     \vspace{-0.75cm}
 \begin{columns}
-    	\begin{column}{0.325\textwidth}
-    	
-    	%\def\svgwidth{\linewidth}
-    	%\import{figures/}{detectors.pdf_tex}
-    	\includegraphics[width=\linewidth,trim={0 0 1cm 0}]{figures/Tomography.pdf}
+	\begin{column}{0.325\textwidth}
 
-    	\end{column}
+	%\def\svgwidth{\linewidth}
+	%\import{figures/}{detectors.pdf_tex}
+	\includegraphics[width=\linewidth,trim={0 0 1cm 0}]{figures/Tomography.pdf}
 
-   	\begin{column}{0.675\textwidth}
-   	\begin{center}
-   	
-   	%DIRECT PROBLEM
-   	\begin{block}{}
+	\end{column}
+
+	\begin{column}{0.675\textwidth}
+	\begin{center}
+
+	%DIRECT PROBLEM
+	\begin{block}{}
 	\begin{itemize}
 	\item \textcolor{myblue}{\textbf{Direct problem} (synthetic diagnostic):\\
 	}
 	\end{itemize}
 	\end{block}
-   		%\textbf{Direct problem} (synthetic diagnostic):\\
+		%\textbf{Direct problem} (synthetic diagnostic):\\
 Simulated emissivity $\longrightarrow$ integrated measurements\\
 
 	%INVERSE PROBLEM
-   	\begin{block}{}
+	\begin{block}{}
 	\begin{itemize}
 	\item \textcolor{myblue}{\textbf{Inverse problem} (tomography):\\
 	}
 	\end{itemize}
 	\end{block}
-   		%\textbf{Direct problem} (synthetic diagnostic):\\
+	%\textbf{Direct problem} (synthetic diagnostic):\\
 Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
 
-   	\end{center}
-	
-   	\end{column}
-%    	
+	\end{center}
+
+	\end{column}
+%
 \end{columns}
 
 
@@ -319,44 +319,44 @@ Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
     $$M_i(t) = \iiint\limits_{V_i} \vv{\varepsilon(x,t)}\cdot\vv{n} \,\Omega_i \;{d}V$$
     \vspace{-1cm}
 \begin{columns}
-    	\begin{column}{0.325\textwidth}
-    	
-    	%\def\svgwidth{\linewidth}
-    	%\import{figures/}{detectors.pdf_tex}
-    	\includegraphics[width=\linewidth,trim={0 0 1cm 0}]{figures/Tomography.pdf}
+	\begin{column}{0.325\textwidth}
 
-    	\end{column}
+	%\def\svgwidth{\linewidth}
+	%\import{figures/}{detectors.pdf_tex}
+	\includegraphics[width=\linewidth,trim={0 0 1cm 0}]{figures/Tomography.pdf}
 
-   	\begin{column}{0.675\textwidth}
-   	\begin{center}
-   	
-   	%DIRECT PROBLEM
-   	\begin{block}{}
+	\end{column}
+
+	\begin{column}{0.675\textwidth}
+	\begin{center}
+
+	%DIRECT PROBLEM
+	\begin{block}{}
 	\begin{itemize}
 	\item \textcolor{myblue}{\textbf{Direct problem} (synthetic diagnostic):\\
 	}
 	\end{itemize}
 	\end{block}
-   		%\textbf{Direct problem} (synthetic diagnostic):\\
+	%\textbf{Direct problem} (synthetic diagnostic):\\
 Simulated emissivity $\longrightarrow$ measurements\\
 	\alert{Spatial integration}
     \vspace{-0.5cm}
 
 	%INVERSE PROBLEM
-   	\begin{block}{}
+	\begin{block}{}
 	\begin{itemize}
 	\item \textcolor{myblue}{\textbf{Inverse problem} (tomography):\\
 	}
 	\end{itemize}
 	\end{block}
-   		%\textbf{Direct problem} (synthetic diagnostic):\\
+	%\textbf{Direct problem} (synthetic diagnostic):\\
 Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
 	 \alert{Mesh and basis functions construction, spatial integration, data filtering, inversion routines, etc.}
-   	
-   	\end{center}
-	
-   	\end{column}
-%    	
+
+	\end{center}
+
+	\end{column}
+%
 \end{columns}
 
 \pause
@@ -393,7 +393,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 		\item  low traceability, reproducibility
 		\item  low standardization, unclear assumptions / methods
 	\end{itemize}
-	
+
 \end{frame}
 % =================================
 
@@ -415,7 +415,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \begin{column}{0.35\textwidth}
 \vspace{-1cm}
 \begin{center}
-    	\includegraphics[width=0.8\linewidth]{figures/ci.pdf}
+	\includegraphics[width=0.8\linewidth]{figures/ci.pdf}
 \end{center}
 \end{column}
 \end{columns}
@@ -425,9 +425,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 	\begin{center}
 	\alert{\textbf{ToFu}\footnote{repository: \url{https://github.com/ToFuProject/tofu}}\footnote{documentation: \url{https://tofuproject.github.io/tofu/index.html} }\footcite{didier2016}} = \alert{\textbf{To}mography for \textbf{Fu}sion}
 	\end{center}
-\vspace{-5mm} 
+\vspace{-5mm}
 \end{block}
-	
+
 \end{frame}
 % =================================
 
@@ -459,12 +459,12 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \end{column}
 \begin{column}{0.35\textwidth}
 \begin{center}
-    	\includegraphics[width=\textwidth]{figures/qr-code.png}
+	\includegraphics[width=\textwidth]{figures/qr-code.png}
 \end{center}
 \end{column}
 \end{columns}
 \begin{center}
-    	\includegraphics[width=\textwidth]{figures/badges.png}
+	\includegraphics[width=\textwidth]{figures/badges.png}
 \end{center}
 
 \end{frame}
@@ -475,9 +475,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \frametitle{Tofu's structure}
 
 \begin{center}
-    	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
+	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
 \end{center}
-	
+
 \end{frame}
 % =================================
 
@@ -487,9 +487,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \frametitle{Tofu's geometry representation}
 
 \begin{center}
-    	\includegraphics[width=0.6\linewidth]{figures/ITER.pdf}
+	\includegraphics[width=0.6\linewidth]{figures/ITER.pdf}
 \end{center}
-	
+
 \end{frame}
 % =================================
 
@@ -498,9 +498,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \frametitle{Tofu's geometry representation}
 
 \begin{center}
-    	\includegraphics[width=\linewidth]{figures/newiter.png}
+	\includegraphics[width=\linewidth]{figures/newiter.png}
 \end{center}
-	
+
 \end{frame}
 % =================================
 
@@ -528,7 +528,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 %\frametitle{What ToFu can do: 3D modeling of a 2D camera}
 %		\begin{center}
 %		\includegraphics[width=\textwidth]{figures/cam2d.png}
-%	\end{center}	
+%	\end{center}
 %\end{frame}
 %% =================================
 
@@ -555,7 +555,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 		\begin{center}
 		\textbf{2D Camera\\(tofu.geom.CamLOS2D)}
 		\includegraphics[width=\textwidth]{figures/cam2d_bis.pdf}
-	\end{center}	
+	\end{center}
 		\end{column}
 	\end{columns}
 \end{frame}
@@ -582,7 +582,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 		\begin{center}
 		\textbf{2D Camera with reflexions\\(tofu.geom.CamLOS2D)}
 		\includegraphics[width=\textwidth]{figures/cam2d_bis_ref.pdf}
-	\end{center}	
+	\end{center}
 		\end{column}
 	\end{columns}
 \end{frame}
@@ -591,7 +591,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 %% =================================
 %\begin{frame}
 %\frametitle{What ToFu can do: computing synthetic signals}
-%	
+%
 %\end{frame}
 % =================================
 
@@ -636,9 +636,9 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 
 	\item Geometry defined with minimal data polygon $(R,Z)$\\ extruded along $\varphi$
 	\item Symmetry of vessel along $\varphi$
-	
+
 	\end{itemize}
-	
+
 	\vspace{0.5cm}
 	\begin{center}
 		\includegraphics[height=2.3cm]{figures/confB3_wp_view2.png}%
@@ -647,7 +647,7 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 		~
 		\includegraphics[height=2.3cm]{figures/confB3_wp_view3.png}%
 	\end{center}
-	
+
 \end{frame}
 % =================================
 
@@ -668,12 +668,12 @@ $\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 		\item[{$\Rightarrow$}] Light memory-wise
 	\end{itemize}
 	\item[{$\Rightarrow$}] Equivalent to: set of truncated cones (frustums) of generatrix $A_iB_i$
-	
+
 	\end{itemize}
 \end{column}
 \begin{column}{0.35\textwidth}
 \begin{center}
-    	\includegraphics[width=\linewidth]{figures/tore_cones1.pdf}
+	\includegraphics[width=\linewidth]{figures/tore_cones1.pdf}
 \end{center}
 \end{column}
 \end{columns}
@@ -691,7 +691,7 @@ Z-Z_A = q(Z_B-Z_A)\\
 DM = k u
 \end{array}\right.
 $$
-	
+
 \end{frame}
 % =================================
 
@@ -736,9 +736,9 @@ $$
 \frametitle{Tofu's structure}
 
 \begin{center}
-    	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
+	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
 \end{center}
-	
+
 \end{frame}
 % =================================
 
@@ -764,7 +764,7 @@ Integration of \textbf{user-defined function} along a LOS:
 		\item hybrid: compromise
 		\end{itemize}
 	\end{itemize}
-	
+
 \end{frame}
 % =================================
 
@@ -800,7 +800,7 @@ Integration of \textbf{user-defined function} along a LOS:
 %  \item Integration method: \textbf{sum} (Cython or numpy) on midpoint
 %  \end{itemize}
 %  \end{frame}
-%  
+%
 %
 %% =================================
 
@@ -860,10 +860,10 @@ Importance of \textbf{cross disciplinary} expert collaborations:
 			\item use cython decorators: \textbf{@cython.boundscheck(False)}, \textbf{@cython.wraparound(False)}
 			\item release the gil (when possible)!
 			\item see more: \href{https://github.com/ToFuProject/tofu/blob/master/Notebooks/Cython_speedup_notes.ipynb}{\textcolor{blue}{my notes}}, \href{https://github.com/jeremiedbb/tutorial-euroscipy-2019}{\textcolor{blue}{Jeremie du Boisberranger's tutorial}}
-			
+
 		\end{itemize}
 	\end{itemize}
-	
+
 \end{frame}
 % =================================
 
@@ -876,9 +876,9 @@ Importance of \textbf{cross disciplinary} expert collaborations:
 \frametitle{Tofu's structure}
 
 \begin{center}
-    	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
+	\includegraphics[width=0.8\linewidth]{figures/tofu.pdf}
 \end{center}
-	
+
 \end{frame}
 % =================================
 
@@ -931,7 +931,7 @@ Importance of \textbf{cross disciplinary} expert collaborations:
 %     \end{tabular}
 %\end{table}
 %
-%	
+%
 %\end{frame}
 %% =================================
 
@@ -957,7 +957,7 @@ Importance of \textbf{cross disciplinary} expert collaborations:
 \begin{column}{0.4\textwidth}
 
 \begin{center}
-    	\hspace{-0.5cm}\includegraphics[width=\linewidth]{figures/cones.png}
+	\hspace{-0.5cm}\includegraphics[width=\linewidth]{figures/cones.png}
 \end{center}
 \end{column}
 \end{columns}
@@ -981,7 +981,7 @@ Importance of \textbf{cross disciplinary} expert collaborations:
 
 %\begin{center}
 %    	\includegraphics[width=0.6\linewidth]{figures/meshes.png}
-%\end{center}	
+%\end{center}
 \end{frame}
 % =================================
 
@@ -1020,7 +1020,7 @@ For basis functions:
 
 
 \begin{center}
-    	\includegraphics[width=0.85\linewidth]{figures/meshes.png}
+	\includegraphics[width=0.85\linewidth]{figures/meshes.png}
 \end{center}
 \vspace{-0.5cm}
 \end{frame}
@@ -1046,7 +1046,7 @@ For basis functions:
 \begin{frame}
 	\frametitle{B(asis)-Splines basis*}
 
-	B-Splines of degree $d$ are defined by the \textbf{recursion} formula: 
+	B-Splines of degree $d$ are defined by the \textbf{recursion} formula:
 
 	\begin{equation}
 	B_j^{d+1}(x)= \dfrac{x - x_j}{x_{j+d}-x_j} B_j^d(x)+ \dfrac{x_{j+1} - x}{x_{j+d+1} - x_{j+1}} B_{j+1}^d (x)
@@ -1055,7 +1055,7 @@ For basis functions:
 	Some important properties about B-splines:
 
 	\begin{itemize}
-		\item Piece-wise polynomials of degree $d \quad \Rightarrow$ \textbf{smoothness} 
+		\item Piece-wise polynomials of degree $d \quad \Rightarrow$ \textbf{smoothness}
 		\item Compact support $\Rightarrow$ \textbf{sparse matrix system}
 		\item Partition of unity $\sum_j Bj (x) = 1$, $\forall x \quad \Rightarrow$ \textbf{conservation laws}
 	\end{itemize}
@@ -1071,4 +1071,3 @@ For basis functions:
 
 
 \end{document}
-
