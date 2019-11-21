@@ -5,12 +5,14 @@ Meeting on the xx of November 2019
 Agenda
 ------
 
-- [ ] How to package Tofu
+- How to package Tofu
   - pip wheel
   - where to set the requirements ?
-- [ ] Which testing package to use ?
+- Which testing package to use ?
   - nose2
   - pytest
-- [ ] Travis
+- Travis
   - platforms / matrix
-- [ ] tutorials as tests ?
+- tutorials as tests ?
+- matplotlib blog
+
