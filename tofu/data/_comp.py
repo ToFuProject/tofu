@@ -634,15 +634,21 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                                                        tbinall=tbinall)[1:4]
                 for ii in range(0,ntall):
                     ind = indt == indtu[ii]
-                    valR[ind, ...] = mplTriLinInterp(mpltri,
-                                                     vq2dR[indtq[indtu[ii]], :],
-                                                     trifinder=trifind)(r, z)
-                    valPhi[ind, ...] = mplTriLinInterp(mpltri,
-                                                       vq2dPhi[indtq[indtu[ii]], :],
-                                                       trifinder=trifind)(r, z)
-                    valZ[ind, ...] = mplTriLinInterp(mpltri,
-                                                     vq2dZ[indtq[indtu[ii]], :],
-                                                     trifinder=trifind)(r, z)
+                    valR[ind, ...] = mplTriLinInterp(
+                        mpltri,
+                        vq2dR[indtq[indtu[ii]], :],
+                        trifinder=trifind
+                    )(r, z)
+                    valPhi[ind, ...] = mplTriLinInterp(
+                        mpltri,
+                        vq2dPhi[indtq[indtu[ii]], :],
+                        trifinder=trifind
+                    )(r, z)
+                    valZ[ind, ...] = mplTriLinInterp(
+                        mpltri,
+                        vq2dZ[indtq[indtu[ii]], :],
+                        trifinder=trifind
+                    )(r, z)
 
 
             if Type == 'sca':
@@ -698,7 +704,8 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                     valZ[ind, ...] = vq2dZ[indtq[indtu[ii]], indpts]
 
             if Type == 'sca':
-                val = valR*vR[None, :] + valPhi*vPhi[None, :] + valZ*vZ[None, :]
+                val = (valR*vR[None, :] + valPhi*vPhi[None, :]
+                       + valZ*vZ[None, :])
             elif Type == 'abs(sca)':
                 val = np.abs(valR*vR[None, :] + valPhi*vPhi[None, :]
                              + valZ*vZ[None, :])
