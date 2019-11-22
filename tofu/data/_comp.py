@@ -621,34 +621,34 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                 for ii in range(0,ntall):
                     valR[ii,...]   = mplTriLinInterp(mpltri,
                                                      vq2dR[indtq[ii],:],
-                                                     trifinder=trifind)(r,z)
+                                                     trifinder=trifind)(r, z)
                     valPhi[ii,...] = mplTriLinInterp(mpltri,
                                                      vq2dPhi[indtq[ii],:],
-                                                     trifinder=trifind)(r,z)
+                                                     trifinder=trifind)(r, z)
                     valZ[ii,...]   = mplTriLinInterp(mpltri,
                                                      vq2dZ[indtq[ii],:],
-                                                     trifinder=trifind)(r,z)
+                                                     trifinder=trifind)(r, z)
                 t = tall
             else:
                 ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
                                                        tbinall=tbinall)[1:4]
                 for ii in range(0,ntall):
                     ind = indt == indtu[ii]
-                    valR[ind, ...]   = mplTriLinInterp(mpltri,
-                                                       vq2dR[indtq[indtu[ii]], :],
-                                                       trifinder=trifind)(r,z)
+                    valR[ind, ...] = mplTriLinInterp(mpltri,
+                                                     vq2dR[indtq[indtu[ii]], :],
+                                                     trifinder=trifind)(r, z)
                     valPhi[ind, ...] = mplTriLinInterp(mpltri,
                                                        vq2dPhi[indtq[indtu[ii]], :],
-                                                       trifinder=trifind)(r,z)
-                    valZ[ind, ...]   = mplTriLinInterp(mpltri,
-                                                       vq2dZ[indtq[indtu[ii]], :],
-                                                       trifinder=trifind)(r,z)
+                                                       trifinder=trifind)(r, z)
+                    valZ[ind, ...] = mplTriLinInterp(mpltri,
+                                                     vq2dZ[indtq[indtu[ii]], :],
+                                                     trifinder=trifind)(r, z)
 
 
             if Type == 'sca':
-                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
+                val = valR*vR[None, :] + valPhi*vPhi[None,:] + valZ*vZ[None, :]
             elif Type == 'abs(sca)':
-                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
+                val = np.abs(valR*vR[None, :] + valPhi*vPhi[None, :] + valZ*vZ[None, :])
 
             val[np.isnan(val)] = fill_value
             return val, t
@@ -679,28 +679,29 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
             valZ = np.full(tuple(shapeval), fill_value)
 
             # Interpolate
-            indpts = trifind(r,z)
+            indpts = trifind(r, z)
             if t is None:
                 for ii in range(0,ntall):
-                    valR[ii,...]   = vq2dR[indtq[ii],indpts]
-                    valPhi[ii,...] = vq2dPhi[indtq[ii],indpts]
-                    valZ[ii,...]   = vq2dZ[indtq[ii],indpts]
+                    valR[ii, ...] = vq2dR[indtq[ii], indpts]
+                    valPhi[ii, ...] = vq2dPhi[indtq[ii], indpts]
+                    valZ[ii, ...] = vq2dZ[indtq[ii], indpts]
                 t = tall
             else:
                 ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
                                                        tbinall=tbinall,
                                                        idref1d=idref1d,
                                                        idref2d=idref2d)[1:]
-                for ii in range(0,ntall):
+                for ii in range(0, ntall):
                     ind = indt == indtu[ii]
-                    valR[ind, ...]   = vq2dR[indtq[indtu[ii]], indpts]
+                    valR[ind, ...] = vq2dR[indtq[indtu[ii]], indpts]
                     valPhi[ind, ...] = vq2dPhi[indtq[indtu[ii]], indpts]
-                    valZ[ind, ...]   = vq2dZ[indtq[indtu[ii]], indpts]
+                    valZ[ind, ...] = vq2dZ[indtq[indtu[ii]], indpts]
 
             if Type == 'sca':
-                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
+                val = valR*vR[None, :] + valPhi*vPhi[None, :] + valZ*vZ[None, :]
             elif Type == 'abs(sca)':
-                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
+                val = np.abs(valR*vR[None, :] + valPhi*vPhi[None, :]
+                             + valZ*vZ[None, :])
             val[np.isnan(val)] = fill_value
             return val, t
     return func
