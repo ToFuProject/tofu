@@ -426,9 +426,11 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                                                            idref2d=idref2d)[1:-2]
                     for ii in range(0, ntall):
                         ind = indt == indtu[ii]
-                        val[ind, ...] = mplTriLinInterp(mpltri,
-                                                        vquant[indtq[indtu[ii]], :],
-                                                        trifinder=trifind)(r,z).filled(fill_value)
+                        val[ind, ...] = mplTriLinInterp(
+                            mpltri,
+                            vquant[indtq[indtu[ii]], :],
+                            trifinder=trifind
+                        )(r, z).filled(fill_value)
                 return val, t
 
         # --------------------
@@ -458,7 +460,8 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                                                            idref2d=idref2d)[1:-2]
                     for ii in range(0, ntall):
                         ind = indt == indtu[ii]
-                        val[ind, indok] = vquant[indtq[indtu[ii]], indpts[indok]]
+                        val[ind, indok] = vquant[indtq[indtu[ii]],
+                                                 indpts[indok]]
                 return val, t
 
 
@@ -492,11 +495,13 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
 
                         # interpolate 1d
                         # This is reasonable (~0.15 s)
-                        val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                         vquant[indtq[ii],:],
-                                                         kind='linear',
-                                                         bounds_error=False,
-                                                         fill_value=fill_value)(np.asarray(vii))
+                        val[ii, ...] = scpinterp.interp1d(
+                            vr1[indtr1[ii], :],
+                            vquant[indtq[ii], :],
+                            kind='linear',
+                            bounds_error=False,
+                            fill_value=fill_value
+                        )(np.asarray(vii))
                     t = tall
                 else:
                     out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
@@ -511,11 +516,13 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
 
                         # interpolate 1d
                         ind = indt == indtu[ii]
-                        val[ind, ...] = scpinterp.interp1d(vr1[indtr1[indtu[ii]], :],
-                                                           vquant[indtq[indtu[ii]], :],
-                                                           kind='linear',
-                                                           bounds_error=False,
-                                                           fill_value=fill_value)(np.asarray(vii))
+                        val[ind, ...] = scpinterp.interp1d(
+                            vr1[indtr1[indtu[ii]], :],
+                            vquant[indtq[indtu[ii]], :],
+                            kind='linear',
+                            bounds_error=False,
+                            fill_value=fill_value
+                        )(np.asarray(vii))
                 val[np.isnan(val)] = fill_value
 
                 return val, t
@@ -535,15 +542,16 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 val = np.full(tuple(shapeval), fill_value)
                 indpts = trifind(r,z)
                 indok = indpts > -1
-                finterp = scpinterp.interp1d
                 if t is None:
                     for ii in range(0,ntall):
                         # interpolate 1d
-                        val[ii,indok] = finterp(vr1[indtr1[ii],:],
-                                                vquant[indtq[ii],:],
-                                                kind='linear',
-                                                bounds_error=False,
-                                                fill_value=fill_value)(vr2[indtr2[ii], indpts[indok]])
+                        val[ii, indok] = scpinterp.interp1d(
+                            vr1[indtr1[ii], :],
+                            vquant[indtq[ii], :],
+                            kind='linear',
+                            bounds_error=False,
+                            fill_value=fill_value
+                        )(vr2[indtr2[ii], indpts[indok]])
                     t = tall
                 else:
                     out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
@@ -553,11 +561,13 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                     for ii in range(0,ntall):
                         # interpolate 1d
                         ind = indt == indtu[ii]
-                        val[ind, indok] = finterp(vr1[indtr1[indtu[ii]], :],
-                                                  vquant[indtq[indtu[ii]], :],
-                                                  kind='linear',
-                                                  bounds_error=False,
-                                                  fill_value=fill_value)(vr2[indtr2[ii], indpts[indok]])
+                        val[ind, indok] = scpinterp.interp1d(
+                            vr1[indtr1[indtu[ii]], :],
+                            vquant[indtq[indtu[ii]], :],
+                            kind='linear',
+                            bounds_error=False,
+                            fill_value=fill_value
+                        )(vr2[indtr2[ii], indpts[indok]])
                 return val, t
     return func
 
