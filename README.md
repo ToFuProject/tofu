@@ -1,12 +1,14 @@
 [![Travis-CI](https://travis-ci.org/ToFuProject/tofu.svg?branch=master)](https://travis-ci.org/ToFuProject/tofu)
-[![Conda]( https://anaconda.org/tofuproject/tofu/badges/version.svg)](https://anaconda.org/tofuproject/tofu/badges/)
-[![](https://anaconda.org/tofuproject/tofu/badges/downloads.svg)](https://anaconda.org/tofuproject/tofu/badges/)
-[![](https://anaconda.org/tofuproject/tofu/badges/latest_release_date.svg)](https://anaconda.org/tofuproject/tofu/badges/)
-[![](https://anaconda.org/tofuproject/tofu/badges/platforms.svg)](https://anaconda.org/tofuproject/tofu/badges/)
-[![](https://anaconda.org/tofuproject/tofu/badges/license.svg)](https://anaconda.org/tofuproject/tofu/badges/)
-[![](https://anaconda.org/tofuproject/tofu/badges/installer/conda.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![Conda]( https://anaconda.org/tofuproject/tofu/badges/version.svg)](https://anaconda.org/ToFuProject/tofu)
+[![](https://anaconda.org/tofuproject/tofu/badges/downloads.svg)](https://anaconda.org/tofuproject/tofu)
+[![](https://anaconda.org/tofuproject/tofu/badges/latest_release_date.svg)](https://anaconda.org/ToFuProject/tofu)
+[![](https://anaconda.org/tofuproject/tofu/badges/platforms.svg)](https://anaconda.org/tofuproject/tofu)
+[![](https://anaconda.org/tofuproject/tofu/badges/license.svg)](https://github.com/ToFuProject/tofu/blob/master/LICENSE.txt)
+[![](https://anaconda.org/tofuproject/tofu/badges/installer/conda.svg)](https://anaconda.org/tofuproject/tofu)
 [![](https://codecov.io/gh/ToFuProject/tofu/branch/master/graph/badge.svg)](https://codecov.io/gh/ToFuProject/tofu)
 [![](https://badge.fury.io/py/tofu.svg)](https://badge.fury.io/py/tofu)
+[![Gitter](https://img.shields.io/gitter/room/ToFuProject/community?style=plastic)](https://gitter.im/ToFuProject/community)
+
 
 
 tofu
