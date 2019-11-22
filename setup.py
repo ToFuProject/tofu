@@ -282,7 +282,7 @@ setup(
     # The version is stored only in the setup.py file and read from it (option
     # 1 in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
-    # setup_requires=['setuptools_scm'],
+    setup_requires=['numpy', 'Cython>=0.26'],
     description="A python library for Tomography for Fusion",
     long_description=long_description,
     long_description_content_type=long_description_content_type,
