@@ -19,11 +19,15 @@ try:
     from Cython.Build import build_ext as cthBext
     # Why do we need two different build_ext command ?
 
+    def npgetinclude(): return np.get_include()
     print("cython version =", cth.__version__)
     print("numpy  version =", np.__version__)
     print("cython file =", cth.__file__)
     print("numpy  file =", np.__file__)
 except ImportError:
+    def npgetinclude():
+        import numpy as np
+        return np.get_include()
     def cythonize(*args, **kwargs):
         from Cython.Build import cythonize
         return cythonize(*args, **kwargs)
@@ -397,5 +401,5 @@ setup(
     ext_modules=extensions,
     cmdclass={"build_ext": cthBext,
               "clean": CleanCommand},
-    include_dirs=[np.get_include()],
+    include_dirs=[npgetinclude()],
 )
