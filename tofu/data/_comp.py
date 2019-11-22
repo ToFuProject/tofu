@@ -652,7 +652,8 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
 
 
             if Type == 'sca':
-                val = valR*vR[None, :] + valPhi*vPhi[None, :] + valZ*vZ[None, :]
+                val = (valR*vR[None, :] + valPhi*vPhi[None, :]
+                       + valZ*vZ[None, :])
             elif Type == 'abs(sca)':
                 val = np.abs(valR*vR[None, :] + valPhi*vPhi[None, :]
                              + valZ*vZ[None, :])
