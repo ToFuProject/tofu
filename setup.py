@@ -16,6 +16,8 @@ try:
     import Cython as cth
     from Cython.Distutils import build_ext
     from Cython.Build import cythonize
+    from Cython.Build import build_ext as cthBext
+    # Why do we need two different build_ext command ?
 
     print("cython version =", cth.__version__)
     print("numpy  version =", np.__version__)
@@ -25,6 +27,9 @@ except ImportError:
     def cythonize(*args, **kwargs):
         from Cython.Build import cythonize
         return cythonize(*args, **kwargs)
+    def cthBext(*args, **kwargs):
+        from Cython.Build import build_ext as cthBext
+        return cthBext(*args, **kwdargs)
 import _updateversion as up
 
 
@@ -390,7 +395,7 @@ setup(
     #    ],
     # },
     ext_modules=extensions,
-    cmdclass={"build_ext": cth.Build.build_ext,
+    cmdclass={"build_ext": cthBext,
               "clean": CleanCommand},
     include_dirs=[np.get_include()],
 )
