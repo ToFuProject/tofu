@@ -11,19 +11,31 @@ import logging
 import platform
 import subprocess
 from codecs import open
-import Cython as cth
-from Cython.Distutils import build_ext
-from Cython.Build import cythonize
-import numpy as np
+try:
+    import numpy as np
+    import Cython as cth
+    from Cython.Distutils import build_ext
+    from Cython.Build import cythonize
+    from Cython.Build import build_ext as cthBext
+    # Why do we need two different build_ext command ?
+
+    def npgetinclude(): return np.get_include()
+    print("cython version =", cth.__version__)
+    print("numpy  version =", np.__version__)
+    print("cython file =", cth.__file__)
+    print("numpy  file =", np.__file__)
+except ImportError:
+    def npgetinclude():
+        import numpy as np
+        return np.get_include()
+    def cythonize(*args, **kwargs):
+        from Cython.Build import cythonize
+        return cythonize(*args, **kwargs)
+    def cthBext(*args, **kwargs):
+        from Cython.Build import build_ext as cthBext
+        return cthBext(*args, **kwargs)
 import _updateversion as up
 
-from distutils.command.clean import clean as Clean
-
-
-print("cython version =", cth.__version__)
-print("numpy  version =", np.__version__)
-print("cython version =", cth.__file__)
-print("numpy  version =", np.__file__)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tofu.setup")
@@ -35,6 +47,9 @@ try:
 except ImportError:
     from distutils.core import setup
     from distutils.extension import Extension
+
+# Is there a clean command from setuptools instead of distutils ?
+from distutils.command.clean import clean as Clean
 
 is_platform_windows = False
 if platform.system() == "Windows":
@@ -282,7 +297,7 @@ setup(
     # The version is stored only in the setup.py file and read from it (option
     # 1 in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
-    # setup_requires=['setuptools_scm'],
+    setup_requires=['numpy', 'cython>=0.26'],
     description="A python library for Tomography for Fusion",
     long_description=long_description,
     long_description_content_type=long_description_content_type,
@@ -384,7 +399,7 @@ setup(
     #    ],
     # },
     ext_modules=extensions,
-    cmdclass={"build_ext": cth.Build.build_ext,
+    cmdclass={"build_ext": cthBext,
               "clean": CleanCommand},
-    include_dirs=[np.get_include()],
+    include_dirs=[npgetinclude()],
 )

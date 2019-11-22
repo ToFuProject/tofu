@@ -4,4 +4,4 @@ scipy
 matplotlib
 
 ######## Requirements with Version Specifier ########
-cython>=0.26
+Cython>=0.26
