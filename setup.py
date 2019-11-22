@@ -33,7 +33,7 @@ except ImportError:
         return cythonize(*args, **kwargs)
     def cthBext(*args, **kwargs):
         from Cython.Build import build_ext as cthBext
-        return cthBext(*args, **kwdargs)
+        return cthBext(*args, **kwargs)
 import _updateversion as up
 
 
