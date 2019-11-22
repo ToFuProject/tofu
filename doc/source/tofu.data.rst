@@ -56,3 +56,12 @@ tofu.data.\_plot module
    :members:
    :undoc-members:
    :show-inheritance:
+
+tofu.data.\_spectrafit2d module
+-------------------------------
+
+.. automodule:: tofu.data._spectrafit2d
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
