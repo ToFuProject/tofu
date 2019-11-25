@@ -450,8 +450,8 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 indpts = trifind(r,z)
                 indok = indpts > -1
                 if t is None:
-                    for ii in range(0,ntall):
-                        val[ii,indok] = vquant[indtq[ii],indpts[indok]]
+                    for ii in range(0, ntall):
+                        val[ii,indok] = vquant[indtq[ii], indpts[indok]]
                     t = tall
                 else:
                     ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,

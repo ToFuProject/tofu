@@ -2296,7 +2296,7 @@ class MultiIDSLoader(object):
 
 
     # TBF
-    def inspect_ggd(ids):
+    def inspect_ggd(self, ids):
         if ids not in self._dids.keys():
             msg = "The ggd of ids %s cannot be inspected:\n"%ids
             msg += "  => please add ids first (self.add_ids())"
@@ -2320,8 +2320,60 @@ class MultiIDSLoader(object):
 
 
     @staticmethod
-    def _checkformat_mesh_Rect(R, Z,  ids=None):
-        pass
+    def _checkformat_mesh_Rect(R, Z, datashape=None,
+                               shapeRZ=None, ids=None):
+        assert R.ndim in [1, 2]
+        assert Z.ndim in [1, 2]
+        shapeu = np.unique(np.r_[R.shape, Z.shape])
+        shapeRZ = [None, None]
+        if R.ndim == 1:
+            assert np.all(np.diff(R) > 0.)
+        else:
+            lc = [np.all(np.diff(R[0, :])) > 0.,
+                  np.all(np.diff(R[:, 0])) > 0.]
+            assert np.sum(lc) == 1
+            if lc[0]:
+                R = R[0, :]
+                if shapeRZ[1] is None:
+                    shapeRZ[1] = 'R'
+                assert shapeRZ[1] == 'R'
+            else:
+                R = R[:, 0]
+                if shapeRZ[0] is None:
+                    shapeRZ[0] = 'R'
+                assert shapeRZ[0] == 'R'
+        if Z.ndim == 1:
+            assert np.all(np.diff(Z) > 0.)
+        else:
+            lc = [np.all(np.diff(Z[0, :])) > 0.,
+                  np.all(np.diff(Z[:, 0])) > 0.]
+            assert np.sum(lc) == 1
+            if lc[0]:
+                Z = Z[0, :]
+                if shapeRZ[1] is None:
+                    shapeRZ[1] = 'Z'
+                assert shapeRZ[1] == 'Z'
+            else:
+                Z = Z[:, 0]
+                if shapeRZ[0] is None:
+                    shapeRZ[0] = 'Z'
+                assert shapeRZ[0] == 'Z'
+
+        if datashape is not None:
+            if None in shapeRZ:
+                pass
+
+            if shapeRZ == ['R', 'Z']:
+                assert datashape == (R.size, Z.size)
+            elif shapeRZ == ['Z', 'R']:
+                assert datashape == (Z.size, R.size)
+            else:
+                msg = "Inconsistent data shape !"
+                raise Exception(msg)
+
+        shapeRZ = tuple(shapeRZ)
+        assert shapeRZ in [('R', 'Z'), ('Z', 'R')]
+        return R, Z, shapeRZ, 0
 
 
 
@@ -2463,7 +2515,7 @@ class MultiIDSLoader(object):
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object,
                     plot=None, plot_sig=None, plot_X=None,
-                    bck=True, dextra=None, nan=True, pos=None):
+                    bck=True, dextra=None, nan=True, pos=None, shapeRZ=None):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
@@ -2546,7 +2598,7 @@ class MultiIDSLoader(object):
                 indt = dtt['indt']
 
             # d1d and dradius
-            lsig = [k for k in dsig[ids] if '1d' in k and k in out0.keys()]
+            lsig = [k for k in dsig[ids] if '1d' in k and k in out0[ids].keys()]
             out_, _ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos,
                                     warn=False)
             if len(out_) > 0:
@@ -2608,7 +2660,7 @@ class MultiIDSLoader(object):
                             plot_X[plot_X.index(ss)] = key
 
             # d2d and dmesh
-            lsig = [k for k in dsig[ids] if '2d' in k and k in out0.keys()]
+            lsig = [k for k in dsig[ids] if '2d' in k and k in out0[ids].keys()]
             lsigmesh = [k for k in lsig if 'mesh' in k]
             out_, _ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos,
                                     warn=False)
@@ -2622,9 +2674,38 @@ class MultiIDSLoader(object):
                     if out_[ss].ndim == 1:
                         out_[ss] = np.atleast_2d(out_[ss])
                     shape = out_[ss].shape
-                    assert len(shape) == 2
+                    assert len(shape) >= 2
                     if np.sum(shape) > 0:
-                        assert nt in shape
+                        if nt not in shape:
+                            assert nt == 1
+                            assert len(shape) == 2
+                            datashape = tuple(shape)
+                            if shapeRZ is None:
+                                msg = ("Please provide shapeRZ"
+                                       + "indexing is ambiguous")
+                                raise Exception(msg)
+                            size = shape[0]*shape[1]
+                            if shapeRZ == ('R', 'Z'):
+                                out_[ss] = out_[ss].reshape((nt, size))
+                            elif shapeRZ == ('Z', 'R'):
+                                out_[ss] = out_[ss].reshape((nt, size),
+                                                            order='F')
+                            shape = out_[ss].shape
+                        if len(shape) == 3:
+                            assert nt == shape[0]
+                            datashape = tuple(shape[1], shape[2])
+                            if shapeRZ is None:
+                                msg = ("Please provide shapeRZ"
+                                       + "indexing is ambiguous")
+                                raise Exception(msg)
+                            size = shape[1]*shape[2]
+                            if shapeRZ == ('R', 'Z'):
+                                out_[ss] = out_[ss].reshape((nt, size))
+                            elif shapeRZ == ('Z', 'R'):
+                                out_[ss] = out_[ss].reshape((nt, size),
+                                                            order='F')
+                            shape = out_[ss].shape
+
                         axist = shape.index(nt)
                         if npts is None:
                             npts = shape[1-axist]
@@ -2684,13 +2765,13 @@ class MultiIDSLoader(object):
                         func = self._checkformat_mesh_Rect
                         R, Z, shapeRZ, ftype = func(out_['2dmeshR'],
                                                     out_['2dmeshZ'],
-                                                    datashape=datashape)
+                                                    datashape=datashape,
+                                                    shapeRZ=shapeRZ, ids=ids)
                         dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
                                        'units': 'a.u.', 'origin': ids,
-                                       'depend': (keym,), 'name': meshtype,
-                                       'R': R, 'Z': Z, 'shapeRZ': shapeRZ
-                                       'type': 'rect', 'size': size,
-                                       'ftype': ftype}
+                                       'depend': (keym,), 'name': 'rect',
+                                       'R': R, 'Z': Z, 'shapeRZ': shapeRZ,
+                                       'type': 'rect', 'ftype': ftype}
 
 
         # t0

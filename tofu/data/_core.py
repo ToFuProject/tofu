@@ -2371,7 +2371,7 @@ class Plasma2D(utils.ToFuObject):
         # Define allowed keys for each dict
         lkok = ['data', 'dim', 'quant', 'name', 'origin', 'units',
                 'depend']
-        lkmeshmax = ['type','ftype','nodes','faces',
+        lkmeshmax = ['type','ftype','nodes','faces', 'R', 'Z', 'shapeRZ',
                      'nfaces','nnodes','mpltri','size','ntri']
         lkmeshmin = ['type', 'ftype']
         dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
@@ -2431,6 +2431,8 @@ class Plasma2D(utils.ToFuObject):
                                    + "\t- Z of dim in [1, 2]")
                             raise Exception(msg)
                         shapeu = np.unique(np.r_[v0['R'].shape, v0['Z'].shape])
+
+                        shapeRZ = v0['shapeRZ']
                         if shapeRZ is None:
                             shapeRZ = [None, None]
                         else:
@@ -2439,8 +2441,8 @@ class Plasma2D(utils.ToFuObject):
                             assert np.all(np.diff(v0['R']) > 0.)
                             R = v0['R']
                         else:
-                            lc = [np.diff(v0['R'][0, :]) > 0.,
-                                  np.diff(v0['R'][:, 0]) > 0.]
+                            lc = [np.all(np.diff(v0['R'][0, :])) > 0.,
+                                  np.all(np.diff(v0['R'][:, 0])) > 0.]
                             assert np.sum(lc) == 1
                             if lc[0]:
                                 R = v0['R'][0, :]
@@ -2451,13 +2453,13 @@ class Plasma2D(utils.ToFuObject):
                                 R = v0['R'][:, 0]
                                 if shapeRZ[0] is None:
                                     shapeRZ[0] = 'R'
-                                assert shapeRZ[0] = 'R'
+                                assert shapeRZ[0] == 'R'
                         if v0['Z'].ndim == 1:
                             assert np.all(np.diff(v0['Z']) > 0.)
                             Z = v0['Z']
                         else:
-                            lc = [np.diff(v0['Z'][0, :]) > 0.,
-                                  np.diff(v0['Z'][:, 0]) > 0.]
+                            lc = [np.all(np.diff(v0['Z'][0, :])) > 0.,
+                                  np.all(np.diff(v0['Z'][:, 0])) > 0.]
                             assert np.sum(lc) == 1
                             if lc[0]:
                                 Z = v0['Z'][0, :]
@@ -2468,7 +2470,7 @@ class Plasma2D(utils.ToFuObject):
                                 Z = v0['Z'][:, 0]
                                 if shapeRZ[0] is None:
                                     shapeRZ[0] = 'Z'
-                                assert shapeRZ[0] = 'Z'
+                                assert shapeRZ[0] == 'Z'
                         shapeRZ = tuple(shapeRZ)
                         assert shapeRZ in [('R', 'Z'), ('Z', 'R')]
 
@@ -2476,12 +2478,13 @@ class Plasma2D(utils.ToFuObject):
                             msg = ("Please provide shapeRZ "
                                    + " = ('R', 'Z') or ('Z', 'R')\n"
                                    + "(Could not be inferred from data) itself)")
-                                raise Exception(msg)
+                            raise Exception(msg)
 
                         def trifind(r, z,
                                     Rbin=0.5*(R[1:] + R[:-1]),
                                     Zbin=0.5*(Z[1:] + Z[:-1]),
-                                    nR=R.size, nZ=Z.size, shapeRZ=shapeRZ):
+                                    nR=R.size, nZ=Z.size,
+                                    shapeRZ=shapeRZ):
                             indR = np.searchsorted(Rbin, r)
                             indZ = np.searchsorted(Zbin, z)
                             if shapeRZ == ('R', 'Z'):
@@ -2529,7 +2532,7 @@ class Plasma2D(utils.ToFuObject):
                         if not c0:
                             indnot = [ii for ii in range(0,nnodes)
                                       if ii not in facesu]
-                            msg = "Some nodes not used in mesh %s[%s]:\n"(dk,k0)
+                            msg = "Some nodes not used in mesh %s[%s]:\n"%(dk,k0)
                             msg += "    - unused nodes indices: %s"%str(indnot)
                             warnings.warn(msg)
 
@@ -3598,13 +3601,22 @@ class Plasma2D(utils.ToFuObject):
 
         # Get indtqr1r2 (tall with respect to tq, tr1, tr2)
         indtq, indtr1, indtr2 = None, None, None
-        indtq = np.digitize(tall, tbinq)
+        if tbinq.size > 0:
+            indtq = np.digitize(tall, tbinq)
+        else:
+            indtq = np.r_[0]
         if idref1d is None:
             assert np.all(indtq == np.arange(0,tall.size))
         if idref1d is not None:
-            indtr1 = np.digitize(tall, tbinr1)
+            if tbinr1.size > 0:
+                indtr1 = np.digitize(tall, tbinr1)
+            else:
+                indtr1 = np.r_[0]
         if idref2d is not None:
-            indtr2 = np.digitize(tall, tbinr2)
+            if tbinr2.size > 0:
+                indtr2 = np.digitize(tall, tbinr2)
+            else:
+                indtr2 = np.r_[0]
 
         ntall = tall.size
         return tall, tbinall, ntall, indtq, indtr1, indtr2
@@ -3696,7 +3708,7 @@ class Plasma2D(utils.ToFuObject):
              tall, tbinall, ntall, indtq, indtr1, indtr2= out
 
         # Get mesh
-        if self._ddata[idmesh]['data']['mpltri'] == 'rect':
+        if self._ddata[idmesh]['data']['type'] == 'rect':
             mpltri = None
             trifind = self._ddata[idmesh]['data']['trifind']
         else:
@@ -3709,7 +3721,7 @@ class Plasma2D(utils.ToFuObject):
         # Note : Maybe consider using scipy.LinearNDInterpolator ?
         if idquant is not None:
             vquant = self._ddata[idquant]['data']
-            if (self._ddata[idmesh]['data']['mpltri'] == 'quadtri'
+            if (self._ddata[idmesh]['data']['type'] == 'quadtri'
                 and self._ddata[idmesh]['data']['ntri'] > 1):
                 vquant = np.repeat(vquant,
                                    self._ddata[idmesh]['data']['ntri'], axis=0)
