@@ -2634,6 +2634,10 @@ class Plasma2D(utils.ToFuObject):
                     lkt = [k for k in dtime.keys() if k in dradius[k0]['depend']]
                     assert len(lkt) == 1
                     axist = dradius[k0]['depend'].index(lkt[0])
+                    # Handle cases with only 1 time step
+                    if data.ndim == 1:
+                        assert dindref[lkt[0]]['size'] == 1
+                        data = data.reshape((1, data.size))
                     size = data.shape[1-axist]
                 dindref[k0] = {'size':size,
                                'group':'radius'}
