@@ -1805,7 +1805,8 @@ class MultiIDSLoader(object):
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     def _get_data(self, ids, sig, occ, comp=False, indt=None, indch=None,
-                  stack=True, isclose=True, flatocc=True, nan=True, pos=None):
+                  stack=True, isclose=True, flatocc=True, nan=True,
+                  pos=None, warn=True):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
@@ -1814,9 +1815,10 @@ class MultiIDSLoader(object):
         if comp:
             lstr = self._dcomp[ids][sig]['lstr']
             kargs = self._dcomp[ids][sig].get('kargs', {})
-            ddata = self.get_data(ids=ids, sig=lstr,
-                                  occ=occ, indch=indch, indt=indt,
-                                  stack=stack, flatocc=False, nan=nan, pos=pos)
+            ddata, _ = self.get_data(ids=ids, sig=lstr,
+                                     occ=occ, indch=indch, indt=indt,
+                                     stack=stack, flatocc=False, nan=nan,
+                                     pos=pos, warn=warn)
             out = [self._dcomp[ids][sig]['func']( *[ddata[kk][nn]
                                                    for kk in lstr], **kargs )
                    for nn in range(0,nocc)]
@@ -1855,7 +1857,7 @@ class MultiIDSLoader(object):
 
     def get_data(self, ids=None, sig=None, occ=None,
                  indch=None, indt=None, stack=True,
-                 isclose=None, flatocc=True, nan=True, pos=None):
+                 isclose=None, flatocc=True, nan=True, pos=None, warn=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1894,8 +1896,8 @@ class MultiIDSLoader(object):
         # ------------------
         # get data
 
-        dout = dict.fromkeys(sig)
-        for ii in range(0,len(sig)):
+        dout, dfail = {}, {}
+        for ii in range(0, len(sig)):
             if isclose is None:
                 isclose_ = sig[ii] == 't'
             else:
@@ -1905,13 +1907,14 @@ class MultiIDSLoader(object):
                                                indt=indt, indch=indch,
                                                stack=stack, isclose=isclose_,
                                                flatocc=flatocc, nan=nan,
-                                               pos=pos)
+                                               pos=pos, warn=warn)
             except Exception as err:
-                msg = '\n' + str(err) + '\n'
-                msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
-                warnings.warn(msg)
-                del dout[sig[ii]]
-        return dout
+                dfail[sig[ii]] = str(err)
+                if warn:
+                    msg = '\n' + str(err) + '\n'
+                    msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
+                    warnings.warn(msg)
+        return dout, dfail
 
     def get_data_all(self, dsig=None, stack=True,
                      isclose=None, flatocc=True, nan=True, pos=None):
@@ -1934,14 +1937,29 @@ class MultiIDSLoader(object):
         assert all([type(v) in [str,list] or v is None for v in dsig.values()])
 
         # Get data
+        dfail = dict.fromkeys(dout.keys())
+        anyerror = False
         for ids in dout.keys():
             try:
-                dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack,
-                                          isclose=isclose, flatocc=flatocc,
-                                          nan=nan, pos=pos)
+                dout[ids], dfail[ids] = self.get_data(ids, sig=dsig[ids],
+                                                      stack=stack,
+                                                      isclose=isclose,
+                                                      flatocc=flatocc, nan=nan,
+                                                      pos=pos, warn=False)
+                if len(dfail[ids]) > 0:
+                    anyerror = True
             except Exception as err:
                 msg = "Could not get data from %s"%ids
                 warnings.warn(msg)
+        if anyerror:
+            msg = "The following data could not be retrieved:"
+            for ids, v0 in dfail.items():
+                if len(v0) == 0:
+                    continue
+                msg += "\n\t- {}:".format(ids)
+                for k1, v1 in v0.items():
+                    msg += "\n\t\t{0}  : {1}".format(k1, v1.replace('\n', ' '))
+            warnings.warn(msg)
         return dout
 
 
@@ -2012,8 +2030,8 @@ class MultiIDSLoader(object):
                 c0 = (len(t0.split('.')) <= 2
                       and all([ss.isdecimal() for ss in t0.split('.')]))
                 if 'pulse_schedule' in self._dids.keys():
-                    events = self.get_data(ids='pulse_schedule',
-                                           sig='events')['events']
+                    events, _ = self.get_data(ids='pulse_schedule',
+                                              sig='events')['events']
                     if t0 in events['name']:
                         t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
                     elif c0:
@@ -2179,7 +2197,7 @@ class MultiIDSLoader(object):
 
 
     @staticmethod
-    def _checkformat_mesh(nodes, indfaces, ids=None):
+    def _checkformat_mesh_NodesFaces(nodes, indfaces, ids=None):
 
         # Check mesh type
         if indfaces.shape[1] == 3:
@@ -2301,6 +2319,10 @@ class MultiIDSLoader(object):
                         npts = ggd.space[ll].objects_per_dimension[0].object[0]
 
 
+    @staticmethod
+    def _checkformat_mesh_Rect(R, Z,  ids=None):
+        pass
+
 
 
 
@@ -2374,7 +2396,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
+                out, _ = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 inds = [ii for ii in range(0,len(vs)) if vs[ii] in out.keys()]
                 for ii in inds:
                     ss = vs[ii]
@@ -2407,7 +2429,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
+                out, _ = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 keyt = '%s.t'%ids
                 any_ = False
                 for ss in out.keys():
@@ -2490,7 +2512,7 @@ class MultiIDSLoader(object):
         _, _, shot, Exp = self._get_lidsidd_shotExp(lids, upper=True,
                                                     errshot=True, errExp=True)
         # get data
-        out_ = self.get_data_all(dsig=dsig)
+        out0 = self.get_data_all(dsig=dsig)
 
         # -------------
         #   Input dicts
@@ -2507,10 +2529,12 @@ class MultiIDSLoader(object):
         d1d, dradius = {}, {}
         d2d, dmesh = {}, {}
         for ids in lids:
+            # Hotfiw to avoid calling get_data a second time out0 -> out_
+            # TBF in next release (ugly, sub-optimal...)
 
             # dtime
-            out_ = self.get_data(ids, sig='t')
-            lc = [len(out_) == 1, out_['t'].size > 0, 0 not in out_['t'].shape]
+            out_ = {'t': out0[ids].get('t')}
+            lc = [len(out_['t']) == 1, out_['t'].size > 0, 0 not in out_['t'].shape]
             keyt, nt, indt = None, None, None
             if all(lc):
                 nt = out_['t'].size
@@ -2522,8 +2546,9 @@ class MultiIDSLoader(object):
                 indt = dtt['indt']
 
             # d1d and dradius
-            lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos)
+            lsig = [k for k in dsig[ids] if '1d' in k and k in out0.keys()]
+            out_, _ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos,
+                                    warn=False)
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
@@ -2583,14 +2608,15 @@ class MultiIDSLoader(object):
                             plot_X[plot_X.index(ss)] = key
 
             # d2d and dmesh
-            lsig = [k for k in dsig[ids] if '2d' in k]
-            lsigmesh = ['2dmeshNodes','2dmeshFaces']
-            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos)
+            lsig = [k for k in dsig[ids] if '2d' in k and k in out0.keys()]
+            lsigmesh = [k for k in lsig if 'mesh' in k]
+            out_, _ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos,
+                                    warn=False)
 
-            lc = [len(out_) > 0, all([ss in out_.keys() for ss in lsigmesh])]
-            if all(lc):
+            cmesh = any([ss in out_.keys() for ss in lsigmesh])
+            if len(out_) > 0:
                 npts = None
-                keym = '%s.mesh'%ids
+                keym = '%s.mesh'%ids if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
                     assert out_[ss].ndim in [1,2]
                     if out_[ss].ndim == 1:
@@ -2618,29 +2644,46 @@ class MultiIDSLoader(object):
 
                         d2d[key] = {'data':out_[ss], 'name':ss,
                                     'dim':dim, 'quant':quant, 'units':units,
-                                    'origin':ids, 'depend':(keyt,keym)}
+                                    'origin':ids, 'depend':(keyt, keym)}
 
-                nodes = out_['2dmeshNodes']
-                indfaces = out_['2dmeshFaces']
-                indfaces,meshtype,ntri = self._checkformat_mesh(nodes,indfaces,
-                                                                ids=ids)
-                nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
-                if npts is not None:
-                    if npts not in [nnod, int(nfaces/ntri)]:
-                        msg = "There is an indexing unconsistency:\n"
-                        msg += "    - 2d profiles have npts = %s\n"%str(npts)
-                        msg += "    - mesh has %s nodes\n"%str(nnod)
-                        msg += "               %s faces"%str(int(nfaces/ntri))
+                if cmesh:
+                    lc = [all([ss in lsig for ss in ['2dmeshNodes',
+                                                     '2dmeshFaces']]),
+                          all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']])]
+                    if not np.sum(lc) == 1:
+                        msg = ("2d mesh shall be provided either via:\n"
+                               + "\t- '2dmeshR' and '2dmeshZ'\n"
+                               + "\t- '2dmeshNodes' and '2dmeshFaces'")
                         raise Exception(msg)
-                    ftype = 1 if npts == nnod else 0
-                else:
-                    ftype = None
-                mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indfaces)
-                dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
-                               'origin':ids, 'depend':(keym,), 'name':meshtype,
-                               'nodes':nodes, 'faces':indfaces,
-                               'type':meshtype, 'ntri':ntri, 'ftype':ftype,
-                               'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
+
+                    # Nodes / Faces case
+                    if lc[0]:
+                        nodes = out_['2dmeshNodes']
+                        indfaces = out_['2dmeshFaces']
+                        func = self._checkformat_mesh_NodesFaces
+                        indfaces,meshtype,ntri = func(nodes, indfaces, ids=ids)
+                        nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
+                        if npts is not None:
+                            if npts not in [nnod, int(nfaces/ntri)]:
+                                msg = "There is an indexing unconsistency:\n"
+                                msg += "    - 2d profiles have npts = %s\n"%str(npts)
+                                msg += "    - mesh has %s nodes\n"%str(nnod)
+                                msg += "               %s faces"%str(int(nfaces/ntri))
+                                raise Exception(msg)
+                            ftype = 1 if npts == nnod else 0
+                        else:
+                            ftype = None
+                        mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indfaces)
+                        dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
+                                       'origin':ids, 'depend':(keym,), 'name':meshtype,
+                                       'nodes':nodes, 'faces':indfaces,
+                                       'type':meshtype, 'ntri':ntri, 'ftype':ftype,
+                                       'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
+                    # R / Z case
+                    elif lc[1]:
+                       func = self._checkformat_mesh_Rect
+                       pass
+
 
         # t0
         t0 = self._get_t0(t0)
@@ -2690,7 +2733,7 @@ class MultiIDSLoader(object):
 
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces = None, None
-        out = self.get_data(ids, sig=list(lk), indch=indch,
+        out, _ = self.get_data(ids, sig=list(lk), indch=indch,
                             nan=nan, pos=pos)
         if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size > 0:
             oo = out['los_ptsRZPhi']
@@ -2947,7 +2990,7 @@ class MultiIDSLoader(object):
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        t = self.get_data(ids, sig=dsig.get('t', 't'), indch=indch)['t']
+        t, _ = self.get_data(ids, sig=dsig.get('t', 't'), indch=indch)['t']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
@@ -2964,7 +3007,7 @@ class MultiIDSLoader(object):
                 else:
                     indchcam = [ii for ii in range(0,len(t)) if ls[ii] == su]
                     indch = [indch[ii] for ii in range(0,len(t)) if ls[ii] == su]
-                t = self.get_data(ids, sig='t', indch=indch)['t']
+                t, _ = self.get_data(ids, sig='t', indch=indch)['t']
                 if cam is not None:
                     cam = cam.get_subset(indch=indchcam)
                 msg = "indch set automatically for %s\n"%ids
@@ -2996,7 +3039,7 @@ class MultiIDSLoader(object):
         indt = self._checkformat_tlim(t, tlim=tlim)['indt']
 
 
-        out = self.get_data(ids, sig=[dsig[k] for k in lk],
+        out, _ = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
@@ -3011,7 +3054,7 @@ class MultiIDSLoader(object):
                     else:
                         indch = [indch[ii] for ii in range(0,len(out[dsig[kk]]))
                                  if ls[ii] == su]
-                    out = self.get_data(ids, sig=[dsig[k] for k in lk],
+                    out, _ = self.get_data(ids, sig=[dsig[k] for k in lk],
                                         indt=indt, indch=indch, nan=nan,
                                         pos=pos)
                     if cam is not None:
@@ -3070,8 +3113,9 @@ class MultiIDSLoader(object):
             dins['data'] = np.fliplr(dins['data'])
 
         if 'validity_timed' in self._dshort[ids].keys():
-            inan = self.get_data(ids, sig='validity_timed',
-                                 indt=indt, indch=indch, nan=nan, pos=pos)['validity_timed'].T<0.
+            inan, _ = self.get_data(ids, sig='validity_timed',
+                                    indt=indt, indch=indch,
+                                    nan=nan, pos=pos)['validity_timed'].T<0.
             dins['data'][inan] = np.nan
         if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
@@ -3209,7 +3253,7 @@ class MultiIDSLoader(object):
         ani = False
         if ids == 'bremsstrahlung_visible':
             try:
-                lamb = self.get_data(ids, sig='lamb')['lamb']
+                lamb, _ = self.get_data(ids, sig='lamb')['lamb']
             except Exception as err:
                 lamb = 5238.e-10
                 msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
@@ -3228,7 +3272,7 @@ class MultiIDSLoader(object):
             dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
-            lamb = self.get_data(ids, sig='lamb')['lamb'][0]
+            lamb, _ = self.get_data(ids, sig='lamb')['lamb'][0]
 
             # Get time reference
             doutt, dtut, tref = plasma.get_time_common(lq)
