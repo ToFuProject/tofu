@@ -2503,7 +2503,8 @@ class Plasma2D(utils.ToFuObject):
                         dd[dk][k0]['size'] = R.size*Z.size
 
                     else:
-                        assert all([s in v0.keys() for s in ['nodes', 'faces']])
+                        ls = ['nodes', 'faces']
+                        assert all([s in v0.keys() for s in ls])
                         func = np.atleast_2d
                         dd[dk][k0]['nodes'] = func(v0['nodes']).astype(float)
                         dd[dk][k0]['faces'] = func(v0['faces']).astype(int)
@@ -2516,7 +2517,7 @@ class Plasma2D(utils.ToFuObject):
                         lc = [nodesu.shape[0] != nnodes,
                               facesu.shape[0] != nfaces]
                         if any(lc):
-                            msg = "Non-valid mesh {0}[{1}]: \n".format(dk,k0)
+                            msg = "Non-valid mesh {0}[{1}]: \n".format(dk, k0)
                             if lc[0]:
                                 ndup = nnodes - nodesu.shape[0]
                                 ndsh = dd[dk][k0]['nodes'].shape
@@ -2532,16 +2533,16 @@ class Plasma2D(utils.ToFuObject):
                                 msg += (
                                     "  Duplicate faces: {}\n".format(ndup)
                                     + "\t- faces.shape: {}\n".format(facsh)
-                                    + "\ŧ- unique shape: {}".format(ufacsh))
+                                    + "\t- unique shape: {}".format(ufacsh))
                             raise Exception(msg)
 
                         # Test for unused nodes
                         facesu = np.unique(facesu)
-                        c0 = np.all(facesu>=0) and facesu.size == nnodes
+                        c0 = np.all(facesu >= 0) and facesu.size == nnodes
                         if not c0:
-                            indnot = [ii for ii in range(0,nnodes)
+                            indnot = [ii for ii in range(0, nnodes)
                                       if ii not in facesu]
-                            msg = "Some nodes not used in mesh %s[%s]:\n"%(dk,k0)
+                            msg = "Unused nodes in {0}[{1}]:\n".format(dk, k0)
                             msg += "    - unused nodes indices: %s"%str(indnot)
                             warnings.warn(msg)
 
@@ -2555,28 +2556,38 @@ class Plasma2D(utils.ToFuObject):
                         assert v0['type'] in ['tri', 'quadtri'], v0['type']
 
                         if 'tri' in v0['type']:
-                            assert dd[dk][k0]['faces'].shape == (v0['nfaces'],3)
+                            fshap = dd[dk][k0]['faces'].shape
+                            fshap0 = (v0['nfaces', 3])
+                            if fshap != fshap0:
+                                msg = ("Wrong shape of {}[{}]\n".format(dk, k0)
+                                       + "\t- Expected: {}\n".format(fshap0)
+                                       + "\t- Provided: {}".format(fshap)
+                                raise Exception(msg)
                             if v0.get('mpltri', None) is None:
-                                dd[dk][k0]['mpltri'] = mplTri(dd[dk][k0]['nodes'][:,0],
-                                                              dd[dk][k0]['nodes'][:,1],
-                                                              dd[dk][k0]['faces'])
+                                dd[dk][k0]['mpltri'] = mplTri(
+                                    dd[dk][k0]['nodes'][:, 0],
+                                    dd[dk][k0]['nodes'][:, 1],
+                                    dd[dk][k0]['faces'])
                             assert isinstance(dd[dk][k0]['mpltri'], mplTri)
-                            assert dd[dk][k0]['ftype'] in [0,1]
+                            assert dd[dk][k0]['ftype'] in [0, 1]
                             ntri = dd[dk][k0]['ntri']
                             if dd[dk][k0]['ftype'] == 1:
                                 dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
                             else:
-                                dd[dk][k0]['size'] = int(dd[dk][k0]['nfaces']/ntri)
+                                dd[dk][k0]['size'] = int(
+                                    dd[dk][k0]['nfaces']/ntri)
 
         # Check unicity of all keys
         lk = [list(dv.keys()) for dv in dd.values()]
         lk = list(itt.chain.from_iterable(lk))
         lku = sorted(set(lk))
-        lk = ['%s : %s times'%(kk, str(lk.count(kk))) for kk in lku if lk.count(kk) > 1]
+        lk = ['%s : %s times'%(kk, str(lk.count(kk)))
+              for kk in lku if lk.count(kk) > 1]
         if len(lk) > 0:
-            msg = "Each key of (dtime,dradius,dmesh,d0d,d1d,d2d) must be unique !\n"
-            msg += "The following keys are repeated :\n"
-            msg += "    - " + "\n    - ".join(lk)
+            msg = ("Each key of (dtime, dradius, dmesh, d0d, d1d, d2d)"
+                   + " must be unique !\n"
+                   + "The following keys are repeated :\n"
+                   + "    - " + "\n    - ".join(lk))
             raise Exception(msg)
 
         dtime, dradius, dmesh = dd['dtime'], dd['dradius'], dd['dmesh']
