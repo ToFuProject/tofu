@@ -2371,8 +2371,8 @@ class Plasma2D(utils.ToFuObject):
         # Define allowed keys for each dict
         lkok = ['data', 'dim', 'quant', 'name', 'origin', 'units',
                 'depend']
-        lkmeshmax = ['type','ftype','nodes','faces', 'R', 'Z', 'shapeRZ',
-                     'nfaces','nnodes','mpltri','size','ntri']
+        lkmeshmax = ['type', 'ftype', 'nodes', 'faces', 'R', 'Z', 'shapeRZ',
+                     'nfaces', 'nnodes', 'mpltri', 'size', 'ntri']
         lkmeshmin = ['type', 'ftype']
         dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
                 'dradius':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
@@ -2477,7 +2477,7 @@ class Plasma2D(utils.ToFuObject):
                         if None in shapeRZ:
                             msg = ("Please provide shapeRZ "
                                    + " = ('R', 'Z') or ('Z', 'R')\n"
-                                   + "(Could not be inferred from data) itself)")
+                                   + "Could not be inferred from data itself")
                             raise Exception(msg)
 
                         def trifind(r, z,
@@ -2503,9 +2503,10 @@ class Plasma2D(utils.ToFuObject):
                         dd[dk][k0]['size'] = R.size*Z.size
 
                     else:
-                        assert all([ss in v0.keys() for ss in ['nodes', 'faces']])
-                        dd[dk][k0]['nodes'] = np.atleast_2d(v0['nodes']).astype(float)
-                        dd[dk][k0]['faces'] = np.atleast_2d(v0['faces']).astype(int)
+                        assert all([s in v0.keys() for s in ['nodes', 'faces']])
+                        func = np.atleast_2d
+                        dd[dk][k0]['nodes'] = func(v0['nodes']).astype(float)
+                        dd[dk][k0]['faces'] = func(v0['faces']).astype(int)
                         nnodes = dd[dk][k0]['nodes'].shape[0]
                         nfaces = dd[dk][k0]['faces'].shape[0]
 
@@ -2515,15 +2516,23 @@ class Plasma2D(utils.ToFuObject):
                         lc = [nodesu.shape[0] != nnodes,
                               facesu.shape[0] != nfaces]
                         if any(lc):
-                            msg = "Non-valid mesh %s[%s]:\n"%(dk,k0)
+                            msg = "Non-valid mesh {0}[{1}]: \n".format(dk,k0)
                             if lc[0]:
-                                msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
-                                msg += "    - nodes.shape: %s\n"%str(dd[dk][k0]['nodes'].shape)
-                                msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
+                                ndup = nnodes - nodesu.shape[0]
+                                ndsh = dd[dk][k0]['nodes'].shape
+                                undsh = nodesu.shape
+                                msg += (
+                                    "  Duplicate nodes: {}\n".format(ndup)
+                                    + "\t- nodes.shape: {}\n".format(nodsh)
+                                    + "\t- unique shape: {}\n".format(undsh))
                             if lc[1]:
-                                msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
-                                msg += "    - faces.shape: %s\n"%str(dd[dk][k0]['faces'].shape)
-                                msg += "    - unique faces.shape: %s"%str(facesu.shape)
+                                ndup = str(nfaces - facesu.shape[0])
+                                facsh = str(dd[dk][k0]['faces'].shape)
+                                ufacsh = str(facesu.shape)
+                                msg += (
+                                    "  Duplicate faces: {}\n".format(ndup)
+                                    + "\t- faces.shape: {}\n".format(facsh)
+                                    + "\ŧ- unique shape: {}".format(ufacsh))
                             raise Exception(msg)
 
                         # Test for unused nodes
