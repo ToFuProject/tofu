@@ -2540,17 +2540,16 @@ class Plasma2D(utils.ToFuObject):
                         facesu = np.unique(facesu)
                         c0 = np.all(facesu >= 0) and facesu.size == nnodes
                         if not c0:
-                            indnot = [ii for ii in range(0, nnodes)
-                                      if ii not in facesu]
+                            ino = str([ii for ii in range(0, nnodes)
+                                       if ii not in facesu])
                             msg = "Unused nodes in {0}[{1}]:\n".format(dk, k0)
-                            msg += "    - unused nodes indices: %s"%str(indnot)
+                            msg += "    - unused nodes indices: {}".format(ino)
                             warnings.warn(msg)
-
 
                         dd[dk][k0]['nnodes'] = dd[dk][k0].get('nnodes', nnodes)
                         dd[dk][k0]['nfaces'] = dd[dk][k0].get('nfaces', nfaces)
 
-                        assert dd[dk][k0]['nodes'].shape == (v0['nnodes'],2)
+                        assert dd[dk][k0]['nodes'].shape == (v0['nnodes'], 2)
                         assert np.max(dd[dk][k0]['faces']) < v0['nnodes']
                         # Only triangular meshes so far
                         assert v0['type'] in ['tri', 'quadtri'], v0['type']
@@ -2575,7 +2574,8 @@ class Plasma2D(utils.ToFuObject):
                                 dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
                             else:
                                 dd[dk][k0]['size'] = int(
-                                    dd[dk][k0]['nfaces']/ntri)
+                                    dd[dk][k0]['nfaces'] / ntri
+                                )
 
         # Check unicity of all keys
         lk = [list(dv.keys()) for dv in dd.values()]
