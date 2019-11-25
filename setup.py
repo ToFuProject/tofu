@@ -11,29 +11,36 @@ import logging
 import platform
 import subprocess
 from codecs import open
+
+from setuptools import dist  # Install numpy right now
+dist.Distribution().fetch_build_eggs(['Cython>=0.15.1', 'numpy>=1.10'])
+
 try:
-    import numpy as np
     import Cython as cth
     from Cython.Distutils import build_ext
     from Cython.Build import cythonize
     from Cython.Build import build_ext as cthBext
     # Why do we need two different build_ext command ?
 
-    def npgetinclude(): return np.get_include()
     print("cython version =", cth.__version__)
-    print("numpy  version =", np.__version__)
     print("cython file =", cth.__file__)
-    print("numpy  file =", np.__file__)
 except ImportError:
-    def npgetinclude():
-        import numpy as np
-        return np.get_include()
     def cythonize(*args, **kwargs):
         from Cython.Build import cythonize
         return cythonize(*args, **kwargs)
     def cthBext(*args, **kwargs):
         from Cython.Build import build_ext as cthBext
         return cthBext(*args, **kwdargs)
+
+
+try:
+    import numpy as np
+    def npgetinclude(): return np.get_include()
+    print("numpy  version =", np.__version__)
+    print("numpy  file =", np.__file__)
+except ImportError:
+    exit('Please install numpy>=1.11.2 first.')
+
 import _updateversion as up
 
 
@@ -297,7 +304,11 @@ setup(
     # The version is stored only in the setup.py file and read from it (option
     # 1 in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
-    setup_requires=['numpy', 'cython>=0.26'],
+    setup_requires=[
+        'setuptools>=18.0',
+        'numpy',
+        'cython>=0.26',
+    ],
     description="A python library for Tomography for Fusion",
     long_description=long_description,
     long_description_content_type=long_description_content_type,
