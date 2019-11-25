@@ -2615,7 +2615,7 @@ class MultiIDSLoader(object):
 
             cmesh = any([ss in out_.keys() for ss in lsigmesh])
             if len(out_) > 0:
-                npts = None
+                npts, datashape = None, None
                 keym = '%s.mesh'%ids if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
                     assert out_[ss].ndim in [1,2]
@@ -2681,8 +2681,16 @@ class MultiIDSLoader(object):
                                        'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
                     # R / Z case
                     elif lc[1]:
-                       func = self._checkformat_mesh_Rect
-                       pass
+                        func = self._checkformat_mesh_Rect
+                        R, Z, shapeRZ, ftype = func(out_['2dmeshR'],
+                                                    out_['2dmeshZ'],
+                                                    datashape=datashape)
+                        dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
+                                       'units': 'a.u.', 'origin': ids,
+                                       'depend': (keym,), 'name': meshtype,
+                                       'R': R, 'Z': Z, 'shapeRZ': shapeRZ
+                                       'type': 'rect', 'size': size,
+                                       'ftype': ftype}
 
 
         # t0
