@@ -23,14 +23,13 @@ import _updateversion as up
 from distutils.command.clean import clean as Clean
 
 
-
-# == Checking platform =========================================================
+# == Checking platform ========================================================
 is_platform_windows = False
 if platform.system() == "Windows":
     is_platform_windows = True
 
 
-# === Setting clean command ====================================================
+# === Setting clean command ===================================================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tofu.setup")
 
@@ -97,10 +96,10 @@ class CleanCommand(Clean):
                     logger.info("removing '%s'", path)
                 except OSError:
                     pass
-# ==============================================================================
+# =============================================================================
 
 
-# ==============================================================================
+# =============================================================================
 # Check if openmp available
 # see http://openmp.org/wp/openmp-compilers/
 omp_test = r"""
@@ -139,10 +138,10 @@ if is_platform_windows:
     openmp_installed = False
 else:
     openmp_installed = not check_for_openmp("cc")
-# ==============================================================================
+# =============================================================================
 
 
-# == Getting tofu version ======================================================
+# == Getting tofu version =====================================================
 _HERE = os.path.abspath(os.path.dirname(__file__))
 def get_version_tofu(path=_HERE):
 
@@ -184,9 +183,9 @@ version_tofu = get_version_tofu(path=_HERE)
 print("")
 print("Version for setup.py : ", version_tofu)
 print("")
-# ==============================================================================
+# =============================================================================
 
-# ==============================================================================
+# =============================================================================
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
 
@@ -203,10 +202,10 @@ if _README[-3:] == ".md":
     long_description_content_type = "text/markdown"
 else:
     long_description_content_type = "text/x-rst"
-# ==============================================================================
+# =============================================================================
 
 
-# ==============================================================================
+# =============================================================================
 #  Compiling files
 if openmp_installed:
     extra_compile_args = ["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
