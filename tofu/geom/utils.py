@@ -640,6 +640,7 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 ###########################################################
 
 _ExpWest = 'WEST'
+_ExpJET = 'JET'
 _ExpITER = 'ITER'
 
 # Dictionnary of unique config names
@@ -664,6 +665,8 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'IC1V1', 'IC2V1', 'IC3V1',
                                 'LH1V1', 'LH2V1',
                                 'RippleV1', 'VDEV0']},
+            'JET-V0': {'Exp': _ExpJET,
+                       'Ves': ['V0']},
             'ITER-V2': {'Exp': _ExpITER,
                         'Ves': ['V1'],
                         'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
@@ -678,6 +681,7 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
 # retro-compatibility), this table stores the available names for each unique
 # config in _DCONFIG
 _DCONFIG_TABLE = {'ITER': 'ITER-V2',
+                  'JET': 'JET-V0',
                   'WEST': 'WEST-V4',
                   'A1': 'WEST-V1',
                   'A2': 'ITER-V1',
