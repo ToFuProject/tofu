@@ -2584,8 +2584,8 @@ class MultiIDSLoader(object):
             # TBF in next release (ugly, sub-optimal...)
 
             # dtime
-            out_ = {'t': out0[ids].get('t')}
-            lc = [len(out_['t']) == 1,
+            out_ = {'t': out0[ids].get('t', None)}
+            lc = [out_['t'] is not None,
                   out_['t'].size > 0,
                   0 not in out_['t'].shape]
             keyt, nt, indt = None, None, None
@@ -2597,6 +2597,8 @@ class MultiIDSLoader(object):
                 dtime[keyt] = {'data':dtt['t'],
                                'origin':ids, 'name':'t'}
                 indt = dtt['indt']
+            else:
+                nt = None
 
             # d1d and dradius
             lsig = [k for k in dsig[ids]
@@ -2622,16 +2624,17 @@ class MultiIDSLoader(object):
                         keyt = '%s.homemade'%ids
                         dtime[keyt] = {'data':np.arange(0,nt),
                                        'origin':ids, 'name':'homemade'}
+                        import ipdb; ipdb.set_trace()   # DB
                     else:
                         if nt not in shape:
                             msg = "Inconsistent shape with respect to 't'!\n"
                             msg += "    - %s.%s.shape = %s"%(ids,ss,str(shape))
                             msg += "    - One dim should be t.size = %s"%str(nt)
                             raise Exception(msg)
-                        axist = shape.index(nt)
-                        nr = shape[1-axist]
-                        if axist == 1:
-                            out_[ss] = out_[ss].T
+                    axist = shape.index(nt)
+                    nr = shape[1-axist]
+                    if axist == 1:
+                        out_[ss] = out_[ss].T
 
                     if ss in self._dshort[ids].keys():
                         dim = self._dshort[ids][ss].get('dim', 'unknown')
@@ -2644,16 +2647,16 @@ class MultiIDSLoader(object):
                     key = '%s.%s'%(ids,ss)
 
                     if nref is None:
-                        dradius[key] = {'data':out_[ss], 'name':ss,
-                                        'origin':ids, 'dim':dim, 'quant':quant,
-                                        'units':units, 'depend':(keyt,key)}
+                        dradius[key] = {'data': out_[ss], 'name': ss,
+                                        'origin': ids, 'dim': dim, 'quant': quant,
+                                        'units': units, 'depend': (keyt, key)}
                         nref, kref = nr, key
                     else:
                         assert nr == nref
-                        d1d[key] = {'data':out_[ss], 'name':ss,
-                                    'origin':ids, 'dim':dim, 'quant':quant,
-                                    'units':units, 'depend':(keyt,kref)}
-                        assert out_[ss].shape == (nt,nr)
+                        d1d[key] = {'data': out_[ss], 'name': ss,
+                                    'origin': ids, 'dim': dim, 'quant': quant,
+                                    'units': units, 'depend': (keyt, kref)}
+                        assert out_[ss].shape == (nt, nr)
 
                     if plot:
                         if ss in plot_sig:

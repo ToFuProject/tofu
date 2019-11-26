@@ -2585,7 +2585,7 @@ class Plasma2D(utils.ToFuObject):
 
                         if 'tri' in v0['type']:
                             fshap = dd[dk][k0]['faces'].shape
-                            fshap0 = (v0['nfaces', 3])
+                            fshap0 = (v0['nfaces'], 3)
                             if fshap != fshap0:
                                 msg = ("Wrong shape of {}[{}]\n".format(dk, k0)
                                        + "\t- Expected: {}\n".format(fshap0)
