@@ -12,7 +12,7 @@ Main changes:
 - Major bug fix in one of the methods for computing synthetic signal
 - Minor bug fixes in interactive figures
 - Minor bug fixes in Plasma2D interpolation
-- New configuration (ITER) available
+- New configurations (ITER and JET) available
 - First version of a class handling 2D XRay bragg spectrometers
 - First tools for magnetic field line tracing available on WEST
 - Better documentation, more ressources
@@ -54,12 +54,14 @@ Bug fixes:
 - Change default separator in ``to_dict()`` from '_' to '.', #228
 - Rays.calc_kInOut_IsoFlux() is now more flexible (accepts 3d np.arrays as well as lists of np.ndarrays), #188
 - __repr__() is now overloaded in a more robust way so it falls back to printing the class if get_summary() fails to avoid crashing in debug mode #242
+- Minor bug in time interpolation in Plasma2D methods #215
+
 
 Documentation:
 ~~~~~~~~~~~~~~
-- Updated information about support of python version
+- Updated information about support of python version #273
 - Added slides of talk given at PyConFR 2019 conference
-- Added a ``gallery`` in our documentation with 3 different tutorials:
+- Added a **gallery** in our documentation with 3 different tutorials:
   - 5 minutes tutorial to show to create a geometry and 1D/2D cameras
   - Guide on how to create your own Geometry from scratch (vacuum vessel, structures, etc.)
   - How to compute the signal received by a camera using a synthetic signal.
@@ -72,16 +74,19 @@ Documentation:
 
 New features:
 ~~~~~~~~~~~~~
-- First version of ``magnetic field line tracing`` (for WEST only so far, to be improved) #213 #235
-- First version of ``2D XRay Bragg spectrometers`` for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved) #267
+- First version of **magnetic field line tracing** (for WEST only so far, to be improved) #213 #235
+- First version of **2D XRay Bragg spectrometers** for synthetic diagnostics, modelling the diagnotics geometry and providing 2d spectral fitting routines (to be improved) #267
 - When computing a signal ``LOS_calc_signal`` emissivity function can now return
   a 1D array if ``t=None`` #217 #252
 - Three functions added to ``tf.geom.Rays``: #211
 	- ``calc_length_in_isoflux()``: compute the length inside a set of isoflux surfaces of each LOS
 	- ``calc_min_geom_radius()``: compute the minimal geometrical radius (impact parameter) of each LOS
 	- ``calc_min_rho_from_Plasma2D()``: compute the minimum normalized radius (or any field with a minimum on the axis) for each LOS
-- New ``ITER configuration`` available! #220 #227
+- New **ITER configuration** available! #220 #227
+- New **JET configuration** available! #282
+- imas2tofu now more robust with respect to one-time-step only data fields and can handle basic rectangular meshes in addition to triangular meshes #218, #280
 - More explicit names for default configurations #264
+- The github homepage now includes a badge to the gitter chatroom #277
 
 Contributors:
 =============
@@ -110,6 +115,6 @@ What's next (indicative):
 
 List of issues and PR closed:
 =============================
-- Issues: #30, #180, #183, #185, #186, #187, #188, #189, #190, #201, #209, #211, #213, #217, #220, #224, #227, #228, #230, #235, #243, #247, #248, #250, #252, #255, #264
+- Issues: #30, #180, #183, #185, #186, #187, #188, #189, #190, #201, #209, #211, #213, #215, #217, #218, #220, #224, #227, #228, #230, #235, #243, #247, #248, #250, #252, #255, #264, #277
 - PR: #173, #175, #179, #181, #182, #184, #191, #192, #193, #194, #195, #196, #197, #199, #206, #207, #210, #212, #222, #223, #225, #226, #229, #231, #233, #234, #236, #237, #238, #240, #242, #244, #245, #246, #249, #251, #253, #254, #256, #257, #258,
-  #261, #265, #267
+  #261, #265, #267, #269, #270, #273, #278, #279, #280, #282
