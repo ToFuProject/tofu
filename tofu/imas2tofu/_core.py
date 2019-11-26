@@ -2031,8 +2031,8 @@ class MultiIDSLoader(object):
                 c0 = (len(t0.split('.')) <= 2
                       and all([ss.isdecimal() for ss in t0.split('.')]))
                 if 'pulse_schedule' in self._dids.keys():
-                    events, _ = self.get_data(ids='pulse_schedule',
-                                              sig='events')['events']
+                    events = self.get_data(ids='pulse_schedule',
+                                           sig='events')[0]['events']
                     if t0 in events['name']:
                         t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
                     elif c0:
@@ -2831,7 +2831,7 @@ class MultiIDSLoader(object):
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces = None, None
         out, _ = self.get_data(ids, sig=list(lk), indch=indch,
-                            nan=nan, pos=pos)
+                               nan=nan, pos=pos)
         if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size > 0:
             oo = out['los_ptsRZPhi']
             D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
@@ -3087,7 +3087,7 @@ class MultiIDSLoader(object):
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        t, _ = self.get_data(ids, sig=dsig.get('t', 't'), indch=indch)['t']
+        t = self.get_data(ids, sig=dsig.get('t', 't'), indch=indch)[0]['t']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
@@ -3104,7 +3104,7 @@ class MultiIDSLoader(object):
                 else:
                     indchcam = [ii for ii in range(0,len(t)) if ls[ii] == su]
                     indch = [indch[ii] for ii in range(0,len(t)) if ls[ii] == su]
-                t, _ = self.get_data(ids, sig='t', indch=indch)['t']
+                t = self.get_data(ids, sig='t', indch=indch)[0]['t']
                 if cam is not None:
                     cam = cam.get_subset(indch=indchcam)
                 msg = "indch set automatically for %s\n"%ids
@@ -3208,9 +3208,9 @@ class MultiIDSLoader(object):
             dins['data'] = np.fliplr(dins['data'])
 
         if 'validity_timed' in self._dshort[ids].keys():
-            inan, _ = self.get_data(ids, sig='validity_timed',
-                                    indt=indt, indch=indch,
-                                    nan=nan, pos=pos)['validity_timed'].T < 0.
+            inan = self.get_data(ids, sig='validity_timed',
+                                 indt=indt, indch=indch,
+                                 nan=nan, pos=pos)[0]['validity_timed'].T < 0.
             dins['data'][inan] = np.nan
         if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
@@ -3348,7 +3348,7 @@ class MultiIDSLoader(object):
         ani = False
         if ids == 'bremsstrahlung_visible':
             try:
-                lamb, _ = self.get_data(ids, sig='lamb')['lamb']
+                lamb = self.get_data(ids, sig='lamb')[0]['lamb']
             except Exception as err:
                 lamb = 5238.e-10
                 msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
@@ -3367,7 +3367,7 @@ class MultiIDSLoader(object):
             dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
-            lamb, _ = self.get_data(ids, sig='lamb')['lamb'][0]
+            lamb = self.get_data(ids, sig='lamb')[0]['lamb'][0]
 
             # Get time reference
             doutt, dtut, tref = plasma.get_time_common(lq)
