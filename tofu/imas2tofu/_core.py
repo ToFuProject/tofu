@@ -3124,16 +3124,14 @@ class MultiIDSLoader(object):
                 msg += "\n  => Solution: choose indch accordingly !"
                 raise Exception(msg)
 
-
         if t.ndim == 2:
             assert np.all(np.isclose(t, t[0:1,:]))
             t = t[0,:]
         dins['t'] = t
         indt = self._checkformat_tlim(t, tlim=tlim)['indt']
 
-
         out, _ = self.get_data(ids, sig=[dsig[k] for k in lk],
-                            indt=indt, indch=indch, nan=nan, pos=pos)
+                               indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
                 if indch_auto:
@@ -3208,7 +3206,7 @@ class MultiIDSLoader(object):
         if 'validity_timed' in self._dshort[ids].keys():
             inan, _ = self.get_data(ids, sig='validity_timed',
                                     indt=indt, indch=indch,
-                                    nan=nan, pos=pos)['validity_timed'].T<0.
+                                    nan=nan, pos=pos)['validity_timed'].T < 0.
             dins['data'][inan] = np.nan
         if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
