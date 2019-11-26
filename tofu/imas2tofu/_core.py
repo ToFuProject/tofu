@@ -2201,9 +2201,9 @@ class MultiIDSLoader(object):
 
         # Check mesh type
         if indfaces.shape[1] == 3:
-            meshtype = 'tri'
+            mtype = 'tri'
         elif indfaces.shape[1] == 4:
-            meshtype = 'quad'
+            mtype = 'quad'
         else:
             msg = "Mesh seems to be neither triangular nor quadrilateral\n"
             msg += "  => unrecognized mesh type, not implemented yet"
@@ -2264,7 +2264,7 @@ class MultiIDSLoader(object):
             warnings.warn(msg)
 
         # Convert to triangular mesh if necessary
-        if meshtype == 'quad':
+        if mtype == 'quad':
             # Convert to tri mesh (solution for unstructured meshes)
             indface = np.empty((indfaces.shape[0]*2,3), dtype=int)
 
@@ -2272,7 +2272,7 @@ class MultiIDSLoader(object):
             indface[1::2,:-1] = indfaces[:,2:]
             indface[1::2,-1] = indfaces[:,0]
             indfaces = indface
-            meshtype = 'quadtri'
+            mtype = 'quadtri'
             ntri = 2
         else:
             ntri = 1
@@ -2292,7 +2292,7 @@ class MultiIDSLoader(object):
             warnings.warn(msg)
             (indfaces[indclock,1],
              indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
-        return indfaces, meshtype, ntri
+        return indfaces, mtype, ntri
 
     def inspect_ggd(self, ids):
         # TBF
@@ -2744,14 +2744,15 @@ class MultiIDSLoader(object):
                         nodes = out_['2dmeshNodes']
                         indfaces = out_['2dmeshFaces']
                         func = self._checkformat_mesh_NodesFaces
-                        indfaces,meshtype,ntri = func(nodes, indfaces, ids=ids)
+                        indfaces, mtype, ntri = func(nodes, indfaces, ids=ids)
                         nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
                         if npts is not None:
-                            if npts not in [nnod, int(nfaces/ntri)]:
-                                msg = "There is an indexing unconsistency:\n"
-                                msg += "    - 2d profiles have npts = %s\n"%str(npts)
-                                msg += "    - mesh has %s nodes\n"%str(nnod)
-                                msg += "               %s faces"%str(int(nfaces/ntri))
+                            nft = int(nfaces/ntri)
+                            if npts not in [nnod, nft]:
+                                msg = "Inconsistent indices:\n"
+                                msg += "\t- 2d profile {} npts\n".format(npts)
+                                msg += "\t- mesh {} nodes\n".format(nnod)
+                                msg += "\t       {} faces".format(nft)
                                 raise Exception(msg)
                             ftype = 1 if npts == nnod else 0
                         else:
@@ -2760,9 +2761,9 @@ class MultiIDSLoader(object):
                                                        nodes[:, 1], indfaces)
                         dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
                                        'units': 'a.u.', 'origin': ids,
-                                       'depend': (keym,), 'name': meshtype,
+                                       'depend': (keym,), 'name': mtype,
                                        'nodes': nodes, 'faces': indfaces,
-                                       'type': meshtype, 'ntri': ntri,
+                                       'type': mtype, 'ntri': ntri,
                                        'ftype': ftype, 'nnodes': nnod,
                                        'nfaces': nfaces, 'mpltri': mpltri}
                     # R / Z case
