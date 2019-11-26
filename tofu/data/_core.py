@@ -2560,7 +2560,7 @@ class Plasma2D(utils.ToFuObject):
                             if fshap != fshap0:
                                 msg = ("Wrong shape of {}[{}]\n".format(dk, k0)
                                        + "\t- Expected: {}\n".format(fshap0)
-                                       + "\t- Provided: {}".format(fshap)
+                                       + "\t- Provided: {}".format(fshap))
                                 raise Exception(msg)
                             if v0.get('mpltri', None) is None:
                                 dd[dk][k0]['mpltri'] = mplTri(
