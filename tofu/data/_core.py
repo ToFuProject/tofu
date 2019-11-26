@@ -2421,7 +2421,13 @@ class Plasma2D(utils.ToFuObject):
 
                 # mesh
                 if dk == 'dmesh':
-                    assert v0['type'] in ['rect', 'tri', 'quadtri'], v0['type']
+
+                    lmok = ['rect', 'tri', 'quadtri']
+                    if v0['type'] not in lmok:
+                        msg = ("Mesh['type'] should be in {}\n".format(lmok)
+                               + "\t- Provided: {}".format(v0['type']))
+                        raise Exception(msg)
+
                     if v0['type'] == 'rect':
                         c0 = all([ss in v0.keys() and v0[ss].ndim in [1, 2]
                                   for ss in ['R', 'Z']])
@@ -2438,41 +2444,59 @@ class Plasma2D(utils.ToFuObject):
                         else:
                             shapeRZ = list(shapeRZ)
                         if v0['R'].ndim == 1:
-                            assert np.all(np.diff(v0['R']) > 0.)
+                            if np.any(np.diff(v0['R']) <= 0.):
+                                msg = "Non-increasing R"
+                                raise Exception(msg)
                             R = v0['R']
                         else:
                             lc = [np.all(np.diff(v0['R'][0, :])) > 0.,
                                   np.all(np.diff(v0['R'][:, 0])) > 0.]
-                            assert np.sum(lc) == 1
+                            if np.sum(lc) != 1:
+                                msg = "Impossible to know R dimension!"
+                                raise Exception(msg)
                             if lc[0]:
                                 R = v0['R'][0, :]
                                 if shapeRZ[1] is None:
                                     shapeRZ[1] = 'R'
-                                assert shapeRZ[1] == 'R'
+                                if shapeRZ[1] != 'R':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
                             else:
                                 R = v0['R'][:, 0]
                                 if shapeRZ[0] is None:
                                     shapeRZ[0] = 'R'
-                                assert shapeRZ[0] == 'R'
+                                if shapeRZ[0] != 'R':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
                         if v0['Z'].ndim == 1:
-                            assert np.all(np.diff(v0['Z']) > 0.)
+                            if np.any(np.diff(v0['Z']) <= 0.):
+                                msg = "Non-increasing Z"
+                                raise Exception(msg)
                             Z = v0['Z']
                         else:
                             lc = [np.all(np.diff(v0['Z'][0, :])) > 0.,
                                   np.all(np.diff(v0['Z'][:, 0])) > 0.]
-                            assert np.sum(lc) == 1
+                            if np.sum(lc) != 1:
+                                msg = "Impossible to know R dimension!"
+                                raise Exception(msg)
                             if lc[0]:
                                 Z = v0['Z'][0, :]
                                 if shapeRZ[1] is None:
                                     shapeRZ[1] = 'Z'
-                                assert shapeRZ[1] == 'Z'
+                                if shapeRZ[1] != 'Z':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
                             else:
                                 Z = v0['Z'][:, 0]
                                 if shapeRZ[0] is None:
                                     shapeRZ[0] = 'Z'
-                                assert shapeRZ[0] == 'Z'
+                                if shapeRZ[0] != 'Z':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
                         shapeRZ = tuple(shapeRZ)
-                        assert shapeRZ in [('R', 'Z'), ('Z', 'R')]
+                        if shapeRZ not in [('R', 'Z'), ('Z', 'R')]:
+                            msg = "Inconsistent shapeRZ"
+                            raise Exception(msg)
 
                         if None in shapeRZ:
                             msg = ("Please provide shapeRZ "
@@ -2499,12 +2523,17 @@ class Plasma2D(utils.ToFuObject):
                         dd[dk][k0]['nR'] = R.size
                         dd[dk][k0]['nZ'] = Z.size
                         dd[dk][k0]['trifind'] = trifind
-                        assert dd[dk][k0]['ftype'] == 0
+                        if dd[dk][k0]['ftype'] != 0:
+                            msg = "Linear interpolation not handled yet !"
+                            raise Exception(msg)
                         dd[dk][k0]['size'] = R.size*Z.size
 
                     else:
                         ls = ['nodes', 'faces']
-                        assert all([s in v0.keys() for s in ls])
+                        if not all([s in v0.keys() for s in ls]):
+                            msg = ("The following keys should be in dmesh:\n"
+                                   + "\t- {}".format(ls))
+                            raise Exception(msg)
                         func = np.atleast_2d
                         dd[dk][k0]['nodes'] = func(v0['nodes']).astype(float)
                         dd[dk][k0]['faces'] = func(v0['faces']).astype(int)
