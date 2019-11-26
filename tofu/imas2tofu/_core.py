@@ -1912,8 +1912,8 @@ class MultiIDSLoader(object):
         return dout, dfail
 
     def get_data(self, ids=None, sig=None, occ=None,
-                  indch=None, indt=None, stack=True,
-                  isclose=None, flatocc=True, nan=True, pos=None, warn=True):
+                 indch=None, indt=None, stack=True,
+                 isclose=None, flatocc=True, nan=True, pos=None, warn=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1952,13 +1952,14 @@ class MultiIDSLoader(object):
                 dout[ids], dfail[ids] = self._get_data(ids, sig=dsig[ids],
                                                        stack=stack,
                                                        isclose=isclose,
-                                                       flatocc=flatocc, nan=nan,
+                                                       flatocc=flatocc,
+                                                       nan=nan,
                                                        pos=pos, warn=False)
                 if len(dfail[ids]) > 0:
                     anyerror = True
             except Exception as err:
                 del dout[ids]
-                dfail[ids] = dict.fromkeys(dsig[ids].keys(), 'ids-wide failure')
+                dfail[ids] = dict.fromkeys(dsig[ids].keys(), 'ids error')
                 anyerror = True
         if anyerror:
             msg = "The following data could not be retrieved:"
@@ -2612,7 +2613,7 @@ class MultiIDSLoader(object):
             lsig = [k for k in dsig[ids]
                     if '1d' in k and k in out0[ids].keys()]
             out_ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos,
-                                    warn=False)
+                                 warn=False)
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
@@ -2632,7 +2633,6 @@ class MultiIDSLoader(object):
                         keyt = '%s.homemade'%ids
                         dtime[keyt] = {'data':np.arange(0,nt),
                                        'origin':ids, 'name':'homemade'}
-                        import ipdb; ipdb.set_trace()   # DB
                     else:
                         if nt not in shape:
                             msg = "Inconsistent shape with respect to 't'!\n"
@@ -2656,8 +2656,9 @@ class MultiIDSLoader(object):
 
                     if nref is None:
                         dradius[key] = {'data': out_[ss], 'name': ss,
-                                        'origin': ids, 'dim': dim, 'quant': quant,
-                                        'units': units, 'depend': (keyt, key)}
+                                        'origin': ids, 'dim': dim,
+                                        'quant': quant, 'units': units,
+                                        'depend': (keyt, key)}
                         nref, kref = nr, key
                     else:
                         assert nr == nref
