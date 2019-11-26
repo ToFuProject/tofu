@@ -5241,17 +5241,21 @@ class Rays(utils.ToFuObject):
         if indch is None:
             return self
         else:
+
             indch = self._check_indch(indch)
             dd = self.to_dict()
+            sep = [kk for kk in dd.keys()
+                   if all([ss in kk for ss in ['dId', 'dall', 'Name']])][0]
+            sep = sep[3]
 
             # Name
             assert Name in [None, True] or type(Name) is str
             if Name is True:
                 pass
             elif type(Name) is str:
-                dd["dId_dall_Name"] = Name
+                dd[sep.join(['dId', 'dall', 'Name'])] = Name
             elif Name is None:
-                dd["dId_dall_Name"] = dd["dId_dall_Name"] + "-subset"
+                dd[sep.join(['dId', 'dall', 'Name'])] += "-subset"
 
             # Resize all np.ndarrays
             for kk in dd.keys():
@@ -5262,7 +5266,8 @@ class Rays(utils.ToFuObject):
                         dd[kk] = vv[indch]
                     elif vv.ndim == 2 and vv.shape[1] == self.nRays:
                         dd[kk] = vv[:, indch]
-                dd["dgeom_nRays"] = dd["dgeom_D"].shape[1]
+                dd[sep.join(['dgeom', 'nRays'])] = (
+                    dd[sep.join(['dgeom', 'D'])].shape[1])
 
             # Recreate from dict
             obj = self.__class__(fromdict=dd)
