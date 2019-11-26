@@ -59,7 +59,7 @@ deploy:
     skip_cleanup: true
   - provider: pypi
     user: "Didou09"
-    distributions: "sdist"
+    distributions: "sdist bdist_wheel"
     skip_cleanup: true
     on:
       tags: true

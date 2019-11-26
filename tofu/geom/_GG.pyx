@@ -10,7 +10,7 @@ import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
 
-# -- Cython libraries imports --------------------------------------------------
+# -- cython libraries imports --------------------------------------------------
 from cpython cimport bool
 from cpython.array cimport array, clone
 from cython.parallel import prange
@@ -3679,7 +3679,7 @@ def comp_dist_los_circle(np.ndarray[double,ndim=1,mode='c'] ray_vdir,
        to the circle
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `dist_los_circle_core`
+    Python, if you need it from cython, use `dist_los_circle_core`
     """
     cdef double[2] res
     _dt.dist_los_circle_core(<double*>ray_vdir.data,
@@ -3714,7 +3714,7 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
         with the distance between each LOS to each circle
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `dist_los_circle_core`
+    Python, if you need it from cython, use `dist_los_circle_core`
     """
     cdef array kmin_tab = clone(array('d'), nlos*ncircles, True)
     cdef array dist_tab = clone(array('d'), nlos*ncircles, True)
@@ -3748,7 +3748,7 @@ def is_close_los_circle(np.ndarray[double,ndim=1,mode='c'] ray_vdir,
     The result is True when distance < epsilon
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `is_los_close_circle_core`
+    Python, if you need it from cython, use `is_los_close_circle_core`
     """
     return _dt.is_close_los_circle_core(<double*>ray_vdir.data,
                                         <double*>ray_orig.data,
@@ -3767,7 +3767,7 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
     The result is True when distance < epsilon
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `is_los_close_circle_core`
+    Python, if you need it from cython, use `is_los_close_circle_core`
     """
     cdef array res = clone(array('i'), nlos, True)
 
@@ -3824,7 +3824,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             `distance[i]` is the distance from P_i to the extruded polygon.
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `simple_dist_los_vpoly_core`
+    Python, if you need it from cython, use `simple_dist_los_vpoly_core`
     """
     cdef int npts_poly = ves_poly.shape[1]
     cdef int nlos = ray_orig.shape[1]
@@ -3929,7 +3929,7 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
             extruded poly.
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `comp_dist_los_vpoly_vec_core`
+    Python, if you need it from cython, use `comp_dist_los_vpoly_vec_core`
     """
     if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
         assert False, "The function is only implemented with the simple"\
@@ -4003,7 +4003,7 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
             and j-th poly are closer than epsilon. (True if distance<epsilon)
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `is_close_los_vpoly_vec_core`
+    Python, if you need it from cython, use `is_close_los_vpoly_vec_core`
     """
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
@@ -4069,7 +4069,7 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
             among all other LOS without going over it.
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `which_los_closer_vpoly_vec_core`
+    Python, if you need it from cython, use `which_los_closer_vpoly_vec_core`
     """
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
@@ -4129,7 +4129,7 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
             among all other poly without going over it.
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `which_vpoly_closer_los_vec_core`
+    Python, if you need it from cython, use `which_vpoly_closer_los_vec_core`
     """
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)

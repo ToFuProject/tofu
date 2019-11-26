@@ -26,7 +26,7 @@ requirements:
     - numpy
     - scipy
     - matplotlib
-    - cython >=0.26
+    - Cython >=0.26
     - nose
     - pygments
 
@@ -39,7 +39,7 @@ requirements:
     - numpy
     - scipy
     - matplotlib
-    - cython >=0.26
+    - Cython >=0.26
     - nose
     - pygments
 
