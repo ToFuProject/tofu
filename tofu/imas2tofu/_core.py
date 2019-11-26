@@ -1949,8 +1949,9 @@ class MultiIDSLoader(object):
                 if len(dfail[ids]) > 0:
                     anyerror = True
             except Exception as err:
-                msg = "Could not get data from %s"%ids
-                warnings.warn(msg)
+                del dout[ids]
+                dfail[ids] = dict.fromkeys(dsig[ids].keys(), 'ids-wide failure')
+                anyerror = True
         if anyerror:
             msg = "The following data could not be retrieved:"
             for ids, v0 in dfail.items():
