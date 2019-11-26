@@ -143,6 +143,6 @@ To install tofu as a developer, we recommend using the conda ecosystem (Minicond
    (long) <https://www.atlassian.com/git/tutorials>`__ or `this short
    one <https://rogerdudler.github.io/git-guide/>`__
 -  Run ``pip install -e .[dev]``. This will install dependencies, compile the
-   tofu Cython extensions and install it into your conda environment while you can still
+   tofu cython extensions and install it into your conda environment while you can still
    modify the source files in the current repository.`
 -  Make sure tofu tests are running by typing ``nosetests``

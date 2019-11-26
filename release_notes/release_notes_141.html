@@ -400,7 +400,7 @@ bremsstrahlung and bolometers</p></li>
 <h3>Code structure and format<a class="headerlink" href="#code-structure-and-format" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="restructuring-of-the-geometry-modules">
 <h4>Restructuring of the geometry modules<a class="headerlink" href="#restructuring-of-the-geometry-modules" title="Permalink to this headline">¶</a></h4>
-<p>Created Cython include files <code class="docutils literal notranslate"><span class="pre">*.pxd</span></code> and <code class="docutils literal notranslate"><span class="pre">*.pyx</span></code> for the following
+<p>Created cython include files <code class="docutils literal notranslate"><span class="pre">*.pxd</span></code> and <code class="docutils literal notranslate"><span class="pre">*.pyx</span></code> for the following
 group of functions: - <code class="docutils literal notranslate"><span class="pre">_basic_geom_tools.*</span></code>: global variables
 definition (<code class="docutils literal notranslate"><span class="pre">_VSMALL</span></code> and <code class="docutils literal notranslate"><span class="pre">_SMALL</span></code>), and basic geometric tools
 (vector calculus, path distance point-point, point-vector,…) -
@@ -420,7 +420,7 @@ compilation files)</p></li>
 impossible</p></li>
 <li><p>git dependency is now optional (issue #67 )</p></li>
 <li><p>changes in <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> for <strong>Windows</strong> portability</p></li>
-<li><p>Now only supporting <code class="docutils literal notranslate"><span class="pre">Cython</span></code> versions <code class="docutils literal notranslate"><span class="pre">&gt;=0.26</span></code></p></li>
+<li><p>Now only supporting <code class="docutils literal notranslate"><span class="pre">cython</span></code> versions <code class="docutils literal notranslate"><span class="pre">&gt;=0.26</span></code></p></li>
 <li><p>Removed all <strong>pandas</strong> dependencies</p></li>
 <li><p>Using <code class="docutils literal notranslate"><span class="pre">-O3</span></code> flag instead of <code class="docutils literal notranslate"><span class="pre">-O0</span></code> for faster execution time even
 if compilation is slower</p></li>
