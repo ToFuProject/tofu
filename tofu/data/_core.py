@@ -3725,7 +3725,7 @@ class Plasma2D(utils.ToFuObject):
         # Get common time indices
         if interp_t == 'nearest':
             out = self._get_tcom(idquant, idref1d, idref2d, idq2dR)
-            tall, tbinall, ntall, indtq, indtr1, indtr2= out
+            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
 
         # Get mesh
         if self._ddata[idmesh]['data']['type'] == 'rect':

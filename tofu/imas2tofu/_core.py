@@ -1912,7 +1912,7 @@ class MultiIDSLoader(object):
                 dfail[sig[ii]] = str(err)
                 if warn:
                     msg = '\n' + str(err) + '\n'
-                    msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
+                    msg += '\tsignal {0}.{1} not loaded!'.format(ids, sig[ii])
                     warnings.warn(msg)
         return dout, dfail
 
@@ -2294,9 +2294,8 @@ class MultiIDSLoader(object):
              indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
         return indfaces, meshtype, ntri
 
-
-    # TBF
     def inspect_ggd(self, ids):
+        # TBF
         if ids not in self._dids.keys():
             msg = "The ggd of ids %s cannot be inspected:\n"%ids
             msg += "  => please add ids first (self.add_ids())"
@@ -2317,7 +2316,6 @@ class MultiIDSLoader(object):
                     nspace = len(ggd.space)
                     for ll in range(0,nspace):
                         npts = ggd.space[ll].objects_per_dimension[0].object[0]
-
 
     @staticmethod
     def _checkformat_mesh_Rect(R, Z, datashape=None,
@@ -2586,7 +2584,9 @@ class MultiIDSLoader(object):
 
             # dtime
             out_ = {'t': out0[ids].get('t')}
-            lc = [len(out_['t']) == 1, out_['t'].size > 0, 0 not in out_['t'].shape]
+            lc = [len(out_['t']) == 1,
+                  out_['t'].size > 0,
+                  0 not in out_['t'].shape]
             keyt, nt, indt = None, None, None
             if all(lc):
                 nt = out_['t'].size
@@ -2598,7 +2598,8 @@ class MultiIDSLoader(object):
                 indt = dtt['indt']
 
             # d1d and dradius
-            lsig = [k for k in dsig[ids] if '1d' in k and k in out0[ids].keys()]
+            lsig = [k for k in dsig[ids]
+                    if '1d' in k and k in out0[ids].keys()]
             out_, _ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos,
                                     warn=False)
             if len(out_) > 0:
@@ -2660,7 +2661,8 @@ class MultiIDSLoader(object):
                             plot_X[plot_X.index(ss)] = key
 
             # d2d and dmesh
-            lsig = [k for k in dsig[ids] if '2d' in k and k in out0[ids].keys()]
+            lsig = [k for k in dsig[ids]
+                    if '2d' in k and k in out0[ids].keys()]
             lsigmesh = [k for k in lsig if 'mesh' in k]
             out_, _ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos,
                                     warn=False)
@@ -2668,7 +2670,7 @@ class MultiIDSLoader(object):
             cmesh = any([ss in out_.keys() for ss in lsigmesh])
             if len(out_) > 0:
                 npts, datashape = None, None
-                keym = '%s.mesh'%ids if cmesh else None
+                keym = '{}.mesh'.format(ids) if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
                     assert out_[ss].ndim in [1,2]
                     if out_[ss].ndim == 1:
@@ -2723,9 +2725,9 @@ class MultiIDSLoader(object):
                             units = self._dcomp[ids][ss].get('units', 'a.u.')
                         key = '%s.%s'%(ids,ss)
 
-                        d2d[key] = {'data':out_[ss], 'name':ss,
-                                    'dim':dim, 'quant':quant, 'units':units,
-                                    'origin':ids, 'depend':(keyt, keym)}
+                        d2d[key] = {'data': out_[ss], 'name': ss,
+                                    'dim': dim, 'quant': quant, 'units': units,
+                                    'origin': ids, 'depend': (keyt, keym)}
 
                 if cmesh:
                     lc = [all([ss in lsig for ss in ['2dmeshNodes',
@@ -2754,12 +2756,15 @@ class MultiIDSLoader(object):
                             ftype = 1 if npts == nnod else 0
                         else:
                             ftype = None
-                        mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indfaces)
-                        dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
-                                       'origin':ids, 'depend':(keym,), 'name':meshtype,
-                                       'nodes':nodes, 'faces':indfaces,
-                                       'type':meshtype, 'ntri':ntri, 'ftype':ftype,
-                                       'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
+                        mpltri = mpl.tri.Triangulation(nodes[:, 0],
+                                                       nodes[:, 1], indfaces)
+                        dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
+                                       'units': 'a.u.', 'origin': ids,
+                                       'depend': (keym,), 'name': meshtype,
+                                       'nodes': nodes, 'faces': indfaces,
+                                       'type': meshtype, 'ntri': ntri,
+                                       'ftype': ftype, 'nnodes': nnod,
+                                       'nfaces': nfaces, 'mpltri': mpltri}
                     # R / Z case
                     elif lc[1]:
                         func = self._checkformat_mesh_Rect
@@ -2773,13 +2778,11 @@ class MultiIDSLoader(object):
                                        'R': R, 'Z': Z, 'shapeRZ': shapeRZ,
                                        'type': 'rect', 'ftype': ftype}
 
-
         # t0
         t0 = self._get_t0(t0)
         if t0 != False:
             for tt in dtime.keys():
                 dtime[tt]['data'] = dtime[tt]['data'] - t0
-
 
         plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
                       d0d=d0d, d1d=d1d, d2d=d2d,
