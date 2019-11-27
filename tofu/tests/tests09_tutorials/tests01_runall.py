@@ -17,7 +17,7 @@ from tofu import __version__
 
 
 _HERE = os.path.abspath(os.path.dirname(__file__))
-_TFROOT = _HERE[:-_HERE[::-1].index('/tofu'[::-1])-len('/tofu')]
+_TFROOT = os.path.abspath(os.path.join(os.path.dirname(_HERE), os.pardir))
 # _TFROOT = tf.__path__[0][:-5]
 # _PATHTUTO = os.path.join(_TFROOT, 'examples', 'tutorials')
 keyVers = 'Vers'
