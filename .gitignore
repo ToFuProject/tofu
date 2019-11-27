@@ -70,3 +70,6 @@ doc/source/auto_examples/
 
 # do not commit nose tests files
 *.noseids
+
+# no pip wheel metadata
+pip-wheel-metadata/

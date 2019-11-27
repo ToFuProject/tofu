@@ -17,8 +17,6 @@ from setuptools import Extension
 import Cython as cth
 from Cython.Distutils import build_ext
 import numpy as np
-# ...
-import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
@@ -142,9 +140,30 @@ else:
 
 
 # == Getting tofu version =====================================================
-_HERE = os.path.abspath(os.path.dirname(__file__))
-def get_version_tofu(path=_HERE):
 
+_HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+def updateversion(path=_HERE):
+    # Fetch version from git tags, and write to version.py
+    # Also, when git is not available (PyPi package), use stored version.py
+    version_py = os.path.join(path,"version.py")
+    try:
+        version_git = subprocess.check_output(["git",
+                                               "describe"]).rstrip().decode()
+    except:
+        with open(version_py,'r') as fh:
+            version_git = fh.read().strip().split("=")[-1].replace("'",'')
+    version_git = version_git.lower().replace('v','')
+
+    version_msg = "# Do not edit, pipeline versioning governed by git tags!"
+    with open(version_py,"w") as fh:
+        msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
+        fh.write(version_msg + msg)
+    return version_git
+
+
+def get_version_tofu(path=_HERE):
     # Try from git
     isgit = ".git" in os.listdir(path)
     if isgit:
@@ -163,7 +182,7 @@ def get_version_tofu(path=_HERE):
                 .decode()
             )
             if git_branch in ["master"]:
-                version_tofu = up.updateversion(os.path.join(path, "tofu"))
+                version_tofu = updateversion(os.path.join(path, "tofu"))
             else:
                 isgit = False
         except Exception:
@@ -177,6 +196,7 @@ def get_version_tofu(path=_HERE):
 
     version_tofu = version_tofu.lower().replace("v", "")
     return version_tofu
+
 
 version_tofu = get_version_tofu(path=_HERE)
 
