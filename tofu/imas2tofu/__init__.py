@@ -33,9 +33,10 @@ except Exception as err:
 
 _KEYSTR = 'IMAS/'
 
+
 # extract all IMAS versions from a str returned by modules
 def extractIMAS(ss, keystr=_KEYSTR):
-    if not keystr in ss:
+    if keystr not in ss:
         raise Exception
     ls = ss[ss.index(keystr):].split('\n')
     ls = itt.chain.from_iterable([s.split(' ') for s in ls])
@@ -43,6 +44,7 @@ def extractIMAS(ss, keystr=_KEYSTR):
     ls = [s[len(keystr):s.index('(')] if '(' in s else s[len(keystr):]
           for s in ls]
     return sorted(ls)
+
 
 # Compare current and latest available IMAS versions
 def check_IMAS_version(verb=True, keystr=_KEYSTR):
@@ -80,6 +82,7 @@ def check_IMAS_version(verb=True, keystr=_KEYSTR):
                + "\t- Latest version : {}".format(lav[-1]))
         warnings.warn(msg)
     return lcur[0], lav
+
 
 # Try comparing and warning
 try:
