@@ -1,16 +1,15 @@
 #!/usr/bin/env/python
 # coding=utf-8
 
-import sys
 import os
 import subprocess
 
-_HERE = os.path.join(os.path.abspath(os.path.dirname(__file__)),'tofu')
+_HERE = os.path.abspath(os.path.dirname(__file__))
 
 def updateversion(path=_HERE):
     # Fetch version from git tags, and write to version.py
     # Also, when git is not available (PyPi package), use stored version.py
-    version_py = os.path.join(path,"version.py")
+    version_py = os.path.join(path, 'tofu', 'version.py')
     try:
         version_git = subprocess.check_output(["git",
                                                "describe"]).rstrip().decode()

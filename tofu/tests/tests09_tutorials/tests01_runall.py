@@ -1,25 +1,13 @@
-
-# External modules
 import os
 import shutil
-import types
 import subprocess
-import numpy as np
-import warnings as warn
 import matplotlib.pyplot as plt
-
-# Nose-specific
-from nose import with_setup     # optional
-
-# Importing package tofu.geom
-import tofu as tf
 from tofu import __version__
-
+from pathlib import Path
 
 _HERE = os.path.abspath(os.path.dirname(__file__))
-_TFROOT = _HERE[:-_HERE[::-1].index('/tofu'[::-1])-len('/tofu')]
-# _TFROOT = tf.__path__[0][:-5]
-# _PATHTUTO = os.path.join(_TFROOT, 'examples', 'tutorials')
+_TFROOT = Path(_HERE).parent.parent.parent
+
 keyVers = 'Vers'
 
 
