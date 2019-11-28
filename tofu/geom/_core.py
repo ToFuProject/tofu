@@ -885,6 +885,51 @@ class Struct(utils.ToFuObject):
     # public methods
     ###########
 
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build detailed view
+        col0 = [
+            "class",
+            "Name",
+            "SaveName",
+            "nP",
+            "noccur",
+            "mobile",
+            "color",
+        ]
+        ar0 = [
+            self._Id.Cls,
+            self._Id.Name,
+            self._Id.SaveName,
+            str(self._dgeom["nP"]),
+            str(self._dgeom["noccur"]),
+            str(self._dgeom["mobile"]),
+            str(self._dmisc["color"])]
+
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
+
+    ###########
+    # public methods
+    ###########
+
     def set_color(self, col):
         self._set_color(col)
 
@@ -6728,21 +6773,29 @@ class CamLOS1D(Rays):
         kout = self._dgeom["kOut"]
         indout = self._dgeom["indout"]
         lS = self._dconfig["Config"].lStruct
+        angles = np.arccos(-np.sum(self.u*self.dgeom['vperp'], axis=0))
 
         # ar0
-        col0 = ["nb. los", "av. length", "nb. touch"]
+        col0 = ["nb. los", "av. length", "min length", "max length",
+                "nb. touch", "av. angle", "min angle", "max angle"]
         ar0 = [
             self.nRays,
             "{:.3f}".format(np.nanmean(kout)),
+            "{:.3f}".format(np.nanmin(kout)),
+            "{:.3f}".format(np.nanmax(kout)),
             np.unique(indout[0, :]).size,
+            "{:.2f}".format(np.nanmean(angles)),
+            "{:.2f}".format(np.nanmin(angles)),
+            "{:.2f}".format(np.nanmax(angles)),
         ]
 
         # ar1
-        col1 = ["los index", "length", "touch"]
+        col1 = ["los index", "length", "touch", "angle (rad)"]
         ar1 = [
             np.arange(0, self.nRays),
             np.around(kout, decimals=3).astype("U"),
             ["%s_%s" % (lS[ii].Id.Cls, lS[ii].Id.Name) for ii in indout[0, :]],
+            np.around(angles, decimals=2).astype('U')
         ]
 
         for k, v in self._dchans.items():
@@ -6838,6 +6891,47 @@ CamLOS1D.__signature__ = sig.replace(parameters=lp)
 
 
 class CamLOS2D(Rays):
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+
+        # Prepare
+        kout = self._dgeom["kOut"]
+        indout = self._dgeom["indout"]
+        lS = self._dconfig["Config"].lStruct
+        angles = np.arccos(-np.sum(self.u*self.dgeom['vperp'], axis=0))
+
+        # ar0
+        col0 = ["nb. los", "av. length", "min length", "max length",
+                "nb. touch", "av. angle", "min angle", "max angle"]
+        ar0 = [
+            self.nRays,
+            "{:.3f}".format(np.nanmean(kout)),
+            "{:.3f}".format(np.nanmin(kout)),
+            "{:.3f}".format(np.nanmax(kout)),
+            np.unique(indout[0, :]).size,
+            "{:.2f}".format(np.nanmean(angles)),
+            "{:.2f}".format(np.nanmin(angles)),
+            "{:.2f}".format(np.nanmax(angles)),
+        ]
+
+        # call base method
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
+
     def _isImage(self):
         return self._dgeom["isImage"]
 
