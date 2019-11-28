@@ -25,7 +25,7 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s  structure. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s structure. ">
 
 .. only:: html
 
@@ -82,6 +82,26 @@ This directory contains tutorial examples for `tofu`.
    :hidden:
 
    /auto_examples/tutorials/tuto_plot_custom_emissivity
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial functions as a gallery of fusion machines that can easily be loaded with tofu. ">
+
+.. only:: html
+
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_gallery_fusion_machines_thumb.png
+
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/tutorials/tuto_plot_gallery_fusion_machines
 .. raw:: html
 
     <div style='clear:both'></div>

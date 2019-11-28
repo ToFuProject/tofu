@@ -10,8 +10,7 @@
 Getting started: 5 minutes tutorial for `tofu`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is a tutorial that aims to get a new user a little familiar with tofu's
- structure.
+This is a tutorial that aims to get a new user a little familiar with tofu's structure.
 
 
 .. code-block:: default
@@ -119,7 +118,7 @@ output.
 
  .. code-block:: none
 
-    /Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-1.4.2a2-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2828: UserWarning: Not interactive backend!:
+    /Users/mendoza/anaconda3/envs/tofu3/lib/python3.6/site-packages/tofu-.1.4.2a3_2_gfaeb7af-py3.6-macosx-10.7-x86_64.egg/tofu/utils.py:2828: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -163,7 +162,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.053 seconds)
+   **Total running time of the script:** ( 0 minutes  1.673 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:
