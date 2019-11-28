@@ -2,8 +2,7 @@
 Getting started: 5 minutes tutorial for `tofu`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is a tutorial that aims to get a new user a little familiar with tofu's
- structure.
+This is a tutorial that aims to get a new user a little familiar with tofu's structure.
 """
 
 # The following imports matplotlib, preferably using a
