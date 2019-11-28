@@ -63,6 +63,7 @@ Contents
 
    How to install tofu <installation.rst>
    A guide to contributing to tofu <contributing.rst>
+   A list of all different device configurations available (ITER, WEST, JET, ...) <auto_examples/tutorials/tuto_plot_gallery_fusion_machines.rst>
    Tutorials and examples <auto_examples/index.rst>
 
 * How to create / handle a diagnostic geometry
