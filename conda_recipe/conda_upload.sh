@@ -1,7 +1,6 @@
 # Only need to change these two variables
 PKG_NAME=tofu
 USER=ToFuProject
-OS=linux-64
 
 #mkdir ~/conda-bld
 #conda config --set anaconda_upload no
