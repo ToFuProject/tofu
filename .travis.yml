@@ -2,12 +2,17 @@ language: python
 
 matrix:
   include:
+  - name: "Bionic python 3.8"
+    os: linux
+    dist: bionic
+    python: 3.8
+    env:
+      - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      - OS=linux-64
   - name: "Bionic python 3.7"
     os: linux
     dist: bionic
-    python:
-      - 3.7
-      - 3.8
+    python: 3.7
     env:
       - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       - OS=linux-64
@@ -21,8 +26,7 @@ matrix:
   - name: "xenial python 3.7"
     os: linux
     dist: xenial
-    python:
-      - 3.7
+    python: 3.7
     env:
       - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       - OS=linux-64
@@ -39,15 +43,14 @@ matrix:
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
-    - TRAVIS_PYTHON_VERSION=3.6
     - OS=osx-64
   - name: "osx python 3.6"
     os: osx
     language: generic
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-    - OS=osx-64
     - TRAVIS_PYTHON_VERSION=3.6
+    - OS=osx-64
 
 before_install:
   - gcc --version
