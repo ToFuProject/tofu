@@ -42,7 +42,6 @@ matrix:
     - OS=osx-64
 
 before_install:
-  - ldd --version
   - gcc --version
   - export START=$(pwd)
 
