@@ -50,27 +50,20 @@ before_install:
   - export START=$(pwd)
 
 install:
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then export VADD="py37";
-    else export VADD="py36";  fi
   - wget "$REPO" -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  - conda install conda-build
   - conda update -q conda
-  - conda update -n root conda-build
-  - conda config --set anaconda_upload no
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
   - conda info -a
-  - conda install -q python="$TRAVIS_PYTHON_VERSION" conda-build conda-verify
+  - conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify
     nose nose-timer coverage codecov
   - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
   - export VERSION=$(echo $REV | tr - .)
   - echo $REV
-  - conda build conda_recipe
-  - export PKG_DIR=$HOME/miniconda/conda-bld/$OS
   - conda install tofu --use-local
 
 script:

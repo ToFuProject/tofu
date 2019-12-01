@@ -8,10 +8,7 @@ source:
 
 build:
   script_env:
-    - OS
-    - VERSION
     - TRAVIS_BRANCH
-    - CONDA_BLD_PATH
 
 requirements:
 
