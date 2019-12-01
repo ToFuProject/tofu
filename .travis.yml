@@ -2,25 +2,29 @@ language: python
 
 matrix:
   include:
-  - os: linux
+  - name: "trusty python 3.7"
+    os: linux
     dist: trusty
     python: 3.7
     env:
       - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       - OS=linux-64
-  - os: linux
+  - name: "trusty python 3.6"
+    os: linux
     dist: trusty
     python: 3.6
     env:
       - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       - OS=linux-64
-  - os: linux
+  - name: "xenial python 3.7"
+    os: linux
     dist: xenial
     python: 3.7
     env:
       - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       - OS=linux-64
-  - os: linux
+  - name: "xenial python 3.6"
+    os: linux
     dist: xenial
     python: 3.6
     env:
