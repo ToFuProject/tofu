@@ -79,6 +79,9 @@ after_success:
 before_deploy:
   - ls $START
   - cd $START
+  - conda install anaconda-client conda-build
+  - conda config --set anaconda_upload no
+  - conda build conda_recipe
 
 deploy:
   - provider: script
