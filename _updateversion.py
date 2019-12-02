@@ -16,7 +16,7 @@ def updateversion(path=_HERE):
     except:
         with open(version_py,'r') as fh:
             version_git = fh.read().strip().split("=")[-1].replace("'",'')
-    version_git = version_git.lower().replace('v','')
+    version_git = version_git.lower().replace('v','').replace(' ','')
 
     version_msg = "# Do not edit, pipeline versioning governed by git tags!"
     with open(version_py,"w") as fh:
