@@ -8,6 +8,7 @@ source:
 
 build:
   script_env:
+    - PKG_REAL
     - TRAVIS_BRANCH
 
 requirements:

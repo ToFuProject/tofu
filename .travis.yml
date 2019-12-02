@@ -82,6 +82,7 @@ before_deploy:
   - conda install anaconda-client conda-build
   - conda config --set anaconda_upload no
   - conda build conda_recipe
+  - export PKG_REAL=$(conda build . --output | tail -1)
 
 deploy:
   - provider: script
