@@ -413,6 +413,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 shapeval = list(pts.shape)
                 shapeval[0] = ntall if t is None else t.size
                 val = np.full(tuple(shapeval), fill_value)
+
                 if t is None:
                     for ii in range(0,ntall):
                         val[ii,...] = mplTriLinInterp(mpltri,
