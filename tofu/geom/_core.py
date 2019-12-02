@@ -6180,7 +6180,8 @@ class Rays(utils.ToFuObject):
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
             # Integrate
-            sig = np.add.reduceat(val, np.r_[0, indpts], axis=-1)*reseff[None, :]
+            sig = np.add.reduceat(val, np.r_[0, indpts],
+                                  axis=-1)*reseff[None, :]
 
         # Format output
         return self._calc_signal_postformat(
@@ -6381,7 +6382,8 @@ class Rays(utils.ToFuObject):
 
             # Integrate using ufunc reduceat for speed
             # (cf. https://stackoverflow.com/questions/59079141)
-            sig = np.add.reduceat(val, np.r_[0, indpts], axis=-1)*reseff[None, :]
+            sig = np.add.reduceat(val, np.r_[0, indpts],
+                                  axis=-1)*reseff[None, :]
 
         # Format output
         # this is the secod slowest step (~0.75 s)
