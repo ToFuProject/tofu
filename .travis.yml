@@ -56,7 +56,7 @@ install:
   - hash -r
   - conda config --set anaconda_upload no
   - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
+  - conda install conda-build
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
   - conda info -a
@@ -78,11 +78,13 @@ after_success:
   - echo $TRAVIS_TAG
 
 before_deploy:
+  - echo "BEFORE DEPLOY START........"
   - ls $START
   - cd $START
   - conda install anaconda-client conda-build
   - conda build conda_recipe
   - export PKG_REAL=$(conda build . --output | tail -1)
+  - echo "BEFORE DEPLOY END.........."
 
 deploy:
   - provider: script
