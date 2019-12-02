@@ -34,6 +34,6 @@ print(tf.geom.utils._DCONFIG_TABLE.keys())
 # With that being said, let's create a gallery of the "top 3" fusion machines
 # provided by `tofu` to accelerate diagnostic development.
 
-for fusion_machine in ['ITER', 'WEST', 'JET']:
+for fusion_machine in ['ITER', 'WEST', 'JET', 'NSTX']:
     config = tf.geom.utils.create_config(fusion_machine)
     config.plot()
