@@ -65,8 +65,7 @@ install:
   - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
   - export VERSION=$(echo $REV | tr - .)
   - echo $REV
-  - ls
-  - conda install --use-local tofu
+  - pip install -e ".[dev]"
 
 script:
   - cd $HOME
