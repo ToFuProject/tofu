@@ -54,6 +54,7 @@ install:
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
+  - conda config --set anaconda_upload no
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda config --append channels conda-forge
@@ -80,7 +81,6 @@ before_deploy:
   - ls $START
   - cd $START
   - conda install anaconda-client conda-build
-  - conda config --set anaconda_upload no
   - conda build conda_recipe
   - export PKG_REAL=$(conda build . --output | tail -1)
 
