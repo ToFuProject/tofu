@@ -729,6 +729,9 @@ class CrystalBragg(utils.ToFuObject):
 
     def _checkformat_bragglamb(self, bragg=None, lamb=None, n=None):
         lc = [lamb is not None, bragg is not None]
+        if not any(lc):
+            lamb = self._DEFLAMB
+            lc[0] = True
         assert np.sum(lc) == 1, "Provide lamb xor bragg!"
         if lc[0]:
             bragg = self.get_bragg_from_lamb(np.atleast_1d(lamb),
@@ -856,7 +859,31 @@ class CrystalBragg(utils.ToFuObject):
 
     def get_approx_detector_frame(self, bragg=None, lamb=None,
                                   rcurve=None, n=None, plot=False):
-        """ See notes for details on notations """
+        """ Return approximate ideal detector geometry
+
+        Assumes infinitesimal and ideal crystal
+        Assumes detector center tangential to Rowland circle
+        Assumes detector center matching lamb (m) / bragg (rad)
+
+        Detector described by center position, and (nout, ei, ej) unit vectors
+        By convention, nout = np.cross(ei, ej)
+        Vectors (ei, ej) define an orthogonal frame in the detector's plane
+
+        Return:
+        -------
+        det_cent:   np.ndarray
+            (3,) array of (x, y, z) coordinates of detector center
+        det_nout:   np.ndarray
+            (3,) array of (x, y, z) coordinates of unit vector
+                perpendicular to detector' surface
+                oriented towards crystal
+        det_ei:     np.ndarray
+            (3,) array of (x, y, z) coordinates of unit vector
+                defining first coordinate in detector's plane
+        det_ej:     np.ndarray
+            (3,) array of (x, y, z) coordinates of unit vector
+                defining second coordinate in detector's plane
+        """
 
         # Check / format inputs
         if rcurve is None:
@@ -891,6 +918,31 @@ class CrystalBragg(utils.ToFuObject):
         return det_cent, det_nout, det_ei, det_ej
 
     def get_local_noute1e2(self, theta, psi):
+        """ Return (nout, e1, e2) associated to pts on the crystal's surface
+
+        All points on the spherical crystal's surface are identified
+            by (theta, psi) coordinates, where:
+                - theta  = np.pi/2 for the center
+                - psi = 0 for the center
+            They are the spherical coordinates from a sphere centered on the
+            crystal's center of curvature.
+
+        Return the pts themselves and the 3 perpendicular unti vectors
+            (nout, e1, e2), where nout is towards the outside of the sphere and
+            nout = np.cross(e1, e2)
+
+        Return:
+        -------
+        summit:     np.ndarray
+            (3,) array of (x, y, z) coordinates of the points on the surface
+        nout:       np.ndarray
+            (3,) array of (x, y, z) coordinates of outward unit vector
+        e1:         np.ndarray
+            (3,) array of (x, y, z) coordinates of first unit vector
+        e2:         np.ndarray
+            (3,) array of (x, y, z) coordinates of second unit vector
+
+        """
         if np.allclose([theta, psi], [np.pi/2., 0.]):
             summit = self._dgeom['summit']
             nout = self._dgeom['nout']
