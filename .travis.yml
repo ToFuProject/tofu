@@ -59,6 +59,7 @@ install:
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
   - conda info -a
+  - conda config --set anaconda_upload no
   - conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify
     nose nose-timer coverage codecov
   - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
@@ -80,7 +81,6 @@ before_deploy:
   - ls $START
   - cd $START
   - conda install anaconda-client conda-build
-  - conda config --set anaconda_upload no
   - conda build conda_recipe
   - export PKG_REAL=$(conda build . --output | tail -1)
   - echo $PKG_REAL
