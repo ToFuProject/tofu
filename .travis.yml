@@ -119,6 +119,7 @@ deploy:
     skip_existing: true
     skip_cleanup: true
     on:
+      tags: true
       branch: deploy-test
     server: https://test.pypi.org/legacy/
     password:
