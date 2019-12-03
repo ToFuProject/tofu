@@ -117,14 +117,47 @@ def get_approx_detector_rel(rcurve, bragg):
     return det_dist, det_nout_rel, det_ei_rel
 
 def get_det_abs_from_rel(det_dist, det_nout_rel, det_ei_rel,
-                         summit, nout, e1, e2):
+                         summit, nout, e1, e2,
+                         ddist=None, di=None, dj=None,
+                         dtheta=None, dpsi=None, tilt=None):
+    # Reference
     det_nout = (det_nout_rel[0]*nout
                 + det_nout_rel[1]*e1 + det_nout_rel[2]*e2)
     det_ei = (det_ei_rel[0]*nout
                 + det_ei_rel[1]*e1 + det_ei_rel[2]*e2)
     det_ej = np.cross(det_nout, det_ei)
-    det_cent = summit - det_dist*det_nout
-    return det_cent, det_nout, det_ei, det_ej
+
+    # Apply translation of center (ddist, di, dj)
+    if ddist is None:
+        ddist = 0.
+    if di is None:
+        di = 0.
+    if dj is None:
+        dj = 0.
+    det_dist += ddist
+    det_cent = summit - det_dist*det_nout + di*det_ei + dj*det_ej
+
+    # Apply angles on unit vectors
+    if dtheta is None:
+        dtheta = 0.
+    if dpsi is None:
+        dpsi = 0.
+    if tilt is None:
+        tilt = 0.
+
+    # dtheta and dpsi
+    det_nout2 = ((np.cos(dpsi)*det_nout
+                 + np.sin(dpsi)*det_ei)*np.cos(dtheta)
+                 + np.sin(dtheta)*det_ej)
+    det_ei2 = (np.cos(dpsi)*det_ei - np.sin(dpsi)*det_nout)
+    det_ej2 = np.cross(det_nout2, det_ei2)
+
+    # tilt
+    det_ei3 = np.cos(tilt)*det_ei2 + np.sin(tilt)*det_ej2
+    det_ej3 = np.cross(det_nout2, det_ei3)
+
+
+    return det_cent, det_nout2, det_ei3, det_ej3
 
 
 # ###############################################

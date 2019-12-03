@@ -93,6 +93,7 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
 
 def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
                       color=None, dP=None,
+                      det_cent=None, det_nout=None, det_ei=None, det_ej=None,
                       dI=None, dBs=None, dBv=None,
                       dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                       dleg=None, indices=False,
@@ -118,8 +119,10 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         # Temporary matplotlib issue
         dleg = None
     else:
-        dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax, element=element,
-                                          color=color)
+        dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax,
+                                          element=element, color=color,
+                                          det_cent=det_cent, det_nout=det_nout,
+                                          det_ei=det_ei, det_ej=det_ej)
 
     # recompute the ax.dataLim
     ax0 = None
@@ -139,7 +142,10 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         ax0.figure.canvas.draw()
     return dax
 
-def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=None,
+def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
+                                element=None, res=None,
+                                det_cent=None, det_nout=None,
+                                det_ei=None, det_ej=None,
                                 Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
                                 Bvdict=_def.TorBvd, Vdict=_def.TorVind,
                                 color=None, ms=None, quiver_cmap=None,
@@ -232,8 +238,10 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=No
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
         if dax['cross'] is not None:
-            dax['cross'].quiver(np.hypot(p0[0,:], p0[1,:]), p0[2,:],
-                                np.hypot(v[0,:], v[1,:]), v[2,:],
+            pr = np.hypot(p0[0,:], p0[1,:])
+            vr = np.hypot(p0[0,:]+v[0,:], p0[1,:]+v[1,:]) - pr
+            dax['cross'].quiver(pr, p0[2,:],
+                                vr, v[2,:],
                                 np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                                 angles='xy', scale_units='xy',
                                 label=cryst.Id.NameLTX+" unit vect", **Vdict)
@@ -243,6 +251,36 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=No
                               np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                               angles='xy', scale_units='xy',
                               label=cryst.Id.NameLTX+" unit vect", **Vdict)
+
+    # Detector
+    sc = None
+    if det_cent is not None:
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(det_cent[0], det_cent[1]), det_cent[2],
+                              marker='x', ms=ms, c=color, label="det_cent")
+        if dax['hor'] is not None:
+            dax['hor'].plot(det_cent[0], det_cent[1],
+                            marker='x', ms=ms, c=color, label="det_cent")
+
+    if det_nout is not None:
+        assert det_ei is not None and det_ej is not None
+        p0 = np.repeat(det_cent[:, None], 3, axis=1)
+        v = np.concatenate((det_nout[:, None], det_ei[:, None],
+                            det_ej[:, None]), axis=1)
+        if dax['cross'] is not None:
+            pr = np.hypot(p0[0,:], p0[1,:])
+            vr = np.hypot(p0[0,:]+v[0,:], p0[1,:]+v[1,:]) - pr
+            dax['cross'].quiver(pr, p0[2,:],
+                                vr, v[2,:],
+                                np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                                angles='xy', scale_units='xy',
+                                label="det unit vect", **Vdict)
+        if dax['hor'] is not None:
+            dax['hor'].quiver(p0[0,:], p0[1,:],
+                              v[0,:], v[1,:],
+                              np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                              angles='xy', scale_units='xy',
+                              label="det unit vect", **Vdict)
 
     return dax
 
