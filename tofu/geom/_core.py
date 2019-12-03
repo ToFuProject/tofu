@@ -4461,19 +4461,24 @@ class Rays(utils.ToFuObject):
             msg += repr(ind.nonzero()[0])
             warnings.warn(msg)
             if plotdebug:
-                PIn = self.D[:, ind] + kIn[None, ind] * self.u[:, ind]
-                POut = self.D[:, ind] + kOut[None, ind] * self.u[:, ind]
-                # To be updated
-                _plot._LOS_calc_InOutPolProj_Debug(
-                    self.config,
-                    self.D[:, ind],
-                    self.u[:, ind],
-                    PIn,
-                    POut,
-                    nptstot=kOut.size,
-                    Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
-                    Nstep=50,
-                )
+                try:
+                    PIn = self.D[:, ind] + kIn[None, ind] * self.u[:, ind]
+                    POut = self.D[:, ind] + kOut[None, ind] * self.u[:, ind]
+                    # To be updated
+                    _plot._LOS_calc_InOutPolProj_Debug(
+                        self.config,
+                        self.D[:, ind],
+                        self.u[:, ind],
+                        PIn,
+                        POut,
+                        nptstot=kOut.size,
+                        Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
+                        Nstep=50,
+                    )
+                except Exception as err:
+                    msg = ("The 3D debugging plot could not be displayed\n"
+                           + str(err))
+                    warnings.warn(msg)
 
         # Handle particular cases with kIn > kOut
         ind = np.zeros(kIn.shape, dtype=bool)
