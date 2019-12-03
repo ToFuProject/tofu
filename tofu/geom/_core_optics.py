@@ -857,8 +857,9 @@ class CrystalBragg(utils.ToFuObject):
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
 
-    def get_approx_detector_frame(self, bragg=None, lamb=None,
-                                  rcurve=None, n=None, plot=False):
+    def get_detector_frame(self, bragg=None, lamb=None,
+                           rcurve=None, n=None,
+                           dtheta=None, dpsi=None, ddist=None, plot=False):
         """ Return approximate ideal detector geometry
 
         Assumes infinitesimal and ideal crystal
@@ -894,14 +895,25 @@ class CrystalBragg(utils.ToFuObject):
         func = _comp_optics.get_approx_detector_rel
         det_dist, det_nout_rel, det_ei_rel = func(rcurve, bragg)
 
+        # Apply small corrections
+        if dtheta is None:
+            dtheta = 0.
+        if dpsi is None:
+            dpsi = 0.
+        if ddist is None:
+            ddist = 0.
+        det_dist += ddist
+
         # Deduce absolute position in (x, y, z)
-        func = _comp_optics.get_det_abs_from_rel
-        det_cent, det_nout, det_ei, det_ej = func(det_dist,
-                                                  det_nout_rel, det_ei_rel,
-                                                  self._dgeom['summit'],
-                                                  self._dgeom['nout'],
-                                                  self._dgeom['e1'],
-                                                  self._dgeom['e2'])
+        det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
+            det_dist, det_nout_rel, det_ei_rel,
+            self._dgeom['summit'],
+            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'])
+
+        if dtheta != 0. or dpsi != 0.:
+            det_nout = (np.cos(dpsi)*np.cos(dtheta)*det_nout
+                        + np.cos(dpsi)*np.sin(dtheta)*det_ej
+                        + np.sin(dpsi)*det_ei)
 
         if plot:
             dax = self.plot()
@@ -1039,8 +1051,8 @@ class CrystalBragg(utils.ToFuObject):
         lc = [det_cent is None, det_ei is None, det_ej is None]
         assert all(lc) or not any(lc)
         if all(lc):
-            func = self.get_approx_detector_frame
-            det_cent, _, det_ei, det_ej = func(lamb=self._DEFLAMB)
+            det_cent, _, det_ei, det_ej = self.get_approx_detector_frame(
+                lamb=self._DEFLAMB)
 
         # Get local summit nout, e1, e2 if non-centered
         if theta is None:
@@ -1050,17 +1062,17 @@ class CrystalBragg(utils.ToFuObject):
         summit, nout, e1, e2 = self.get_local_noute1e2(theta, psi)
 
         # Compute
-        func = _comp_optics.calc_braggphi_from_xixj
-        bragg, phi = func(xii, xjj, det_cent, det_ei, det_ej,
-                          summit, -nout, e1, e2)
+        bragg, phi = _comp_optics.calc_braggphi_from_xixj(
+            xii, xjj, det_cent, det_ei, det_ej,
+            summit, -nout, e1, e2)
 
         if plot != False:
-            func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
-            lax = func(xi=xii, xj=xjj,
-                       ax=ax, plot=plot,
-                       bragg=bragg * 180./np.pi,
-                       angle=phi * 180./np.pi,
-                       braggunits='deg', angunits='deg', **kwdargs)
+            lax = _plot_optics.CrystalBragg_plot_braggangle_from_xixj(
+                xi=xii, xj=xjj,
+                ax=ax, plot=plot,
+                bragg=bragg * 180./np.pi,
+                angle=phi * 180./np.pi,
+                braggunits='deg', angunits='deg', **kwdargs)
         return bragg, phi
 
     def plot_johannerror(self, lamb=None):
@@ -1078,10 +1090,10 @@ class CrystalBragg(utils.ToFuObject):
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        func = self.calc_phibragg_from_xixj
-        bragg, phi = func(xii, xjj, n=n,
-                          det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
-                          theta=theta, psi=psi, plot=False)
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=theta, psi=psi, plot=False)
         assert bragg.shape == phi.shape == data.shape
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
@@ -1092,10 +1104,10 @@ class CrystalBragg(utils.ToFuObject):
         spect1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
 
         # plot
-        func = _plot_optics.CrystalBragg_plot_data_vs_lambphi
-        ax = func(xi, xj, bragg, lamb, phi, data,
-                  lambfit=lambfit, phifit=phifit, spect1d=spect1d,
-                  cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
+        ax = _plot_optics.CrystalBragg_plot_data_vs_lambphi(
+            xi, xj, bragg, lamb, phi, data,
+            lambfit=lambfit, phifit=phifit, spect1d=spect1d,
+            cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
         return ax
 
     def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,

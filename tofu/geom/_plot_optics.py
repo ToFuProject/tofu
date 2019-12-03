@@ -395,7 +395,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
     ax1.imshow(data, extent=extent, aspect='equal',
                origin='lower', vmin=vmin, vmax=vmax)
-    axs1.plot(xi, np.sum(data, axis=0), c='k', ls='-')
+    axs1.plot(xi, np.nanmean(data, axis=0), c='k', ls='-')
     ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=2,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
