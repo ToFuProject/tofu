@@ -162,6 +162,8 @@ def test_camera_missing_LOS_debug_plot():
     """This test is meant to test issue #310. It creates a camera with missing LOS
     which should trigger a working debug plot to help the user adjust the camera."""
 
+    # using a "simple" configuration (not many internal structures)
+    # so that rendering of the debug plot is fast
     config = tf.geom.utils.create_config('NSTX')
 
     cam2d = tf.geom.utils.create_CamLOS2D(
