@@ -78,11 +78,27 @@ before_deploy:
 - export PKG_REAL=$(conda build . --output | tail -1)
 - echo "BEFORE DEPLOY END.........."
 deploy:
-  provider: pypi
-  on:
-    branch: deploy-test
-  skip_existing: true
-  user: __token__
-  password:
-    secure: a4HWH6oCDqnWkaqALeppbs/ud1k/bxlyhjUkMMwV7R55V07n/FSROyGPp+Vo1bOGUi35AnsqUF8PWfxvAhKSUZNFYpIrDGRe960JCGRlMrpkzObY3r+uUeVyyxP5540mUW0oqK+uaAynFWxqNgfRNh+SUS4Kgvx9lPslpnlNDTIBA9TN9cnReBuwcFhbosm9QSSqjJ8+ybP5OawIlL5iYiPot4NFXbTe3vjQrdNKfpNCS98QFBbbTijM0Hw5eU8X2R7/PyReU3TlLJvpUqO4PrOvAW85eIy6vrfKo9dgfFczJf3hUUfjGFSK3brm2HqJDUsxn/hg+GM7vynH63HyCLdQq+HZJUTCzfzts4BljQzrrAn6+0Ze/oMuVKynFZKnm0A08rHdLpcCiE3C+ehcJ9zttYPkiJYpRRQssPes8/ZqVVYAHHgH88Cts8i736rcR1eYyGzNrTRoT1AGCbco98Vaj/6/pEtC84OQIfXLFPeFGBSeAQcJ6RKwlDKeJeyQ23gUFyqRFqs9SR8EE6pfo7zYpWpuW+ZT1ESKghWuel14T4xcVohbX1MTsKEkjR+25SGWCq4KE1ql4H+m8h0A2FvIvRnK74uFfNFv1qbXYrFEYVTW2T19MtcWcYnzhMyOgIbb9I1MEgpEB6WgPC9EZhvSBiOBh5r8i+MlcxaMQZ4=
-  server: https://test.pypi.org/legacy/
+  - provider: pypi
+    on:
+      branch: deploy-test
+    skip_existing: true
+    user: __token__
+    password:
+      secure: a4HWH6oCDqnWkaqALeppbs/ud1k/bxlyhjUkMMwV7R55V07n/FSROyGPp+Vo1bOGUi35AnsqUF8PWfxvAhKSUZNFYpIrDGRe960JCGRlMrpkzObY3r+uUeVyyxP5540mUW0oqK+uaAynFWxqNgfRNh+SUS4Kgvx9lPslpnlNDTIBA9TN9cnReBuwcFhbosm9QSSqjJ8+ybP5OawIlL5iYiPot4NFXbTe3vjQrdNKfpNCS98QFBbbTijM0Hw5eU8X2R7/PyReU3TlLJvpUqO4PrOvAW85eIy6vrfKo9dgfFczJf3hUUfjGFSK3brm2HqJDUsxn/hg+GM7vynH63HyCLdQq+HZJUTCzfzts4BljQzrrAn6+0Ze/oMuVKynFZKnm0A08rHdLpcCiE3C+ehcJ9zttYPkiJYpRRQssPes8/ZqVVYAHHgH88Cts8i736rcR1eYyGzNrTRoT1AGCbco98Vaj/6/pEtC84OQIfXLFPeFGBSeAQcJ6RKwlDKeJeyQ23gUFyqRFqs9SR8EE6pfo7zYpWpuW+ZT1ESKghWuel14T4xcVohbX1MTsKEkjR+25SGWCq4KE1ql4H+m8h0A2FvIvRnK74uFfNFv1qbXYrFEYVTW2T19MtcWcYnzhMyOgIbb9I1MEgpEB6WgPC9EZhvSBiOBh5r8i+MlcxaMQZ4=
+    server: https://test.pypi.org/legacy/
+  - provider: pypi
+    distributions: "sdist"
+    user: __token__
+    skip_existing: true
+    server: https://test.pypi.org/legacy/
+    password:
+      secure: o63EC+U+EtdAgUSV3plrLfZ7QZ6Aflp0quV5jJQxD9w47Ds5i4k5GjEHogV8x8l5NGwxbXPKp/1eKEfYgFH/i+WUnj1n9reiYZBd0lkr2Ih9nExNEIrziMhPbqjDEYAB672bjkXseS6mF44boqDUEP3jyDaamLB+aR75RCMM1j6aha/54Ko88ZJKXBW5FuNSraBGzgvjVG0P63jG5epS85hX09dEcKNR0XO0kbiGfNnYIp78QBohO0Pdv99x2ryp/QaoWD4m7cMUOts2xIcI2KCJNMhZNdIS8C0TVvk2tgumb+G2px7PsOxA8yZgxLefs+A14IAjg6uKe/jmwrihN1V6R6FF3WCcxM6kdzt9bpr+QKBoXjkF8BdxVbgmdnxkr+Ah5WIxmw2boQoW/SIMy9GVPrgtkSvocN6NwOExsO4pagiOwTLIvjIe+/0+OJt/Pud+mwF/94HD+B7j/XxsK7QehLCd9v5NTrdNgpS/TiWOyCDP1DLnpl1V9/vZ56x9NSQhN4Wr6hRrTxjWNAYLxsMxZf6uR+WWg1TqyicVlGrSf0to2asNIPWTTeGq3tB0/7WNslRQzP7QD67p5SuX0Z3Sv0WnQx+rZH77EN6FPCbv8Xn+D4ff06VKHaXXOkiFdK+6pTQ1VmFVPH/ablbWODhhcja/O3Xn3d/zTIyM+oQ=
+  - provider: pypi
+    distributions: "bdist_wheel"
+    user: __token__
+    skip_existing: true
+    server: https://test.pypi.org/legacy/
+    on:
+      condition: $OS = osx-64
+    password:
+      secure: o63EC+U+EtdAgUSV3plrLfZ7QZ6Aflp0quV5jJQxD9w47Ds5i4k5GjEHogV8x8l5NGwxbXPKp/1eKEfYgFH/i+WUnj1n9reiYZBd0lkr2Ih9nExNEIrziMhPbqjDEYAB672bjkXseS6mF44boqDUEP3jyDaamLB+aR75RCMM1j6aha/54Ko88ZJKXBW5FuNSraBGzgvjVG0P63jG5epS85hX09dEcKNR0XO0kbiGfNnYIp78QBohO0Pdv99x2ryp/QaoWD4m7cMUOts2xIcI2KCJNMhZNdIS8C0TVvk2tgumb+G2px7PsOxA8yZgxLefs+A14IAjg6uKe/jmwrihN1V6R6FF3WCcxM6kdzt9bpr+QKBoXjkF8BdxVbgmdnxkr+Ah5WIxmw2boQoW/SIMy9GVPrgtkSvocN6NwOExsO4pagiOwTLIvjIe+/0+OJt/Pud+mwF/94HD+B7j/XxsK7QehLCd9v5NTrdNgpS/TiWOyCDP1DLnpl1V9/vZ56x9NSQhN4Wr6hRrTxjWNAYLxsMxZf6uR+WWg1TqyicVlGrSf0to2asNIPWTTeGq3tB0/7WNslRQzP7QD67p5SuX0Z3Sv0WnQx+rZH77EN6FPCbv8Xn+D4ff06VKHaXXOkiFdK+6pTQ1VmFVPH/ablbWODhhcja/O3Xn3d/zTIyM+oQ=
