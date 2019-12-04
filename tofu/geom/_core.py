@@ -4430,10 +4430,16 @@ class Rays(utils.ToFuObject):
         indout[0, :] = indStruct[indout[0, :]]
         return kIn, kOut, vperp, indout, indStruct
 
-    def compute_dgeom(self, extra=True, plotdebug=True):
+    def compute_dgeom(self, extra=True, show_debug_plot=True):
+        """
+        Computes the dgeom attribute (what does dgeom mean? I'm guessing it stands for shortened dict_geometry?).
+
+        :param extra: bool, whether to perform some extra computations (which ones?)
+        :param show_debug_plot: bool, whether to show a debugging plot for invalid LOSes
+        """
         # Can only be computed if config if provided
         if self._dconfig["Config"] is None:
-            msg = "Attribute dgeom cannot be computed without a config !"
+            msg = "Attribute dgeom cannot be computed without a config!"
             warnings.warn(msg)
             return
 
@@ -4444,13 +4450,13 @@ class Rays(utils.ToFuObject):
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout, indStruct = self._compute_kInOut()
 
-        # Clean up (in case of nans)
+        # Check for LOS that have no visibility inside the plasma domain
         ind = np.isnan(kIn)
         kIn[ind] = 0.0
         ind = np.isnan(kOut) | np.isinf(kOut)
         if np.any(ind):
             kOut[ind] = np.nan
-            msg = "Some LOS have no visibility inside the plasma domain !\n"
+            msg = "Some LOS have no visibility inside the plasma domain!\n"
             msg += "Nb. of LOS concerned: %s out of %s\n" % (
                 str(ind.sum()),
                 str(kOut.size),
@@ -4460,10 +4466,9 @@ class Rays(utils.ToFuObject):
             msg += "\nIndices of LOS with no visibility:\n"
             msg += repr(ind.nonzero()[0])
             warnings.warn(msg)
-            if plotdebug:
+            if show_debug_plot:
                 PIn = self.D[:, ind] + kIn[None, ind] * self.u[:, ind]
                 POut = self.D[:, ind] + kOut[None, ind] * self.u[:, ind]
-                # To be updated
                 _plot._LOS_calc_InOutPolProj_Debug(
                     self.config,
                     self.D[:, ind],

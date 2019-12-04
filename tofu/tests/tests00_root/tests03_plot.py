@@ -156,3 +156,22 @@ class Test01_plot_shotovervew(object):
         # All together, with conf
         kh = tf._plot.plot_shotoverview(self.dobj, config=self.conf)
         plt.close('all')
+
+
+def test_camera_missing_LOS_debug_plot():
+    """This test is meant to test issue #310. It creates a camera with missing LOS
+    which should trigger a working debug plot to help the user adjust the camera."""
+
+    config = tf.geom.utils.create_config('NSTX')
+
+    cam2d = tf.geom.utils.create_CamLOS2D(
+        config=config,
+        P=[3.4, 0, 0],
+        N12=10,
+        F=0.1,
+        D12=0.1,
+        angs=[np.pi, np.pi / 6, 0],
+        Name="Dummy",
+        Exp="Dummy",
+        Diag="None",
+    )
