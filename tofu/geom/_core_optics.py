@@ -840,6 +840,19 @@ class CrystalBragg(utils.ToFuObject):
     # methods for generic first-approx
     # -----------------
 
+    def get_phi_from_magaxis_summit(self, r, z, lamb=None, bragg=None, n=None):
+        # Check / format input
+        r = np.atleast_1d(r)
+        z = np.atleast_1d(z)
+        assert r.shape == z.shape
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+
+        # Compute phi
+
+        return phi
+
+
+
     def get_bragg_from_lamb(self, lamb, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
@@ -1072,6 +1085,8 @@ class CrystalBragg(utils.ToFuObject):
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,
                              theta=None, psi=None, n=None,
+                             nlambfit=None, nphifit=None,
+                             phiref=None, magaxis=None,
                              plot=True, fs=None,
                              cmap=None, vmin=None, vmax=None):
         # Check / format inputs
@@ -1089,17 +1104,30 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
-        lambfit, phifit = _comp_optics.get_lambphifit(lamb, phi, nxi, nxj)
-        lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
-        ind = np.digitize(lamb, lambfitbins)
         if mask is not None:
             data[~mask] = np.nan
+        if nlambfit is None:
+            nlambfit = nxi
+        if nphifit is None:
+            nphifit = nxj
+        lambfit, phifit = _comp_optics.get_lambphifit(lamb, phi,
+                                                      nlambfit, nphifit)
+        lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
+        ind = np.digitize(lamb, lambfitbins)
         spect1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
+        phifitbins = 0.5*(phifit[1:] + phifit[:-1])
+        ind = np.digitize(phi, phifitbins)
+        vertsum1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
+
+        # Get phiref from mag axis
+        if phiref is None and magaxis is not None:
+            phiref = None
 
         # plot
         ax = _plot_optics.CrystalBragg_plot_data_vs_lambphi(
             xi, xj, bragg, lamb, phi, data,
             lambfit=lambfit, phifit=phifit, spect1d=spect1d,
+            vertsum1d=vertsum1d, phiref=phiref,
             cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
         return ax
 

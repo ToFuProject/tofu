@@ -381,7 +381,9 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 
 
 def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
-                                      lambfit=None, phifit=None, spect1d=None,
+                                      lambfit=None, phifit=None,
+                                      spect1d=None, vertsum1d=None,
+                                      phiref=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
                                       angunits='deg'):
@@ -402,6 +404,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         bragg = bragg*180./np.pi
         phi = phi*180./np.pi
         phifit = phifit*180./np.pi
+        if phiref is not None:
+            phiref = 180*phiref/np.pi
 
 
     # pre-compute
@@ -415,19 +419,23 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     # ------------
 
     fig = fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(4, 3, **dmargin)
+    gs = gridspec.GridSpec(4, 4, **dmargin)
     ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
     ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
                           sharex=ax0, sharey=ax0)
     axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
     ax2 = fig.add_subplot(gs[:3, 2])
     axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
+    ax3 = fig.add_subplot(gs[:3, 3], sharey=ax2)
 
     ax0.set_title('Coordinates transform')
     ax1.set_title('Camera image')
     ax2.set_title('Camera image transformed')
 
-    ax0.set_ylabel(r'incidence angle ($deg$)')
+    ax2.set_ylabel(r'incidence angle ($deg$)')
+    ax2.set_xlabel(r'$\lambda$ ($m$)')
+    axs2.set_xlabel(r'$\lambda$ ($m$)')
+    ax3.set_ylabel(r'incidence angle ($deg$)')
 
     ax0.contour(xi, xj, bragg, 10, cmap=cmap)
     ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
@@ -438,6 +446,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
     axs2.plot(lambfit, spect1d, c='k', ls='-')
+    ax3.plot(vertsum1d, phifit, c='k', ls='-')
+    if phiref is not None:
+        ax3.axhline(phiref, c='k', ls='--')
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
