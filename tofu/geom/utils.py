@@ -642,6 +642,7 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 _ExpWest = 'WEST'
 _ExpJET = 'JET'
 _ExpITER = 'ITER'
+_ExpNSTX = 'NSTX'
 
 # Dictionnary of unique config names
 _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
@@ -674,7 +675,9 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
                                 'BLK16', 'BLK17', 'BLK18',
                                 'Div1', 'Div2', 'Div3',
-                                'Div4', 'Div5', 'Div6']}
+                                'Div4', 'Div5', 'Div6']},
+            'NSTX-V0': {'Exp': _ExpNSTX,
+                        'Ves': ['V0']}
             }
 
 # Each config can be called by various names (for benchmark and
@@ -689,7 +692,8 @@ _DCONFIG_TABLE = {'ITER': 'ITER-V2',
                   'B1': 'WEST-V2',
                   'B2': 'WEST-V3',
                   'B3': 'WEST-V4',
-                  'B4': 'ITER-V2'}
+                  'B4': 'ITER-V2',
+                  'NSTX': 'NSTX-V0'}
 
 # Default config
 _DEFCONFIG = 'ITER'
