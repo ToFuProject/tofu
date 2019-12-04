@@ -186,7 +186,7 @@ def get_version_tofu(path=_HERE):
                 .decode()
             )
             if git_branch in ["master"]:
-                version_tofu = updateversion()
+                version_tofu = updateversion(os.path.join(path, "tofu"))
             else:
                 isgit = False
         except Exception:
