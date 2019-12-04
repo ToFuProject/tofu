@@ -1,101 +1,94 @@
 language: python
-
 matrix:
   include:
-  - name: "Bionic python 3.7"
+  - name: Bionic python 3.7
     os: linux
     dist: bionic
     python: 3.7
     env:
-      - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      - OS=linux-64
-  - name: "trusty python 3.6"
+    - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - OS=linux-64
+  - name: trusty python 3.6
     os: linux
     dist: trusty
     python: 3.6
     env:
-      - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      - OS=linux-64
-  - name: "xenial python 3.7"
+    - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - OS=linux-64
+  - name: xenial python 3.7
     os: linux
     dist: xenial
     python: 3.7
     env:
-      - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      - OS=linux-64
-  - name: "xenial python 3.6"
+    - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - OS=linux-64
+  - name: xenial python 3.6
     os: linux
     dist: xenial
     python: 3.6
     env:
-      - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      - OS=linux-64
-  - name: "osx python 3.7"
+    - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - OS=linux-64
+  - name: osx python 3.7
     os: osx
     language: generic
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
     - OS=osx-64
-  - name: "osx python 3.6"
+  - name: osx python 3.6
     os: osx
     language: generic
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
     - OS=osx-64
-
 before_install:
-  - gcc --version
-  - export START=$(pwd)
-
+- gcc --version
+- export START=$(pwd)
 install:
-  - wget "$REPO" -O miniconda.sh
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda config --append channels conda-forge
-  - conda config --append channels tofuproject
-  - conda info -a
-  - conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify
-    nose nose-timer coverage codecov
-  - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
-  - export VERSION=$(echo $REV | tr - .)
-  - echo $REV
-  - pip install -e ".[dev]"
-
+- wget "$REPO" -O miniconda.sh
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH="$HOME/miniconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda config --append channels conda-forge
+- conda config --append channels tofuproject
+- conda info -a
+- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify nose nose-timer coverage
+  codecov
+- export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
+- export VERSION=$(echo $REV | tr - .)
+- echo $REV
+- pip install -e ".[dev]"
 script:
-  - cd $HOME
-  - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage
-    --cover-package=tofu
-
+- cd $HOME
+- nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
 after_success:
-  - codecov
-  - chmod +x $START/anaconda_upload.sh
-  - echo $TRAVIS_TAG
-
+- codecov
+- chmod +x $START/anaconda_upload.sh
+- echo $TRAVIS_TAG
 before_deploy:
-  - echo "BEFORE DEPLOY START........"
-  - ls $START
-  - cd $START
-  - conda config --set anaconda_upload no
-  - conda install anaconda-client conda-build
-  - conda build conda_recipe
-  - export PKG_REAL=$(conda build . --output | tail -1)
-  - echo "BEFORE DEPLOY END.........."
-
+- echo "BEFORE DEPLOY START........"
+- ls $START
+- cd $START
+- conda config --set anaconda_upload no
+- conda install anaconda-client conda-build
+- conda build conda_recipe
+- export PKG_REAL=$(conda build . --output | tail -1)
+- echo "BEFORE DEPLOY END.........."
 deploy:
+  matrix:
   - provider: script
-    user: "ToFuProject"
-    script: $START/anaconda_upload.sh
+    user: ToFuProject
+    script: "$START/anaconda_upload.sh"
     on:
       tags: true
       branch: master
     skip_cleanup: true
   - provider: pypi
-    user: "Didou09"
-    distributions: "sdist"
+    user: Didou09
+    distributions: sdist
     skip_existing: true
     skip_cleanup: true
     on:
@@ -104,22 +97,22 @@ deploy:
     password:
       secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
   - provider: pypi
-    user: "Didou09"
-    distributions: "bdist_wheel"
+    user: Didou09
+    distributions: bdist_wheel
     skip_existing: true
     skip_cleanup: true
     on:
       tags: true
-      condition: $OS = osx-64
+      condition: "$OS = osx-64"
       branch: master
     password:
       secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
   - provider: pypi
-    user: "Didou09"
+    user: Didou09
     on:
       branch: deploy-test
       tags: true
     skip_existing: true
     password:
-      secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
+      secure: u2L1S7GumIbaNgxcHgI8NFlQgDgEbYmbXNTkldngtejPVD4Cnuf9fUJ+vhP8FT/WV62WYCktt3l7g+TzyTo3hErap+i/61KZ0T2iScAHFWPb8t7B6SuwOr/9gsDs5HIIO31GZ8OjarLeJoO/T7cPr+167OT4DQsJcz6OcOD7S+XwjXBF/2ZnH0Wzl5PgdCcxudlJDLB0X+cpWUJ871LoCWQRWABRx+/FVuLflaKYrKQwbqExVoPmCv9VaH6K3KUj80xSgCnvpOv5CZixITz2FzyEM3P/u7fg7skv3lXxcjVKKphOOHi5iCw5ffYIAbmFrbr8VB9aCwCLzV4a3DyywXrA5JqsOXioIXKMTY8WD+MWQ4icV45s2S4RDz3QaRxbtjNF7gQnEGTG1/pqwiJnKJ7UB8luDaU7t0ADzXkPp/Xgqgpfi05vkoucwSmQgAcCVG6muxNbOW+gcWy+Wmf2pltyYLnep4OIx2phtf7Phk03igCFUktcVb8jPdcw9TvJyYztMQ1x0xd6q9jQB/cKz+JEw7+1xs7pszaR8xFXdDYWOW4Lc3TE2+LgFG6YeL3c9zPF8BjxF1Ocp60CAckm+tZwFL0TmC0UYsSNc9PSHEQ2hn9IFSih3tNgGcGgx8EMHCF5HVu1TXOUpETYAeeqJRBCISChFns5TI1qauk6Htw=
     server: https://test.pypi.org/legacy/
