@@ -383,7 +383,7 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                                       lambfit=None, phifit=None,
                                       spect1d=None, vertsum1d=None,
-                                      phiref=None,
+                                      lambax=None, phiax=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
                                       angunits='deg'):
@@ -404,8 +404,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         bragg = bragg*180./np.pi
         phi = phi*180./np.pi
         phifit = phifit*180./np.pi
-        if phiref is not None:
-            phiref = 180*phiref/np.pi
+        if phiax is not None:
+            phiax = 180*phiax/np.pi
+
 
 
     # pre-compute
@@ -447,8 +448,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                 cmap=cmap, vmin=vmin, vmax=vmax)
     axs2.plot(lambfit, spect1d, c='k', ls='-')
     ax3.plot(vertsum1d, phifit, c='k', ls='-')
-    if phiref is not None:
-        ax3.axhline(phiref, c='k', ls='--')
+    if phiax is not None:
+        ax2.plot(lambax, phiax, c='r', ls='-', lw=1.)
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])

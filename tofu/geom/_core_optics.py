@@ -1079,6 +1079,32 @@ class CrystalBragg(utils.ToFuObject):
                 braggunits='deg', angunits='deg', **kwdargs)
         return bragg, phi
 
+    def calc_phibragg_from_pts(self, pts, n=None):
+        """ Return the bragg angle and phi of pts from crystal summit
+
+        The pts are provided as a (x, y, z) coordinates array
+        The bragg angle and phi are computed from the crystal's summit
+
+        """
+        # Check / format inputs
+        pts = np.asarray(pts)
+        assert pts.ndim in [1, 2]
+        assert 3 in pts.shape
+        if pts.ndim == 1:
+            pts = pts[:, None]
+        if pts.shape[0] != 3:
+            pts = pts.T
+
+        # Compute
+        vect = pts - self._dgeom['summit'][:, None]
+        vect = vect / np.sqrt(np.sum(vect**2, axis=0))
+        bragg = np.pi/2 - np.arccos(np.sum(vect*self._dgeom['nin'][:, None], axis=0))
+        v1 = np.sum(vect*self._dgeom['e1'][:, None], axis=0)
+        v2 = np.sum(vect*self._dgeom['e2'][:, None], axis=0)
+        phi = np.arctan2(v2, v1)
+        return bragg, phi
+
+
     def plot_johannerror(self, lamb=None):
         raise NotImplementedError
 
@@ -1086,7 +1112,7 @@ class CrystalBragg(utils.ToFuObject):
                              det_cent=None, det_ei=None, det_ej=None,
                              theta=None, psi=None, n=None,
                              nlambfit=None, nphifit=None,
-                             phiref=None, magaxis=None,
+                             magaxis=None, npaxis=None,
                              plot=True, fs=None,
                              cmap=None, vmin=None, vmax=None):
         # Check / format inputs
@@ -1120,15 +1146,32 @@ class CrystalBragg(utils.ToFuObject):
         vertsum1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
 
         # Get phiref from mag axis
-        if phiref is None and magaxis is not None:
-            phiref = None
+        lambax, phiax = None, None
+        if magaxis is not None:
+            if npaxis is None:
+                npaxis = 1000
+            thetacryst = np.arctan2(self._dgeom['summit'][1],
+                                    self._dgeom['summit'][0])
+            thetaax = thetacryst + np.pi/2*np.linspace(-1, 1, npaxis)
+            pts = np.array([magaxis[0]*np.cos(thetaax),
+                            magaxis[0]*np.sin(thetaax),
+                            np.full((npaxis,), magaxis[1])])
+            braggax, phiax = self.calc_phibragg_from_pts(pts)
+            lambax = self.get_lamb_from_bragg(braggax)
+            phiax = np.arctan2(np.sin(phiax-np.pi), np.cos(phiax-np.pi))
+            ind = ((lambax >= lambfit[0]) & (lambax <= lambfit[-1])
+                   & (phiax >= phifit[0]) & (phiax <= phifit[-1]))
+            lambax, phiax = lambax[ind], phiax[ind]
+            ind = np.argsort(lambax)
+            lambax, phiax = lambax[ind], phiax[ind]
 
         # plot
-        ax = _plot_optics.CrystalBragg_plot_data_vs_lambphi(
-            xi, xj, bragg, lamb, phi, data,
-            lambfit=lambfit, phifit=phifit, spect1d=spect1d,
-            vertsum1d=vertsum1d, phiref=phiref,
-            cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
+        if plot:
+            ax = _plot_optics.CrystalBragg_plot_data_vs_lambphi(
+                xi, xj, bragg, lamb, phi, data,
+                lambfit=lambfit, phifit=phifit, spect1d=spect1d,
+                vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
+                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
         return ax
 
     def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,
