@@ -1331,9 +1331,9 @@ class MultiIDSLoader(object):
                 isgeti = np.zeros((nocc,), dtype=bool)
             if dids[lids[ii]]['ids'] is not None:
                 if isget is None:
-                    isgeti = False
+                    isgeti = np.r_[False]
                 elif type(isget) is bool:
-                    isgeti = bool(isget)
+                    isgeti = np.r_[bool(isget)]
                 elif hasattr(isget,'__iter__'):
                     if len(isget) == nids:
                         isgeti = np.r_[isget[ii]]
