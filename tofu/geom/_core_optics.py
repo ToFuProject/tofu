@@ -874,7 +874,8 @@ class CrystalBragg(utils.ToFuObject):
     def get_detector_approx(self, bragg=None, lamb=None,
                             rcurve=None, n=None,
                             ddist=None, di=None, dj=None,
-                            dtheta=None, dpsi=None, tilt=None, plot=False):
+                            dtheta=None, dpsi=None, tilt=None,
+                            tangent_to_rowland=None, plot=False):
         """ Return approximate ideal detector geometry
 
         Assumes infinitesimal and ideal crystal
@@ -1105,8 +1106,64 @@ class CrystalBragg(utils.ToFuObject):
         return bragg, phi
 
 
-    def plot_johannerror(self, lamb=None):
-        raise NotImplementedError
+    def calc_johannerror(self, xi=None, xj=None, err=None,
+                         det_cent=None, det_ei=None, det_ej=None, n=None,
+                         lpsi=None, ltheta=None,
+                         plot=True, fs=None, cmap=None, vmin=None, vmax=None):
+        """ Plot the johann error
+
+        The johann error is the error (scattering) induced by defocalization
+            due to finite crystal dimensions
+        There is a johann error on wavelength (lamb => loss of spectral
+            resolution) and on directionality (phi)
+        If provided, lpsi and ltheta are taken as normalized variations with
+            respect to the crystal summit and to its extenthalf.
+            Typical values are:
+                - lpsi   = [-1, 1, 1, -1]
+                - ltheta = [-1, -1, 1, 1]
+            They must have the same len()
+
+        """
+
+
+        # Check / format inputs
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=None, psi=None, plot=False)
+        assert bragg.shape == phi.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        if lpsi is None:
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[-1., 1., 1., -1.]
+        else:
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+        if ltheta is None:
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[-1., -1., 1., 1.]
+        else:
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+        npsi = lpsi.size
+        assert npsi == ltheta.size
+        lamberr = np.full(tuple(np.r_[npsi, lamb.shape]), np.nan)
+        phierr = np.full(lamberr.shape, np.nan)
+        for ii in range(len(ltheta)):
+            bragg, phierr[ii, ...] = self.calc_phibragg_from_xixj(
+                xii, xjj, n=n,
+                det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+                theta=ltheta[ii], psi=lpsi[ii], plot=False)
+            lamberr[ii, ...] = self.get_lamb_from_bragg(bragg, n=n)
+        err_lamb = np.nanmax(np.abs(lamb[None, ...] - lamberr), axis=0)
+        err_phi = np.nanmax(np.abs(phi[None, ...] - phierr), axis=0)
+        if plot is True:
+            ax = _plot_optics.CrystalBragg_plot_johannerror(
+                xi, xj, lamb, phi, err_lamb, err_phi, err=err,
+                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
+        return err_lamb, err_phi
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,

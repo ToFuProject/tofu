@@ -106,14 +106,22 @@ def get_lamb_from_bragg(bragg, d, n=None):
 #           Approximate solution
 # ###############################################
 
-def get_approx_detector_rel(rcurve, bragg):
+def get_approx_detector_rel(rcurve, bragg, tangent_to_rowland=None):
+
+    if tangent_to_rowland is None:
+        tangent_to_rowland = True
 
     # distance crystal - det_center
     det_dist = rcurve*np.sin(bragg)
 
     # det_nout and det_e1 in (nout, e1, e2) (det_e2 = e2)
-    det_nout_rel = np.r_[np.sin(bragg), -np.cos(bragg), 0.]
-    det_ei_rel = np.r_[np.cos(bragg), np.sin(bragg), 0]
+    if tangent_to_rowland:
+        # TBF !!!!!!!!!!!!!!!
+        det_nout_rel = p.r_[np.sin(bragg)]
+        det_ei_rel = None
+    else:
+        det_nout_rel = np.r_[np.sin(bragg), -np.cos(bragg), 0.]
+        det_ei_rel = np.r_[np.cos(bragg), np.sin(bragg), 0]
     return det_dist, det_nout_rel, det_ei_rel
 
 def get_det_abs_from_rel(det_dist, det_nout_rel, det_ei_rel,
