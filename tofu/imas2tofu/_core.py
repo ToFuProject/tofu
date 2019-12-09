@@ -641,8 +641,6 @@ class MultiIDSLoader(object):
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
             self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
-            if get is None and (ids is not None or preset is not None):
-                get = True
             if ids_base is None:
                 ids_base = True
             if ids_base is True:
@@ -651,12 +649,14 @@ class MultiIDSLoader(object):
                 synthdiag = False
             if synthdiag is True:
                 self.add_ids_synthdiag(get=False)
+            if get is None and (len(self._dids) > 0 or preset is not None):
+                get = True
         else:
             self.set_dids(dids)
             if get is None:
                 get = True
         self._set_fsig()
-        if get:
+        if get is True:
             self.open_get_close()
 
     def _init_dict(self):
@@ -1650,11 +1650,12 @@ class MultiIDSLoader(object):
     #---------------------
 
     def _checkformat_getdata_ids(self, ids):
-        msg = "Arg ids must be either:\n"
-        msg += "    - None: if self.dids only has one key\n"
-        msg += "    - str: a valid key of self.dids\n\n"
-        msg += "  Provided : %s\n"%ids
-        msg += "  Available: %s"%str(list(self._dids.keys()))
+        msg = ("Arg ids must be either:\n"
+               + "\t- None: if self.dids only has one key\n"
+               + "\t- str: a valid key of self.dids\n\n"
+               + "  Provided : %s\n"%ids
+               + "  Available: %s\n"%str(list(self._dids.keys()))
+               + "  => Consider using self.add_ids({})".format(str(ids)))
 
         lc = [ids is None, type(ids) is str]
         if not any(lc):
@@ -2092,6 +2093,39 @@ class MultiIDSLoader(object):
                     msg += "\n\t\t{0}  : {1}".format(k1, v1.replace('\n', ' '))
             warnings.warn(msg)
         return dout
+
+
+    def get_events(self, occ=None, verb=True, returnas=False):
+        """ Return chronoligical events stored in pulse_schedule
+
+        If verb = True              => print (default)
+                  False             => don't print
+        If returnas = list          => return as list of tuples (name, time)
+                      np.ndarray    => return as np.ndarray
+                      False         => don't return (default)
+        """
+
+        # Check / format inputs
+        if verb is None:
+            verb = True
+        if returnas is None:
+            returnas = False
+        assert isinstance(verb, bool)
+        assert returnas in [False, list, tuple]
+
+        events = self.get_data('pulse_schedule', sig='events', occ=occ)['events']
+        name, time = zip(*events)
+        ind = np.argsort(time)
+        if verb:
+            name, time = zip(*events[ind])
+            msg = np.array([name, time], dtype='U').T
+            msg = np.char.ljust(msg, np.nanmax(np.char.str_len(msg)))
+            print(msg)
+        if returnas is list:
+            return events[ind].tolist()
+        elif returnas is tuple:
+            name, time = zip(*events[ind])
+            return name, time
 
 
 
