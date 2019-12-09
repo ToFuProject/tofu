@@ -292,17 +292,17 @@ class CrystalBragg(utils.ToFuObject):
         assert all([ss in lkok for ss in dmat.keys()])
         for kk in cls._ddef['dmat'].keys():
             dmat[kk] = dmat.get(kk, cls._ddef['dmat'][kk])
-        if dmat['d'] is not None:
+        if dmat.get('d') is not None:
             dmat['d'] = float(dmat['d'])
-        if dmat['formula'] is not None:
+        if dmat.get('formula') is not None:
             assert isinstance(dmat['formula'], str)
-        if dmat['density'] is not None:
+        if dmat.get('density') is not None:
             dmat['density'] = float(dmat['density'])
-        if dmat['lengths'] is not None:
+        if dmat.get('lengths') is not None:
             dmat['lengths'] = np.atleast_1d(dmat['lengths']).ravel()
-        if dmat['angles'] is not None:
+        if dmat.get('angles') is not None:
             dmat['angles'] = np.atleast_1d(dmat['angles']).ravel()
-        if dmat['cut'] is not None:
+        if dmat.get('cut') is not None:
             dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
             assert dmat['cut'].size <= 4
         return dmat
@@ -906,14 +906,27 @@ class CrystalBragg(utils.ToFuObject):
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        if np.all(np.isnan(bragg)):
+            msg = ("There is no available bragg angle!\n"
+                   + "  => Check the vlue of self.dmat['d'] vs lamb")
+            raise Exception(msg)
+
+        lf = ['summit', 'nout', 'e1', 'e2']
+        lc = [rcurve is None] + [self._dgeom[kk] is None for kk in lf]
+        if any(lc):
+            msg = ("Some missing fields in dgeom for computation:"
+                   + "\n\t-" + "\n\t-".join(['rcurve'] + lf))
+            raise Exception(msg)
 
         # Compute crystal-centered parameters in (nout, e1, e2)
         func = _comp_optics.get_approx_detector_rel
-        det_dist, det_nout_rel, det_ei_rel = func(rcurve, bragg)
+        (det_dist, n_crystdet_rel,
+         det_nout_rel, det_ei_rel) = _comp_optics.get_approx_detector_rel(
+            rcurve, bragg, tangent_to_rowland=tangent_to_rowland)
 
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
-            det_dist, det_nout_rel, det_ei_rel,
+            det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
             self._dgeom['summit'],
             self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
             ddist=ddist, di=di, dj=dj,

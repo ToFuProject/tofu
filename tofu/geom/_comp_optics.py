@@ -115,16 +115,17 @@ def get_approx_detector_rel(rcurve, bragg, tangent_to_rowland=None):
     det_dist = rcurve*np.sin(bragg)
 
     # det_nout and det_e1 in (nout, e1, e2) (det_e2 = e2)
+    n_crystdet_rel = np.r_[-np.sin(bragg), np.cos(bragg), 0.]
     if tangent_to_rowland:
-        # TBF !!!!!!!!!!!!!!!
-        det_nout_rel = p.r_[np.sin(bragg)]
-        det_ei_rel = None
+        bragg2 = 2.*bragg
+        det_nout_rel = np.r_[-np.cos(bragg2), -np.sin(bragg2), 0.]
+        det_ei_rel = np.r_[np.sin(bragg2), -np.cos(bragg2), 0.]
     else:
-        det_nout_rel = np.r_[np.sin(bragg), -np.cos(bragg), 0.]
+        det_nout_rel = -n_crystdet_rel
         det_ei_rel = np.r_[np.cos(bragg), np.sin(bragg), 0]
-    return det_dist, det_nout_rel, det_ei_rel
+    return det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel
 
-def get_det_abs_from_rel(det_dist, det_nout_rel, det_ei_rel,
+def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
                          summit, nout, e1, e2,
                          ddist=None, di=None, dj=None,
                          dtheta=None, dpsi=None, tilt=None):
@@ -143,9 +144,12 @@ def get_det_abs_from_rel(det_dist, det_nout_rel, det_ei_rel,
     if dj is None:
         dj = 0.
     det_dist += ddist
-    det_cent = summit - det_dist*det_nout + di*det_ei + dj*det_ej
 
-    # Apply angles on unit vectors
+    n_crystdet = (n_crystdet_rel[0]*nout
+		  + n_crystdet_rel[1]*e1 + n_crystdet_rel[2]*e2)
+    det_cent = summit + det_dist*n_crystdet + di*det_ei + dj*det_ej
+
+    # Apply angles on unit vectors with respect to themselves
     if dtheta is None:
         dtheta = 0.
     if dpsi is None:
@@ -163,7 +167,6 @@ def get_det_abs_from_rel(det_dist, det_nout_rel, det_ei_rel,
     # tilt
     det_ei3 = np.cos(tilt)*det_ei2 + np.sin(tilt)*det_ej2
     det_ej3 = np.cross(det_nout2, det_ei3)
-
 
     return det_cent, det_nout2, det_ei3, det_ej3
 
