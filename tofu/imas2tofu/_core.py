@@ -614,7 +614,7 @@ class MultiIDSLoader(object):
                  'core_profiles':['t','Te','ne']}
                }
 
-
+    _IDS_BASE = ['wall', 'pulse_schedule']
 
 
     ###################################
@@ -625,7 +625,8 @@ class MultiIDSLoader(object):
 
     def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None, get=None, ref=True):
+                 user=None, tokamak=None, version=None,
+                 ids_base=None, synthdiag=None, get=None, ref=True):
         super(MultiIDSLoader, self).__init__()
 
         # Initialize dicts
@@ -642,6 +643,14 @@ class MultiIDSLoader(object):
             self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
             if get is None and (ids is not None or preset is not None):
                 get = True
+            if ids_base is None:
+                ids_base = True
+            if ids_base is True:
+                self.add_ids_base(get=False)
+            if synthdiag is None:
+                synthdiag = False
+            if synthdiag is True:
+                self.add_ids_synthdiag(get=False)
         else:
             self.set_dids(dids)
             if get is None:
@@ -1483,6 +1492,20 @@ class MultiIDSLoader(object):
             self._dids.update(dids)
             if get:
                 self.open_get_close()
+
+    def add_ids_base(self, occ=None, idd=None,
+                     shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None,
+                     ref=None, isget=None, get=None):
+        """ Add th list of ids stored in self._IDS_BASE
+
+        Typically used to add a list of common ids without having to re-type
+        them every time
+        """
+        self.add_ids(ids=self._IDS_BASE, occ=occ, idd=idd,
+                     shot=shot, run=run, refshot=refshot, refrun=refrun,
+                     user=user, tokamak=tokamak, version=version,
+                     ref=ref, isget=isget, get=get)
 
     def add_ids_for_synthdiag(self, ids=None, occ=None, idd=None,
                               shot=None, run=None, refshot=None, refrun=None,
