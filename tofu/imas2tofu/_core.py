@@ -1268,6 +1268,38 @@ class MultiIDSLoader(object):
         assert idd in self._didd.keys()
         return self._didd[idd]['idd']
 
+    def _checkformat_ids_synthdiag(self, ids=None):
+        lc = [ids is None, isinstance(ids, str), isinstance(ids, list),
+              hasattr(ids, 'ids_properties')]
+        if not any(lc):
+            msg = ("Provided ids not understood!\n"
+                   + "\t- provided: {}".format(str(ids)))
+            raise Exception(msg)
+
+        lidssynth = [kk for kk, vv in self._didsdiag.items()
+                     if 'synth' in vv.keys()]
+        if lc[0]:
+            ids = sorted(set(self._dids.keys()).intersection(lidssynth))
+        elif lc[1]:
+            ids = [ids]
+        elif lc[3]:
+            ids = [ids.__class__.__name__]
+
+        ids = sorted(
+            set(ids).intersection(lidssynth).intersection(self._dids.keys()))
+        if len(ids) == 0:
+            msg = ("The provided ids must be:\n"
+                   + "\t- an is name (str)\n"
+                   + "\t- a list of ids names\n"
+                   + "\t- an ids instance\n"
+                   + "\t- None\n"
+                   + "And it must:\n"
+                   + "\t- Already be added (cf. self.dids.keys())\n"
+                   + "\t- Be a diagnostic ids with tabulated 'synth'")
+            # Turn to warning? => see user feedback
+            raise Exception(msg)
+        return ids
+
     def get_inputs_for_synthsignal(self, ids=None, verb=True, returnas=False):
         """ Return and / or print a dict of the default inputs for desired ids
 
@@ -1280,47 +1312,48 @@ class MultiIDSLoader(object):
         Advanced users may edit this hidden dictionnary to their needs
 
         """
-
-        if ids is None:
-            if len(self._dids) == 1:
-                ids = list(self._dids.keys())[0]
-            else:
-                msg = "Please provide a valid ids!"
-                raise Exception(msg)
-
-        # Eliminate trivial case
-        if (ids not in self._didsdiag.keys() or 'synth' not in
-            self._didsdiag[ids].keys()):
-            msg = ("Necessary inputs for synthetic signal not tabulated for:\n"
-                   + "\t- {}".format(str(ids)))
-            if verb:
-                print(msg)
-            if returnas is True:
-                return msg
+        assert returnas in [False, True, dict, list]
+        ids = self._checkformat_ids_synthdiag(ids)
 
         # Deal with real case
-        out = self._didsdiag[ids]['synth']
-        lids = sorted(out.get('dsig', {}).keys())
-        if verb:
-            dmsg = ("\n\t-" +
-                    "\n\t-".join([kk+':\n\t\t'+'\n\t\t'.join(vv)
-                                  for kk, vv in out.get('dsig', {}).items()]))
-            extra = {kk: vv for kk, vv in out.items()
-                     if kk not in ['dsynth', 'dsig']}
-            msg = ("For computing synthetic signal for ids {}".format(ids)
-                   + dmsg + '\n'
-                   + "\t- Extra parametersi (if any):\n"
-                   + "\t\t{}\n".format(extra))
-            print(msg)
-        if returnas is True:
+        if len(ids) == 1:
+            out = self._didsdiag[ids[0]]['synth']
+            lids = sorted(out.get('dsig', {}).keys())
+            if verb:
+                dmsg = ("\n\t-" +
+                        "\n\t-".join([kk+':\n\t\t'+'\n\t\t'.join(vv)
+                                      for kk, vv in out.get('dsig', {}).items()]))
+                extra = {kk: vv for kk, vv in out.items()
+                         if kk not in ['dsynth', 'dsig']}
+                msg = ("For computing synthetic signal for ids {}".format(ids)
+                       + dmsg + '\n'
+                       + "\t- Extra parameters (if any):\n"
+                       + "\t\t{}\n".format(extra))
+                print(msg)
+            if returnas is True:
+                returnas  = dict
+        else:
+            out = None
+            lids = sorted(set(itt.chain.from_iterable([
+                self._didsdiag[idsi]['synth'].get('dsig', {}).keys()
+                for idsi in ids])))
+            if verb:
+                print(lids)
+            if returnas is True:
+                returnas = list
+        if returnas is dict:
             return out
+        elif returnas is list:
+            return lids
 
-    def _checkformat_ids(self, ids, occ=None, idd=None, isget=None):
+    def _checkformat_ids(self, ids, occ=None, idd=None, isget=None,
+                         synthdiag=False):
 
         # Check value and make dict if necessary
         lc = [type(ids) is str,
               type(ids) is list,
-              hasattr(ids, 'ids_properties')]
+              hasattr(ids, 'ids_properties'),
+              ids is None and synthdiag is True]
         if not any(lc):
             msg = "Arg ids must be either:\n"
             msg += "    - str : valid ids name\n"
@@ -1330,9 +1363,15 @@ class MultiIDSLoader(object):
             msg += "  Conditions: %s"%str(lc)
             raise Exception(msg)
 
+        # Synthdiag-specific
+        if synthdiag is True:
+            ids = self.get_inputs_for_synthsignal(ids=ids, verb=False,
+                                                  returnas=list)
+            lc[1] = True
+
         # Prepare dids[name] = {'ids':None/ids, 'needidd':bool}
         dids = {}
-        if lc[0]or lc[1]:
+        if lc[0] or lc[1]:
             if lc[0]:
                 ids = [ids]
             for ids_ in ids:
@@ -1443,9 +1482,9 @@ class MultiIDSLoader(object):
 
             self._dids.update(dids)
             if get:
-                self.open_get_close(ids=ids)
+                self.open_get_close()
 
-    def add_ids_for_synthdiag(self, ids=None, occ=None, idd=None, preset=None,
+    def add_ids_for_synthdiag(self, ids=None, occ=None, idd=None,
                               shot=None, run=None, refshot=None, refrun=None,
                               user=None, tokamak=None, version=None,
                               ref=None, isget=None, get=None):
@@ -1454,19 +1493,14 @@ class MultiIDSLoader(object):
         The necessary input ids are given by self.get_inputs_for_synthsignal()
 
         """
-        lc = [ids is None, isinstance(ids, str), isinstance(ids, list)]
-        assert any(lc)
-        lidssynth = [kk for kk, vv in self._didsdiag.items()
-                     if 'synth' in vv.keys()]
-
-        if lc[0]:
-            ids = list(set(self._dids.keys()).)
-        elif lc[1]:
-            ids = [ids]
-        lids = []
-        for idsi in ids:
-            pass
-
+        if get is None:
+            get = True
+        ids = self.get_inputs_for_synthsignal(ids=ids, verb=False,
+                                              returnas=list)
+        self.add_ids(ids=ids, occ=occ, idd=idd, preset=None,
+                     shot=shot, run=run, refshot=refshot, refrun=refrun,
+                     user=user, tokamak=tokamak, version=version,
+                     ref=ref, isget=isget, get=get)
 
     def remove_ids(self, ids=None, occ=None):
         """ Remove an ids (optionally remove only an occurence)
