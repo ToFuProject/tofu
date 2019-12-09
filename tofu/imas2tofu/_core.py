@@ -1330,8 +1330,9 @@ class MultiIDSLoader(object):
             lids = sorted(out.get('dsig', {}).keys())
             if verb:
                 dmsg = ("\n\t-" +
-                        "\n\t-".join([kk+':\n\t\t'+'\n\t\t'.join(vv)
-                                      for kk, vv in out.get('dsig', {}).items()]))
+                        "\n\t-".join([
+                            kk+':\n\t\t'+'\n\t\t'.join(vv)
+                            for kk, vv in out.get('dsig', {}).items()]))
                 extra = {kk: vv for kk, vv in out.items()
                          if kk not in ['dsynth', 'dsig']}
                 msg = ("For computing synthetic signal for ids {}".format(ids)
@@ -1340,7 +1341,7 @@ class MultiIDSLoader(object):
                        + "\t\t{}\n".format(extra))
                 print(msg)
             if returnas is True:
-                returnas  = dict
+                returnas = dict
         else:
             out = None
             lids = sorted(set(itt.chain.from_iterable([
@@ -1653,8 +1654,8 @@ class MultiIDSLoader(object):
         msg = ("Arg ids must be either:\n"
                + "\t- None: if self.dids only has one key\n"
                + "\t- str: a valid key of self.dids\n\n"
-               + "  Provided : %s\n"%ids
-               + "  Available: %s\n"%str(list(self._dids.keys()))
+               + "  Provided : {}\n".format(ids)
+               + "  Available: {}\n".format(str(list(self._dids.keys())))
                + "  => Consider using self.add_ids({})".format(str(ids)))
 
         lc = [ids is None, type(ids) is str]
@@ -2094,7 +2095,6 @@ class MultiIDSLoader(object):
             warnings.warn(msg)
         return dout
 
-
     def get_events(self, occ=None, verb=True, returnas=False):
         """ Return chronoligical events stored in pulse_schedule
 
@@ -2113,7 +2113,8 @@ class MultiIDSLoader(object):
         assert isinstance(verb, bool)
         assert returnas in [False, list, tuple]
 
-        events = self.get_data('pulse_schedule', sig='events', occ=occ)['events']
+        events = self.get_data('pulse_schedule',
+                               sig='events', occ=occ)['events']
         name, time = zip(*events)
         ind = np.argsort(time)
         if verb:
