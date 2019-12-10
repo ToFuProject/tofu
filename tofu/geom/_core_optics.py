@@ -312,12 +312,19 @@ class CrystalBragg(utils.ToFuObject):
         if dbragg is None:
             return
         assert isinstance(dbragg, dict)
-        lkok = ['angle']
+        lkok = cls._get_keys_dbragg()
         assert all([isinstance(ss, str) for ss in dbragg.keys()])
         assert all([ss in lkok for ss in dbragg.keys()])
 
         for kk in cls._ddef['dbragg'].keys():
             dbragg[kk] = dbragg.get(kk, cls._ddef['dbragg'][kk])
+        if dbragg.get('rockingcurve') is not None:
+            assert isinstance(dbragg['rockingcurve'], dict)
+            drock = dbragg['rockingcurve']
+            if drock.get('sigma') is not None:
+                dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
+                dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
+                dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
         return dbragg
 
     @classmethod
@@ -570,6 +577,13 @@ class CrystalBragg(utils.ToFuObject):
     def center(self):
         return self._dgeom['center']
 
+    @property
+    def rockingcurve(self):
+        if self._bragg.get('rockingcurve') is not None:
+            if self._dbragg['rocingcurve'].get('sigma') is not None:
+                return self._dbragg['rockingcurve']
+        raise Exception("rockingcurve was not set!")
+
     # -----------------
     # methods for color
     # -----------------
@@ -691,6 +705,14 @@ class CrystalBragg(utils.ToFuObject):
         assert kind in self._DEFLMOVEOK
         if kind == 'rotate':
             self._rotate(**kwdargs)
+
+    # -----------------
+    # methods for rocking curve
+    # -----------------
+
+    def plot_rockingcurve(self):
+        drock = self.rockingcurve
+        return _plot.CrystalBragg_plot_rockingcurve(drock)
 
     # -----------------
     # methods for surface and contour sampling
