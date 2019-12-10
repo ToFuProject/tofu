@@ -1122,7 +1122,8 @@ class CrystalBragg(utils.ToFuObject):
     def calc_johannerror(self, xi=None, xj=None, err=None,
                          det_cent=None, det_ei=None, det_ej=None, n=None,
                          lpsi=None, ltheta=None,
-                         plot=True, fs=None, cmap=None, vmin=None, vmax=None):
+                         plot=True, fs=None, cmap=None,
+                         vmin=None, vmax=None, tit=None, wintit=None):
         """ Plot the johann error
 
         The johann error is the error (scattering) induced by defocalization
@@ -1153,11 +1154,15 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         if lpsi is None:
-            lpsi = self._dgeom['extenthalf'][0]*np.r_[-1., 1., 1., -1.]
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[-1., 0., 1., 1.,
+                                                      1., 0., -1, -1]
         else:
             lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
         if ltheta is None:
-            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[-1., -1., 1., 1.]
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[-1., -1.,
+                                                                  -1., 0.,
+                                                                  1., 1.,
+                                                                  1., 0.]
         else:
             ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
         npsi = lpsi.size
@@ -1175,7 +1180,7 @@ class CrystalBragg(utils.ToFuObject):
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_johannerror(
                 xi, xj, lamb, phi, err_lamb, err_phi, err=err,
-                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
+                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs, tit=tit, wintit=wintit)
         return err_lamb, err_phi
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,

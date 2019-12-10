@@ -382,7 +382,7 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 
 def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
                                   cmap=None, vmin=None, vmax=None,
-                                  fs=None, dmargin=None,
+                                  fs=None, dmargin=None, wintit=None, tit=None,
                                   angunits='deg', err=None):
 
     # Check inputs
@@ -393,8 +393,8 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.03, 'right':0.99,
-                   'bottom':0.05, 'top':0.92,
+        dmargin = {'left':0.05, 'right':0.99,
+                   'bottom':0.06, 'top':0.92,
                    'wspace':None, 'hspace':0.4}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
@@ -407,7 +407,16 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
     if err == 'rel':
         err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
         err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+        err_lamb_units = '%'
+        err_phi_units = '%'
+    else:
+        err_lamb_units = 'm'
+        err_phi_units = angunits
 
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = False
 
     # pre-compute
     # ------------
@@ -427,8 +436,8 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
                           sharex=ax0, sharey=ax0)
 
     ax0.set_title('Iso-lamb and iso-phi at crystal summit')
-    ax1.set_title('Focalization error on lamb')
-    ax2.set_title('Focalization error on phi')
+    ax1.set_title('Focalization error on lamb ({})'.format(err_lamb_units))
+    ax2.set_title('Focalization error on phi ({})'.format(err_phi_units))
 
     ax0.contour(xi, xj, lamb, 10, cmap=cmap)
     ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
@@ -441,6 +450,10 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
 
     plt.colorbar(imlamb, ax=ax1)
     plt.colorbar(imphi, ax=ax2)
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
 
     return [ax0, ax1, ax2]
 
