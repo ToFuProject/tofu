@@ -710,9 +710,25 @@ class CrystalBragg(utils.ToFuObject):
     # methods for rocking curve
     # -----------------
 
-    def plot_rockingcurve(self):
+    def get_rockingcurve_func(self, lamb=None, bragg=None, n=None):
         drock = self.rockingcurve
-        return _plot.CrystalBragg_plot_rockingcurve(drock)
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        delta_bragg = self. - bragg  
+        def func(angle, d=d, delta_bragg=delta_bragg,
+	     Rmax=drock['Rmax'], sigma=drock['sigma']):
+	    core = (sigma**2/(((angle - (bragg+delta_bragg))**2 + sigma**2)
+	    if Rmax is None:
+	        return core/(sigma*np.pi)
+	    else:
+	        return Rmax*core
+        return func
+
+    def plot_rockingcurve(self, lamb=None, bragg=None,
+                          fs=None, ax=None):
+        drock = self.rockingcurve
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        func = self.get_rockingcurve_func(bragg=bragg, n=n)
+        return _plot.CrystalBragg_plot_rockingcurve(func, fs=fs, ax=ax)
 
     # -----------------
     # methods for surface and contour sampling

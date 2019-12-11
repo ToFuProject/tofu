@@ -295,18 +295,15 @@ def CrystalBragg_plot_rockingcurve(Rmax=None, sigma=None,
                                    bragg=None, delta_bragg=None, npts=None):
 
     # Prepare
-    def func(angle, d=d, deltad=drock['deltad'],
-             Rmax=drock['Rmax'], sigma=drock['sigma']):
-        return Rmax*((sigma**2/(((angle - (bragg+delta_bragg))**2 + sigma**2)/(sigma*np.pi))
-
     if npts is None:
         npts = 1000
     angle = bragg + delta_bragg + 3.*sigma*np.linspace(-1, 1, npts)
     curve = func(angle)
 
     # Plot
-    fig = plt.figure()
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.plot(angle, curve, ls='-', lw=1., c='k')
     ax.axvline(bragg, ls='--', lw=1, c='k')
     return ax
