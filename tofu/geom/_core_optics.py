@@ -321,10 +321,31 @@ class CrystalBragg(utils.ToFuObject):
         if dbragg.get('rockingcurve') is not None:
             assert isinstance(dbragg['rockingcurve'], dict)
             drock = dbragg['rockingcurve']
-            if drock.get('sigma') is not None:
-                dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
-                dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
-                dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
+            try:
+                if drock.get('sigma') is not None:
+                    dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
+                    dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
+                    dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
+                    dbragg['rockingcurve']['type'] = 'lorentz-log'
+                elif drock.get('angle') is not None:
+                    dbragg['rockingcurve']['angle'] = np.r_[drock['angle']]
+                    dbragg['rockingcurve']['value'] = np.r_[drock['value']]
+                    dbragg['rockingcurve']['type'] = 'tabulated'
+                    if drock.get('source') is None:
+                        msg = "Unknonw source for the tabulated rocking curve!"
+                        warnings.warn(msg)
+                    dbragg['rockingcurve']['source'] = drock.get('source')
+            except Exception as err:
+                msg = ("Provide the rocking curve as a dict with either:\n"
+                       + "\t- parameters of a lorentzian in log10:\n"
+                       + "\t\t{'sigma': float,\n"
+                       + "\t\t 'deltad': float,\n"
+                       + "\t\t 'Rmax': float}\n"
+                       + "\t- tabulated (angle, value), with source (url...)"
+                       + "\t\t{'angle': np.ndarray,\n"
+                       + "\t\t 'value': np.ndarray,\n"
+                       + "\t\t 'source': str}")
+                raise Exception(msg)
         return dbragg
 
     @classmethod
@@ -411,7 +432,7 @@ class CrystalBragg(utils.ToFuObject):
         dmat = self._checkformat_dmat(dmat)
         self._dmat = dmat
 
-    def _set_dbragg(self, dbragg=None):
+    def set_dbragg(self, dbragg=None):
         dbragg = self._checkformat_dbragg(dbragg)
         self._dbragg = dbragg
 
@@ -713,14 +734,14 @@ class CrystalBragg(utils.ToFuObject):
     def get_rockingcurve_func(self, lamb=None, bragg=None, n=None):
         drock = self.rockingcurve
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
-        delta_bragg = self. - bragg  
+        delta_bragg = None
         def func(angle, d=d, delta_bragg=delta_bragg,
-	     Rmax=drock['Rmax'], sigma=drock['sigma']):
-	    core = (sigma**2/(((angle - (bragg+delta_bragg))**2 + sigma**2)
-	    if Rmax is None:
-	        return core/(sigma*np.pi)
-	    else:
-	        return Rmax*core
+                 Rmax=drock['Rmax'], sigma=drock['sigma']):
+            core = sigma**2/((angle - (bragg+delta_bragg))**2 + sigma**2)
+            if Rmax is None:
+                return core/(sigma*np.pi)
+            else:
+                return Rmax*core
         return func
 
     def plot_rockingcurve(self, lamb=None, bragg=None,
