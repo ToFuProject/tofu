@@ -13,6 +13,7 @@ import copy
 
 # Common
 import numpy as np
+import scipy.interpolate as scpinterp
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -321,16 +322,41 @@ class CrystalBragg(utils.ToFuObject):
         if dbragg.get('rockingcurve') is not None:
             assert isinstance(dbragg['rockingcurve'], dict)
             drock = dbragg['rockingcurve']
+            lkeyok = ['sigam', 'deltad', 'Rmax', 'dangle', 'lamb', 'value',
+                      'type', 'source']
+            lkout = [kk for kk in drock.keys() if kk not in lkeyok]
+            if len(lkout) > 0:
+                msg = ("Unauthorized keys in dbrag['rockingcurve']:\n"
+                       + "\t-" + "\n\t-".join(lkout))
+                raise Exception(msg)
             try:
                 if drock.get('sigma') is not None:
                     dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
                     dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
                     dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
                     dbragg['rockingcurve']['type'] = 'lorentz-log'
-                elif drock.get('angle') is not None:
-                    dbragg['rockingcurve']['angle'] = np.r_[drock['angle']]
-                    dbragg['rockingcurve']['value'] = np.r_[drock['value']]
-                    dbragg['rockingcurve']['type'] = 'tabulated'
+                elif drock.get('dangle') is not None:
+                    c2d = (drock.get('lamb') is not None
+                           and drock.get('value').ndim == 2)
+                    if c2d:
+                        if drock['value'].shape != (drock['dangle'].size,
+                                                    drock['lamb'].size):
+                            msg = ("Tabulated 2d rocking curve should be:\n"
+                                   + "\tshape = (dangle.size, lamb.size)")
+                            raise Exception(msg)
+                        dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                        dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
+                        dbragg['rockingcurve']['value'] = drock['value']
+                        dbragg['rockingcurve']['type'] = 'tabulated-2d'
+                    else:
+                        if drock.get('lamb') is None:
+                            msg = ("Please also specify the lamb for which the "
+                                   + "rocking curve was tabulated!")
+                            raise Exception(msg)
+                        dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
+                        dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                        dbragg['rockingcurve']['value'] = np.r_[drock['value']]
+                        dbragg['rockingcurve']['type'] = 'tabulated-1d'
                     if drock.get('source') is None:
                         msg = "Unknonw source for the tabulated rocking curve!"
                         warnings.warn(msg)
@@ -341,8 +367,8 @@ class CrystalBragg(utils.ToFuObject):
                        + "\t\t{'sigma': float,\n"
                        + "\t\t 'deltad': float,\n"
                        + "\t\t 'Rmax': float}\n"
-                       + "\t- tabulated (angle, value), with source (url...)"
-                       + "\t\t{'angle': np.ndarray,\n"
+                       + "\t- tabulated (dangle, value), with source (url...)"
+                       + "\t\t{'dangle': np.ndarray,\n"
                        + "\t\t 'value': np.ndarray,\n"
                        + "\t\t 'source': str}")
                 raise Exception(msg)
@@ -738,15 +764,40 @@ class CrystalBragg(utils.ToFuObject):
 
     def get_rockingcurve_func(self, lamb=None, bragg=None, n=None):
         drock = self.rockingcurve
-        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
-        delta_bragg = None
-        def func(angle, d=d, delta_bragg=delta_bragg,
-                 Rmax=drock['Rmax'], sigma=drock['sigma']):
-            core = sigma**2/((angle - (bragg+delta_bragg))**2 + sigma**2)
-            if Rmax is None:
-                return core/(sigma*np.pi)
-            else:
-                return Rmax*core
+        if drock['type'] == 'tabulated-1d':
+            if lamb is not None and lamb != drock['lamb']:
+                msg = ("rocking curve was tabulated only for:\n"
+                       + "\tlamb = {} m\n".format(lamb)
+                       + "  => Please let lamb=None")
+                raise Exception(msg)
+            bragg = self._checkformat_bragglamb(lamb=drock['lamb'], n=n)
+            func = scpinterp.interp1d(drock['dangle']+bragg, drock['value'],
+                                      kind='linear', bounds_error=False,
+                                      fill_value=0, assume_sorted=True)
+
+        elif drock['type'] == 'tabulated-2d':
+            bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+            lamb = self.get_lamb_from_bragg(bragg)
+            lmin, lmax = drock['lamb'].min(), drock['lamb'].max()
+            if lamb is None or lamb < lmin or lamb > lmax:
+                msg = ("rocking curve was tabulated only in interval:\n"
+                       + "\tlamb in [{}; {}] m\n".format(lmin, lmax)
+                       + "  => Please set lamb accordingly")
+                raise Exception(msg)
+            bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+            def func(angle, lamb=lamb, bragg=bragg, drock=drock):
+                return scpinterp.interp2d(drock['dangle']+bragg, drock['lamb'],
+                                          drock['value'], kind='linear',
+                                          bounds_error=False, fill_value=0,
+                                          assume_sorted=True)(angle, lamb)
+        else:
+            def func(angle, d=d, delta_bragg=delta_bragg,
+                     Rmax=drock['Rmax'], sigma=drock['sigma']):
+                core = sigma**2/((angle - (bragg+delta_bragg))**2 + sigma**2)
+                if Rmax is None:
+                    return core/(sigma*np.pi)
+                else:
+                    return Rmax*core
         return func
 
     def plot_rockingcurve(self, lamb=None, bragg=None,
