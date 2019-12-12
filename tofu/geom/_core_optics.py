@@ -600,8 +600,8 @@ class CrystalBragg(utils.ToFuObject):
 
     @property
     def rockingcurve(self):
-        if self._bragg.get('rockingcurve') is not None:
-            if self._dbragg['rocingcurve'].get('sigma') is not None:
+        if self._dbragg.get('rockingcurve') is not None:
+            if self._dbragg['rockingcurve'].get('type') is not None:
                 return self._dbragg['rockingcurve']
         raise Exception("rockingcurve was not set!")
 
@@ -626,11 +626,16 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Build material
         col0 = ['formula', 'symmetry', 'cut', 'density',
-                'd (A)', 'bragg(%s A) (deg)'%str(self._DEFLAMB)]
+                'd (A)', 'bragg(%s A) (deg)'%str(self._DEFLAMB), 'rocking curve']
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
                '{0:5.3f}'.format(self._dmat['d']*1.e10),
                str(self.get_bragg_from_lamb(self._DEFLAMB)[0]*180./np.pi)]
+        try:
+            ar0.append(self.rockingcurve['type'])
+        except Exception as err:
+            ar0.append('None')
+
 
         # -----------------------
         # Build geometry
