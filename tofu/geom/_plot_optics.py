@@ -404,6 +404,59 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     return ax
 
 
+def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
+                                          det=None,
+                                          johann=None, rocking=None,
+                                          fs=None, dmargin=None, wintit=None, tit=None):
+
+    # Check inputs
+    # ------------
+
+    if fs is None:
+        fs = (6, 8)
+    if dmargin is None:
+        dmargin = {'left':0.05, 'right':0.99,
+                   'bottom':0.06, 'top':0.92,
+                   'wspace':None, 'hspace':0.4}
+
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = "line tracing"
+        if johann is True:
+            tit += " - johann error"
+        if rocking is True:
+            tit += " - rocking curve"
+
+    plot_err = johann is True or rocking is True
+
+    # Plot
+    # ------------
+
+    fig = fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+
+    ax0.plot(det[0, :], det[1, :], ls='-', lw=1., c='k')
+    for l in range(lamb.size):
+        lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
+        l0, = ax0.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+        if plot_err:
+            ax0.plot(xi_err[l, ...], xj_err[l, ...],
+                     ls='None', lw=1., c=l0.get_color(),
+                     marker='.', ms=1)
+
+    ax0.legend()
+
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+    return [ax0]
+
+
+
+
 def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
                                   cmap=None, vmin=None, vmax=None,
                                   fs=None, dmargin=None, wintit=None, tit=None,

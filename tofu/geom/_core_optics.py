@@ -762,7 +762,7 @@ class CrystalBragg(utils.ToFuObject):
     # methods for rocking curve
     # -----------------
 
-    def get_rockingcurve_func(self, lamb=None, bragg=None, n=None):
+    def get_rockingcurve_func(self, lamb=None, n=None):
         drock = self.rockingcurve
         if drock['type'] == 'tabulated-1d':
             if lamb is not None and lamb != drock['lamb']:
@@ -776,8 +776,6 @@ class CrystalBragg(utils.ToFuObject):
                                       fill_value=0, assume_sorted=True)
 
         elif drock['type'] == 'tabulated-2d':
-            bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
-            lamb = self.get_lamb_from_bragg(bragg)
             lmin, lmax = drock['lamb'].min(), drock['lamb'].max()
             if lamb is None or lamb < lmin or lamb > lmax:
                 msg = ("rocking curve was tabulated only in interval:\n"
@@ -800,10 +798,9 @@ class CrystalBragg(utils.ToFuObject):
                     return Rmax*core
         return func
 
-    def plot_rockingcurve(self, lamb=None, bragg=None,
+    def plot_rockingcurve(self, lamb=None,
                           fs=None, ax=None):
         drock = self.rockingcurve
-        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         func = self.get_rockingcurve_func(bragg=bragg, n=n)
         return _plot.CrystalBragg_plot_rockingcurve(func, fs=fs, ax=ax)
 
@@ -1233,6 +1230,83 @@ class CrystalBragg(utils.ToFuObject):
         phi = np.arctan2(v2, v1)
         return bragg, phi
 
+    def plot_line_tracing_on_det(self, lamb=None, n=None,
+                                 xi_bounds=None, xj_bounds=None, nphi=None,
+                                 det_cent=None, det_nout=None,
+                                 det_ei=None, det_ej=None,
+                                 johann=False, lpsi=None, ltheta=None,
+                                 rocking=False, fs=None, dmargin=None,
+                                 wintit=None, tit=None):
+        """ Visualize the de-focusing by ray-tracing of chosen lamb
+        """
+        # Check / format inputs
+        if lamb is None:
+            lamb = self._DEFLAMB
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+
+        det = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
+                         xi_bounds[0], xi_bounds[0]],
+                        [xj_bounds[0], xj_bounds[0], xj_bounds[1],
+                         xj_bounds[1], xj_bounds[0]]])
+
+        # Compute lamb / phi
+        _, phi = self.calc_phibragg_from_xixj(
+            det[0, :], det[1, :], n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=None, psi=None, plot=False)
+        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+        phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
+        del phi
+
+        # Get reference ray-tracing
+        if nphi is None:
+            nphi = 300
+        phi = np.linspace(phimin, phimax, nphi)
+        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+
+        xi = np.full((nlamb, nphi), np.nan)
+        xj = np.full((nlamb, nphi), np.nan)
+        for ll in range(nlamb):
+            xi[ll, :], xj[ll, :] = self.calc_xixj_from_phibragg(
+                bragg=bragg[ll], phi=phi, n=n,
+                det_cent=det_cent, det_nout=det_nout,
+                det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get johann-error raytracing (multiple positions on crystal)
+        xi_err, xj_err = None, None
+        if johann and not rocking:
+            if lpsi is None or ltheta is None:
+                lpsi = np.linspace(-1., 1., 15)
+                ltheta = np.linspace(-1., 1., 15)
+                lpsi, ltheta = np.meshgrid(lpsi, ltheta)
+                lpsi = lpsi.ravel()
+                ltheta = ltheta.ravel()
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+            npsi = lpsi.size
+            assert npsi == ltheta.size
+
+            xi_err = np.full((nlamb, npsi*nphi), np.nan)
+            xj_err = np.full((nlamb, npsi*nphi), np.nan)
+            for l in range(nlamb):
+                for ii in range(npsi):
+                    i0 = np.arange(ii*nphi, (ii+1)*nphi)
+                    xi_err[l, i0], xj_err[l, i0] = self.calc_xixj_from_phibragg(
+                        phi=phi, bragg=bragg[l], lamb=None, n=n,
+                        theta=ltheta[ii], psi=lpsi[ii],
+                        det_cent=det_cent, det_nout=det_nout,
+                        det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get rocking curve error
+        if rocking:
+            pass
+
+        # Plot
+        ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+            lamb, xi, xj, xi_err, xj_err, det=det,
+            johann=johann, rocking=rocking,
+            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
     def calc_johannerror(self, xi=None, xj=None, err=None,
                          det_cent=None, det_ei=None, det_ej=None, n=None,
@@ -1269,22 +1343,16 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         if lpsi is None:
-            lpsi = self._dgeom['extenthalf'][0]*np.r_[-1., 0., 1., 1.,
-                                                      1., 0., -1, -1]
-        else:
-            lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+            lpsi = np.r_[-1., 0., 1., 1., 1., 0., -1, -1]
+        lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
         if ltheta is None:
-            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[-1., -1.,
-                                                                  -1., 0.,
-                                                                  1., 1.,
-                                                                  1., 0.]
-        else:
-            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+            ltheta = np.r_[-1., -1., -1., 0., 1., 1., 1., 0.]
+        ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
         npsi = lpsi.size
         assert npsi == ltheta.size
         lamberr = np.full(tuple(np.r_[npsi, lamb.shape]), np.nan)
         phierr = np.full(lamberr.shape, np.nan)
-        for ii in range(len(ltheta)):
+        for ii in range(npsi):
             bragg, phierr[ii, ...] = self.calc_phibragg_from_xixj(
                 xii, xjj, n=n,
                 det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
@@ -1297,6 +1365,105 @@ class CrystalBragg(utils.ToFuObject):
                 xi, xj, lamb, phi, err_lamb, err_phi, err=err,
                 cmap=cmap, vmin=vmin, vmax=vmax, fs=fs, tit=tit, wintit=wintit)
         return err_lamb, err_phi
+
+    def calc_braggphi_from_pts(self, pts):
+        pass
+
+    def calc_thetapsi_from_lambpts(self, lamb=None, pts=None):
+
+        # Check / Format inputs
+        pts = np.atleast_1d(pts)
+        if pts.ndim == 1:
+            pts = pts.reshape((3, 1))
+        npts = pts.shape[1]
+
+        lamb = np.r_[lamb]
+        nlamb = lamb.size
+        bragg = self.
+
+
+        dtheta, psi = _comp_optics.calc_psidthetaphi_from_pts_lamb()
+
+        return dtheta, psi, phi, bragg
+
+
+    def plot_line_from_pts_on_det(self, lamb=None, pts=None,)
+                                  xi_bounds=None, xj_bounds=None, nphi=None,
+                                  det_cent=None, det_nout=None,
+                                  det_ei=None, det_ej=None,
+                                  johann=False, lpsi=None, ltheta=None,
+                                  rocking=False, fs=None, dmargin=None,
+                                  wintit=None, tit=None):
+        """ Visualize the de-focusing by ray-tracing of chosen lamb
+        """
+        # Check / format inputs
+        if lamb is None:
+            lamb = self._DEFLAMB
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+
+        det = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
+                         xi_bounds[0], xi_bounds[0]],
+                        [xj_bounds[0], xj_bounds[0], xj_bounds[1],
+                         xj_bounds[1], xj_bounds[0]]])
+
+        # Compute lamb / phi
+        _, phi = self.calc_phibragg_from_xixj(
+            det[0, :], det[1, :], n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=None, psi=None, plot=False)
+        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+        phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
+        del phi
+
+        # Get reference ray-tracing
+        if nphi is None:
+            nphi = 300
+        phi = np.linspace(phimin, phimax, nphi)
+        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+
+        xi = np.full((nlamb, nphi), np.nan)
+        xj = np.full((nlamb, nphi), np.nan)
+        for ll in range(nlamb):
+            xi[ll, :], xj[ll, :] = self.calc_xixj_from_phibragg(
+                bragg=bragg[ll], phi=phi, n=n,
+                det_cent=det_cent, det_nout=det_nout,
+                det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get johann-error raytracing (multiple positions on crystal)
+        xi_err, xj_err = None, None
+        if johann and not rocking:
+            if lpsi is None or ltheta is None:
+                lpsi = np.linspace(-1., 1., 15)
+                ltheta = np.linspace(-1., 1., 15)
+                lpsi, ltheta = np.meshgrid(lpsi, ltheta)
+                lpsi = lpsi.ravel()
+                ltheta = ltheta.ravel()
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+            npsi = lpsi.size
+            assert npsi == ltheta.size
+
+            xi_err = np.full((nlamb, npsi*nphi), np.nan)
+            xj_err = np.full((nlamb, npsi*nphi), np.nan)
+            for l in range(nlamb):
+                for ii in range(npsi):
+                    i0 = np.arange(ii*nphi, (ii+1)*nphi)
+                    xi_err[l, i0], xj_err[l, i0] = self.calc_xixj_from_phibragg(
+                        phi=phi, bragg=bragg[l], lamb=None, n=n,
+                        theta=ltheta[ii], psi=lpsi[ii],
+                        det_cent=det_cent, det_nout=det_nout,
+                        det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get rocking curve error
+        if rocking:
+            pass
+
+        # Plot
+        ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+            lamb, xi, xj, xi_err, xj_err, det=det,
+            johann=johann, rocking=rocking,
+            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,

@@ -146,7 +146,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
     det_dist += ddist
 
     n_crystdet = (n_crystdet_rel[0]*nout
-		  + n_crystdet_rel[1]*e1 + n_crystdet_rel[2]*e2)
+                  + n_crystdet_rel[1]*e1 + n_crystdet_rel[2]*e2)
     det_cent = summit + det_dist*n_crystdet + di*det_ei + dj*det_ej
 
     # Apply angles on unit vectors with respect to themselves
@@ -244,3 +244,53 @@ def get_lambphifit(lamb, phi, nxi, nxj):
     phiD = phi.max() - phi.min()
     phifit = phi.min() + phiD*np.linspace(0, 1, nxj)
     return lambfit, phifit
+
+
+# ###############################################
+#           From plasma pts
+# ###############################################
+
+def calc_psidthetaphi_from_pts_lamb(pts, bragg, , nlamb, npts, ntheta):
+
+    scaPCem = np.full((nlamb, npts), np.nan)
+    psi = np.full((nlamb, npts, ntheta), np.nan)
+    dtheta = np.full((nlamb, npts, ntheta), np.nan)
+    phi = np.full((nlamb, npts, ntheta), np.nan)
+
+    # Get to scalar product
+    PC = C[:, None] - pts
+    PCnorm2 = np.sum(PC**2, axis=0)**2
+    cos2 = np.cos(bragg)**2
+    deltaon4 = (*R**2*cos2[:, None]**2
+                - *(R**2*cos2[:, None]
+                    - PCnorm2[None, :]*np.sin(bragg)[:, None]**2))
+
+    # Get two relevant solutions
+    ind = deltaon4 >= 0.
+    PCnorm = np.tile(np.sqrt(PCnorm2), (nlamb, 1))[ind]
+    sol1 = -R*cos2 - np.sqrt(deltaon4[ind])
+    sol2 = -R*cos2 + np.sqrt(deltaon4[ind])
+    ind1 = (np.abs(sol1) <= PCnorm) & (sol1 >= -R)
+    ind2 = (np.abs(sol2) <= PCnorm) & (sol2 >= -R)
+    assert not np.any(ind1 & ind2)
+    sol1 = sol1[ind1]
+    sol2 = sol2[ind2]
+    indn = ind.nonzero()
+    ind1 = [indn[0][ind1], indn[1][ind1]]
+    ind2 = [indn[0][ind2], indn[1][ind2]]
+    scaPCem[ind1[0], ind1[1]] = sol1
+    scaPCem[ind2[0], ind2[1]] = sol2
+    ind = ~np.isnan(scaPCem)
+
+    # Get equation on PCem
+    X = np.sum(PC*nout[:, None], axis=0)
+    Y = np.sum(PC*e1[:, None], axis=0)
+    Z = np.sum(PC*e2[:, None], axis=0)
+    XYnorm = np.sqrt(X**2 + Y**2)
+    psi = (np.arccos(XYnorm * (scaPCem[ind] - Z*np.sin(dtheta))/np.cos(dtheta))
+           + np.arctan2(Y, X))
+    psi = np.arctan2(np.sin(psi), np.cos(psi))
+
+    dtheta = extenthalf[1]*np.linspace(-1, 1, ntheta)
+
+    return dtheta, psi, phi
