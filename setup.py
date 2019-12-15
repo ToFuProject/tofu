@@ -282,7 +282,7 @@ extensions = [
 
 
 setup(
-    name="tofuproject",
+    name="tofuproject", # to switch back to tofu
     version="{ver}".format(ver=version_tofu),
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm
