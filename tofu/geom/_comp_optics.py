@@ -250,7 +250,7 @@ def get_lambphifit(lamb, phi, nxi, nxj):
 #           From plasma pts
 # ###############################################
 
-def calc_psidthetaphi_from_pts_lamb(pts, bragg, , nlamb, npts, ntheta):
+def calc_psidthetaphi_from_pts_lamb(pts, bragg, nlamb, npts, ntheta):
 
     scaPCem = np.full((nlamb, npts), np.nan)
     psi = np.full((nlamb, npts, ntheta), np.nan)
@@ -261,9 +261,9 @@ def calc_psidthetaphi_from_pts_lamb(pts, bragg, , nlamb, npts, ntheta):
     PC = C[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)**2
     cos2 = np.cos(bragg)**2
-    deltaon4 = (*R**2*cos2[:, None]**2
-                - *(R**2*cos2[:, None]
-                    - PCnorm2[None, :]*np.sin(bragg)[:, None]**2))
+    deltaon4 = (R**2*cos2[:, None]**2
+                - (R**2*cos2[:, None]
+                   - PCnorm2[None, :]*np.sin(bragg)[:, None]**2))
 
     # Get two relevant solutions
     ind = deltaon4 >= 0.

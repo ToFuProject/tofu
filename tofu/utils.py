@@ -142,7 +142,7 @@ def flatten_dict(d, parent_key='', sep=None, deep='ref',
         if k not in lexcept_key:
             if issubclass(v.__class__, ToFuObjectBase):
                 if deep=='dict':
-                    v = v.to_dict(deep='dict')
+                    v = v.to_dict(sep=sep, deep='dict')
                 elif deep=='copy':
                     v = v.copy(deep='copy')
             new_key = parent_key + sep + k if parent_key else k
@@ -1625,7 +1625,7 @@ class ToFuObjectBase(object):
         # Call class-specific
         dd = self._to_dict()
         # ---------------------
-        dd['dId'] = self._get_dId()
+        dd['dId'] = self._get_dId(sep=sep)
         dd['dstrip'] = {'dict':self._dstrip, 'lexcept':None}
 
         dout = {}
@@ -1646,7 +1646,7 @@ class ToFuObjectBase(object):
         dout = flatten_dict(dout, parent_key='', sep=sep, deep=deep)
         return dout
 
-    def _get_dId(self):
+    def _get_dId(self, sep=None):
         """ To be overloaded """
         return {'dict':{}}
 
@@ -1875,8 +1875,8 @@ class ToFuObject(ToFuObjectBase):
         """
         return self._Id
 
-    def _get_dId(self):
-        return {'dict':self.Id.to_dict()}
+    def _get_dId(self, sep=None):
+        return {'dict':self.Id.to_dict(sep=sep)}
 
     def _reset(self):
         if hasattr(self,'_Id'):
