@@ -213,23 +213,27 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
     return xi, xj
 
 def calc_braggphi_from_xixj(xi, xj, det_cent, det_ei, det_ej,
-                            summit, nin, e1, e2):
+                            summit, nin, e1, e2, pts=None):
 
-    xi = xi[None, ...]
-    xj = xj[None, ...]
-    if xi.ndim == 1:
-        summit = summit[:, None]
-        det_cent = det_cent[:, None]
-        det_ei, det_ej = det_ei[:, None], det_ej[:, None]
-        nin, e1, e2 = nin[:, None], e1[:, None], e2[:, None]
+    if pts is None:
+        xi = xi[None, ...]
+        xj = xj[None, ...]
+        if xi.ndim == 1:
+            summit = summit[:, None]
+            det_cent = det_cent[:, None]
+            det_ei, det_ej = det_ei[:, None], det_ej[:, None]
+            nin, e1, e2 = nin[:, None], e1[:, None], e2[:, None]
+        else:
+            summit = summit[:, None, None]
+            det_cent = det_cent[:, None, None]
+            det_ei, det_ej = det_ei[:, None, None], det_ej[:, None, None]
+            nin, e1, e2 = nin[:, None, None], e1[:, None, None], e2[:, None, None]
+        pts = det_cent + xi*det_ei + xj*det_ej
     else:
+        assert pts.ndim == 2
+        pts = pts[:, :, None]
         summit = summit[:, None, None]
-        det_cent = det_cent[:, None, None]
-        det_ei, det_ej = det_ei[:, None, None], det_ej[:, None, None]
         nin, e1, e2 = nin[:, None, None], e1[:, None, None], e2[:, None, None]
-
-
-    pts = det_cent + xi*det_ei + xj*det_ej
 
     vect = pts - summit
     vect = vect / np.sqrt(np.sum(vect**2, axis=0))[None, ...]
@@ -250,28 +254,34 @@ def get_lambphifit(lamb, phi, nxi, nxj):
 #           From plasma pts
 # ###############################################
 
-def calc_psidthetaphi_from_pts_lamb(pts, bragg, nlamb, npts, ntheta):
+def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
+                                    bragg, nlamb, npts,
+                                    nout, e1, e2, extenthalf, ntheta=None):
+
+    if ntheta is None:
+        ntheta = 100
 
     scaPCem = np.full((nlamb, npts), np.nan)
-    psi = np.full((nlamb, npts, ntheta), np.nan)
     dtheta = np.full((nlamb, npts, ntheta), np.nan)
-    phi = np.full((nlamb, npts, ntheta), np.nan)
+    psi = np.full((nlamb, npts, ntheta), np.nan)
 
     # Get to scalar product
-    PC = C[:, None] - pts
-    PCnorm2 = np.sum(PC**2, axis=0)**2
+    PC = center[:, None] - pts
+    PCnorm2 = np.sum(PC**2, axis=0)
     cos2 = np.cos(bragg)**2
-    deltaon4 = (R**2*cos2[:, None]**2
-                - (R**2*cos2[:, None]
+    deltaon4 = (rcurve**2*cos2[:, None]**2
+                - (rcurve**2*cos2[:, None]
                    - PCnorm2[None, :]*np.sin(bragg)[:, None]**2))
 
     # Get two relevant solutions
     ind = deltaon4 >= 0.
+    cos2 = np.repeat(cos2[:, None], npts, axis=1)[ind]
     PCnorm = np.tile(np.sqrt(PCnorm2), (nlamb, 1))[ind]
-    sol1 = -R*cos2 - np.sqrt(deltaon4[ind])
-    sol2 = -R*cos2 + np.sqrt(deltaon4[ind])
-    ind1 = (np.abs(sol1) <= PCnorm) & (sol1 >= -R)
-    ind2 = (np.abs(sol2) <= PCnorm) & (sol2 >= -R)
+    sol1 = -rcurve*cos2 - np.sqrt(deltaon4[ind])
+    sol2 = -rcurve*cos2 + np.sqrt(deltaon4[ind])
+    # em is a unit vector and ...
+    ind1 = (np.abs(sol1) <= PCnorm) & (sol1 >= -rcurve)
+    ind2 = (np.abs(sol2) <= PCnorm) & (sol2 >= -rcurve)
     assert not np.any(ind1 & ind2)
     sol1 = sol1[ind1]
     sol2 = sol2[ind2]
@@ -286,11 +296,27 @@ def calc_psidthetaphi_from_pts_lamb(pts, bragg, nlamb, npts, ntheta):
     X = np.sum(PC*nout[:, None], axis=0)
     Y = np.sum(PC*e1[:, None], axis=0)
     Z = np.sum(PC*e2[:, None], axis=0)
-    XYnorm = np.sqrt(X**2 + Y**2)
-    psi = (np.arccos(XYnorm * (scaPCem[ind] - Z*np.sin(dtheta))/np.cos(dtheta))
-           + np.arctan2(Y, X))
-    psi = np.arctan2(np.sin(psi), np.cos(psi))
 
-    dtheta = extenthalf[1]*np.linspace(-1, 1, ntheta)
+    scaPCem = np.repeat(scaPCem[..., None], ntheta, axis=-1)
+    ind = ~np.isnan(scaPCem)
+    XYnorm = np.repeat(np.repeat(np.sqrt(X**2 + Y**2)[None, :],
+                                 nlamb, axis=0)[..., None],
+                       ntheta, axis=-1)[ind]
+    Z = np.repeat(np.repeat(Z[None, :], nlamb, axis=0)[..., None],
+                  ntheta, axis=-1)[ind]
+    angextra = np.repeat(
+        np.repeat(np.arctan2(Y, X)[None, :], nlamb, axis=0)[..., None],
+        ntheta, axis=-1)[ind]
+    dtheta[ind] = np.repeat(
+        np.repeat(extenthalf[1]*np.linspace(-1, 1, ntheta)[None, :],
+                                 npts, axis=0)[None, ...],
+        nlamb, axis=0)[ind]
 
-    return dtheta, psi, phi
+    psi[ind] = (np.arccos((scaPCem[ind]
+                           - Z*np.sin(dtheta[ind]))/(XYnorm*np.cos(dtheta[ind])))
+                + angextra)
+    psi[ind] = np.arctan2(np.sin(psi[ind]), np.cos(psi[ind]))
+    indnan = (~ind) | (np.abs(psi) > extenthalf[0])
+    psi[indnan] = np.nan
+    dtheta[indnan] = np.nan
+    return dtheta, psi, indnan

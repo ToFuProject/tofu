@@ -1161,6 +1161,18 @@ class CrystalBragg(utils.ToFuObject):
         return xi, xj
 
     @staticmethod
+    def _checkformat_pts(pts):
+        pts = np.atleast_1d(pts)
+        if pts.ndim == 1:
+            pts = pts.reshape((3, 1))
+        if 3 not in pts.shape or pts.ndim != 2:
+            msg = "pts must be a (3, npts) array of (X, Y, Z) coordinates!"
+            raise Exception(msg)
+        if pts.shape[0] != 3:
+            pts = pts.T
+        return pts
+
+    @staticmethod
     def _checkformat_xixj(xi, xj):
         xi = np.atleast_1d(xi)
         xj = np.atleast_1d(xj)
@@ -1170,9 +1182,22 @@ class CrystalBragg(utils.ToFuObject):
         else:
             return xi, xj, np.meshgrid(xi, xj)
 
+    @staticmethod
+    def _checkformat_psidtheta(psi=None, dtheta=None,
+                               psi_def=0., dtheta_def=0.):
+        if psi is None:
+            psi = psi_def
+        if dtheta is None:
+            dtheta = dtheta_def
+        psi = np.r_[psi]
+        dtheta = np.r_[dtheta]
+        if psi.size != dtheta.size:
+            msg = "psi and dtheta must be 1d arrays fo same size!"
+            raise Exception(msg)
+
     def calc_phibragg_from_xixj(self, xi, xj, n=None,
                                 det_cent=None, det_ei=None, det_ej=None,
-                                theta=None, psi=None,
+                                dtheta=None, psi=None,
                                 plot=True, ax=None, **kwdargs):
 
         # Check / format inputs
@@ -1185,11 +1210,8 @@ class CrystalBragg(utils.ToFuObject):
                 lamb=self._DEFLAMB)
 
         # Get local summit nout, e1, e2 if non-centered
-        if theta is None:
-            theta = np.pi/2.
-        if psi is None:
-            psi = 0.
-        summit, nout, e1, e2 = self.get_local_noute1e2(theta, psi)
+        psi, dtheta = self._checkformat_psidtheta(psi=psi, dtheta=dtheta)
+        summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
 
         # Compute
         bragg, phi = _comp_optics.calc_braggphi_from_xixj(
@@ -1205,7 +1227,7 @@ class CrystalBragg(utils.ToFuObject):
                 braggunits='deg', angunits='deg', **kwdargs)
         return bragg, phi
 
-    def calc_phibragg_from_pts(self, pts, n=None):
+    def calc_phibragg_from_pts_on_summit(self, pts, n=None):
         """ Return the bragg angle and phi of pts from crystal summit
 
         The pts are provided as a (x, y, z) coordinates array
@@ -1213,13 +1235,7 @@ class CrystalBragg(utils.ToFuObject):
 
         """
         # Check / format inputs
-        pts = np.asarray(pts)
-        assert pts.ndim in [1, 2]
-        assert 3 in pts.shape
-        if pts.ndim == 1:
-            pts = pts[:, None]
-        if pts.shape[0] != 3:
-            pts = pts.T
+        pts = self._checkformat_pts(pts)
 
         # Compute
         vect = pts - self._dgeom['summit'][:, None]
@@ -1366,23 +1382,51 @@ class CrystalBragg(utils.ToFuObject):
                 cmap=cmap, vmin=vmin, vmax=vmax, fs=fs, tit=tit, wintit=wintit)
         return err_lamb, err_phi
 
-    def calc_braggphi_from_pts(self, pts):
+    def calc_phibragg_from_pts(self, pts, dtheta=None, dpsi=None):
+
+        # Check / format pts
+        pts = self._checkformat_pts(pts)
+
+        # Get local summit nout, e1, e2 if non-centered
+        psi, dtheta = self._checkformat_psidtheta(psi=psi, dtheta=dtheta)
+        summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
+
+        # Compute
+        bragg, phi = _comp_optics.calc_braggphi_from_xixj(
+            xii, xjj, det_cent, det_ei, det_ej,
+            summit, -nout, e1, e2)
+
+
+    def get_lamb_avail_from_pts(self, pts):
         pass
 
-    def calc_thetapsi_from_lambpts(self, lamb=None, pts=None):
+
+    def calc_thetapsi_from_lambpts(self, pts=None, lamb=None, n=None,
+                                   ntheta=None):
 
         # Check / Format inputs
-        pts = np.atleast_1d(pts)
-        if pts.ndim == 1:
-            pts = pts.reshape((3, 1))
+        pts = self._checkformat_pts(pts)
         npts = pts.shape[1]
 
+        if lamb is None:
+            lamb = self._DEFLAMB
         lamb = np.r_[lamb]
         nlamb = lamb.size
-        bragg = self
+        bragg = self.get_bragg_from_lamb(lamb, n=n)
 
+        dtheta, psi, indnan = _comp_optics.calc_psidthetaphi_from_pts_lamb(
+            pts, self._dgeom['center'], self._dgeom['rcurve'],
+            bragg, nlamb, npts,
+            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            self._dgeom['extenthalf'], ntheta=ntheta)
 
-        dtheta, psi = _comp_optics.calc_psidthetaphi_from_pts_lamb()
+        import ipdb;    ipdb.set_trace()    # DB
+        bragg = np.repeat(np.repeat(bragg[:, None], npts, axis=-1)[..., None],
+                          ntheta, axis=-1)
+        bragg[indnan] = np.nan
+        phi[ind] = self.calc_braggphi_from_pts(pts,
+                                               dtheta=dtheta[ind],
+                                               dpsi=dpsi[ind])
 
         return dtheta, psi, phi, bragg
 
