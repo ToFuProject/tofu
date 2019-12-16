@@ -2222,7 +2222,7 @@ class MultiIDSLoader(object):
     def to_Config(self, Name=None, occ=None, indDescription=None, plot=True):
         lidsok = ['wall']
         if indDescription is None:
-            indDescription = 0
+            indDescription = 2
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -3978,11 +3978,11 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         raise Exception(msg)
 
     if description_2d is None:
-        if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
+        if nS == 1 and lcls[0] in ['Ves', 'PlasmaDomain']:
             description_2d = 0
         else:
-            descrption_2d = 2
-    assert description_2d in [0,2]
+            description_2d = 2
+    assert description_2d in [0, 2]
 
     # Make sure StructIn is last (IMAS requirement)
     ind = lcls.index(lclsIn[0])

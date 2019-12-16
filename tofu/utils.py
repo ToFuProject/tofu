@@ -639,7 +639,7 @@ def _get_exception(q, ids, qtype='quantity'):
 
 
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   ids=None, Name=None, returnas=None, tlim=None, config=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
@@ -657,14 +657,16 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         raise Exception(msg)
 
     lok = ['Config', 'Plasma2D', 'Cam', 'Data']
-    c0 = out is None or out in lok
+    c0 = returnas is None or returnas in lok
     if not c0:
-        msg = "Arg out must be in %s"%str(lok)
+        msg = "Arg returnas must be in %s"%str(lok)
         raise Exception(msg)
 
     # -------------------
     # Prepare ids
-    assert ids is None or type(ids) in [list,str]
+    if type(ids) not in [list, str]:
+        msg = "Please specify an ids to load data from!"
+        raise Exception(msg)
     if type(ids) is str:
         ids = [ids]
     if type(ids) is list:
@@ -826,17 +828,17 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
     # -------------------
-    # Prepare out
-    loutok = ['Config','Plasma2D','Cam','Data']
-    c0 = out is None
-    c1 = out in loutok
-    c2 = type(out) is list and all([oo is None or oo in loutok
-                                    for oo in out])
+    # Prepare returnas
+    loutok = ['Config', 'Plasma2D', 'Cam', 'Data']
+    c0 = returnas is None
+    c1 = returnas in loutok
+    c2 = type(returnas) is list and all([oo is None or oo in loutok
+                                         for oo in returnas])
     assert c0 or c1 or c2
     if c0:
-        out = [None for _ in ids]
+        returnas = [None for _ in ids]
     elif c1:
-        out = [str(out) for _ in ids]
+        returnas = [str(returnas) for _ in ids]
 
     # Temporary caveat
     if nids > 1:
@@ -852,35 +854,35 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         # Config
         if ids[ii] == 'wall':
-            assert out[ii] in [None,'Config']
-            out[ii] = 'Config'
-        if out[ii] == 'Config':
+            assert returnas[ii] in [None,'Config']
+            returnas[ii] = 'Config'
+        if returnas[ii] == 'Config':
             assert ids[ii] in [None,'wall']
 
         # Plasma2D
         lids = imas2tofu.MultiIDSLoader._lidsplasma
         if ids[ii] in lids:
-            assert out[ii] in [None,'Plasma2D']
-            out[ii] = 'Plasma2D'
-        if out[ii] == 'Plasma2D':
+            assert returnas[ii] in [None,'Plasma2D']
+            returnas[ii] = 'Plasma2D'
+        if returnas[ii] == 'Plasma2D':
             assert ids[ii] in lids
 
         # Cam or Data
         lids = imas2tofu.MultiIDSLoader._lidsdiag
         if ids[ii] in lids:
-            assert out[ii] in [None,'Cam','Data']
-            if out[ii] is None:
-                out[ii] = 'Data'
-        if out[ii] in ['Cam','Data']:
+            assert returnas[ii] in [None,'Cam','Data']
+            if returnas[ii] is None:
+                returnas[ii] = 'Data'
+        if returnas[ii] in ['Cam','Data']:
             assert ids[ii] in lids
 
-    dout = {shot[jj]: {oo:[] for oo in set(out)} for jj in range(0,nshot)}
+    dout = {shot[jj]: {oo:[] for oo in set(returnas)} for jj in range(0,nshot)}
 
     # -------------------
     # Prepare plot_ and complement ids
-    lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
-    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
-    lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
+    lPla = [ii for ii in range(0,nids) if returnas[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if returnas[ii] == 'Cam']
+    lDat = [ii for ii in range(0,nids) if returnas[ii] == 'Data']
     nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
     if nDat > 1:
         plot_ = False
@@ -960,23 +962,23 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         # export to instances
         for ii in range(0,nids):
-            if out[ii] == 'Config':
+            if returnas[ii] == 'Config':
                 dout[ss]['Config'].append(multi.to_Config(Name=Name, occ=occ,
                                                           indDescription=indDescription,
                                                           plot=False))
 
-            elif out[ii] == 'Plasma2D':
+            elif returnas[ii] == 'Plasma2D':
                 dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
                                                               tlim=tlim, dsig=dsig, t0=t0,
                                                               plot=False, plot_sig=plot_sig,
                                                               dextra=dextra, plot_X=plot_X,
                                                               config=config,
                                                               bck=bck))
-            elif out[ii] == 'Cam':
+            elif returnas[ii] == 'Cam':
                 dout[ss]['Cam'].append(multi.to_Cam(Name=Name, occ=occ,
                                                     ids=lids[ii], indch=indch, config=config,
                                                     plot=False))
-            elif out[ii] == "Data":
+            elif returnas[ii] == "Data":
                 dout[ss]['Data'].append(multi.to_Data(Name=Name, occ=occ,
                                                       ids=lids[ii], tlim=tlim, dsig=dsig,
                                                       config=config, data=data, X=X, indch=indch,
@@ -990,7 +992,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         # Config & Cam
         for ss in shot:
-            for k0 in set(['Config','Cam']).intersection(out):
+            for k0 in set(['Config', 'Cam']).intersection(returnas):
                 for ii in range(0, len(dout[ss][k0])):
                     dout[ss][k0][ii].plot()
 
@@ -1020,7 +1022,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         dout = dout[shot[0]]['Data'][0]
     elif nshot == 1 and nPla == 1:
         dout = dout[shot[0]]['Plasma2D'][0]
-    return out
+    return dout
 
 
 
