@@ -320,7 +320,15 @@ def save(obj, path=None, name=None, sep=None, deep=False, mode='npz',
     # Get stripped dictionnary
     deep = 'dict' if deep else 'ref'
     if sep is None:
-        sep = _SEP
+        if mode == 'mat':
+            sep = '_'
+        else:
+            sep = _SEP
+    if mode == 'mat' and sep == '.':
+        msg = ("sep='.' cannot be used when mode='mat' (incompatible)\n"
+               + "Matlab would interpret variables as structures")
+        raise Exception(msg)
+
     dd = obj.to_dict(strip=strip, sep=sep, deep=deep)
 
     pathfileext = os.path.join(path,name+'.'+mode)
