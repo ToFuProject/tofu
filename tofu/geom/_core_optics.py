@@ -1195,6 +1195,7 @@ class CrystalBragg(utils.ToFuObject):
             msg = "psi and dtheta must be 1d arrays fo same size!"
             raise Exception(msg)
 
+
     def calc_phibragg_from_xixj(self, xi, xj, n=None,
                                 det_cent=None, det_ei=None, det_ej=None,
                                 dtheta=None, psi=None,
@@ -1210,13 +1211,7 @@ class CrystalBragg(utils.ToFuObject):
                 lamb=self._DEFLAMB)
 
         # Get local summit nout, e1, e2 if non-centered
-        psi, dtheta = self._checkformat_psidtheta(psi=psi, dtheta=dtheta)
-        summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
-
-        # Compute
-        bragg, phi = _comp_optics.calc_braggphi_from_xixj(
-            xii, xjj, det_cent, det_ei, det_ej,
-            summit, -nout, e1, e2)
+        bragg, phi = self.calc_phibragg_from_pts(pts)
 
         if plot != False:
             lax = _plot_optics.CrystalBragg_plot_braggangle_from_xixj(
@@ -1227,6 +1222,8 @@ class CrystalBragg(utils.ToFuObject):
                 braggunits='deg', angunits='deg', **kwdargs)
         return bragg, phi
 
+
+    # DEPRECATED ???
     def calc_phibragg_from_pts_on_summit(self, pts, n=None):
         """ Return the bragg angle and phi of pts from crystal summit
 
@@ -1392,9 +1389,10 @@ class CrystalBragg(utils.ToFuObject):
         summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
 
         # Compute
-        bragg, phi = _comp_optics.calc_braggphi_from_xixj(
-            xii, xjj, det_cent, det_ei, det_ej,
-            summit, -nout, e1, e2)
+        bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
+            det_cent, det_ei, det_ej,
+            summit, -nout, e1, e2, pts=pts)
+        return phi, bragg
 
 
     def get_lamb_avail_from_pts(self, pts):

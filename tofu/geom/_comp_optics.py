@@ -212,8 +212,9 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
     xj = np.sum((pts - det_cent[:, None])*det_ej[:, None], axis=0)
     return xi, xj
 
-def calc_braggphi_from_xixj(xi, xj, det_cent, det_ei, det_ej,
-                            summit, nin, e1, e2, pts=None):
+def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
+                               summit, nin, e1, e2,
+                               xi=None, xj=None, pts=None):
 
     if pts is None:
         xi = xi[None, ...]
