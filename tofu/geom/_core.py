@@ -4141,6 +4141,11 @@ class Rays(utils.ToFuObject):
                         pinhole = dgeom['D'][:, 0] + k[0]*u[:, 0]
                         dgeom['pinhole'] = pinhole
 
+            if np.any(np.isnan(dgeom['D'])):
+                msg = ("Some LOS have nan as starting point !\n"
+                       + "The geometry may not be provided !")
+                raise Exception(msg)
+
             # Test if all D are on a common plane or line
             va = dgeom["D"] - dgeom["D"][:, 0:1]
 
@@ -4208,9 +4213,6 @@ class Rays(utils.ToFuObject):
                     if dgeom["dX12"] is None:
                         dgeom["dX12"] = {}
                     dgeom["dX12"].update({"nIn": nIn, "e1": e1, "e2": e2})
-
-                    if not self._is2D():
-                        return dgeom
 
                     # Test binning
                     if dgeom["pinhole"] is not None:

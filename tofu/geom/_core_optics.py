@@ -13,6 +13,7 @@ import copy
 
 # Common
 import numpy as np
+import scipy.interpolate as scpinterp
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -292,17 +293,17 @@ class CrystalBragg(utils.ToFuObject):
         assert all([ss in lkok for ss in dmat.keys()])
         for kk in cls._ddef['dmat'].keys():
             dmat[kk] = dmat.get(kk, cls._ddef['dmat'][kk])
-        if dmat['d'] is not None:
+        if dmat.get('d') is not None:
             dmat['d'] = float(dmat['d'])
-        if dmat['formula'] is not None:
+        if dmat.get('formula') is not None:
             assert isinstance(dmat['formula'], str)
-        if dmat['density'] is not None:
+        if dmat.get('density') is not None:
             dmat['density'] = float(dmat['density'])
-        if dmat['lengths'] is not None:
+        if dmat.get('lengths') is not None:
             dmat['lengths'] = np.atleast_1d(dmat['lengths']).ravel()
-        if dmat['angles'] is not None:
+        if dmat.get('angles') is not None:
             dmat['angles'] = np.atleast_1d(dmat['angles']).ravel()
-        if dmat['cut'] is not None:
+        if dmat.get('cut') is not None:
             dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
             assert dmat['cut'].size <= 4
         return dmat
@@ -312,12 +313,69 @@ class CrystalBragg(utils.ToFuObject):
         if dbragg is None:
             return
         assert isinstance(dbragg, dict)
-        lkok = ['angle']
+        lkok = cls._get_keys_dbragg()
         assert all([isinstance(ss, str) for ss in dbragg.keys()])
         assert all([ss in lkok for ss in dbragg.keys()])
 
         for kk in cls._ddef['dbragg'].keys():
             dbragg[kk] = dbragg.get(kk, cls._ddef['dbragg'][kk])
+        if dbragg.get('rockingcurve') is not None:
+            assert isinstance(dbragg['rockingcurve'], dict)
+            drock = dbragg['rockingcurve']
+            lkeyok = ['sigam', 'deltad', 'Rmax', 'dangle', 'lamb', 'value',
+                      'type', 'source']
+            lkout = [kk for kk in drock.keys() if kk not in lkeyok]
+            if len(lkout) > 0:
+                msg = ("Unauthorized keys in dbrag['rockingcurve']:\n"
+                       + "\t-" + "\n\t-".join(lkout))
+                raise Exception(msg)
+            try:
+                if drock.get('sigma') is not None:
+                    dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
+                    dbragg['rockingcurve']['deltad'] = float(
+                        drock.get('deltad', 0.))
+                    dbragg['rockingcurve']['Rmax'] = float(
+                        drock.get('Rmax', 1.))
+                    dbragg['rockingcurve']['type'] = 'lorentz-log'
+                elif drock.get('dangle') is not None:
+                    c2d = (drock.get('lamb') is not None
+                           and drock.get('value').ndim == 2)
+                    if c2d:
+                        if drock['value'].shape != (drock['dangle'].size,
+                                                    drock['lamb'].size):
+                            msg = ("Tabulated 2d rocking curve should be:\n"
+                                   + "\tshape = (dangle.size, lamb.size)")
+                            raise Exception(msg)
+                        dbragg['rockingcurve']['dangle'] = np.r_[
+                            drock['dangle']]
+                        dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
+                        dbragg['rockingcurve']['value'] = drock['value']
+                        dbragg['rockingcurve']['type'] = 'tabulated-2d'
+                    else:
+                        if drock.get('lamb') is None:
+                            msg = ("Please also specify the lamb for which "
+                                   + "the rocking curve was tabulated!")
+                            raise Exception(msg)
+                        dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
+                        dbragg['rockingcurve']['dangle'] = np.r_[
+                            drock['dangle']]
+                        dbragg['rockingcurve']['value'] = np.r_[drock['value']]
+                        dbragg['rockingcurve']['type'] = 'tabulated-1d'
+                    if drock.get('source') is None:
+                        msg = "Unknonw source for the tabulated rocking curve!"
+                        warnings.warn(msg)
+                    dbragg['rockingcurve']['source'] = drock.get('source')
+            except Exception as err:
+                msg = ("Provide the rocking curve as a dict with either:\n"
+                       + "\t- parameters of a lorentzian in log10:\n"
+                       + "\t\t{'sigma': float,\n"
+                       + "\t\t 'deltad': float,\n"
+                       + "\t\t 'Rmax': float}\n"
+                       + "\t- tabulated (dangle, value), with source (url...)"
+                       + "\t\t{'dangle': np.ndarray,\n"
+                       + "\t\t 'value': np.ndarray,\n"
+                       + "\t\t 'source': str}")
+                raise Exception(msg)
         return dbragg
 
     @classmethod
@@ -404,7 +462,7 @@ class CrystalBragg(utils.ToFuObject):
         dmat = self._checkformat_dmat(dmat)
         self._dmat = dmat
 
-    def _set_dbragg(self, dbragg=None):
+    def set_dbragg(self, dbragg=None):
         dbragg = self._checkformat_dbragg(dbragg)
         self._dbragg = dbragg
 
@@ -570,6 +628,13 @@ class CrystalBragg(utils.ToFuObject):
     def center(self):
         return self._dgeom['center']
 
+    @property
+    def rockingcurve(self):
+        if self._dbragg.get('rockingcurve') is not None:
+            if self._dbragg['rockingcurve'].get('type') is not None:
+                return self._dbragg['rockingcurve']
+        raise Exception("rockingcurve was not set!")
+
     # -----------------
     # methods for color
     # -----------------
@@ -591,11 +656,17 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Build material
         col0 = ['formula', 'symmetry', 'cut', 'density',
-                'd (A)', 'bragg(%s A) (deg)'%str(self._DEFLAMB)]
+                'd (A)', 'bragg({:7.4} A) (deg)'.format(self._DEFLAMB*1e10),
+                'rocking curve']
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
                '{0:5.3f}'.format(self._dmat['d']*1.e10),
                str(self.get_bragg_from_lamb(self._DEFLAMB)[0]*180./np.pi)]
+        try:
+            ar0.append(self.rockingcurve['type'])
+        except Exception as err:
+            ar0.append('None')
+
 
         # -----------------------
         # Build geometry
@@ -693,6 +764,54 @@ class CrystalBragg(utils.ToFuObject):
             self._rotate(**kwdargs)
 
     # -----------------
+    # methods for rocking curve
+    # -----------------
+
+    def get_rockingcurve_func(self, lamb=None, n=None):
+        drock = self.rockingcurve
+        if drock['type'] == 'tabulated-1d':
+            if lamb is not None and lamb != drock['lamb']:
+                msg = ("rocking curve was tabulated only for:\n"
+                       + "\tlamb = {} m\n".format(lamb)
+                       + "  => Please let lamb=None")
+                raise Exception(msg)
+            bragg = self._checkformat_bragglamb(lamb=drock['lamb'], n=n)
+            func = scpinterp.interp1d(drock['dangle']+bragg, drock['value'],
+                                      kind='linear', bounds_error=False,
+                                      fill_value=0, assume_sorted=True)
+
+        elif drock['type'] == 'tabulated-2d':
+            lmin, lmax = drock['lamb'].min(), drock['lamb'].max()
+            if lamb is None or lamb < lmin or lamb > lmax:
+                msg = ("rocking curve was tabulated only in interval:\n"
+                       + "\tlamb in [{}; {}] m\n".format(lmin, lmax)
+                       + "  => Please set lamb accordingly")
+                raise Exception(msg)
+            bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+
+            def func(angle, lamb=lamb, bragg=bragg, drock=drock):
+                return scpinterp.interp2d(drock['dangle']+bragg, drock['lamb'],
+                                          drock['value'], kind='linear',
+                                          bounds_error=False, fill_value=0,
+                                          assume_sorted=True)(angle, lamb)
+
+        else:
+            def func(angle, d=d, delta_bragg=delta_bragg,
+                     Rmax=drock['Rmax'], sigma=drock['sigma']):
+                core = sigma**2/((angle - (bragg+delta_bragg))**2 + sigma**2)
+                if Rmax is None:
+                    return core/(sigma*np.pi)
+                else:
+                    return Rmax*core
+        return func
+
+    def plot_rockingcurve(self, lamb=None,
+                          fs=None, ax=None):
+        drock = self.rockingcurve
+        func = self.get_rockingcurve_func(bragg=bragg, n=n)
+        return _plot.CrystalBragg_plot_rockingcurve(func, fs=fs, ax=ax)
+
+    # -----------------
     # methods for surface and contour sampling
     # -----------------
 
@@ -729,6 +848,9 @@ class CrystalBragg(utils.ToFuObject):
 
     def _checkformat_bragglamb(self, bragg=None, lamb=None, n=None):
         lc = [lamb is not None, bragg is not None]
+        if not any(lc):
+            lamb = self._DEFLAMB
+            lc[0] = True
         assert np.sum(lc) == 1, "Provide lamb xor bragg!"
         if lc[0]:
             bragg = self.get_bragg_from_lamb(np.atleast_1d(lamb),
@@ -821,7 +943,8 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
 
     def plot(self, lax=None, proj=None, res=None, element=None,
-             color=None,
+             color=None, det_cent=None,
+             det_nout=None, det_ei=None, det_ej=None,
              dP=None, dI=None, dBs=None, dBv=None,
              dVect=None, dIHor=None, dBsHor=None,
              dBvHor=None, dleg=None,
@@ -835,6 +958,19 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
     # methods for generic first-approx
     # -----------------
+
+    def get_phi_from_magaxis_summit(self, r, z, lamb=None, bragg=None, n=None):
+        # Check / format input
+        r = np.atleast_1d(r)
+        z = np.atleast_1d(z)
+        assert r.shape == z.shape
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+
+        # Compute phi
+
+        return phi
+
+
 
     def get_bragg_from_lamb(self, lamb, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
@@ -854,27 +990,66 @@ class CrystalBragg(utils.ToFuObject):
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
 
-    def get_approx_detector_frame(self, bragg=None, lamb=None,
-                                  rcurve=None, n=None, plot=False):
-        """ See notes for details on notations """
+    def get_detector_approx(self, bragg=None, lamb=None,
+                            rcurve=None, n=None,
+                            ddist=None, di=None, dj=None,
+                            dtheta=None, dpsi=None, tilt=None,
+                            tangent_to_rowland=None, plot=False):
+        """ Return approximate ideal detector geometry
+
+        Assumes infinitesimal and ideal crystal
+        Assumes detector center tangential to Rowland circle
+        Assumes detector center matching lamb (m) / bragg (rad)
+
+        Detector described by center position, and (nout, ei, ej) unit vectors
+        By convention, nout = np.cross(ei, ej)
+        Vectors (ei, ej) define an orthogonal frame in the detector's plane
+
+        Return:
+        -------
+        det_cent:   np.ndarray
+            (3,) array of (x, y, z) coordinates of detector center
+        det_nout:   np.ndarray
+            (3,) array of (x, y, z) coordinates of unit vector
+                perpendicular to detector' surface
+                oriented towards crystal
+        det_ei:     np.ndarray
+            (3,) array of (x, y, z) coordinates of unit vector
+                defining first coordinate in detector's plane
+        det_ej:     np.ndarray
+            (3,) array of (x, y, z) coordinates of unit vector
+                defining second coordinate in detector's plane
+        """
 
         # Check / format inputs
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        if np.all(np.isnan(bragg)):
+            msg = ("There is no available bragg angle!\n"
+                   + "  => Check the vlue of self.dmat['d'] vs lamb")
+            raise Exception(msg)
+
+        lf = ['summit', 'nout', 'e1', 'e2']
+        lc = [rcurve is None] + [self._dgeom[kk] is None for kk in lf]
+        if any(lc):
+            msg = ("Some missing fields in dgeom for computation:"
+                   + "\n\t-" + "\n\t-".join(['rcurve'] + lf))
+            raise Exception(msg)
 
         # Compute crystal-centered parameters in (nout, e1, e2)
         func = _comp_optics.get_approx_detector_rel
-        det_dist, det_nout_rel, det_ei_rel = func(rcurve, bragg)
+        (det_dist, n_crystdet_rel,
+         det_nout_rel, det_ei_rel) = _comp_optics.get_approx_detector_rel(
+            rcurve, bragg, tangent_to_rowland=tangent_to_rowland)
 
         # Deduce absolute position in (x, y, z)
-        func = _comp_optics.get_det_abs_from_rel
-        det_cent, det_nout, det_ei, det_ej = func(det_dist,
-                                                  det_nout_rel, det_ei_rel,
-                                                  self._dgeom['summit'],
-                                                  self._dgeom['nout'],
-                                                  self._dgeom['e1'],
-                                                  self._dgeom['e2'])
+        det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
+            det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
+            self._dgeom['summit'],
+            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            ddist=ddist, di=di, dj=dj,
+            dtheta=dtheta, dpsi=dpsi, tilt=tilt)
 
         if plot:
             dax = self.plot()
@@ -891,6 +1066,31 @@ class CrystalBragg(utils.ToFuObject):
         return det_cent, det_nout, det_ei, det_ej
 
     def get_local_noute1e2(self, theta, psi):
+        """ Return (nout, e1, e2) associated to pts on the crystal's surface
+
+        All points on the spherical crystal's surface are identified
+            by (theta, psi) coordinates, where:
+                - theta  = np.pi/2 for the center
+                - psi = 0 for the center
+            They are the spherical coordinates from a sphere centered on the
+            crystal's center of curvature.
+
+        Return the pts themselves and the 3 perpendicular unti vectors
+            (nout, e1, e2), where nout is towards the outside of the sphere and
+            nout = np.cross(e1, e2)
+
+        Return:
+        -------
+        summit:     np.ndarray
+            (3,) array of (x, y, z) coordinates of the points on the surface
+        nout:       np.ndarray
+            (3,) array of (x, y, z) coordinates of outward unit vector
+        e1:         np.ndarray
+            (3,) array of (x, y, z) coordinates of first unit vector
+        e2:         np.ndarray
+            (3,) array of (x, y, z) coordinates of second unit vector
+
+        """
         if np.allclose([theta, psi], [np.pi/2., 0.]):
             summit = self._dgeom['summit']
             nout = self._dgeom['nout']
@@ -946,7 +1146,7 @@ class CrystalBragg(utils.ToFuObject):
               det_ei is None, det_ej is None]
         assert all(lc) or not any(lc)
         if all(lc):
-            func = self.get_approx_detector_frame
+            func = self.get_detector_approx
             det_cent, det_nout, det_ei, det_ej = func(lamb=self._DEFLAMB)
 
         # Get local summit nout, e1, e2 if non-centered
@@ -968,17 +1168,44 @@ class CrystalBragg(utils.ToFuObject):
         return xi, xj
 
     @staticmethod
+    def _checkformat_pts(pts):
+        pts = np.atleast_1d(pts)
+        if pts.ndim == 1:
+            pts = pts.reshape((3, 1))
+        if 3 not in pts.shape or pts.ndim != 2:
+            msg = "pts must be a (3, npts) array of (X, Y, Z) coordinates!"
+            raise Exception(msg)
+        if pts.shape[0] != 3:
+            pts = pts.T
+        return pts
+
+    @staticmethod
     def _checkformat_xixj(xi, xj):
         xi = np.atleast_1d(xi)
         xj = np.atleast_1d(xj)
+
         if xi.shape == xj.shape:
             return xi, xj, (xi, xj)
         else:
             return xi, xj, np.meshgrid(xi, xj)
 
+    @staticmethod
+    def _checkformat_psidtheta(psi=None, dtheta=None,
+                               psi_def=0., dtheta_def=0.):
+        if psi is None:
+            psi = psi_def
+        if dtheta is None:
+            dtheta = dtheta_def
+        psi = np.r_[psi]
+        dtheta = np.r_[dtheta]
+        if psi.size != dtheta.size:
+            msg = "psi and dtheta must be 1d arrays fo same size!"
+            raise Exception(msg)
+
+
     def calc_phibragg_from_xixj(self, xi, xj, n=None,
                                 det_cent=None, det_ei=None, det_ej=None,
-                                theta=None, psi=None,
+                                dtheta=None, psi=None,
                                 plot=True, ax=None, **kwdargs):
 
         # Check / format inputs
@@ -987,38 +1214,309 @@ class CrystalBragg(utils.ToFuObject):
         lc = [det_cent is None, det_ei is None, det_ej is None]
         assert all(lc) or not any(lc)
         if all(lc):
-            func = self.get_approx_detector_frame
-            det_cent, _, det_ei, det_ej = func(lamb=self._DEFLAMB)
+            det_cent, _, det_ei, det_ej = self.get_detector_approx(
+                lamb=self._DEFLAMB)
 
         # Get local summit nout, e1, e2 if non-centered
-        if theta is None:
-            theta = np.pi/2.
-        if psi is None:
-            psi = 0.
-        summit, nout, e1, e2 = self.get_local_noute1e2(theta, psi)
-
-        # Compute
-        func = _comp_optics.calc_braggphi_from_xixj
-        bragg, phi = func(xii, xjj, det_cent, det_ei, det_ej,
-                          summit, -nout, e1, e2)
+        bragg, phi = self.calc_phibragg_from_pts(pts)
 
         if plot != False:
-            func = _plot_optics.CrystalBragg_plot_braggangle_from_xixj
-            lax = func(xi=xii, xj=xjj,
-                       ax=ax, plot=plot,
-                       bragg=bragg * 180./np.pi,
-                       angle=phi * 180./np.pi,
-                       braggunits='deg', angunits='deg', **kwdargs)
+            lax = _plot_optics.CrystalBragg_plot_braggangle_from_xixj(
+                xi=xii, xj=xjj,
+                ax=ax, plot=plot,
+                bragg=bragg * 180./np.pi,
+                angle=phi * 180./np.pi,
+                braggunits='deg', angunits='deg', **kwdargs)
         return bragg, phi
 
-    def plot_johannerror(self, lamb=None):
-        raise NotImplementedError
+    # DEPRECATED ???
+    def calc_phibragg_from_pts_on_summit(self, pts, n=None):
+        """ Return the bragg angle and phi of pts from crystal summit
 
-    def plot_data_vs_lambphi(self, xi=None, xj=None, data=None,
-                            det_cent=None, det_ei=None, det_ej=None,
-                            theta=None, psi=None, n=None,
-                            plot=True, fs=None,
-                            cmap=None, vmin=None, vmax=None):
+        The pts are provided as a (x, y, z) coordinates array
+        The bragg angle and phi are computed from the crystal's summit
+
+        """
+        # Check / format inputs
+        pts = self._checkformat_pts(pts)
+
+        # Compute
+        vect = pts - self._dgeom['summit'][:, None]
+        vect = vect / np.sqrt(np.sum(vect**2, axis=0))
+        bragg = np.pi/2 - np.arccos(np.sum(vect*self._dgeom['nin'][:, None],
+                                           axis=0))
+        v1 = np.sum(vect*self._dgeom['e1'][:, None], axis=0)
+        v2 = np.sum(vect*self._dgeom['e2'][:, None], axis=0)
+        phi = np.arctan2(v2, v1)
+        return bragg, phi
+
+    def plot_line_tracing_on_det(self, lamb=None, n=None,
+                                 xi_bounds=None, xj_bounds=None, nphi=None,
+                                 det_cent=None, det_nout=None,
+                                 det_ei=None, det_ej=None,
+                                 johann=False, lpsi=None, ltheta=None,
+                                 rocking=False, fs=None, dmargin=None,
+                                 wintit=None, tit=None):
+        """ Visualize the de-focusing by ray-tracing of chosen lamb
+        """
+        # Check / format inputs
+        if lamb is None:
+            lamb = self._DEFLAMB
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+
+        det = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
+                         xi_bounds[0], xi_bounds[0]],
+                        [xj_bounds[0], xj_bounds[0], xj_bounds[1],
+                         xj_bounds[1], xj_bounds[0]]])
+
+        # Compute lamb / phi
+        _, phi = self.calc_phibragg_from_xixj(
+            det[0, :], det[1, :], n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=None, psi=None, plot=False)
+        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+        phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
+        del phi
+
+        # Get reference ray-tracing
+        if nphi is None:
+            nphi = 300
+        phi = np.linspace(phimin, phimax, nphi)
+        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+
+        xi = np.full((nlamb, nphi), np.nan)
+        xj = np.full((nlamb, nphi), np.nan)
+        for ll in range(nlamb):
+            xi[ll, :], xj[ll, :] = self.calc_xixj_from_phibragg(
+                bragg=bragg[ll], phi=phi, n=n,
+                det_cent=det_cent, det_nout=det_nout,
+                det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get johann-error raytracing (multiple positions on crystal)
+        xi_er, xj_er = None, None
+        if johann and not rocking:
+            if lpsi is None or ltheta is None:
+                lpsi = np.linspace(-1., 1., 15)
+                ltheta = np.linspace(-1., 1., 15)
+                lpsi, ltheta = np.meshgrid(lpsi, ltheta)
+                lpsi = lpsi.ravel()
+                ltheta = ltheta.ravel()
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+            npsi = lpsi.size
+            assert npsi == ltheta.size
+
+            xi_er = np.full((nlamb, npsi*nphi), np.nan)
+            xj_er = np.full((nlamb, npsi*nphi), np.nan)
+            for l in range(nlamb):
+                for ii in range(npsi):
+                    i0 = np.arange(ii*nphi, (ii+1)*nphi)
+                    xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_phibragg(
+                        phi=phi, bragg=bragg[l], lamb=None, n=n,
+                        theta=ltheta[ii], psi=lpsi[ii],
+                        det_cent=det_cent, det_nout=det_nout,
+                        det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get rocking curve error
+        if rocking:
+            pass
+
+        # Plot
+        ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+            lamb, xi, xj, xi_er, xj_er, det=det,
+            johann=johann, rocking=rocking,
+            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
+
+    def calc_johannerror(self, xi=None, xj=None, err=None,
+                         det_cent=None, det_ei=None, det_ej=None, n=None,
+                         lpsi=None, ltheta=None,
+                         plot=True, fs=None, cmap=None,
+                         vmin=None, vmax=None, tit=None, wintit=None):
+        """ Plot the johann error
+
+        The johann error is the error (scattering) induced by defocalization
+            due to finite crystal dimensions
+        There is a johann error on wavelength (lamb => loss of spectral
+            resolution) and on directionality (phi)
+        If provided, lpsi and ltheta are taken as normalized variations with
+            respect to the crystal summit and to its extenthalf.
+            Typical values are:
+                - lpsi   = [-1, 1, 1, -1]
+                - ltheta = [-1, -1, 1, 1]
+            They must have the same len()
+
+        """
+
+        # Check / format inputs
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=None, psi=None, plot=False)
+        assert bragg.shape == phi.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        if lpsi is None:
+            lpsi = np.r_[-1., 0., 1., 1., 1., 0., -1, -1]
+        lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+        if ltheta is None:
+            ltheta = np.r_[-1., -1., -1., 0., 1., 1., 1., 0.]
+        ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+        npsi = lpsi.size
+        assert npsi == ltheta.size
+        lamberr = np.full(tuple(np.r_[npsi, lamb.shape]), np.nan)
+        phierr = np.full(lamberr.shape, np.nan)
+        for ii in range(npsi):
+            bragg, phierr[ii, ...] = self.calc_phibragg_from_xixj(
+                xii, xjj, n=n,
+                det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+                theta=ltheta[ii], psi=lpsi[ii], plot=False)
+            lamberr[ii, ...] = self.get_lamb_from_bragg(bragg, n=n)
+        err_lamb = np.nanmax(np.abs(lamb[None, ...] - lamberr), axis=0)
+        err_phi = np.nanmax(np.abs(phi[None, ...] - phierr), axis=0)
+        if plot is True:
+            ax = _plot_optics.CrystalBragg_plot_johannerror(
+                xi, xj, lamb, phi, err_lamb, err_phi, err=err,
+                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs, tit=tit, wintit=wintit)
+        return err_lamb, err_phi
+
+    def calc_phibragg_from_pts(self, pts, dtheta=None, dpsi=None):
+
+        # Check / format pts
+        pts = self._checkformat_pts(pts)
+
+        # Get local summit nout, e1, e2 if non-centered
+        psi, dtheta = self._checkformat_psidtheta(psi=psi, dtheta=dtheta)
+        summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
+
+        # Compute
+        bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
+            det_cent, det_ei, det_ej,
+            summit, -nout, e1, e2, pts=pts)
+        return phi, bragg
+
+    def get_lamb_avail_from_pts(self, pts):
+        pass
+
+    def calc_thetapsi_from_lambpts(self, pts=None, lamb=None, n=None,
+                                   ntheta=None):
+
+        # Check / Format inputs
+        pts = self._checkformat_pts(pts)
+        npts = pts.shape[1]
+
+        if lamb is None:
+            lamb = self._DEFLAMB
+        lamb = np.r_[lamb]
+        nlamb = lamb.size
+        bragg = self.get_bragg_from_lamb(lamb, n=n)
+
+        dtheta, psi, indnan = _comp_optics.calc_psidthetaphi_from_pts_lamb(
+            pts, self._dgeom['center'], self._dgeom['rcurve'],
+            bragg, nlamb, npts,
+            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            self._dgeom['extenthalf'], ntheta=ntheta)
+
+        # import ipdb;    ipdb.set_trace()    # DB
+        bragg = np.repeat(np.repeat(bragg[:, None], npts, axis=-1)[..., None],
+                          ntheta, axis=-1)
+        bragg[indnan] = np.nan
+        phi[ind] = self.calc_braggphi_from_pts(pts,
+                                               dtheta=dtheta[ind],
+                                               dpsi=dpsi[ind])
+
+        return dtheta, psi, phi, bragg
+
+    def plot_line_from_pts_on_det(self, lamb=None, pts=None,
+                                  xi_bounds=None, xj_bounds=None, nphi=None,
+                                  det_cent=None, det_nout=None,
+                                  det_ei=None, det_ej=None,
+                                  johann=False, lpsi=None, ltheta=None,
+                                  rocking=False, fs=None, dmargin=None,
+                                  wintit=None, tit=None):
+        """ Visualize the de-focusing by ray-tracing of chosen lamb
+        """
+        # Check / format inputs
+        if lamb is None:
+            lamb = self._DEFLAMB
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+
+        det = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
+                         xi_bounds[0], xi_bounds[0]],
+                        [xj_bounds[0], xj_bounds[0], xj_bounds[1],
+                         xj_bounds[1], xj_bounds[0]]])
+
+        # Compute lamb / phi
+        _, phi = self.calc_phibragg_from_xixj(
+            det[0, :], det[1, :], n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=None, psi=None, plot=False)
+        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+        phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
+        del phi
+
+        # Get reference ray-tracing
+        if nphi is None:
+            nphi = 300
+        phi = np.linspace(phimin, phimax, nphi)
+        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+
+        xi = np.full((nlamb, nphi), np.nan)
+        xj = np.full((nlamb, nphi), np.nan)
+        for ll in range(nlamb):
+            xi[ll, :], xj[ll, :] = self.calc_xixj_from_phibragg(
+                bragg=bragg[ll], phi=phi, n=n,
+                det_cent=det_cent, det_nout=det_nout,
+                det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get johann-error raytracing (multiple positions on crystal)
+        xi_er, xj_er = None, None
+        if johann and not rocking:
+            if lpsi is None or ltheta is None:
+                lpsi = np.linspace(-1., 1., 15)
+                ltheta = np.linspace(-1., 1., 15)
+                lpsi, ltheta = np.meshgrid(lpsi, ltheta)
+                lpsi = lpsi.ravel()
+                ltheta = ltheta.ravel()
+            lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
+            ltheta = np.pi/2 + self._dgeom['extenthalf'][1]*np.r_[ltheta]
+            npsi = lpsi.size
+            assert npsi == ltheta.size
+
+            xi_er = np.full((nlamb, npsi*nphi), np.nan)
+            xj_er = np.full((nlamb, npsi*nphi), np.nan)
+            for l in range(nlamb):
+                for ii in range(npsi):
+                    i0 = np.arange(ii*nphi, (ii+1)*nphi)
+                    xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_phibragg(
+                        phi=phi, bragg=bragg[l], lamb=None, n=n,
+                        theta=ltheta[ii], psi=lpsi[ii],
+                        det_cent=det_cent, det_nout=det_nout,
+                        det_ei=det_ei, det_ej=det_ej, plot=False)
+
+        # Get rocking curve error
+        if rocking:
+            pass
+
+        # Plot
+        ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+            lamb, xi, xj, xi_er, xj_er, det=det,
+            johann=johann, rocking=rocking,
+            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
+
+    def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
+                             det_cent=None, det_ei=None, det_ej=None,
+                             theta=None, psi=None, n=None,
+                             nlambfit=None, nphifit=None,
+                             magaxis=None, npaxis=None,
+                             plot=True, fs=None,
+                             cmap=None, vmin=None, vmax=None):
         # Check / format inputs
         assert data is not None
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -1026,24 +1524,58 @@ class CrystalBragg(utils.ToFuObject):
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        func = self.calc_phibragg_from_xixj
-        bragg, phi = func(xii, xjj, n=n,
-                          det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
-                          theta=theta, psi=psi, plot=False)
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            theta=theta, psi=psi, plot=False)
         assert bragg.shape == phi.shape == data.shape
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
-        lambfit, phifit = _comp_optics.get_lambphifit(lamb, phi, nxi, nxj)
+        if mask is not None:
+            data[~mask] = np.nan
+        if nlambfit is None:
+            nlambfit = nxi
+        if nphifit is None:
+            nphifit = nxj
+        lambfit, phifit = _comp_optics.get_lambphifit(lamb, phi,
+                                                      nlambfit, nphifit)
         lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
         ind = np.digitize(lamb, lambfitbins)
-        spect1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
+        spect1d = np.array([np.nanmean(data[ind == ii])
+                            for ii in np.unique(ind)])
+        phifitbins = 0.5*(phifit[1:] + phifit[:-1])
+        ind = np.digitize(phi, phifitbins)
+        vertsum1d = np.array([np.nanmean(data[ind == ii])
+                              for ii in np.unique(ind)])
+
+        # Get phiref from mag axis
+        lambax, phiax = None, None
+        if magaxis is not None:
+            if npaxis is None:
+                npaxis = 1000
+            thetacryst = np.arctan2(self._dgeom['summit'][1],
+                                    self._dgeom['summit'][0])
+            thetaax = thetacryst + np.pi/2*np.linspace(-1, 1, npaxis)
+            pts = np.array([magaxis[0]*np.cos(thetaax),
+                            magaxis[0]*np.sin(thetaax),
+                            np.full((npaxis,), magaxis[1])])
+            braggax, phiax = self.calc_phibragg_from_pts(pts)
+            lambax = self.get_lamb_from_bragg(braggax)
+            phiax = np.arctan2(np.sin(phiax-np.pi), np.cos(phiax-np.pi))
+            ind = ((lambax >= lambfit[0]) & (lambax <= lambfit[-1])
+                   & (phiax >= phifit[0]) & (phiax <= phifit[-1]))
+            lambax, phiax = lambax[ind], phiax[ind]
+            ind = np.argsort(lambax)
+            lambax, phiax = lambax[ind], phiax[ind]
 
         # plot
-        func = _plot_optics.CrystalBragg_plot_data_vs_lambphi
-        ax = func(xi, xj, bragg, lamb, phi, data,
-                  lambfit=lambfit, phifit=phifit, spect1d=spect1d,
-                  cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
+        if plot:
+            ax = _plot_optics.CrystalBragg_plot_data_vs_lambphi(
+                xi, xj, bragg, lamb, phi, data,
+                lambfit=lambfit, phifit=phifit, spect1d=spect1d,
+                vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
+                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
         return ax
 
     def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,
