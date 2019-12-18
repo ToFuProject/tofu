@@ -125,6 +125,7 @@ def get_approx_detector_rel(rcurve, bragg, tangent_to_rowland=None):
         det_ei_rel = np.r_[np.cos(bragg), np.sin(bragg), 0]
     return det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel
 
+
 def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
                          summit, nout, e1, e2,
                          ddist=None, di=None, dj=None,
@@ -188,6 +189,7 @@ def checkformat_vectang(Z, nn, frame_cent, frame_ang):
 
     return Z, nn, frame_cent, frame_ang
 
+
 def get_e1e2_detectorplane(nn, nIn):
     e1 = np.cross(nn, nIn)
     e1n = np.linalg.norm(e1)
@@ -198,6 +200,7 @@ def get_e1e2_detectorplane(nn, nIn):
     e2 = np.cross(nn, e1)
     e2 = e2 / np.linalg.norm(e2)
     return e1, e2
+
 
 def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
                             nout, e1, e2, bragg, phi):
@@ -211,6 +214,7 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
     xi = np.sum((pts - det_cent[:, None])*det_ei[:, None], axis=0)
     xj = np.sum((pts - det_cent[:, None])*det_ej[:, None], axis=0)
     return xi, xj
+
 
 def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
                                summit, nin, e1, e2,
@@ -228,7 +232,8 @@ def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
             summit = summit[:, None, None]
             det_cent = det_cent[:, None, None]
             det_ei, det_ej = det_ei[:, None, None], det_ej[:, None, None]
-            nin, e1, e2 = nin[:, None, None], e1[:, None, None], e2[:, None, None]
+            nin, e1, e2 = (nin[:, None, None],
+                           e1[:, None, None], e2[:, None, None])
         pts = det_cent + xi*det_ei + xj*det_ej
     else:
         assert pts.ndim == 2
@@ -242,6 +247,7 @@ def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
 
     phi = np.arctan2(np.sum(vect*e2, axis=0), np.sum(vect*e1, axis=0))
     return bragg, phi
+
 
 def get_lambphifit(lamb, phi, nxi, nxj):
     lambD = lamb.max()-lamb.min()
@@ -310,11 +316,11 @@ def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
         ntheta, axis=-1)[ind]
     dtheta[ind] = np.repeat(
         np.repeat(extenthalf[1]*np.linspace(-1, 1, ntheta)[None, :],
-                                 npts, axis=0)[None, ...],
+                  npts, axis=0)[None, ...],
         nlamb, axis=0)[ind]
 
-    psi[ind] = (np.arccos((scaPCem[ind]
-                           - Z*np.sin(dtheta[ind]))/(XYnorm*np.cos(dtheta[ind])))
+    psi[ind] = (np.arccos(
+        (scaPCem[ind] - Z*np.sin(dtheta[ind]))/(XYnorm*np.cos(dtheta[ind])))
                 + angextra)
     psi[ind] = np.arctan2(np.sin(psi[ind]), np.cos(psi[ind]))
     indnan = (~ind) | (np.abs(psi) > extenthalf[0])
