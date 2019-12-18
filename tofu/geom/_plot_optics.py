@@ -142,6 +142,7 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         ax0.figure.canvas.draw()
     return dax
 
+
 def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
                                 element=None, res=None,
                                 det_cent=None, det_nout=None,
@@ -238,16 +239,16 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
         if dax['cross'] is not None:
-            pr = np.hypot(p0[0,:], p0[1,:])
-            vr = np.hypot(p0[0,:]+v[0,:], p0[1,:]+v[1,:]) - pr
-            dax['cross'].quiver(pr, p0[2,:],
-                                vr, v[2,:],
+            pr = np.hypot(p0[0, :], p0[1, :])
+            vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
+            dax['cross'].quiver(pr, p0[2, :],
+                                vr, v[2, :],
                                 np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                                 angles='xy', scale_units='xy',
                                 label=cryst.Id.NameLTX+" unit vect", **Vdict)
         if dax['hor'] is not None:
-            dax['hor'].quiver(p0[0,:], p0[1,:],
-                              v[0,:], v[1,:],
+            dax['hor'].quiver(p0[0, :], p0[1, :],
+                              v[0, :], v[1, :],
                               np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                               angles='xy', scale_units='xy',
                               label=cryst.Id.NameLTX+" unit vect", **Vdict)
@@ -268,16 +269,16 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
         v = np.concatenate((det_nout[:, None], det_ei[:, None],
                             det_ej[:, None]), axis=1)
         if dax['cross'] is not None:
-            pr = np.hypot(p0[0,:], p0[1,:])
-            vr = np.hypot(p0[0,:]+v[0,:], p0[1,:]+v[1,:]) - pr
-            dax['cross'].quiver(pr, p0[2,:],
-                                vr, v[2,:],
+            pr = np.hypot(p0[0, :], p0[1, :])
+            vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
+            dax['cross'].quiver(pr, p0[2, :],
+                                vr, v[2, :],
                                 np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                                 angles='xy', scale_units='xy',
                                 label="det unit vect", **Vdict)
         if dax['hor'] is not None:
-            dax['hor'].quiver(p0[0,:], p0[1,:],
-                              v[0,:], v[1,:],
+            dax['hor'].quiver(p0[0, :], p0[1, :],
+                              v[0, :], v[1, :],
                               np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                               angles='xy', scale_units='xy',
                               label="det unit vect", **Vdict)
@@ -407,7 +408,8 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
                                           det=None,
                                           johann=None, rocking=None,
-                                          fs=None, dmargin=None, wintit=None, tit=None):
+                                          fs=None, dmargin=None,
+                                          wintit=None, tit=None):
 
     # Check inputs
     # ------------
@@ -415,9 +417,9 @@ def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
     if fs is None:
         fs = (6, 8)
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.99,
-                   'bottom':0.06, 'top':0.92,
-                   'wspace':None, 'hspace':0.4}
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
 
     if wintit is None:
         wintit = _WINTIT
@@ -455,8 +457,6 @@ def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
     return [ax0]
 
 
-
-
 def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
                                   cmap=None, vmin=None, vmax=None,
                                   fs=None, dmargin=None, wintit=None, tit=None,
@@ -470,9 +470,9 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.99,
-                   'bottom':0.06, 'top':0.92,
-                   'wspace':None, 'hspace':0.4}
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         # bragg = bragg*180./np.pi
