@@ -155,7 +155,9 @@ class MultiIDSLoader(object):
                 '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values',
                         'dim':'B', 'quant':'BZ', 'units':'T'},
                 '2dmeshNodes':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshFaces':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'}},
+                '2dmeshFaces':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'},
+                '2dmeshR':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
+                '2dmeshZ':{'str':'grids_ggd[0].grid[0].space[1].objects_per_dimension[0].object[].geometry'}},
 
                'core_profiles':
                {'t':{'str':'time'},
