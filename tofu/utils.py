@@ -884,7 +884,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if returnas[ii] in ['Cam', 'Data']:
             assert ids[ii] in lids
 
-    dout = {shot[jj]: {oo:[] for oo in set(returnas)}
+    dout = {shot[jj]: {oo: [] for oo in set(returnas)}
             for jj in range(0, nshot)}
 
     # -------------------
