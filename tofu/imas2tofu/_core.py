@@ -1508,10 +1508,10 @@ class MultiIDSLoader(object):
                      user=user, tokamak=tokamak, version=version,
                      ref=ref, isget=isget, get=get)
 
-    def add_ids_for_synthdiag(self, ids=None, occ=None, idd=None,
-                              shot=None, run=None, refshot=None, refrun=None,
-                              user=None, tokamak=None, version=None,
-                              ref=None, isget=None, get=None):
+    def add_ids_synthdiag(self, ids=None, occ=None, idd=None,
+                          shot=None, run=None, refshot=None, refrun=None,
+                          user=None, tokamak=None, version=None,
+                          ref=None, isget=None, get=None):
         """ Add pre-tabulated input ids necessary for calculating synth. signal
 
         The necessary input ids are given by self.get_inputs_for_synthsignal()
@@ -2222,7 +2222,7 @@ class MultiIDSLoader(object):
     def to_Config(self, Name=None, occ=None, indDescription=None, plot=True):
         lidsok = ['wall']
         if indDescription is None:
-            indDescription = 2
+            indDescription = 0
 
         # ---------------------------
         # Preliminary checks on data source consistency
