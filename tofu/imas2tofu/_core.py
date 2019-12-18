@@ -1510,10 +1510,10 @@ class MultiIDSLoader(object):
                      user=user, tokamak=tokamak, version=version,
                      ref=ref, isget=isget, get=get)
 
-    def add_ids_for_synthdiag(self, ids=None, occ=None, idd=None,
-                              shot=None, run=None, refshot=None, refrun=None,
-                              user=None, tokamak=None, version=None,
-                              ref=None, isget=None, get=None):
+    def add_ids_synthdiag(self, ids=None, occ=None, idd=None,
+                          shot=None, run=None, refshot=None, refrun=None,
+                          user=None, tokamak=None, version=None,
+                          ref=None, isget=None, get=None):
         """ Add pre-tabulated input ids necessary for calculating synth. signal
 
         The necessary input ids are given by self.get_inputs_for_synthsignal()
@@ -3980,11 +3980,11 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         raise Exception(msg)
 
     if description_2d is None:
-        if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
+        if nS == 1 and lcls[0] in ['Ves', 'PlasmaDomain']:
             description_2d = 0
         else:
-            descrption_2d = 2
-    assert description_2d in [0,2]
+            description_2d = 2
+    assert description_2d in [0, 2]
 
     # Make sure StructIn is last (IMAS requirement)
     ind = lcls.index(lclsIn[0])
