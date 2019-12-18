@@ -667,7 +667,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     lok = ['Config', 'Plasma2D', 'Cam', 'Data']
     c0 = returnas is None or returnas in lok
     if not c0:
-        msg = "Arg returnas must be in %s"%str(lok)
+        msg = "Arg returnas must be in {}".format(str(lok))
         raise Exception(msg)
 
     # -------------------
@@ -862,15 +862,15 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         # Config
         if ids[ii] == 'wall':
-            assert returnas[ii] in [None,'Config']
+            assert returnas[ii] in [None, 'Config']
             returnas[ii] = 'Config'
         if returnas[ii] == 'Config':
-            assert ids[ii] in [None,'wall']
+            assert ids[ii] in [None, 'wall']
 
         # Plasma2D
         lids = imas2tofu.MultiIDSLoader._lidsplasma
         if ids[ii] in lids:
-            assert returnas[ii] in [None,'Plasma2D']
+            assert returnas[ii] in [None, 'Plasma2D']
             returnas[ii] = 'Plasma2D'
         if returnas[ii] == 'Plasma2D':
             assert ids[ii] in lids
@@ -878,19 +878,20 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         # Cam or Data
         lids = imas2tofu.MultiIDSLoader._lidsdiag
         if ids[ii] in lids:
-            assert returnas[ii] in [None,'Cam','Data']
+            assert returnas[ii] in [None, 'Cam', 'Data']
             if returnas[ii] is None:
                 returnas[ii] = 'Data'
-        if returnas[ii] in ['Cam','Data']:
+        if returnas[ii] in ['Cam', 'Data']:
             assert ids[ii] in lids
 
-    dout = {shot[jj]: {oo:[] for oo in set(returnas)} for jj in range(0,nshot)}
+    dout = {shot[jj]: {oo:[] for oo in set(returnas)}
+            for jj in range(0, nshot)}
 
     # -------------------
     # Prepare plot_ and complement ids
-    lPla = [ii for ii in range(0,nids) if returnas[ii] == 'Plasma2D']
-    lCam = [ii for ii in range(0,nids) if returnas[ii] == 'Cam']
-    lDat = [ii for ii in range(0,nids) if returnas[ii] == 'Data']
+    lPla = [ii for ii in range(0, nids) if returnas[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0, nids) if returnas[ii] == 'Cam']
+    lDat = [ii for ii in range(0, nids) if returnas[ii] == 'Data']
     nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
     if nDat > 1:
         plot_ = False
@@ -1886,7 +1887,7 @@ class ToFuObject(ToFuObjectBase):
         return self._Id
 
     def _get_dId(self, sep=None):
-        return {'dict':self.Id.to_dict(sep=sep)}
+        return {'dict': self.Id.to_dict(sep=sep)}
 
     def _reset(self):
         if hasattr(self,'_Id'):
