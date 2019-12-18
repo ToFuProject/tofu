@@ -332,8 +332,10 @@ class CrystalBragg(utils.ToFuObject):
             try:
                 if drock.get('sigma') is not None:
                     dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
-                    dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
-                    dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
+                    dbragg['rockingcurve']['deltad'] = float(
+                        drock.get('deltad', 0.))
+                    dbragg['rockingcurve']['Rmax'] = float(
+                        drock.get('Rmax', 1.))
                     dbragg['rockingcurve']['type'] = 'lorentz-log'
                 elif drock.get('dangle') is not None:
                     c2d = (drock.get('lamb') is not None
@@ -344,17 +346,19 @@ class CrystalBragg(utils.ToFuObject):
                             msg = ("Tabulated 2d rocking curve should be:\n"
                                    + "\tshape = (dangle.size, lamb.size)")
                             raise Exception(msg)
-                        dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                        dbragg['rockingcurve']['dangle'] = np.r_[
+                            drock['dangle']]
                         dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
                         dbragg['rockingcurve']['value'] = drock['value']
                         dbragg['rockingcurve']['type'] = 'tabulated-2d'
                     else:
                         if drock.get('lamb') is None:
-                            msg = ("Please also specify the lamb for which the "
-                                   + "rocking curve was tabulated!")
+                            msg = ("Please also specify the lamb for which "
+                                   + "the rocking curve was tabulated!")
                             raise Exception(msg)
                         dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
-                        dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                        dbragg['rockingcurve']['dangle'] = np.r_[
+                            drock['dangle']]
                         dbragg['rockingcurve']['value'] = np.r_[drock['value']]
                         dbragg['rockingcurve']['type'] = 'tabulated-1d'
                     if drock.get('source') is None:
@@ -652,7 +656,8 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Build material
         col0 = ['formula', 'symmetry', 'cut', 'density',
-                'd (A)', 'bragg(%s A) (deg)'%str(self._DEFLAMB), 'rocking curve']
+                'd (A)', 'bragg({:7.4} A) (deg)'.format(self._DEFLAMB*1e10),
+                'rocking curve']
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
                '{0:5.3f}'.format(self._dmat['d']*1.e10),
@@ -783,11 +788,13 @@ class CrystalBragg(utils.ToFuObject):
                        + "  => Please set lamb accordingly")
                 raise Exception(msg)
             bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+
             def func(angle, lamb=lamb, bragg=bragg, drock=drock):
                 return scpinterp.interp2d(drock['dangle']+bragg, drock['lamb'],
                                           drock['value'], kind='linear',
                                           bounds_error=False, fill_value=0,
                                           assume_sorted=True)(angle, lamb)
+
         else:
             def func(angle, d=d, delta_bragg=delta_bragg,
                      Rmax=drock['Rmax'], sigma=drock['sigma']):
@@ -1222,7 +1229,6 @@ class CrystalBragg(utils.ToFuObject):
                 braggunits='deg', angunits='deg', **kwdargs)
         return bragg, phi
 
-
     # DEPRECATED ???
     def calc_phibragg_from_pts_on_summit(self, pts, n=None):
         """ Return the bragg angle and phi of pts from crystal summit
@@ -1237,7 +1243,8 @@ class CrystalBragg(utils.ToFuObject):
         # Compute
         vect = pts - self._dgeom['summit'][:, None]
         vect = vect / np.sqrt(np.sum(vect**2, axis=0))
-        bragg = np.pi/2 - np.arccos(np.sum(vect*self._dgeom['nin'][:, None], axis=0))
+        bragg = np.pi/2 - np.arccos(np.sum(vect*self._dgeom['nin'][:, None],
+                                           axis=0))
         v1 = np.sum(vect*self._dgeom['e1'][:, None], axis=0)
         v2 = np.sum(vect*self._dgeom['e2'][:, None], axis=0)
         phi = np.arctan2(v2, v1)
@@ -1287,7 +1294,7 @@ class CrystalBragg(utils.ToFuObject):
                 det_ei=det_ei, det_ej=det_ej, plot=False)
 
         # Get johann-error raytracing (multiple positions on crystal)
-        xi_err, xj_err = None, None
+        xi_er, xj_er = None, None
         if johann and not rocking:
             if lpsi is None or ltheta is None:
                 lpsi = np.linspace(-1., 1., 15)
@@ -1300,12 +1307,12 @@ class CrystalBragg(utils.ToFuObject):
             npsi = lpsi.size
             assert npsi == ltheta.size
 
-            xi_err = np.full((nlamb, npsi*nphi), np.nan)
-            xj_err = np.full((nlamb, npsi*nphi), np.nan)
+            xi_er = np.full((nlamb, npsi*nphi), np.nan)
+            xj_er = np.full((nlamb, npsi*nphi), np.nan)
             for l in range(nlamb):
                 for ii in range(npsi):
                     i0 = np.arange(ii*nphi, (ii+1)*nphi)
-                    xi_err[l, i0], xj_err[l, i0] = self.calc_xixj_from_phibragg(
+                    xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_phibragg(
                         phi=phi, bragg=bragg[l], lamb=None, n=n,
                         theta=ltheta[ii], psi=lpsi[ii],
                         det_cent=det_cent, det_nout=det_nout,
@@ -1317,7 +1324,7 @@ class CrystalBragg(utils.ToFuObject):
 
         # Plot
         ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
-            lamb, xi, xj, xi_err, xj_err, det=det,
+            lamb, xi, xj, xi_er, xj_er, det=det,
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
@@ -1340,7 +1347,6 @@ class CrystalBragg(utils.ToFuObject):
             They must have the same len()
 
         """
-
 
         # Check / format inputs
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -1394,10 +1400,8 @@ class CrystalBragg(utils.ToFuObject):
             summit, -nout, e1, e2, pts=pts)
         return phi, bragg
 
-
     def get_lamb_avail_from_pts(self, pts):
         pass
-
 
     def calc_thetapsi_from_lambpts(self, pts=None, lamb=None, n=None,
                                    ntheta=None):
@@ -1418,7 +1422,7 @@ class CrystalBragg(utils.ToFuObject):
             self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
             self._dgeom['extenthalf'], ntheta=ntheta)
 
-        import ipdb;    ipdb.set_trace()    # DB
+        # import ipdb;    ipdb.set_trace()    # DB
         bragg = np.repeat(np.repeat(bragg[:, None], npts, axis=-1)[..., None],
                           ntheta, axis=-1)
         bragg[indnan] = np.nan
@@ -1427,7 +1431,6 @@ class CrystalBragg(utils.ToFuObject):
                                                dpsi=dpsi[ind])
 
         return dtheta, psi, phi, bragg
-
 
     def plot_line_from_pts_on_det(self, lamb=None, pts=None,
                                   xi_bounds=None, xj_bounds=None, nphi=None,
@@ -1473,7 +1476,7 @@ class CrystalBragg(utils.ToFuObject):
                 det_ei=det_ei, det_ej=det_ej, plot=False)
 
         # Get johann-error raytracing (multiple positions on crystal)
-        xi_err, xj_err = None, None
+        xi_er, xj_er = None, None
         if johann and not rocking:
             if lpsi is None or ltheta is None:
                 lpsi = np.linspace(-1., 1., 15)
@@ -1486,12 +1489,12 @@ class CrystalBragg(utils.ToFuObject):
             npsi = lpsi.size
             assert npsi == ltheta.size
 
-            xi_err = np.full((nlamb, npsi*nphi), np.nan)
-            xj_err = np.full((nlamb, npsi*nphi), np.nan)
+            xi_er = np.full((nlamb, npsi*nphi), np.nan)
+            xj_er = np.full((nlamb, npsi*nphi), np.nan)
             for l in range(nlamb):
                 for ii in range(npsi):
                     i0 = np.arange(ii*nphi, (ii+1)*nphi)
-                    xi_err[l, i0], xj_err[l, i0] = self.calc_xixj_from_phibragg(
+                    xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_phibragg(
                         phi=phi, bragg=bragg[l], lamb=None, n=n,
                         theta=ltheta[ii], psi=lpsi[ii],
                         det_cent=det_cent, det_nout=det_nout,
@@ -1503,7 +1506,7 @@ class CrystalBragg(utils.ToFuObject):
 
         # Plot
         ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
-            lamb, xi, xj, xi_err, xj_err, det=det,
+            lamb, xi, xj, xi_er, xj_er, det=det,
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
@@ -1539,10 +1542,12 @@ class CrystalBragg(utils.ToFuObject):
                                                       nlambfit, nphifit)
         lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
         ind = np.digitize(lamb, lambfitbins)
-        spect1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
+        spect1d = np.array([np.nanmean(data[ind == ii])
+                            for ii in np.unique(ind)])
         phifitbins = 0.5*(phifit[1:] + phifit[:-1])
         ind = np.digitize(phi, phifitbins)
-        vertsum1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
+        vertsum1d = np.array([np.nanmean(data[ind == ii])
+                              for ii in np.unique(ind)])
 
         # Get phiref from mag axis
         lambax, phiax = None, None
