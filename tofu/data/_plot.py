@@ -364,9 +364,9 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     c0 = [all([dd.dlabels[kk] == lData[0].dlabels[kk] for dd in lData[1:]])
           for kk in ['t','X','data']]
     if not all(c0):
-        msg = "All Data objects must have the same:\n"
+        msg = "All Data objects do not have the same:\n"
         msg += "    dlabels['t'], dlabels['X'] and dlabels['data'] !"
-        raise Exception(msg)
+        warnings.warn(msg)
 
 
     # ---------

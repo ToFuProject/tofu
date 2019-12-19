@@ -5968,6 +5968,9 @@ class Rays(utils.ToFuObject):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
+            if E is None or np.all(np.isnan(E)):
+                msg = "Cannot use etendue, it was not set properly !"
+                raise Exception(msg)
             if t is None or len(t) == 1 or E.size == 1:
                 sig = sig * E
             else:

@@ -156,8 +156,8 @@ class MultiIDSLoader(object):
                         'dim':'B', 'quant':'BZ', 'units':'T'},
                 '2dmeshNodes':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
                 '2dmeshFaces':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'},
-                '2dmeshR':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshZ':{'str':'grids_ggd[0].grid[0].space[1].objects_per_dimension[0].object[].geometry'}},
+                '2dmeshR':{'str':'time_slice[0].profiles_2d[0].r'},
+                '2dmeshZ':{'str':'time_slice[0].profiles_2d[0].z'}},
 
                'core_profiles':
                {'t':{'str':'time'},
@@ -304,7 +304,8 @@ class MultiIDSLoader(object):
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
                 'ne_integ':{'str':'channel[chan].n_e_line.data',
-                            'dim':'ne_integ', 'quant':'ne_integ', 'units':'/m2'}},
+                            'dim':'ne_integ', 'quant':'ne_integ',
+                            'units':'/m2', 'Brightness': True}},
 
                'polarimeter':
                {'t':{'str':'time',
@@ -312,13 +313,15 @@ class MultiIDSLoader(object):
                 'lamb':{'str':'channel[chan].wavelength',
                         'dim':'distance', 'quant':'wavelength', 'units':'m'},
                 'fangle':{'str':'channel[chan].faraday_angle.data',
-                          'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
+                          'dim':'angle', 'quant':'faraday angle',
+                          'units':'rad', 'Brightness': True}},
 
                'bolometer':
                {'t':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
                 'power':{'str':'channel[chan].power.data',
-                         'dim':'power', 'quant':'power radiative', 'units':'W'},
+                         'dim':'power', 'quant':'power radiative', 'units':'W',
+                         'Brightness': False},
                 'etendue':{'str':'channel[chan].etendue',
                            'dim':'etendue', 'quant':'etendue',
                            'units':'m2.sr'},
@@ -333,9 +336,11 @@ class MultiIDSLoader(object):
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
                 'power':{'str':'channel[chan].power.data',
-                         'dim':'power', 'quant':'power radiative', 'units':'W'},
+                         'dim':'power', 'quant':'power radiative', 'units':'W',
+                         'Brightness': False},
                 'brightness':{'str':'channel[chan].brightness.data',
-                              'dim':'brightness', 'quant':'brightness', 'units':'W/(m2.sr)'},
+                              'dim':'brightness', 'quant':'brightness',
+                              'units':'W/(m2.sr)', 'Brightness': True},
                 'etendue':{'str':'channel[chan].etendue',
                            'dim':'etendue', 'quant':'etendue', 'units':'m2.sr'}},
 
@@ -343,7 +348,8 @@ class MultiIDSLoader(object):
                {'t':{'str':'channel[chan].grating_spectrometer.radiance_spectral.time',
                      'quant':'t', 'units':'s'},
                 'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data',
-                           'dim':'radiance_spectral', 'quant':'radiance_spectral', 'units':'ph/s/(m2.sr)/m'},
+                           'dim':'radiance_spectral', 'quant':'radiance_spectral',
+                           'units':'ph/s/(m2.sr)/m', 'Brightness': True},
                 'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths',
                         'dim':'wavelength', 'quant':'wavelength', 'units':'m'}},
 
@@ -352,7 +358,7 @@ class MultiIDSLoader(object):
                      'quant':'t', 'units':'s'},
                 'radiance':{'str':'channel[chan].radiance_spectral.data',
                             'dim':'radiance_spectral', 'quant':'radiance_spectral',
-                            'units':'ph/s/(m2.sr)/m'},
+                            'units':'ph/s/(m2.sr)/m', 'Brightness': True},
                 'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
                 'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
               }
@@ -485,7 +491,7 @@ class MultiIDSLoader(object):
     def _rhopn2d(psi, psi0, psisep):
         return np.sqrt( (psi - psi0[:,None]) / (psisep[:,None] - psi0[:,None]) )
     def _rhotn2d(phi):
-        return np.sqrt(phi / np.nanmax(phi, axis=1)[:,None])
+        return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:,None])
 
     def _eqSep(sepR, sepZ, npts=100):
         nt = len(sepR)
@@ -2302,7 +2308,8 @@ class MultiIDSLoader(object):
         lidsok = set(self._lidsplasma).intersection(self._dids.keys())
 
         lscom = ['t']
-        lsmesh = ['2dmeshNodes','2dmeshFaces']
+        lsmesh = ['2dmeshNodes', '2dmeshFaces',
+                  '2dmeshR', '2dmeshZ']
 
         lc = [dsig is None,
               type(dsig) is str,
@@ -2491,7 +2498,8 @@ class MultiIDSLoader(object):
         assert R.ndim in [1, 2]
         assert Z.ndim in [1, 2]
         shapeu = np.unique(np.r_[R.shape, Z.shape])
-        shapeRZ = [None, None]
+        if shapeRZ is None:
+            shapeRZ = [None, None]
         if R.ndim == 1:
             assert np.all(np.diff(R) > 0.)
         else:
@@ -2528,36 +2536,24 @@ class MultiIDSLoader(object):
         if datashape is not None:
             if None in shapeRZ:
                 pass
+            shapeRZ = tuple(shapeRZ)
 
-            if shapeRZ == ['R', 'Z']:
+            if shapeRZ == ('R', 'Z'):
                 assert datashape == (R.size, Z.size)
-            elif shapeRZ == ['Z', 'R']:
+            elif shapeRZ == ('Z', 'R'):
                 assert datashape == (Z.size, R.size)
             else:
                 msg = "Inconsistent data shape !"
                 raise Exception(msg)
 
-        shapeRZ = tuple(shapeRZ)
-        assert shapeRZ in [('R', 'Z'), ('Z', 'R')]
+        if None not in shapeRZ:
+            shapeRZ = tuple(shapeRZ)
+            assert shapeRZ in [('R', 'Z'), ('Z', 'R')]
         return R, Z, shapeRZ, 0
-
-
-
-
-
-
-
-
-
 
     # TBF
     def get_mesh_from_ggd(path_to_ggd, ggdindex=0):
         pass
-
-
-
-
-
 
     def _get_dextra(self, dextra=None, fordata=False, nan=True, pos=None):
         lc = [dextra == False, dextra is None,
@@ -2843,7 +2839,7 @@ class MultiIDSLoader(object):
                 npts, datashape = None, None
                 keym = '{}.mesh'.format(ids) if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
-                    assert out_[ss].ndim in [1,2]
+                    assert out_[ss].ndim in [1, 2, 3]
                     if out_[ss].ndim == 1:
                         out_[ss] = np.atleast_2d(out_[ss])
                     shape = out_[ss].shape
@@ -2866,10 +2862,10 @@ class MultiIDSLoader(object):
                             shape = out_[ss].shape
                         if len(shape) == 3:
                             assert nt == shape[0]
-                            datashape = tuple(shape[1], shape[2])
+                            datashape = (shape[1], shape[2])
                             if shapeRZ is None:
-                                msg = ("Please provide shapeRZ"
-                                       + "indexing is ambiguous")
+                                msg = ("Please provide shapeRZ,"
+                                       + " indexing is ambiguous")
                                 raise Exception(msg)
                             size = shape[1]*shape[2]
                             if shapeRZ == ('R', 'Z'):
@@ -3384,7 +3380,6 @@ class MultiIDSLoader(object):
                 fallback_X = 1.1*np.nanmax(dins['X'])
             dins['X'][np.isnan(dins['X'])] = fallback_X
 
-
         # Apply indt if was not done in get_data
         for kk,vv in dins.items():
             if (vv.ndim == 2 or kk == 't') and vv.shape[0] > indt.size:
@@ -3594,9 +3589,30 @@ class MultiIDSLoader(object):
         sig._dextra = plasma.get_dextra(dextra)
 
         if ids == 'interferometer':
-            sig = 2.*sig
+            pass
+            i#sig = 2.*sig
         elif ids == 'polarimeter':
             sig = 2.*sig
+
+        # Safety check regarding Brightness
+        _, _, dsig_exp = self._checkformat_Data_dsig(ids)
+        kdata = dsig_exp['data']
+        B_exp = self._dshort[ids][kdata].get('Brightness', None)
+        err_comp = False
+        if Brightness != B_exp:
+            u_exp = self._dshort[ids][kdata].get('units')
+            msg = ("\nCalculated synthetic and chosen experimental data "
+                   + "do not seem directly comparable !\n"
+                   + "\t- chosen experimental data: "
+                   + "{}, ({}), Brightness = {}\n".format(kdata,
+                                                          u_exp, B_exp)
+                   + "\t- calculated synthetic data: "
+                   + "int({}), ({}), Brightness = {}\n".format(dq['quant'],
+                                                               units,
+                                                               Brightness)
+                   + "\n  => Consider changing data or Brigthness value")
+            err_comp = True
+            warnings.warn(msg)
 
         # plot
         if plot:
@@ -3605,6 +3621,8 @@ class MultiIDSLoader(object):
             if plot_plasma is None:
                 plot_plasma = True
             if plot_compare:
+                if err_comp:
+                    raise Exception(msg)
                 data = self.to_Data(ids, indch=indch, t0=t0, plot=False)
                 sig._dlabels = data.dlabels
                 data.plot_compare(sig)
@@ -3980,11 +3998,11 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         raise Exception(msg)
 
     if description_2d is None:
-        if nS == 1 and lcls[0] in ['Ves', 'PlasmaDomain']:
+        if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
             description_2d = 0
         else:
-            description_2d = 2
-    assert description_2d in [0, 2]
+            descrption_2d = 2
+    assert description_2d in [0,2]
 
     # Make sure StructIn is last (IMAS requirement)
     ind = lcls.index(lclsIn[0])

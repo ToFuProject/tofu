@@ -2026,7 +2026,11 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
-        if type(other) in [int,float,np.int64,np.float64]:
+        if type(other) in [int, float, np.int64, np.float64]:
+            data = opfunc(d0.data, other)
+            dcom = d0._extract_common_params(d0)
+
+        elif isinstance(other, np.ndarray):
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
