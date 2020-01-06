@@ -650,7 +650,9 @@ class MultiIDSLoader(object):
             idd = lidd[0] if len(lidd) > 0 else None
             self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
             if ids_base is None:
-                ids_base = True
+                if not all([iids in self._IDS_BASE
+                            for iids in self._dids.keys()]):
+                    ids_base = True
             if ids_base is True:
                 self.add_ids_base(get=False)
             if synthdiag is None:
@@ -2227,10 +2229,11 @@ class MultiIDSLoader(object):
         return t0
 
 
-    def to_Config(self, Name=None, occ=None, indDescription=None, plot=True):
+    def to_Config(self, Name=None, occ=None,
+                  description_2d=None, mobile=None, plot=True):
         lidsok = ['wall']
-        if indDescription is None:
-            indDescription = 0
+        if description_2d is None:
+            description_2d = 0
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -2251,52 +2254,105 @@ class MultiIDSLoader(object):
             occ = occ[0]
             indoc = np.nonzero(self._dids[ids]['occ'] == occ)[0][0]
 
-            wall = self._dids[ids]['ids'][indoc]
-            units = wall.description_2d[indDescription].limiter.unit
-            nunits = len(units)
-
-            if nunits == 0:
-                msg = "There is no limiter unit stored !\n"
-                msg += "The required 2d description is empty:\n"
-                ms = "len(idd.%s[occ=%s].description_2d"%(ids,str(occ))
-                msg += "%s[%s].limiter.unit) = 0"%(ms,str(indDescription))
-                raise Exception(msg)
-
-            if Name is None:
-                Name = wall.description_2d[indDescription].type.name
-                if Name == '':
-                    Name = 'imas wall'
+            wall = self._dids[ids]['ids'][indoc].description_2d[description_2d]
+            kwargs = dict(Exp=Exp, Type='Tor')
 
             import tofu.geom as mod
 
-            lS = [None for _ in units]
-            kwargs = dict(Exp=Exp, Type='Tor')
-            for ii in range(0,nunits):
-                poly = np.array([units[ii].outline.r, units[ii].outline.z])
-
-                if units[ii].phi_extensions.size > 0:
-                    pos, extent =  units[ii].phi_extensions.T
+            # Get vessel
+            if len(wall.vessel.unit) != 1:
+                msg = "There is no / several vessel.unit!"
+                raise Exception(msg)
+            if len(wall.vessel.unit[0].element) != 1:
+                msg = "There is no / several vessel.unit[0].element!"
+                raise Exception(msg)
+            name = wall.vessel.unit[0].element[0].name
+            cls = None
+            if name == '':
+                name = 'ImasVessel'
+            if '_' in name:
+                ln = name.split('_')
+                if len(ln) == 2:
+                    cls, name = ln
                 else:
-                    pos, extent = None, None
-                name = units[ii].name
-                cls = None
-                if name == '':
-                    name = 'unit{:02.0f}'.format(ii)
-                if '_' in name:
-                    ln = name.split('_')
-                    if len(ln) == 2:
-                        cls, name = ln
-                    else:
-                        name = name.replace('_','')
-                if cls is None:
-                    if ii == nunits-1:
-                        cls = 'Ves'
-                    else:
-                        cls = 'PFC'
-                lS[ii] = getattr(mod,cls)(Poly=poly, pos=pos, extent=extent,
-                                          Name=name, **kwargs)
+                    name = name.replace('_', '')
+            if cls is None:
+                cls = 'Ves'
+            assert cls in ['Ves', 'PlasmaDomain']
+            poly = np.array([wall.vessel.unit[0].element[0].outline.r,
+                             wall.vessel.unit[0].element[0].outline.z])
+            ves = getattr(mod, cls)(Poly=poly, Name=name, **kwargs)
 
-            config = mod.Config(lStruct=lS, Name=Name, **kwargs)
+            # Determine if mobile or not
+            if mobile is None:
+                nlim = len(wall.limiter.unit)
+                nmob = len(wall.mobile.unit)
+                if nlim == 0 and nmob > 0:
+                    mobile = True
+                elif nmob == 0 and nlim > 0:
+                    mobile = False
+                else:
+                    msg = ("Can't decide automatically whether to choose"
+                           + " limiter or mobile!")
+                    raise Exception(msg)
+            assert isinstance(mobile, bool)
+
+            # Get PFC
+            if mobile is True:
+                units = wall.mobile.unit
+            else:
+                units = wall.limiter.unit
+            nunits = len(units)
+
+            if nunits == 0:
+                msg = "There is no unit stored !\n"
+                msg += "The required 2d description is empty:\n"
+                ms = "len(idd.%s[occ=%s].description_2d"%(ids, str(occ))
+                msg += "%s[%s].limiter.unit) = 0"%(ms, str(description_2d))
+                raise Exception(msg)
+
+            if Name is None:
+                Name = wall.type.name
+                if Name == '':
+                    Name = 'imas wall'
+
+            lS = [None for _ in units]
+            for ii in range(0, nunits):
+                try:
+                    if mobile is True:
+                        outline = units[ii].outline[0]
+                    else:
+                        outline = units[ii].outline
+                    poly = np.array([outline.r, outline.z])
+
+                    if units[ii].phi_extensions.size > 0:
+                        pos, extent =  units[ii].phi_extensions.T
+                    else:
+                        pos, extent = None, None
+                    name = units[ii].name
+                    cls = None
+                    if name == '':
+                        name = 'unit{:02.0f}'.format(ii)
+                    if '_' in name:
+                        ln = name.split('_')
+                        if len(ln) == 2:
+                            cls, name = ln
+                        else:
+                            name = name.replace('_','')
+                    if cls is None:
+                        if ii == nunits-1:
+                            cls = 'Ves'
+                        else:
+                            cls = 'PFC'
+                    lS[ii] = getattr(mod, cls)(Poly=poly, pos=pos, extent=extent,
+                                               Name=name, **kwargs)
+                except Exception as err:
+                    msg = ("PFC unit[{}] named {} ".format(ii, name)
+                           + "could not be loaded!\n"
+                           + str(err))
+                    raise Exception(msg)
+
+            config = mod.Config(lStruct=[ves] + lS, Name=Name, **kwargs)
 
         # Output
         if plot:
@@ -3644,7 +3700,7 @@ class MultiIDSLoader(object):
 
 
 def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
-                Name=None, occ=0, indDescription=0, plot=True):
+                Name=None, occ=0, description_2d=0, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -3652,7 +3708,7 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
     didd.add_ids('wall', get=True)
 
     return didd.to_Config(Name=Name, occ=occ,
-                          indDescription=indDescription, plot=plot)
+                          description_2d=description_2d, plot=plot)
 
 
 # occ ?
@@ -3921,10 +3977,19 @@ def _save_to_imas_Struct( obj,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
                          dryrun=False, tfversion=None, verb=True,
-                         description_2d=0, unit=0):
+                         description_2d=None, description_typeindex=None,
+                         unit=None):
 
     if occ is None:
         occ = 0
+    if description_2d is None:
+        description_2d = 0
+    if description_typeindex is None:
+        description_typeindex = 2
+    description_typeindex = int(description_typeindex)
+    if unit is None:
+        unit = 0
+
     # Create or open IDS
     # ------------------
     idd, shotfile = _open_create_idd(shot=shot, run=run,
@@ -3938,8 +4003,19 @@ def _save_to_imas_Struct( obj,
         # data
         # --------
         idd.wall.description_2d.resize( description_2d + 1 )
-        idd.wall.description_2d[description_2d].limiter.unit.resize(1)
-        node = idd.wall.description_2d[description_2d].limiter.unit[0]
+        idd.wall.description_2d[description_2d].type.index = (
+            description_typeindex)
+        idd.wall.description_2d[description_2d].type.name = (
+            '%s_%s'%(obj.__class__.__name__, obj.Id.Name))
+        idd.wall.description_2d[description_2d].type.description = (
+            "tofu-generated wall. Each PFC is represented independently as a"
+            + " closed polygon in tofu, which saves them as disjoint PFCs")
+        if obj._dgeom['mobile'] is True:
+            idd.wall.description_2d[description_2d].mobile.unit.resize(unit+1)
+            node = idd.wall.description_2d[description_2d].mobile.unit[unit]
+        else:
+            idd.wall.description_2d[description_2d].limiter.unit.resize(unit+1)
+            node = idd.wall.description_2d[description_2d].limiter.unit[unit]
         node.outline.r = obj._dgeom['Poly'][0,:]
         node.outline.z = obj._dgeom['Poly'][1,:]
         if obj.noccur > 0:
@@ -3973,10 +4049,13 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
                          dryrun=False, tfversion=None, close=True, verb=True,
-                         description_2d=None):
+                         description_2d=None, description_typeindex=None):
 
     if occ is None:
         occ = 0
+    if description_2d is None:
+        description_2d = 0
+
     # Create or open IDS
     # ------------------
     if idd is None:
@@ -3994,20 +4073,22 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
     nS = len(lS)
 
     if len(lclsIn) != 1:
-        msg = "One StructIn subclass is allowed / necessary !"
+        msg = "One (and only one) StructIn subclass is allowed / necessary !"
         raise Exception(msg)
 
-    if description_2d is None:
+    if description_typeindex is None:
         if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
-            description_2d = 0
+            description_typeindex = 0
         else:
-            descrption_2d = 2
-    assert description_2d in [0,2]
+            description_typeindex = 2
+    assert description_typeindex in [0, 2]
 
-    # Make sure StructIn is last (IMAS requirement)
-    ind = lcls.index(lclsIn[0])
-    lS[-1], lS[ind] = lS[ind], lS[-1]
+    # Check whether there is any mobile element
+    ismobile = any([ss._dgeom['mobile'] for ss in lS])
 
+    # Isolate StructIn and take out from lS
+    ves =  lS.pop( lcls.index(lclsIn[0]) )
+    nS = len(lS)
 
     # Fill in data
     # ------------------
@@ -4016,16 +4097,50 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         # --------
         idd.wall.description_2d.resize( description_2d + 1 )
         idd.wall.description_2d[description_2d].type.name = obj.Id.Name
-        idd.wall.description_2d[description_2d].limiter.unit.resize(nS)
-        for ii in range(0,nS):
-            node = idd.wall.description_2d[description_2d].limiter.unit[ii]
-            node.outline.r = lS[ii].Poly_closed[0,:]
-            node.outline.z = lS[ii].Poly_closed[1,:]
-            if lS[ii].noccur > 0:
-                node.phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
-            node.closed = True
-            node.name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+        idd.wall.description_2d[description_2d].type.index = (
+            description_typeindex)
+        idd.wall.description_2d[description_2d].type.description = (
+            "tofu-generated wall. Each PFC is represented independently as a"
+            + " closed polygon in tofu, which saves them as disjoint PFCs")
 
+        # Fill limiter / mobile
+        if ismobile:
+            idd.wall.description_2d[description_2d].mobile.unit.resize(nS)
+            units = idd.wall.description_2d[description_2d].mobile.unit
+            for ii in range(0, nS):
+                units[ii].outline.resize(1)
+                units[ii].outline[0].r = lS[ii].Poly[0, :]
+                units[ii].outline[0].z = lS[ii].Poly[1, :]
+                if lS[ii].noccur > 0:
+                    units[ii].phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
+                units[ii].closed = True
+                units[ii].name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+
+        else:
+            idd.wall.description_2d[description_2d].limiter.unit.resize(nS)
+            units = idd.wall.description_2d[description_2d].limiter.unit
+            for ii in range(0, nS):
+                units[ii].outline.r = lS[ii].Poly[0, :]
+                units[ii].outline.z = lS[ii].Poly[1, :]
+                if lS[ii].noccur > 0:
+                    units[ii].phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
+                units[ii].closed = True
+                units[ii].name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+
+
+        # Fill vessel
+        vesname = '%s_%s'%(ves.__class__.__name__, ves.Id.Name)
+        idd.wall.description_2d[description_2d].vessel.name = vesname
+        idd.wall.description_2d[description_2d].vessel.index = 1
+        idd.wall.description_2d[description_2d].vessel.description = (
+            "tofu-generated vessel outline, with a unique unit / element")
+
+        idd.wall.description_2d[description_2d].vessel.unit.resize(1)
+        idd.wall.description_2d[description_2d].vessel.unit[0].element.resize(1)
+        element = idd.wall.description_2d[description_2d].vessel.unit[0].element[0]
+        element.name = vesname
+        element.outline.r = ves.Poly[0, :]
+        element.outline.z = ves.Poly[1, :]
 
         # IDS properties
         # --------------
