@@ -2330,13 +2330,15 @@ class MultiIDSLoader(object):
                     else:
                         pos, extent = None, None
                     name = units[ii].name
-                    cls = None
+                    cls, mobi = None, None
                     if name == '':
                         name = 'unit{:02.0f}'.format(ii)
                     if '_' in name:
                         ln = name.split('_')
                         if len(ln) == 2:
                             cls, name = ln
+                        elif len(ln) == 3:
+                            cls, name, mobi = ln
                         else:
                             name = name.replace('_','')
                     if cls is None:
@@ -2344,8 +2346,9 @@ class MultiIDSLoader(object):
                             cls = 'Ves'
                         else:
                             cls = 'PFC'
+                    mobi = mobi == 'mobile'
                     lS[ii] = getattr(mod, cls)(Poly=poly, pos=pos, extent=extent,
-                                               Name=name, **kwargs)
+                                               Name=name, mobile=mobi, **kwargs)
                 except Exception as err:
                     msg = ("PFC unit[{}] named {} ".format(ii, name)
                            + "could not be loaded!\n"
@@ -4114,7 +4117,11 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
                 if lS[ii].noccur > 0:
                     units[ii].phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
                 units[ii].closed = True
-                units[ii].name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+                name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+                if lS[ii]._dgeom['mobile'] is True:
+                    name = name + '_mobile'
+                units[ii].name = name
+
 
         else:
             idd.wall.description_2d[description_2d].limiter.unit.resize(nS)
@@ -4125,7 +4132,10 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
                 if lS[ii].noccur > 0:
                     units[ii].phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
                 units[ii].closed = True
-                units[ii].name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+                name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+                if lS[ii]._dgeom['mobile'] is True:
+                    name = name + '_mobile'
+                units[ii].name = name
 
 
         # Fill vessel
