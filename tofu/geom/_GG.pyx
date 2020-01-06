@@ -2988,18 +2988,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # Integrate
         if n_imode == 0:  # "sum" integration mode
             # .. integrating function ..........................................
-            #reseff  = np.copy(np.asarray(<double[:nlos]>reseff_arr[0]))
-            reseff_mv = reseff
-            indices = np.copy(np.asarray(<long[:nlos]>ind_arr).astype(int))
+            reseffs = np.copy(np.asarray(<double[:nlos]>reseff_arr))
+            indices = np.copy(np.asarray(<long[:nlos-1]>ind_arr).astype(int))
             sig = np.add.reduceat(val_2d, np.r_[0, indices],
-                                  axis=-1)*reseff_mv[None, :]
-            # for ii in range(nlos):
-            #     if ii > 0:
-            #         sig[:,ii] = np.sum(val_2d[:, ind_arr[ii-1]:ind_arr[ii]],
-            #                     axis=-1) * reseff_arr[ii]
-            #     else:
-            #         sig[:,0] = np.sum(val_2d[:, 0:ind_arr[0]],
-            #                     axis=-1) * reseff_arr[0]
+                                  axis=-1)*reseffs[None, :]
             # Cleaning up...
             free(coeff_ptr[0])
             free(coeff_ptr)
