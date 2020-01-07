@@ -3681,11 +3681,15 @@ class Plasma2D(utils.ToFuObject):
         # Get indt (t with respect to tbinall)
         indt, indtu = None, None
         if t is not None:
-            indt = np.digitize(t, tbinall)
-            indtu = np.unique(indt)
+            if len(t) == len(tall) and np.allclose(t, tall):
+                indt = np.arange(0, tall.size)
+                indtu = indt
+            else:
+                indt = np.digitize(t, tbinall)
+                indtu = np.unique(indt)
+                # Update
+                tall = tall[indtu]
 
-            # Update
-            tall = tall[indtu]
             if idref1d is not None:
                 assert indtr1 is not None
                 indtr1 = indtr1[indtu]
