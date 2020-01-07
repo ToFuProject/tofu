@@ -2982,16 +2982,19 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    num_threads)
             # ..................................................................
         if ani:
-            val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
+            val_arr = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
-            val_2d = func(pts, t=t, **fkwdargs)
+            val_arr = func(pts, t=t, **fkwdargs)
+        val_2d = val_arr
         # Integrate
         if n_imode == 0:  # "sum" integration mode
             # .. integrating function ..........................................
             reseffs = np.copy(np.asarray(<double[:nlos]>reseff_arr))
             indices = np.copy(np.asarray(<long[:nlos-1]>ind_arr).astype(int))
-            sig = np.add.reduceat(val_2d, np.r_[0, indices],
-                                  axis=-1)*reseffs[None, :]
+            sig = np.asfortranarray(np.add.reduceat(val_arr,
+                                                    np.r_[0, indices],
+                                                    axis=-1)
+                                    * reseffs[None, :])
             # Cleaning up...
             free(coeff_ptr[0])
             free(coeff_ptr)
