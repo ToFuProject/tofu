@@ -259,9 +259,10 @@ class MultiIDSLoader(object):
                            'dim':'distance', 'quant':'Z', 'units':'m'}},
 
                'barometry':
-               {'t':{'str':'gauge[chan].pressure.time'},
-                'p':{'str':'gauge[chan].pressure.data',
-                     'dim':'pressure', 'quant':'p', 'units':'Pa?'}},
+               {'t':{'str': 'gauge[chan].pressure.time'},
+                'names': {'str': 'gauge[chan].name'},
+                'p':{'str': 'gauge[chan].pressure.data',
+                     'dim': 'pressure', 'quant': 'p', 'units': 'Pa?'}},
 
                'neutron_diagnostic':
                {'t':{'str':'time', 'units':'s'},
@@ -284,6 +285,7 @@ class MultiIDSLoader(object):
                 'tau1keV':{'str':'channel[chan].optical_depth.data',
                            'dim':'optical_depth', 'quant':'tau', 'units':'adim.'},
                 'validity_timed': {'str':'channel[chan].t_e.validity_timed'},
+                'names': {'str': 'channel[chan].name'},
                 'Te0': {'str':'t_e_central.data',
                         'dim':'temperature', 'quant':'Te', 'units':'eV'}},
 
@@ -297,12 +299,14 @@ class MultiIDSLoader(object):
                       'dim':'distance', 'quant':'Z', 'units':'m'},
                  'phi':{'str':'channel[chan].position.phi.data',
                         'dim':'angle', 'quant':'phi', 'units':'rad'},
+                 'names': {'str': 'channel[chan].name'},
                  'mode':{'str':'mode'},
                  'sweep':{'str':'sweep_time'}},
 
                'interferometer':
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
+                'names': {'str': 'channel[chan].name'},
                 'ne_integ':{'str':'channel[chan].n_e_line.data',
                             'dim':'ne_integ', 'quant':'ne_integ',
                             'units':'/m2', 'Brightness': True}},
@@ -314,7 +318,8 @@ class MultiIDSLoader(object):
                         'dim':'distance', 'quant':'wavelength', 'units':'m'},
                 'fangle':{'str':'channel[chan].faraday_angle.data',
                           'dim':'angle', 'quant':'faraday angle',
-                          'units':'rad', 'Brightness': True}},
+                          'units':'rad', 'Brightness': True},
+                'names': {'str': 'channel[chan].name'}},
 
                'bolometer':
                {'t':{'str':'channel[chan].power.time',
@@ -325,6 +330,7 @@ class MultiIDSLoader(object):
                 'etendue':{'str':'channel[chan].etendue',
                            'dim':'etendue', 'quant':'etendue',
                            'units':'m2.sr'},
+                'names': {'str': 'channel[chan].name'},
                 'tpower':{'str':'time','quant':'t', 'units':'s'},
                 'prad':{'str':'power_radiated_total',
                         'dim':'power', 'quant':'power radiative', 'units':'W'},
@@ -341,6 +347,7 @@ class MultiIDSLoader(object):
                 'brightness':{'str':'channel[chan].brightness.data',
                               'dim':'brightness', 'quant':'brightness',
                               'units':'W/(m2.sr)', 'Brightness': True},
+                'names': {'str': 'channel[chan].name'},
                 'etendue':{'str':'channel[chan].etendue',
                            'dim':'etendue', 'quant':'etendue', 'units':'m2.sr'}},
 
@@ -350,6 +357,7 @@ class MultiIDSLoader(object):
                 'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data',
                            'dim':'radiance_spectral', 'quant':'radiance_spectral',
                            'units':'ph/s/(m2.sr)/m', 'Brightness': True},
+                'names': {'str': 'channel[chan].name'},
                 'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths',
                         'dim':'wavelength', 'quant':'wavelength', 'units':'m'}},
 
@@ -359,6 +367,7 @@ class MultiIDSLoader(object):
                 'radiance':{'str':'channel[chan].radiance_spectral.data',
                             'dim':'radiance_spectral', 'quant':'radiance_spectral',
                             'units':'ph/s/(m2.sr)/m', 'Brightness': True},
+                'names': {'str': 'channel[chan].name'},
                 'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
                 'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
               }
@@ -3069,7 +3078,7 @@ class MultiIDSLoader(object):
         return geomcls
 
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
-        Etendues, Surfaces = None, None
+        Etendues, Surfaces, names = None, None, None
         out = self.get_data(ids, sig=list(lk), indch=indch,
                             nan=nan, pos=pos)
         if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size > 0:
@@ -3094,7 +3103,9 @@ class MultiIDSLoader(object):
             Etendues = out['etendue']
         if 'surface' in out.keys() and len(out['surface']) > 0:
             Surfaces = out['surface']
-        return dgeom, Etendues, Surfaces
+        if 'names' in out.keys() and len(out['names']) > 0:
+            names = out['names']
+        return dgeom, Etendues, Surfaces, names
 
 
 
@@ -3118,10 +3129,9 @@ class MultiIDSLoader(object):
             config = self.to_Config(Name=Name, occ=occ, plot=False)
 
         # dchans
+        dchans = {}
         if indch is not None:
-            dchans = {'ind':indch}
-        else:
-            dchans = None
+            dchans['ind'] = indch
 
         # cam
         cam = None
@@ -3132,12 +3142,12 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
         if 'LOS' in geom:
-            lk = ['los_ptsRZPhi','etendue','surface']
+            lk = ['los_ptsRZPhi','etendue','surface', 'names']
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
             lk = list(set(lk).intersection(lkok))
-            dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
-                                                        nan=nan, pos=pos)
+            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
+                                                               nan=nan, pos=pos)
 
             indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
                                    np.any(np.isnan(dgeom[1]),axis=0))
@@ -3161,6 +3171,9 @@ class MultiIDSLoader(object):
                     msg += "  => indch automatically set to:\n"
                     msg += "  %s"%str(indch)
                     warnings.warn(msg)
+
+            if names is not None:
+                dchans['names'] = names
 
         import tofu.geom as tfg
         cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
@@ -3285,8 +3298,8 @@ class MultiIDSLoader(object):
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk = list(set(lk).intersection(lkok))
-                dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
-                                                            nan=nan, pos=pos)
+                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
+                                                                   nan=nan, pos=pos)
 
                 indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
                                        np.any(np.isnan(dgeom[1]),axis=0))
@@ -3313,6 +3326,8 @@ class MultiIDSLoader(object):
                         msg += "  => indch automatically set to:\n"
                         msg += "  %s"%str(indch)
                         warnings.warn(msg)
+                if names is not None:
+                    dchans['names'] = names
 
             if dgeom is not None:
                 import tofu.geom as tfg
