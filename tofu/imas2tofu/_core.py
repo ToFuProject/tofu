@@ -614,7 +614,7 @@ class MultiIDSLoader(object):
                  'core_profiles':['t','Te','ne']}
                }
 
-
+    _IDS_BASE = ['wall', 'pulse_schedule']
 
 
     ###################################
@@ -625,7 +625,8 @@ class MultiIDSLoader(object):
 
     def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None, get=None, ref=True):
+                 user=None, tokamak=None, version=None,
+                 ids_base=None, synthdiag=None, get=None, ref=True):
         super(MultiIDSLoader, self).__init__()
 
         # Initialize dicts
@@ -640,14 +641,22 @@ class MultiIDSLoader(object):
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
             self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
-            if get is None and (ids is not None or preset is not None):
+            if ids_base is None:
+                ids_base = True
+            if ids_base is True:
+                self.add_ids_base(get=False)
+            if synthdiag is None:
+                synthdiag = False
+            if synthdiag is True:
+                self.add_ids_synthdiag(get=False)
+            if get is None and (len(self._dids) > 0 or preset is not None):
                 get = True
         else:
             self.set_dids(dids)
             if get is None:
                 get = True
         self._set_fsig()
-        if get:
+        if get is True:
             self.open_get_close()
 
     def _init_dict(self):
@@ -1268,13 +1277,93 @@ class MultiIDSLoader(object):
         assert idd in self._didd.keys()
         return self._didd[idd]['idd']
 
+    def _checkformat_ids_synthdiag(self, ids=None):
+        lc = [ids is None, isinstance(ids, str), isinstance(ids, list),
+              hasattr(ids, 'ids_properties')]
+        if not any(lc):
+            msg = ("Provided ids not understood!\n"
+                   + "\t- provided: {}".format(str(ids)))
+            raise Exception(msg)
 
-    def _checkformat_ids(self, ids, occ=None, idd=None, isget=None):
+        lidssynth = [kk for kk, vv in self._didsdiag.items()
+                     if 'synth' in vv.keys()]
+        if lc[0]:
+            ids = sorted(set(self._dids.keys()).intersection(lidssynth))
+        elif lc[1]:
+            ids = [ids]
+        elif lc[3]:
+            ids = [ids.__class__.__name__]
+
+        ids = sorted(
+            set(ids).intersection(lidssynth).intersection(self._dids.keys()))
+        if len(ids) == 0:
+            msg = ("The provided ids must be:\n"
+                   + "\t- an is name (str)\n"
+                   + "\t- a list of ids names\n"
+                   + "\t- an ids instance\n"
+                   + "\t- None\n"
+                   + "And it must:\n"
+                   + "\t- Already be added (cf. self.dids.keys())\n"
+                   + "\t- Be a diagnostic ids with tabulated 'synth'")
+            # Turn to warning? => see user feedback
+            raise Exception(msg)
+        return ids
+
+    def get_inputs_for_synthsignal(self, ids=None, verb=True, returnas=False):
+        """ Return and / or print a dict of the default inputs for desired ids
+
+        Synthetic signal for a given diagnostic ids is computed from
+        signal that comes from other ids (e.g. core_profiles, equilibrium...)
+        For some diagnostics, the inputs required are already tabulated in
+        self._didsdiag[<ids>]['synth']
+
+        This method simply shows this already tabulated information
+        Advanced users may edit this hidden dictionnary to their needs
+
+        """
+        assert returnas in [False, True, dict, list]
+        ids = self._checkformat_ids_synthdiag(ids)
+
+        # Deal with real case
+        if len(ids) == 1:
+            out = self._didsdiag[ids[0]]['synth']
+            lids = sorted(out.get('dsig', {}).keys())
+            if verb:
+                dmsg = ("\n\t-" +
+                        "\n\t-".join([
+                            kk+':\n\t\t'+'\n\t\t'.join(vv)
+                            for kk, vv in out.get('dsig', {}).items()]))
+                extra = {kk: vv for kk, vv in out.items()
+                         if kk not in ['dsynth', 'dsig']}
+                msg = ("For computing synthetic signal for ids {}".format(ids)
+                       + dmsg + '\n'
+                       + "\t- Extra parameters (if any):\n"
+                       + "\t\t{}\n".format(extra))
+                print(msg)
+            if returnas is True:
+                returnas = dict
+        else:
+            out = None
+            lids = sorted(set(itt.chain.from_iterable([
+                self._didsdiag[idsi]['synth'].get('dsig', {}).keys()
+                for idsi in ids])))
+            if verb:
+                print(lids)
+            if returnas is True:
+                returnas = list
+        if returnas is dict:
+            return out
+        elif returnas is list:
+            return lids
+
+    def _checkformat_ids(self, ids, occ=None, idd=None, isget=None,
+                         synthdiag=False):
 
         # Check value and make dict if necessary
         lc = [type(ids) is str,
               type(ids) is list,
-              hasattr(ids, 'ids_properties')]
+              hasattr(ids, 'ids_properties'),
+              ids is None and synthdiag is True]
         if not any(lc):
             msg = "Arg ids must be either:\n"
             msg += "    - str : valid ids name\n"
@@ -1284,9 +1373,15 @@ class MultiIDSLoader(object):
             msg += "  Conditions: %s"%str(lc)
             raise Exception(msg)
 
+        # Synthdiag-specific
+        if synthdiag is True:
+            ids = self.get_inputs_for_synthsignal(ids=ids, verb=False,
+                                                  returnas=list)
+            lc[1] = True
+
         # Prepare dids[name] = {'ids':None/ids, 'needidd':bool}
         dids = {}
-        if lc[0]or lc[1]:
+        if lc[0] or lc[1]:
             if lc[0]:
                 ids = [ids]
             for ids_ in ids:
@@ -1323,7 +1418,6 @@ class MultiIDSLoader(object):
             if dids[lids[ii]]['ids'] is not None:
                 dids[lids[ii]]['ids'] = [dids[lids[ii]]['ids']]*nocc
 
-
         # Format isget / get
         for ii in range(0,nids):
             nocc = dids[lids[ii]]['nocc']
@@ -1331,9 +1425,9 @@ class MultiIDSLoader(object):
                 isgeti = np.zeros((nocc,), dtype=bool)
             if dids[lids[ii]]['ids'] is not None:
                 if isget is None:
-                    isgeti = False
+                    isgeti = np.r_[False]
                 elif type(isget) is bool:
-                    isgeti = bool(isget)
+                    isgeti = np.r_[bool(isget)]
                 elif hasattr(isget,'__iter__'):
                     if len(isget) == nids:
                         isgeti = np.r_[isget[ii]]
@@ -1346,8 +1440,6 @@ class MultiIDSLoader(object):
             dids[lids[ii]]['isget'] = isgeti
 
         return dids
-
-
 
     def add_ids(self, ids=None, occ=None, idd=None, preset=None,
                 shot=None, run=None, refshot=None, refrun=None,
@@ -1395,14 +1487,44 @@ class MultiIDSLoader(object):
             assert idd in self._didd.keys()
 
         # Add ids
-
         if ids is not None:
             dids = self._checkformat_ids(ids, occ=occ, idd=idd, isget=isget)
 
             self._dids.update(dids)
             if get:
-                self.open_get_close(ids=ids)
+                self.open_get_close()
 
+    def add_ids_base(self, occ=None, idd=None,
+                     shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None,
+                     ref=None, isget=None, get=None):
+        """ Add th list of ids stored in self._IDS_BASE
+
+        Typically used to add a list of common ids without having to re-type
+        them every time
+        """
+        self.add_ids(ids=self._IDS_BASE, occ=occ, idd=idd,
+                     shot=shot, run=run, refshot=refshot, refrun=refrun,
+                     user=user, tokamak=tokamak, version=version,
+                     ref=ref, isget=isget, get=get)
+
+    def add_ids_synthdiag(self, ids=None, occ=None, idd=None,
+                          shot=None, run=None, refshot=None, refrun=None,
+                          user=None, tokamak=None, version=None,
+                          ref=None, isget=None, get=None):
+        """ Add pre-tabulated input ids necessary for calculating synth. signal
+
+        The necessary input ids are given by self.get_inputs_for_synthsignal()
+
+        """
+        if get is None:
+            get = True
+        ids = self.get_inputs_for_synthsignal(ids=ids, verb=False,
+                                              returnas=list)
+        self.add_ids(ids=ids, occ=occ, idd=idd, preset=None,
+                     shot=shot, run=run, refshot=refshot, refrun=refrun,
+                     user=user, tokamak=tokamak, version=version,
+                     ref=ref, isget=isget, get=get)
 
     def remove_ids(self, ids=None, occ=None):
         """ Remove an ids (optionally remove only an occurence)
@@ -1529,11 +1651,12 @@ class MultiIDSLoader(object):
     #---------------------
 
     def _checkformat_getdata_ids(self, ids):
-        msg = "Arg ids must be either:\n"
-        msg += "    - None: if self.dids only has one key\n"
-        msg += "    - str: a valid key of self.dids\n\n"
-        msg += "  Provided : %s\n"%ids
-        msg += "  Available: %s"%str(list(self._dids.keys()))
+        msg = ("Arg ids must be either:\n"
+               + "\t- None: if self.dids only has one key\n"
+               + "\t- str: a valid key of self.dids\n\n"
+               + "  Provided : {}\n".format(ids)
+               + "  Available: {}\n".format(str(list(self._dids.keys())))
+               + "  => Consider using self.add_ids({})".format(str(ids)))
 
         lc = [ids is None, type(ids) is str]
         if not any(lc):
@@ -1971,6 +2094,39 @@ class MultiIDSLoader(object):
                     msg += "\n\t\t{0}  : {1}".format(k1, v1.replace('\n', ' '))
             warnings.warn(msg)
         return dout
+
+    def get_events(self, occ=None, verb=True, returnas=False):
+        """ Return chronoligical events stored in pulse_schedule
+
+        If verb = True              => print (default)
+                  False             => don't print
+        If returnas = list          => return as list of tuples (name, time)
+                      np.ndarray    => return as np.ndarray
+                      False         => don't return (default)
+        """
+
+        # Check / format inputs
+        if verb is None:
+            verb = True
+        if returnas is None:
+            returnas = False
+        assert isinstance(verb, bool)
+        assert returnas in [False, list, tuple]
+
+        events = self.get_data('pulse_schedule',
+                               sig='events', occ=occ)['events']
+        name, time = zip(*events)
+        ind = np.argsort(time)
+        if verb:
+            name, time = zip(*events[ind])
+            msg = np.array([name, time], dtype='U').T
+            msg = np.char.ljust(msg, np.nanmax(np.char.str_len(msg)))
+            print(msg)
+        if returnas is list:
+            return events[ind].tolist()
+        elif returnas is tuple:
+            name, time = zip(*events[ind])
+            return name, time
 
 
 
@@ -3822,11 +3978,11 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         raise Exception(msg)
 
     if description_2d is None:
-        if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
+        if nS == 1 and lcls[0] in ['Ves', 'PlasmaDomain']:
             description_2d = 0
         else:
-            descrption_2d = 2
-    assert description_2d in [0,2]
+            description_2d = 2
+    assert description_2d in [0, 2]
 
     # Make sure StructIn is last (IMAS requirement)
     ind = lcls.index(lclsIn[0])
