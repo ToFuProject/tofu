@@ -2519,6 +2519,9 @@ class Plasma2D(utils.ToFuObject):
                                 indpts = indR*nZ + indZ
                             else:
                                 indpts = indZ*nR + indR
+                            indout = ((r < R[0]) | (r > R[-1])
+                                      | (z < Z[0]) | (z > Z[-1]))
+                            indpts[indout] = -1
                             return indpts
 
                         dd[dk][k0]['R'] = R
@@ -3915,8 +3918,21 @@ class Plasma2D(utils.ToFuObject):
                 else:
                     idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
                               if self._dindref[id_]['group'] == 'mesh'][0]
-            pts = self.dmesh[idmesh]['data']['nodes']
-            pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
+            if self.dmesh[idmesh]['data']['type'] == 'rect':
+                if self.dmesh[idmesh]['data']['shapeRZ'] == ('R', 'Z'):
+                    R = np.repeat(self.dmesh[idmesh]['data']['R'],
+                                  self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.tile(self.dmesh[idmesh]['data']['Z'],
+                                self.dmesh[idmesh]['data']['nR'])
+                else:
+                    R = np.tile(self.dmesh[idmesh]['data']['R'],
+                                self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
+                                  self.dmesh[idmesh]['data']['nR'])
+                pts = np.array([R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
+            else:
+                pts = self.dmesh[idmesh]['data']['nodes']
+                pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:

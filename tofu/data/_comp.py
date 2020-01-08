@@ -525,7 +525,6 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                             fill_value=fill_value
                         )(np.asarray(vii))
                 val[np.isnan(val)] = fill_value
-
                 return val, t
 
         else:
@@ -677,7 +676,7 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
 
             # Deduce vect in (r,z,phi)
             vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
-            vphi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
+            vPhi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
             vZ = vect[2,:]
 
             # Prepare output
@@ -689,6 +688,7 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
 
             # Interpolate
             indpts = trifind(r, z)
+            indok = indpts > -1
             if t is None:
                 for ii in range(0,ntall):
                     valR[ii, ...] = vq2dR[indtq[ii], indpts]
@@ -697,9 +697,7 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                 t = tall
             else:
                 ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                       tbinall=tbinall,
-                                                       idref1d=idref1d,
-                                                       idref2d=idref2d)[1:]
+                                                       tbinall=tbinall)[1:-2]
                 for ii in range(0, ntall):
                     ind = indt == indtu[ii]
                     valR[ind, ...] = vq2dR[indtq[indtu[ii]], indpts]

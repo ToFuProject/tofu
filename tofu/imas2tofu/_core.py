@@ -3077,6 +3077,61 @@ class MultiIDSLoader(object):
 
         return geomcls
 
+    def _get_indch_geomtdata(self, indch=None, indch_auto=None,
+                             dgeom=None, t=None, out=None, sig=None):
+        nch = 0 if indch is None else len(indch)
+        # Get from geometry of LOS consistency
+        if dgeom is not None:
+            indnan = np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
+                                   np.any(np.isnan(dgeom[1]), axis=0))
+            if np.any(indnan) and not np.all(indnan):
+                if indch_auto != True:
+                    ls = ['index %s los %s'%(ii, dmsg[indnan[ii]])
+                          for ii in range(0,dgeom[0].shape[1])]
+                    dmsg = {True: 'not available', False:'ok'}
+                    msg = ("The geometry of all channels is not available !\n"
+                           + "Please choose indch to get all channels geomery !\n"
+                           + "Currently:\n"
+                           + "\n    ".join(ls)
+                           + "\n\n  => Solution: choose indch accordingly !")
+                    raise Exception(msg)
+                else:
+                    msg = ("Geometry missing for some los !\n"
+                           + "  => indch automatically set to:\n"
+                           + "  %s"%str(indch))
+                    warnings.warn(msg)
+                if indch is None:
+                    indch = (~indnan).nonzero()[0]
+                else:
+                    indch = set(indch).intersection((~indnan).nonzero()[0])
+                    indch = np.array(indch, dtype=int)
+
+        # Get from time vectors consistency
+        if t is not None:
+            ls = [t[ii].shape for ii in range(0,len(t))]
+            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+            if indch is None:
+                indch = [ii for ii in range(0,len(t)) if ls[ii] == su]
+            else:
+                indch = [indch[ii] for ii in range(0,len(t)) if ls[ii] == su]
+
+        # Get from data array consistency
+        if all([ss is not None for ss in [out, sig]]):
+            ls = [out[sig][ii].shape
+                  for ii in range(0,len(out[sig]))]
+            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+            if indch is None:
+                indch = [ii for ii in range(0,len(out[sig]))
+                         if ls[ii] == su]
+            else:
+                indch = [indch[ii] for ii in range(0,len(out[sig]))
+                         if ls[ii] == su]
+
+        nchout = 0 if indch is None else len(indch)
+        return indch, nchout != nch
+
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces, names = None, None, None
         out = self.get_data(ids, sig=list(lk), indch=indch,
@@ -3149,28 +3204,13 @@ class MultiIDSLoader(object):
             dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
                                                                nan=nan, pos=pos)
 
-            indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
-                                   np.any(np.isnan(dgeom[1]),axis=0))
-            if np.any(indnan) and not np.all(indnan):
-                indch_sug = (~indnan).nonzero()[0]
-                if indch_auto != True:
-                    dmsg = {True: 'not available', False:'ok'}
-                    msg = "The geometry of all channels is not available !\n"
-                    msg += "Please choose indch to get all channels geomery !\n"
-                    msg += "Currently:\n"
-                    ls = ['index %s los %s'%(ii,dmsg[indnan[ii]])
-                          for ii in range(0,dgeom[0].shape[1])]
-                    msg += "\n    ".join(ls)
-                    msg += "\n\n  => Solution: choose indch accordingly !"
-                    raise Exception(msg)
-                else:
-                    indch = indch_sug
-                    dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
-                                                                nan=nan, pos=pos)
-                    msg = "Geometry missing for some los !\n"
-                    msg += "  => indch automatically set to:\n"
-                    msg += "  %s"%str(indch)
-                    warnings.warn(msg)
+            # Check all channels can be used, reset indch if necessary
+            indch, modif =  self._get_indch_geomtdata(indch=indch,
+                                                      indch_auto=indch_auto,
+                                                      dgeom=dgeom)
+            if modif is True:
+                dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                            nan=nan, pos=pos)
 
             if names is not None:
                 dchans['names'] = names
@@ -3301,41 +3341,48 @@ class MultiIDSLoader(object):
                 dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
                                                                    nan=nan, pos=pos)
 
-                indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
-                                       np.any(np.isnan(dgeom[1]),axis=0))
-                if np.any(indnan) and not np.all(indnan):
-                    indch_sug = (~indnan).nonzero()[0]
-                    if indch_auto != True:
-                        dmsg = {True: 'not available', False:'ok'}
-                        msg = "The geometry of all channels is not available !\n"
-                        msg += "Please de-activate geometry loading (geomcls=False)\n"
-                        msg += "  or choose indch to get all channels geometry !\n"
-                        msg += "Currently:\n"
-                        ls = ['index %s los %s'%(ii,dmsg[indnan[ii]])
-                              for ii in range(0,dgeom[0].shape[1])]
-                        msg += "\n    ".join(ls)
-                        msg += "\n\n  => Solution: choose indch accordingly !"
-                        msg += "     Suggested indch (los %s):\n"%dmsg[True]
-                        msg += "     %s"%str(indch_sug)
-                        raise Exception(msg)
-                    else:
-                        indch = indch_sug
-                        dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
-                                                                    nan=nan, pos=pos)
-                        msg = "Geometry missing for some los !\n"
-                        msg += "  => indch automatically set to:\n"
-                        msg += "  %s"%str(indch)
-                        warnings.warn(msg)
+                # Check all channels can be used, reset indch if necessary
+                indch, modif =  self._get_indch_geomtdata(indch=indch,
+                                                          indch_auto=indch_auto,
+                                                          dgeom=dgeom)
+                if modif is True:
+                    dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                                nan=nan, pos=pos)
+                # indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
+                                       # np.any(np.isnan(dgeom[1]),axis=0))
+                # if np.any(indnan) and not np.all(indnan):
+                    # indch_sug = (~indnan).nonzero()[0]
+                    # if indch_auto != True:
+                        # dmsg = {True: 'not available', False:'ok'}
+                        # msg = "The geometry of all channels is not available !\n"
+                        # msg += "Please de-activate geometry loading (geomcls=False)\n"
+                        # msg += "  or choose indch to get all channels geometry !\n"
+                        # msg += "Currently:\n"
+                        # ls = ['index %s los %s'%(ii,dmsg[indnan[ii]])
+                              # for ii in range(0,dgeom[0].shape[1])]
+                        # msg += "\n    ".join(ls)
+                        # msg += "\n\n  => Solution: choose indch accordingly !"
+                        # msg += "     Suggested indch (los %s):\n"%dmsg[True]
+                        # msg += "     %s"%str(indch_sug)
+                        # raise Exception(msg)
+                    # else:
+                        # indch = indch_sug
+                        # dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                                    # nan=nan, pos=pos)
+                        # msg = "Geometry missing for some los !\n"
+                        # msg += "  => indch automatically set to:\n"
+                        # msg += "  %s"%str(indch)
+                        # warnings.warn(msg)
                 if names is not None:
                     dchans['names'] = names
 
-            if dgeom is not None:
-                import tofu.geom as tfg
-                cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
-                                            Etendues=Etendues, Surfaces=Surfaces,
-                                            Name=Name, Diag=ids, Exp=Exp,
-                                            dchans=dchans)
-                cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
+            # if dgeom is not None:
+                # import tofu.geom as tfg
+                # cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
+                                            # Etendues=Etendues, Surfaces=Surfaces,
+                                            # Name=Name, Diag=ids, Exp=Exp,
+                                            # dchans=dchans)
+                # cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
 
         # -----------------------
@@ -3409,28 +3456,28 @@ class MultiIDSLoader(object):
                                         pos=pos)
                     if cam is not None:
                         cam = cam.get_subset(indch=indch)
-                    msg = "indch set automatically for %s\n"%ids
-                    msg += "  (due to inhomogeneous data shapes)\n"
-                    msg += "    - main shape: %s\n"%str(su)
-                    msg += "    - nb. chan. selected: %s\n"%len(indch)
-                    msg += "    - indch: %s"%str(indch)
+                    msg = ("indch set automatically for %s\n"%ids
+                           +  "  (due to inhomogeneous data shapes)\n"
+                           + "    - main shape: %s\n"%str(su)
+                           + "    - nb. chan. selected: %s\n"%len(indch)
+                           + "    - indch: %s"%str(indch))
                     warnings.warn(msg)
                 else:
-                    msg = "The following is supposed to be a np.ndarray:\n"
-                    msg += "    - diag:     %s\n"%ids
-                    msg += "    - shortcut: %s\n"%dsig[kk]
-                    msg += "    - used as:  %s input\n"%kk
-                    msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
-                    msg += "  Probable cause: non-uniform shape (vs channels)\n"
-                    msg += "  => shapes :\n    "
                     if indch is None:
                         ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
                               for ii in range(0,len(out[dsig[kk]]))]
                     else:
                         ls = ['index %s  %s.shape %s'%(indch[ii],kk,str(out[dsig[kk]][ii].shape))
                               for ii in range(0,len(out[dsig[kk]]))]
-                    msg += "\n    ".join(ls)
-                    msg += "\n  => Solution: choose indch accordingly !"
+                    msg = ("The following is supposed to be a np.ndarray:\n"
+                           + "    - diag:     %s\n"%ids
+                           + "    - shortcut: %s\n"%dsig[kk]
+                           + "    - used as:  %s input\n"%kk
+                           + "  Observed type: %s\n"%str(type(out[dsig[kk]]))
+                           + "  Probable cause: non-uniform shape (vs channels)\n"
+                           + "  => shapes :\n    "
+                           + "\n    ".join(ls)
+                           + "\n  => Solution: choose indch accordingly !")
                     raise Exception(msg)
 
             # Arrange depending on shape and field
@@ -3440,7 +3487,7 @@ class MultiIDSLoader(object):
                 ipdb.set_trace()
                 raise Exception(msg)
 
-            assert out[dsig[kk]].ndim in [1,2,3]
+            assert out[dsig[kk]].ndim in [1, 2, 3]
 
             if out[dsig[kk]].ndim == 1:
                 out[dsig[kk]] = np.atleast_2d(out[dsig[kk]])
@@ -3497,12 +3544,21 @@ class MultiIDSLoader(object):
             for tt in dextra.keys():
                 dextra[tt]['t'] = dextra[tt]['t'] - t0
 
+        # Create objects
+        # --------------
+        if geomcls != False and dgeom is not None:
+            import tofu.geom as tfg
+            cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
+                                        Etendues=Etendues, Surfaces=Surfaces,
+                                        Name=Name, Diag=ids, Exp=Exp,
+                                        dchans=dchans)
+            cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
+
         import tofu.data as tfd
         conf = None if cam is not None else config
         Data = getattr(tfd, datacls)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                      lCam=cam, config=conf, dextra=dextra,
                                      dchans=dchans, **dins)
-
         Data.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         if plot:
@@ -3681,8 +3737,7 @@ class MultiIDSLoader(object):
         sig._dextra = plasma.get_dextra(dextra)
 
         if ids == 'interferometer':
-            pass
-            i#sig = 2.*sig
+            sig = 2.*sig
         elif ids == 'polarimeter':
             sig = 2.*sig
 
@@ -3715,7 +3770,8 @@ class MultiIDSLoader(object):
             if plot_compare:
                 if err_comp:
                     raise Exception(msg)
-                data = self.to_Data(ids, indch=indch, t0=t0, plot=False)
+                data = self.to_Data(ids, indch=indch,
+                                    indch_auto=indch_auto, t0=t0, plot=False)
                 sig._dlabels = data.dlabels
                 data.plot_compare(sig)
             else:
