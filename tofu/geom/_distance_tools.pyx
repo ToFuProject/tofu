@@ -288,7 +288,7 @@ cdef inline void comp_dist_los_circle_vec_core(int num_los, int num_cir,
     # res = [kmin(los1, cir1), kmin(los1, cir2),...]
     # ---
     # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `dist_los_circle_core`
+    # Python, if you need it from cython, use `dist_los_circle_core`
     """
     cdef int i, ind_los, ind_cir
     cdef double* loc_res
@@ -550,7 +550,7 @@ cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
     res = [kmin(los1, cir1), kmin(los1, cir2),...]
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `dist_los_circle_core`
+    Python, if you need it from cython, use `dist_los_circle_core`
     """
     cdef int i, ind_los, ind_cir
     cdef double* dirv
@@ -632,7 +632,7 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
             `distance[j, i]` is the distance from P_i to the i-th extruded poly.
     ---
     This is the CYTHON function, use only if you need this computation from
-    Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
+    cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
     cdef int i, ind_los, ind_pol, ind_pol2
     cdef int npts_poly
@@ -771,7 +771,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
             `distance[i]` is the distance from P_i to the extruded polygon.
              if the i-th LOS intersects the poly, then distance[i] = Cnan
     ---
-    This is the Cython version, only accessible from cython. If you need
+    This is the cython version, only accessible from cython. If you need
     to use it from Python please use: comp_dist_los_vpoly
     """
     cdef int jj
@@ -1096,7 +1096,7 @@ cdef inline void is_close_los_vpoly_vec_core(int num_poly, int nlos,
             and j-th poly are closer than epsilon. (True if distance<epsilon)
     ---
     This is the CYTHON function, use only if you need this computation from
-    Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
+    cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
     cdef int i, ind_los, ind_pol, ind_pol2
     cdef int npts_poly
@@ -1187,7 +1187,7 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
             among all other LOS without going over it.
     ---
     This is the CYTHON function, use only if you need this computation from
-    Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
+    cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
     cdef int i, ind_los, ind_pol, ind_pol2, indloc
     cdef int npts_poly
@@ -1264,7 +1264,7 @@ cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
             among all other poly without going over it.
     ---
     This is the CYTHON function, use only if you need this computation from
-    Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
+    cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
     cdef int i, ind_los, ind_pol, ind_pol2, indloc
     cdef int npts_poly

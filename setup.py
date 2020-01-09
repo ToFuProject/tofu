@@ -4,20 +4,26 @@ See:
 https://github.com/ToFuProject/tofu
 """
 import os
-import sys
 import glob
 import shutil
 import logging
 import platform
 import subprocess
-from codecs import open as cd_open  # useless in py 3.x
-from distutils.command.clean import clean as Clean
+from codecs import open as cd_open
+# ... setup tools
+from setuptools import setup, find_packages
+from setuptools import Extension
+# ... packages that need to be in pyproject.toml
 import Cython as cth
 from Cython.Distutils import build_ext
-from Cython.Build import cythonize
-from Cython.Compiler.Options import get_directive_defaults
 import numpy as np
-import _updateversion as up
+# ...
+# Remove _updateversion import due to build-time dependency
+#   => updateversion defined in here for commodity
+#   => find a cleaner solution later
+# import _updateversion as up
+# ... for `clean` command
+from distutils.command.clean import clean as Clean
 
 
 directive_defaults = get_directive_defaults()
@@ -25,28 +31,16 @@ directive_defaults["profile"] = True
 directive_defaults["linetrace"] = True
 directive_defaults["binding"] = True
 
-print("cython version =", cth.__version__)
-print("numpy  version =", np.__version__)
-print("cython version =", cth.__file__)
-print("numpy  version =", np.__file__)
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("tofu.setup")
-
-# Always prefer setuptools over distutils
-try:
-    from setuptools import setup, find_packages
-    from setuptools import Extension
-except ImportError:
-    from distutils.core import setup
-    from distutils.extension import Extension
-
+# == Checking platform ========================================================
 is_platform_windows = False
 if platform.system() == "Windows":
     is_platform_windows = True
 
 
-# ==============================================================================
+# === Setting clean command ===================================================
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("tofu.setup")
+
 class CleanCommand(Clean):
     description = "Remove build artifacts from the source tree"
 
@@ -108,12 +102,10 @@ class CleanCommand(Clean):
                     logger.info("removing '%s'", path)
                 except OSError:
                     pass
+# =============================================================================
 
 
-# ==============================================================================
-
-
-# ==============================================================================
+# =============================================================================
 # Check if openmp available
 # see http://openmp.org/wp/openmp-compilers/
 omp_test = r"""
@@ -147,22 +139,35 @@ def check_for_openmp(cc_var):
     shutil.rmtree(tmpdir)
     return result
 
-
 # ....... Using function
-print("................ checking if openmp installed...")
 if is_platform_windows:
     openmp_installed = False
 else:
     openmp_installed = not check_for_openmp("cc")
-print("................ checking if openmp installed... > ", openmp_installed)
+# =============================================================================
 
 
-
-# ==============================================================================
-
-
+# == Getting tofu version =====================================================
 _HERE = os.path.abspath(os.path.dirname(__file__))
 
+
+def updateversion(path=_HERE):
+    # Fetch version from git tags, and write to version.py
+    # Also, when git is not available (PyPi package), use stored version.py
+    version_py = os.path.join(path, 'tofu', 'version.py')
+    try:
+        version_git = subprocess.check_output(["git",
+                                               "describe"]).rstrip().decode()
+    except Exception as err:
+        with open(version_py, 'r') as fh:
+            version_git = fh.read().strip().split("=")[-1].replace("'", '')
+    version_git = version_git.lower().replace('v', '')
+
+    version_msg = "# Do not edit, pipeline versioning governed by git tags!"
+    with open(version_py, "w") as fh:
+        msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
+        fh.write(version_msg + msg)
+    return version_git
 
 def get_version_tofu(path=_HERE):
 
@@ -184,7 +189,7 @@ def get_version_tofu(path=_HERE):
                 .decode()
             )
             if git_branch in ["master"]:
-                version_tofu = up.updateversion(os.path.join(path, "tofu"))
+                version_tofu = updateversion()
             else:
                 isgit = False
         except Exception:
@@ -199,19 +204,20 @@ def get_version_tofu(path=_HERE):
     version_tofu = version_tofu.lower().replace("v", "")
     return version_tofu
 
-
 version_tofu = get_version_tofu(path=_HERE)
 
 print("")
 print("Version for setup.py : ", version_tofu)
 print("")
+# =============================================================================
 
-
+# =============================================================================
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
+
 _README = [
     ff
-    for ff in os.listdir(os.path.abspath(os.path.dirname(__file__)))
+    for ff in os.listdir(_HERE)
     if len(ff) <= 10 and ff[:7] == "README."
 ]
 assert len(_README) == 1
@@ -222,9 +228,11 @@ if _README[-3:] == ".md":
     long_description_content_type = "text/markdown"
 else:
     long_description_content_type = "text/x-rst"
+# =============================================================================
 
 
-#  ... Compiling files ........................................................
+# =============================================================================
+#  Compiling files
 if openmp_installed:
     extra_compile_args = ["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
     extra_link_args = ["-fopenmp"]
@@ -284,17 +292,21 @@ setup(
     # The version is stored only in the setup.py file and read from it (option
     # 1 in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
-    # setup_requires=['setuptools_scm'],
+
+    # Description of what tofu does
     description="A python library for Tomography for Fusion",
     long_description=long_description,
     long_description_content_type=long_description_content_type,
+
     # The project's main homepage.
     url="https://github.com/ToFuProject/tofu",
     # Author details
     author="Didier VEZINET",
     author_email="didier.vezinet@gmail.com",
+
     # Choose your license
     license="MIT",
+
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # How mature is this project? Common values are
@@ -314,8 +326,10 @@ setup(
         # In which language most of the code is written ?
         "Natural Language :: English",
     ],
+
     # What does your project relate to?
     keywords="tomography geometry 3D inversion synthetic fusion",
+
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(
@@ -333,6 +347,7 @@ setup(
             "tests10_plugins",
         ]
     ),
+
     # packages = ['tofu','tofu.geom'],
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
@@ -344,6 +359,7 @@ setup(
     install_requires=install_requires,
     install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"],
     python_requires=">=3.6",
+
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
@@ -358,6 +374,7 @@ setup(
             "sphinx_bootstrap_theme",
         ]
     },
+
     # If there are data files included in your packages that need to be
     # installed, specify them here. If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
@@ -372,6 +389,7 @@ setup(
         "tofu.geom.inputs": ["*.txt"],
     },
     include_package_data=True,
+
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
     # http://docs.python.org/3.4/distutils/setupscript.html
@@ -387,7 +405,7 @@ setup(
     #    ],
     # },
     ext_modules=extensions,
-    cmdclass={"build_ext": cth.Build.build_ext,
+    cmdclass={"build_ext": build_ext,
               "clean": CleanCommand},
     include_dirs=[np.get_include()],
 )

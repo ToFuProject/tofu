@@ -1,23 +1,18 @@
 #!/usr/bin/env/python
 # coding=utf-8
 
-import sys
 import os
 import subprocess
 
-_HERE = os.path.join(os.path.abspath(os.path.dirname(__file__)),'tofu')
+_HERE = os.path.abspath(os.path.dirname(__file__))
 
 def updateversion(path=_HERE):
     # Fetch version from git tags, and write to version.py
     # Also, when git is not available (PyPi package), use stored version.py
-    version_py = os.path.join(path,"version.py")
+    version_py = os.path.join(path, 'tofu', 'version.py')
     try:
-        if sys.version[0]=='2':
-            version_git = subprocess.check_output(["git","describe"]).rstrip()
-        elif sys.version[0]=='3':
-            version_git = subprocess.check_output(["git","describe"]).rstrip().decode()
-        else:
-            raise Exception("Wrong python version !")
+        version_git = subprocess.check_output(["git",
+                                               "describe"]).rstrip().decode()
     except:
         with open(version_py,'r') as fh:
             version_git = fh.read().strip().split("=")[-1].replace("'",'')
@@ -28,7 +23,3 @@ def updateversion(path=_HERE):
         msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
         fh.write(version_msg + msg)
     return version_git
-
-
-
-

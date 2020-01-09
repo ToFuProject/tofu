@@ -428,23 +428,6 @@ cdef inline void sum_by_rows(double *orig, double *out,
 
 
 # ...........
-cdef inline void sum_naive_rows(double* orig, double* out,
-                                int n_rows, int n_cols) nogil:
-    cdef int ii, jj
-    for ii in prange(n_rows):
-        out[ii] = 0
-        for jj in range(n_cols):
-            out[ii] += orig[ii*n_cols + jj]
-
-    return
-
-
-cdef inline double sum_naive(double* orig, int n_cols) nogil:
-    cdef int ii
-    cdef double out = 0.
-    for ii in prange(n_cols):
-        out += orig[ii]
-    return out
 
 cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
     cdef int ii

@@ -19,7 +19,7 @@ if '.git' in _HERE and 'tofu' in _HERE:
 
 if istofugit:
     # Make sure we load the corresponding tofu
-    sys.path.insert(1,_HERE)
+    sys.path.insert(1, _HERE)
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
     _ = sys.path.pop(1)
@@ -49,7 +49,7 @@ _TOKAMAK = 'west'
 _VERSION = '3'
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
 _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
-_LIDS = _LIDS_DIAG + _LIDS_PLASMA
+_LIDS = _LIDS_DIAG + _LIDS_PLASMA + ['magfieldlines']
 _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
@@ -75,7 +75,7 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
                     ids=None, quantity=None, X=None, t0=_T0,
                     sharex=_SHAREX, indch=None, indch_auto=None,
-                    background=_BCK):
+                    background=_BCK, t=None, dR_sep=None, init=None):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
     if t0.lower() == 'none':
@@ -85,7 +85,8 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_sig=quantity, plot_X=X,
-                      t0=t0, plot=True, sharex=sharex, bck=background)
+                      t0=t0, plot=True, sharex=sharex, bck=background,
+                      t=t, dR_sep=dR_sep, init=init)
 
     plt.show(block=True)
 
@@ -125,11 +126,11 @@ if __name__ == '__main__':
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-t','--tokamak',help=msg, required=False,
+    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
                         default=_TOKAMAK)
-    parser.add_argument('-r','--run',help='run number',
+    parser.add_argument('-r', '--run', help='run number',
                         required=False, type=int, default=_RUN)
-    parser.add_argument('-v','--version',help='version number',
+    parser.add_argument('-v', '--version', help='version number',
                         required=False, type=str, default=_VERSION)
 
     msg = "ids from which to load diagnostics data, can be:\n%s"%repr(_LIDS)
@@ -143,12 +144,21 @@ if __name__ == '__main__':
                         nargs='+', default=None)
     parser.add_argument('-t0', '--t0', type=str, required=False,
                         help='Reference time event setting t = 0', default=_T0)
+    parser.add_argument('-t', '--t', type=float, required=False,
+                        help='Input time when needed')
+    parser.add_argument('-dR_sep', '--dR_sep', type=float, required=False,
+                        help='Distance to separatrix from r_ext to plot'
+                        + ' 10 magnetic field lines')
+    parser.add_argument('-init', '--init', type=float, required=False, nargs=3,
+                        help='Manual coordinates of point that a RED magnetic'
+                        + ' field line will cross on graphics,'
+                        + ' give coordinates as: R [m], Phi [rad], Z [m]')
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
     parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
-                        help='automatically determine indices of channels to be loaded',
-                        default=True)
+                        help='automatically determine indices of'
+                        + ' channels to be loaded', default=True)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')

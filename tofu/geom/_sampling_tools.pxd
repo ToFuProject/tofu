@@ -83,16 +83,20 @@ cdef call_get_sample_single_ani(double los_kmin, double los_kmax,
                                 int n_dmode, int n_imode,
                                 double[1] eff_res,
                                 long[1] nb_rows,
-                                double[:,::1] ray_orig,
-                                double[:,::1] ray_vdir)
+                                double[:, ::1] ray_orig,
+                                double[:, ::1] ray_vdir)
 
-cdef cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
-                            double resol,
-                            int n_dmode, int n_imode,
-                            double[1] eff_res,
-                            long[1] nb_rows,
-                            double[:,::1] ray_orig,
-                            double[:,::1] ray_vdir)
+cdef cnp.ndarray[double,
+                 ndim=2,
+                 mode='c'] call_get_sample_single(double los_kmin,
+                                                  double los_kmax,
+                                                  double resol,
+                                                  int n_dmode,
+                                                  int n_imode,
+                                                  double[1] eff_res,
+                                                  long[1] nb_rows,
+                                                  double[:, ::1] ray_orig,
+                                                  double[:, ::1] ray_vdir)
 
 cdef int los_get_sample_core_const_res(int nlos,
                                        double* los_lim_min,
@@ -127,30 +131,11 @@ cdef void los_get_sample_pts(int nlos,
                              long* los_ind,
                              int num_threads) nogil
 
-# -- Integrations utility function ---------------------------------------------
-cdef void integrate_sum_nlos(int nlos, int nt,
-                             double[:,::1] val_2d,
-                             double[::1,:] sig_mv,
-                             long* ind_arr,
-                             double* reseff_arr,
-                             int num_threads) nogil
-
-cdef void integrate_c_sum_mat(double[:,::1] val_mv,
-                              double* sig,
-                              int nrows, int ncols,
-                              double loc_eff_res,
-                              int num_threads) nogil
-
-cdef double integrate_c_sum_vec(double* val_mv,
-                                int nza,
-                                double loc_eff_res,
-                                int num_threads) nogil
-
 # -- Vmesh utility functions --------------------------------------------------
-cdef void prepare_tab(long[:,:,::1] lnp,
-                      int sz_r,
-                      int sz_z,
-                      long* sz_phi) nogil
+cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
+                            int sz_r,
+                            int sz_z,
+                            long* sz_phi) nogil
 
 cdef void vmesh_double_loop(long[::1] first_ind_mv,
                             long[:,::1] indi_mv,

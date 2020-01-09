@@ -485,6 +485,7 @@ cdef inline void middle_rule_abs_s2(int nlos,
     loc_x = los_kmin[0]
     middle_rule_single(num_raf, loc_x, loc_resol,
                        &los_coeffs[first_index])
+
     # filling tab...... CANNOT BE PARALLEL !!
     for ii in range(1, nlos):
         num_raf = ind_cum[ii]
@@ -588,7 +589,6 @@ cdef inline void middle_rule_abs_var(int nlos,
     middle_rule_abs_var_s2(nlos, los_kmin, los_kmax,
                            eff_resolution, los_coeffs,
                            los_ind, los_nraf, num_threads)
-
     # ...
     free(los_nraf)
     return
@@ -1328,7 +1328,8 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
     # computing points
     usbis = np.repeat(ray_vdir, sz_coeff, axis=1)
     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-    pts = ray_orig + ksbis[None,:] * usbis
+    pts = ray_orig + ksbis[None, :] * usbis
+    # freeing memory used
     if los_coeffs != NULL:
         if los_coeffs[0] != NULL:
             free(los_coeffs[0])
@@ -1513,9 +1514,9 @@ cdef inline void los_get_sample_pts(int nlos,
     loc_vy = ray_vdir[1,0]
     loc_vz = ray_vdir[2,0]
     for ii in range(los_ind[0]):
-        ptx[ii] = loc_ox + coeff_ptr[ii] + loc_vx
-        pty[ii] = loc_oy + coeff_ptr[ii] + loc_vy
-        ptz[ii] = loc_oz + coeff_ptr[ii] + loc_vz
+        ptx[ii] = loc_ox + coeff_ptr[ii] * loc_vx
+        pty[ii] = loc_oy + coeff_ptr[ii] * loc_vy
+        ptz[ii] = loc_oz + coeff_ptr[ii] * loc_vz
         usx[ii] = loc_vx
         usy[ii] = loc_vy
         usz[ii] = loc_vz
@@ -1528,81 +1529,19 @@ cdef inline void los_get_sample_pts(int nlos,
         loc_vy = ray_vdir[1,jj]
         loc_vz = ray_vdir[2,jj]
         for ii in range(los_ind[jj-1], los_ind[jj]):
-            ptx[ii] = loc_ox + coeff_ptr[ii] + loc_vx
-            pty[ii] = loc_oy + coeff_ptr[ii] + loc_vy
-            ptz[ii] = loc_oz + coeff_ptr[ii] + loc_vz
+            ptx[ii] = loc_ox + coeff_ptr[ii] * loc_vx
+            pty[ii] = loc_oy + coeff_ptr[ii] * loc_vy
+            ptz[ii] = loc_oz + coeff_ptr[ii] * loc_vz
             usx[ii] = loc_vx
             usy[ii] = loc_vy
             usz[ii] = loc_vz
     return
 
-
-# -- calling sampling and intergrating with sum --------------------------------
-cdef inline void integrate_sum_nlos(int nlos, int nt,
-                                    double[:,::1] val_2d,
-                                    double[::1,:] sig_mv,
-                                    long* ind_arr,
-                                    double* reseff_arr,
-                                    int num_threads) nogil:
-    cdef int ii, jj
-    cdef int jjp1
-    jj = 0
-    jjp1 = ind_arr[0]
-    integrate_c_sum_mat(val_2d[:,jj:jjp1],
-                        &sig_mv[0,0],
-                        nt, jjp1 - jj,
-                        reseff_arr[0], num_threads)
-    with nogil, parallel(num_threads=num_threads):
-        for ii in prange(1,nlos):
-            # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
-            #                    axis=-1)*reseff_mv[ii]
-            jj = ind_arr[ii-1]
-            jjp1 = ind_arr[ii]
-            integrate_c_sum_mat(val_2d[:,jj:jjp1],
-                                &sig_mv[0,ii],
-                                nt, jjp1 - jj,
-                                reseff_arr[ii], num_threads)
-    return
-
-
-cdef inline void integrate_c_sum_mat(double[:,::1] val_mv,
-                                    double* sig,
-                                    int nrows, int ncols,
-                                    double loc_eff_res,
-                                    int num_threads) nogil:
-    cdef double* vsum
-    cdef int jj
-    # ...
-    vsum = <double*>malloc(nrows*sizeof(double))
-    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0],
-                         nrows, ncols)
-    # _bgt.sum_by_rows(val_mv, &vsum[0],
-    #                  nrows, ncols)
-    # _bgt.sum_naive_rows(val_mv, &vsum[0],
-    #                     nrows, ncols)
-    # _bgt.sum_par_mat(val_mv, &vsum[0],
-    #                  nrows, ncols)
-    for jj in range(nrows):
-        sig[jj] = vsum[jj] * loc_eff_res
-    free(vsum)
-    return
-
-
-cdef inline double integrate_c_sum_vec(double* val_mv,
-                                       int nsz,
-                                       double loc_eff_res,
-                                       int num_threads) nogil:
-    cdef double vsum
-    cdef int jj
-    # ...
-    vsum = _bgt.sum_par_one_row(val_mv, nsz)
-    return vsum * loc_eff_res
-
 # .................
-cdef void prepare_tab(long[:,:,::1] lnp,
-                      int sz_r,
-                      int sz_z,
-                      long* sz_phi) nogil:
+cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
+                            int sz_r,
+                            int sz_z,
+                            long* sz_phi) nogil:
     cdef int ii, zz, jj
     cdef int kk
     cdef int NP = 0
@@ -1730,3 +1669,5 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                        indi_mv[ii,first_ind_mv[ii]:],
                                        dv_mv, reso_phi_mv, pts_mv, ind_mv)
     return
+=======
+>>>>>>> origin/devel

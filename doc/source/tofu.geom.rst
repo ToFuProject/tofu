@@ -1,6 +1,11 @@
 tofu.geom package
 =================
 
+.. automodule:: tofu.geom
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -8,22 +13,6 @@ tofu.geom.\_GG module
 ---------------------
 
 .. automodule:: tofu.geom._GG
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-tofu.geom.\_GG02 module
------------------------
-
-.. automodule:: tofu.geom._GG02
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-tofu.geom.\_GG03 module
------------------------
-
-.. automodule:: tofu.geom._GG03
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,10 +33,26 @@ tofu.geom.\_comp module
    :undoc-members:
    :show-inheritance:
 
+tofu.geom.\_comp\_optics module
+-------------------------------
+
+.. automodule:: tofu.geom._comp_optics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 tofu.geom.\_core module
 -----------------------
 
 .. automodule:: tofu.geom._core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+tofu.geom.\_core\_optics module
+-------------------------------
+
+.. automodule:: tofu.geom._core_optics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -72,6 +77,14 @@ tofu.geom.\_plot module
 -----------------------
 
 .. automodule:: tofu.geom._plot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+tofu.geom.\_plot\_optics module
+-------------------------------
+
+.. automodule:: tofu.geom._plot_optics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -108,11 +121,3 @@ tofu.geom.utils module
    :undoc-members:
    :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: tofu.geom
-   :members:
-   :undoc-members:
-   :show-inheritance:

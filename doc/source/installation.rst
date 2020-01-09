@@ -39,7 +39,7 @@ your choice).
 
 ::
 
-   python -c "import tofu; print(tofu.__version__)"
+   $ python -c "import tofu; print(tofu.__version__)"
 
 Now you can `follow a tutorial. <auto_examples/index.html>`__
 
@@ -49,6 +49,10 @@ Mac OS X
 --------
 
 See :ref:`installing-as-a-developer`.
+
+Additional *caveat*: if you are using a version of `gcc < 8` be sure to
+turn off all parallelizations since there is a `known bug with cython
+<https://github.com/ToFuProject/tofu/issues/183>`__.
 
 .. _installing-tofu-on-windows:
 
@@ -128,7 +132,7 @@ To install tofu as a developer, we recommend using the conda ecosystem (Minicond
 -  Move to where you would like to install your local copy of ToFu ``$ cd some_path``
 -  ``$ git clone https://github.com/ToFuProject/tofu.git`` (make sure you
    remember the path where you are installing, if you want to install it
-   into your home repository, just make sure to ``cd ~`` before the
+   into your home repository, just make sure to ``$ cd ~`` before the
    ``git clone...``)
 -  Move to the "cloned" tofu directory that has been created by the git clone command:
    ``cd ~/tofu``
@@ -139,7 +143,6 @@ To install tofu as a developer, we recommend using the conda ecosystem (Minicond
    (long) <https://www.atlassian.com/git/tutorials>`__ or `this short
    one <https://rogerdudler.github.io/git-guide/>`__
 -  Run ``pip install -e .[dev]``. This will install dependencies, compile the
-   tofu Cython extensions and install it into your conda environment while you can still
+   tofu cython extensions and install it into your conda environment while you can still
    modify the source files in the current repository.`
 -  Make sure tofu tests are running by typing ``nosetests``
-
