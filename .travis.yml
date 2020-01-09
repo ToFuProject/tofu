@@ -80,8 +80,8 @@ before_deploy:
 deploy:
   - provider: pypi
     on:
+      tags: true
       branch: master
-      tags: on
     skip_existing: true
     user: __token__
     password:
@@ -92,8 +92,8 @@ deploy:
     user: __token__
     skip_existing: true
     on:
-	tags: true
-	all_branches: true
+      tags: true
+      all_branches: true
     server: https://test.pypi.org/legacy/
     password:
       secure: o63EC+U+EtdAgUSV3plrLfZ7QZ6Aflp0quV5jJQxD9w47Ds5i4k5GjEHogV8x8l5NGwxbXPKp/1eKEfYgFH/i+WUnj1n9reiYZBd0lkr2Ih9nExNEIrziMhPbqjDEYAB672bjkXseS6mF44boqDUEP3jyDaamLB+aR75RCMM1j6aha/54Ko88ZJKXBW5FuNSraBGzgvjVG0P63jG5epS85hX09dEcKNR0XO0kbiGfNnYIp78QBohO0Pdv99x2ryp/QaoWD4m7cMUOts2xIcI2KCJNMhZNdIS8C0TVvk2tgumb+G2px7PsOxA8yZgxLefs+A14IAjg6uKe/jmwrihN1V6R6FF3WCcxM6kdzt9bpr+QKBoXjkF8BdxVbgmdnxkr+Ah5WIxmw2boQoW/SIMy9GVPrgtkSvocN6NwOExsO4pagiOwTLIvjIe+/0+OJt/Pud+mwF/94HD+B7j/XxsK7QehLCd9v5NTrdNgpS/TiWOyCDP1DLnpl1V9/vZ56x9NSQhN4Wr6hRrTxjWNAYLxsMxZf6uR+WWg1TqyicVlGrSf0to2asNIPWTTeGq3tB0/7WNslRQzP7QD67p5SuX0Z3Sv0WnQx+rZH77EN6FPCbv8Xn+D4ff06VKHaXXOkiFdK+6pTQ1VmFVPH/ablbWODhhcja/O3Xn3d/zTIyM+oQ=
