@@ -200,7 +200,7 @@ def get_version_tofu(path=_HERE):
         with open(version_tofu, "r") as fh:
             version_tofu = fh.read().strip().split("=")[-1].replace("'", "")
 
-    version_tofu = version_tofu.lower().replace("v", "")
+    version_tofu = version_tofu.lower().replace("v", "").replace(" ", "")
     return version_tofu
 
 
