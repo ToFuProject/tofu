@@ -1669,5 +1669,3 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                        indi_mv[ii,first_ind_mv[ii]:],
                                        dv_mv, reso_phi_mv, pts_mv, ind_mv)
     return
-=======
->>>>>>> origin/devel

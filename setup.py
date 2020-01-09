@@ -25,6 +25,7 @@ import numpy as np
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
+from Cython.Compiler.Options import get_directive_defaults
 
 directive_defaults = get_directive_defaults()
 directive_defaults["profile"] = True

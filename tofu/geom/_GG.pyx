@@ -1039,7 +1039,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # This triple loop is the longest part, it takes ~90% of the CPU time
     reso_r_z = reso_r[0]*reso_z[0]
     lnp = np.empty((sz_r, sz_z, max_sz_phi), dtype=int)
-    _st.prepare_tab(lnp, sz_r, sz_z, sz_phi)
+    _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
     indI = np.sort(indI, axis=1)
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1)
