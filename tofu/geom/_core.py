@@ -4141,6 +4141,11 @@ class Rays(utils.ToFuObject):
                         pinhole = dgeom['D'][:, 0] + k[0]*u[:, 0]
                         dgeom['pinhole'] = pinhole
 
+            if np.any(np.isnan(dgeom['D'])):
+                msg = ("Some LOS have nan as starting point !\n"
+                       + "The geometry may not be provided !")
+                raise Exception(msg)
+
             # Test if all D are on a common plane or line
             va = dgeom["D"] - dgeom["D"][:, 0:1]
 
@@ -4208,9 +4213,6 @@ class Rays(utils.ToFuObject):
                     if dgeom["dX12"] is None:
                         dgeom["dX12"] = {}
                     dgeom["dX12"].update({"nIn": nIn, "e1": e1, "e2": e2})
-
-                    if not self._is2D():
-                        return dgeom
 
                     # Test binning
                     if dgeom["pinhole"] is not None:
@@ -6025,7 +6027,7 @@ class Rays(utils.ToFuObject):
         reflections=True,
         coefs=None,
         ind=None,
-        out=object,
+        returnas=object,
         plot=True,
         dataname=None,
         fs=None,
@@ -6086,7 +6088,7 @@ class Rays(utils.ToFuObject):
         # Format input
 
         indok, Ds, us, DL, E = self._calc_signal_preformat(
-            ind=ind, DL=DL, out=out, Brightness=Brightness
+            ind=ind, DL=DL, out=returnas, Brightness=Brightness
         )
 
         if Ds is None:
@@ -6180,19 +6182,9 @@ class Rays(utils.ToFuObject):
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
             # Integrate
-            if val.ndim == 2:
-                sig = np.full((val.shape[0], self.nRays), np.nan)
-            else:
-                sig = np.full((1, self.nRays), np.nan)
-            indpts = np.r_[0, indpts, pts.shape[1]]
-            for ii in range(0, self.nRays):
-                sig[:, ii] = (
-                    np.nansum(
-                        val[:, indpts[ii]:indpts[ii + 1]],
-                        axis=-1
-                    )
-                    * reseff[ii]
-                )
+            sig = np.add.reduceat(val, np.r_[0, indpts],
+                                  axis=-1)*reseff[None, :]
+
         # Format output
         return self._calc_signal_postformat(
             sig,
@@ -6202,7 +6194,7 @@ class Rays(utils.ToFuObject):
             E=E,
             units=units,
             plot=plot,
-            out=out,
+            out=returnas,
             fs=fs,
             dmargin=dmargin,
             wintit=wintit,
@@ -6236,7 +6228,7 @@ class Rays(utils.ToFuObject):
         reflections=True,
         coefs=None,
         ind=None,
-        out=object,
+        returnas=object,
         plot=True,
         dataname=None,
         fs=None,
@@ -6250,7 +6242,7 @@ class Rays(utils.ToFuObject):
 
         # Format input
         indok, Ds, us, DL, E = self._calc_signal_preformat(
-            ind=ind, out=out, t=t, Brightness=Brightness
+            ind=ind, out=returnas, t=t, Brightness=Brightness
         )
 
         if Ds is None:
@@ -6262,12 +6254,12 @@ class Rays(utils.ToFuObject):
             # Get time vector
             if t is None:
                 out = plasma2d._checkformat_qr12RPZ(
-                    quant=quant,
-                    ref1d=ref1d,
-                    ref2d=ref2d,
-                    q2dR=q2dR,
-                    q2dPhi=q2dPhi,
-                    q2dZ=q2dZ,
+                     quant=quant,
+                     ref1d=ref1d,
+                     ref2d=ref2d,
+                     q2dR=q2dR,
+                     q2dPhi=q2dPhi,
+                     q2dZ=q2dZ,
                 )
                 t = plasma2d._get_tcom(*out[:4])[0]
             else:
@@ -6368,6 +6360,8 @@ class Rays(utils.ToFuObject):
                     indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]
                 ]
                 vect = np.repeat(self.u, nbrep, axis=1)
+            if fill_value is None:
+                fill_value = 0.
 
             # Get quantity values at ptsRZ
             # This is the slowest step (~3.8 s with res=0.02
@@ -6388,19 +6382,10 @@ class Rays(utils.ToFuObject):
                 fill_value=fill_value,
             )
 
-            # Integrate
-            if val.ndim == 2:
-                sig = np.full((val.shape[0], self.nRays), np.nan)
-            else:
-                sig = np.full((1, self.nRays), np.nan)
-
-            indpts = np.r_[0, indpts, pts.shape[1]]
-            for ii in range(0, self.nRays):
-                sig[:, ii] = (
-                    np.nansum(val[:, indpts[ii]:indpts[ii + 1]],
-                              axis=-1)
-                    * reseff[ii]
-                )
+            # Integrate using ufunc reduceat for speed
+            # (cf. https://stackoverflow.com/questions/59079141)
+            sig = np.add.reduceat(val, np.r_[0, indpts],
+                                  axis=-1)*reseff[None, :]
 
         # Format output
         # this is the secod slowest step (~0.75 s)
@@ -6412,7 +6397,7 @@ class Rays(utils.ToFuObject):
             E=E,
             units=units,
             plot=plot,
-            out=out,
+            out=returnas,
             fs=fs,
             dmargin=dmargin,
             wintit=wintit,

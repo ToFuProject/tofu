@@ -93,6 +93,7 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
 
 def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
                       color=None, dP=None,
+                      det_cent=None, det_nout=None, det_ei=None, det_ej=None,
                       dI=None, dBs=None, dBv=None,
                       dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                       dleg=None, indices=False,
@@ -118,8 +119,10 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         # Temporary matplotlib issue
         dleg = None
     else:
-        dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax, element=element,
-                                          color=color)
+        dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax,
+                                          element=element, color=color,
+                                          det_cent=det_cent, det_nout=det_nout,
+                                          det_ei=det_ei, det_ej=det_ej)
 
     # recompute the ax.dataLim
     ax0 = None
@@ -139,7 +142,11 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         ax0.figure.canvas.draw()
     return dax
 
-def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=None,
+
+def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
+                                element=None, res=None,
+                                det_cent=None, det_nout=None,
+                                det_ei=None, det_ej=None,
                                 Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
                                 Bvdict=_def.TorBvd, Vdict=_def.TorVind,
                                 color=None, ms=None, quiver_cmap=None,
@@ -232,19 +239,75 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None, element=None, res=No
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
         if dax['cross'] is not None:
-            dax['cross'].quiver(np.hypot(p0[0,:], p0[1,:]), p0[2,:],
-                                np.hypot(v[0,:], v[1,:]), v[2,:],
+            pr = np.hypot(p0[0, :], p0[1, :])
+            vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
+            dax['cross'].quiver(pr, p0[2, :],
+                                vr, v[2, :],
                                 np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                                 angles='xy', scale_units='xy',
                                 label=cryst.Id.NameLTX+" unit vect", **Vdict)
         if dax['hor'] is not None:
-            dax['hor'].quiver(p0[0,:], p0[1,:],
-                              v[0,:], v[1,:],
+            dax['hor'].quiver(p0[0, :], p0[1, :],
+                              v[0, :], v[1, :],
                               np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                               angles='xy', scale_units='xy',
                               label=cryst.Id.NameLTX+" unit vect", **Vdict)
 
+    # Detector
+    sc = None
+    if det_cent is not None:
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(det_cent[0], det_cent[1]), det_cent[2],
+                              marker='x', ms=ms, c=color, label="det_cent")
+        if dax['hor'] is not None:
+            dax['hor'].plot(det_cent[0], det_cent[1],
+                            marker='x', ms=ms, c=color, label="det_cent")
+
+    if det_nout is not None:
+        assert det_ei is not None and det_ej is not None
+        p0 = np.repeat(det_cent[:, None], 3, axis=1)
+        v = np.concatenate((det_nout[:, None], det_ei[:, None],
+                            det_ej[:, None]), axis=1)
+        if dax['cross'] is not None:
+            pr = np.hypot(p0[0, :], p0[1, :])
+            vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
+            dax['cross'].quiver(pr, p0[2, :],
+                                vr, v[2, :],
+                                np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                                angles='xy', scale_units='xy',
+                                label="det unit vect", **Vdict)
+        if dax['hor'] is not None:
+            dax['hor'].quiver(p0[0, :], p0[1, :],
+                              v[0, :], v[1, :],
+                              np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                              angles='xy', scale_units='xy',
+                              label="det unit vect", **Vdict)
+
     return dax
+
+
+# #################################################################
+# #################################################################
+#                   Rocking curve plot
+# #################################################################
+# #################################################################
+
+def CrystalBragg_plot_rockingcurve(Rmax=None, sigma=None,
+                                   bragg=None, delta_bragg=None, npts=None):
+
+    # Prepare
+    if npts is None:
+        npts = 1000
+    angle = bragg + delta_bragg + 3.*sigma*np.linspace(-1, 1, npts)
+    curve = func(angle)
+
+    # Plot
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+    ax.plot(angle, curve, ls='-', lw=1., c='k')
+    ax.axvline(bragg, ls='--', lw=1, c='k')
+    return ax
 
 
 # #################################################################
@@ -342,8 +405,140 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     return ax
 
 
+def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
+                                          det=None,
+                                          johann=None, rocking=None,
+                                          fs=None, dmargin=None,
+                                          wintit=None, tit=None):
+
+    # Check inputs
+    # ------------
+
+    if fs is None:
+        fs = (6, 8)
+    if dmargin is None:
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
+
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = "line tracing"
+        if johann is True:
+            tit += " - johann error"
+        if rocking is True:
+            tit += " - rocking curve"
+
+    plot_err = johann is True or rocking is True
+
+    # Plot
+    # ------------
+
+    fig = fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+
+    ax0.plot(det[0, :], det[1, :], ls='-', lw=1., c='k')
+    for l in range(lamb.size):
+        lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
+        l0, = ax0.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+        if plot_err:
+            ax0.plot(xi_err[l, ...], xj_err[l, ...],
+                     ls='None', lw=1., c=l0.get_color(),
+                     marker='.', ms=1)
+
+    ax0.legend()
+
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+    return [ax0]
+
+
+def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
+                                  cmap=None, vmin=None, vmax=None,
+                                  fs=None, dmargin=None, wintit=None, tit=None,
+                                  angunits='deg', err=None):
+
+    # Check inputs
+    # ------------
+
+    if fs is None:
+        fs = (14, 8)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
+    assert angunits in ['deg', 'rad']
+    if angunits == 'deg':
+        # bragg = bragg*180./np.pi
+        phi = phi*180./np.pi
+        err_phi = err_phi*180./np.pi
+
+    if err is None:
+        err = 'abs'
+    if err == 'rel':
+        err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
+        err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+        err_lamb_units = '%'
+        err_phi_units = '%'
+    else:
+        err_lamb_units = 'm'
+        err_phi_units = angunits
+
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = False
+
+    # pre-compute
+    # ------------
+
+    # extent
+    extent = (xi.min(), xi.max(), xj.min(), xj.max())
+
+    # Plot
+    # ------------
+
+    fig = fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, 3, **dmargin)
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+    ax1 = fig.add_subplot(gs[0, 1], aspect='equal', adjustable='datalim',
+                          sharex=ax0, sharey=ax0)
+    ax2 = fig.add_subplot(gs[0, 2], aspect='equal', adjustable='datalim',
+                          sharex=ax0, sharey=ax0)
+
+    ax0.set_title('Iso-lamb and iso-phi at crystal summit')
+    ax1.set_title('Focalization error on lamb ({})'.format(err_lamb_units))
+    ax2.set_title('Focalization error on phi ({})'.format(err_phi_units))
+
+    ax0.contour(xi, xj, lamb, 10, cmap=cmap)
+    ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
+    imlamb = ax1.imshow(err_lamb, extent=extent, aspect='equal',
+                        origin='lower', interpolation='nearest',
+                        vmin=vmin, vmax=vmax)
+    imphi = ax2.imshow(err_phi, extent=extent, aspect='equal',
+                       origin='lower', interpolation='nearest',
+                       vmin=vmin, vmax=vmax)
+
+    plt.colorbar(imlamb, ax=ax1)
+    plt.colorbar(imphi, ax=ax2)
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+
+    return [ax0, ax1, ax2]
+
+
 def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
-                                      lambfit=None, phifit=None, spect1d=None,
+                                      lambfit=None, phifit=None,
+                                      spect1d=None, vertsum1d=None,
+                                      lambax=None, phiax=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
                                       angunits='deg'):
@@ -364,6 +559,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         bragg = bragg*180./np.pi
         phi = phi*180./np.pi
         phifit = phifit*180./np.pi
+        if phiax is not None:
+            phiax = 180*phiax/np.pi
+
 
 
     # pre-compute
@@ -377,29 +575,36 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     # ------------
 
     fig = fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(4, 3, **dmargin)
+    gs = gridspec.GridSpec(4, 4, **dmargin)
     ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
     ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
                           sharex=ax0, sharey=ax0)
     axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
     ax2 = fig.add_subplot(gs[:3, 2])
     axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
+    ax3 = fig.add_subplot(gs[:3, 3], sharey=ax2)
 
     ax0.set_title('Coordinates transform')
     ax1.set_title('Camera image')
     ax2.set_title('Camera image transformed')
 
-    ax0.set_ylabel(r'incidence angle ($deg$)')
+    ax2.set_ylabel(r'incidence angle ($deg$)')
+    ax2.set_xlabel(r'$\lambda$ ($m$)')
+    axs2.set_xlabel(r'$\lambda$ ($m$)')
+    ax3.set_ylabel(r'incidence angle ($deg$)')
 
     ax0.contour(xi, xj, bragg, 10, cmap=cmap)
     ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
     ax1.imshow(data, extent=extent, aspect='equal',
                origin='lower', vmin=vmin, vmax=vmax)
-    axs1.plot(xi, np.sum(data, axis=0), c='k', ls='-')
+    axs1.plot(xi, np.nanmean(data, axis=0), c='k', ls='-')
     ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=2,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
     axs2.plot(lambfit, spect1d, c='k', ls='-')
+    ax3.plot(vertsum1d, phifit, c='k', ls='-')
+    if phiax is not None:
+        ax2.plot(lambax, phiax, c='r', ls='-', lw=1.)
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
