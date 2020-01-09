@@ -179,7 +179,6 @@ def get_version_tofu(path=_HERE):
                     [
                         "git",
                         "rev-parse",
-                        "--symbolic-full-name",
                         "--abbrev-ref",
                         "HEAD",
                     ]
@@ -209,6 +208,7 @@ version_tofu = get_version_tofu(path=_HERE)
 print("")
 print("Version for setup.py : ", version_tofu)
 print("")
+
 # =============================================================================
 
 # =============================================================================
