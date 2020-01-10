@@ -154,14 +154,14 @@ class MultiIDSLoader(object):
                         'dim':'B', 'quant':'BT', 'units':'T'},
                 '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values',
                         'dim':'B', 'quant':'BZ', 'units':'T'},
-                '2dmeshNodes':{'str': ('grids_ggd[0].grid[0].space[0]'
-                                       + '.objects_per_dimension[0]'
-                                       + '.object[].geometry')},
-                '2dmeshFaces':{'str': ('grids_ggd[0].grid[0].space[0]'
-                                       + '.objects_per_dimension[2]'
-                                       + '.object[].nodes')},
-                '2dmeshR':{'str': 'time_slice[0].profiles_2d[0].r'},
-                '2dmeshZ':{'str': 'time_slice[0].profiles_2d[0].z'}},
+                '2dmeshNodes': {'str': ('grids_ggd[0].grid[0].space[0]'
+                                        + '.objects_per_dimension[0]'
+                                        + '.object[].geometry')},
+                '2dmeshFaces': {'str': ('grids_ggd[0].grid[0].space[0]'
+                                        + '.objects_per_dimension[2]'
+                                        + '.object[].nodes')},
+                '2dmeshR': {'str': 'time_slice[0].profiles_2d[0].r'},
+                '2dmeshZ': {'str': 'time_slice[0].profiles_2d[0].z'}},
 
                'core_profiles':
                {'t':{'str':'time'},
@@ -257,16 +257,16 @@ class MultiIDSLoader(object):
                 'floop_flux':{'str':'flux_loop[chan].flux.data',
                               'dim':'B flux', 'quant':'B flux', 'units':'Wb'},
                 'floop_name':{'str':'flux_loop[chan].name'},
-                'floop_R':{'str': 'flux_loop[chan].position.r',
-                           'dim': 'distance', 'quant': 'R', 'units': 'm'},
-                'floop_Z':{'str': 'flux_loop[chan].position.z',
-                           'dim': 'distance', 'quant': 'Z', 'units': 'm'}},
+                'floop_R': {'str': 'flux_loop[chan].position.r',
+                            'dim': 'distance', 'quant': 'R', 'units': 'm'},
+                'floop_Z': {'str': 'flux_loop[chan].position.z',
+                            'dim': 'distance', 'quant': 'Z', 'units': 'm'}},
 
                'barometry':
-               {'t':{'str': 'gauge[chan].pressure.time'},
+               {'t': {'str': 'gauge[chan].pressure.time'},
                 'names': {'str': 'gauge[chan].name'},
-                'p':{'str': 'gauge[chan].pressure.data',
-                     'dim': 'pressure', 'quant': 'p', 'units': 'Pa?'}},
+                'p': {'str': 'gauge[chan].pressure.data',
+                      'dim': 'pressure', 'quant': 'p', 'units': 'Pa?'}},
 
                'neutron_diagnostic':
                {'t':{'str':'time', 'units':'s'},
@@ -317,13 +317,13 @@ class MultiIDSLoader(object):
 
                'polarimeter':
                {'t': {'str': 'time',
-                     'quant': 't', 'units': 's'},
-                'lamb': {'str' :'channel[chan].wavelength',
-                         'dim' :'distance', 'quant' :'wavelength',
+                      'quant': 't', 'units': 's'},
+                'lamb': {'str': 'channel[chan].wavelength',
+                         'dim': 'distance', 'quant': 'wavelength',
                          'units': 'm'},
                 'fangle': {'str': 'channel[chan].faraday_angle.data',
-                          'dim': 'angle', 'quant': 'faraday angle',
-                          'units': 'rad', 'Brightness': True},
+                           'dim': 'angle', 'quant': 'faraday angle',
+                           'units': 'rad', 'Brightness': True},
                 'names': {'str': 'channel[chan].name'}},
 
                'bolometer':
@@ -336,26 +336,26 @@ class MultiIDSLoader(object):
                             'dim': 'etendue', 'quant': 'etendue',
                             'units': 'm2.sr'},
                 'names': {'str': 'channel[chan].name'},
-                'tpower': {'str': 'time','quant': 't', 'units': 's'},
+                'tpower': {'str': 'time', 'quant': 't', 'units': 's'},
                 'prad': {'str': 'power_radiated_total',
                          'dim': 'power', 'quant': 'power radiative',
                          'units': 'W'},
                 'pradbulk': {'str': 'power_radiated_inside_lcfs',
-                            'dim': 'power', 'quant': 'power radiative',
-                            'units': 'W'}},
+                             'dim': 'power', 'quant': 'power radiative',
+                             'units': 'W'}},
 
                'soft_x_rays':
-               {'t':{'str':'time',
-                     'quant':'t', 'units':'s'},
-                'power':{'str':'channel[chan].power.data',
-                         'dim':'power', 'quant':'power radiative', 'units':'W',
-                         'Brightness': False},
-                'brightness':{'str':'channel[chan].brightness.data',
-                              'dim':'brightness', 'quant':'brightness',
-                              'units':'W/(m2.sr)', 'Brightness': True},
+               {'t': {'str': 'time',
+                      'quant': 't', 'units': 's'},
+                'power': {'str':'channel[chan].power.data',
+                          'dim': 'power', 'quant': 'power radiative',
+                          'units': 'W', 'Brightness': False},
+                'brightness': {'str': 'channel[chan].brightness.data',
+                               'dim': 'brightness', 'quant': 'brightness',
+                               'units': 'W/(m2.sr)', 'Brightness': True},
                 'names': {'str': 'channel[chan].name'},
-                'etendue':{'str':'channel[chan].etendue',
-                           'dim':'etendue', 'quant':'etendue', 'units':'m2.sr'}},
+                'etendue': {'str': 'channel[chan].etendue',
+                            'dim': 'etendue', 'quant': 'etendue', 'units': 'm2.sr'}},
 
                'spectrometer_visible':
                {'t':{'str':'channel[chan].grating_spectrometer.radiance_spectral.time',
