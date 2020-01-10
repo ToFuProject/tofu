@@ -347,7 +347,7 @@ class MultiIDSLoader(object):
                'soft_x_rays':
                {'t': {'str': 'time',
                       'quant': 't', 'units': 's'},
-                'power': {'str':'channel[chan].power.data',
+                'power': {'str': 'channel[chan].power.data',
                           'dim': 'power', 'quant': 'power radiative',
                           'units': 'W', 'Brightness': False},
                 'brightness': {'str': 'channel[chan].brightness.data',
@@ -355,21 +355,24 @@ class MultiIDSLoader(object):
                                'units': 'W/(m2.sr)', 'Brightness': True},
                 'names': {'str': 'channel[chan].name'},
                 'etendue': {'str': 'channel[chan].etendue',
-                            'dim': 'etendue', 'quant': 'etendue', 'units': 'm2.sr'}},
+                            'dim': 'etendue', 'quant': 'etendue',
+                            'units': 'm2.sr'}},
 
                'spectrometer_visible':
                {'t':{'str':'channel[chan].grating_spectrometer.radiance_spectral.time',
                      'quant':'t', 'units':'s'},
-                'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data',
-                           'dim':'radiance_spectral', 'quant':'radiance_spectral',
-                           'units':'ph/s/(m2.sr)/m', 'Brightness': True},
+                'spectra': {'str': ('channel[chan].grating_spectrometer'
+                                    + '.radiance_spectral.data'),
+                            'dim': 'radiance_spectral',
+                            'quant': 'radiance_spectral',
+                            'units': 'ph/s/(m2.sr)/m', 'Brightness': True},
                 'names': {'str': 'channel[chan].name'},
                 'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths',
                         'dim':'wavelength', 'quant':'wavelength', 'units':'m'}},
 
                'bremsstrahlung_visible':
-               {'t':{'str':'time',
-                     'quant':'t', 'units':'s'},
+               {'t': {'str': 'time',
+                      'quant': 't', 'units': 's'},
                 'radiance':{'str':'channel[chan].radiance_spectral.data',
                             'dim':'radiance_spectral', 'quant':'radiance_spectral',
                             'units':'ph/s/(m2.sr)/m', 'Brightness': True},
@@ -502,11 +505,12 @@ class MultiIDSLoader(object):
     _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
     def _rhopn1d(psi):
-        return np.sqrt( (psi - psi[:,0:1]) / (psi[:,-1] - psi[:,0])[:,None] )
+        return np.sqrt((psi - psi[:, 0:1]) / (psi[:, -1] - psi[:, 0])[:, None])
     def _rhopn2d(psi, psi0, psisep):
-        return np.sqrt( (psi - psi0[:,None]) / (psisep[:,None] - psi0[:,None]) )
+        return np.sqrt(
+            (psi - psi0[:, None]) / (psisep[:, None] - psi0[:, None]))
     def _rhotn2d(phi):
-        return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:,None])
+        return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:, None])
 
     def _eqSep(sepR, sepZ, npts=100):
         nt = len(sepR)
@@ -2243,7 +2247,6 @@ class MultiIDSLoader(object):
                 warnings.warn(msg)
         return t0
 
-
     def to_Config(self, Name=None, occ=None,
                   description_2d=None, mobile=None, plot=True):
         lidsok = ['wall']
@@ -2338,10 +2341,11 @@ class MultiIDSLoader(object):
                 nunits = len(units)
 
                 if nunits == 0:
-                    msg = "There is no unit stored !\n"
-                    msg += "The required 2d description is empty:\n"
-                    ms = "len(idd.%s[occ=%s].description_2d"%(ids, str(occ))
-                    msg += "%s[%s].limiter.unit) = 0"%(ms, str(description_2d))
+                    msg = ("There is no unit stored !\n"
+                           + "The required 2d description is empty:\n")
+                    ms = "len(idd.{}[occ={}].description_2d".format(ids, occ)
+                    msg += "{}[{}].limiter.unit) = 0".format(ms,
+                                                             description_2d)
                     raise Exception(msg)
 
                 lS = [None for _ in units]
@@ -2354,7 +2358,7 @@ class MultiIDSLoader(object):
                         poly = np.array([outline.r, outline.z])
 
                         if units[ii].phi_extensions.size > 0:
-                            pos, extent =  units[ii].phi_extensions.T
+                            pos, extent = units[ii].phi_extensions.T
                         else:
                             pos, extent = None, None
                         name = units[ii].name
@@ -2368,15 +2372,17 @@ class MultiIDSLoader(object):
                             elif len(ln) == 3:
                                 cls, name, mobi = ln
                             else:
-                                name = name.replace('_','')
+                                name = name.replace('_', '')
                         if cls is None:
                             if ii == nunits-1:
                                 cls = 'Ves'
                             else:
                                 cls = 'PFC'
                         mobi = mobi == 'mobile'
-                        lS[ii] = getattr(mod, cls)(Poly=poly, pos=pos, extent=extent,
-                                                   Name=name, mobile=mobi, **kwargs)
+                        lS[ii] = getattr(mod, cls)(Poly=poly, pos=pos,
+                                                   extent=extent,
+                                                   Name=name, mobile=mobi,
+                                                   **kwargs)
                     except Exception as err:
                         msg = ("PFC unit[{}] named {} ".format(ii, name)
                                + "could not be loaded!\n"
