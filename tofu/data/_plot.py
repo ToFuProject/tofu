@@ -389,7 +389,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     if not all(c0):
         msg = ("All Data objects must have the same nb. of channels\n"
                + "\t- self.nch: {}\n".format([dd.nch for dd in lData])
-                + "\n  => use self.set_indch()")
+               + "\n  => use self.set_indch()")
         raise Exception(msg)
     nch = lData[0].nch
 

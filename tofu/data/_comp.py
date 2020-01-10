@@ -671,13 +671,13 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                  tall=tall, tbinall=tbinall):
 
             # Get pts in (r,z,phi)
-            r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-            phi = np.arctan2(pts[1,:],pts[0,:])
+            r, z = np.hypot(pts[0, :],pts[1, :]), pts[2, :]
+            phi = np.arctan2(pts[1, :],pts[0, :])
 
             # Deduce vect in (r,z,phi)
-            vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
-            vPhi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
-            vZ = vect[2,:]
+            vR = np.cos(phi)*vect[0, :] + np.sin(phi)*vect[1, :]
+            vPhi = -np.sin(phi)*vect[0, :] + np.cos(phi)*vect[1, :]
+            vZ = vect[2, :]
 
             # Prepare output
             shapeval = list(pts.shape)

@@ -3929,10 +3929,12 @@ class Plasma2D(utils.ToFuObject):
                                 self.dmesh[idmesh]['data']['nZ'])
                     Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
                                   self.dmesh[idmesh]['data']['nR'])
-                pts = np.array([R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
+                pts = np.array(
+                    [R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
             else:
                 pts = self.dmesh[idmesh]['data']['nodes']
-                pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
+                pts = np.array(
+                    [pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1]])
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:
