@@ -79,7 +79,7 @@ before_deploy:
 - echo "BEFORE DEPLOY END.........."
 deploy:
   - provider: pypi
-    distributions: "sdist"
+    distributions: sdist
     user: __token__
     skip_existing: true
     on:
@@ -87,4 +87,4 @@ deploy:
       branch: deploy-test
     server: https://test.pypi.org/legacy/
     password:
-      secure: o63EC+U+EtdAgUSV3plrLfZ7QZ6Aflp0quV5jJQxD9w47Ds5i4k5GjEHogV8x8l5NGwxbXPKp/1eKEfYgFH/i+WUnj1n9reiYZBd0lkr2Ih9nExNEIrziMhPbqjDEYAB672bjkXseS6mF44boqDUEP3jyDaamLB+aR75RCMM1j6aha/54Ko88ZJKXBW5FuNSraBGzgvjVG0P63jG5epS85hX09dEcKNR0XO0kbiGfNnYIp78QBohO0Pdv99x2ryp/QaoWD4m7cMUOts2xIcI2KCJNMhZNdIS8C0TVvk2tgumb+G2px7PsOxA8yZgxLefs+A14IAjg6uKe/jmwrihN1V6R6FF3WCcxM6kdzt9bpr+QKBoXjkF8BdxVbgmdnxkr+Ah5WIxmw2boQoW/SIMy9GVPrgtkSvocN6NwOExsO4pagiOwTLIvjIe+/0+OJt/Pud+mwF/94HD+B7j/XxsK7QehLCd9v5NTrdNgpS/TiWOyCDP1DLnpl1V9/vZ56x9NSQhN4Wr6hRrTxjWNAYLxsMxZf6uR+WWg1TqyicVlGrSf0to2asNIPWTTeGq3tB0/7WNslRQzP7QD67p5SuX0Z3Sv0WnQx+rZH77EN6FPCbv8Xn+D4ff06VKHaXXOkiFdK+6pTQ1VmFVPH/ablbWODhhcja/O3Xn3d/zTIyM+oQ=
+      secure: LJt/pNnEQ2n7tjhujYe9LPEKUqgXOwr20Uylu5uyFBQYTzARGSQ/rpPF2DNN9/xvEBZJYHQ3QVVmkXW//G9xB3DsMySxHJqMnl+Ur/rBF1c9YObZC9YtGLf9oSRzbeEquSYfw2ZJMK5E+iuJybXtSKbWkiVtzl4WVV2SI6YxPJ8+BGmRk+6R1zWZ5DTdlVje2yPqetUdrQ+iU3bABs26yurq+qrbiKHjcQs1d8b34QEejxsbt6zEVdAUvX8j6DmtChTh1+GoQALTHt+pRnLn3rGLcsvaOZnLkGFr48YzPNSPKnqsWHnI8iZX5U+dEqhvqhSMNuiiQTkR6tZEQdcASjtroEb98XyKUCVIOd4KjzjPG1eJYwvry3t0bZH42zsm9dRPPqFiCRq1VIcmjzI208ySSgsJbY3JJXUAuLGBuG0xUyASsKZpTlftk3v3+EGE2Arqpc7fSMVY8cKmAQ4TxjAuVZgfn2KnmOHQAw/f0iDQ9N4+btbW4DUWaXjjHdjcmouRz9j0g/XAg9030+QobrozD0msYEdClzNq2fl5gjjpyaLd/ClkrcUbOozQRpXBq5UIB9ZDJjw4LW1VAN4whF6Fg8DdKzhYLaNK/YY8oJpd9mhlubDCbjlAF5cWqDsAUXHPJ6HmiWu5nCGajbEteX7gzBw8IzI/FlJWdXAL0i8=
