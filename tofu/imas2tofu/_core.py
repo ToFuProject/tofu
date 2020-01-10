@@ -375,7 +375,7 @@ class MultiIDSLoader(object):
                       'quant': 't', 'units': 's'},
                 'radiance':{'str':'channel[chan].radiance_spectral.data',
                             'dim':'radiance_spectral', 'quant':'radiance_spectral',
-                            'units':'ph/s/(m2.sr)/m', 'Brightness': True},
+                            'units': 'ph/s/(m2.sr)/m', 'Brightness': True},
                 'names': {'str': 'channel[chan].name'},
                 'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
                 'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
@@ -3098,12 +3098,12 @@ class MultiIDSLoader(object):
             indnan = np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
                                    np.any(np.isnan(dgeom[1]), axis=0))
             if np.any(indnan) and not np.all(indnan):
-                if indch_auto != True:
-                    dmsg = {True: 'not available', False:'ok'}
-                    ls = ['index %s los %s'%(ii, dmsg[indnan[ii]])
+                if indch_auto is not True:
+                    dmsg = {True: 'not available', False: 'ok'}
+                    ls = ['index {} los {}'.format(ii, dmsg[indnan[ii]])
                           for ii in range(0, dgeom[0].shape[1])]
                     msg = ("The geometry of all channels is not available !\n"
-                           + "Please choose indch to get all channels geomery !\n"
+                           + "Please choose indch to get all LOS!\n"
                            + "Currently:\n"
                            + "\n    ".join(ls)
                            + "\n\n  => Solution: choose indch accordingly !")
@@ -3111,7 +3111,7 @@ class MultiIDSLoader(object):
                 else:
                     msg = ("Geometry missing for some los !\n"
                            + "  => indch automatically set to:\n"
-                           + "  %s"%str(indch))
+                           + "  {}".format(indch))
                     warnings.warn(msg)
                 if indch is None:
                     indch = (~indnan).nonzero()[0]
@@ -3121,15 +3121,19 @@ class MultiIDSLoader(object):
 
         # Get from time vectors consistency
         if t is not None:
-            if indch_auto != True:
+            if indch_auto is not True:
                 if indch is None:
-                    ls = ['index {}  {}.shape {}'.format(ii, kk,
-                                                         str(out[dsig[kk]][ii].shape))
-                          for ii in range(0, len(out[dsig[kk]]))]
+                    ls = [
+                        'index {}  {}.shape {}'.format(ii, kk,
+                                                       out[dsig[kk]][ii].shape)
+                        for ii in range(0, len(out[dsig[kk]]))
+                    ]
                 else:
-                    ls = ['index {}  {}.shape {}'.format(indch[ii], kk,
-                                                         str(out[dsig[kk]][ii].shape))
-                          for ii in range(0, len(out[dsig[kk]]))]
+                    ls = [
+                        'index {}  {}.shape {}'.format(indch[ii], kk,
+                                                       out[dsig[kk]][ii].shape)
+                        for ii in range(0, len(out[dsig[kk]]))
+                    ]
                 msg = ("The following is supposed to be a np.ndarray:\n"
                        + "    - diag:     {}\n".format(ids)
                        + "    - shortcut: {}\n".format(dsig[kk])
@@ -3170,20 +3174,24 @@ class MultiIDSLoader(object):
                     indch = [indch[ii] for ii in range(0, len(out[dsig[kk]]))
                              if ls[ii] == su]
                 msg = ("indch set automatically for {}\n".format(ids)
-                       +  "  (due to inhomogeneous data shapes)\n"
+                       + "  (due to inhomogeneous data shapes)\n"
                        + "    - main shape: {}\n".format(su)
                        + "    - nb. chan. selected: {}\n".format(len(indch))
                        + "    - indch: {}".format(indch))
                 warnings.warn(msg)
             else:
                 if indch is None:
-                    ls = ['index {}  {}.shape {}'.format(ii, kk,
-                                                         out[dsig[kk]][ii].shape)
-                          for ii in range(0, len(out[dsig[kk]]))]
+                    ls = [
+                        'index {}  {}.shape {}'.format(ii, kk,
+                                                       out[dsig[kk]][ii].shape)
+                        for ii in range(0, len(out[dsig[kk]]))
+                    ]
                 else:
-                    ls = ['index {}  {}.shape {}'.format(indch[ii], kk,
-                                                         out[dsig[kk]][ii].shape)
-                          for ii in range(0, len(out[dsig[kk]]))]
+                    ls = [
+                        'index {}  {}.shape {}'.format(indch[ii], kk,
+                                                       out[dsig[kk]][ii].shape)
+                        for ii in range(0, len(out[dsig[kk]]))
+                    ]
                 msg = ("The following is supposed to be a np.ndarray:\n"
                        + "    - diag:     {}\n".format(ids)
                        + "    - shortcut: {}\n".format(dsig[kk])
@@ -3262,20 +3270,23 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
         if 'LOS' in geom:
-            lk = ['los_ptsRZPhi','etendue','surface', 'names']
+            lk = ['los_ptsRZPhi', 'etendue', 'surface', 'names']
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
             lk = list(set(lk).intersection(lkok))
             dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
-                                                               nan=nan, pos=pos)
+                                                               nan=nan,
+                                                               pos=pos)
 
             # Check all channels can be used, reset indch if necessary
             indch, modif =  self._get_indch_geomtdata(indch=indch,
                                                       indch_auto=indch_auto,
                                                       dgeom=dgeom)
             if modif is True:
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
-                                                                   nan=nan, pos=pos)
+                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk,
+                                                                   indch,
+                                                                   nan=nan,
+                                                                   pos=pos)
 
             if names is not None:
                 dchans['names'] = names

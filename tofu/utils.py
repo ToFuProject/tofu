@@ -972,9 +972,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         # export to instances
         for ii in range(0,nids):
             if returnas[ii] == 'Config':
-                dout[ss]['Config'].append(multi.to_Config(Name=Name, occ=occ,
-                                                          description_2d=description_2d,
-                                                          plot=False))
+                dout[ss]['Config'].append(multi.to_Config(
+                    Name=Name, occ=occ,
+                    description_2d=description_2d, plot=False))
 
             elif returnas[ii] == 'Plasma2D':
                 dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
