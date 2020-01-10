@@ -373,9 +373,11 @@ class MultiIDSLoader(object):
                'bremsstrahlung_visible':
                {'t': {'str': 'time',
                       'quant': 't', 'units': 's'},
-                'radiance':{'str':'channel[chan].radiance_spectral.data',
-                            'dim':'radiance_spectral', 'quant':'radiance_spectral',
-                            'units': 'ph/s/(m2.sr)/m', 'Brightness': True},
+                'radiance':{'str': 'channel[chan].radiance_spectral.data',
+                            'dim': 'radiance_spectral',
+                            'quant': 'radiance_spectral',
+                            'units': 'ph/s/(m2.sr)/m',
+                            'Brightness': True},
                 'names': {'str': 'channel[chan].name'},
                 'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
                 'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
@@ -3084,7 +3086,7 @@ class MultiIDSLoader(object):
 
         lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
         if geomcls not in [False] + lgeom:
-            msg = "Arg geomcls must be in %s"%str([False]+lgeom)
+            msg = "Arg geomcls must be in {}".format([False]+lgeom)
             raise Exception(msg)
 
         return geomcls
@@ -3498,7 +3500,7 @@ class MultiIDSLoader(object):
                 dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
 
         # Update dgeom if necessary
-        if modif is True and geomcls != False:
+        if modif is True and geomcls is not False:
             dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk_geom, indch,
                                                                nan=nan, pos=pos)
             modif = False
