@@ -3078,7 +3078,8 @@ class MultiIDSLoader(object):
         return geomcls
 
     def _get_indch_geomtdata(self, indch=None, indch_auto=None,
-                             dgeom=None, t=None, out=None, sig=None):
+                             dgeom=None, t=None,
+                             ids=None, out=None, dsig=None, kk=None):
         nch = 0 if indch is None else len(indch)
         # Get from geometry of LOS consistency
         if dgeom is not None:
@@ -3086,9 +3087,9 @@ class MultiIDSLoader(object):
                                    np.any(np.isnan(dgeom[1]), axis=0))
             if np.any(indnan) and not np.all(indnan):
                 if indch_auto != True:
-                    ls = ['index %s los %s'%(ii, dmsg[indnan[ii]])
-                          for ii in range(0,dgeom[0].shape[1])]
                     dmsg = {True: 'not available', False:'ok'}
+                    ls = ['index %s los %s'%(ii, dmsg[indnan[ii]])
+                          for ii in range(0, dgeom[0].shape[1])]
                     msg = ("The geometry of all channels is not available !\n"
                            + "Please choose indch to get all channels geomery !\n"
                            + "Currently:\n"
@@ -3127,22 +3128,60 @@ class MultiIDSLoader(object):
                        + "\n    ".join(ls)
                        + "\n  => Solution: choose indch accordingly !")
                 raise Exception(msg)
+            ls = [t[ii].shape for ii in range(0, len(t))]
+            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+            msg = ("indch set automatically for {}\n".format(ids)
+                   + "  (due to inhomogenous time shapes)\n"
+                   + "    - main shape: {}\n".format(su)
+                   + "    - nb. chan. selected: {}\n".format(len(indch))
+                   + "    - indch: {}".format(indch))
+            warnings.warn(msg)
+
+            if indch is None:
+                indch = [ii for ii in range(0, len(t)) if ls[ii] == su]
             else:
+                indch = [indch[ii] for ii in range(0, len(indch))
+                         if ls[indch[ii]] == su]
+
+        # Get from data consistency
+        if all([ss is not None for ss in [out, kk, dsig]]):
+            if indch_auto:
+                ls = [out[dsig[kk]][ii].shape
+                      for ii in range(0, len(out[dsig[kk]]))]
+                lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+                su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+                if indch is None:
+                    indch = [ii for ii in range(0, len(out[dsig[kk]]))
+                             if ls[ii] == su]
+                else:
+                    indch = [indch[ii] for ii in range(0, len(out[dsig[kk]]))
+                             if ls[ii] == su]
                 msg = ("indch set automatically for {}\n".format(ids)
-                       + "  (due to inhomogenous time shapes)\n"
+                       +  "  (due to inhomogeneous data shapes)\n"
                        + "    - main shape: {}\n".format(su)
                        + "    - nb. chan. selected: {}\n".format(len(indch))
                        + "    - indch: {}".format(indch))
                 warnings.warn(msg)
-
-            ls = [t[ii].shape for ii in range(0,len(t))]
-            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-            if indch is None:
-                indch = [ii for ii in range(0,len(t)) if ls[ii] == su]
             else:
-                indch = [indch[ii] for ii in range(0,len(t)) if ls[ii] == su]
-
+                if indch is None:
+                    ls = ['index {}  {}.shape {}'.format(ii, kk,
+                                                         out[dsig[kk]][ii].shape)
+                          for ii in range(0, len(out[dsig[kk]]))]
+                else:
+                    ls = ['index {}  {}.shape {}'.format(indch[ii], kk,
+                                                         out[dsig[kk]][ii].shape)
+                          for ii in range(0, len(out[dsig[kk]]))]
+                msg = ("The following is supposed to be a np.ndarray:\n"
+                       + "    - diag:     {}\n".format(ids)
+                       + "    - shortcut: {}\n".format(dsig[kk])
+                       + "    - used as:  {} input\n".format(kk)
+                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
+                       + "  Probable cause: non-uniform shape (vs channels)\n"
+                       + "  => shapes :\n    "
+                       + "\n    ".join(ls)
+                       + "\n  => Solution: choose indch accordingly !")
+                raise Exception(msg)
         nchout = 0 if indch is None else len(indch)
         return indch, nchout != nch
 
@@ -3308,7 +3347,8 @@ class MultiIDSLoader(object):
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None, config=None,
                 dextra=None, t0=None, datacls=None, geomcls=None,
-                plot=True, bck=True, fallback_X=None, nan=True, pos=None):
+                plot=True, bck=True, fallback_X=None, nan=True, pos=None,
+                return_indch=False):
 
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -3349,11 +3389,11 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
 
             if 'LOS' in geomcls:
-                lk = ['los_ptsRZPhi','etendue','surface']
+                lk_geom = ['los_ptsRZPhi','etendue','surface']
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
-                lk = list(set(lk).intersection(lkok))
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
+                lk_geom = list(set(lk_geom).intersection(lkok))
+                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk_geom, indch,
                                                                    nan=nan, pos=pos)
 
         # ----------
@@ -3373,13 +3413,18 @@ class MultiIDSLoader(object):
             indch, modif =  self._get_indch_geomtdata(indch=indch,
                                                       indch_auto=indch_auto,
                                                       dgeom=dgeom, t=t)
+            assert modif is True
         else:
             indch, modif =  self._get_indch_geomtdata(indch=indch,
                                                       indch_auto=indch_auto,
                                                       dgeom=dgeom)
         if modif is True:
-            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
-                                                               nan=nan, pos=pos)
+            if geomcls != False:
+                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
+                    ids, lk_geom, indch, nan=nan, pos=pos)
+            t = self.get_data(ids, sig='t', indch=indch)['t']
+            modif = False
+
         if names is not None:
             dchans['names'] = names
 
@@ -3395,47 +3440,14 @@ class MultiIDSLoader(object):
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
-                if indch_auto:
-                    ls = [out[dsig[kk]][ii].shape
-                          for ii in range(0,len(out[dsig[kk]]))]
-                    lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-                    su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-                    if indch is None:
-                        indch = [ii for ii in range(0,len(out[dsig[kk]]))
-                                 if ls[ii] == su]
-                    else:
-                        indch = [indch[ii] for ii in range(0,len(out[dsig[kk]]))
-                                 if ls[ii] == su]
+                indch, modifk =  self._get_indch_geomtdata(indch=indch,
+                                                           indch_auto=indch_auto,
+                                                           out=out, dsig=dsig,
+                                                           kk=kk)
+                if modifk is True:
                     out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        indt=indt, indch=indch, nan=nan,
-                                        pos=pos)
-
-                    # Remove ? put in function ?
-                    if cam is not None:
-                        cam = cam.get_subset(indch=indch)
-                    msg = ("indch set automatically for %s\n"%ids
-                           +  "  (due to inhomogeneous data shapes)\n"
-                           + "    - main shape: %s\n"%str(su)
-                           + "    - nb. chan. selected: %s\n"%len(indch)
-                           + "    - indch: %s"%str(indch))
-                    warnings.warn(msg)
-                else:
-                    if indch is None:
-                        ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
-                              for ii in range(0,len(out[dsig[kk]]))]
-                    else:
-                        ls = ['index %s  %s.shape %s'%(indch[ii],kk,str(out[dsig[kk]][ii].shape))
-                              for ii in range(0,len(out[dsig[kk]]))]
-                    msg = ("The following is supposed to be a np.ndarray:\n"
-                           + "    - diag:     %s\n"%ids
-                           + "    - shortcut: %s\n"%dsig[kk]
-                           + "    - used as:  %s input\n"%kk
-                           + "  Observed type: %s\n"%str(type(out[dsig[kk]]))
-                           + "  Probable cause: non-uniform shape (vs channels)\n"
-                           + "  => shapes :\n    "
-                           + "\n    ".join(ls)
-                           + "\n  => Solution: choose indch accordingly !")
-                    raise Exception(msg)
+                                        indt=indt, indch=indch, nan=nan, pos=pos)
+                    modif = True
 
             # Arrange depending on shape and field
             if type(out[dsig[kk]]) is not np.ndarray:
@@ -3461,6 +3473,13 @@ class MultiIDSLoader(object):
             elif out[dsig[kk]].ndim == 3:
                 assert kk == 'data'
                 dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
+
+        # Update dgeom if necessary
+        if modif is True and geomcls != False:
+            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk_geom, indch,
+                                                               nan=nan, pos=pos)
+            modif = False
+
 
         # --------------------------
         # Format special ids cases
@@ -3522,7 +3541,10 @@ class MultiIDSLoader(object):
 
         if plot:
             Data.plot(draw=True, bck=bck)
-        return Data
+        if return_indch is True:
+            return Data, indch
+        else:
+            return Data
 
 
     def _get_synth(self, ids, dsig=None,
@@ -3598,6 +3620,23 @@ class MultiIDSLoader(object):
                     dextra=None, t0=None, datacls=None, geomcls=None,
                     bck=True, fallback_X=None, nan=True, pos=None,
                     plot=True, plot_compare=None, plot_plasma=None):
+
+        # Check / format inputs
+        if plot is None:
+            plot = True
+
+        if plot:
+            if plot_compare is None:
+                plot_compare = True
+            if plot_plasma is None:
+                plot_plasma = True
+
+        # Get experimental data first if relevant
+        # to get correct indch for comparison
+        if plot and plot_compare:
+            data, indch = self.to_Data(ids, indch=indch,
+                                       indch_auto=indch_auto, t0=t0,
+                                       return_indch=True, plot=False)
 
         # Get camera
         cam = self.to_Cam(ids=ids, indch=indch,
@@ -3722,15 +3761,9 @@ class MultiIDSLoader(object):
 
         # plot
         if plot:
-            if plot_compare is None:
-                plot_compare = True
-            if plot_plasma is None:
-                plot_plasma = True
             if plot_compare:
                 if err_comp:
                     raise Exception(msg)
-                data = self.to_Data(ids, indch=indch,
-                                    indch_auto=indch_auto, t0=t0, plot=False)
                 sig._dlabels = data.dlabels
                 data.plot_compare(sig)
             else:
