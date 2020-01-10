@@ -4196,7 +4196,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
     ismobile = any([ss._dgeom['mobile'] for ss in lS])
 
     # Isolate StructIn and take out from lS
-    ves =  lS.pop(lcls.index(lclsIn[0]))
+    ves = lS.pop(lcls.index(lclsIn[0]))
     nS = len(lS)
 
     # Fill in data
