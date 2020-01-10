@@ -373,11 +373,11 @@ class MultiIDSLoader(object):
                'bremsstrahlung_visible':
                {'t': {'str': 'time',
                       'quant': 't', 'units': 's'},
-                'radiance':{'str': 'channel[chan].radiance_spectral.data',
-                            'dim': 'radiance_spectral',
-                            'quant': 'radiance_spectral',
-                            'units': 'ph/s/(m2.sr)/m',
-                            'Brightness': True},
+                'radiance': {'str': 'channel[chan].radiance_spectral.data',
+                             'dim': 'radiance_spectral',
+                             'quant': 'radiance_spectral',
+                             'units': 'ph/s/(m2.sr)/m',
+                             'Brightness': True},
                 'names': {'str': 'channel[chan].name'},
                 'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
                 'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
@@ -3281,9 +3281,9 @@ class MultiIDSLoader(object):
                                                                pos=pos)
 
             # Check all channels can be used, reset indch if necessary
-            indch, modif =  self._get_indch_geomtdata(indch=indch,
-                                                      indch_auto=indch_auto,
-                                                      dgeom=dgeom)
+            indch, modif = self._get_indch_geomtdata(indch=indch,
+                                                     indch_auto=indch_auto,
+                                                     dgeom=dgeom)
             if modif is True:
                 dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk,
                                                                    indch,
@@ -3414,12 +3414,12 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
 
             if 'LOS' in geomcls:
-                lk_geom = ['los_ptsRZPhi','etendue','surface']
+                lk_geom = ['los_ptsRZPhi', 'etendue', 'surface']
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk_geom = list(set(lk_geom).intersection(lkok))
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk_geom, indch,
-                                                                   nan=nan, pos=pos)
+                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
+                    ids, lk_geom, indch, nan=nan, pos=pos)
 
         # ----------
         # Get time
@@ -3435,16 +3435,16 @@ class MultiIDSLoader(object):
         # -----------
         # Check indch
         if type(t) is list:
-            indch, modif =  self._get_indch_geomtdata(indch=indch,
-                                                      indch_auto=indch_auto,
-                                                      dgeom=dgeom, t=t)
+            indch, modif = self._get_indch_geomtdata(indch=indch,
+                                                     indch_auto=indch_auto,
+                                                     dgeom=dgeom, t=t)
             assert modif is True
         else:
-            indch, modif =  self._get_indch_geomtdata(indch=indch,
-                                                      indch_auto=indch_auto,
-                                                      dgeom=dgeom)
+            indch, modif = self._get_indch_geomtdata(indch=indch,
+                                                     indch_auto=indch_auto,
+                                                     dgeom=dgeom)
         if modif is True:
-            if geomcls != False:
+            if geomcls is not False:
                 dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
                     ids, lk_geom, indch, nan=nan, pos=pos)
             t = self.get_data(ids, sig='t', indch=indch)['t']
@@ -3465,13 +3465,13 @@ class MultiIDSLoader(object):
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
-                indch, modifk =  self._get_indch_geomtdata(indch=indch,
-                                                           indch_auto=indch_auto,
-                                                           out=out, dsig=dsig,
-                                                           kk=kk)
+                indch, modifk = self._get_indch_geomtdata(
+                    indch=indch, indch_auto=indch_auto,
+                    out=out, dsig=dsig, kk=kk)
                 if modifk is True:
                     out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        indt=indt, indch=indch, nan=nan, pos=pos)
+                                        indt=indt, indch=indch,
+                                        nan=nan, pos=pos)
                     modif = True
 
             # Arrange depending on shape and field
@@ -3501,10 +3501,10 @@ class MultiIDSLoader(object):
 
         # Update dgeom if necessary
         if modif is True and geomcls is not False:
-            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk_geom, indch,
-                                                               nan=nan, pos=pos)
+            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
+                ids, lk_geom, indch,
+                nan=nan, pos=pos)
             modif = False
-
 
         # --------------------------
         # Format special ids cases
@@ -3549,13 +3549,13 @@ class MultiIDSLoader(object):
 
         # --------------
         # Create objects
-        if geomcls != False and dgeom is not None:
+        if geomcls is not False and dgeom is not None:
             import tofu.geom as tfg
             cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
                                         Etendues=Etendues, Surfaces=Surfaces,
                                         Name=Name, Diag=ids, Exp=Exp,
                                         dchans=dchans)
-            cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
+            cam.Id.set_dUSR({'imas-nchMax': nchMax})
 
         import tofu.data as tfd
         conf = None if cam is not None else config
@@ -4082,7 +4082,7 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
 #   Class-specific functions
 #--------------------------------
 
-def _save_to_imas_Struct( obj,
+def _save_to_imas_Struct(obj,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
                          dryrun=False, tfversion=None, verb=True,
@@ -4115,7 +4115,7 @@ def _save_to_imas_Struct( obj,
         idd.wall.description_2d[description_2d].type.index = (
             description_typeindex)
         idd.wall.description_2d[description_2d].type.name = (
-            '%s_%s'%(obj.__class__.__name__, obj.Id.Name))
+            '{}_{}'.format(obj.__class__.__name__, obj.Id.Name))
         idd.wall.description_2d[description_2d].type.description = (
             "tofu-generated wall. Each PFC is represented independently as a"
             + " closed polygon in tofu, which saves them as disjoint PFCs")
@@ -4154,7 +4154,7 @@ def _save_to_imas_Struct( obj,
                  err=err0, dryrun=dryrun, verb=verb)
 
 
-def _save_to_imas_Config( obj, idd=None, shotfile=None,
+def _save_to_imas_Config(obj, idd=None, shotfile=None,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
                          dryrun=False, tfversion=None, close=True, verb=True,
@@ -4186,7 +4186,7 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         raise Exception(msg)
 
     if description_typeindex is None:
-        if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
+        if nS == 1 and lcls[0] in ['Ves', 'PlasmaDomain']:
             description_typeindex = 0
         else:
             description_typeindex = 2
@@ -4196,7 +4196,7 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
     ismobile = any([ss._dgeom['mobile'] for ss in lS])
 
     # Isolate StructIn and take out from lS
-    ves =  lS.pop( lcls.index(lclsIn[0]) )
+    ves =  lS.pop(lcls.index(lclsIn[0]))
     nS = len(lS)
 
     # Fill in data
@@ -4205,55 +4205,57 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
         # data
         # --------
         idd.wall.description_2d.resize( description_2d + 1 )
-        idd.wall.description_2d[description_2d].type.name = obj.Id.Name
-        idd.wall.description_2d[description_2d].type.index = (
-            description_typeindex)
-        idd.wall.description_2d[description_2d].type.description = (
+        wall = idd.wall.description_2d[description_2d]
+        wall.type.name = obj.Id.Name
+        wall.type.index = description_typeindex
+        wall.type.description = (
             "tofu-generated wall. Each PFC is represented independently as a"
             + " closed polygon in tofu, which saves them as disjoint PFCs")
 
         # Fill limiter / mobile
         if ismobile:
-            idd.wall.description_2d[description_2d].mobile.unit.resize(nS)
-            units = idd.wall.description_2d[description_2d].mobile.unit
+            wall.mobile.unit.resize(nS)
+            units = wall.mobile.unit
             for ii in range(0, nS):
                 units[ii].outline.resize(1)
                 units[ii].outline[0].r = lS[ii].Poly[0, :]
                 units[ii].outline[0].z = lS[ii].Poly[1, :]
                 if lS[ii].noccur > 0:
-                    units[ii].phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
+                    units[ii].phi_extensions = np.array([lS[ii].pos,
+                                                         lS[ii].extent]).T
                 units[ii].closed = True
-                name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+                name = '{}_{}'.format(lS[ii].__class__.__name__,
+                                      lS[ii].Id.Name)
                 if lS[ii]._dgeom['mobile'] is True:
                     name = name + '_mobile'
                 units[ii].name = name
 
-
         else:
-            idd.wall.description_2d[description_2d].limiter.unit.resize(nS)
-            units = idd.wall.description_2d[description_2d].limiter.unit
+            wall.limiter.unit.resize(nS)
+            units = wall.limiter.unit
             for ii in range(0, nS):
                 units[ii].outline.r = lS[ii].Poly[0, :]
                 units[ii].outline.z = lS[ii].Poly[1, :]
                 if lS[ii].noccur > 0:
-                    units[ii].phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
+                    units[ii].phi_extensions = np.array([lS[ii].pos,
+                                                         lS[ii].extent]).T
                 units[ii].closed = True
-                name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+                name = '{}_{}'.format(lS[ii].__class__.__name__,
+                                      lS[ii].Id.Name)
                 if lS[ii]._dgeom['mobile'] is True:
                     name = name + '_mobile'
                 units[ii].name = name
 
-
         # Fill vessel
-        vesname = '%s_%s'%(ves.__class__.__name__, ves.Id.Name)
-        idd.wall.description_2d[description_2d].vessel.name = vesname
-        idd.wall.description_2d[description_2d].vessel.index = 1
-        idd.wall.description_2d[description_2d].vessel.description = (
+        vesname = '{}_{}'.format(ves.__class__.__name__, ves.Id.Name)
+        wall.vessel.name = vesname
+        wall.vessel.index = 1
+        wall.vessel.description = (
             "tofu-generated vessel outline, with a unique unit / element")
 
-        idd.wall.description_2d[description_2d].vessel.unit.resize(1)
-        idd.wall.description_2d[description_2d].vessel.unit[0].element.resize(1)
-        element = idd.wall.description_2d[description_2d].vessel.unit[0].element[0]
+        wall.vessel.unit.resize(1)
+        wall.vessel.unit[0].element.resize(1)
+        element = wall.vessel.unit[0].element[0]
         element.name = vesname
         element.outline.r = ves.Poly[0, :]
         element.outline.z = ves.Poly[1, :]
