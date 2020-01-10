@@ -79,15 +79,6 @@ before_deploy:
 - echo "BEFORE DEPLOY END.........."
 deploy:
   - provider: pypi
-    on:
-      tags: true
-      branch: master
-    skip_existing: true
-    user: __token__
-    password:
-      secure: a4HWH6oCDqnWkaqALeppbs/ud1k/bxlyhjUkMMwV7R55V07n/FSROyGPp+Vo1bOGUi35AnsqUF8PWfxvAhKSUZNFYpIrDGRe960JCGRlMrpkzObY3r+uUeVyyxP5540mUW0oqK+uaAynFWxqNgfRNh+SUS4Kgvx9lPslpnlNDTIBA9TN9cnReBuwcFhbosm9QSSqjJ8+ybP5OawIlL5iYiPot4NFXbTe3vjQrdNKfpNCS98QFBbbTijM0Hw5eU8X2R7/PyReU3TlLJvpUqO4PrOvAW85eIy6vrfKo9dgfFczJf3hUUfjGFSK3brm2HqJDUsxn/hg+GM7vynH63HyCLdQq+HZJUTCzfzts4BljQzrrAn6+0Ze/oMuVKynFZKnm0A08rHdLpcCiE3C+ehcJ9zttYPkiJYpRRQssPes8/ZqVVYAHHgH88Cts8i736rcR1eYyGzNrTRoT1AGCbco98Vaj/6/pEtC84OQIfXLFPeFGBSeAQcJ6RKwlDKeJeyQ23gUFyqRFqs9SR8EE6pfo7zYpWpuW+ZT1ESKghWuel14T4xcVohbX1MTsKEkjR+25SGWCq4KE1ql4H+m8h0A2FvIvRnK74uFfNFv1qbXYrFEYVTW2T19MtcWcYnzhMyOgIbb9I1MEgpEB6WgPC9EZhvSBiOBh5r8i+MlcxaMQZ4=
-    server: https://test.pypi.org/legacy/
-  - provider: pypi
     distributions: "sdist"
     user: __token__
     skip_existing: true
