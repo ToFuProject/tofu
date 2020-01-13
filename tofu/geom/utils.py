@@ -713,7 +713,7 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
         l0 = np.max([len(k0) for k0 in dc.keys()] + [len('unique names')])
         l1 = np.max([len(str(v0)) for v0 in dc.values()] + [len('shortcuts')])
         msg = ("\n\t" + "unique names".ljust(l0) + "\tshortcuts"
-               +"\n\t" + "-"*l0 + " \t" + "-"*l1
+               + "\n\t" + "-"*l0 + " \t" + "-"*l1
                + "\n\t- "
                + "\n\t- ".join(["{}\t{}".format(k0.ljust(l0), v0)
                                 for k0, v0 in dc.items()]))
@@ -721,7 +721,7 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
 
 
 def get_available_config(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
-                        verb=True, returnas=False):
+                         verb=True, returnas=False):
     msg = ("A config is the geometry of a tokamak\n"
            + "You can define your own"
            + " (see online tutorial at {})\n".format(_URL_TUTO)
