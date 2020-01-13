@@ -522,7 +522,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                         # interpolate 1d
                         ind = indt == indtu[ii]
                         val[ind, ...] = scpinterp.interp1d(
-                            vr1[indtr1[indtu[ii]], :],
+                            vr1[indtr1[ii], :],
                             vquant[indtq[indtu[ii]], :],
                             kind='linear',
                             bounds_error=False,
@@ -566,7 +566,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                         # interpolate 1d
                         ind = indt == indtu[ii]
                         val[ind, indok] = scpinterp.interp1d(
-                            vr1[indtr1[indtu[ii]], :],
+                            vr1[indtr1[ii], :],
                             vquant[indtq[indtu[ii]], :],
                             kind='linear',
                             bounds_error=False,
