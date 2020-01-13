@@ -3742,7 +3742,7 @@ class Plasma2D(utils.ToFuObject):
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
                      interp_t=None, interp_space=None,
-                     fill_value=np.nan, ani=False, Type=None):
+                     fill_value=None, ani=False, Type=None):
 
         if interp_t is None:
             interp_t = 'nearest'
@@ -3860,7 +3860,7 @@ class Plasma2D(utils.ToFuObject):
     def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
                       q2dR=None, q2dPhi=None, q2dZ=None,
                       interp_t=None, interp_space=None,
-                      fill_value=np.nan, Type=None):
+                      fill_value=None, Type=None):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
         Can be used as input for tf.geom.CamLOS1D/2D.calc_signal()
@@ -3887,7 +3887,7 @@ class Plasma2D(utils.ToFuObject):
                            quant=None, ref1d=None, ref2d=None,
                            q2dR=None, q2dPhi=None, q2dZ=None,
                            interp_t=None, interp_space=None,
-                           fill_value=np.nan, Type=None):
+                           fill_value=None, Type=None):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
@@ -3967,7 +3967,7 @@ class Plasma2D(utils.ToFuObject):
                              quant=None, ref1d=None, ref2d=None,
                              q2dR=None, q2dPhi=None, q2dZ=None,
                              Brightness=True, interp_t=None,
-                             interp_space=None, fill_value=np.nan,
+                             interp_space=None, fill_value=None,
                              res=0.005, DL=None, resMode='abs', method='sum',
                              ind=None, out=object, plot=True, dataname=None,
                              fs=None, dmargin=None, wintit=None, invert=True,

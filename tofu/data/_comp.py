@@ -432,6 +432,8 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                             vquant[indtq[indtu[ii]], :],
                             trifinder=trifind
                         )(r, z).filled(fill_value)
+                if np.any(np.isnan(val)) and not np.isnan(fill_value):
+                    val[np.isnan(val)] = fill_value
                 return val, t
 
         # --------------------
@@ -463,6 +465,8 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                         ind = indt == indtu[ii]
                         val[ind, indok] = vquant[indtq[indtu[ii]],
                                                  indpts[indok]]
+                if np.any(np.isnan(val)) and not np.isnan(fill_value):
+                    val[np.isnan(val)] = fill_value
                 return val, t
 
 
@@ -568,6 +572,10 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                             bounds_error=False,
                             fill_value=fill_value
                         )(vr2[indtr2[ii], indpts[indok]])
+
+                # Double check nan in case vr2 is itself nan on parts of mesh
+                if np.any(np.isnan(val)) and not np.isnan(fill_value):
+                    val[np.isnan(val)] = fill_value
                 return val, t
     return func
 
@@ -698,6 +706,7 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
             else:
                 ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
                                                        tbinall=tbinall)[1:-2]
+
                 for ii in range(0, ntall):
                     ind = indt == indtu[ii]
                     valR[ind, ...] = vq2dR[indtq[indtu[ii]], indpts]

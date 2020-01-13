@@ -3639,7 +3639,7 @@ class MultiIDSLoader(object):
     def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
                     quant=None, ref1d=None, ref2d=None,
                     q2dR=None, q2dPhi=None, q2dZ=None,
-                    Brightness=None, interp_t=None,
+                    Brightness=None, interp_t=None, newcalc=True,
                     indch=None, indch_auto=False, Name=None,
                     occ_cam=None, occ_plasma=None, config=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
@@ -3753,8 +3753,10 @@ class MultiIDSLoader(object):
         # Calculate synthetic signal
         if Brightness is None:
             Brightness = self._didsdiag[ids]['synth'].get('Brightness', None)
+        dq['fill_value'] = 0.
         sig, units = cam.calc_signal_from_Plasma2D(plasma, res=res, t=t,
                                                    Brightness=Brightness,
+                                                   newcalc=newcalc,
                                                    plot=False, **dq)
 
         sig._dextra = plasma.get_dextra(dextra)
@@ -3762,7 +3764,9 @@ class MultiIDSLoader(object):
         if ids == 'interferometer':
             sig = 2.*sig
         elif ids == 'polarimeter':
-            sig = 2.*sig
+            # For polarimeter, the vect is along the LOS
+            # it is not the direction of
+            sig = -2.*sig
 
         # Safety check regarding Brightness
         _, _, dsig_exp = self._checkformat_Data_dsig(ids)

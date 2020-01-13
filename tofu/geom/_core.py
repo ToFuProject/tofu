@@ -6210,7 +6210,7 @@ class Rays(utils.ToFuObject):
         self,
         plasma2d,
         t=None,
-        newcalc=False,
+        newcalc=True,
         quant=None,
         ref1d=None,
         ref2d=None,
@@ -6255,7 +6255,9 @@ class Rays(utils.ToFuObject):
 
         if newcalc:
             # Get time vector
-            if t is None:
+            lc = [t is None, type(t) is str, type(t) is np.ndarray]
+            assert any(lc)
+            if lc[0]:
                 out = plasma2d._checkformat_qr12RPZ(
                      quant=quant,
                      ref1d=ref1d,
@@ -6265,6 +6267,8 @@ class Rays(utils.ToFuObject):
                      q2dZ=q2dZ,
                 )
                 t = plasma2d._get_tcom(*out[:4])[0]
+            elif lc[1]:
+                t = plasma2d._ddata[t]['data']
             else:
                 t = np.atleast_1d(t).ravel()
 
@@ -6362,7 +6366,7 @@ class Rays(utils.ToFuObject):
                 nbrep = np.r_[
                     indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]
                 ]
-                vect = np.repeat(self.u, nbrep, axis=1)
+                vect = -np.repeat(self.u, nbrep, axis=1)
             if fill_value is None:
                 fill_value = 0.
 
