@@ -186,9 +186,6 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 ########################################################
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     """ Assuming 2D closed Poly !
     TODO @LM :
@@ -208,8 +205,10 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     cdef double[::1] mvx = mv_poly[0,:]
     cdef double[::1] mvy = mv_poly[1,:]
     cdef int idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
-    cdef int idm1 = (idmin - 1) % npts
-    cdef int idp1 = (idmin + 1) % npts
+    cdef int idm1 = idmin - 1
+    cdef int idp1 = (idmin + 1)%npts
+    if idmin == 0 :
+        idm1 = npts - 1
     res = mvx[idm1]  * (mvy[idmin] - mvy[idp1]) + \
           mvx[idmin] * (mvy[idp1]  - mvy[idm1]) + \
           mvx[idp1]  * (mvy[idm1]  - mvy[idmin])
@@ -281,10 +280,6 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
         poly = poly[:,:-1]
     if layout.lower()=='(n,cc)':
         poly = poly.T
-        # TODO : @LM @DV > seems strange to me that we order all polys
-        # in order "(cc,n)" and just last minute we look at what's actually
-        # asked
-        # >> ok
     poly = np.ascontiguousarray(poly) if order.lower()=='c' \
            else np.asfortranarray(poly)
     return poly
