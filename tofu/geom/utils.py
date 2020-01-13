@@ -643,6 +643,11 @@ _ExpWest = 'WEST'
 _ExpJET = 'JET'
 _ExpITER = 'ITER'
 _ExpNSTX = 'NSTX'
+# Default config
+_DEFCONFIG = 'ITER'
+
+_URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
+             + 'tuto_plot_create_geometry.html')
 
 # Dictionnary of unique config names
 _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
@@ -695,8 +700,40 @@ _DCONFIG_TABLE = {'ITER': 'ITER-V2',
                   'B4': 'ITER-V2',
                   'NSTX': 'NSTX-V0'}
 
-# Default config
-_DEFCONFIG = 'ITER'
+
+def _get_listconfig(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
+                    returnas=str):
+    assert returnas in [dict, str]
+    dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_table.items()
+                             if v1 == k0])
+          for k0 in sorted(dconfig.keys())}
+    if returnas is dict:
+        return dc
+    else:
+        l0 = np.max([len(k0) for k0 in dc.keys()] + [len('unique names')])
+        l1 = np.max([len(str(v0)) for v0 in dc.values()] + [len('shortcuts')])
+        msg = ("\n\t" + "unique names".ljust(l0) + "\tshortcuts"
+               +"\n\t" + "-"*l0 + " \t" + "-"*l1
+               + "\n\t- "
+               + "\n\t- ".join(["{}\t{}".format(k0.ljust(l0), v0)
+                                for k0, v0 in dc.items()]))
+        return msg
+
+
+def get_available_config(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
+                        verb=True, returnas=False):
+    msg = ("A config is the geometry of a tokamak\n"
+           + "You can define your own"
+           + " (see online tutorial at {})\n".format(_URL_TUTO)
+           + "tofu also also provides some pre-defined config ready to load\n"
+           + "They are available via their name or via shortcuts\n"
+           + _get_listconfig(dconfig=dconfig, dconfig_table=dconfig_table)
+           + "\n\n  => to get a pre-defined config, call for example:\n"
+           + "\tconfig = tf.geom.utils.create_config('ITER')")
+    if verb is True:
+        print(msg)
+    if returnas is str:
+        return msg
 
 
 def _create_config_testcase(config=None, returnas='object',
@@ -724,11 +761,9 @@ def _create_config_testcase(config=None, returnas='object',
         config = dconfig_table[config]
 
     else:
-        msg = ("The provided config name is not valid:\n"
-               + "Please choose among either:\n"
-               + "\t - unique keys: {}\n".format(list(dconfig.keys()))
-               + "\t - shortcuts  : {}\n\n".format(list(dconfig_table.keys()))
-               + "  => you provided: case = {}\n".format(config))
+        msg = ("\nThe provided config name is not valid.\n"
+               + get_available_config(verb=False, returnas=str)
+               + "\n\n  => you provided: {}\n".format(config))
         raise Exception(msg)
 
     # Get file names for config
