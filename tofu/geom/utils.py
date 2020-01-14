@@ -858,11 +858,14 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
           any([pp is not None for pp in lp])]
     if np.sum(lc) > 1:
         msg = ("Please provide either:\n"
-               + "\t- case: the name of a stored case\n"
-               + "\t- geometrical parameters {}".format(lpstr))
+               + "\t- case: the name of a pre-defined config\n"
+               + "\t- geometrical parameters {}\n\n".format(lpstr)
+               + get_available_config(verb=False, returnas=str))
         raise Exception(msg)
     elif not any(lc):
-        case = _DEFCONFIG
+        msg = get_available_config(verb=False, returnas=str)
+        raise Exception(msg)
+        # case = _DEFCONFIG
 
     # Get config, either from known case or geometrical parameterization
     if case is not None:
