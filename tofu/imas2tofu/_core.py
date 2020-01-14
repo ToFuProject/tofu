@@ -4193,8 +4193,8 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
         if nS == 1 and lcls[0] in ['Ves', 'PlasmaDomain']:
             description_typeindex = 0
         else:
-            description_typeindex = 2
-    assert description_typeindex in [0, 2]
+            description_typeindex = 1
+    assert description_typeindex in [0, 1]
 
     # Check whether there is any mobile element
     ismobile = any([ss._dgeom['mobile'] for ss in lS])
@@ -4218,7 +4218,8 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
 
         # Fill limiter / mobile
         if ismobile:
-            wall.mobile.unit.resize(nS)
+            # resize nS + 1 for vessel
+            wall.mobile.unit.resize(nS + 1)
             units = wall.mobile.unit
             for ii in range(0, nS):
                 units[ii].outline.resize(1)
@@ -4250,25 +4251,36 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
                     name = name + '_mobile'
                 units[ii].name = name
 
-        # Fill vessel
-        vesname = '{}_{}'.format(ves.__class__.__name__, ves.Id.Name)
-        wall.vessel.name = vesname
-        wall.vessel.index = 1
-        wall.vessel.description = (
-            "tofu-generated vessel outline, with a unique unit / element")
+        # Add Vessel at the end
+        ii = nS
+        units[ii].outline.resize(1)
+        units[ii].outline[0].r = ves.Poly[0, :]
+        units[ii].outline[0].z = ves.Poly[1, :]
+        units[ii].closed = True
+        units[ii].name = '{}_{}'.format(ves.__class__.__name__,
+                                        ves.Id.Name)
 
-        wall.vessel.unit.resize(1)
-        wall.vessel.unit[0].element.resize(1)
-        element = wall.vessel.unit[0].element[0]
-        element.name = vesname
-        element.outline.r = ves.Poly[0, :]
-        element.outline.z = ves.Poly[1, :]
+        # ----------------------------------
+        # Fill vessel if needed
+        # vesname = '{}_{}'.format(ves.__class__.__name__, ves.Id.Name)
+        # wall.vessel.name = vesname
+        # wall.vessel.index = 1
+        # wall.vessel.description = (
+            # "tofu-generated vessel outline, with a unique unit / element")
+
+        # wall.vessel.unit.resize(1)
+        # wall.vessel.unit[0].element.resize(1)
+        # element = wall.vessel.unit[0].element[0]
+        # element.name = vesname
+        # element.outline.r = ves.Poly[0, :]
+        # element.outline.z = ves.Poly[1, :]
+        # ----------------------------------
 
         # IDS properties
         # --------------
         com = "PFC contour generated:\n"
-        com += "    - from %s"%obj.Id.SaveName
-        com += "    - by tofu %s"%tfversion
+        com += "    - from {}".format(obj.Id.SaveName)
+        com += "    - by tofu {}".format(tfversion)
         _fill_idsproperties(idd.wall, com, tfversion)
         err0 = None
 
