@@ -2292,40 +2292,40 @@ class MultiIDSLoader(object):
         # ----------------------------------
         # Relevant only if vessel is filled
         # try:
-            # if len(wall.vessel.unit) != 1:
-                # msg = "There is no / several vessel.unit!"
-                # raise Exception(msg)
-            # if len(wall.vessel.unit[0].element) != 1:
-                # msg = "There is no / several vessel.unit[0].element!"
-                # raise Exception(msg)
-            # if len(wall.vessel.unit[0].element[0].outline.r) < 3:
-                # msg = "wall.vessel polygon has less than 3 points!"
-                # raise Exception(msg)
-            # name = wall.vessel.unit[0].element[0].name
-            # poly = np.array([wall.vessel.unit[0].element[0].outline.r,
-                             # wall.vessel.unit[0].element[0].outline.z])
+        #    if len(wall.vessel.unit) != 1:
+        #        msg = "There is no / several vessel.unit!"
+        #        raise Exception(msg)
+        #    if len(wall.vessel.unit[0].element) != 1:
+        #        msg = "There is no / several vessel.unit[0].element!"
+        #        raise Exception(msg)
+        #    if len(wall.vessel.unit[0].element[0].outline.r) < 3:
+        #        msg = "wall.vessel polygon has less than 3 points!"
+        #        raise Exception(msg)
+        #    name = wall.vessel.unit[0].element[0].name
+        #    poly = np.array([wall.vessel.unit[0].element[0].outline.r,
+        #                     wall.vessel.unit[0].element[0].outline.z])
         # except Exception as err:
-            # # If vessel not in vessel, sometimes stored a a single limiter
-            # if nlim == 1:
-                # name = wall.limiter.unit[0].name
-                # poly = np.array([wall.limiter.unit[0].outline.r,
-                                 # wall.limiter.unit[0].outline.z])
-                # onelimonly = True
-            # else:
-                # msg = ("There does not seem to be any vessel, "
-                       # + "not in wall.vessel nor in wall.limiter!")
-                # raise Exception(msg)
+        #    # If vessel not in vessel, sometimes stored a a single limiter
+        #    if nlim == 1:
+        #        name = wall.limiter.unit[0].name
+        #        poly = np.array([wall.limiter.unit[0].outline.r,
+        #                         wall.limiter.unit[0].outline.z])
+        #        onelimonly = True
+        #    else:
+        #        msg = ("There does not seem to be any vessel, "
+        #               + "not in wall.vessel nor in wall.limiter!")
+        #        raise Exception(msg)
         # cls = None
         # if name == '':
-            # name = 'ImasVessel'
+        #     name = 'ImasVessel'
         # if '_' in name:
-            # ln = name.split('_')
-            # if len(ln) == 2:
-                # cls, name = ln
-            # else:
-                # name = name.replace('_', '')
+        #     ln = name.split('_')
+        #     if len(ln) == 2:
+        #         cls, name = ln
+        #     else:
+        #         name = name.replace('_', '')
         # if cls is None:
-            # cls = 'Ves'
+        #     cls = 'Ves'
         # assert cls in ['Ves', 'PlasmaDomain']
         # ves = getattr(mod, cls)(Poly=poly, Name=name, **kwargs)
 
@@ -4290,7 +4290,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
         # wall.vessel.name = vesname
         # wall.vessel.index = 1
         # wall.vessel.description = (
-            # "tofu-generated vessel outline, with a unique unit / element")
+        #     "tofu-generated vessel outline, with a unique unit / element")
 
         # wall.vessel.unit.resize(1)
         # wall.vessel.unit[0].element.resize(1)
