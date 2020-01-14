@@ -859,8 +859,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
     if np.sum(lc) > 1:
         msg = ("Please provide either:\n"
                + "\t- case: the name of a pre-defined config\n"
-               + "\t- geometrical parameters {}\n\n".format(lpstr)
-               + get_available_config(verb=False, returnas=str))
+               + "\t- geometrical parameters {}\n\n".format(lpstr))
         raise Exception(msg)
     elif not any(lc):
         msg = get_available_config(verb=False, returnas=str)
