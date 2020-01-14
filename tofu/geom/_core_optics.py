@@ -1452,7 +1452,7 @@ class CrystalBragg(utils.ToFuObject):
     def plot_line_from_pts_on_det(self, lamb=None, pts=None,
                                   xi_bounds=None, xj_bounds=None, nphi=None,
                                   det_cent=None, det_nout=None,
-                                  det_ei=None, det_ej=None,
+                                  det_ei=None, det_ej=None, n=None,
                                   johann=False, lpsi=None, ltheta=None,
                                   rocking=False, fs=None, dmargin=None,
                                   wintit=None, tit=None):
