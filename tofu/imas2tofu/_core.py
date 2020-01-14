@@ -2337,9 +2337,20 @@ class MultiIDSLoader(object):
                 mobile = True
             elif nmob == 0 and nlim > 0:
                 mobile = False
+            elif nmob == nlim:
+                msgw = 'wall.description_2[{}]'.format(description_2d)
+                msg = ("\nids wall has same number of limiter / mobile units\n"
+                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
+                       + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
+                       + "  => Choosing limiter by default")
+                warnings.warn(msg)
+                mobile = False
             else:
+                msgw = 'wall.description_2[{}]'.format(description_2d)
                 msg = ("Can't decide automatically whether to choose"
-                       + " limiter or mobile!")
+                       + " limiter or mobile!\n"
+                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
+                       + "\t- len({}.mobile.unit) = {}".format(msgw, nmob))
                 raise Exception(msg)
         assert isinstance(mobile, bool)
 
