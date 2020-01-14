@@ -656,7 +656,7 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Build material
         col0 = ['formula', 'symmetry', 'cut', 'density',
-                'd (A)', 'bragg({:7.4} A) (deg)'.format(self._DEFLAMB*1e10),
+                'd (A)', 'bragg({:9.6} A) (deg)'.format(self._DEFLAMB*1e10),
                 'rocking curve']
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
@@ -768,6 +768,12 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
 
     def get_rockingcurve_func(self, lamb=None, n=None):
+        """ Return the rocking curve function
+
+        Also return the wavelength (lamb) for which it was computed
+            and the associated reference bragg angle
+
+        """
         drock = self.rockingcurve
         if drock['type'] == 'tabulated-1d':
             if lamb is not None and lamb != drock['lamb']:
@@ -775,14 +781,17 @@ class CrystalBragg(utils.ToFuObject):
                        + "\tlamb = {} m\n".format(lamb)
                        + "  => Please let lamb=None")
                 raise Exception(msg)
-            bragg = self._checkformat_bragglamb(lamb=drock['lamb'], n=n)
-            func = scpinterp.interp1d(drock['dangle']+bragg, drock['value'],
+            lamb = drock['lamb']
+            bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+            func = scpinterp.interp1d(drock['dangle'] + bragg, drock['value'],
                                       kind='linear', bounds_error=False,
                                       fill_value=0, assume_sorted=True)
 
         elif drock['type'] == 'tabulated-2d':
             lmin, lmax = drock['lamb'].min(), drock['lamb'].max()
-            if lamb is None or lamb < lmin or lamb > lmax:
+            if lamb is None:
+                lamb = drock['lamb']
+            if lamb < lmin or lamb > lmax:
                 msg = ("rocking curve was tabulated only in interval:\n"
                        + "\tlamb in [{}; {}] m\n".format(lmin, lmax)
                        + "  => Please set lamb accordingly")
@@ -796,6 +805,8 @@ class CrystalBragg(utils.ToFuObject):
                                           assume_sorted=True)(angle, lamb)
 
         else:
+            # TBC
+            raise NotImplementedError
             def func(angle, d=d, delta_bragg=delta_bragg,
                      Rmax=drock['Rmax'], sigma=drock['sigma']):
                 core = sigma**2/((angle - (bragg+delta_bragg))**2 + sigma**2)
@@ -803,13 +814,19 @@ class CrystalBragg(utils.ToFuObject):
                     return core/(sigma*np.pi)
                 else:
                     return Rmax*core
-        return func
+        return func, lamb, bragg
 
-    def plot_rockingcurve(self, lamb=None,
-                          fs=None, ax=None):
+    def plot_rockingcurve(self, lamb=None, n=None, sigma=None,
+                          npts=None, color=None, ang_units=None,
+                          fs=None, ax=None, legend=None):
         drock = self.rockingcurve
-        func = self.get_rockingcurve_func(bragg=bragg, n=n)
-        return _plot.CrystalBragg_plot_rockingcurve(func, fs=fs, ax=ax)
+        func, lamb, bragg = self.get_rockingcurve_func(lamb=lamb, n=n)
+        axtit = 'Rocking curve for ' + self.Id.Name
+        return _plot_optics.CrystalBragg_plot_rockingcurve(
+            func=func, bragg=bragg, lamb=lamb,
+            sigma=sigma, npts=npts,
+            ang_units=ang_units, axtit=axtit, color=color,
+            fs=fs, ax=ax, legend=legend)
 
     # -----------------
     # methods for surface and contour sampling

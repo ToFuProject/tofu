@@ -292,21 +292,45 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
 # #################################################################
 # #################################################################
 
-def CrystalBragg_plot_rockingcurve(Rmax=None, sigma=None,
-                                   bragg=None, delta_bragg=None, npts=None):
+def CrystalBragg_plot_rockingcurve(func=None, bragg=None, lamb=None,
+                                   sigma=None, npts=None,
+                                   ang_units=None, axtit=None,
+                                   color=None,
+                                   legend=None, fs=None, ax=None):
 
     # Prepare
+    if legend is None:
+        legend = True
+    if color is None:
+        color = 'k'
+    if ang_units is None:
+        ang_units = 'deg'
+    if axtit is None:
+        axtit = 'Rocking curve'
+    if sigma is None:
+        sigma = 0.005*np.pi/180.
     if npts is None:
         npts = 1000
-    angle = bragg + delta_bragg + 3.*sigma*np.linspace(-1, 1, npts)
+    angle = bragg + 3.*sigma*np.linspace(-1, 1, npts)
     curve = func(angle)
+    lab = r"$\lambda = {:9.6} A$".format(lamb*1.e10)
+    if ang_units == 'deg':
+        angle = angle*180/np.pi
+        bragg = bragg*180/np.pi
 
     # Plot
     if ax is None:
-        fig = plt.figure()
+        if fs is None:
+            fs = (8, 6)
+        fig = plt.figure(figsize=fs)
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    ax.plot(angle, curve, ls='-', lw=1., c='k')
-    ax.axvline(bragg, ls='--', lw=1, c='k')
+        ax.set_title(axtit, size=12)
+        ax.set_xlabel('angle ({})'.format(ang_units))
+        ax.set_ylabel('reflectivity (adim.)')
+    ax.plot(angle, curve, ls='-', lw=1., c=color, label=lab)
+    ax.axvline(bragg, ls='--', lw=1, c=color)
+    if legend is not False:
+        ax.legend()
     return ax
 
 
