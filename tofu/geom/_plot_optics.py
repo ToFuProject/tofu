@@ -459,7 +459,7 @@ def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
     # Plot
     # ------------
 
-    fig = fig = plt.figure(figsize=fs)
+    fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 1, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
 
@@ -557,6 +557,156 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
         fig.suptitle(tit, size=14, weight='bold')
 
     return [ax0, ax1, ax2]
+
+
+
+# #################################################################
+# #################################################################
+#                   Ray tracing plot
+# #################################################################
+# #################################################################
+
+def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
+                                              xi_bounds=None, xj_bounds=None,
+                                              pts=None, ptscryst=None,
+                                              ptsdet=None,
+                                              det_cent=None, det_nout=None,
+                                              det_ei=None, det_ej=None,
+                                              cryst=None, proj=None,
+                                              fs=None, ax=None, dmargin=None,
+                                              wintit=None, tit=None,
+                                              legend=None, draw=None):
+    # Check
+    assert xi.shape == xj.shape and xi.ndim == 3
+    assert (isinstance(proj, list)
+            and all([pp in ['det', '2d', '3d'] for pp in proj]))
+    if legend is None:
+        legend = True
+    if wintit is None:
+        wintit = _WINTIT
+    if draw is None:
+        draw = True
+
+    # Prepare
+    nlamb, npts, ndtheta = xi.shape
+    det = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
+                     xi_bounds[0], xi_bounds[0]],
+                    [xj_bounds[0], xj_bounds[0], xj_bounds[1],
+                     xj_bounds[1], xj_bounds[0]]])
+    lcol = ['r', 'g', 'b', 'm', 'y', 'c']
+    lm = ['+', 'o', 'x', 's']
+    lls = ['-', '--', ':', '-.']
+
+    if '2d' in proj or '3d' in proj:
+        # pts.shape = (3, npts)
+        # ptsall.shape = (3, nlamb, npts, ndtheta)
+        pts = np.repeat(np.repeat(pts[:, None, :], nlamb, axis=1)[..., None],
+                        ndtheta, axis=-1)[..., None]
+        import ipdb; ipdb.set_trace()   # DB
+        ptsall = np.concatenate((pts,
+                                 ptscryst[..., None],
+                                 ptsdet[..., None],
+                                 np.full((3, nlamb, npts, ndtheta, 1), np.nan)),
+                                axis=-1).reshape((3, nlamb, npts, ndtheta*4))
+        del pts, ptscryst, ptsdet
+        if '2d' in proj:
+            R = np.hypot(ptsall[0, ...], ptsall[1, ...])
+
+    # --------
+    # Plot
+    if 'det' in proj:
+
+        # Prepare
+        if ax is None:
+            if fs is None:
+                fsi = (8, 6)
+            else:
+                fsi = fs
+            if dmargin is None:
+                dmargini = {'left': 0.1, 'right': 0.95,
+                           'bottom': 0.1, 'top': 0.9,
+                           'wspace': None, 'hspace': 0.4}
+            else:
+                dmargini = dmargin
+            if tit is None:
+                titi = False
+            else:
+                titi = tit
+            fig = plt.figure(figsize=fsi)
+            gs = gridspec.GridSpec(1, 1, **dmargini)
+            axi = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+        else:
+            axi = ax
+
+        # plot
+        axi.plot(det[0, :], det[1, :], ls='-', lw=1., c='k')
+        for pp in range(npts):
+            for ll in range(nlamb):
+                lab = (r'pts {} - '.format(pp)
+                       + '$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
+                axi.plot(xi[ll, pp, :], xj[ll, pp, :],
+                         ls='None', marker=lm[ll], c=lcol[pp], label=lab)
+
+        # decorate
+        if legend is not False:
+            axi.legend()
+        if wintit is not False:
+            axi.figure.canvas.set_window_title(wintit)
+        if titi is not False:
+            axi.figure.suptitle(titi, size=14, weight='bold')
+        if draw:
+            axi.figure.canvas.draw()
+
+    if '2d' in proj:
+
+        # Prepare
+        if tit is None:
+            titi = False
+        else:
+            titi = tit
+
+        # plot
+        dax = cryst.plot(lax=ax, proj='all',
+                         det_cent=det_cent, det_nout=det_nout,
+                         det_ei=det_ei, det_ej=det_ej, draw=False)
+        for pp in range(npts):
+            for ll in range(nlamb):
+                lab = (r'pts {} - '.format(pp)
+                       + '$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
+                dax['cross'].plot(R[ll, pp, :], ptsall[2, ll, pp, :],
+                                  ls=lls[ll], color=lcol[pp], label=lab)
+                dax['hor'].plot(ptsall[0, ll, pp, :], ptsall[1, ll, pp, :],
+                                ls=lls[ll], color=lcol[pp], label=lab)
+        # decorate
+        if legend is not False:
+            dax['cross'].legend()
+        if wintit is not False:
+            dax['cross'].figure.canvas.set_window_title(wintit)
+        if titi is not False:
+            dax['cross'].figure.suptitle(titi, size=14, weight='bold')
+        if draw:
+            dax['cross'].figure.canvas.draw()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #################################################################
+# #################################################################
+#                   data plot
+# #################################################################
+# #################################################################
+
 
 
 def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,

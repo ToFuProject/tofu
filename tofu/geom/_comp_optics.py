@@ -218,25 +218,73 @@ def get_e1e2_detectorplane(nn, nIn):
     return e1, e2
 
 
-# Maybe revise from here (theta -> dtheta + dim) ???
-
 def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
-                            nout, e1, e2, bragg, phi):
-    sp = (det_cent - summit)
-    vect = (-np.sin(bragg)[None, :]*nout[:, None]
-            + np.cos(bragg)[None, :]*(np.cos(phi)[None, :]*e1[:, None]
-                                      + np.sin(phi)[None, :]*e2[:, None]))
-    k = np.sum(sp*det_nout) / np.sum(vect*det_nout[:, None], axis=0)
-    pts = summit[:, None] + k[None, :]*vect
+                            nout, e1, e2, bragg, phi, option=None):
+    """ Several options for shapes
 
-    xi = np.sum((pts - det_cent[:, None])*det_ei[:, None], axis=0)
-    xj = np.sum((pts - det_cent[:, None])*det_ej[:, None], axis=0)
+    de_cent, det_nout, det_ei and det_ej are always of shape (3,)
+
+    0:
+        (summit, e1, e2).shape = (3,)
+        (bragg, phi).shape = (nbragg,)
+        => (xi, xj).shape = (nbragg,)
+    1:
+        (summit, e1, e2).shape = (3, nlamb, npts, nbragg)
+        (bragg, phi).shape = (nlamb, npts, nbragg)
+        => (xi, xj).shape = (nlamb, npts, nbragg)
+    """
+    # Check option
+    gdet = [det_cent, det_nout, det_ei, det_ej]
+    g0 = [summit, e1, e2]
+    g1 = [bragg, phi]
+    assert all([gg.shape == (3,) for gg in gdet])
+    assert all([gg.shape == g0[0].shape for gg in g0])
+    assert all([gg.shape == g1[0].shape for gg in g1])
+    if option is None:
+        lc = [g0[0].shape == (3,) and g1[0].ndim == 1,
+              g0[0].ndim == 4 and g0[0].shape[0] == 3
+              and g1[0].ndim == 3 and g1[0].shape == g0[0].shape[1:]]
+        assert np.sum(lc) == 1
+        option = lc.index(True)
+    assert option in [0, 1]
+
+    # Prepare
+    if option == 0:
+        det_cent = det_cent[:, None]
+        det_nout = det_nout[:, None]
+        det_ei, det_ej = det_ei[:, None], det_ej[:, None]
+        summit, e1, e2 = summit[:, None], e1[:, None], e2[:, None]
+    else:
+        det_cent = det_cent[:, None, None, None]
+        det_nout = det_nout[:, None, None, None]
+        det_ei = det_ei[:, None, None, None]
+        det_ej = det_ej[:, None, None, None]
+    bragg = bragg[None, ...]
+    phi = phi[None, ...]
+
+    # Compute
+    vect = (-np.sin(bragg)*nout + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2))
+    k = np.sum((det_cent-summit)*det_nout) / np.sum(vect*det_nout, axis=0)
+    pts = summit + k[None, ...]*vect
+    xi = np.sum((pts - det_cent)*det_ei, axis=0)
+    xj = np.sum((pts - det_cent)*det_ej, axis=0)
+
+    # sp = (det_cent - summit)
+    # vect = (-np.sin(bragg)[None, ...]*nout[..., None]
+            # + np.cos(bragg)[None, ...]*(np.cos(phi)[None, ...]*e1[..., None]
+                                      # + np.sin(phi)[None, :]*e2[:, None]))
+    # k = np.sum(sp*det_nout) / np.sum(vect*det_nout[:, None], axis=0)
+    # pts = summit[:, None] + k[None, :]*vect
+
+    # xi = np.sum((pts - det_cent[:, None])*det_ei[:, None], axis=0)
+    # xj = np.sum((pts - det_cent[:, None])*det_ej[:, None], axis=0)
     return xi, xj
 
 
 def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
                                summit, nin, e1, e2,
-                               xi=None, xj=None, pts=None):
+                               xi=None, xj=None, pts=None,
+                               lambdtheta=False):
     """ Return bragg phi for pts or (xj, xi) seen from (summit, nin, e1, e2)
 
     npts = pts.shape[1] or xi.
@@ -274,24 +322,26 @@ def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
     ndimpts = pts.ndim
 
     c0 = summit.shape == nin.shape == e1.shape == e2.shape
-    c1 = summit.ndim in [1, 2]
-    if not (c0 and c1):
-        msg = ("(summit, nin, e1, e2) must all have the same shape"
-               + "\n\tand they must be of dimension 1 or 2")
+    if not c0:
+        msg = "summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
     ndimsum = summit.ndim
 
     # --------------
     # Prepare
-    if ndimpts == 2:
-        summit = summit[..., None]
-        nin, e1, e2 = nin[..., None], e1[..., None], e2[..., None]
+    if lambdtheta is True:
+        pts = pts[:, None, :, None]
     else:
-        summit = summit[..., None, None]
-        nin = nin[..., None, None]
-        e1, e2 = e1[..., None, None], e2[..., None, None]
-    if ndimsum == 2:
-        pts = pts[:, None, ...]
+        assert summit.ndim in [1, 2], summit.shape
+        if ndimpts == 2:
+            summit = summit[..., None]
+            nin, e1, e2 = nin[..., None], e1[..., None], e2[..., None]
+        else:
+            summit = summit[..., None, None]
+            nin = nin[..., None, None]
+            e1, e2 = e1[..., None, None], e2[..., None, None]
+        if ndimsum == 2:
+            pts = pts[:, None, ...]
 
     # --------------
     # Compute
@@ -315,9 +365,9 @@ def get_lambphifit(lamb, phi, nxi, nxj):
 #           From plasma pts
 # ###############################################
 
-def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
-                                    bragg, nlamb, npts,
-                                    nout, e1, e2, extenthalf, ndtheta=None):
+def calc_dthetapsiphi_from_lambpts(pts, center, rcurve,
+                                   bragg, nlamb, npts,
+                                   nout, e1, e2, extenthalf, ndtheta=None):
 
     if ndtheta is None:
         ndtheta = 100
@@ -326,7 +376,7 @@ def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
     dtheta = np.full((nlamb, npts, ndtheta), np.nan)
     psi = np.full((nlamb, npts, ndtheta), np.nan)
 
-    # Get to scalar product
+    # Get to scalar product scaPCem
     PC = center[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)
     cos2 = np.cos(bragg)**2
@@ -340,9 +390,14 @@ def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
     PCnorm = np.tile(np.sqrt(PCnorm2), (nlamb, 1))[ind]
     sol1 = -rcurve*cos2 - np.sqrt(deltaon4[ind])
     sol2 = -rcurve*cos2 + np.sqrt(deltaon4[ind])
-    # em is a unit vector and ...
-    ind1 = (np.abs(sol1) <= PCnorm) & (sol1 >= -rcurve)
-    ind2 = (np.abs(sol2) <= PCnorm) & (sol2 >= -rcurve)
+
+    # Only keep solution going outward sphere
+    # scaPMem = scaPCem + rcurve >= 0
+    # And take same sign as ref to avoid double solution if P inside
+    scaRef = np.repeat(np.sum(PC*nout[:, None], axis=0)[None, :],
+                       nlamb, axis=0)[ind]
+    ind1 = (sol1 >= -rcurve) & (sol1*scaRef >= 0)
+    ind2 = (sol2 >= -rcurve) & (sol2*scaRef >= 0)
     assert not np.any(ind1 & ind2)
     sol1 = sol1[ind1]
     sol2 = sol2[ind2]
@@ -354,6 +409,7 @@ def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
     ind = ~np.isnan(scaPCem)
 
     # Get equation on PCem
+    # Xcos(dtheta)cos(psi) + Ycos(dtheta)sin(psi) + Zsin(dtheta) = scaPCem
     X = np.sum(PC*nout[:, None], axis=0)
     Y = np.sum(PC*e1[:, None], axis=0)
     Z = np.sum(PC*e2[:, None], axis=0)
@@ -365,19 +421,19 @@ def calc_psidthetaphi_from_pts_lamb(pts, center, rcurve,
                        ndtheta, axis=-1)[ind]
     Z = np.repeat(np.repeat(Z[None, :], nlamb, axis=0)[..., None],
                   ndtheta, axis=-1)[ind]
+    # Define angextra to get
+    # sin(psi + angextra) = (scaPCem - Z*sin(theta)) / (XYnorm*cos(theta))
     angextra = np.repeat(
-        np.repeat(np.arctan2(Y, X)[None, :], nlamb, axis=0)[..., None],
+        np.repeat(np.arctan2(X, Y)[None, :], nlamb, axis=0)[..., None],
         ndtheta, axis=-1)[ind]
     dtheta[ind] = np.repeat(
         np.repeat(extenthalf[1]*np.linspace(-1, 1, ndtheta)[None, :],
                   npts, axis=0)[None, ...],
         nlamb, axis=0)[ind]
 
-    psi[ind] = (np.arccos(
+    psi[ind] = (np.arcsin(
         (scaPCem[ind] - Z*np.sin(dtheta[ind]))/(XYnorm*np.cos(dtheta[ind])))
-                + angextra)
-    psi[ind] = np.arctan2(np.sin(psi[ind]), np.cos(psi[ind]))
-    import ipdb; ipdb.set_trace()   # DB
+                - angextra)
     indnan = ~ind
     indout = np.abs(psi) > extenthalf[0]
     psi[indnan] = np.nan
