@@ -743,7 +743,7 @@ def get_available_config(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
     """
     msg = ("A config is the geometry of a tokamak\n"
            + "You can define your own"
-           + " (see online tutorial at {})\n".format(_URL_TUTO)
+           + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
            + "tofu also also provides some pre-defined config ready to load\n"
            + "They are available via their name or via shortcuts\n"
            + _get_listconfig(dconfig=dconfig, dconfig_shortcuts=dconfig_shortcuts)
