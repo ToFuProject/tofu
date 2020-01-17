@@ -724,7 +724,8 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
         return msg
 
 
-def get_available_config(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
+def get_available_config(dconfig=_DCONFIG,
+                         dconfig_shortcuts=_DCONFIG_SHORTCUTS,
                          verb=True, returnas=False):
     """ Print a table showing all pre-defined config
 
@@ -746,7 +747,8 @@ def get_available_config(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
            + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
            + "tofu also also provides some pre-defined config ready to load\n"
            + "They are available via their name or via shortcuts\n"
-           + _get_listconfig(dconfig=dconfig, dconfig_shortcuts=dconfig_shortcuts)
+           + _get_listconfig(dconfig=dconfig,
+                             dconfig_shortcuts=dconfig_shortcuts)
            + "\n\n  => to get a pre-defined config, call for example:\n"
            + "\tconfig = tf.geom.utils.create_config('ITER')")
     if verb is True:
