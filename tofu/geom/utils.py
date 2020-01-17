@@ -753,7 +753,7 @@ def get_available_config(dconfig=_DCONFIG,
            + "\tconfig = tf.geom.utils.create_config('ITER')")
     if verb is True:
         print(msg)
-    if returnas is str:
+    if returnas in [None, True, str]:
         return msg
 
 
