@@ -264,20 +264,10 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
 
     # Compute
     vect = (-np.sin(bragg)*nout + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2))
-    k = np.sum((det_cent-summit)*det_nout) / np.sum(vect*det_nout, axis=0)
+    k = np.sum((det_cent-summit)*det_nout, axis=0) / np.sum(vect*det_nout, axis=0)
     pts = summit + k[None, ...]*vect
     xi = np.sum((pts - det_cent)*det_ei, axis=0)
     xj = np.sum((pts - det_cent)*det_ej, axis=0)
-
-    # sp = (det_cent - summit)
-    # vect = (-np.sin(bragg)[None, ...]*nout[..., None]
-            # + np.cos(bragg)[None, ...]*(np.cos(phi)[None, ...]*e1[..., None]
-                                      # + np.sin(phi)[None, :]*e2[:, None]))
-    # k = np.sum(sp*det_nout) / np.sum(vect*det_nout[:, None], axis=0)
-    # pts = summit[:, None] + k[None, :]*vect
-
-    # xi = np.sum((pts - det_cent[:, None])*det_ei[:, None], axis=0)
-    # xj = np.sum((pts - det_cent[:, None])*det_ej[:, None], axis=0)
     return xi, xj
 
 

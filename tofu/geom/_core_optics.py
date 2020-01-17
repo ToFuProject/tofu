@@ -1490,7 +1490,7 @@ class CrystalBragg(utils.ToFuObject):
                                      johann=False, lpsi=None, ldtheta=None,
                                      rocking=False, plot=None, fs=None, dmargin=None,
                                      wintit=None, tit=None, proj=None,
-                                     legend=None, draw=None):
+                                     legend=None, draw=None, returnas=None):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
 
         If plot, 3 different plots can be produced:
@@ -1500,6 +1500,8 @@ class CrystalBragg(utils.ToFuObject):
         Specify the plotting option by setting plot to any of these (or a list)
         """
         # Check / format inputs
+        if returnas is None:
+            returnas = 'data'
         if lamb is None:
             lamb = self._DEFLAMB
         if plot is None or plot is True:
@@ -1507,6 +1509,7 @@ class CrystalBragg(utils.ToFuObject):
         if isinstance(plot, str):
             plot = plot.split('+')
         assert all([ss in ['det', '2d', '3d'] for ss in plot])
+        assert returnas in ['data', 'ax']
 
         # Prepare
         lamb = np.atleast_1d(lamb).ravel()
@@ -1529,10 +1532,10 @@ class CrystalBragg(utils.ToFuObject):
             func = self.get_detector_approx
             det_cent, det_nout, det_ei, det_ej = func(lamb=self._DEFLAMB)
 
-        # Compute xi, xj
+        # Compute xi, xj of refelxion (phi -> phi + np.pi)
         # TBC !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         xi, xj = self.calc_xixj_from_braggphi(
-            bragg=bragg, phi=phi, n=n,
+            bragg=bragg, phi=phi+np.pi, n=n,
             dtheta=dtheta, psi=psi,
             det_cent=det_cent, det_nout=det_nout,
             det_ei=det_ei, det_ej=det_ej, plot=False)
@@ -1546,7 +1549,6 @@ class CrystalBragg(utils.ToFuObject):
                           + xi[None, ...]*det_ei[:, None, None, None]
                           + xj[None, ...]*det_ej[:, None, None, None])
 
-            import ipdb; ipdb.set_trace()   # DB
             ax = _plot_optics.CrystalBragg_plot_raytracing_from_lambpts(
                 xi=xi, xj=xj, lamb=lamb,
                 xi_bounds=xi_bounds, xj_bounds=xj_bounds,
@@ -1555,6 +1557,8 @@ class CrystalBragg(utils.ToFuObject):
                 det_ei=det_ei, det_ej=det_ej,
                 cryst=self, proj=plot, fs=fs, dmargin=dmargin,
                 wintit=wintit, tit=tit, legend=legend, draw=draw)
+            if returnas == 'ax':
+                return ax
         return xi, xj
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,

@@ -580,8 +580,10 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
     assert xi.shape == xj.shape and xi.ndim == 3
     assert (isinstance(proj, list)
             and all([pp in ['det', '2d', '3d'] for pp in proj]))
-    if legend is None:
-        legend = True
+    if legend is None or legend is True:
+        legend = dict(bbox_to_anchor=(1.02, 1.), loc='upper left',
+                      ncol=1, mode="expand", borderaxespad=0.,
+                      prop={'size': 6})
     if wintit is None:
         wintit = _WINTIT
     if draw is None:
@@ -596,13 +598,11 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
     lcol = ['r', 'g', 'b', 'm', 'y', 'c']
     lm = ['+', 'o', 'x', 's']
     lls = ['-', '--', ':', '-.']
+    ncol, nm, nls = len(lcol), len(lm), len(lls)
 
     if '2d' in proj or '3d' in proj:
-        # pts.shape = (3, npts)
-        # ptsall.shape = (3, nlamb, npts, ndtheta)
         pts = np.repeat(np.repeat(pts[:, None, :], nlamb, axis=1)[..., None],
                         ndtheta, axis=-1)[..., None]
-        import ipdb; ipdb.set_trace()   # DB
         ptsall = np.concatenate((pts,
                                  ptscryst[..., None],
                                  ptsdet[..., None],
@@ -614,6 +614,7 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
 
     # --------
     # Plot
+    lax = []
     if 'det' in proj:
 
         # Prepare
@@ -623,9 +624,9 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
             else:
                 fsi = fs
             if dmargin is None:
-                dmargini = {'left': 0.1, 'right': 0.95,
-                           'bottom': 0.1, 'top': 0.9,
-                           'wspace': None, 'hspace': 0.4}
+                dmargini = {'left': 0.1, 'right': 0.8,
+                            'bottom': 0.1, 'top': 0.9,
+                            'wspace': None, 'hspace': 0.4}
             else:
                 dmargini = dmargin
             if tit is None:
@@ -635,6 +636,8 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
             fig = plt.figure(figsize=fsi)
             gs = gridspec.GridSpec(1, 1, **dmargini)
             axi = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+            axi.set_xlabel(r'$x_i$ (m)')
+            axi.set_ylabel(r'$x_j$ (m)')
         else:
             axi = ax
 
@@ -645,17 +648,18 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
                 lab = (r'pts {} - '.format(pp)
                        + '$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
                 axi.plot(xi[ll, pp, :], xj[ll, pp, :],
-                         ls='None', marker=lm[ll], c=lcol[pp], label=lab)
+                         ls='None', marker=lm[ll%nm], c=lcol[pp%ncol], label=lab)
 
         # decorate
         if legend is not False:
-            axi.legend()
+            axi.legend(**legend)
         if wintit is not False:
             axi.figure.canvas.set_window_title(wintit)
         if titi is not False:
             axi.figure.suptitle(titi, size=14, weight='bold')
         if draw:
             axi.figure.canvas.draw()
+        lax.append(axi)
 
     if '2d' in proj:
 
@@ -674,20 +678,23 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
                 lab = (r'pts {} - '.format(pp)
                        + '$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
                 dax['cross'].plot(R[ll, pp, :], ptsall[2, ll, pp, :],
-                                  ls=lls[ll], color=lcol[pp], label=lab)
+                                  ls=lls[ll%nls], color=lcol[pp%ncol],
+                                  label=lab)
                 dax['hor'].plot(ptsall[0, ll, pp, :], ptsall[1, ll, pp, :],
-                                ls=lls[ll], color=lcol[pp], label=lab)
+                                ls=lls[ll%nls], color=lcol[pp%ncol], label=lab)
         # decorate
         if legend is not False:
-            dax['cross'].legend()
+            dax['cross'].legend(**legend)
         if wintit is not False:
             dax['cross'].figure.canvas.set_window_title(wintit)
         if titi is not False:
             dax['cross'].figure.suptitle(titi, size=14, weight='bold')
         if draw:
             dax['cross'].figure.canvas.draw()
+        lax.append(dax['cross'])
+        lax.append(dax['hor'])
 
-
+    return lax
 
 
 
