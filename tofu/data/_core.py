@@ -2026,7 +2026,11 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
-        if type(other) in [int,float,np.int64,np.float64]:
+        if type(other) in [int, float, np.int64, np.float64]:
+            data = opfunc(d0.data, other)
+            dcom = d0._extract_common_params(d0)
+
+        elif isinstance(other, np.ndarray):
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
@@ -2371,9 +2375,9 @@ class Plasma2D(utils.ToFuObject):
         # Define allowed keys for each dict
         lkok = ['data', 'dim', 'quant', 'name', 'origin', 'units',
                 'depend']
-        lkmeshmax = ['type','ftype','nodes','faces',
-                     'nfaces','nnodes','mpltri','size','ntri']
-        lkmeshmin = ['type','ftype','nodes','faces']
+        lkmeshmax = ['type', 'ftype', 'nodes', 'faces', 'R', 'Z', 'shapeRZ',
+                     'nfaces', 'nnodes', 'mpltri', 'size', 'ntri']
+        lkmeshmin = ['type', 'ftype']
         dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
                 'dradius':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
                 'd0d':{'max':lkok, 'min':['data'], 'ndim':[1,2,3]},
@@ -2418,71 +2422,208 @@ class Plasma2D(utils.ToFuObject):
                         msg += "    - Expected: %s\n"%str(dkok[dk]['ndim'])
                         msg += "    - Provided: %s"%str(dd[dk][k0]['data'].ndim)
                         raise Exception(msg)
-                if dk == 'dmesh':
-                    dd[dk][k0]['nodes'] = np.atleast_2d(v0['nodes']).astype(float)
-                    dd[dk][k0]['faces'] = np.atleast_2d(v0['faces']).astype(int)
-                    nnodes = dd[dk][k0]['nodes'].shape[0]
-                    nfaces = dd[dk][k0]['faces'].shape[0]
 
-                    # Test for duplicates
-                    nodesu = np.unique(dd[dk][k0]['nodes'], axis=0)
-                    facesu = np.unique(dd[dk][k0]['faces'], axis=0)
-                    lc = [nodesu.shape[0] != nnodes,
-                          facesu.shape[0] != nfaces]
-                    if any(lc):
-                        msg = "Non-valid mesh %s[%s]:\n"%(dk,k0)
-                        if lc[0]:
-                            msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
-                            msg += "    - nodes.shape: %s\n"%str(dd[dk][k0]['nodes'].shape)
-                            msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
-                        if lc[1]:
-                            msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
-                            msg += "    - faces.shape: %s\n"%str(dd[dk][k0]['faces'].shape)
-                            msg += "    - unique faces.shape: %s"%str(facesu.shape)
+                # mesh
+                if dk == 'dmesh':
+
+                    lmok = ['rect', 'tri', 'quadtri']
+                    if v0['type'] not in lmok:
+                        msg = ("Mesh['type'] should be in {}\n".format(lmok)
+                               + "\t- Provided: {}".format(v0['type']))
                         raise Exception(msg)
 
-                    # Test for unused nodes
-                    facesu = np.unique(facesu)
-                    c0 = np.all(facesu>=0) and facesu.size == nnodes
-                    if not c0:
-                        indnot = [ii for ii in range(0,nnodes)
-                                  if ii not in facesu]
-                        msg = "Some nodes not used in mesh %s[%s]:\n"(dk,k0)
-                        msg += "    - unused nodes indices: %s"%str(indnot)
-                        warnings.warn(msg)
+                    if v0['type'] == 'rect':
+                        c0 = all([ss in v0.keys() and v0[ss].ndim in [1, 2]
+                                  for ss in ['R', 'Z']])
+                        if not c0:
+                            msg = ("A mesh of type 'rect' must have attr.:\n"
+                                   + "\t- R of dim in [1, 2]\n"
+                                   + "\t- Z of dim in [1, 2]")
+                            raise Exception(msg)
+                        shapeu = np.unique(np.r_[v0['R'].shape, v0['Z'].shape])
 
-
-                    dd[dk][k0]['nnodes'] = dd[dk][k0].get('nnodes', nnodes)
-                    dd[dk][k0]['nfaces'] = dd[dk][k0].get('nfaces', nfaces)
-
-                    assert dd[dk][k0]['nodes'].shape == (v0['nnodes'],2)
-                    assert np.max(dd[dk][k0]['faces']) < v0['nnodes']
-                    # Only triangular meshes so far
-                    assert v0['type'] in ['tri', 'quadtri'], v0['type']
-
-                    if 'tri' in v0['type']:
-                        assert dd[dk][k0]['faces'].shape == (v0['nfaces'],3)
-                        if v0.get('mpltri', None) is None:
-                            dd[dk][k0]['mpltri'] = mplTri(dd[dk][k0]['nodes'][:,0],
-                                                          dd[dk][k0]['nodes'][:,1],
-                                                          dd[dk][k0]['faces'])
-                        assert isinstance(dd[dk][k0]['mpltri'], mplTri)
-                        assert dd[dk][k0]['ftype'] in [0,1]
-                        ntri = dd[dk][k0]['ntri']
-                        if dd[dk][k0]['ftype'] == 1:
-                            dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
+                        shapeRZ = v0['shapeRZ']
+                        if shapeRZ is None:
+                            shapeRZ = [None, None]
                         else:
-                            dd[dk][k0]['size'] = int(dd[dk][k0]['nfaces']/ntri)
+                            shapeRZ = list(shapeRZ)
+                        if v0['R'].ndim == 1:
+                            if np.any(np.diff(v0['R']) <= 0.):
+                                msg = "Non-increasing R"
+                                raise Exception(msg)
+                            R = v0['R']
+                        else:
+                            lc = [np.all(np.diff(v0['R'][0, :])) > 0.,
+                                  np.all(np.diff(v0['R'][:, 0])) > 0.]
+                            if np.sum(lc) != 1:
+                                msg = "Impossible to know R dimension!"
+                                raise Exception(msg)
+                            if lc[0]:
+                                R = v0['R'][0, :]
+                                if shapeRZ[1] is None:
+                                    shapeRZ[1] = 'R'
+                                if shapeRZ[1] != 'R':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
+                            else:
+                                R = v0['R'][:, 0]
+                                if shapeRZ[0] is None:
+                                    shapeRZ[0] = 'R'
+                                if shapeRZ[0] != 'R':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
+                        if v0['Z'].ndim == 1:
+                            if np.any(np.diff(v0['Z']) <= 0.):
+                                msg = "Non-increasing Z"
+                                raise Exception(msg)
+                            Z = v0['Z']
+                        else:
+                            lc = [np.all(np.diff(v0['Z'][0, :])) > 0.,
+                                  np.all(np.diff(v0['Z'][:, 0])) > 0.]
+                            if np.sum(lc) != 1:
+                                msg = "Impossible to know R dimension!"
+                                raise Exception(msg)
+                            if lc[0]:
+                                Z = v0['Z'][0, :]
+                                if shapeRZ[1] is None:
+                                    shapeRZ[1] = 'Z'
+                                if shapeRZ[1] != 'Z':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
+                            else:
+                                Z = v0['Z'][:, 0]
+                                if shapeRZ[0] is None:
+                                    shapeRZ[0] = 'Z'
+                                if shapeRZ[0] != 'Z':
+                                    msg = "Inconsistent shapeRZ"
+                                    raise Exception(msg)
+                        shapeRZ = tuple(shapeRZ)
+                        if shapeRZ not in [('R', 'Z'), ('Z', 'R')]:
+                            msg = "Inconsistent shapeRZ"
+                            raise Exception(msg)
+
+                        if None in shapeRZ:
+                            msg = ("Please provide shapeRZ "
+                                   + " = ('R', 'Z') or ('Z', 'R')\n"
+                                   + "Could not be inferred from data itself")
+                            raise Exception(msg)
+
+                        def trifind(r, z,
+                                    Rbin=0.5*(R[1:] + R[:-1]),
+                                    Zbin=0.5*(Z[1:] + Z[:-1]),
+                                    nR=R.size, nZ=Z.size,
+                                    shapeRZ=shapeRZ):
+                            indR = np.searchsorted(Rbin, r)
+                            indZ = np.searchsorted(Zbin, z)
+                            if shapeRZ == ('R', 'Z'):
+                                indpts = indR*nZ + indZ
+                            else:
+                                indpts = indZ*nR + indR
+                            indout = ((r < R[0]) | (r > R[-1])
+                                      | (z < Z[0]) | (z > Z[-1]))
+                            indpts[indout] = -1
+                            return indpts
+
+                        dd[dk][k0]['R'] = R
+                        dd[dk][k0]['Z'] = Z
+                        dd[dk][k0]['shapeRZ'] = shapeRZ
+                        dd[dk][k0]['nR'] = R.size
+                        dd[dk][k0]['nZ'] = Z.size
+                        dd[dk][k0]['trifind'] = trifind
+                        if dd[dk][k0]['ftype'] != 0:
+                            msg = "Linear interpolation not handled yet !"
+                            raise Exception(msg)
+                        dd[dk][k0]['size'] = R.size*Z.size
+
+                    else:
+                        ls = ['nodes', 'faces']
+                        if not all([s in v0.keys() for s in ls]):
+                            msg = ("The following keys should be in dmesh:\n"
+                                   + "\t- {}".format(ls))
+                            raise Exception(msg)
+                        func = np.atleast_2d
+                        dd[dk][k0]['nodes'] = func(v0['nodes']).astype(float)
+                        dd[dk][k0]['faces'] = func(v0['faces']).astype(int)
+                        nnodes = dd[dk][k0]['nodes'].shape[0]
+                        nfaces = dd[dk][k0]['faces'].shape[0]
+
+                        # Test for duplicates
+                        nodesu = np.unique(dd[dk][k0]['nodes'], axis=0)
+                        facesu = np.unique(dd[dk][k0]['faces'], axis=0)
+                        lc = [nodesu.shape[0] != nnodes,
+                              facesu.shape[0] != nfaces]
+                        if any(lc):
+                            msg = "Non-valid mesh {0}[{1}]: \n".format(dk, k0)
+                            if lc[0]:
+                                ndup = nnodes - nodesu.shape[0]
+                                ndsh = dd[dk][k0]['nodes'].shape
+                                undsh = nodesu.shape
+                                msg += (
+                                    "  Duplicate nodes: {}\n".format(ndup)
+                                    + "\t- nodes.shape: {}\n".format(nodsh)
+                                    + "\t- unique shape: {}\n".format(undsh))
+                            if lc[1]:
+                                ndup = str(nfaces - facesu.shape[0])
+                                facsh = str(dd[dk][k0]['faces'].shape)
+                                ufacsh = str(facesu.shape)
+                                msg += (
+                                    "  Duplicate faces: {}\n".format(ndup)
+                                    + "\t- faces.shape: {}\n".format(facsh)
+                                    + "\t- unique shape: {}".format(ufacsh))
+                            raise Exception(msg)
+
+                        # Test for unused nodes
+                        facesu = np.unique(facesu)
+                        c0 = np.all(facesu >= 0) and facesu.size == nnodes
+                        if not c0:
+                            ino = str([ii for ii in range(0, nnodes)
+                                       if ii not in facesu])
+                            msg = "Unused nodes in {0}[{1}]:\n".format(dk, k0)
+                            msg += "    - unused nodes indices: {}".format(ino)
+                            warnings.warn(msg)
+
+                        dd[dk][k0]['nnodes'] = dd[dk][k0].get('nnodes', nnodes)
+                        dd[dk][k0]['nfaces'] = dd[dk][k0].get('nfaces', nfaces)
+
+                        assert dd[dk][k0]['nodes'].shape == (v0['nnodes'], 2)
+                        assert np.max(dd[dk][k0]['faces']) < v0['nnodes']
+                        # Only triangular meshes so far
+                        assert v0['type'] in ['tri', 'quadtri'], v0['type']
+
+                        if 'tri' in v0['type']:
+                            fshap = dd[dk][k0]['faces'].shape
+                            fshap0 = (v0['nfaces'], 3)
+                            if fshap != fshap0:
+                                msg = ("Wrong shape of {}[{}]\n".format(dk, k0)
+                                       + "\t- Expected: {}\n".format(fshap0)
+                                       + "\t- Provided: {}".format(fshap))
+                                raise Exception(msg)
+                            if v0.get('mpltri', None) is None:
+                                dd[dk][k0]['mpltri'] = mplTri(
+                                    dd[dk][k0]['nodes'][:, 0],
+                                    dd[dk][k0]['nodes'][:, 1],
+                                    dd[dk][k0]['faces'])
+                            assert isinstance(dd[dk][k0]['mpltri'], mplTri)
+                            assert dd[dk][k0]['ftype'] in [0, 1]
+                            ntri = dd[dk][k0]['ntri']
+                            if dd[dk][k0]['ftype'] == 1:
+                                dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
+                            else:
+                                dd[dk][k0]['size'] = int(
+                                    dd[dk][k0]['nfaces'] / ntri
+                                )
 
         # Check unicity of all keys
         lk = [list(dv.keys()) for dv in dd.values()]
         lk = list(itt.chain.from_iterable(lk))
         lku = sorted(set(lk))
-        lk = ['%s : %s times'%(kk, str(lk.count(kk))) for kk in lku if lk.count(kk) > 1]
+        lk = ['{0} : {1} times'.format(kk, str(lk.count(kk)))
+              for kk in lku if lk.count(kk) > 1]
         if len(lk) > 0:
-            msg = "Each key of (dtime,dradius,dmesh,d0d,d1d,d2d) must be unique !\n"
-            msg += "The following keys are repeated :\n"
-            msg += "    - " + "\n    - ".join(lk)
+            msg = ("Each key of (dtime, dradius, dmesh, d0d, d1d, d2d)"
+                   + " must be unique !\n"
+                   + "The following keys are repeated :\n"
+                   + "    - " + "\n    - ".join(lk))
             raise Exception(msg)
 
         dtime, dradius, dmesh = dd['dtime'], dd['dradius'], dd['dmesh']
@@ -2634,6 +2775,10 @@ class Plasma2D(utils.ToFuObject):
                     lkt = [k for k in dtime.keys() if k in dradius[k0]['depend']]
                     assert len(lkt) == 1
                     axist = dradius[k0]['depend'].index(lkt[0])
+                    # Handle cases with only 1 time step
+                    if data.ndim == 1:
+                        assert dindref[lkt[0]]['size'] == 1
+                        data = data.reshape((1, data.size))
                     size = data.shape[1-axist]
                 dindref[k0] = {'size':size,
                                'group':'radius'}
@@ -3512,13 +3657,22 @@ class Plasma2D(utils.ToFuObject):
 
         # Get indtqr1r2 (tall with respect to tq, tr1, tr2)
         indtq, indtr1, indtr2 = None, None, None
-        indtq = np.digitize(tall, tbinq)
+        if tbinq.size > 0:
+            indtq = np.digitize(tall, tbinq)
+        else:
+            indtq = np.r_[0]
         if idref1d is None:
             assert np.all(indtq == np.arange(0,tall.size))
         if idref1d is not None:
-            indtr1 = np.digitize(tall, tbinr1)
+            if tbinr1.size > 0:
+                indtr1 = np.digitize(tall, tbinr1)
+            else:
+                indtr1 = np.r_[0]
         if idref2d is not None:
-            indtr2 = np.digitize(tall, tbinr2)
+            if tbinr2.size > 0:
+                indtr2 = np.digitize(tall, tbinr2)
+            else:
+                indtr2 = np.r_[0]
 
         ntall = tall.size
         return tall, tbinall, ntall, indtq, indtr1, indtr2
@@ -3530,11 +3684,15 @@ class Plasma2D(utils.ToFuObject):
         # Get indt (t with respect to tbinall)
         indt, indtu = None, None
         if t is not None:
-            indt = np.digitize(t, tbinall)
-            indtu = np.unique(indt)
+            if len(t) == len(tall) and np.allclose(t, tall):
+                indt = np.arange(0, tall.size)
+                indtu = indt
+            else:
+                indt = np.digitize(t, tbinall)
+                indtu = np.unique(indt)
+                # Update
+                tall = tall[indtu]
 
-            # Update
-            tall = tall[indtu]
             if idref1d is not None:
                 assert indtr1 is not None
                 indtr1 = indtr1[indtu]
@@ -3584,7 +3742,7 @@ class Plasma2D(utils.ToFuObject):
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
                      interp_t=None, interp_space=None,
-                     fill_value=np.nan, ani=False, Type=None):
+                     fill_value=None, ani=False, Type=None):
 
         if interp_t is None:
             interp_t = 'nearest'
@@ -3604,14 +3762,18 @@ class Plasma2D(utils.ToFuObject):
         assert len(lidmesh) == 1
         idmesh = lidmesh[0]
 
-        # Get mesh
-        mpltri = self._ddata[idmesh]['data']['mpltri']
-        trifind = mpltri.get_trifinder()
-
         # Get common time indices
         if interp_t == 'nearest':
-             out = self._get_tcom(idquant,idref1d, idref2d, idq2dR)
-             tall, tbinall, ntall, indtq, indtr1, indtr2= out
+            out = self._get_tcom(idquant, idref1d, idref2d, idq2dR)
+            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
+
+        # Get mesh
+        if self._ddata[idmesh]['data']['type'] == 'rect':
+            mpltri = None
+            trifind = self._ddata[idmesh]['data']['trifind']
+        else:
+            mpltri = self._ddata[idmesh]['data']['mpltri']
+            trifind = mpltri.get_trifinder()
 
         # # Prepare output
 
@@ -3619,7 +3781,9 @@ class Plasma2D(utils.ToFuObject):
         # Note : Maybe consider using scipy.LinearNDInterpolator ?
         if idquant is not None:
             vquant = self._ddata[idquant]['data']
-            if self._ddata[idmesh]['data']['ntri'] > 1:
+            c0 = (self._ddata[idmesh]['data']['type'] == 'quadtri'
+                  and self._ddata[idmesh]['data']['ntri'] > 1)
+            if c0:
                 vquant = np.repeat(vquant,
                                    self._ddata[idmesh]['data']['ntri'], axis=0)
         else:
@@ -3653,7 +3817,6 @@ class Plasma2D(utils.ToFuObject):
                                                ntall=ntall, mpltri=mpltri,
                                                indtq=indtq, indtr1=indtr1,
                                                indtr2=indtr2, trifind=trifind)
-
 
         return func
 
@@ -3697,7 +3860,7 @@ class Plasma2D(utils.ToFuObject):
     def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
                       q2dR=None, q2dPhi=None, q2dZ=None,
                       interp_t=None, interp_space=None,
-                      fill_value=np.nan, Type=None):
+                      fill_value=None, Type=None):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
         Can be used as input for tf.geom.CamLOS1D/2D.calc_signal()
@@ -3724,7 +3887,7 @@ class Plasma2D(utils.ToFuObject):
                            quant=None, ref1d=None, ref2d=None,
                            q2dR=None, q2dPhi=None, q2dZ=None,
                            interp_t=None, interp_space=None,
-                           fill_value=np.nan, Type=None):
+                           fill_value=None, Type=None):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
@@ -3755,8 +3918,23 @@ class Plasma2D(utils.ToFuObject):
                 else:
                     idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
                               if self._dindref[id_]['group'] == 'mesh'][0]
-            pts = self.dmesh[idmesh]['data']['nodes']
-            pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
+            if self.dmesh[idmesh]['data']['type'] == 'rect':
+                if self.dmesh[idmesh]['data']['shapeRZ'] == ('R', 'Z'):
+                    R = np.repeat(self.dmesh[idmesh]['data']['R'],
+                                  self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.tile(self.dmesh[idmesh]['data']['Z'],
+                                self.dmesh[idmesh]['data']['nR'])
+                else:
+                    R = np.tile(self.dmesh[idmesh]['data']['R'],
+                                self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
+                                  self.dmesh[idmesh]['data']['nR'])
+                pts = np.array(
+                    [R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
+            else:
+                pts = self.dmesh[idmesh]['data']['nodes']
+                pts = np.array(
+                    [pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1]])
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:
@@ -3789,7 +3967,7 @@ class Plasma2D(utils.ToFuObject):
                              quant=None, ref1d=None, ref2d=None,
                              q2dR=None, q2dPhi=None, q2dZ=None,
                              Brightness=True, interp_t=None,
-                             interp_space=None, fill_value=np.nan,
+                             interp_space=None, fill_value=None,
                              res=0.005, DL=None, resMode='abs', method='sum',
                              ind=None, out=object, plot=True, dataname=None,
                              fs=None, dmargin=None, wintit=None, invert=True,

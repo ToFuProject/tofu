@@ -874,7 +874,7 @@ class Test03_Rays(object):
                                               resMode=rm,
                                               method=dm, minimize=mmz,
                                               ind=ind,
-                                              plot=False, out=np.ndarray,
+                                              plot=False, returnas=np.ndarray,
                                               fs=(12, 6), connect=connect)
                         sig, units = out
                         assert not np.all(np.isnan(sig)), str(ii)

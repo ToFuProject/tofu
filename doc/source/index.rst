@@ -63,6 +63,7 @@ Contents
 
    How to install tofu <installation.rst>
    A guide to contributing to tofu <contributing.rst>
+   A list of all different device configurations available (ITER, WEST, JET, ...) <auto_examples/tutorials/tuto_plot_gallery_fusion_machines.rst>
    Tutorials and examples <auto_examples/index.rst>
 
 * How to create / handle a diagnostic geometry
@@ -79,11 +80,11 @@ Contents
    - Use existing diagnostic geometry and signals to solve the inverse problem
      and compute tomographic inversions using a choice of discretization basis
      functions and regularisation functionals.
+* Advanced tutorials for developpers: :ref:`devtutos`
 
 .. _basic: auto_examples/tutorials/tuto_plot_create_geometry.html
 .. _cameras: auto_examples/tutorials/tuto_plot_basic.html
 .. _tutorial: auto_examples/tutorials/tuto_plot_custom_emissivity.html
-.. _todos: Todos.html
 
 
 **Code documentation:**
