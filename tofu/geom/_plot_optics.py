@@ -720,6 +720,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                                       lambfit=None, phifit=None,
                                       spect1d=None, vertsum1d=None,
                                       lambax=None, phiax=None,
+                                      dlines=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
                                       angunits='deg'):
@@ -786,6 +787,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax3.plot(vertsum1d, phifit, c='k', ls='-')
     if phiax is not None:
         ax2.plot(lambax, phiax, c='r', ls='-', lw=1.)
+    if dlines is not None:
+        pass
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])

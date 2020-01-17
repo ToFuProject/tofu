@@ -1533,7 +1533,6 @@ class CrystalBragg(utils.ToFuObject):
             det_cent, det_nout, det_ei, det_ej = func(lamb=self._DEFLAMB)
 
         # Compute xi, xj of refelxion (phi -> phi + np.pi)
-        # TBC !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         xi, xj = self.calc_xixj_from_braggphi(
             bragg=bragg, phi=phi+np.pi, n=n,
             dtheta=dtheta, psi=psi,
@@ -1566,6 +1565,7 @@ class CrystalBragg(utils.ToFuObject):
                              dtheta=None, psi=None, n=None,
                              nlambfit=None, nphifit=None,
                              magaxis=None, npaxis=None,
+                             dlines=None,
                              plot=True, fs=None,
                              cmap=None, vmin=None, vmax=None):
         # Check / format inputs
@@ -1607,7 +1607,6 @@ class CrystalBragg(utils.ToFuObject):
                 npaxis = 1000
             thetacryst = np.arctan2(self._dgeom['summit'][1],
                                     self._dgeom['summit'][0])
-            # TBC
             thetaax = thetacryst + np.pi/2*np.linspace(-1, 1, npaxis)
             pts = np.array([magaxis[0]*np.cos(thetaax),
                             magaxis[0]*np.sin(thetaax),
@@ -1627,7 +1626,7 @@ class CrystalBragg(utils.ToFuObject):
                 xi, xj, bragg, lamb, phi, data,
                 lambfit=lambfit, phifit=phifit, spect1d=spect1d,
                 vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
-                cmap=cmap, vmin=vmin, vmax=vmax, fs=fs)
+                cmap=cmap, vmin=vmin, vmax=vmax, dlines=dlines, fs=fs)
         return ax
 
     def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,
