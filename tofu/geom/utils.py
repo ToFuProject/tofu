@@ -688,23 +688,23 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
 # Each config can be called by various names (for benchmark and
 # retro-compatibility), this table stores the available names for each unique
 # config in _DCONFIG
-_DCONFIG_TABLE = {'ITER': 'ITER-V2',
-                  'JET': 'JET-V0',
-                  'WEST': 'WEST-V4',
-                  'A1': 'WEST-V1',
-                  'A2': 'ITER-V1',
-                  'A3': 'WEST-Sep',
-                  'B1': 'WEST-V2',
-                  'B2': 'WEST-V3',
-                  'B3': 'WEST-V4',
-                  'B4': 'ITER-V2',
-                  'NSTX': 'NSTX-V0'}
+_DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
+                      'JET': 'JET-V0',
+                      'WEST': 'WEST-V4',
+                      'A1': 'WEST-V1',
+                      'A2': 'ITER-V1',
+                      'A3': 'WEST-Sep',
+                      'B1': 'WEST-V2',
+                      'B2': 'WEST-V3',
+                      'B3': 'WEST-V4',
+                      'B4': 'ITER-V2',
+                      'NSTX': 'NSTX-V0'}
 
 
-def _get_listconfig(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
+def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
                     returnas=str):
     assert returnas in [dict, str]
-    dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_table.items()
+    dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_shortcuts.items()
                              if v1 == k0])
           for k0 in sorted(dconfig.keys())}
     if returnas is dict:
@@ -720,14 +720,14 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
         return msg
 
 
-def get_available_config(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
+def get_available_config(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
                          verb=True, returnas=False):
     msg = ("A config is the geometry of a tokamak\n"
            + "You can define your own"
            + " (see online tutorial at {})\n".format(_URL_TUTO)
            + "tofu also also provides some pre-defined config ready to load\n"
            + "They are available via their name or via shortcuts\n"
-           + _get_listconfig(dconfig=dconfig, dconfig_table=dconfig_table)
+           + _get_listconfig(dconfig=dconfig, dconfig_shortcuts=dconfig_shortcuts)
            + "\n\n  => to get a pre-defined config, call for example:\n"
            + "\tconfig = tf.geom.utils.create_config('ITER')")
     if verb is True:
@@ -738,7 +738,7 @@ def get_available_config(dconfig=_DCONFIG, dconfig_table=_DCONFIG_TABLE,
 
 def _create_config_testcase(config=None, returnas='object',
                             path=_path_testcases, dconfig=_DCONFIG,
-                            dconfig_table=_DCONFIG_TABLE):
+                            dconfig_shortcuts=_DCONFIG_SHORTCUTS):
     """ Load the desired test case configuration
 
     Choose from one of the reference preset configurations:
@@ -756,9 +756,9 @@ def _create_config_testcase(config=None, returnas='object',
     if config in dconfig.keys():
         pass
 
-    elif config in dconfig_table.keys():
+    elif config in dconfig_shortcuts.keys():
         # Get corresponding config
-        config = dconfig_table[config]
+        config = dconfig_shortcuts[config]
 
     else:
         msg = ("\nThe provided config name is not valid.\n"
