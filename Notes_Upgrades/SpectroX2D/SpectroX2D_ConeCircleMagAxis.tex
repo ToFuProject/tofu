@@ -1,0 +1,133 @@
+\documentclass[a4paper,11pt,twoside,titlepage,openright]{book}
+
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\usepackage[margin=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{epsfig,amsfonts}
+\usepackage{xcolor,import}
+
+
+\pagestyle{plain}
+
+\newcommand{\ud}[1]{\underline{#1}}
+\newcommand{\e}[1]{\underline{e}_{#1}}
+\newcommand{\lt}{\left}
+\newcommand{\rt}{\right}
+\newcommand{\lra}{\Leftrightarrow}
+\DeclareMathOperator{\n}{\underline{n}}
+\DeclareMathOperator{\ex}{\underline{e}_x}
+\DeclareMathOperator{\ey}{\underline{e}_y}
+\DeclareMathOperator{\ez}{\underline{e}_z}
+\DeclareMathOperator{\bragg}{\theta_{bragg}}
+\DeclareMathOperator{\Z}{Z_C}
+\DeclareMathOperator{\DD}{\cos(\theta)^2 - \sin(\psi)^2}
+\newcommand{\wdg}{\wedge}
+\newcommand{\hypot}[1]{\textbf{\textcolor{green}{#1}}}
+
+
+\begin{document}
+
+\title{ToFu geometric tools\\ Intersection of a cone with a circle (magnetic axis)}
+\author{Didier VEZINET}
+\date{04.12.2019}
+\maketitle
+
+\tableofcontents
+
+\chapter{Geometry}
+\label{chap:Geometry}
+
+\section{Generic cone and plane}
+
+Let's consider a cartesian frame $(O, \ex, \ey, \ez)$.
+Let's consider a half-cone defined by its axis $(S, \n)$ and half-opening $\alpha = \pi/2 - \bragg$.
+The coordinates of $S$ are $(x_S, y_S, z_S)$.
+The coordinates of $\n$ are $(n_x, n_y, n_z)$.
+Let's consider a circle of axis $(O, \ez)$, of radius $R$, centered on $C$ or coordinates $(0, 0, \Z)$.
+
+Let's consider point $M$ of coordinates $(x, y, z)$ and $(R, \theta, z)$ belonging to both the cone and the circle.
+
+
+$$
+\lt\{
+	\begin{array}{ll}
+		M \in circle & \lra \ud{OM} = \Z\ez + R(\cos(\theta)\ex + \sin(\theta)\ey)\\
+		M \in cone & \lra \ud{SM}.\n = \cos(\alpha)\|\ud{SM}\|
+	\end{array}
+\rt.
+$$
+
+
+
+\section{Intersection}
+
+If $M$ belongs to both the circle and the cone, then:
+
+$$
+\begin{array}{ll}
+	& \lt[\lt(\ud{SO}+\ud{OM}\rt).\n\rt]^2 = \cos^2(\alpha)\|\ud{SO} + \ud{OM}\|^2\\
+	\lra &
+	\lt(\ud{SO}.\n\rt)^2 + \lt(\ud{OM}.\n\rt)^2 + 2\lt(\ud{SO}.\n\rt)\lt(\ud{OM}.\n\rt)
+	= \cos^2(\alpha)\lt[\|\ud{SO}\|^2 + \|\ud{OM}\|^2 + 2\ud{SO}.\ud{OM}\rt]\\
+	\lra &
+	\lt(\ud{OM}.\n\rt)^2 + 2\lt(\ud{SO}.\n\rt)\lt(\ud{OM}.\n\rt)
+	- \cos^2(\alpha)\|\ud{OM}\|^2 - 2\cos^2(\alpha)\ud{SO}.\ud{OM} + A = 0
+\end{array}
+$$
+
+Where we have introduced $A = \lt(\ud{SO}.\n\rt)^2 - \cos^2(\alpha)\|\ud{SO}\|^2$
+
+Now, we can write:
+$$
+\lt\{
+	\begin{array}{lll}
+		\|\ud{OM}\|^2 & = & \Z^2 + R^2\\
+		\ud{OM}.\n & = & \Z n_z + R\cos(\theta)n_x + R\sin(\theta)n_y\\
+		\lt(\ud{OM}.\n\rt)^2 & = & \lt(\Z n_z\rt)^2 + \lt(R\cos(\theta)n_x\rt)^2 + \lt(R\sin(\theta)n_y\rt)^2\\
+				     &&  + 2\Z R\cos(\theta)n_xn_Z + 2\Z R\sin(\theta)n_yn_z + 2R^2\cos(\theta)\sin(\theta)n_xn_y\\
+		\ud{SO}.\ud{OM} & = & -\Z z_S - Rx_S\cos(\theta) - Ry_S\sin(\theta)
+	\end{array}
+\rt.
+$$
+
+Hence:
+$$
+\begin{array}{ll}
+	& \lt(\ud{OM}.\n\rt)^2 + 2\lt(\ud{SO}.\n\rt)\lt(\ud{OM}.\n\rt)
+	- \cos^2(\alpha)\|\ud{OM}\|^2 - 2\cos^2(\alpha)\ud{SO}.\ud{OM} + A\\
+	= &
+	\lt(\Z n_z\rt)^2 + \lt(R\cos(\theta)n_x\rt)^2 + \lt(R\sin(\theta)n_y\rt)^2\\
+	& + 2\Z R\cos(\theta)n_xn_Z + 2\Z R\sin(\theta)n_yn_z + 2R^2\cos(\theta)\sin(\theta)n_xn_y\\
+	& +2\lt(\ud{SO}.\n\rt)\lt(\Z n_z + R\cos(\theta)n_x + R\sin(\theta)n_y\rt)\\
+	& - \cos^2(\alpha)\Z^2 - \cos^2(\alpha)R^2\\
+	& + 2\cos^2(\alpha)\lt(\Z z_S + Rx_S\cos(\theta) + Ry_S\sin(\theta)\rt) + A
+\end{array}
+$$
+
+
+
+
+
+
+
+\section{Parametric equation}
+
+\subsection{From bragg angle and parameter to local cartesian coordinates}
+
+
+
+
+
+
+
+\appendix
+\chapter{Appendices}
+
+\section{Section}
+\subsection{Subsection}
+
+\end{document}

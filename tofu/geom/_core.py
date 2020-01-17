@@ -889,6 +889,51 @@ class Struct(utils.ToFuObject):
     # public methods
     ###########
 
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build detailed view
+        col0 = [
+            "class",
+            "Name",
+            "SaveName",
+            "nP",
+            "noccur",
+            "mobile",
+            "color",
+        ]
+        ar0 = [
+            self._Id.Cls,
+            self._Id.Name,
+            self._Id.SaveName,
+            str(self._dgeom["nP"]),
+            str(self._dgeom["noccur"]),
+            str(self._dgeom["mobile"]),
+            str(self._dmisc["color"])]
+
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
+
+    ###########
+    # public methods
+    ###########
+
     def set_color(self, col):
         self._set_color(col)
 
@@ -4100,6 +4145,11 @@ class Rays(utils.ToFuObject):
                         pinhole = dgeom['D'][:, 0] + k[0]*u[:, 0]
                         dgeom['pinhole'] = pinhole
 
+            if np.any(np.isnan(dgeom['D'])):
+                msg = ("Some LOS have nan as starting point !\n"
+                       + "The geometry may not be provided !")
+                raise Exception(msg)
+
             # Test if all D are on a common plane or line
             va = dgeom["D"] - dgeom["D"][:, 0:1]
 
@@ -4167,9 +4217,6 @@ class Rays(utils.ToFuObject):
                     if dgeom["dX12"] is None:
                         dgeom["dX12"] = {}
                     dgeom["dX12"].update({"nIn": nIn, "e1": e1, "e2": e2})
-
-                    if not self._is2D():
-                        return dgeom
 
                     # Test binning
                     if dgeom["pinhole"] is not None:
@@ -5925,6 +5972,9 @@ class Rays(utils.ToFuObject):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
+            if E is None or np.all(np.isnan(E)):
+                msg = "Cannot use etendue, it was not set properly !"
+                raise Exception(msg)
             if t is None or len(t) == 1 or E.size == 1:
                 sig = sig * E
             else:
@@ -5984,7 +6034,7 @@ class Rays(utils.ToFuObject):
         reflections=True,
         coefs=None,
         ind=None,
-        out=object,
+        returnas=object,
         plot=True,
         dataname=None,
         fs=None,
@@ -6045,7 +6095,7 @@ class Rays(utils.ToFuObject):
         # Format input
 
         indok, Ds, us, DL, E = self._calc_signal_preformat(
-            ind=ind, DL=DL, out=out, Brightness=Brightness
+            ind=ind, DL=DL, out=returnas, Brightness=Brightness
         )
 
         if Ds is None:
@@ -6139,19 +6189,9 @@ class Rays(utils.ToFuObject):
             #    and interferometer)
             val = func(pts, t=t, vect=vect)
             # Integrate
-            if val.ndim == 2:
-                sig = np.full((val.shape[0], self.nRays), np.nan)
-            else:
-                sig = np.full((1, self.nRays), np.nan)
-            indpts = np.r_[0, indpts, pts.shape[1]]
-            for ii in range(0, self.nRays):
-                sig[:, ii] = (
-                    np.nansum(
-                        val[:, indpts[ii]:indpts[ii + 1]],
-                        axis=-1
-                    )
-                    * reseff[ii]
-                )
+            sig = np.add.reduceat(val, np.r_[0, indpts],
+                                  axis=-1)*reseff[None, :]
+
         # Format output
         return self._calc_signal_postformat(
             sig,
@@ -6161,7 +6201,7 @@ class Rays(utils.ToFuObject):
             E=E,
             units=units,
             plot=plot,
-            out=out,
+            out=returnas,
             fs=fs,
             dmargin=dmargin,
             wintit=wintit,
@@ -6174,7 +6214,7 @@ class Rays(utils.ToFuObject):
         self,
         plasma2d,
         t=None,
-        newcalc=False,
+        newcalc=True,
         quant=None,
         ref1d=None,
         ref2d=None,
@@ -6195,7 +6235,7 @@ class Rays(utils.ToFuObject):
         reflections=True,
         coefs=None,
         ind=None,
-        out=object,
+        returnas=object,
         plot=True,
         dataname=None,
         fs=None,
@@ -6209,7 +6249,7 @@ class Rays(utils.ToFuObject):
 
         # Format input
         indok, Ds, us, DL, E = self._calc_signal_preformat(
-            ind=ind, out=out, t=t, Brightness=Brightness
+            ind=ind, out=returnas, t=t, Brightness=Brightness
         )
 
         if Ds is None:
@@ -6219,16 +6259,20 @@ class Rays(utils.ToFuObject):
 
         if newcalc:
             # Get time vector
-            if t is None:
+            lc = [t is None, type(t) is str, type(t) is np.ndarray]
+            assert any(lc)
+            if lc[0]:
                 out = plasma2d._checkformat_qr12RPZ(
-                    quant=quant,
-                    ref1d=ref1d,
-                    ref2d=ref2d,
-                    q2dR=q2dR,
-                    q2dPhi=q2dPhi,
-                    q2dZ=q2dZ,
+                     quant=quant,
+                     ref1d=ref1d,
+                     ref2d=ref2d,
+                     q2dR=q2dR,
+                     q2dPhi=q2dPhi,
+                     q2dZ=q2dZ,
                 )
                 t = plasma2d._get_tcom(*out[:4])[0]
+            elif lc[1]:
+                t = plasma2d._ddata[t]['data']
             else:
                 t = np.atleast_1d(t).ravel()
 
@@ -6326,7 +6370,9 @@ class Rays(utils.ToFuObject):
                 nbrep = np.r_[
                     indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]
                 ]
-                vect = np.repeat(self.u, nbrep, axis=1)
+                vect = -np.repeat(self.u, nbrep, axis=1)
+            if fill_value is None:
+                fill_value = 0.
 
             # Get quantity values at ptsRZ
             # This is the slowest step (~3.8 s with res=0.02
@@ -6347,19 +6393,10 @@ class Rays(utils.ToFuObject):
                 fill_value=fill_value,
             )
 
-            # Integrate
-            if val.ndim == 2:
-                sig = np.full((val.shape[0], self.nRays), np.nan)
-            else:
-                sig = np.full((1, self.nRays), np.nan)
-
-            indpts = np.r_[0, indpts, pts.shape[1]]
-            for ii in range(0, self.nRays):
-                sig[:, ii] = (
-                    np.nansum(val[:, indpts[ii]:indpts[ii + 1]],
-                              axis=-1)
-                    * reseff[ii]
-                )
+            # Integrate using ufunc reduceat for speed
+            # (cf. https://stackoverflow.com/questions/59079141)
+            sig = np.add.reduceat(val, np.r_[0, indpts],
+                                  axis=-1)*reseff[None, :]
 
         # Format output
         # this is the secod slowest step (~0.75 s)
@@ -6371,7 +6408,7 @@ class Rays(utils.ToFuObject):
             E=E,
             units=units,
             plot=plot,
-            out=out,
+            out=returnas,
             fs=fs,
             dmargin=dmargin,
             wintit=wintit,
@@ -6732,21 +6769,29 @@ class CamLOS1D(Rays):
         kout = self._dgeom["kOut"]
         indout = self._dgeom["indout"]
         lS = self._dconfig["Config"].lStruct
+        angles = np.arccos(-np.sum(self.u*self.dgeom['vperp'], axis=0))
 
         # ar0
-        col0 = ["nb. los", "av. length", "nb. touch"]
+        col0 = ["nb. los", "av. length", "min length", "max length",
+                "nb. touch", "av. angle", "min angle", "max angle"]
         ar0 = [
             self.nRays,
             "{:.3f}".format(np.nanmean(kout)),
+            "{:.3f}".format(np.nanmin(kout)),
+            "{:.3f}".format(np.nanmax(kout)),
             np.unique(indout[0, :]).size,
+            "{:.2f}".format(np.nanmean(angles)),
+            "{:.2f}".format(np.nanmin(angles)),
+            "{:.2f}".format(np.nanmax(angles)),
         ]
 
         # ar1
-        col1 = ["los index", "length", "touch"]
+        col1 = ["los index", "length", "touch", "angle (rad)"]
         ar1 = [
             np.arange(0, self.nRays),
             np.around(kout, decimals=3).astype("U"),
             ["%s_%s" % (lS[ii].Id.Cls, lS[ii].Id.Name) for ii in indout[0, :]],
+            np.around(angles, decimals=2).astype('U')
         ]
 
         for k, v in self._dchans.items():
@@ -6842,6 +6887,47 @@ CamLOS1D.__signature__ = sig.replace(parameters=lp)
 
 
 class CamLOS2D(Rays):
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+
+        # Prepare
+        kout = self._dgeom["kOut"]
+        indout = self._dgeom["indout"]
+        lS = self._dconfig["Config"].lStruct
+        angles = np.arccos(-np.sum(self.u*self.dgeom['vperp'], axis=0))
+
+        # ar0
+        col0 = ["nb. los", "av. length", "min length", "max length",
+                "nb. touch", "av. angle", "min angle", "max angle"]
+        ar0 = [
+            self.nRays,
+            "{:.3f}".format(np.nanmean(kout)),
+            "{:.3f}".format(np.nanmin(kout)),
+            "{:.3f}".format(np.nanmax(kout)),
+            np.unique(indout[0, :]).size,
+            "{:.2f}".format(np.nanmean(angles)),
+            "{:.2f}".format(np.nanmin(angles)),
+            "{:.2f}".format(np.nanmax(angles)),
+        ]
+
+        # call base method
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
+
     def _isImage(self):
         return self._dgeom["isImage"]
 
