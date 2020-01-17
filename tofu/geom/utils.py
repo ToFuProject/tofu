@@ -20,7 +20,7 @@ except Exception:
 __all__ = ['coords_transform',
            'get_nIne1e2', 'get_X12fromflat',
            'compute_RaysCones',
-           'create_config',
+           'get_available_config', 'create_config',
            'create_CamLOS1D', 'create_CamLOS2D']
 
 
@@ -650,6 +650,9 @@ _URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
              + 'tuto_plot_create_geometry.html')
 
 # Dictionnary of unique config names
+# For each config, indicates which structural elements it comprises
+# Elements are sorted by class (Ves, PFC...)
+# For each element, a unique txt file containing the geometry will be loaded
 _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                         'Ves': ['V1']},
             'ITER-V1': {'Exp': _ExpITER,
@@ -685,9 +688,9 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                         'Ves': ['V0']}
             }
 
-# Each config can be called by various names (for benchmark and
-# retro-compatibility), this table stores the available names for each unique
-# config in _DCONFIG
+# Each config can be called by various names / shortcuts (for benchmark and
+# retro-compatibility), this table stores, for each shortcut,
+# the associated unique name it refers to
 _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
                       'JET': 'JET-V0',
                       'WEST': 'WEST-V4',
@@ -703,6 +706,7 @@ _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
 
 def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
                     returnas=str):
+    """ Hidden function generating the config names table as a str or dict """
     assert returnas in [dict, str]
     dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_shortcuts.items()
                              if v1 == k0])
@@ -722,6 +726,21 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
 
 def get_available_config(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
                          verb=True, returnas=False):
+    """ Print a table showing all pre-defined config
+
+    Each pre-defined config in tofu can be called by its unique name or
+    by a series of shortcuts / alterantive names refereing to the same unique
+    name. this feature is useful for retro-compatibility and for making sure a
+    standard name always refers to the latest (most detailed) available version
+    of the geometry.
+
+    Can also return the table as str
+
+    No input arg needed:
+        >>> import tofu as tf
+        >>> tf.geom.utils.get_available_config()
+
+    """
     msg = ("A config is the geometry of a tokamak\n"
            + "You can define your own"
            + " (see online tutorial at {})\n".format(_URL_TUTO)
