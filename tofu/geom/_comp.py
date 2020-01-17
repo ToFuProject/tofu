@@ -62,8 +62,9 @@ def _Struct_set_Poly(
         Vol, BaryV = None, None
     else:
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
-        msg = "Pb. with volume computation for Ves object of type 'Tor' !"
-        assert Vol > 0.0, msg
+        if Vol <= 0.0:
+            msg = "Pb. with volume computation for Ves object of type 'Tor' !"
+            raise Exception(msg)
 
     # Compute the non-normalized vector of each side of the Poly
     Vect = np.diff(Poly, n=1, axis=1)

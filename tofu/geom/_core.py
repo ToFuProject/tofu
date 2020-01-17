@@ -436,19 +436,23 @@ class Struct(utils.ToFuObject):
             Poly = Poly.T
 
         # Elimininate any double identical point
-        ind = np.sum(np.diff(Poly, axis=1) ** 2, axis=0) < 1.0e-12
+        ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
+                             axis=1) ** 2, axis=0) < 1.0e-12
         if np.any(ind):
             npts = Poly.shape[1]
+            Poly = Poly[:, ~ind]
             msg = (
                 "%s instance: double identical points in Poly\n" % cls.__name__
             )
             msg += "  => %s points removed\n" % ind.sum()
             msg += "  => Poly goes from %s to %s points" % (
                 npts,
-                npts - ind.sum(),
+                Poly.shape[1],
             )
             warnings.warn(msg)
-            Poly = Poly[:, ~ind]
+            ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
+                                 axis=1) ** 2, axis=0) < 1.0e-12
+            assert not np.any(ind), ind
 
         lC = [Lim is None, pos is None]
         if not any(lC):
