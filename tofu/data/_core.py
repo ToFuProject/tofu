@@ -2026,7 +2026,11 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
-        if type(other) in [int,float,np.int64,np.float64]:
+        if type(other) in [int, float, np.int64, np.float64]:
+            data = opfunc(d0.data, other)
+            dcom = d0._extract_common_params(d0)
+
+        elif isinstance(other, np.ndarray):
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
@@ -2515,6 +2519,9 @@ class Plasma2D(utils.ToFuObject):
                                 indpts = indR*nZ + indZ
                             else:
                                 indpts = indZ*nR + indR
+                            indout = ((r < R[0]) | (r > R[-1])
+                                      | (z < Z[0]) | (z > Z[-1]))
+                            indpts[indout] = -1
                             return indpts
 
                         dd[dk][k0]['R'] = R
@@ -3735,7 +3742,7 @@ class Plasma2D(utils.ToFuObject):
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
                      interp_t=None, interp_space=None,
-                     fill_value=np.nan, ani=False, Type=None):
+                     fill_value=None, ani=False, Type=None):
 
         if interp_t is None:
             interp_t = 'nearest'
@@ -3853,7 +3860,7 @@ class Plasma2D(utils.ToFuObject):
     def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
                       q2dR=None, q2dPhi=None, q2dZ=None,
                       interp_t=None, interp_space=None,
-                      fill_value=np.nan, Type=None):
+                      fill_value=None, Type=None):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
         Can be used as input for tf.geom.CamLOS1D/2D.calc_signal()
@@ -3880,7 +3887,7 @@ class Plasma2D(utils.ToFuObject):
                            quant=None, ref1d=None, ref2d=None,
                            q2dR=None, q2dPhi=None, q2dZ=None,
                            interp_t=None, interp_space=None,
-                           fill_value=np.nan, Type=None):
+                           fill_value=None, Type=None):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
@@ -3911,8 +3918,23 @@ class Plasma2D(utils.ToFuObject):
                 else:
                     idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
                               if self._dindref[id_]['group'] == 'mesh'][0]
-            pts = self.dmesh[idmesh]['data']['nodes']
-            pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
+            if self.dmesh[idmesh]['data']['type'] == 'rect':
+                if self.dmesh[idmesh]['data']['shapeRZ'] == ('R', 'Z'):
+                    R = np.repeat(self.dmesh[idmesh]['data']['R'],
+                                  self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.tile(self.dmesh[idmesh]['data']['Z'],
+                                self.dmesh[idmesh]['data']['nR'])
+                else:
+                    R = np.tile(self.dmesh[idmesh]['data']['R'],
+                                self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
+                                  self.dmesh[idmesh]['data']['nR'])
+                pts = np.array(
+                    [R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
+            else:
+                pts = self.dmesh[idmesh]['data']['nodes']
+                pts = np.array(
+                    [pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1]])
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:
@@ -3945,7 +3967,7 @@ class Plasma2D(utils.ToFuObject):
                              quant=None, ref1d=None, ref2d=None,
                              q2dR=None, q2dPhi=None, q2dZ=None,
                              Brightness=True, interp_t=None,
-                             interp_space=None, fill_value=np.nan,
+                             interp_space=None, fill_value=None,
                              res=0.005, DL=None, resMode='abs', method='sum',
                              ind=None, out=object, plot=True, dataname=None,
                              fs=None, dmargin=None, wintit=None, invert=True,

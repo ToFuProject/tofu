@@ -648,7 +648,7 @@ def _get_exception(q, ids, qtype='quantity'):
 
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, returnas=None, tlim=None, config=None,
-                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
                    sharex=False, invertx=None,
@@ -972,9 +972,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         # export to instances
         for ii in range(0,nids):
             if returnas[ii] == 'Config':
-                dout[ss]['Config'].append(multi.to_Config(Name=Name, occ=occ,
-                                                          indDescription=indDescription,
-                                                          plot=False))
+                dout[ss]['Config'].append(multi.to_Config(
+                    Name=Name, occ=occ,
+                    description_2d=description_2d, plot=False))
 
             elif returnas[ii] == 'Plasma2D':
                 dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
@@ -1037,7 +1037,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
 def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
-                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    Brightness=None, res=None, interp_t=None,
                    plot=True, plot_compare=True, sharex=False,
