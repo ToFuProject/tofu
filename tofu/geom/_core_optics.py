@@ -428,7 +428,7 @@ class CrystalBragg(utils.ToFuObject):
         self.set_dmat(**kwds)
         largs = self._get_largs_dbragg()
         kwds = self._extract_kwdargs(allkwds, largs)
-        self._set_dbragg(**kwds)
+        self.set_dbragg(**kwds)
         largs = self._get_largs_dmisc()
         kwds = self._extract_kwdargs(allkwds, largs)
         self._set_dmisc(**kwds)
@@ -697,7 +697,7 @@ class CrystalBragg(utils.ToFuObject):
                 ar2 = [self._dgeom['mobile'],
                        str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
                        str(np.round(self._dgeom['rotateaxis'][1], decimals=2)),
-                       '{0:7.3f}'.format(self._dgeom['rotateangle']*180./np.pi)]
+                       '{0:8.4f}'.format(self._dgeom['rotateangle']*180./np.pi)]
             lcol.append(col2)
             lar.append(ar2)
         return self._get_summary(lar, lcol,
@@ -1565,11 +1565,14 @@ class CrystalBragg(utils.ToFuObject):
                              dtheta=None, psi=None, n=None,
                              nlambfit=None, nphifit=None,
                              magaxis=None, npaxis=None,
-                             dlines=None,
+                             dlines=None, spect1d='mean',
                              plot=True, fs=None,
                              cmap=None, vmin=None, vmax=None):
         # Check / format inputs
+        if spect1d is None:
+            spect1d = 'mean'
         assert data is not None
+        assert spect1d in ['mean', 'center']
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
         nxj = xj.size if xj is not None else np.unique(xjj).size
@@ -1593,8 +1596,15 @@ class CrystalBragg(utils.ToFuObject):
                                                       nlambfit, nphifit)
         lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
         ind = np.digitize(lamb, lambfitbins)
-        spect1d = np.array([np.nanmean(data[ind == ii])
-                            for ii in np.unique(ind)])
+        if spect1d  == 'mean':
+            spect1d = np.array([np.nanmean(data[ind == ii])
+                                for ii in np.unique(ind)])
+        else:
+            indcent = (np.abs(phi - np.nanmean(phifit))
+                       < 0.2*(phifit[-1]-phifit[0]))
+            spect1d = np.array([np.nanmean(data[indcent & (ind == ii)])
+                                for ii in np.unique(ind)])
+
         phifitbins = 0.5*(phifit[1:] + phifit[:-1])
         ind = np.digitize(phi, phifitbins)
         vertsum1d = np.array([np.nanmean(data[ind == ii])

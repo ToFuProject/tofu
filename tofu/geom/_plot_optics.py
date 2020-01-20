@@ -1,8 +1,13 @@
 
 
+# Built-in
+import itertools as itt
+
+# Common
 import numpy as np
 from scipy.interpolate import BSpline
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
@@ -734,8 +739,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         cmap = plt.cm.viridis
     if dmargin is None:
         dmargin = {'left':0.03, 'right':0.99,
-                   'bottom':0.05, 'top':0.92,
-                   'wspace':None, 'hspace':0.4}
+                   'bottom':0.06, 'top':0.92,
+                   'wspace':None, 'hspace':0.6}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         bragg = bragg*180./np.pi
@@ -744,7 +749,30 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         if phiax is not None:
             phiax = 180*phiax/np.pi
 
-
+    if dlines is not None:
+        lines = [k0 for k0, v0 in dlines.items()
+                 if (v0['lambda'] >= lambfit[0]
+                     and v0['lambda'] <= lambfit[-1])]
+        lions = sorted(set([dlines[k0]['ION'] for k0 in lines]))
+        nions = len(lions)
+        dions = {k0: [k1 for k1 in lines if dlines[k1]['ION'] == k0]
+                 for k0 in lions}
+        dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
+                                        for k1 in dions[k0]]),
+                      'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]]}
+                 for k0 in lions}
+        lcol = ['k', 'r', 'b', 'g', 'm', 'c']
+        ncol = len(lcol)
+        llamb = np.concatenate([dions[lions[ii]]['lamb']
+                                for ii in range(nions)])
+        indsort = np.argsort(llamb)
+        lsymb = list(itt.chain.from_iterable([dions[lions[ii]]['symbol']
+                                              for ii in range(nions)]))
+        lsymb = [lsymb[ii] for ii in indsort]
+        lcollamb = list(itt.chain.from_iterable(
+            [[lcol[ii]]*dions[lions[ii]]['lamb'].size
+             for ii in range(nions)]))
+        lcollamb = [lcollamb[ii] for ii in indsort]
 
     # pre-compute
     # ------------
@@ -771,7 +799,6 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax2.set_title('Camera image transformed')
 
     ax2.set_ylabel(r'incidence angle ($deg$)')
-    ax2.set_xlabel(r'$\lambda$ ($m$)')
     axs2.set_xlabel(r'$\lambda$ ($m$)')
     ax3.set_ylabel(r'incidence angle ($deg$)')
 
@@ -787,12 +814,27 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax3.plot(vertsum1d, phifit, c='k', ls='-')
     if phiax is not None:
         ax2.plot(lambax, phiax, c='r', ls='-', lw=1.)
+
     if dlines is not None:
-        pass
+        for ii, k0 in enumerate(lions):
+            for jj in range(dions[k0]['lamb'].size):
+                x = dions[k0]['lamb'][jj]
+                col = lcol[ii%ncol]
+                axs2.axvline(x,
+                             c=col, ls='--')
+                axs2.annotate(dions[k0]['symbol'][jj],
+                              xy=(x, 1.01), xytext=None,
+                              xycoords=('data', 'axes fraction'),
+                              color=col, arrowprops=None,
+                              horizontalalignment='center',
+                              verticalalignment='bottom')
+        hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
+                for ii in range(nions)]
+        axs2.legend(hand, lions,
+                    bbox_to_anchor=(1., 1.02), loc='upper left')
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
-
     return [ax0, ax1]
 
 
