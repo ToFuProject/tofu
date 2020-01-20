@@ -88,3 +88,14 @@ deploy:
     server: https://test.pypi.org/legacy/
     password:
       secure: xfVFuoz9YYNChzmT8DC9y+8eH6zdFkfoy3B51uqy8b+vhJNzCzLay4F0uSHvhHy6iYorM6UQKr6soC4D7n3PhmnFOTX/cgLtd/p4gBWGYZF6yXacvw+UHKMshgbAhn2sEynxdSAqdAlNttMI8jsUu9RhbzGiv1l5zSNnFWF4Zsly02G68UnztxIGoz8AYTRW2N2oQhGrl/ryj/YG4mSRKjled6BzK7kNoJUqLGl12DqdMMTEmdJ9NHBXgK3Dv0ya17ReFz3TcxE/4+Yc38NwSR4Ia2EvVSMtyIaccQ1uSrXwW8JQOMn+9CmDWZVUMDD2bzKYbm2WGGM9Fh8WrHnwlWRujoLDofhYEK0Cus11gULFF+J88XucOJlyJNrHP6TWxdSVVoQfwWr2ABqZIvilsvHpF+sjDLqomTNHdi+BbzP2koRv0nJb9K1W24bjPLtSK8+plX7suv7gdBNwlsJ+dPLDM87v4+jGHGthQ6P4X2guTMHZm1PU0PSPB9LCbENCN1uktLLhkgx7gZ42Ag+Jwiu02ENkChLaEB4WpPb9mjLnomu5LDYXFGtPJ/uLMOi3VCXyda0LrzqDhXYT3Cg4hvXySwJcgMYSXalfTxnTm9oouePiEXDbK+XwjMP9mjC5CeMg3SaFFTywqaTH0WUqiOBUJ6H3Gsm0sB15Tj4lNKQ=
+   - provider: pypi
+    distributions: "bdist_wheel"
+    user: __token__
+    skip_existing: true
+    on:
+      condition: $OS = osx-64
+      tags: true
+      branch: deploy-test
+    server: https://test.pypi.org/legacy/
+    password:
+      secure: xfVFuoz9YYNChzmT8DC9y+8eH6zdFkfoy3B51uqy8b+vhJNzCzLay4F0uSHvhHy6iYorM6UQKr6soC4D7n3PhmnFOTX/cgLtd/p4gBWGYZF6yXacvw+UHKMshgbAhn2sEynxdSAqdAlNttMI8jsUu9RhbzGiv1l5zSNnFWF4Zsly02G68UnztxIGoz8AYTRW2N2oQhGrl/ryj/YG4mSRKjled6BzK7kNoJUqLGl12DqdMMTEmdJ9NHBXgK3Dv0ya17ReFz3TcxE/4+Yc38NwSR4Ia2EvVSMtyIaccQ1uSrXwW8JQOMn+9CmDWZVUMDD2bzKYbm2WGGM9Fh8WrHnwlWRujoLDofhYEK0Cus11gULFF+J88XucOJlyJNrHP6TWxdSVVoQfwWr2ABqZIvilsvHpF+sjDLqomTNHdi+BbzP2koRv0nJb9K1W24bjPLtSK8+plX7suv7gdBNwlsJ+dPLDM87v4+jGHGthQ6P4X2guTMHZm1PU0PSPB9LCbENCN1uktLLhkgx7gZ42Ag+Jwiu02ENkChLaEB4WpPb9mjLnomu5LDYXFGtPJ/uLMOi3VCXyda0LrzqDhXYT3Cg4hvXySwJcgMYSXalfTxnTm9oouePiEXDbK+XwjMP9mjC5CeMg3SaFFTywqaTH0WUqiOBUJ6H3Gsm0sB15Tj4lNKQ=
