@@ -3,7 +3,6 @@ This module is the computational part of the geometrical module of ToFu
 """
 
 # Built-in
-import sys
 import warnings
 
 # Common
@@ -64,6 +63,7 @@ def _Struct_set_Poly(
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
         if Vol <= 0.0:
             msg = "Pb. with volume computation for Ves object of type 'Tor' !"
+            msg = "\n Here Volume = " + str(Vol)
             raise Exception(msg)
 
     # Compute the non-normalized vector of each side of the Poly
