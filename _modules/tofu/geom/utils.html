@@ -134,7 +134,7 @@
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;coords_transform&#39;</span><span class="p">,</span>
            <span class="s1">&#39;get_nIne1e2&#39;</span><span class="p">,</span> <span class="s1">&#39;get_X12fromflat&#39;</span><span class="p">,</span>
            <span class="s1">&#39;compute_RaysCones&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;create_config&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;get_available_config&#39;</span><span class="p">,</span> <span class="s1">&#39;create_config&#39;</span><span class="p">,</span>
            <span class="s1">&#39;create_CamLOS1D&#39;</span><span class="p">,</span> <span class="s1">&#39;create_CamLOS2D&#39;</span><span class="p">]</span>
 
 
@@ -756,8 +756,17 @@
 <span class="n">_ExpWest</span> <span class="o">=</span> <span class="s1">&#39;WEST&#39;</span>
 <span class="n">_ExpJET</span> <span class="o">=</span> <span class="s1">&#39;JET&#39;</span>
 <span class="n">_ExpITER</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
+<span class="n">_ExpNSTX</span> <span class="o">=</span> <span class="s1">&#39;NSTX&#39;</span>
+<span class="c1"># Default config</span>
+<span class="n">_DEFCONFIG</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
+
+<span class="n">_URL_TUTO</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;https://tofuproject.github.io/tofu/auto_examples/tutorials/&#39;</span>
+             <span class="o">+</span> <span class="s1">&#39;tuto_plot_create_geometry.html&#39;</span><span class="p">)</span>
 
 <span class="c1"># Dictionnary of unique config names</span>
+<span class="c1"># For each config, indicates which structural elements it comprises</span>
+<span class="c1"># Elements are sorted by class (Ves, PFC...)</span>
+<span class="c1"># For each element, a unique txt file containing the geometry will be loaded</span>
 <span class="n">_DCONFIG</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;WEST-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
                         <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">]},</span>
             <span class="s1">&#39;ITER-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
@@ -788,30 +797,83 @@
                                 <span class="s1">&#39;BLK11&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK12&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK13&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK14&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK15&#39;</span><span class="p">,</span>
                                 <span class="s1">&#39;BLK16&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK17&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK18&#39;</span><span class="p">,</span>
                                 <span class="s1">&#39;Div1&#39;</span><span class="p">,</span> <span class="s1">&#39;Div2&#39;</span><span class="p">,</span> <span class="s1">&#39;Div3&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]}</span>
+                                <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpNSTX</span><span class="p">,</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]}</span>
             <span class="p">}</span>
 
-<span class="c1"># Each config can be called by various names (for benchmark and</span>
-<span class="c1"># retro-compatibility), this table stores the available names for each unique</span>
-<span class="c1"># config in _DCONFIG</span>
-<span class="n">_DCONFIG_TABLE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ITER&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;JET&#39;</span><span class="p">:</span> <span class="s1">&#39;JET-V0&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;WEST&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V1&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V1&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-Sep&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V2&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V3&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">}</span>
+<span class="c1"># Each config can be called by various names / shortcuts (for benchmark and</span>
+<span class="c1"># retro-compatibility), this table stores, for each shortcut,</span>
+<span class="c1"># the associated unique name it refers to</span>
+<span class="n">_DCONFIG_SHORTCUTS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ITER&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;JET&#39;</span><span class="p">:</span> <span class="s1">&#39;JET-V0&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;WEST&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V1&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V1&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-Sep&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V2&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V3&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;NSTX&#39;</span><span class="p">:</span> <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">}</span>
 
-<span class="c1"># Default config</span>
-<span class="n">_DEFCONFIG</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
+
+<span class="k">def</span> <span class="nf">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">,</span>
+                    <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Hidden function generating the config names table as a str or dict &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">returnas</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">dc</span> <span class="o">=</span> <span class="p">{</span><span class="n">k0</span><span class="p">:</span> <span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k1</span> <span class="k">for</span> <span class="n">k1</span><span class="p">,</span> <span class="n">v1</span> <span class="ow">in</span> <span class="n">dconfig_shortcuts</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                             <span class="k">if</span> <span class="n">v1</span> <span class="o">==</span> <span class="n">k0</span><span class="p">])</span>
+          <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dc</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">l0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">k0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;unique names&#39;</span><span class="p">)])</span>
+        <span class="n">l1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v0</span><span class="p">))</span> <span class="k">for</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;shortcuts&#39;</span><span class="p">)])</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;unique names&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">l0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">shortcuts&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span><span class="o">*</span><span class="n">l0</span> <span class="o">+</span> <span class="s2">&quot; </span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span><span class="o">*</span><span class="n">l1</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">{}</span><span class="se">\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">l0</span><span class="p">),</span> <span class="n">v0</span><span class="p">)</span>
+                                <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dc</span><span class="o">.</span><span class="n">items</span><span class="p">()]))</span>
+        <span class="k">return</span> <span class="n">msg</span>
+
+
+<div class="viewcode-block" id="get_available_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.get_available_config">[docs]</a><span class="k">def</span> <span class="nf">get_available_config</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
+                         <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">,</span>
+                         <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Print a table showing all pre-defined config</span>
+
+<span class="sd">    Each pre-defined config in tofu can be called by its unique name or</span>
+<span class="sd">    by a series of shortcuts / alterantive names refereing to the same unique</span>
+<span class="sd">    name. this feature is useful for retro-compatibility and for making sure a</span>
+<span class="sd">    standard name always refers to the latest (most detailed) available version</span>
+<span class="sd">    of the geometry.</span>
+
+<span class="sd">    Can also return the table as str</span>
+
+<span class="sd">    No input arg needed:</span>
+<span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
+<span class="sd">        &gt;&gt;&gt; tf.geom.utils.get_available_config()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;A config is the geometry of a tokamak</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;You can define your own&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;, see online tutorial at:</span><span class="se">\n\t</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_URL_TUTO</span><span class="p">)</span>
+           <span class="o">+</span> <span class="s2">&quot;tofu also also provides some pre-defined config ready to load</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;They are available via their name or via shortcuts</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="n">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">dconfig</span><span class="p">,</span>
+                             <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">dconfig_shortcuts</span><span class="p">)</span>
+           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; to get a pre-defined config, call for example:</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">config = tf.geom.utils.create_config(&#39;ITER&#39;)&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">msg</span></div>
 
 
 <span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span>
                             <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span> <span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
-                            <span class="n">dconfig_table</span><span class="o">=</span><span class="n">_DCONFIG_TABLE</span><span class="p">):</span>
+                            <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Load the desired test case configuration</span>
 
 <span class="sd">    Choose from one of the reference preset configurations:</span>
@@ -829,16 +891,14 @@
     <span class="k">if</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="k">pass</span>
 
-    <span class="k">elif</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig_table</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="k">elif</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig_shortcuts</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="c1"># Get corresponding config</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">dconfig_table</span><span class="p">[</span><span class="n">config</span><span class="p">]</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">dconfig_shortcuts</span><span class="p">[</span><span class="n">config</span><span class="p">]</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The provided config name is not valid:</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;Please choose among either:</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> - unique keys: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> - shortcuts  : </span><span class="si">{}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dconfig_table</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-               <span class="o">+</span> <span class="s2">&quot;  =&gt; you provided: case = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The provided config name is not valid.</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="n">get_available_config</span><span class="p">(</span><span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; you provided: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c1"># Get file names for config</span>
@@ -933,11 +993,13 @@
           <span class="nb">any</span><span class="p">([</span><span class="n">pp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">lp</span><span class="p">])]</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Please provide either:</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- case: the name of a stored case</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- geometrical parameters </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lpstr</span><span class="p">))</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- case: the name of a pre-defined config</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- geometrical parameters </span><span class="si">{}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lpstr</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
-        <span class="n">case</span> <span class="o">=</span> <span class="n">_DEFCONFIG</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">get_available_config</span><span class="p">(</span><span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="c1"># case = _DEFCONFIG</span>
 
     <span class="c1"># Get config, either from known case or geometrical parameterization</span>
     <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

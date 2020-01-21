@@ -999,6 +999,51 @@
     <span class="c1"># public methods</span>
     <span class="c1">###########</span>
 
+    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;  &quot;</span><span class="p">,</span>
+        <span class="n">line</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span>
+        <span class="n">just</span><span class="o">=</span><span class="s2">&quot;l&quot;</span><span class="p">,</span>
+        <span class="n">table_sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">return_</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Summary description of the object content &quot;&quot;&quot;</span>
+
+        <span class="c1"># -----------------------</span>
+        <span class="c1"># Build detailed view</span>
+        <span class="n">col0</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;class&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;SaveName&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;nP&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;noccur&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mobile&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;color&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">ar0</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">Cls</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">SaveName</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;nP&quot;</span><span class="p">]),</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;noccur&quot;</span><span class="p">]),</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;mobile&quot;</span><span class="p">]),</span>
+            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">])]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ar0</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">col0</span><span class="p">],</span>
+            <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span>
+            <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+            <span class="n">table_sep</span><span class="o">=</span><span class="n">table_sep</span><span class="p">,</span>
+            <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span>
+            <span class="n">return_</span><span class="o">=</span><span class="n">return_</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1">###########</span>
+    <span class="c1"># public methods</span>
+    <span class="c1">###########</span>
+
     <span class="k">def</span> <span class="nf">set_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_color</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
 
@@ -4210,6 +4255,11 @@
                         <span class="n">pinhole</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
                         <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pinhole</span>
 
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">])):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Some LOS have nan as starting point !</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;The geometry may not be provided !&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
             <span class="c1"># Test if all D are on a common plane or line</span>
             <span class="n">va</span> <span class="o">=</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
 
@@ -4277,9 +4327,6 @@
                     <span class="k">if</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;dX12&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;dX12&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
                     <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;dX12&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;nIn&quot;</span><span class="p">:</span> <span class="n">nIn</span><span class="p">,</span> <span class="s2">&quot;e1&quot;</span><span class="p">:</span> <span class="n">e1</span><span class="p">,</span> <span class="s2">&quot;e2&quot;</span><span class="p">:</span> <span class="n">e2</span><span class="p">})</span>
-
-                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is2D</span><span class="p">():</span>
-                        <span class="k">return</span> <span class="n">dgeom</span>
 
                     <span class="c1"># Test binning</span>
                     <span class="k">if</span> <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;pinhole&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -6035,6 +6082,9 @@
         <span class="k">if</span> <span class="n">Brightness</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">dataname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">dataname</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;LOS-integral x Etendue&quot;</span>
+            <span class="k">if</span> <span class="n">E</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">E</span><span class="p">)):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Cannot use etendue, it was not set properly !&quot;</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">E</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span> <span class="o">*</span> <span class="n">E</span>
             <span class="k">else</span><span class="p">:</span>
@@ -6094,7 +6144,7 @@
         <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">coefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">out</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
         <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">dataname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -6155,7 +6205,7 @@
         <span class="c1"># Format input</span>
 
         <span class="n">indok</span><span class="p">,</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span><span class="p">,</span> <span class="n">DL</span><span class="p">,</span> <span class="n">E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_signal_preformat</span><span class="p">(</span>
-            <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span> <span class="n">DL</span><span class="o">=</span><span class="n">DL</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">Brightness</span><span class="o">=</span><span class="n">Brightness</span>
+            <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span> <span class="n">DL</span><span class="o">=</span><span class="n">DL</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span> <span class="n">Brightness</span><span class="o">=</span><span class="n">Brightness</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">Ds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -6249,19 +6299,9 @@
             <span class="c1">#    and interferometer)</span>
             <span class="n">val</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="n">vect</span><span class="p">)</span>
             <span class="c1"># Integrate</span>
-            <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-            <span class="n">indpts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indpts</span><span class="p">,</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">):</span>
-                <span class="n">sig</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span>
-                        <span class="n">val</span><span class="p">[:,</span> <span class="n">indpts</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span><span class="n">indpts</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]],</span>
-                        <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
-                    <span class="p">)</span>
-                    <span class="o">*</span> <span class="n">reseff</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                <span class="p">)</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indpts</span><span class="p">],</span>
+                                  <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">reseff</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
         <span class="c1"># Format output</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_signal_postformat</span><span class="p">(</span>
             <span class="n">sig</span><span class="p">,</span>
@@ -6271,7 +6311,7 @@
             <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">,</span>
             <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
             <span class="n">plot</span><span class="o">=</span><span class="n">plot</span><span class="p">,</span>
-            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
             <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
             <span class="n">dmargin</span><span class="o">=</span><span class="n">dmargin</span><span class="p">,</span>
             <span class="n">wintit</span><span class="o">=</span><span class="n">wintit</span><span class="p">,</span>
@@ -6284,7 +6324,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">plasma2d</span><span class="p">,</span>
         <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">newcalc</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">newcalc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -6305,7 +6345,7 @@
         <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">coefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">out</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
         <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">dataname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -6319,7 +6359,7 @@
 
         <span class="c1"># Format input</span>
         <span class="n">indok</span><span class="p">,</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span><span class="p">,</span> <span class="n">DL</span><span class="p">,</span> <span class="n">E</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_signal_preformat</span><span class="p">(</span>
-            <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Brightness</span><span class="o">=</span><span class="n">Brightness</span>
+            <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Brightness</span><span class="o">=</span><span class="n">Brightness</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">Ds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -6329,16 +6369,20 @@
 
         <span class="k">if</span> <span class="n">newcalc</span><span class="p">:</span>
             <span class="c1"># Get time vector</span>
-            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="n">plasma2d</span><span class="o">.</span><span class="n">_checkformat_qr12RPZ</span><span class="p">(</span>
-                    <span class="n">quant</span><span class="o">=</span><span class="n">quant</span><span class="p">,</span>
-                    <span class="n">ref1d</span><span class="o">=</span><span class="n">ref1d</span><span class="p">,</span>
-                    <span class="n">ref2d</span><span class="o">=</span><span class="n">ref2d</span><span class="p">,</span>
-                    <span class="n">q2dR</span><span class="o">=</span><span class="n">q2dR</span><span class="p">,</span>
-                    <span class="n">q2dPhi</span><span class="o">=</span><span class="n">q2dPhi</span><span class="p">,</span>
-                    <span class="n">q2dZ</span><span class="o">=</span><span class="n">q2dZ</span><span class="p">,</span>
+                     <span class="n">quant</span><span class="o">=</span><span class="n">quant</span><span class="p">,</span>
+                     <span class="n">ref1d</span><span class="o">=</span><span class="n">ref1d</span><span class="p">,</span>
+                     <span class="n">ref2d</span><span class="o">=</span><span class="n">ref2d</span><span class="p">,</span>
+                     <span class="n">q2dR</span><span class="o">=</span><span class="n">q2dR</span><span class="p">,</span>
+                     <span class="n">q2dPhi</span><span class="o">=</span><span class="n">q2dPhi</span><span class="p">,</span>
+                     <span class="n">q2dZ</span><span class="o">=</span><span class="n">q2dZ</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">t</span> <span class="o">=</span> <span class="n">plasma2d</span><span class="o">.</span><span class="n">_get_tcom</span><span class="p">(</span><span class="o">*</span><span class="n">out</span><span class="p">[:</span><span class="mi">4</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">plasma2d</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="n">t</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
 
@@ -6436,7 +6480,9 @@
                 <span class="n">nbrep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span>
                     <span class="n">indpts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">indpts</span><span class="p">),</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">indpts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="p">]</span>
-                <span class="n">vect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="n">nbrep</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">vect</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="n">nbrep</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">fill_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fill_value</span> <span class="o">=</span> <span class="mf">0.</span>
 
             <span class="c1"># Get quantity values at ptsRZ</span>
             <span class="c1"># This is the slowest step (~3.8 s with res=0.02</span>
@@ -6457,19 +6503,10 @@
                 <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
             <span class="p">)</span>
 
-            <span class="c1"># Integrate</span>
-            <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-
-            <span class="n">indpts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indpts</span><span class="p">,</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">):</span>
-                <span class="n">sig</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">val</span><span class="p">[:,</span> <span class="n">indpts</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span><span class="n">indpts</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]],</span>
-                              <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="o">*</span> <span class="n">reseff</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                <span class="p">)</span>
+            <span class="c1"># Integrate using ufunc reduceat for speed</span>
+            <span class="c1"># (cf. https://stackoverflow.com/questions/59079141)</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indpts</span><span class="p">],</span>
+                                  <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">reseff</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
         <span class="c1"># Format output</span>
         <span class="c1"># this is the secod slowest step (~0.75 s)</span>
@@ -6481,7 +6518,7 @@
             <span class="n">E</span><span class="o">=</span><span class="n">E</span><span class="p">,</span>
             <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
             <span class="n">plot</span><span class="o">=</span><span class="n">plot</span><span class="p">,</span>
-            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
             <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
             <span class="n">dmargin</span><span class="o">=</span><span class="n">dmargin</span><span class="p">,</span>
             <span class="n">wintit</span><span class="o">=</span><span class="n">wintit</span><span class="p">,</span>
@@ -6842,21 +6879,29 @@
         <span class="n">kout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;kOut&quot;</span><span class="p">]</span>
         <span class="n">indout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;indout&quot;</span><span class="p">]</span>
         <span class="n">lS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dconfig</span><span class="p">[</span><span class="s2">&quot;Config&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lStruct</span>
+        <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;vperp&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
 
         <span class="c1"># ar0</span>
-        <span class="n">col0</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;nb. los&quot;</span><span class="p">,</span> <span class="s2">&quot;av. length&quot;</span><span class="p">,</span> <span class="s2">&quot;nb. touch&quot;</span><span class="p">]</span>
+        <span class="n">col0</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;nb. los&quot;</span><span class="p">,</span> <span class="s2">&quot;av. length&quot;</span><span class="p">,</span> <span class="s2">&quot;min length&quot;</span><span class="p">,</span> <span class="s2">&quot;max length&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;nb. touch&quot;</span><span class="p">,</span> <span class="s2">&quot;av. angle&quot;</span><span class="p">,</span> <span class="s2">&quot;min angle&quot;</span><span class="p">,</span> <span class="s2">&quot;max angle&quot;</span><span class="p">]</span>
         <span class="n">ar0</span> <span class="o">=</span> <span class="p">[</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">,</span>
             <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">kout</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">kout</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">kout</span><span class="p">)),</span>
             <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">indout</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
         <span class="p">]</span>
 
         <span class="c1"># ar1</span>
-        <span class="n">col1</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;los index&quot;</span><span class="p">,</span> <span class="s2">&quot;length&quot;</span><span class="p">,</span> <span class="s2">&quot;touch&quot;</span><span class="p">]</span>
+        <span class="n">col1</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;los index&quot;</span><span class="p">,</span> <span class="s2">&quot;length&quot;</span><span class="p">,</span> <span class="s2">&quot;touch&quot;</span><span class="p">,</span> <span class="s2">&quot;angle (rad)&quot;</span><span class="p">]</span>
         <span class="n">ar1</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">),</span>
             <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">kout</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;U&quot;</span><span class="p">),</span>
             <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lS</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Cls</span><span class="p">,</span> <span class="n">lS</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">indout</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]],</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;U&#39;</span><span class="p">)</span>
         <span class="p">]</span>
 
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dchans</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -6952,6 +6997,47 @@
 
 
 <div class="viewcode-block" id="CamLOS2D"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.CamLOS2D">[docs]</a><span class="k">class</span> <span class="nc">CamLOS2D</span><span class="p">(</span><span class="n">Rays</span><span class="p">):</span>
+<div class="viewcode-block" id="CamLOS2D.get_summary"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.CamLOS2D.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;  &quot;</span><span class="p">,</span>
+        <span class="n">line</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span>
+        <span class="n">just</span><span class="o">=</span><span class="s2">&quot;l&quot;</span><span class="p">,</span>
+        <span class="n">table_sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">return_</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="c1"># Prepare</span>
+        <span class="n">kout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;kOut&quot;</span><span class="p">]</span>
+        <span class="n">indout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;indout&quot;</span><span class="p">]</span>
+        <span class="n">lS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dconfig</span><span class="p">[</span><span class="s2">&quot;Config&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lStruct</span>
+        <span class="n">angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;vperp&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="c1"># ar0</span>
+        <span class="n">col0</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;nb. los&quot;</span><span class="p">,</span> <span class="s2">&quot;av. length&quot;</span><span class="p">,</span> <span class="s2">&quot;min length&quot;</span><span class="p">,</span> <span class="s2">&quot;max length&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;nb. touch&quot;</span><span class="p">,</span> <span class="s2">&quot;av. angle&quot;</span><span class="p">,</span> <span class="s2">&quot;min angle&quot;</span><span class="p">,</span> <span class="s2">&quot;max angle&quot;</span><span class="p">]</span>
+        <span class="n">ar0</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">kout</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">kout</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">kout</span><span class="p">)),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">indout</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
+            <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
+        <span class="p">]</span>
+
+        <span class="c1"># call base method</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ar0</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">col0</span><span class="p">],</span>
+            <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span>
+            <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+            <span class="n">table_sep</span><span class="o">=</span><span class="n">table_sep</span><span class="p">,</span>
+            <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span>
+            <span class="n">return_</span><span class="o">=</span><span class="n">return_</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
     <span class="k">def</span> <span class="nf">_isImage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;isImage&quot;</span><span class="p">]</span>
 

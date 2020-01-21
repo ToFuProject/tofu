@@ -478,9 +478,9 @@
     <span class="n">c0</span> <span class="o">=</span> <span class="p">[</span><span class="nb">all</span><span class="p">([</span><span class="n">dd</span><span class="o">.</span><span class="n">dlabels</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">==</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dlabels</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">lData</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
           <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">,</span><span class="s1">&#39;X&#39;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">]]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">c0</span><span class="p">):</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;All Data objects must have the same:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;All Data objects do not have the same:</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    dlabels[&#39;t&#39;], dlabels[&#39;X&#39;] and dlabels[&#39;data&#39;] !&quot;</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
     <span class="c1"># ---------</span>
@@ -501,8 +501,9 @@
     <span class="c1"># Check nch and X</span>
     <span class="n">c0</span> <span class="o">=</span> <span class="p">[</span><span class="n">dd</span><span class="o">.</span><span class="n">nch</span> <span class="o">==</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nch</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">lData</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">c0</span><span class="p">):</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;All Data objects must have the same number of channels (self.nch)&quot;</span>
-        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">You can set the indices of the channels with self.set_indch()&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;All Data objects must have the same nb. of channels</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- self.nch: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="n">dd</span><span class="o">.</span><span class="n">nch</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">lData</span><span class="p">])</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  =&gt; use self.set_indch()&quot;</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">nch</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nch</span>
 
