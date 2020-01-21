@@ -54,9 +54,8 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
         assert len(proj) == 1
         dax = {proj[0]: dax}
     elif lc[2]:
-        lcax = [(kk in proj
-                 and (ax is None or issubclass(ax.__class__, Axes)))
-                for kk, ax in dax.items()]
+        lcax = [dax.get(pp) is None or issubclass(dax.get(pp).__class__, Axes)
+                for pp in proj]
         if not all(lcax):
             msg = "Wrong key or axes in dax:\n"
             msg += "    - proj = %s"%str(proj)
