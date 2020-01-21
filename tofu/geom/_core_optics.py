@@ -1566,7 +1566,7 @@ class CrystalBragg(utils.ToFuObject):
                              nlambfit=None, nphifit=None,
                              magaxis=None, npaxis=None,
                              dlines=None, spect1d='mean',
-                             plot=True, fs=None,
+                             plot=True, fs=None, tit=None, wintit=None,
                              cmap=None, vmin=None, vmax=None):
         # Check / format inputs
         if spect1d is None:
@@ -1636,7 +1636,8 @@ class CrystalBragg(utils.ToFuObject):
                 xi, xj, bragg, lamb, phi, data,
                 lambfit=lambfit, phifit=phifit, spect1d=spect1d,
                 vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
-                cmap=cmap, vmin=vmin, vmax=vmax, dlines=dlines, fs=fs)
+                cmap=cmap, vmin=vmin, vmax=vmax, dlines=dlines,
+                tit=tit, wintit=wintit, fs=fs)
         return ax
 
     def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,

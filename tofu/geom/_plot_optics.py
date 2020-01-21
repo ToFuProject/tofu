@@ -727,6 +727,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                                       dlines=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
+                                      tit=None, wintit=None,
                                       angunits='deg'):
 
     # Check inputs
@@ -734,12 +735,16 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     if fs is None:
         fs = (14,8)
+    if tit is None:
+        tit = False
+    if wintit is None:
+        wintit = _WINTIT
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.03, 'right':0.99,
-                   'bottom':0.06, 'top':0.92,
-                   'wspace':None, 'hspace':0.6}
+        dmargin = {'left':0.05, 'right':0.99,
+                   'bottom':0.07, 'top':0.92,
+                   'wspace':0.2, 'hspace':0.3}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         bragg = bragg*180./np.pi
@@ -797,9 +802,12 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax1.set_title('Camera image')
     ax2.set_title('Camera image transformed')
 
+    ax0.set_ylabel(r'$x_j$ (m)')
+    ax0.set_xlabel(r'$x_i$ (m)')
+    axs1.set_ylabel(r'data')
+    axs1.set_xlabel(r'$x_i$ (m)')
     ax2.set_ylabel(r'incidence angle ($deg$)')
     axs2.set_xlabel(r'$\lambda$ ($m$)')
-    ax3.set_ylabel(r'incidence angle ($deg$)')
 
     ax0.contour(xi, xj, bragg, 10, cmap=cmap)
     ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
@@ -834,6 +842,15 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.setp(ax1.get_yticklabels(), visible=False)
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    plt.setp(ax3.get_yticklabels(), visible=False)
+
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
     return [ax0, ax1]
 
 
