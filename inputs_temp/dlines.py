@@ -7,7 +7,8 @@ _DSOURCES = {
                + ', Physica Scripta, vol. 31, 6, pp. 551-564, 1985'),
     'Bitter': ('Bitter et al., '
                + 'XRay diagnostics of tokamak plasmas'
-               + ', Physica Scripta, vol. 47, pp. 87-95, 1993')
+               + ', Physica Scripta, vol. 47, pp. 87-95, 1993'),
+    'NIST': 'https://physics.nist.gov/PhysRefData/ASD/lines_form.html'
 }
 
 dlines = {
@@ -78,21 +79,21 @@ dlines = {
                 'source': 'Kallne'},
 
     'ArXVII_w': {'Z': 18, 'q': 16, 'element': 'Ar', 'ION': 'ArXVII',
-                 'symbol': 'w', 'lambda': 3.9482e-10,
+                 'symbol': 'w', 'lambda': 3.94906e-10,
                  'transition': [r'$1s2p(^1P_1)$', r'$1s^2(^1S_0)$'],
-                 'source': 'Kallne'},
+                 'source': 'NIST'},
     'ArXVII_x': {'Z': 18, 'q': 16, 'element': 'Ar', 'ION': 'ArXVII',
                  'symbol': 'x', 'lambda': 3.9649e-10,
                  'transition': [r'$1s2p(^3P_2)$', r'$1s^2(^1S_0)$'],
-                 'source': 'Kallne'},
+                 'source': 'Kallne'},       # TBC vs NIST
     'ArXVII_y': {'Z': 18, 'q': 16, 'element': 'Ar', 'ION': 'ArXVII',
                  'symbol': 'y', 'lambda': 3.9683e-10,
                  'transition': [r'$1s2p(^3P_1)$', r'$1s^2(^1S_0)$'],
-                 'source': 'Kallne'},
+                 'source': 'Kallne'},       # TBC vs NIST
     'ArXVII_z': {'Z': 18, 'q': 16, 'element': 'Ar', 'ION': 'ArXVII',
-                 'symbol': 'z', 'lambda': 3.9934e-10,
+                 'symbol': 'z', 'lambda': 3.99414e-10,
                  'transition': [r'$1s2s(^3S_1)$', r'$1s^2(^1S_0)$'],
-                 'source': 'Kallne'},
+                 'source': 'NIST'},
 
     'ArXVIII_W1': {'Z': 18, 'q': 17, 'element': 'Ar', 'ION': 'ArXVIII',
                    'symbol': 'W_1', 'lambda': 3.7300e-10,
