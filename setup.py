@@ -156,7 +156,7 @@ def updateversion(path=_HERE):
     try:
         version_git = subprocess.check_output(["git",
                                                "describe"]).rstrip().decode()
-    except Exception:
+    except subprocess.CalledProcessError:
         with open(version_py, 'r') as fh:
             version_git = fh.read().strip().split("=")[-1].replace("'", '')
     version_git = version_git.lower().replace('v', '')
