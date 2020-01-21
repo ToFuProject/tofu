@@ -5,9 +5,9 @@
 
 Computation times
 =================
-**00:07.670** total execution time for **auto_examples_tutorials** files:
+**00:06.639** total execution time for **auto_examples_tutorials** files:
 
-- **00:02.768**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py` (``tuto_plot_gallery_fusion_machines.py``)
-- **00:02.305**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py` (``tuto_plot_custom_emissivity.py``)
-- **00:01.784**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_basic.py` (``tuto_plot_basic.py``)
-- **00:00.814**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py` (``tuto_plot_create_geometry.py``)
+- **00:02.615**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py` (``tuto_plot_gallery_fusion_machines.py``)
+- **00:01.842**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py` (``tuto_plot_custom_emissivity.py``)
+- **00:01.446**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_basic.py` (``tuto_plot_basic.py``)
+- **00:00.736**: :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py` (``tuto_plot_create_geometry.py``)

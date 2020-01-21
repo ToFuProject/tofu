@@ -117,7 +117,6 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1"># Built-in</span>
-<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="c1"># Common</span>
@@ -177,6 +176,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">Vol</span><span class="p">,</span> <span class="n">BaryV</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">Poly_VolAngTor</span><span class="p">(</span><span class="n">Poly</span><span class="p">)</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Pb. with volume computation for Ves object of type &#39;Tor&#39; !&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> Here Volume = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">Vol</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">Vol</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">msg</span>
 
     <span class="c1"># Compute the non-normalized vector of each side of the Poly</span>

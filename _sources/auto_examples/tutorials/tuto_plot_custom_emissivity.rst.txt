@@ -126,7 +126,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
                                    t=time_vector)
 
     sig.plot(ntMax=1)
-    plt.show(block=False)
+    plt.show(block=True)
 
 
 
@@ -153,7 +153,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.305 seconds)
+   **Total running time of the script:** ( 0 minutes  1.842 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_custom_emissivity.py:
