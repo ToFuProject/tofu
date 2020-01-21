@@ -188,16 +188,14 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 
 def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     """ Assuming 2D closed Poly !
-    TODO @LM :
     http://www.faqs.org/faqs/graphics/algorithms-faq/
-    A slightly faster method is based on the observation that it isn't
-    necessary to compute the area.  Find the lowest vertex (or, if
-    there is more than one vertex with the same lowest coordinate,
-    the rightmost of those vertices) and then take the cross product
-    of the edges fore and aft of it.  Both methods are O(n) for n vertices,
-    but it does seem a waste to add up the total area when a single cross
-    product (of just the right edges) suffices.  Code for this is
-    available at ftp://cs.smith.edu/pub/code/polyorient.C (2K).
+    Find the lowest vertex (or, if there is more than one vertex with
+    the same lowest coordinate, the rightmost of those vertices) and then
+    take the cross product of the edges before and after it.
+    Both methods are O(n) for n vertices, but it does seem a waste to add up
+    the total area when a single cross product (of just the right edges)
+    suffices.  Code for this is available at
+    ftp://cs.smith.edu/pub/code/polyorient.C (2K).
     """
     cdef double res
     cdef double[:,::1] mv_poly = np.ascontiguousarray(Poly)
@@ -206,12 +204,23 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     cdef double[::1] mvy = mv_poly[1,:]
     cdef int idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
     cdef int idm1 = idmin - 1
-    cdef int idp1 = (idmin + 1)%npts
+    cdef int idp1 = (idmin + 1) % npts
+    cdef str err_msg = ""
     if idmin == 0 :
         idm1 = npts - 1
     res = mvx[idm1]  * (mvy[idmin] - mvy[idp1]) + \
           mvx[idmin] * (mvy[idp1]  - mvy[idm1]) + \
           mvx[idp1]  * (mvy[idm1]  - mvy[idmin])
+    if abs(res) < _VSMALL:
+        err_msg += ("In Poly_isClockwise : \n"
+                    + "   Found lowest right point at index : "
+                    + str(idmin)
+                    + ", of coordinates :" + str(mvx[idmin])
+                    + ", " + str(mvy[idmin]) + ".\n"
+                    + "   The two neighboring points are : "
+                    + str(idm1) + " and " + str(idp1) + ".")
+        print(err_msg)
+        raise Exception(err_msg) # not working
     return res < 0.
 
 
@@ -274,8 +283,11 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
     if not np.allclose(poly[:,0],poly[:,-1], atol=_VSMALL):
         poly = np.concatenate((poly,poly[:,0:1]),axis=1)
     if poly.shape[0]==2 and not Clock is None:
-        if not Clock==Poly_isClockwise(poly):
-            poly = poly[:,::-1]
+        try:
+            if not Clock==Poly_isClockwise(poly):
+                poly = poly[:,::-1]
+        except Exception as excp:
+            raise excp
     if not close:
         poly = poly[:,:-1]
     if layout.lower()=='(n,cc)':

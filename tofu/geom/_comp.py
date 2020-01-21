@@ -34,9 +34,12 @@ def _Struct_set_Poly(
     """ Compute geometrical attributes of a Struct object """
 
     # Make Poly closed, counter-clockwise, with '(cc,N)' layout and arrayorder
-    Poly = _GG.Poly_Order(
-        Poly, order="C", Clock=False, close=True, layout="(cc,N)", Test=True
-    )
+    try:
+        Poly = _GG.Poly_Order(
+            Poly, order="C", Clock=False, close=True, layout="(cc,N)", Test=True
+            )
+    except Exception as excp:
+        print(excp)
     assert Poly.shape[0] == 2, "Arg Poly must be a 2D polygon !"
     fPfmt = np.ascontiguousarray if arrayorder == "C" else np.asfortranarray
 
