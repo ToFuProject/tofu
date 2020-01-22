@@ -64,8 +64,11 @@ def _Struct_set_Poly(
     else:
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
         if Vol <= 0.0:
-            msg = "Pb. with volume computation for Ves object of type 'Tor' !"
-            msg = "\n Here Volume = " + str(Vol)
+            msg = ("Pb. with volume computation for Struct of type 'Tor' !\n"
+                   + "\t- Vol = {}\n".format(Vol)
+                   + "\t- Poly = {}\n\n".format(str(Poly))
+                   + "  => Probably corrupted polygon\n"
+                   + "  => Please check polygon is not self-intersecting")
             raise Exception(msg)
 
     # Compute the non-normalized vector of each side of the Poly
