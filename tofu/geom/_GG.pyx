@@ -200,14 +200,27 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     cdef double res
     cdef double[:,::1] mv_poly = np.ascontiguousarray(Poly)
     cdef int npts = mv_poly.shape[1]
-    cdef double[::1] mvx = mv_poly[0,:]
-    cdef double[::1] mvy = mv_poly[1,:]
-    cdef int idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
-    cdef int idm1 = idmin - 1
-    cdef int idp1 = (idmin + 1) % npts
+    cdef int ndim = mv_poly.shape[0]
+    cdef double[::1] mvx
+    cdef double[::1] mvy
+    cdef int idmin
+    cdef int idm1
+    cdef int idp1
     cdef str err_msg = ""
+    # Checking that Poly wasn't given in the shape (npts, ndim)
+    if ndim > npts:
+        mv_poly = np.ascontiguousarray(Poly.T)
+        npts = mv_poly.shape[1]
+        ndim = mv_poly.shape[0]
+    mvx = mv_poly[0,:]
+    mvy = mv_poly[1,:]
+    # Getting index of lower right corner and its neighbors
+    idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
+    idm1 = idmin - 1
+    idp1 = (idmin + 1) % npts
     if idmin == 0 :
         idm1 = npts - 2
+    # Computing area of lower right triangle
     res = mvx[idm1]  * (mvy[idmin] - mvy[idp1]) + \
           mvx[idmin] * (mvy[idp1]  - mvy[idm1]) + \
           mvx[idp1]  * (mvy[idm1]  - mvy[idmin])
@@ -219,7 +232,6 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
                     + ", " + str(mvy[idmin]) + ".\n"
                     + "   The two neighboring points are : "
                     + str(idm1) + " and " + str(idp1) + ".")
-        print(err_msg)
         raise Exception(err_msg) # not working
     return res < 0.
 
