@@ -207,7 +207,7 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     cdef int idp1 = (idmin + 1) % npts
     cdef str err_msg = ""
     if idmin == 0 :
-        idm1 = npts - 1
+        idm1 = npts - 2
     res = mvx[idm1]  * (mvy[idmin] - mvy[idp1]) + \
           mvx[idmin] * (mvy[idp1]  - mvy[idm1]) + \
           mvx[idp1]  * (mvy[idm1]  - mvy[idmin])
