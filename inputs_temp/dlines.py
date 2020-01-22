@@ -288,13 +288,13 @@ dlines = {
 }
 
 
-for k0, v0 in dlines:
+for k0, v0 in dlines.items():
     elem = v0['ION'][:2]
     if elem[1].isupper():
         elem = elem[0]
     dlines[k0]['element'] = elem
-    dlines[k0]['Z'] = delements[elem]]['Z']
+    dlines[k0]['Z'] = delements[elem]['Z']
     if isinstance(v0['transition'], tuple):
         trans = dtransitions[v0['transition'][0]][v0['transition'][1]]
-        dlines[k0]['transition'] = trans
         dlines[k0]['symbol'] = v0['transition'][1]
+        dlines[k0]['transition'] = trans
