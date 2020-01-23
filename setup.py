@@ -9,7 +9,7 @@ import shutil
 import logging
 import platform
 import subprocess
-from codecs import open as cd_open
+from codecs import open
 # ... setup tools
 from setuptools import setup, find_packages
 from setuptools import Extension
@@ -24,12 +24,6 @@ import numpy as np
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
-from Cython.Compiler.Options import get_directive_defaults
-
-directive_defaults = get_directive_defaults()
-directive_defaults["profile"] = True
-directive_defaults["linetrace"] = True
-directive_defaults["binding"] = True
 
 # == Checking platform ========================================================
 is_platform_windows = False
@@ -81,10 +75,12 @@ class CleanCommand(Clean):
         Clean.run(self)
 
         cython_files = self.find(["*.pyx"])
-        cythonized_files = [path.replace(".pyx", ".c") for path in cython_files]
+        cythonized_files = [
+            path.replace(".pyx", ".c") for path in cython_files
+        ]
         cythonized_files += [
             path.replace(".pyx", ".cpp") for path in cython_files
-        ]  # noqa
+        ]
         so_files = self.find(["*.so"])
         # really remove the directories
         # and not only if they are empty
@@ -226,7 +222,7 @@ _README = [
 ]
 assert len(_README) == 1
 _README = _README[0]
-with cd_open(os.path.join(_HERE, _README), encoding="utf-8") as f:
+with open(os.path.join(_HERE, _README), encoding="utf-8") as f:
     long_description = f.read()
 if _README[-3:] == ".md":
     long_description_content_type = "text/markdown"
