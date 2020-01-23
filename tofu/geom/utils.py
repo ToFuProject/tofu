@@ -819,10 +819,10 @@ def _create_config_testcase(config=None, returnas='object',
                 ssbis, Expbis = '_'+ss+'.txt', '_Exp'+Exp+'_'
                 ff = [fff for fff in ff if ssbis in fff and Expbis in fff]
                 if len(ff) != 1:
-                    msg = "No / several matching files\n"
-                    msg += "  Folder: %s\n"%path
-                    msg += "    Criteria: [%s, %s]\n"%(cc,ss)
-                    msg += "    Matching: "+"\n              ".join(ff)
+                    msg = ("No / several matching files\n"
+                           + "  Folder: {}\n".format(path)
+                           + "    Criteria: [{}, {}]\n".format(cc, ss)
+                           + "    Matching: "+"\n              ".join(ff))
                     raise Exception(msg)
 
             pfe = os.path.join(path, ff[0])
@@ -831,7 +831,8 @@ def _create_config_testcase(config=None, returnas='object',
                                                  Exp=dconfig[config]['Exp'],
                                                  out=returnas)
                 if returnas not in ['object', object]:
-                    obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
+                    obj = ((ss, {'Poly': obj[0],
+                                 'pos': obj[1], 'extent': obj[2]}),)
                 lS.append(obj)
             except Exception as err:
                 msg = "Could not be loaded: {}".format(ff[0])
