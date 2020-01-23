@@ -5,6 +5,7 @@
 #
 # -- Python libraries imports --------------------------------------------------
 import sys
+import time
 from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
@@ -927,7 +928,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=1] res3d
     cdef int max_sz_phi
-
+    timezero = time.clock()
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -977,6 +978,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     twopi_over_dphi = _TWOPI / phistep
     #
     # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    time0 = time.clock()
+    print(">>>>Time for init : ", time0 - timezero)
     for ii in range(sz_r):
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
         ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
@@ -1029,6 +1032,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             for jj in range(loc_nc_rphi - nphi0, sz_phi[ii]):
                 indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * sz_phi[ii]
+    timephiend = time.clock()
+    print(">>>>Time for discphi : ", timephiend - time0)
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
@@ -1037,9 +1042,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     dv_mv  = res3d
     # Compute pts, res3d and ind
     # This triple loop is the longest part, it takes ~90% of the CPU time
+    tstart = time.clock()
     reso_r_z = reso_r[0]*reso_z[0]
     lnp = np.empty((sz_r, sz_z, max_sz_phi), dtype=int)
     _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
+    time1 = time.clock()
+    print(">>>>Time for prepartion : ", time1 - tstart)
     indI = np.sort(indI, axis=1)
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1)
@@ -1050,6 +1058,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           reso_r_z, step_rphi,
                           disc_r, disc_z, lnp, sz_phi,
                           dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    time2 = time.clock()
+    print(">>>>Time for double loop : ", time2 - time1)
+
+
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
@@ -1062,11 +1074,14 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_rphi = <double**> malloc(sizeof(double*))
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
+        time3 = time.clock()
         nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0])
+        time4 = time.clock()
+        print(">>>>Time for vignetting : ", time4 - time3)
         pts = np.empty((3,nb_in_poly))
         ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
         res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
@@ -1095,6 +1110,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
+    timeend = time.clock()
+    print(">>>>Time for ending : ", timeend - time2 - (time4 - time3))
+    print(">>>>>>>Time TOTAL : ", timeend - timezero)
     return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi
 
 
