@@ -1040,8 +1040,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     pts_mv = pts
     ind_mv = ind
     dv_mv  = res3d
-    # Compute pts, res3d and ind
-    # This triple loop is the longest part, it takes ~90% of the CPU time
     tstart = time.clock()
     reso_r_z = reso_r[0]*reso_z[0]
     lnp = np.empty((sz_r, sz_z, max_sz_phi), dtype=int)
@@ -1075,6 +1073,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
         time3 = time.clock()
+        # this is now the bottleneck taking over 2/3 of the time....
         nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,

@@ -14,7 +14,7 @@ cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from libcpp.vector cimport vector as vecpp
-from libcpp.set cimport set as setpp
+from libcpp.set cimport set as setpp # take out cpp calls !!!!!!!!!!!!!!!!!
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt as Csqrt
 cimport _raytracing_tools as _rt
