@@ -1560,41 +1560,15 @@ class CrystalBragg(utils.ToFuObject):
                 return ax
         return xi, xj
 
-    def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
-                             det_cent=None, det_ei=None, det_ej=None,
-                             dtheta=None, psi=None, n=None,
-                             nlambfit=None, nphifit=None,
-                             magaxis=None, npaxis=None,
-                             dlines=None, spect1d='mean',
-                             lambmin=None, lambmax=None,
-                             plot=True, fs=None, tit=None, wintit=None,
-                             cmap=None, vmin=None, vmax=None,
-                             returnas=None):
+
+    def _calc_spect1d_from_data2d(self, data, lamb, phi,
+                                  nlambfit=None, nphifit=None,
+                                  nxi=None, nxj=None,
+                                  spect1d=None):
         # Check / format inputs
         if spect1d is None:
             spect1d = 'mean'
-        assert data is not None
         assert spect1d in ['mean', 'center']
-        if returnas is None:
-            returnas = 'spect'
-        lreturn = ['ax', 'spect']
-        if not returnas in lreturn:
-            msg = ("Arg returnas must be in {}\n:".format(lreturn)
-                   + "\t- 'spect': return a 1d vertically averaged spectrum\n"
-                   + "\t- 'ax'   : return a list of axes instances")
-            raise Exception(msg)
-
-        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
-        nxi = xi.size if xi is not None else np.unique(xii).size
-        nxj = xj.size if xj is not None else np.unique(xjj).size
-
-        # Compute lamb / phi
-        bragg, phi = self.calc_phibragg_from_xixj(
-            xii, xjj, n=n,
-            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
-            dtheta=dtheta, psi=psi, plot=False)
-        assert bragg.shape == phi.shape == data.shape
-        lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
         if mask is not None:
@@ -1620,6 +1594,48 @@ class CrystalBragg(utils.ToFuObject):
         ind = np.digitize(phi, phifitbins)
         vertsum1d = np.array([np.nanmean(data[ind == ii])
                               for ii in np.unique(ind)])
+        return spect1d, lambfit, phifit, vertsum1d
+
+
+    def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
+                             det_cent=None, det_ei=None, det_ej=None,
+                             dtheta=None, psi=None, n=None,
+                             nlambfit=None, nphifit=None,
+                             magaxis=None, npaxis=None,
+                             dlines=None, spect1d='mean',
+                             lambmin=None, lambmax=None,
+                             plot=True, fs=None, tit=None, wintit=None,
+                             cmap=None, vmin=None, vmax=None,
+                             returnas=None):
+        # Check / format inputs
+        assert data is not None
+        if returnas is None:
+            returnas = 'spect'
+        lreturn = ['ax', 'spect']
+        if not returnas in lreturn:
+            msg = ("Arg returnas must be in {}\n:".format(lreturn)
+                   + "\t- 'spect': return a 1d vertically averaged spectrum\n"
+                   + "\t- 'ax'   : return a list of axes instances")
+            raise Exception(msg)
+
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            dtheta=dtheta, psi=psi, plot=False)
+        assert bragg.shape == phi.shape == data.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        # Compute lambfit / phifit and spectrum1d
+        spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
+            data, lamb, phi,
+            nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
+            spect1d=spect1d
+        )
 
         # Get phiref from mag axis
         lambax, phiax = None, None
@@ -1668,23 +1684,33 @@ class CrystalBragg(utils.ToFuObject):
                         cmap=None, vmin=None, vmax=None):
         # Check / format inputs
         assert data is not None
+        if returnas is None:
+            returnas = 'spect'
+        lreturn = ['ax', 'spect']
+        if not returnas in lreturn:
+            msg = ("Arg returnas must be in {}\n:".format(lreturn)
+                   + "\t- 'spect': return a 1d vertically averaged spectrum\n"
+                   + "\t- 'ax'   : return a list of axes instances")
+            raise Exception(msg)
+
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        func = self.calc_phibragg_from_xixj
-        bragg, phi = func(xii, xjj, n=n,
-                          det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
-                          dtheta=dtheta, psi=psi, plot=False)
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            dtheta=dtheta, psi=psi, plot=False)
         assert bragg.shape == phi.shape == data.shape
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
-        lambfit, phifit = _comp_optics.get_lambphifit(lamb, phi, nxi, nxj)
-        lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
-        ind = np.digitize(lamb, lambfitbins)
-        spect1d = np.array([np.nanmean(data[ind==ii]) for ii in np.unique(ind)])
+        spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
+            data, lamb, phi,
+            nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
+            spect1d=spect1d
+        )
 
         # Compute fit for spect1d to get lamb0 if not provided
         import tofu.data._spectrafit2d as _spectrafit2d
