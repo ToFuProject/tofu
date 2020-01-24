@@ -350,6 +350,7 @@ def _Ves_get_sampleV(
     VLim=None,
     Out="(X,Y,Z)",
     margin=1.0e-9,
+    algo="new",
 ):
     types = [int, float, np.int32, np.int64, np.float32, np.float64]
     assert type(dV) in types or (
@@ -394,21 +395,39 @@ def _Ves_get_sampleV(
     dVr = [None, None, None]
     if ind is None:
         if VType.lower() == "tor":
-            Pts, dV, ind, dVr[0], dVr[1], dVr[
-                2
-            ] = _GG._Ves_Vmesh_Tor_SubFromD_cython(
-                dV[0],
-                dV[1],
-                dV[2],
-                MinMax1,
-                MinMax2,
-                DR=DV[0],
-                DZ=DV[1],
-                DPhi=DV[2],
-                VPoly=VPoly,
-                Out=Out,
-                margin=margin,
-            )
+            if algo.lower() == "new":
+                Pts, dV, ind, dVr[0], dVr[1], dVr[
+                    2
+                ] = _GG._Ves_Vmesh_Tor_SubFromD_cython(
+                    dV[0],
+                    dV[1],
+                    dV[2],
+                    MinMax1,
+                    MinMax2,
+                    DR=DV[0],
+                    DZ=DV[1],
+                    DPhi=DV[2],
+                    VPoly=VPoly,
+                    Out=Out,
+                    margin=margin,
+                )
+            else:
+                print("~~~~~~CALLING OLD ALGO~~~~~~~")
+                (Pts, dV, ind, dVr[0],
+                 dVr[1], dVr[2]) = _GG._Ves_Vmesh_Tor_SubFromD_cython_old(
+                    dV[0],
+                    dV[1],
+                    dV[2],
+                    MinMax1,
+                    MinMax2,
+                    DR=DV[0],
+                    DZ=DV[1],
+                    DPhi=DV[2],
+                    VPoly=VPoly,
+                    Out=Out,
+                    margin=margin,
+                )
+
         else:
             Pts, dV, ind, dVr[0], dVr[1], dVr[
                 2
@@ -427,18 +446,33 @@ def _Ves_get_sampleV(
             )
     else:
         if VType.lower() == "tor":
-            Pts, dV, dVr[0], dVr[1], dVr[
-                2
-            ] = _GG._Ves_Vmesh_Tor_SubFromInd_cython(
-                dV[0],
-                dV[1],
-                dV[2],
-                MinMax1,
-                MinMax2,
-                ind,
-                Out=Out,
-                margin=margin,
-            )
+            if algo.lower() == "new":
+                Pts, dV, dVr[0], dVr[1], dVr[
+                    2
+                ] = _GG._Ves_Vmesh_Tor_SubFromInd_cython(
+                    dV[0],
+                    dV[1],
+                    dV[2],
+                    MinMax1,
+                    MinMax2,
+                    ind,
+                    Out=Out,
+                    margin=margin,
+                )
+            else:
+                print("~~~~~~CALLING OLD ALGO~~~~~~~")
+                Pts, dV, dVr[0], dVr[1], dVr[
+                    2
+                ] = _GG._Ves_Vmesh_Tor_SubFromInd_cython_old(
+                    dV[0],
+                    dV[1],
+                    dV[2],
+                    MinMax1,
+                    MinMax2,
+                    ind,
+                    Out=Out,
+                    margin=margin,
+                )
         else:
             Pts, dV, dVr[0], dVr[1], dVr[
                 2

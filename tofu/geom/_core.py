@@ -1213,7 +1213,7 @@ class Struct(utils.ToFuObject):
         return pts, dS, ind, reseff
 
     def get_sampleV(
-        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)"
+        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)", algo="new"
     ):
         """ Sample, with resolution res, the volume defined by DV or ind """
 
@@ -1233,6 +1233,7 @@ class Struct(utils.ToFuObject):
             VLim=self.Lim,
             Out=Out,
             margin=1.0e-9,
+            algo=algo,
         )
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
@@ -2199,8 +2200,8 @@ class Config(utils.ToFuObject):
 
     def _checkformat_inputs_Struct(self, struct, err=True):
         assert issubclass(struct.__class__, Struct)
-        C0 = struct.Id.Exp==self.Id.Exp
-        C1 = struct.Id.Type==self.Id.Type
+        C0 = struct.Id.Exp == self.Id.Exp
+        C1 = struct.Id.Type == self.Id.Type
         C2 = struct.Id.Name.isidentifier()
         C2 = C2 and '_' not in struct.Id.Name
         msgi = None
@@ -3129,7 +3130,6 @@ class Config(utils.ToFuObject):
                                               cmap=cmap, ax=ax, fs=fs,
                                               tit=tit, wintit=wintit,
                                               invertx=invertx, draw=draw)
-
 
     def isInside(self, pts, In="(X,Y,Z)", log="any"):
 
@@ -4137,7 +4137,8 @@ class Rays(utils.ToFuObject):
                     k = np.sum(DDb*(u - np.sqrt(sca2)*dgeom['u'][:, 1:]),
                                axis=0)
                     k = k / (1.0-sca2)
-                    if k[0] > 0 and np.allclose(k, k[0], atol=1.e-3, rtol=1.e-6):
+                    if k[0] > 0 and np.allclose(k, k[0], atol=1.e-3,
+                                                rtol=1.e-6):
                         pinhole = dgeom['D'][:, 0] + k[0]*u[:, 0]
                         dgeom['pinhole'] = pinhole
 
@@ -5123,7 +5124,7 @@ class Rays(utils.ToFuObject):
     def _check_indch(self, ind, out=int):
         if ind is not None:
             ind = np.asarray(ind)
-            assert ind.ndim==1
+            assert ind.ndim == 1
             assert ind.dtype in [np.int64, np.bool_, np.long]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
@@ -5659,14 +5660,14 @@ class Rays(utils.ToFuObject):
 
         # Compute intersections
         assert(self._method in ['ref', 'optimized'])
-        if self._method=='ref':
+        if self._method == 'ref':
             for ii in range(0, nPoly):
                 largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
                 kIn[ii, :], kOut[ii, :] = out[2], out[3]
-        elif self._method=="optimized":
+        elif self._method == "optimized":
             for ii in range(0, nPoly):
                 largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])

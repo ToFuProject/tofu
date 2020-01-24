@@ -22,7 +22,7 @@ def bigger_test():
     lf = os.listdir(path)
     lf = [f for f in lf if all([s in f for s in [_Exp, ".txt"]])]
     lCls = sorted(set([f.split("_")[1] for f in lf]))
-    dobj = {"Tor": {}, "Lin": {}}
+    dobj = {"Tor": {}}  # , "Lin": {}}
     for tt in dobj.keys():
         for cc in lCls:
             lfc = [f for f in lf if f.split("_")[1] == cc and "V0" in f]
@@ -85,16 +85,22 @@ def bigger_test():
     for typ in dobj.keys():
         # Todo : introduce possibility of choosing In coordinates !
         for c in dobj[typ].keys():
-            if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
+            if issubclass(eval('tfg.%s' % c), tfg._core.StructOut):
                 continue
             for n in dobj[typ][c].keys():
+                print("\n For type = " + str(typ) + " c = " + str(c)
+                      + " n = ", n)
                 obj = dobj[typ][c][n]
-                box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+                box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
                     start = time.clock()
                     out = obj.get_sampleV(0.01, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
+                    print("sample V total time = ", time.clock() - start)
+                    start = time.clock()
+                    out = obj.get_sampleV(0.01, resMode='abs', DV=box,
+                                          Out='(X,Y,Z)', algo="old")
                     print("sample V total time = ", time.clock() - start)
                     pts0, ind = out[0], out[2]
                     ii = 1
@@ -102,20 +108,25 @@ def bigger_test():
                     out = obj.get_sampleV(0.01, resMode='abs', ind=ind,
                                           Out='(X,Y,Z)')
                     print("sample V total time = ", time.clock() - start)
+                    start = time.clock()
+                    out = obj.get_sampleV(0.01, resMode='abs', ind=ind,
+                                          Out='(X,Y,Z)', algo="old")
+                    print("sample V total time = ", time.clock() - start)
                     pts1 = out[0]
                 except Exception as err:
                     msg = str(err)
-                    msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                    msg += "\nFailed for {0}_{1}_{2}".format(typ, c, n)
                     msg += "\n    ii={0}".format(ii)
                     msg += "\n    Lim={0}".format(str(obj.Lim))
                     msg += "\n    DS={0}".format(str(box))
                     raise Exception(msg)
 
                 if type(pts0) is list:
-                    assert all([np.allclose(pts0[ii],pts1[ii])
-                                for ii in range(0,len(pts0))])
+                    assert all([np.allclose(pts0[ii], pts1[ii])
+                                for ii in range(0, len(pts0))])
                 else:
-                    assert np.allclose(pts0,pts1)
+                    assert np.allclose(pts0, pts1)
+
 
 def small_test():
     """Test vmesh"""
@@ -203,19 +214,13 @@ if __name__ == "__main__":
         choices=["big", "small"],
         default="small",
     )
-    parser.add_argument(
-        "-tm",
-        "--timeme",
-        help="do you wish to time it ?",
-        type=bool,
-        required=False,
-        choices=[True, False],
-        default=False,
-    )
+    parser.add_argument('--timeit', dest='timeit', action='store_true')
+    parser.add_argument('--no-timeit', dest='timeit', action='store_false')
+    parser.set_defaults(timeit=False)
     args = parser.parse_args()
     print(".-.-.-.-.-.-.-. ", args.mode, " .-.-.-.-.-.-.-.-")
     if args.mode.lower() == "small":
-        if args.timeme:
+        if args.timeit:
             print(
                 timeit.timeit(
                     "small_test()",
@@ -226,7 +231,7 @@ if __name__ == "__main__":
         else:
             small_test()
     elif args.mode.lower() == "big":
-        if args.timeme:
+        if args.timeit:
             print(
                 timeit.timeit(
                     "bigger_test()",
@@ -235,4 +240,5 @@ if __name__ == "__main__":
                 )
             )
         else:
+            print(".................... ONE CALL ...................")
             bigger_test()
