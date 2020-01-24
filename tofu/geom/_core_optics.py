@@ -1566,13 +1566,24 @@ class CrystalBragg(utils.ToFuObject):
                              nlambfit=None, nphifit=None,
                              magaxis=None, npaxis=None,
                              dlines=None, spect1d='mean',
+                             lambmin=None, lambmax=None,
                              plot=True, fs=None, tit=None, wintit=None,
-                             cmap=None, vmin=None, vmax=None):
+                             cmap=None, vmin=None, vmax=None,
+                             returnas=None):
         # Check / format inputs
         if spect1d is None:
             spect1d = 'mean'
         assert data is not None
         assert spect1d in ['mean', 'center']
+        if returnas is None:
+            returnas = 'spect'
+        lreturn = ['ax', 'spect']
+        if not returnas in lreturn:
+            msg = ("Arg returnas must be in {}\n:".format(lreturn)
+                   + "\t- 'spect': return a 1d vertically averaged spectrum\n"
+                   + "\t- 'ax'   : return a list of axes instances")
+            raise Exception(msg)
+
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
         nxj = xj.size if xj is not None else np.unique(xjj).size
@@ -1631,14 +1642,19 @@ class CrystalBragg(utils.ToFuObject):
             lambax, phiax = lambax[ind], phiax[ind]
 
         # plot
+        ax = None
         if plot:
             ax = _plot_optics.CrystalBragg_plot_data_vs_lambphi(
                 xi, xj, bragg, lamb, phi, data,
                 lambfit=lambfit, phifit=phifit, spect1d=spect1d,
                 vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
+                lambmin=lambmin, lambmax=lambmax,
                 cmap=cmap, vmin=vmin, vmax=vmax, dlines=dlines,
                 tit=tit, wintit=wintit, fs=fs)
-        return ax
+        if returnas == 'spect':
+            return spect1d, lambfit
+        elif returnas == 'ax':
+            return ax
 
     def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,
                         det_cent=None, det_ei=None, det_ej=None,

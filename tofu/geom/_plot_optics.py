@@ -725,6 +725,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                                       spect1d=None, vertsum1d=None,
                                       lambax=None, phiax=None,
                                       dlines=None,
+                                      lambmin=None, lambmax=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
                                       tit=None, wintit=None,
@@ -783,7 +784,10 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     # extent
     extent = (xi.min(), xi.max(), xj.min(), xj.max())
-    extent2 = (lambfit.min(), lambfit.max(), phifit.min(), phifit.max())
+    if lambmin is None:
+        lambmin = lambfit.min()
+    if lambmax is None:
+        lambmax = lambfit.max()
 
     # Plot
     # ------------
@@ -800,6 +804,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     ax0.set_title('Coordinates transform')
     ax1.set_title('Camera image')
+    axs1.set_title('Vertical average')
     ax2.set_title('Camera image transformed')
 
     ax0.set_ylabel(r'$x_j$ (m)')
@@ -840,8 +845,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         axs2.legend(hand, lions,
                     bbox_to_anchor=(1., 1.02), loc='upper left')
 
-    ax2.set_xlim(extent2[0], extent2[1])
-    ax2.set_ylim(extent2[2], extent2[3])
+    ax2.set_xlim(lambmin, lambmax)
+    ax2.set_ylim(phifit.min(), phifit.max())
     plt.setp(ax1.get_xticklabels(), visible=False)
     plt.setp(ax1.get_yticklabels(), visible=False)
     plt.setp(ax2.get_xticklabels(), visible=False)
