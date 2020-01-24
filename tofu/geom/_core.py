@@ -436,19 +436,23 @@ class Struct(utils.ToFuObject):
             Poly = Poly.T
 
         # Elimininate any double identical point
-        ind = np.sum(np.diff(Poly, axis=1) ** 2, axis=0) < 1.0e-12
+        ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
+                             axis=1) ** 2, axis=0) < 1.0e-12
         if np.any(ind):
             npts = Poly.shape[1]
+            Poly = Poly[:, ~ind]
             msg = (
                 "%s instance: double identical points in Poly\n" % cls.__name__
             )
             msg += "  => %s points removed\n" % ind.sum()
             msg += "  => Poly goes from %s to %s points" % (
                 npts,
-                npts - ind.sum(),
+                Poly.shape[1],
             )
             warnings.warn(msg)
-            Poly = Poly[:, ~ind]
+            ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
+                                 axis=1) ** 2, axis=0) < 1.0e-12
+            assert not np.any(ind), ind
 
         lC = [Lim is None, pos is None]
         if not any(lC):
@@ -3724,7 +3728,7 @@ class Rays(utils.ToFuObject):
               if (isinstance(dgeom, self._dcases[k]['type'])
                   and all([kk in dgeom.keys()  # noqa
                            for kk in self._dcases[k]['lk']]))]
-        if not len(lC)==1:
+        if not len(lC) == 1:
             lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
             msg += "  - dict with keys:\n"
@@ -5030,8 +5034,8 @@ class Rays(utils.ToFuObject):
 
     @property
     def u(self):
-        if (self._dgeom['u'] is not None
-            and self._dgeom['u'].shape[1] == self._dgeom['nRays']):
+        if self._dgeom['u'] is not None \
+          and self._dgeom['u'].shape[1] == self._dgeom['nRays']:
             u = self._dgeom['u']
         elif self.isPinhole:
             u = self._dgeom['pinhole'][:, None] - self._dgeom['D']
@@ -5571,17 +5575,17 @@ class Rays(utils.ToFuObject):
         if type(lPoly) is list:
             for ii in range(nPoly):
                 # Check closed and anti-clockwise
-                if _GG.Poly_isClockwise(lPoly[ii]):
-                    lPoly[ii] = lPoly[ii][:, ::-1]
                 if not np.allclose(lPoly[ii][:, 0], lPoly[ii][:, -1]):
                     lPoly[ii] = np.concatenate(
                         (lPoly[ii], lPoly[ii][:, 0:1]), axis=-1
                     )
+                try:
+                    if _GG.Poly_isClockwise(lPoly[ii]):
+                        lPoly[ii] = lPoly[ii][:, ::-1]
+                except Exception as excp:
+                    print("For structure ", ii, " : ", excp)
         else:
-            for ii in range(nPoly):
-                # Check closed and anti-clockwise
-                if _GG.Poly_isClockwise(lPoly[ii]):
-                    lPoly[ii] = lPoly[ii][:, ::-1]
+            # Check closed and anti-clockwise
             d = np.sum((lPoly[:, :, 0]-lPoly[:, :, -1])**2, axis=1)
             if np.allclose(d, 0.):
                 pass
@@ -5590,6 +5594,12 @@ class Rays(utils.ToFuObject):
             else:
                 msg = "All poly in lPoly should be closed or all non-closed!"
                 raise Exception(msg)
+            for ii in range(nPoly):
+                try:
+                    if _GG.Poly_isClockwise(lPoly[ii]):
+                        lPoly[ii] = lPoly[ii][:, ::-1]
+                except Exception as excp:
+                    print("For structure ", ii, " : ", excp)
 
         # Check lVIn
         if lVIn is None:
@@ -6897,7 +6907,7 @@ class CamLOS2D(Rays):
         # Prepare
         kout = self._dgeom["kOut"]
         indout = self._dgeom["indout"]
-        lS = self._dconfig["Config"].lStruct
+        # lS = self._dconfig["Config"].lStruct
         angles = np.arccos(-np.sum(self.u*self.dgeom['vperp'], axis=0))
 
         # ar0

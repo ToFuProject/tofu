@@ -1,6 +1,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=False
 #
 ################################################################################
 # Utility functions for basic geometry :

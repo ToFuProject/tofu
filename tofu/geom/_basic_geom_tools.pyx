@@ -1,6 +1,8 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=False
+#
 cimport cython
 
 from cython.parallel import prange

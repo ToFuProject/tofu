@@ -642,6 +642,7 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 _ExpWest = 'WEST'
 _ExpJET = 'JET'
 _ExpITER = 'ITER'
+_ExpAUG = 'AUG'
 _ExpNSTX = 'NSTX'
 # Default config
 _DEFCONFIG = 'ITER'
@@ -684,6 +685,16 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'BLK16', 'BLK17', 'BLK18',
                                 'Div1', 'Div2', 'Div3',
                                 'Div4', 'Div5', 'Div6']},
+            'AUG-V1': {'Exp': _ExpAUG,
+                       'Ves': ['VESiR'],
+                       'PFC': ['D2cdome', 'D2cdomL', 'D2cdomR', 'D2ci1',
+                               'D2ci2', 'D2cTPib', 'D2cTPic', 'D2cTPi',
+                               'D2dBG2', 'D2dBl1', 'D2dBl2', 'D2dBl3',
+                               'D2dBu1', 'D2dBu2', 'D2dBu3', 'D2dBu4',
+                               'D3BG10', 'D3BG1', 'ICRHa', 'LIM09', 'PClow',
+                               'PCup', 'SBi', 'TPLT1', 'TPLT2', 'TPLT3',
+                               'TPLT4', 'TPLT5', 'TPRT2', 'TPRT3', 'TPRT4',
+                               'TPRT5']},
             'NSTX-V0': {'Exp': _ExpNSTX,
                         'Ves': ['V0']}
             }
@@ -701,6 +712,7 @@ _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
                       'B2': 'WEST-V3',
                       'B3': 'WEST-V4',
                       'B4': 'ITER-V2',
+                      'AUG': 'AUG-V1',
                       'NSTX': 'NSTX-V0'}
 
 
@@ -795,20 +807,36 @@ def _create_config_testcase(config=None, returnas='object',
     for cc in lcls:
         for ss in dconfig[config][cc]:
             ff = [f for f in lf
-                  if all([s in f for s in [cc,Exp,ss]])]
-            if not len(ff) == 1:
-                msg = "No / several matching files\n"
+                  if all([s in f for s in [cc, Exp, ss]])]
+            if len(ff) == 0:
+                msg = "No matching files\n"
                 msg += "  Folder: %s\n"%path
                 msg += "    Criteria: [%s, %s]\n"%(cc,ss)
                 msg += "    Matching: "+"\n              ".join(ff)
                 raise Exception(msg)
-            pfe = os.path.join(path,ff[0])
-            obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
-                                             Exp=dconfig[config]['Exp'],
-                                             out=returnas)
-            if returnas not in ['object', object]:
-                obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
-            lS.append(obj)
+            elif len(ff) > 1:
+                # More demanding criterion
+                ssbis, Expbis = '_'+ss+'.txt', '_Exp'+Exp+'_'
+                ff = [fff for fff in ff if ssbis in fff and Expbis in fff]
+                if len(ff) != 1:
+                    msg = ("No / several matching files\n"
+                           + "  Folder: {}\n".format(path)
+                           + "    Criteria: [{}, {}]\n".format(cc, ss)
+                           + "    Matching: "+"\n              ".join(ff))
+                    raise Exception(msg)
+
+            pfe = os.path.join(path, ff[0])
+            try:
+                obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
+                                                 Exp=dconfig[config]['Exp'],
+                                                 out=returnas)
+                if returnas not in ['object', object]:
+                    obj = ((ss, {'Poly': obj[0],
+                                 'pos': obj[1], 'extent': obj[2]}),)
+                lS.append(obj)
+            except Exception as err:
+                msg = "Could not be loaded: {}".format(ff[0])
+                warnings.warn(msg)
     if returnas == 'dict':
         conf = dict([tt for tt in lS])
     else:
