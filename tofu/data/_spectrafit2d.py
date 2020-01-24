@@ -485,10 +485,40 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
 
 
 
-def get_funccostjac():
+def multigaussianfit1d_from_dlines_funccostjac(lamb, dlines):
 
-    def func():
-        pass
+    # Prepare lines concatenation
+    nions = len(dlines)
+    llines = [v0 for v0 in dlines.values()]
+    lines = np.concatenate(llines)
+    indlines = np.array([ll.size for ll in llines])
+    nlines = lines.size
+
+    def func(x, lamb=lamb, lines=lines,
+             nlamb=nlamb, indlines, nlines):
+        y = np.full((1 + nlines, nlamb), np.nan)
+
+        # Background
+        y[0, :] = x[0]
+
+        # Lopp on lines
+        ni = 0
+        for ii, k0 in enumerate(dlines.keys()):
+            # get ion temperature
+            ti, vi = x[ii+ii:ni+ii+2]
+            widthi = None
+            maxw_coef = None
+            # Try to vectorize ?
+            for jj in range(dlines[k0].size):
+                indxj = ni + 2 + j
+                indyj = ni + 1 + j
+                lamb0j = dlines[k0][jj]
+                # compute gaussian for each line with associated intensity
+                yy[indyj, :] = x[indxj] * np.exp(-(lamb - lamb0j)**2 / widthi)
+
+            ni += dlines[k0].size
+
+        return np.sum(y, axis=0)
 
     def cost():
         pass
@@ -499,12 +529,45 @@ def get_funccostjac():
     return func, cost, jac
 
 
+def multigaussianfit1d_from_dlines(data, lamb, dlines,
+                                   double_dlamb=None, double_coef=None):
+
+    # Get initial guess
 
 
+    # get bounds
 
 
+    # Scaling
 
 
+    # Get function, cost function and jacobian
+    func, cost, jac = multigaussianfit1d_from_dlines_funccostjac()
+
+    # Minimize
+    res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,
+                               method=method, ftol=ftol, xtol=xtol,
+                               gtol=gtol, x_scale=1.0, f_scale=1.0, loss=loss,
+                               diff_step=None, tr_solver=None,
+                               tr_options={}, jac_sparsity=None,
+                               max_nfev=max_nfev, verbose=verbose,
+                               args=(), kwargs={})
+
+    # Separate and reshape output
+    camp = res.x[:nc].reshape((nlamb0, nbs)) * ampscale
+    csigma = res.x[nc:2*nc].reshape((nlamb0, nbs)) * dlambscale
+    if forcelamb:
+        cdlamb = None
+    else:
+        cdlamb = res.x[2*nc:3*nc].reshape((nlamb0, nbs)) * dlambscale
+
+    # Create output dict
+    dout = {'camp': camp, 'csigma': csigma, 'cdlamb': cdlamb, 'bck':res.x[-1],
+            'fit':(func(res.x)*stdscale*data.size + datascale) * ampscale,
+            'lamb0':lamb0, 'knots': knots, 'deg':deg, 'nbsplines': nbsplines,
+            'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
+            'nfev': res.nfev, 'njev': res.njev, 'status': res.status}
+    return dout
 
 
 ###########################################################
