@@ -129,7 +129,7 @@ object, it is advised not to modify it.
 
  .. code-block:: none
 
-    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b16
+    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b13-70-gf5b8d06e
 
 
 
@@ -179,7 +179,7 @@ it so that it can be used by other ToFu objects when necessary.
  .. code-block:: none
 
     Saved in :
-        /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b16.npz
+        /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b13-70-gf5b8d06e.npz
 
 
 
@@ -258,15 +258,19 @@ otherwise the type must be specified.
 
  .. code-block:: none
 
+    /Users/mendoza/tofu/tofu/geom/_core.py:452: UserWarning: PFC instance: double identical points in Poly
+      => 1 points removed
+      => Poly goes from 100 to 99 points
+      warnings.warn(msg)
     Saved in :
-        /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.2b16.npz
+        /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.2b13-70-gf5b8d06e.npz
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.736 seconds)
+   **Total running time of the script:** ( 0 minutes  0.811 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry.py:

@@ -148,9 +148,11 @@
     <span class="sd">&quot;&quot;&quot; Compute geometrical attributes of a Struct object &quot;&quot;&quot;</span>
 
     <span class="c1"># Make Poly closed, counter-clockwise, with &#39;(cc,N)&#39; layout and arrayorder</span>
-    <span class="n">Poly</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">Poly_Order</span><span class="p">(</span>
-        <span class="n">Poly</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">close</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;(cc,N)&quot;</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span>
-    <span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">Poly</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">Poly_Order</span><span class="p">(</span><span class="n">Poly</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">close</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                              <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;(cc,N)&quot;</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">excp</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">excp</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">Poly</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Arg Poly must be a 2D polygon !&quot;</span>
     <span class="n">fPfmt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span> <span class="k">if</span> <span class="n">arrayorder</span> <span class="o">==</span> <span class="s2">&quot;C&quot;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asfortranarray</span>
 
@@ -175,9 +177,13 @@
         <span class="n">Vol</span><span class="p">,</span> <span class="n">BaryV</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">Vol</span><span class="p">,</span> <span class="n">BaryV</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">Poly_VolAngTor</span><span class="p">(</span><span class="n">Poly</span><span class="p">)</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Pb. with volume computation for Ves object of type &#39;Tor&#39; !&quot;</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> Here Volume = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">Vol</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">Vol</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="k">if</span> <span class="n">Vol</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Pb. with volume computation for Struct of type &#39;Tor&#39; !</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- Vol = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Vol</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- Poly = </span><span class="si">{}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Poly</span><span class="p">))</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Probably corrupted polygon</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Please check polygon is not self-intersecting&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c1"># Compute the non-normalized vector of each side of the Poly</span>
     <span class="n">Vect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">Poly</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
