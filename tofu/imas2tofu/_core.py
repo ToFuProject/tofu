@@ -2252,8 +2252,6 @@ class MultiIDSLoader(object):
     def to_Config(self, Name=None, occ=None,
                   description_2d=None, mobile=None, plot=True):
         lidsok = ['wall']
-        if description_2d is None:
-            description_2d = 0
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -2278,6 +2276,12 @@ class MultiIDSLoader(object):
         assert occ.size == 1, "Please choose one occ only !"
         occ = occ[0]
         indoc = np.nonzero(self._dids[ids]['occ'] == occ)[0][0]
+
+        if description_2d is None:
+            if len(self._dids[ids]['ids'][indoc].description_2d) >= 1:
+                description_2d = 1
+            else:
+                description_2d = 0
 
         wall = self._dids[ids]['ids'][indoc].description_2d[description_2d]
         kwargs = dict(Exp=Exp, Type='Tor')
@@ -2795,6 +2799,7 @@ class MultiIDSLoader(object):
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object,
+                    description_2d=None,
                     plot=None, plot_sig=None, plot_X=None,
                     bck=True, dextra=None, nan=True, pos=None, shapeRZ=None):
 
@@ -2852,7 +2857,8 @@ class MultiIDSLoader(object):
 
         # config
         if config is None:
-            config = self.to_Config(Name=Name, occ=occ, plot=False)
+            config = self.to_Config(Name=Name, occ=occ,
+                                    description_2d=description_2d, plot=False)
 
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
@@ -3259,7 +3265,9 @@ class MultiIDSLoader(object):
 
 
     def to_Cam(self, ids=None, indch=None, indch_auto=False,
-               Name=None, occ=None, config=None, plot=True, nan=True, pos=None):
+               description_2d=None,
+               Name=None, occ=None, config=None,
+               plot=True, nan=True, pos=None):
 
         # dsig
         geom = self._checkformat_Cam_geom(ids)
@@ -3275,7 +3283,8 @@ class MultiIDSLoader(object):
 
         # config
         if config is None:
-            config = self.to_Config(Name=Name, occ=occ, plot=False)
+            config = self.to_Config(Name=Name, occ=occ,
+                                    description_2d=description_2d, plot=False)
 
         # dchans
         dchans = {}
@@ -3389,7 +3398,8 @@ class MultiIDSLoader(object):
 
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
-                indch=None, indch_auto=False, Name=None, occ=None, config=None,
+                indch=None, indch_auto=False, Name=None, occ=None,
+                config=None, description_2d=None,
                 dextra=None, t0=None, datacls=None, geomcls=None,
                 plot=True, bck=True, fallback_X=None, nan=True, pos=None,
                 return_indch=False):
@@ -3411,7 +3421,8 @@ class MultiIDSLoader(object):
 
         # config
         if config is None:
-            config = self.to_Config(Name=Name, occ=occ, plot=False)
+            config = self.to_Config(Name=Name, occ=occ,
+                                    description_2d=description_2d, plot=False)
 
         # dchans
         if indch is not None:
@@ -3660,7 +3671,8 @@ class MultiIDSLoader(object):
                     q2dR=None, q2dPhi=None, q2dZ=None,
                     Brightness=None, interp_t=None, newcalc=True,
                     indch=None, indch_auto=False, Name=None,
-                    occ_cam=None, occ_plasma=None, config=None,
+                    occ_cam=None, occ_plasma=None,
+                    config=None, description_2d=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
                     bck=True, fallback_X=None, nan=True, pos=None,
                     plot=True, plot_compare=None, plot_plasma=None):
@@ -3680,11 +3692,14 @@ class MultiIDSLoader(object):
         if plot and plot_compare:
             data, indch = self.to_Data(ids, indch=indch,
                                        indch_auto=indch_auto, t0=t0,
+                                       config=config,
+                                       description_2d=description_2d,
                                        return_indch=True, plot=False)
 
         # Get camera
         cam = self.to_Cam(ids=ids, indch=indch,
-                          Name=None, occ=occ_cam, config=config,
+                          Name=None, occ=occ_cam,
+                          config=config, description_2d=description_2d,
                           plot=False, nan=True, pos=None)
 
         # Get relevant parameters
@@ -3693,7 +3708,8 @@ class MultiIDSLoader(object):
 
         # Get relevant plasma
         plasma = self.to_Plasma2D(tlim=tlim, dsig=dsig, t0=t0,
-                                  Name=None, occ=occ_plasma, config=cam.config, out=object,
+                                  Name=None, occ=occ_plasma,
+                                  config=cam.config, out=object,
                                   plot=False, dextra=dextra, nan=True, pos=None)
 
         # Intermediate computation if necessary
@@ -3832,7 +3848,7 @@ class MultiIDSLoader(object):
 
 
 def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
-                Name=None, occ=0, description_2d=0, plot=True):
+                Name=None, occ=0, description_2d=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -3845,7 +3861,8 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
 
 # occ ?
 def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
-                  tlim=None, occ=None, dsig=None, ids=None, config=None,
+                  tlim=None, occ=None, dsig=None, ids=None,
+                  config=None, description_2d=None,
                   Name=None, t0=None, out=object, dextra=None,
                   plot=None, plot_sig=None, plot_X=None, bck=True):
 
@@ -3871,13 +3888,15 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
     didd.add_ids(ids=lids, get=True)
 
     return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, t0=t0,
-                            occ=occ, config=config, out=out,
+                            occ=occ, config=config,
+                            description_2d=description_2d, out=out,
                             plot=plot, plot_sig=plot_sig, plot_X=plot_X,
                             bck=bcki, dextra=dextra)
 
 
 def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
-             ids=None, indch=None, config=None, occ=None, Name=None, plot=True):
+             ids=None, indch=None, config=None, description_2d=None,
+             occ=None, Name=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -3892,13 +3911,15 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
     didd.add_ids(ids=lids, get=True)
 
     return didd.to_Cam(ids=ids, Name=Name, indch=indch,
-                       config=config, occ=occ, plot=plot)
+                       config=config, description_2d=description_2d,
+                       occ=occ, plot=plot)
 
 
 def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
               ids=None, datacls=None, geomcls=None, indch_auto=True,
               tlim=None, dsig=None, data=None, X=None, indch=None,
-              config=None, occ=None, Name=None, dextra=None,
+              config=None, description_2d=None,
+              occ=None, Name=None, dextra=None,
               t0=None, plot=True, bck=True):
 
     didd = MultiIDSLoader()
@@ -3921,7 +3942,8 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
     return didd.to_Data(ids=ids, Name=Name, tlim=tlim, t0=t0,
                         datacls=datacls, geomcls=geomcls,
                         dsig=dsig, data=data, X=X, indch=indch,
-                        config=config, occ=occ, dextra=dextra,
+                        config=config, description_2d=description_2d,
+                        occ=occ, dextra=dextra,
                         plot=plot, bck=bck, indch_auto=indch_auto)
 
 
