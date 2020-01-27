@@ -485,43 +485,59 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
 
 
 
-def multigaussianfit1d_from_dlines_funccostjac(lamb, dlines):
+def multigaussianfit1d_from_dlines_funccostjac(lamb, data,
+                                               dions=None, dmz=None,
+                                               double=None):
+
+    # Check format
+    if double is None:
+        double = False
 
     # Prepare lines concatenation
-    nions = len(dlines)
-    llines = [v0 for v0 in dlines.values()]
-    lines = np.concatenate(llines)
-    indlines = np.array([ll.size for ll in llines])
-    nlines = lines.size
+    llines = [v0['lamb'] for v0 in dions.values()]
 
-    def func(x, lamb=lamb, lines=lines,
-             nlamb=nlamb, indlines, nlines):
-        y = np.full((1 + nlines, nlamb), np.nan)
+    w2 = 2*scpct.k/scpct.c**2
 
-        # Background
-        y[0, :] = x[0]
+    if double is False:
 
-        # Lopp on lines
-        ni = 0
-        for ii, k0 in enumerate(dlines.keys()):
-            # get ion temperature
-            ti, vi = x[ii+ii:ni+ii+2]
-            widthi = None
-            maxw_coef = None
-            # Try to vectorize ?
-            for jj in range(dlines[k0].size):
-                indxj = ni + 2 + j
-                indyj = ni + 1 + j
-                lamb0j = dlines[k0][jj]
-                # compute gaussian for each line with associated intensity
-                yy[indyj, :] = x[indxj] * np.exp(-(lamb - lamb0j)**2 / widthi)
+        lines = np.concatenate(llines)[:, None]
+        lnlines = np.array([ll.size for ll in llines])
+        nlines = lines.size
 
-            ni += dlines[k0].size
+        # indices
+        indti = 1 + np.r_[0, np.cumsum(lnlines + 2)[:-1]]
+        indti = np.repeat(indti, lnlines)
+        mz = np.repeat([dmz[k0] for k0 in dlines.keys()], lnlines)
+        import ipdb; ipdb.set_trace()   # DB
 
-        return np.sum(y, axis=0)
+        def func_detail(x, lamb=lamb, lines=lines,
+                        indti=indti, w2=w2, mz=mz):
+            y = np.full((1 + nlines, nlamb), np.nan)
+            lamb = lamb[None, :]
 
-    def cost():
+            # Background
+            y[0, :] = x[0]
+
+            # lines
+            wi2 = w2 * x[indti, None] / mz
+            wipi = 1./np.sqrt(np.pi*wi2)
+            vinorm = x[indti+1, None] / scpct.c
+
+            y[indyj, :] = x[1:][:, None] * (
+                wipi * np.exp(-(lamb - lines*(1 + vinorm))**2
+                              / (lines**2 * wi2))
+                / lines)
+            return y
+
+    else:
         pass
+
+
+    def func(x):
+        return np.sum(func_detail(x), axis=0)
+
+    def cost(x, data=data):
+        return np.sum((func(x) - data)**2)
 
     def jac():
         pass
@@ -529,20 +545,40 @@ def multigaussianfit1d_from_dlines_funccostjac(lamb, dlines):
     return func, cost, jac
 
 
-def multigaussianfit1d_from_dlines(data, lamb, dlines,
-                                   double_dlamb=None, double_coef=None):
+def multigaussianfit1d_from_dlines(data, lamb, dlines, dmz,
+                                   double=None):
+
+    # Prepare
+    assert np.allclose(np.unique(lamb), lamb)
+    DLamb = lamb[-1] - lamb[0]
+    dlines = {k0: v0 for k0, v0 in dlines.items()
+              if v0['lambda'] >= lamb[0] and v0['lambda'] <= lamb[-1]}
+    lines = [k0 for k0, v0 in dlines.items()
+             if (v0['lambda'] >= lambfit[0]
+                 and v0['lambda'] <= lambfit[-1])]
+    lions = sorted(set([dlines[k0]['ION'] for k0 in lines]))
+    nions = len(lions)
+    dions = {k0: [k1 for k1 in lines if dlines[k1]['ION'] == k0]
+             for k0 in lions}
+    dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
+                                    for k1 in dions[k0]]),
+                  'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
+                  'm': [dlines[k1]['m'] for k1 in dions[k0]}
+             for k0 in lions}
 
     # Get initial guess
-
+    x0 = None
 
     # get bounds
-
+    bounds = None
 
     # Scaling
 
 
     # Get function, cost function and jacobian
-    func, cost, jac = multigaussianfit1d_from_dlines_funccostjac()
+    func_detail, func, cost, jac = multigaussianfit1d_from_dlines_funccostjac(
+        lamb, data,
+        dions=dions, dmz=dmz, double=double)
 
     # Minimize
     res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,

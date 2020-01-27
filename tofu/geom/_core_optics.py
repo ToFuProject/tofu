@@ -1672,16 +1672,16 @@ class CrystalBragg(utils.ToFuObject):
         elif returnas == 'ax':
             return ax
 
-    def plot_data_fit2d(self, xi=None, xj=None, data=None, mask=None,
-                        det_cent=None, det_ei=None, det_ej=None,
-                        dtheta=None, psi=None, n=None,
-                        nlamb=None, lamb0=None, forcelamb=False,
-                        deg=None, knots=None, nbsplines=None,
-                        method=None, max_nfev=None,
-                        xtol=None, ftol=None, gtol=None,
-                        loss=None, verbose=0, debug=None,
-                        plot=True, fs=None, dlines=None, dmoments=None,
-                        cmap=None, vmin=None, vmax=None):
+    def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
+                               det_cent=None, det_ei=None, det_ej=None,
+                               dtheta=None, psi=None, n=None,
+                               dlines=None, dmz=None, double=None,
+                               deg=None, knots=None, nbsplines=None,
+                               method=None, max_nfev=None,
+                               xtol=None, ftol=None, gtol=None,
+                               loss=None, verbose=0, debug=None,
+                               plot=True, fs=None, dmoments=None,
+                               cmap=None, vmin=None, vmax=None, returnas=None):
         # Check / format inputs
         assert data is not None
         if returnas is None:
@@ -1715,12 +1715,12 @@ class CrystalBragg(utils.ToFuObject):
         # Compute fit for spect1d to get lamb0 if not provided
         import tofu.data._spectrafit2d as _spectrafit2d
 
-        func = _spectrafit2d.multiplegaussianfit1d
-        dfit1d = func(lambfit, spect1d,
-                      nmax=nlamb, lamb0=lamb0, forcelamb=forcelamb,
-                      p0=None, bounds=None,
-                      max_nfev=None, xtol=xtol, verbose=0,
-                      percent=20, plot_debug=False)
+        dfit1d = _spectrafit2d.multigaussianfit1d_fom_dlines(
+            lambfit, spect1d,
+            dlines=dlines, dmz=dmz,
+            p0=None, bounds=None,
+            max_nfev=None, xtol=xtol, verbose=0,
+            percent=20, plot_debug=False, double=double)
 
         # Reorder wrt lamb0
         ind = np.argsort(dfit1d['lamb0'])

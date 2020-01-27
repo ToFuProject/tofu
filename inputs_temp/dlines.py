@@ -1,4 +1,4 @@
-
+import scipy.constants as scpct
 
 _DSOURCES = {
     'Kallne': ('Kallne et al., '
@@ -15,9 +15,12 @@ _DSOURCES = {
 
 
 delements = {
-    'Ar': {'Z': 18},
-    'Fe': {'Z': 26}
+    'Ar': {'Z': 18, 'A': 39.948},
+    'Fe': {'Z': 26, 'A': 55.845},
+    'W': {'Z': 74, 'A': 183.84}
 }
+for k0, v0 in delements.items():
+    delements[k0]['m'] = v0['Z']*scpct.m_p + v0['A']*scpct.m_n
 
 # In dtransitions: ['lower state', 'upper state']
 # Source: Gabriel
@@ -293,7 +296,8 @@ for k0, v0 in dlines.items():
     if elem[1].isupper():
         elem = elem[0]
     dlines[k0]['element'] = elem
-    dlines[k0]['Z'] = delements[elem]['Z']
+    for k1, v1 in delements[elem].items():
+        dlines[k0][k1] = v1
     if isinstance(v0['transition'], tuple):
         trans = dtransitions[v0['transition'][0]][v0['transition'][1]]
         dlines[k0]['symbol'] = v0['transition'][1]
