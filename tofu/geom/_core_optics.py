@@ -1564,7 +1564,7 @@ class CrystalBragg(utils.ToFuObject):
     def _calc_spect1d_from_data2d(self, data, lamb, phi,
                                   nlambfit=None, nphifit=None,
                                   nxi=None, nxj=None,
-                                  spect1d=None):
+                                  spect1d=None, mask=None):
         # Check / format inputs
         if spect1d is None:
             spect1d = 'mean'
@@ -1634,7 +1634,7 @@ class CrystalBragg(utils.ToFuObject):
         spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
-            spect1d=spect1d
+            spect1d=spect1d, mask=mask
         )
 
         # Get phiref from mag axis
@@ -1675,7 +1675,8 @@ class CrystalBragg(utils.ToFuObject):
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det_cent=None, det_ei=None, det_ej=None,
                                dtheta=None, psi=None, n=None,
-                               dlines=None, dmz=None, double=None,
+                               nlambfit=None, nphifit=None,
+                               dlines=None, spect1d=None, double=None,
                                deg=None, knots=None, nbsplines=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -1709,17 +1710,17 @@ class CrystalBragg(utils.ToFuObject):
         spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
-            spect1d=spect1d
+            spect1d=spect1d, mask=mask
         )
 
         # Compute fit for spect1d to get lamb0 if not provided
         import tofu.data._spectrafit2d as _spectrafit2d
 
-        dfit1d = _spectrafit2d.multigaussianfit1d_fom_dlines(
-            lambfit, spect1d,
-            dlines=dlines, dmz=dmz,
-            p0=None, bounds=None,
-            max_nfev=None, xtol=xtol, verbose=0,
+        dfit1d = _spectrafit2d.multigaussianfit1d_from_dlines(
+            spect1d, lambfit,
+            dlines=dlines,
+            x0=None, bounds=None,
+            method=method, max_nfev=max_nfev, xtol=xtol, verbose=0,
             percent=20, plot_debug=False, double=double)
 
         # Reorder wrt lamb0

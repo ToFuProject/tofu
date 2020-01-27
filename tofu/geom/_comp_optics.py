@@ -344,10 +344,10 @@ def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
 
 
 def get_lambphifit(lamb, phi, nxi, nxj):
-    lambD = lamb.max()-lamb.min()
-    lambfit = lamb.min() +lambD*np.linspace(0, 1, nxi)
-    phiD = phi.max() - phi.min()
-    phifit = phi.min() + phiD*np.linspace(0, 1, nxj)
+    lambD = np.nanmax(lamb)-np.nanmin(lamb)
+    lambfit = np.nanmin(lamb) +lambD*np.linspace(0, 1, nxi)
+    phiD = np.nanmax(phi) - np.nanmin(phi)
+    phifit = np.nanmin(phi) + phiD*np.linspace(0, 1, nxj)
     return lambfit, phifit
 
 

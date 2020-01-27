@@ -483,11 +483,77 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
     return x0, bounds
 
 
+###########################################################
+###########################################################
+#
+#           1d spectral fitting from dlines
+#
+###########################################################
+###########################################################
 
 
-def multigaussianfit1d_from_dlines_funccostjac(lamb, data,
-                                               dions=None, dmz=None,
-                                               double=None):
+def multigausfit1d_from_dlines_ind(dions=None,
+                                   double=None):
+
+    # Prepare lines concatenation
+    nions = len(dions)
+    llines = [v0['lamb'] for v0 in dions.values()]
+    lines = np.concatenate(llines)
+    lnlines = np.array([ll.size for ll in llines])
+    mz = np.concatenate([v0['m'] for v0 in dions.values()])
+
+    indbck = np.r_[0]
+    indwi = 1 + np.arange(0, nions)
+    indvi = indwi + nions
+    if double is False:
+        indlines = 1 + 2*nions + np.arange(0, nlines)
+        indd, indr = None, None
+        shapey = (1 + nlines, nlamb)
+
+    else:
+        lines = np.repeat(lines, 2)
+        mz = np.repeat(mz, 2)
+        indlines = 1 + 2*nions + np.arange(0, 2*nlines)
+        indd = 1 + 2*nions + 2*nlines
+        indr = indd + 1
+        shapey = (1 + 2*nlines, nlamb)
+
+    shapex = (1 + 2*nions + lines.size,)
+    dind = {'bck': indbck, 'wi': indwi, 'vi': indvi, 'lines': indlines,
+            'ratio': indr, 'dlamb': indd}
+    return dind, lines, mz, shapex, shapey
+
+def multigausfit1d_from_dlines_scale(data, lamb):
+    dscale = {'bck': np.nanmean(data), 'wi': lamb[-1]-lamb[0],
+              'vi': 100.e3, 'coefs': np.nanmax(data)}
+    return dscale
+
+def multigausfit1d_from_dlines_x0(shapex, dind):
+    x0 = np.full(shapex, np.nan)
+    x0[indbck] = 0.
+    x0[indtkti] = 0.05*Dlamb * (mz*scpct.c**2) / 2.
+    x0[indvi] = 0.
+    x0[incoefs] = 1.
+    return x0
+
+def multigausfit1d_from_dlines_bounds(lamb, data,
+                                      dions=None, dmz=None,
+                                      double=None):
+    xup = np.full((nx,), np.nan)
+    xlo = np.full((nx,), np.nan)
+    xup[indbck] = np.nanmean(data)
+    xlo[indbck] = 0.
+    xup[indwi] = Dlamb/5.
+    xlo[indwi] = dlamb*2.
+    xup[indvi] = 10.
+    xlo[indvi] = -10.
+    xup[incoefs] = np.nanmax(data)
+    xlo[incoefs] = 0.
+    return bounds
+
+def multigausfit1d_from_dlines_funccostjac(lamb, data,
+                                           dions=None, dmz=None,
+                                           double=None):
 
     # Check format
     if double is None:
@@ -496,34 +562,35 @@ def multigaussianfit1d_from_dlines_funccostjac(lamb, data,
     # Prepare lines concatenation
     llines = [v0['lamb'] for v0 in dions.values()]
 
+    # w2 with Ti in eV -> J
     w2 = 2*scpct.k/scpct.c**2
 
     if double is False:
 
         lines = np.concatenate(llines)[:, None]
         lnlines = np.array([ll.size for ll in llines])
-        nlines = lines.size
+        shape = (1+lines.size, nlamb)
 
         # indices
         indti = 1 + np.r_[0, np.cumsum(lnlines + 2)[:-1]]
         indti = np.repeat(indti, lnlines)
-        mz = np.repeat([dmz[k0] for k0 in dlines.keys()], lnlines)
-        import ipdb; ipdb.set_trace()   # DB
+        mz = np.concatenate([v0['m'] for v0 in dions.values()])
 
         def func_detail(x, lamb=lamb, lines=lines,
-                        indti=indti, w2=w2, mz=mz):
-            y = np.full((1 + nlines, nlamb), np.nan)
+                        indti=indti, w2=w2, mz=mz, shape=shape):
+            y = np.full(shape, np.nan)
             lamb = lamb[None, :]
 
             # Background
-            y[0, :] = x[0]
+            y[0, :] = x[indbck]
 
             # lines
-            wi2 = w2 * x[indti, None] / mz
+            wi2 = w2 * x[indwi, None] / mz
             wipi = 1./np.sqrt(np.pi*wi2)
             vinorm = x[indti+1, None] / scpct.c
+            import ipdb; ipdb.set_trace()   # DB
 
-            y[indyj, :] = x[1:][:, None] * (
+            y[indyj, :] = x[indlines][:, None] * (
                 wipi * np.exp(-(lamb - lines*(1 + vinorm))**2
                               / (lines**2 * wi2))
                 / lines)
@@ -542,43 +609,78 @@ def multigaussianfit1d_from_dlines_funccostjac(lamb, data,
     def jac():
         pass
 
-    return func, cost, jac
+    return func_detail, func, cost, None
 
 
-def multigaussianfit1d_from_dlines(data, lamb, dlines, dmz,
-                                   double=None):
+def multigausfit1d_from_dlines(data, lamb,
+                               dlines=None, x0=None, bounds=None,
+                               method=None, max_nfev=None,
+                               xtol=None, ftol=None, gtol=None,
+                               double=None, verbose=None, percent=None,
+                               loss=None,
+                               plot_debug=None):
+    """ Solve multi_gaussian fit from dlines
+
+    Unknowns are:
+        x = [bck, w0, v0, c00, c01, ..., c0n, w1, v1, c10, c11, ..., c1N, ...]
+
+        - bck : constant background
+        - wi  : spectral width of a group of lines (ion): wi^2 = 2kTi / m*c**2
+                This way, it is dimensionless
+        - vni : normalised velicity of the ion: vni = vi / c
+        - cij : normalised coef (intensity) of line: cij = Aij
+
+    Scaling is done so each quantity is close to unity:
+        - bck: np.mean(data[data < mean(data)/2])
+        - wi : Dlamb / 20
+        - vni: 10 km/s
+        - cij: np.mean(data)
+
+    """
+
+    # Check format
+    if double is None:
+        double = False
+    assert isinstance(double, bool)
 
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
     DLamb = lamb[-1] - lamb[0]
     dlines = {k0: v0 for k0, v0 in dlines.items()
               if v0['lambda'] >= lamb[0] and v0['lambda'] <= lamb[-1]}
-    lines = [k0 for k0, v0 in dlines.items()
-             if (v0['lambda'] >= lambfit[0]
-                 and v0['lambda'] <= lambfit[-1])]
-    lions = sorted(set([dlines[k0]['ION'] for k0 in lines]))
+    lions = sorted(set([dlines[k0]['ION'] for k0 in dlines.keys()]))
     nions = len(lions)
-    dions = {k0: [k1 for k1 in lines if dlines[k1]['ION'] == k0]
+    dions = {k0: [k1 for k1 in dlines.keys() if dlines[k1]['ION'] == k0]
              for k0 in lions}
     dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
                                     for k1 in dions[k0]]),
                   'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
-                  'm': [dlines[k1]['m'] for k1 in dions[k0]}
+                  'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
              for k0 in lions}
 
+    # Unknowns are
+
+
+    # Get indices
+    dind, lines, mz, shapex, shapey = multigausfit1d_from_dlines_ind(
+        dions=dions, double=double)
+
+    # Get scaling
+    dscale = multigausfit1d_from_dlines_scale(data, lamb)
+
     # Get initial guess
-    x0 = None
+    x0 = multigaussianfit1d_from_dlines_x0(dind, dscale)
 
     # get bounds
-    bounds = None
+    bounds = multigaussianfit1d_from_dlines_bounds()
 
     # Scaling
 
 
     # Get function, cost function and jacobian
-    func_detail, func, cost, jac = multigaussianfit1d_from_dlines_funccostjac(
+    func_detail, func, cost, jac = multigausfit1d_from_dlines_funccostjac(
         lamb, data,
-        dions=dions, dmz=dmz, double=double)
+        dions=dions, double=double)
 
     # Minimize
     res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,
@@ -590,17 +692,11 @@ def multigaussianfit1d_from_dlines(data, lamb, dlines, dmz,
                                args=(), kwargs={})
 
     # Separate and reshape output
-    camp = res.x[:nc].reshape((nlamb0, nbs)) * ampscale
-    csigma = res.x[nc:2*nc].reshape((nlamb0, nbs)) * dlambscale
-    if forcelamb:
-        cdlamb = None
-    else:
-        cdlamb = res.x[2*nc:3*nc].reshape((nlamb0, nbs)) * dlambscale
+    sol_detail = func_detail(res.x)
 
     # Create output dict
-    dout = {'camp': camp, 'csigma': csigma, 'cdlamb': cdlamb, 'bck':res.x[-1],
-            'fit':(func(res.x)*stdscale*data.size + datascale) * ampscale,
-            'lamb0':lamb0, 'knots': knots, 'deg':deg, 'nbsplines': nbsplines,
+    dout = {'sol_detail': sol_detail, 'sol': np.sum(sol_detail, axis=0),
+            # 'fit':(func(res.x)*stdscale*data.size + datascale) * ampscale,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
             'nfev': res.nfev, 'njev': res.njev, 'status': res.status}
     return dout
