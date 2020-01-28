@@ -115,13 +115,13 @@ def test02_Poly_CLockOrder():
     Poly = np.array([[0.,1.,1.,0.],[0.,0.,1.,1.]])
     P = GG.format_poly(Poly, order='C', Clock=False, close=True,
                        Test=True)
-    assert all([np.allclose(P[:,0], P[:,-1]), P.shape==(2, 5),
+    assert all([np.allclose(P[:, 0], P[:, -1]), P.shape == (2, 5),
                 not GG.Poly_isClockwise(P), P.flags['C_CONTIGUOUS'],
                 not P.flags['F_CONTIGUOUS']])
     P = GG.format_poly(Poly, order='F', Clock=True, close=False,
                        Test=True)
-    assert all([not np.allclose(P[:, 0], P[:, -1]), P.shape==(2, 4),
-                GG.Poly_isClockwise(np.concatenate((P, P[:,0:1]), axis=1)),
+    assert all([not np.allclose(P[:, 0], P[:, -1]), P.shape == (2, 4),
+                GG.Poly_isClockwise(np.concatenate((P, P[:, 0:1]), axis=1)),
                 not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
 
     # Test arbitrary 3D polygon
@@ -130,18 +130,18 @@ def test02_Poly_CLockOrder():
                      [0., 0., 0., 0.]])
     P = GG.format_poly(Poly, order='C', Clock=False, close=False,
                        Test=True)
-    assert all([not np.allclose(P[:, 0], P[:, -1]), P.shape==(3, 4),
+    assert all([not np.allclose(P[:, 0], P[:, -1]), P.shape == (3, 4),
                 P.flags['C_CONTIGUOUS'], not P.flags['F_CONTIGUOUS']])
     P = GG.format_poly(Poly, order='F', Clock=True, close=True,
                        Test=True)
-    assert all([np.allclose(P[:, 0], P[:, -1]), P.shape==(3, 5),
+    assert all([np.allclose(P[:, 0], P[:, -1]), P.shape == (3, 5),
                 not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
 
 
 def test03_Poly_VolAngTor():
     Poly = np.array([[1.,1.5,2.,2.,2.,1.5,1.],[0.,0.,0.,0.5,1.,1.,1.]])
     Poly = GG.format_poly(Poly, order='C', Clock=False, close=True,
-                         Test=True)
+                          Test=True)
     V, B = GG.Poly_VolAngTor(Poly)
     assert V==1.5
     assert np.allclose(B,[7./(3.*1.5),0.5])
