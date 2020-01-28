@@ -36,7 +36,7 @@ def _Struct_set_Poly(
     # Make Poly closed, counter-clockwise, with '(cc,N)' layout and arrayorder
     try:
         Poly = _GG.format_poly(Poly, order="C", Clock=False, close=True,
-                              Test=True)
+                               Test=True)
     except Exception as excp:
         print(excp)
     assert Poly.shape[0] == 2, "Arg Poly must be a 2D polygon !"
