@@ -493,42 +493,53 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
 
 
 def multigausfit1d_from_dlines_ind(dions=None,
-                                   double=None):
+                                   double=None,
+                                   freelines=None):
+    """ Return the indices of quantities in x to compute y """
 
     # Prepare lines concatenation
     nions = len(dions)
     llines = [v0['lamb'] for v0 in dions.values()]
     lines = np.concatenate(llines)
     lnlines = np.array([ll.size for ll in llines])
-    mz = np.concatenate([v0['m'] for v0 in dions.values()])
+    nlines = lines.size
 
+    # indices
+    # General shape: [bck, widths, shifts, amp]
+    # If double [..., double_shift, double_ratio]
     indbck = np.r_[0]
-    indwi = 1 + np.arange(0, nions)
-    indvi = indwi + nions
-    if double is False:
-        indlines = 1 + 2*nions + np.arange(0, nlines)
-        indd, indr = None, None
+    indd, indr = None, None
+    if freelines:
+        indwi = 1 + np.arange(0, nlines)
+        indshift = indw + nlines
+        indamp = indshift + nlines
+        sizex = 1 + 3*nlines
+    else:
+        indwi = 1 + np.arange(0, nions)
+        indshift = indwi + nions
+        indamp = 1 + 2*nions + np.arange(0, nlines)
         shapey = (1 + nlines, nlamb)
 
-    else:
-        lines = np.repeat(lines, 2)
-        mz = np.repeat(mz, 2)
-        indlines = 1 + 2*nions + np.arange(0, 2*nlines)
-        indd = 1 + 2*nions + 2*nlines
-        indr = indd + 1
-        shapey = (1 + 2*nlines, nlamb)
-
-    shapex = (1 + 2*nions + lines.size,)
-    dind = {'bck': indbck, 'wi': indwi, 'vi': indvi, 'lines': indlines,
-            'ratio': indr, 'dlamb': indd}
-    return dind, lines, mz, shapex, shapey
+    if double:
+        lines = np.tile(lines, 2)
+        indwi = np.tile(indwi, 2)
+        # indshift = np.tile(indshift, 2)
+        # indamp = np.tile(indamp, 2)
+        inddshift = -2
+        inddratio = -1
+        sizex += 2
+    dind = {'bck': indbck, 'width': indwi, 'shift': indshift, 'amp': indamp,
+            'dratio': inddratio, 'dshift': inddshift}
+    return dind, lines, mz, sizex, shapey0
 
 def multigausfit1d_from_dlines_scale(data, lamb):
-    dscale = {'bck': np.nanmean(data), 'wi': lamb[-1]-lamb[0],
-              'vi': 100.e3, 'coefs': np.nanmax(data)}
+    Dlamb = lamb[-1]-lamb[0]
+    dscale = {'width': Dlamb/10.,
+              'shift': Dlamb/20, 'amp': np.nanmean(data),
+              'dratio': 1., 'dshift':Dlamb/20}
     return dscale
 
-def multigausfit1d_from_dlines_x0(shapex, dind):
+def multigausfit1d_from_dlines_x0(sizex, dind, dscale):
     x0 = np.full(shapex, np.nan)
     x0[indbck] = 0.
     x0[indtkti] = 0.05*Dlamb * (mz*scpct.c**2) / 2.
@@ -537,7 +548,7 @@ def multigausfit1d_from_dlines_x0(shapex, dind):
     return x0
 
 def multigausfit1d_from_dlines_bounds(lamb, data,
-                                      dions=None, dmz=None,
+                                      dions=None,
                                       double=None):
     xup = np.full((nx,), np.nan)
     xlo = np.full((nx,), np.nan)
@@ -552,72 +563,96 @@ def multigausfit1d_from_dlines_bounds(lamb, data,
     return bounds
 
 def multigausfit1d_from_dlines_funccostjac(lamb, data,
-                                           dions=None, dmz=None,
+                                           dscale=None,
+                                           lines=None,
+                                           indwidth=None, indshift=None,
+                                           indamp=None, inddratio=None,
+                                           inddshift=None, shapey0=None,
                                            double=None):
+    if dscale is None:
+        ampscale = 1.
+        shscale = 1.
+        wscale = 1.
+        drscale = 1.
+        dshscale = 1.
+    else:
+        ampscale = dscale['amp']
+        shscale = dscale['shift']
+        wscale = dscale['width']
+        drscale = dscale['dratio']
+        dshscale = dscale['dshift']
 
-    # Check format
-    if double is None:
-        double = False
-
-    # Prepare lines concatenation
-    llines = [v0['lamb'] for v0 in dions.values()]
-
+    lamb = lamb[None, :]
+    shape = (shapey0, nlamb)
     # w2 with Ti in eV -> J
-    w2 = 2*scpct.k/scpct.c**2
+    # w2 = 2*scpct.k/scpct.c**2
 
     if double is False:
 
-        lines = np.concatenate(llines)[:, None]
-        lnlines = np.array([ll.size for ll in llines])
-        shape = (1+lines.size, nlamb)
-
-        # indices
-        indti = 1 + np.r_[0, np.cumsum(lnlines + 2)[:-1]]
-        indti = np.repeat(indti, lnlines)
-        mz = np.concatenate([v0['m'] for v0 in dions.values()])
-
         def func_detail(x, lamb=lamb, lines=lines,
-                        indti=indti, w2=w2, mz=mz, shape=shape):
+                        indti=indti, shape=shape,
+                        shscale=1., wscale=1.,
+                        drscale=None, dshscale=None):
             y = np.full(shape, np.nan)
-            lamb = lamb[None, :]
-
-            # Background
             y[0, :] = x[indbck]
 
             # lines
-            wi2 = w2 * x[indwi, None] / mz
-            wipi = 1./np.sqrt(np.pi*wi2)
-            vinorm = x[indti+1, None] / scpct.c
+            wi2 = x[indwidth][:, None] / wscale
+            shifti = x[indshift][:, None] / shscale
+            amp = x[indamp] / (lines * np.sqrt(np.pi*wi2))
+            xi = lamb[None, :]/lines[:, None]
             import ipdb; ipdb.set_trace()   # DB
-
-            y[indyj, :] = x[indlines][:, None] * (
-                wipi * np.exp(-(lamb - lines*(1 + vinorm))**2
-                              / (lines**2 * wi2))
-                / lines)
-            return y
+            y[1:, :] = amp * np.exp(-(xi - (1 + shifti))**2 / wi2)
+            return y / ampscale
 
     else:
-        pass
+        def func_detail(x, lamb=lamb, lines=lines,
+                        indti=indti, shape=shape,
+                        shscale=1., wscale=1.,
+                        drscale=None, dshscale=None):
+            y = np.full(shape, np.nan)
+            y[0, :] = x[indbck]
 
+            # lines
+            wi2 = x[indwidth][:, None] / wscale
+            shifti = (np.concatenate((x[indshift], x[indshift]+x[inddshift]]))
+                                     / shscale)
+            amp = (np.concatenate((x[indamp], x[indamp]*x[indratio]))
+                   / (lines * np.sqrt(np.pi*wi2)))
+            xi = lamb[None, :]/lines[:, None]
+            import ipdb; ipdb.set_trace()   # DB
+            y[1:, :] = amp * np.exp(-(xi - (1 + shifti))**2 / wi2)
+            return y / ampscale
 
     def func(x):
         return np.sum(func_detail(x), axis=0)
 
-    def cost(x, data=data):
-        return np.sum((func(x) - data)**2)
+    def cost_scale(x, data=data, ampscale=ampscale):
+        return (np.sum(func_detail(x,
+                                   wscale=wscale,
+                                   shscale=shscale,
+                                   drscale=drscale,
+                                   dshscale=dshscale), axis=0) - data) / ampscale
 
-    def jac():
-        pass
+    if jac is None:
+        def jac_scale():
+            pass
+    else:
+        if jac not in ['2-point', '3-point']:
+            msg = "jac should be None or in ['2-point', '3-point']"
+            raise Exception(msg)
+        jac_scale = jac
 
-    return func_detail, func, cost, None
+    return func_detail, func, cost_scale, jac_scale
 
 
 def multigausfit1d_from_dlines(data, lamb,
                                dlines=None, x0=None, bounds=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               double=None, verbose=None, percent=None,
-                               loss=None,
+                               freelines=None, double=None,
+                               verbose=None, percent=None,
+                               loss=None, jac=None,
                                plot_debug=None):
     """ Solve multi_gaussian fit from dlines
 
@@ -639,8 +674,12 @@ def multigausfit1d_from_dlines(data, lamb,
     """
 
     # Check format
+    if freelines is None:
+        freelines = False
     if double is None:
         double = False
+    if jac is None:
+        jac = '3-point'
     assert isinstance(double, bool)
 
     # Prepare
@@ -662,28 +701,33 @@ def multigausfit1d_from_dlines(data, lamb,
 
 
     # Get indices
-    dind, lines, mz, shapex, shapey = multigausfit1d_from_dlines_ind(
-        dions=dions, double=double)
+    dind, lines, mz, sizex, shapey0 = multigausfit1d_from_dlines_ind(
+        dions=dions, double=double, freelines=freelines)
 
     # Get scaling
     dscale = multigausfit1d_from_dlines_scale(data, lamb)
 
+    # Scale data
+    datascale = None
+    lambscale = None
+
     # Get initial guess
-    x0 = multigaussianfit1d_from_dlines_x0(dind, dscale)
+    x0_scale = multigaussianfit1d_from_dlines_x0(dind, dscale)
 
     # get bounds
-    bounds = multigaussianfit1d_from_dlines_bounds()
+    bounds = multigaussianfit1d_from_dlines_bounds(dind, dscale)
 
     # Scaling
 
 
     # Get function, cost function and jacobian
-    func_detail, func, cost, jac = multigausfit1d_from_dlines_funccostjac(
+    (func_detail, func,
+     cost_scale, jac_scale) = multigausfit1d_from_dlines_funccostjac(
         lamb, data,
-        dions=dions, double=double)
+        dions=dions, double=double, jac=jac)
 
     # Minimize
-    res = scpopt.least_squares(func, x0, jac=jac, bounds=bounds,
+    res = scpopt.least_squares(cost_scale, x0_scale, jac=jac_scale, bounds=bounds,
                                method=method, ftol=ftol, xtol=xtol,
                                gtol=gtol, x_scale=1.0, f_scale=1.0, loss=loss,
                                diff_step=None, tr_solver=None,
@@ -694,9 +738,17 @@ def multigausfit1d_from_dlines(data, lamb,
     # Separate and reshape output
     sol_detail = func_detail(res.x)
 
+    # bck =
+    # width =
+    # shift =
+    # amp =
+    # dratio =
+    # dshift =
+
     # Create output dict
     dout = {'sol_detail': sol_detail, 'sol': np.sum(sol_detail, axis=0),
-            # 'fit':(func(res.x)*stdscale*data.size + datascale) * ampscale,
+            'bck': bck, 'width': width, 'shift': shift, 'amp': amp,
+            'dratio': dratio, 'dshift': dshift,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
             'nfev': res.nfev, 'njev': res.njev, 'status': res.status}
     return dout
