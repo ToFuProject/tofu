@@ -2073,6 +2073,54 @@ class MultiIDSLoader(object):
         If the ids has a field 'channel', indch is used to specify from which
         channel data shall be loaded (all by default)
 
+        Parameters
+        ----------
+        ids:        None / str
+            ids from which the data should be loaded
+            ids should be available (check self.get_summary())
+            ids should be loaded if not available, using:
+                - self.add_ids() to add the ids
+                - self.open_get_close() to force loading if necessary
+        sig:        None / str / list
+            shortcuts of signals to be loaded from the ids
+            Check available shortcuts using self.get_shortcuts(ids)
+            You can add custom shortcuts if needed (cf. self.add_shortcuts())
+            sig can be a single str (shortcut) or a list of such
+        occ:        None / int
+            occurence from which to load the data
+        indch:      None / list / np.ndarray
+            If the data has channels, this lists / array of int indices can be
+            used to specify which channels to load from (all if None)
+        indt:       None / list / np.ndarray
+            If data is time-dependent, the list / array of int indices can be
+            used to specify which time steps to load
+        stack:      bool
+            Flag indicating whether common data (e.g.: data from different
+            channels) should be agregated / stacked into a single array
+        isclose:    None / bool
+            Flag indicating whether the agregated data is a collection of
+            identical vectors, if which case it will be checked (np.isclose())
+            and only a single vector will be kept
+        flatocc:    bool
+            By default, the data is returned as a list for each occurence
+            If there is only one occ and flatocc = True, only the first element
+            of the list is returned
+        nan:        bool
+            Flag indicating whether to check for abs(data) > 1.30
+            All data is this case will be set to nan
+            Due to the fact IMAS default value is 1.e49
+        pos:        None / bool
+            Flag indicating whether the data should be positive (negative
+            values will be set to nan)
+        warn:       bool
+            Flag indicating whether to print warning messages for data could
+            not be retrieved
+
+        Return
+        ------
+        dout:   dict
+            Dictionnary containing the loaded data
+
         """
         return self._get_data(ids=ids, sig=sig, occ=occ, indch=indch,
                               indt=indt, stack=stack, isclose=isclose,
@@ -2251,6 +2299,18 @@ class MultiIDSLoader(object):
 
     def to_Config(self, Name=None, occ=None,
                   description_2d=None, mobile=None, plot=True):
+        """ Export the content of wall ids as a tofu Config object
+
+        Choose the occurence (occ), and index (description_2d, cf. dd_doc) to
+        be exported.
+        Specify whether to pick from limiter or mobile
+        If not specified, will be decided automatically from the content
+        Optionally plot the result
+
+        This requires that the wall ids was previously loaded.
+        If not run:
+            self.add_ids('wall')
+        """
         lidsok = ['wall']
 
         # ---------------------------
@@ -2802,6 +2862,77 @@ class MultiIDSLoader(object):
                     description_2d=None,
                     plot=None, plot_sig=None, plot_X=None,
                     bck=True, dextra=None, nan=True, pos=None, shapeRZ=None):
+        """ Export the content of some ids as a tofu Plasma2D object
+
+        Some ids typically contain plasma 1d (radial) or 2d (mesh) profiles
+        They include for example ids:
+            - core_profiles
+            - core_sources
+            - edge_profiles
+            - edge_sources
+            - equilibrium
+
+        tofu offers a class for handling multiple profiles characterizing a
+        plasma, it's called Plasma2D
+        This method automatically identifies the ids that may contain profiles,
+        extract all profiles (i.e.: all profiles identified by a shortcut, see
+        self.get_shortcuts()) and export everything to a fresh Plasma2D
+        instance.
+
+        Parameters
+        ----------
+        tlim:   None / list
+            Restrict the loaded data to a time interval with tlim
+            if None, loads all time steps
+        dsig:   None / dict
+            Specify exactly which data (shortcut) should be loaded by ids
+            If None, loads all available data
+        t0:     None / float / str
+            Specify a time to be used as origin:
+                - None: absolute time vectors are untouched
+                - float : the roigin of all time vectors is set to t0
+                - str : the origin is taken from an event in ids pulse_schedule
+        Name:   None / str
+            Name to be given to the instance
+            If None, a default Name is built
+        occ:    None / int
+            occurence to be used for loading the data
+        config: None / Config
+            Configuration (i.e.: tokamak geometry) to be used for the instance
+            If None, created from the wall ids with self.to_Config().
+        out:    type
+            class with which the output shall be returned
+                - object :  as a Plasma2D instance
+                - dict:     as a dict
+        description_2d: None / int
+            description_2d indiex to be used if the Config is to be built from
+            wall ids. See self.to_Config()
+        plot:       None / bool
+            Flag whether to plot the result
+        plot_sig:   None / str
+            shortcut of the signal to be plotted, if any
+        plot_X:     None / str
+            shortcut of the abscissa against which to plot the signal, if any
+        bck:        bool
+            Flag indicating whether to plot the grey envelop of the signal as a
+            background, if plot is True
+        dextra:     None / dict
+            dict of extra signals (time traces) to be plotted, for context
+        shapeRZ:    None / tuple
+            If provided, tuple indicating the order of 2d data arrays
+            associated to rectangular meshes
+            Only necessary when shape cannot be infered from data shape
+                - ('R', 'Z'): first dimension is R, second Z
+                - ('Z', 'R'): the other way around
+
+        Args nan and pos are fed to self.get_data()i
+
+        Return
+        ------
+        plasma:     dict / Plasma2D
+            dict or Plasma2D instance depending on out
+
+        """
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
@@ -3268,6 +3399,60 @@ class MultiIDSLoader(object):
                description_2d=None,
                Name=None, occ=None, config=None,
                plot=True, nan=True, pos=None):
+        """ Export the content of a diagnostic ids as a tofu CamLos1D instance
+
+        Some ids contain the geometry of a diagnostics
+        They typically have a 'channels' field
+        Generally in the form of a set of Lines of Sights (LOS)
+        They include for example ids:
+            - interferometer
+            - polarimeter
+            - bolometer
+            - soft_x_rays
+            - bremsstrahlung_visible
+            - spectrometer_visible
+
+        tofu offers a class for handling sets fo LOS as a camera: CamLOS1D
+        This method extracts the geometry of the desired diagnostic (ids) and
+        exports it as a CamLOS1D instance.
+
+        Parameters
+        ----------
+        ids:   None / str
+            Specify the ids (will be checked against known diagnostics ids)
+            Should have a 'channels' field
+            If None and a unique diagnostic ids has been added, set to this one
+        Name:   None / str
+            Name to be given to the instance
+            If None, a default Name is built
+        occ:    None / int
+            occurence to be used for loading the data
+        indch:  None / list / array
+            If provided, array of int indices specifying which channels shall
+            be loaded (fed to self.get_data())
+        indch_auto: bool
+            If True and indch is not provided, will try to guess which channels
+            can be loaded. If possible all channels are loaded by default, but
+            only if they have uniform data (same shape, i.e.: same time
+            vectors). In case of channels with non-uniform data, will try to
+            identify a sub-group of channels with uniform data
+        config: None / Config
+            Configuration (i.e.: tokamak geometry) to be used for the instance
+            If None, created from the wall ids with self.to_Config().
+        description_2d: None / int
+            description_2d indiex to be used if the Config is to be built from
+            wall ids. See self.to_Config()
+        plot:       None / bool
+            Flag whether to plot the result
+
+        Args nan and pos are fed to self.get_data()i
+
+        Return
+        ------
+        cam:     CamLOS1D
+            CamLOS1D instance
+
+        """
 
         # dsig
         geom = self._checkformat_Cam_geom(ids)
@@ -3403,6 +3588,108 @@ class MultiIDSLoader(object):
                 dextra=None, t0=None, datacls=None, geomcls=None,
                 plot=True, bck=True, fallback_X=None, nan=True, pos=None,
                 return_indch=False):
+        """ Export the content of a diagnostic ids as a tofu DataCam1D instance
+
+        Some ids contain the geometry and data of a diagnostics
+        They typically have a 'channels' field
+        They include for example ids:
+            - interferometer
+            - polarimeter
+            - bolometer
+            - soft_x_rays
+            - bremsstrahlung_visible
+            - spectrometer_visible
+            - reflectometer_profile
+            - ece
+            - magnetics
+            - barometry
+            - neutron_diagnostics
+
+        tofu offers a class for handling data: DataCam1D
+        If available, this method also loads the geometry using self.to_Cam()
+        on the same ids.
+        But it will load the data even if no geometry (LOS) is available.
+        This method extracts the data of the desired diagnostic (ids) and
+        exports it as a DataCam1D instance.
+
+        Parameters
+        ----------
+        ids:   None / str
+            Specify the ids (will be checked against known diagnostics ids)
+            Should have a 'channels' field
+            If None and a unique diagnostic ids has been added, set to this one
+        Name:   None / str
+            Name to be given to the instance
+            If None, a default Name is built
+        occ:    None / int
+            occurence to be used for loading the data
+        indch:  None / list / array
+            If provided, array of int indices specifying which channels shall
+            be loaded (fed to self.get_data())
+        indch_auto: bool
+            If True and indch is not provided, will try to guess which channels
+            can be loaded. If possible all channels are loaded by default, but
+            only if they have uniform data (same shape, i.e.: same time
+            vectors). In case of channels with non-uniform data, will try to
+            identify a sub-group of channels with uniform data
+        dsig:   None / dict
+            Specify exactly which data (shortcut) should be loaded by ids
+            If None, loads all available data
+        data:   None / str
+            If dsig is not provided, specify the shortcut of the data to be
+            loaded (from channels)
+        X:      None / str
+            If dsig is not provided, specify the shortcut of the data to be
+            used as abscissa
+        tlim:   None / list
+            Restrict the loaded data to a time interval with tlim
+            if None, loads all time steps
+        config: None / Config
+            Configuration (i.e.: tokamak geometry) to be used for the instance
+            If None, created from the wall ids with self.to_Config().
+        description_2d: None / int
+            description_2d indiex to be used if the Config is to be built from
+            wall ids. See self.to_Config()
+        dextra:     None / dict
+            dict of extra signals (time traces) to be plotted, for context
+        t0:     None / float / str
+            Specify a time to be used as origin:
+                - None: absolute time vectors are untouched
+                - float : the roigin of all time vectors is set to t0
+                - str : the origin is taken from an event in ids pulse_schedule
+        datacls:    None / str
+            tofu calss to be used for the data
+                - None : determined from tabulated info (self._didsdiag[ids])
+                - str  : should be a valid data class name from tofu.data
+        geomcls:    None / False / str
+            tofu class to be used for the geometry
+                - False: geometry not loaded
+                - None : determined from tabulated info (self._didsdiag[ids])
+                - str  : should be a valid camera class name from tofu.geom
+        fallback_X: None / float
+            fallback value for X when X is nan
+                X[np.isnan(X)] = fallback_X
+            If None, set to 1.1*np.nanmax(X)
+
+        return_indch:   bool
+            Flag indicating whether to return also the indch
+            Useful if indch was determined automatically by indch_auto
+        plot:       None / bool
+            Flag whether to plot the result
+        bck:        bool
+            Flag indicating whether to plot the grey envelop of the signal as a
+            background, if plot is True
+
+        Args nan and pos are fed to self.get_data()i
+
+        Return
+        ------
+        data:   DataCam1D
+            DataCam1D instance
+        indch:  np.ndarray
+            int array of indices of the loaded channels, returned only if
+            return_indch = True
+        """
 
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -3676,6 +3963,84 @@ class MultiIDSLoader(object):
                     dextra=None, t0=None, datacls=None, geomcls=None,
                     bck=True, fallback_X=None, nan=True, pos=None,
                     plot=True, plot_compare=None, plot_plasma=None):
+        """ Compute synthetic data for a diagnostics and export as DataCam1D object
+
+        Some ids typically contain plasma 1d (radial) or 2d (mesh) profiles
+        They include for example ids:
+            - core_profiles
+            - core_sources
+            - edge_profiles
+            - edge_sources
+            - equilibrium
+
+        From these profiles, tofu can computed syntheic data for a diagnostic
+        ids which provides a geometry (channels.line_of_sight).
+        tofu extracts the geometry, and integrates the desired profile along
+        the lines of sight (LOS), using 2D interpolation when necessary
+
+        It requires:
+            - a diagnostic ids with geometry (LOS)
+            - an ids containing the 1d or 2d profile to be integrated
+            - if necessary, an intermediate ids to interpolate the 1d profile
+            to 2d (e.g.: equilibrium)
+
+        For each ids, you need to specify:
+            - profile ids:
+                profile (signal) to be integrated
+                quantity to be used for 1d interpolation
+            - equilibrium / intermediate ids:
+                quantity to be used for 2d interpolation
+                    (shall be the same dimension as quantity for 1d interp.)
+
+        This method is a combination of self.to_Plasma2D() (used for extracting
+        profiles and equilibrium and for interpolation) and self.to_Cam() (used
+        for extracting diagnostic geometry) and to_Data() (used for exportig
+        computed result as a tofu DataCam1D instance.
+
+        Args ids, dsig, tlim, occ_plasma (occ), nan, pos, plot_plasma (plot)
+        are fed to to_Plasma2D()
+        Args indch, indch_auto, occ_cam (occ), config, description_2d, are fed
+        to to_Cam()
+        Args Name, bck, fallback_X, plot, t0, dextra are fed to to_Data()
+
+        Parameters
+        ----------
+        t:      None / float / np.ndarray
+            time at which the synthetic signal shall be computed
+            If None, computed for all available time steps
+        res:    None / float
+            absolute spatial resolution (sampling steps) used for Line-of-Sight
+            intergation (in meters)
+        quant:  None / str
+            Shortcut of the quantity to be integrated
+        ref1d:  None / str
+            Shortcut of the quantity to be used as reference for 1d
+            interpolation
+        ref2d:  None / str
+            Shortcut of the quantity to be used as reference for 2d
+            interpolation
+        q2dR:   None / str
+            If integrating an anisotropic vector field (e.g. magnetic field)
+                q2dR if the shortcut of the R-component of the quantity
+        q2dPhi:   None / str
+            If integrating an anisotropic vector field (e.g. magnetic field)
+                q2dPhi if the shortcut of the Phi-component of the quantity
+        q2dR:   None / str
+            If integrating an anisotropic vector field (e.g. magnetic field)
+                q2dZ if the shortcut of the Z-component of the quantity
+        Brightness:     bool
+            Flag indicating whether the result shall be returned as a
+            Brightness (i.e.: line integral) or an incident flux (Brightness x
+            Etendue), which requires the Etendue
+        plot_compare:   bool
+            Flag indicating whether to plot the experimental data against the
+            computed synthetic data
+        Return
+        ------
+        sig:     DataCam1D
+            DataCam1D instance
+
+        """
 
         # Check / format inputs
         if plot is None:
