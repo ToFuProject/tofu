@@ -2905,7 +2905,7 @@ class MultiIDSLoader(object):
                 - object :  as a Plasma2D instance
                 - dict:     as a dict
         description_2d: None / int
-            description_2d indiex to be used if the Config is to be built from
+            description_2d index to be used if the Config is to be built from
             wall ids. See self.to_Config()
         plot:       None / bool
             Flag whether to plot the result
@@ -2925,7 +2925,7 @@ class MultiIDSLoader(object):
                 - ('R', 'Z'): first dimension is R, second Z
                 - ('Z', 'R'): the other way around
 
-        Args nan and pos are fed to self.get_data()i
+        Args nan and pos are fed to self.get_data()
 
         Return
         ------
@@ -3440,12 +3440,12 @@ class MultiIDSLoader(object):
             Configuration (i.e.: tokamak geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         description_2d: None / int
-            description_2d indiex to be used if the Config is to be built from
+            description_2d index to be used if the Config is to be built from
             wall ids. See self.to_Config()
         plot:       None / bool
             Flag whether to plot the result
 
-        Args nan and pos are fed to self.get_data()i
+        Args nan and pos are fed to self.get_data()
 
         Return
         ------
@@ -3648,7 +3648,7 @@ class MultiIDSLoader(object):
             Configuration (i.e.: tokamak geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         description_2d: None / int
-            description_2d indiex to be used if the Config is to be built from
+            description_2d index to be used if the Config is to be built from
             wall ids. See self.to_Config()
         dextra:     None / dict
             dict of extra signals (time traces) to be plotted, for context
@@ -3680,7 +3680,7 @@ class MultiIDSLoader(object):
             Flag indicating whether to plot the grey envelop of the signal as a
             background, if plot is True
 
-        Args nan and pos are fed to self.get_data()i
+        Args nan and pos are fed to self.get_data()
 
         Return
         ------
