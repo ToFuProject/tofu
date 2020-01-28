@@ -3963,7 +3963,7 @@ class MultiIDSLoader(object):
                     dextra=None, t0=None, datacls=None, geomcls=None,
                     bck=True, fallback_X=None, nan=True, pos=None,
                     plot=True, plot_compare=None, plot_plasma=None):
-        """ Compute synthetic data for a diagnostics and export as DataCam1D object
+        """ Compute synthetic data for a diagnostics and export as DataCam1D
 
         Some ids typically contain plasma 1d (radial) or 2d (mesh) profiles
         They include for example ids:
