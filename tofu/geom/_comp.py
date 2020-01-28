@@ -35,8 +35,8 @@ def _Struct_set_Poly(
 
     # Make Poly closed, counter-clockwise, with '(cc,N)' layout and arrayorder
     try:
-        Poly = _GG.Poly_Order(Poly, order="C", Clock=False, close=True,
-                              layout="(cc,N)", Test=True)
+        Poly = _GG.format_poly(Poly, order="C", Clock=False, close=True,
+                               Test=True)
     except Exception as excp:
         print(excp)
     assert Poly.shape[0] == 2, "Arg Poly must be a 2D polygon !"
@@ -81,12 +81,11 @@ def _Struct_set_Poly(
     Vin = Vin / np.hypot(Vin[0, :], Vin[1, :])[np.newaxis, :]
     Vin = fPfmt(Vin)
 
-    poly = _GG.Poly_Order(
+    poly = _GG.format_poly(
         Poly,
         order=arrayorder,
         Clock=Clock,
         close=False,
-        layout="(cc,N)",
         Test=True,
     )
 
