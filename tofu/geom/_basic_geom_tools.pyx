@@ -50,11 +50,25 @@ cdef inline bint is_point_in_path(const int nvert,
     """
     cdef int i
     cdef bint c = 0
-    for i in range(nvert):
-        if ( ((verty[i]>testy) != (verty[i+1]>testy)) and
-            (testx < (vertx[i+1]-vertx[i]) * (testy-verty[i]) \
-             / (verty[i+1]-verty[i]) + vertx[i]) ):
+    cdef double diff = Cabs(vertx[0] - vertx[nvert]) \
+      + Cabs(verty[0] - verty[nvert])
+    if diff > _VSMALL:
+        # the poly is not closed
+        for i in range(nvert-1):
+            if ( ((verty[i]>testy) != (verty[i+1]>testy)) and
+                (testx < (vertx[i+1]-vertx[i]) * (testy-verty[i]) \
+                 / (verty[i+1]-verty[i]) + vertx[i]) ):
+                c = not c
+        if ( ((verty[nvert-1] > testy) != (verty[0]>testy)) and
+            (testx < (vertx[0]-vertx[nvert-1]) * (testy-verty[nvert-1]) \
+             / (verty[0]-verty[nvert-1]) + vertx[nvert-1]) ):
             c = not c
+    else:
+        for i in range(nvert):
+            if ( ((verty[i]>testy) != (verty[i+1]>testy)) and
+                (testx < (vertx[i+1]-vertx[i]) * (testy-verty[i]) \
+                 / (verty[i+1]-verty[i]) + vertx[i]) ):
+                c = not c
     return c
 
 cdef inline int is_point_in_path_vec(const int nvert,
@@ -97,7 +111,7 @@ cdef inline int is_point_in_path_vec(const int nvert,
     return tot_true
 
 
-# TODO:
+
 # cdef inline int which_point_in_path(const int nvert,
 #                                     const double* vertx,
 #                                     const double* verty,
@@ -191,7 +205,8 @@ cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
 cdef inline void compute_hypot_ng(const double[::1] xpts,
                                   const double[::1] ypts,
                                   double* hypot,
-                                  int npts) nogil:
+                                  int npts,
+                                  int num_threads) nogil:
     # Compute hypothenus (as function above) but this version doesnt requires
     # the gil
     cdef int ii

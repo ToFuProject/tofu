@@ -1,4 +1,6 @@
 # External modules
+import matplotlib
+print(matplotlib.get_backend())
 import os
 import timeit
 import numpy as np
@@ -87,32 +89,35 @@ def bigger_test():
         for c in dobj[typ].keys():
             if issubclass(eval('tfg.%s' % c), tfg._core.StructOut):
                 continue
-            for n in dobj[typ][c].keys():
+            for n in ["VesOut"]:#dobj[typ][c].keys():
                 print("\n For type = " + str(typ) + " c = " + str(c)
                       + " n = ", n)
                 obj = dobj[typ][c][n]
+                print("obj = ", obj)
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
                     start = time.clock()
-                    out = obj.get_sampleV(0.01, resMode='abs', DV=box,
+                    reso = 0.02
+                    out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
-                    print("sample V total time = ", time.clock() - start)
+                    pts1, _ = out[0], out[2]
+                    print("NEW sample V total time = ", time.clock() - start)
                     start = time.clock()
-                    out = obj.get_sampleV(0.01, resMode='abs', DV=box,
+                    out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)', algo="old")
-                    print("sample V total time = ", time.clock() - start)
-                    pts0, ind = out[0], out[2]
+                    print("OLD sample V total time = ", time.clock() - start)
+                    pts0, _ = out[0], out[2]
                     ii = 1
-                    start = time.clock()
-                    out = obj.get_sampleV(0.01, resMode='abs', ind=ind,
-                                          Out='(X,Y,Z)')
-                    print("sample V total time = ", time.clock() - start)
-                    start = time.clock()
-                    out = obj.get_sampleV(0.01, resMode='abs', ind=ind,
-                                          Out='(X,Y,Z)', algo="old")
-                    print("sample V total time = ", time.clock() - start)
-                    pts1 = out[0]
+                    # start = time.clock()
+                    # out = obj.get_sampleV(reso, resMode='abs', ind=ind,
+                    #                       Out='(X,Y,Z)')
+                    # print("NEW sample V total time = ", time.clock() - start)
+                    # start = time.clock()
+                    # out = obj.get_sampleV(reso, resMode='abs', ind=ind,
+                    #                       Out='(X,Y,Z)', algo="old")
+                    # print("OLD sample V total time = ", time.clock() - start)
+                    # pts1 = out[0]
                 except Exception as err:
                     msg = str(err)
                     msg += "\nFailed for {0}_{1}_{2}".format(typ, c, n)

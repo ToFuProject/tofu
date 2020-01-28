@@ -47,7 +47,8 @@ cdef array compute_hypot(const double[::1] xpts, const double[::1] ypts,
 cdef void compute_hypot_ng(const double[::1] xpts,
                            const double[::1] ypts,
                            double* hypot,
-                           int npts) nogil
+                           int npts,
+                           int num_threads) nogil
 
 cdef double comp_min_hypot(const double[::1] xpts, const double[::1] ypts,
                            int npts=*) nogil
