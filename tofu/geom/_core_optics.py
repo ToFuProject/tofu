@@ -1672,11 +1672,85 @@ class CrystalBragg(utils.ToFuObject):
         elif returnas == 'ax':
             return ax
 
+    def plot_data_fit1d_dlines(self, xi=None, xj=None, data=None, mask=None,
+                               det_cent=None, det_ei=None, det_ej=None,
+                               dtheta=None, psi=None, n=None,
+                               nlambfit=None, nphifit=None,
+                               lambmin=None, lambmax=None,
+                               dlines=None, spect1d=None,
+                               double=None, freelines=None,
+                               dscale=None, x0_scale=None, bounds_scale=None,
+                               method=None, max_nfev=None,
+                               xtol=None, ftol=None, gtol=None,
+                               loss=None, verbose=0,
+                               plot=True, fs=None, dmargin=None,
+                               tit=None, wintit=None, returnas=None):
+        # Check / format inputs
+        assert data is not None
+        if returnas is None:
+            returnas = 'dict'
+        lreturn = ['ax', 'dict']
+        if not returnas in lreturn:
+            msg = ("Arg returnas must be in {}\n:".format(lreturn)
+                   + "\t- 'dict': return dict of fitted spectrum\n"
+                   + "\t- 'ax'  : return a list of axes instances")
+            raise Exception(msg)
+
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_phibragg_from_xixj(
+            xii, xjj, n=n,
+            det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
+            dtheta=dtheta, psi=psi, plot=False)
+        assert bragg.shape == phi.shape == data.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        # Compute lambfit / phifit and spectrum1d
+        spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
+            data, lamb, phi,
+            nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
+            spect1d=spect1d, mask=mask
+        )
+
+        # Compute fit for spect1d to get lamb0 if not provided
+        import tofu.data._spectrafit2d as _spectrafit2d
+
+        dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
+            spect1d, lambfit,
+            lambmin=lambmin, lambmax=lambmax, dlines=dlines,
+            dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
+            method=method, max_nfev=max_nfev, xtol=xtol, verbose=0,
+            double=double, freelines=freelines)
+
+        # Plot
+        dax = None
+        if plot is True:
+            ax = _plot_optics.CrystalBragg_plot_data_fit1d(
+                dfit1d,
+                double=double, freelines=freelines,
+                lambmin=lambmin, lambmax=lambmax,
+                fs=fs, dmargin=dmargin,
+                tit=tit, wintit=wintit)
+
+        if returnas == 'dict':
+            return dfit1d
+        else:
+            return ax
+
+
+
+
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det_cent=None, det_ei=None, det_ej=None,
                                dtheta=None, psi=None, n=None,
                                nlambfit=None, nphifit=None,
-                               dlines=None, spect1d=None, double=None,
+                               lambmin=None, lambmax=None,
+                               dlines=None, spect1d=None,
+                               double=None, freelines=None,
+                               dscale=None, x0_scale=None, bounds_scale=None,
                                deg=None, knots=None, nbsplines=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -1716,12 +1790,12 @@ class CrystalBragg(utils.ToFuObject):
         # Compute fit for spect1d to get lamb0 if not provided
         import tofu.data._spectrafit2d as _spectrafit2d
 
-        dfit1d = _spectrafit2d.multigaussianfit1d_from_dlines(
+        dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
             spect1d, lambfit,
-            dlines=dlines,
-            x0=None, bounds=None,
-            method=method, max_nfev=max_nfev, xtol=xtol, verbose=0,
-            percent=20, plot_debug=False, double=double)
+            lambmin=lambmin, lambmax=lambmax, dlines=dlines,
+            dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
+            method=method, max_nfev=max_nfev, xtol=xtol, verbose=verbose,
+            plot_debug=debug, double=double, freelines=freelines)
 
         # Reorder wrt lamb0
         ind = np.argsort(dfit1d['lamb0'])

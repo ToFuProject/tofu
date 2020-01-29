@@ -735,7 +735,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     # ------------
 
     if fs is None:
-        fs = (14,8)
+        fs = (14, 8)
     if tit is None:
         tit = False
     if wintit is None:
@@ -857,6 +857,120 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     if wintit is not False:
         fig.canvas.set_window_title(wintit)
     return [ax0, ax1]
+
+
+
+def CrystalBragg_plot_data_fit1d(dfit1d,
+                                 double=None,
+                                 freelines=None,
+                                 dlines=None,
+                                 lambmin=None, lambmax=None,
+                                 fs=None, dmargin=None,
+                                 tit=None, wintit=None, ax=None):
+
+    # Check inputs
+    # ------------
+
+    if fs is None:
+        fs = (14, 8)
+    if tit is None:
+        tit = False
+    if wintit is None:
+        wintit = _WINTIT
+    if dmargin is None:
+        dmargin = {'left':0.05, 'right':0.90,
+                   'bottom':0.07, 'top':0.85,
+                   'wspace':0.2, 'hspace':0.3}
+
+    # pre-compute
+    # ------------
+    lions = list(dfit1d['dions'].keys())
+    nions = len(lions)
+    shift = dfit1d['shift']
+    if double is True:
+        x = dfit1d['lines'][:dfit1d['nlines']] + shift
+    else:
+        x = dfit1d['lines'] + shift
+    lcol = ['k', 'r', 'b', 'g', 'm', 'c']
+    ncol = len(lcol)
+
+    # Plot
+    # ------------
+
+    if ax is None:
+        fig = fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(1, 1, **dmargin)
+        ax = fig.add_subplot(gs[0, 0])
+        ax.set_ylabel(r'data (a.u.)')
+        ax.set_xlabel(r'$\lambda$ (m)')
+
+    if double is True:
+        ax.plot(dfit1d['lamb'],
+                dfit1d['sol_detail'][:dfit1d['nlines'], :].T, ls='-', lw=1.)
+        ax.set_prop_cycle(None)
+        ax.plot(dfit1d['lamb'],
+                dfit1d['sol_detail'][dfit1d['nlines']:, :].T, ls='--', lw=1.)
+    else:
+        ax.plot(dfit1d['lamb'], dfit1d['sol_detail'].T)
+    ax.plot(dfit1d['lamb'], dfit1d['sol'],
+            c='k', lw=2.)
+    ax.plot(dfit1d['lamb'], dfit1d['data'],
+            marker='.', c='k', ls='None', ms=8)
+
+    # Annotate lines
+    ni = 0
+    for ii, k0 in enumerate(lions):
+        for jj in range(dfit1d['dions'][k0]['lamb'].size):
+            col = lcol[ii%ncol]
+            ax.axvline(x[ni],
+                       c=col, ls='--')
+            lab = (dfit1d['dions'][k0]['symbol'][jj]
+                   + '\n{:4.2e}'.format(dfit1d['coefs'][ni])
+                   + '\n({:+4.2e} A)'.format(shift[ni]*1.e10))
+            ax.annotate(lab,
+                        xy=(x[ni], 1.01), xytext=None,
+                        xycoords=('data', 'axes fraction'),
+                        color=col, arrowprops=None,
+                        horizontalalignment='center',
+                        verticalalignment='bottom')
+            ni += 1
+    hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
+            for ii in range(nions)]
+    if freelines is False:
+        lleg = [(lions[ii]
+                 + ' (Ti = {:4.2f} keV'.format(dfit1d['kTiev'][ii]*1.e-3)
+                 +', vi = {:5.1f} km/s)'.format(dfit1d['vims'][ii]*1.e-3))
+                for ii in range(nions)]
+    else:
+        lleg = lions
+    ax.legend(hand, lions,
+              bbox_to_anchor=(1., 1.02), loc='upper left')
+
+    ax.set_xlim(lambmin, lambmax)
+
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    return ax
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
