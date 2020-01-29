@@ -1722,7 +1722,8 @@ class CrystalBragg(utils.ToFuObject):
             spect1d, lambfit,
             lambmin=lambmin, lambmax=lambmax, dlines=dlines,
             dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
-            method=method, max_nfev=max_nfev, xtol=xtol, verbose=0,
+            method=method, max_nfev=max_nfev, verbose=0,
+            xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
             double=double, freelines=freelines)
 
         # Plot

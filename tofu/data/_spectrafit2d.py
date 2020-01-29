@@ -733,6 +733,15 @@ def multigausfit1d_from_dlines(data, lamb,
     if max_nfev is None:
         max_nfev = None
 
+    # Use valid data only and optionally restrict lamb
+    if lambmin is not None:
+        data[lamb<lambmin] = np.nan
+    if lambmax is not None:
+        data[lamb>lambmax] = np.nan
+    indok = ~np.isnan(data)
+    data = data[indok]
+    lamb = lamb[indok]
+
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
     DLamb = lamb[-1] - lamb[0]
@@ -749,15 +758,6 @@ def multigausfit1d_from_dlines(data, lamb,
                   'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
              for k0 in lions}
     nlines = np.sum([v0['lamb'].size for v0 in dions.values()])
-
-    # Use valid data only and optionally restrict lamb
-    if lambmin is not None:
-        data[lamb<lambmin] = np.nan
-    if lambmax is not None:
-        data[lamb>lambmax] = np.nan
-    indok = ~np.isnan(data)
-    data = data[indok]
-    lamb = lamb[indok]
 
     # Get indices
     dind, lines, mz, keys, sizex, shapey0 = multigausfit1d_from_dlines_ind(
@@ -849,7 +849,8 @@ def multigausfit1d_from_dlines(data, lamb,
             'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
             'dions': dions, 'kTiev': kTiev, 'vims': vims, 'kTe': kTe,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
-            'nfev': res.nfev, 'njev': res.njev, 'status': res.status}
+            'nfev': res.nfev, 'njev': res.njev, 'status': res.status,
+            'msg': res.message, 'success': res.success}
     return dout
 
 
