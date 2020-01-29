@@ -288,6 +288,45 @@ dlines = {
                        'lambda': 1.8676e-10,
                        'transition': ('He-like', 'z'),
                        'source': 'Bitter'},
+
+    # --------------------------
+    # W
+    # --------------------------
+
+    'WXLIV_0_NIST': {'q': 43, 'ION': 'WXLIV',
+                     'symbol':'0', 'lambda': 3.9635e-10,
+                     'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
+                                    '3d^94s^24p(3/2,1/2)^0_16f(1,5/2)3/2'],
+                     'source': 'NIST'},
+    'WXLIV_1_NIST': {'q': 43, 'ION': 'WXLIV',
+                     'symbol':'1', 'lambda': 3.9635e-10,
+                     'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
+                                    '3d^94s^24p(3/2,1/2)^0_26f(2,5/2)1/2'],
+                     'source': 'NIST'},
+    'WXLIV_2_NIST': {'q': 43, 'ION': 'WXLIV',
+                     'symbol':'2', 'lambda': 4.017e-10,
+                     'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
+                                    '3p^53d^{10}4s^24p(3/2,1/2)_25d(2,5/2)3/2'],
+                     'source': 'NIST'},
+    'WXLIV_3_NIST': {'q': 43, 'ION': 'WXLIV',
+                     'symbol':'3', 'lambda': 4.017e-10,
+                     'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
+                                    '3p^53d^{10}4s^24p(3/2,1/2)_25d(2,5/2)1/2'],
+                     'source': 'NIST'},
+    'WXLV_0_NIST': {'q': 44, 'ION': 'WXLV',
+                    'symbol':'0', 'lambda': 3.9730e-10,
+                    'transition': ['3d^{10}4s^2(^1S_{0})',
+                                   '3p^5(^2P^0_{3/2})3d^{10}4s^25d(3/2,5/2)^01'],
+                    'source': 'NIST'},
+    'WXLV_1_NIST': {'q': 44, 'ION': 'WXLV',
+                    'symbol':'1', 'lambda': 3.9895e-10,
+                    'transition': ['3d^{10}4s^2(^1S_{0})',
+                                   '3d^9(^2D_{5/2})4s^26f(5/2,7/2)^01'],
+                    'source': 'NIST'},
+    'WLIII_0_NIST': {'q': 52, 'ION': 'WLIII',
+                    'symbol':'0', 'lambda': 4.017e-10,
+                    'transition': ['3d^{10}4s^24p^2(^3P_{0})',
+                                   '3d^9(^2D_{3/2})4s^24p^2(^3P^0)(3/2,0)_{3/2}6f(3/2,5/2)^01'],
 }
 
 
