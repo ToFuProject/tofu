@@ -76,6 +76,11 @@ dlines = {
     # Ar
     # --------------------------
 
+    'ArXIV_n>3': {'q': 13, 'ION': 'ArXIV',
+                  'symbol': 'n>3', 'lambda': 3.9495e-10,
+                  'transition': ['unknown', 'unknwown'],
+                  'source': 'adhoc'},
+
     'ArXV_1': {'q': 14, 'ION': 'ArXV',
                'symbol': '1', 'lambda': 4.0096e-10,
                'transition': ['1s2s^22p(^1P_1)', '1s^22s^2(^1S_0)'],
@@ -108,10 +113,6 @@ dlines = {
                 'symbol': 'n=3', 'lambda': 3.9550e-10,
                 'transition': ['unknown', 'unknwown'],
                 'source': 'adhoc'},
-    'ArXV_n>3': {'q': 14, 'ION': 'ArXV',
-                 'symbol': 'n>3', 'lambda': 3.9495e-10,
-                 'transition': ['unknown', 'unknwown'],
-                 'source': 'adhoc'},
 
 
     'ArXVI_a_Kallne': {'q': 15, 'ION': 'ArXVI',
