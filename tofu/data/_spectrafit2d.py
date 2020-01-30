@@ -659,7 +659,7 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
             y[0, :] = x[indbck] * bckscale
 
             # lines
-            wi2 = x[indwidth][:, None] * wscale
+            wi2 = 2 * x[indwidth][:, None] * wscale
             shifti = (np.concatenate((x[indshift],
                                       x[indshift]+x[inddshift]))
                       * shscale)[:, None]
@@ -824,18 +824,18 @@ def multigausfit1d_from_dlines(data, lamb,
         width2 = width2[:nlines]
         dratio = res.x[dind['dratio']]
         dshift = res.x[dind['dshift']]
-        coefs = amp*lines[:nlines]*np.sqrt(np.pi)*np.sqrt(width2)
+        coefs = amp*lines[:nlines]*np.sqrt(2*np.pi*width2)
     else:
         shift = res.x[dind['shift']] * dscale['shift']*lines
         dratio, dshift = None, None
-        coefs = amp*lines*np.sqrt(np.pi)*np.sqrt(width2)
+        coefs = amp*lines*np.sqrt(2*np.pi*width2)
 
     # Derive plasma quantities
     kTiev, vims = None, None
     if Ti is True:
         # Get Ti in eV and vi in m/s
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        kTiev = conv * width2[dind['ions_back']] * mz * scpct.c**2 / 2.
+        kTiev = conv * width2[dind['ions_back']] * mz * scpct.c**2
     if vi is True:
         vims = res.x[dind['shift'][dind['ions_back']]] * dscale['shift'] * scpct.c
 
