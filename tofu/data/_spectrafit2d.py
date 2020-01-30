@@ -631,7 +631,6 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
     # w2 = 2*scpct.k/scpct.c**2
 
     if double is False:
-
         def func_detail(x, lamb=lamb, lines=lines, shape=shape,
                         indbck=indbck, indamp=indamp, indwidth=indwidth,
                         indshift=indshift, inddratio=inddratio,
@@ -682,8 +681,25 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
                                    shscale=shscale), axis=0) - data)
 
     if jac is None:
-        def jac_scale():
-            pass
+        # Define a callable jac returning (nlamb, sizex) matrix of partial
+        # derivatives of np.sum(func_details(scaled), axis=0)
+        if double is False:
+            def jac_scale(x, lamb=lamb, lines=lines, shape=shape,
+                          indbck=indbck, indamp=indamp, indwidth=indwidth,
+                          indshift=indshift, inddratio=inddratio,
+                          inddshift=inddshift,
+                          bckscale=1., ampscale=1.,
+                          shscale=1., wscale=1.):
+                jac = np.full((nlamb, sizex), np.nan)   # TBF
+                # y = np.full(shape, np.nan)
+                # y[0, :] = x[indbck] * bckscale
+
+                # # lines
+                # wi2 = x[indwidth][:, None] * wscale
+                # shifti = x[indshift][:, None] * shscale
+                # y[1:, :] = ampscale*x[indamp][:, None] * (
+                    # np.exp(-(lamb/lines - (1 + shifti))**2 / wi2))
+                return jac
     else:
         if jac not in ['2-point', '3-point']:
             msg = "jac should be None or in ['2-point', '3-point']"
