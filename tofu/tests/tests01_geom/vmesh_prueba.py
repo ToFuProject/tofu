@@ -96,7 +96,7 @@ def bigger_test():
                 try:
                     ii = 0
                     start = time.clock()
-                    reso = 0.01
+                    reso = 0.005
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
                     pts1, _ = out[0], out[2]
