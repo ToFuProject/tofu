@@ -14,7 +14,6 @@ from codecs import open
 from setuptools import setup, find_packages
 from setuptools import Extension
 # ... packages that need to be in pyproject.toml
-import Cython as cth
 from Cython.Distutils import build_ext
 import numpy as np
 # ...
@@ -35,6 +34,7 @@ if platform.system() == "Windows":
 # === Setting clean command ===================================================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tofu.setup")
+
 
 class CleanCommand(Clean):
     description = "Remove build artifacts from the source tree"
@@ -136,6 +136,7 @@ def check_for_openmp(cc_var):
     shutil.rmtree(tmpdir)
     return result
 
+
 # ....... Using function
 if is_platform_windows:
     openmp_installed = False
@@ -155,7 +156,7 @@ def updateversion(path=_HERE):
     try:
         version_git = subprocess.check_output(["git",
                                                "describe"]).rstrip().decode()
-    except Exception as err:
+    except subprocess.CalledProcessError:
         with open(version_py, 'r') as fh:
             version_git = fh.read().strip().split("=")[-1].replace("'", '')
     version_git = version_git.lower().replace('v', '')
@@ -165,6 +166,7 @@ def updateversion(path=_HERE):
         msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
         fh.write(version_msg + msg)
     return version_git
+
 
 def get_version_tofu(path=_HERE):
 
@@ -177,7 +179,6 @@ def get_version_tofu(path=_HERE):
                     [
                         "git",
                         "rev-parse",
-                        "--symbolic-full-name",
                         "--abbrev-ref",
                         "HEAD",
                     ]
@@ -185,8 +186,8 @@ def get_version_tofu(path=_HERE):
                 .rstrip()
                 .decode()
             )
-            if git_branch in ["master"]:
-                version_tofu = updateversion(os.path.join(path, "tofu"))
+            if git_branch in ["master", "deploy-test"]:
+                version_tofu = updateversion()
             else:
                 isgit = False
         except Exception:
@@ -198,14 +199,16 @@ def get_version_tofu(path=_HERE):
         with open(version_tofu, "r") as fh:
             version_tofu = fh.read().strip().split("=")[-1].replace("'", "")
 
-    version_tofu = version_tofu.lower().replace("v", "")
+    version_tofu = version_tofu.lower().replace("v", "").replace(" ", "")
     return version_tofu
+
 
 version_tofu = get_version_tofu(path=_HERE)
 
 print("")
 print("Version for setup.py : ", version_tofu)
 print("")
+
 # =============================================================================
 
 # =============================================================================

@@ -3,7 +3,6 @@ This module is the computational part of the geometrical module of ToFu
 """
 
 # Built-in
-import sys
 import warnings
 
 # Common
@@ -35,9 +34,11 @@ def _Struct_set_Poly(
     """ Compute geometrical attributes of a Struct object """
 
     # Make Poly closed, counter-clockwise, with '(cc,N)' layout and arrayorder
-    Poly = _GG.Poly_Order(
-        Poly, order="C", Clock=False, close=True, layout="(cc,N)", Test=True
-    )
+    try:
+        Poly = _GG.format_poly(Poly, order="C", Clock=False, close=True,
+                               Test=True)
+    except Exception as excp:
+        print(excp)
     assert Poly.shape[0] == 2, "Arg Poly must be a 2D polygon !"
     fPfmt = np.ascontiguousarray if arrayorder == "C" else np.asfortranarray
 
@@ -62,8 +63,13 @@ def _Struct_set_Poly(
         Vol, BaryV = None, None
     else:
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
-        msg = "Pb. with volume computation for Ves object of type 'Tor' !"
-        assert Vol > 0.0, msg
+        if Vol <= 0.0:
+            msg = ("Pb. with volume computation for Struct of type 'Tor' !\n"
+                   + "\t- Vol = {}\n".format(Vol)
+                   + "\t- Poly = {}\n\n".format(str(Poly))
+                   + "  => Probably corrupted polygon\n"
+                   + "  => Please check polygon is not self-intersecting")
+            raise Exception(msg)
 
     # Compute the non-normalized vector of each side of the Poly
     Vect = np.diff(Poly, n=1, axis=1)
@@ -75,12 +81,11 @@ def _Struct_set_Poly(
     Vin = Vin / np.hypot(Vin[0, :], Vin[1, :])[np.newaxis, :]
     Vin = fPfmt(Vin)
 
-    poly = _GG.Poly_Order(
+    poly = _GG.format_poly(
         Poly,
         order=arrayorder,
         Clock=Clock,
         close=False,
-        layout="(cc,N)",
         Test=True,
     )
 

@@ -475,7 +475,7 @@ class Test02_DataCam12DSpectral(Test01_DataCam12D):
         lData = [None for ii in range(0,len(lc))]
         for ii in range(0,len(lc)):
             sig = lc[ii].calc_signal(emiss, t=t, res=0.01, method=lm[ii],
-                                     plot=False, out=np.ndarray)[0]
+                                     plot=False, returnas=np.ndarray)[0]
             sig = sig[:,:,None]*flamb[None,None,:]
             cla = eval('tfd.DataCam%sDSpectral'%('2' if lc[ii]._is2D() else '1'))
             data = cla(data=sig, Name='All', Diag='Test',
