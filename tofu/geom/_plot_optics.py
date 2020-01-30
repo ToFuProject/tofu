@@ -861,9 +861,6 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 
 def CrystalBragg_plot_data_fit1d(dfit1d,
-                                 double=None,
-                                 freelines=None,
-                                 dlines=None,
                                  lambmin=None, lambmax=None,
                                  fs=None, dmargin=None,
                                  tit=None, wintit=None, ax=None):
@@ -878,7 +875,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
     if wintit is None:
         wintit = _WINTIT
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.90,
+        dmargin = {'left':0.05, 'right':0.85,
                    'bottom':0.07, 'top':0.85,
                    'wspace':0.2, 'hspace':0.3}
 
@@ -887,7 +884,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
     lions = list(dfit1d['dions'].keys())
     nions = len(lions)
     shift = dfit1d['shift']
-    if double is True:
+    if dfit1d['double'] is True:
         x = dfit1d['lines'][:dfit1d['nlines']] + shift
     else:
         x = dfit1d['lines'] + shift
@@ -906,7 +903,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
 
     ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][0, :], ls='-', c='k')
     ax.set_prop_cycle(None)
-    if double is True:
+    if dfit1d['double'] is True:
         for ii in range(1, dfit1d['nlines']+1):
             li, = ax.plot(dfit1d['lamb'],
                           dfit1d['sol_detail'][ii, :], ls='-', lw=1.)
@@ -939,14 +936,16 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
             ni += 1
     hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
             for ii in range(nions)]
-    if freelines is False:
-        lleg = [(lions[ii]
-                 + ' (Ti = {:4.2f} keV'.format(dfit1d['kTiev'][ii]*1.e-3)
-                 +', vi = {:5.1f} km/s)'.format(dfit1d['vims'][ii]*1.e-3))
-                for ii in range(nions)]
-    else:
-        lleg = lions
-    ax.legend(hand, lions,
+    lleg = lions
+    if dfit1d['Ti'] is True:
+        lleg = [(ll
+                 + ' Ti = {:4.2f} keV'.format(dfit1d['kTiev'][ii]*1.e-3))
+                for ii, ll in enumerate(lleg)]
+    if dfit1d['vi'] is True:
+        lleg = [(ll
+                 +' vi = {:5.1f} km/s)'.format(dfit1d['vims'][ii]*1.e-3))
+                for ii, ll in enumerate(lleg)]
+    ax.legend(hand, lleg,
               bbox_to_anchor=(1., 1.02), loc='upper left')
 
     ax.set_xlim(lambmin, lambmax)

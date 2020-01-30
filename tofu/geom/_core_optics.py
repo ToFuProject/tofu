@@ -1678,7 +1678,7 @@ class CrystalBragg(utils.ToFuObject):
                                nlambfit=None, nphifit=None,
                                lambmin=None, lambmax=None,
                                dlines=None, spect1d=None,
-                               double=None, freelines=None,
+                               double=None, Ti=None, vi=None,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -1724,14 +1724,13 @@ class CrystalBragg(utils.ToFuObject):
             dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev, verbose=0,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            double=double, freelines=freelines)
+            double=double, Ti=Ti, vi=vi)
 
         # Plot
         dax = None
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_data_fit1d(
                 dfit1d,
-                double=double, freelines=freelines,
                 lambmin=lambmin, lambmax=lambmax,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)

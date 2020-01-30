@@ -495,7 +495,7 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
 
 def multigausfit1d_from_dlines_ind(dions=None,
                                    double=None,
-                                   freelines=None):
+                                   Ti=None, vi=None):
     """ Return the indices of quantities in x to compute y """
 
     # Prepare lines concatenation
@@ -514,11 +514,21 @@ def multigausfit1d_from_dlines_ind(dions=None,
     # Excpet for bck, all indices should render nlines (2*nlines if double)
     indbck = np.r_[0]
     inddratio, inddshift = None, None
-    if freelines:
+    if Ti is False and vi is False:
         indwidth = 1 + np.arange(0, nlines)
         indshift = indwidth + nlines
         indamp = indshift + nlines
         sizex = 1 + 3*nlines
+    elif Ti is True and vi is False:
+        indwidth = 1 + np.repeat(np.arange(0, nions), lnlines)
+        indshift = 1 + nions + np.arange(0, nlines)
+        indamp = indshift + nlines
+        sizex = 1 + nions + 2*nlines
+    elif Ti is False and vi is True:
+        indwidth = 1 + np.arange(0, nlines)
+        indshift = 1 + nlines + np.repeat(np.arange(0, nions), lnlines)
+        indamp = indwidth + nlines + nions
+        sizex = 1 + nions + 2*nlines
     else:
         indwidth = 1 + np.repeat(np.arange(0, nions), lnlines)
         indshift = indwidth + nions
@@ -689,10 +699,13 @@ def multigausfit1d_from_dlines(data, lamb,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               freelines=None, double=None,
+                               Ti=None, vi=None, double=None,
                                verbose=None,
                                loss=None, jac=None):
     """ Solve multi_gaussian fit from dlines
+
+    If Ti is True, all lines from the same ion have the same width
+    If vi is True, all lines from the same ion have the same normalised shift
 
     Unknowns are:
         x = [bck, w0, v0, c00, c01, ..., c0n, w1, v1, c10, c11, ..., c1N, ...]
@@ -712,8 +725,10 @@ def multigausfit1d_from_dlines(data, lamb,
     """
 
     # Check format
-    if freelines is None:
-        freelines = False
+    if Ti is None:
+        Ti = False
+    if vi is None:
+        vi = False
     if double is None:
         double = False
     assert isinstance(double, bool)
@@ -723,11 +738,11 @@ def multigausfit1d_from_dlines(data, lamb,
         method = 'trf'
     assert method in ['trf', 'dogbox'], method
     if xtol is None:
-        xtol = 1.e-8
+        xtol = 1.e-12
     if ftol is None:
-        ftol = 1.e-8
+        ftol = 1.e-12
     if gtol is None:
-        gtol = 1.e-8
+        gtol = 1.e-12
     if loss is None:
         loss = 'linear'
     if max_nfev is None:
@@ -761,7 +776,7 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Get indices
     dind, lines, mz, keys, sizex, shapey0 = multigausfit1d_from_dlines_ind(
-        dions=dions, double=double, freelines=freelines)
+        dions=dions, double=double, Ti=Ti, vi=vi)
 
     # Get scaling
     if dscale is None:
@@ -817,10 +832,11 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Derive plasma quantities
     kTiev, vims = None, None
-    if freelines is False:
+    if Ti is True:
         # Get Ti in eV and vi in m/s
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
         kTiev = conv * width2[dind['ions_back']] * mz * scpct.c**2 / 2.
+    if vi is True:
         vims = res.x[dind['shift'][dind['ions_back']]] * dscale['shift'] * scpct.c
 
     kTe = None
@@ -828,23 +844,12 @@ def multigausfit1d_from_dlines(data, lamb,
         # Te can only be obtained as a proxy, units don't matter at this point
         kTe = coefs[keys.index(ratioTe['up'])] / coefs[keys.index(ratioTe['lo'])]
 
-    # if plot_debug is True:
-        # fig = plt.figure()
-        # ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-        # if double is True:
-            # ax.plot(lamb, sol_detail[:nlines, :].T, ls='-', lw=1.)
-            # ax.set_prop_cycle(None)
-            # ax.plot(lamb, sol_detail[nlines:, :].T, ls='--', lw=1.)
-        # else:
-            # ax.plot(lamb, sol_detail.T)
-        # ax.plot(lamb, np.sum(sol_detail, axis=0), c='k', lw=2.)
-        # ax.plot(lamb, data, marker='.', c='k', ls='None', ms=8)
-
     # Create output dict
     dout = {'data': data, 'lamb': lamb,
             'lines': lines, 'nlines': nlines,
             'sol_detail': sol_detail,
             'sol': np.sum(sol_detail, axis=0),
+            'Ti': Ti, 'vi': vi, 'double': double,
             'bck': bck, 'width2': width2, 'shift': shift, 'amp': amp,
             'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
             'dions': dions, 'kTiev': kTiev, 'vims': vims, 'kTe': kTe,
