@@ -896,9 +896,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
                                           margin=margin)
     Rn = len(R)
     Zn = len(Z)
-
-    print("size R discretized = ", Rn)
-    print("size Z discretized = ", Zn)
     # Get the limits if any (and make sure to replace them in the proper
     # quadrants)
     if DPhi is None:
@@ -906,7 +903,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
     else:
         DPhi0 = Catan2(Csin(DPhi[0]), Ccos(DPhi[0]))
         DPhi1 = Catan2(Csin(DPhi[1]), Ccos(DPhi[1]))
-    print("min phi, max_phi = ", DPhi0, DPhi1)
     dRPhir, dPhir = np.empty((Rn,)), np.empty((Rn,))
     Phin = np.empty((Rn,),dtype=int)
     NRPhi = np.empty((Rn,))
@@ -959,7 +955,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
             for jj in range(NRPhi_int-nPhi0,Phin[ii]):
                 indI[ii,jj] = <double>( jj- (NRPhi_int-nPhi0) )
         NP += Zn*Phin[ii]
-    print("size phi = ", NP)
     Pts = np.empty((3,NP))
     ind = np.empty((NP,))
     dV = np.empty((NP,))
@@ -993,43 +988,17 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
                     ind[NP] = NRPhi0[ii] + indZ[zz]*NRPhi[ii] + indiijj
                     dV[NP] = dRr*dZr*dRPhir[ii]
                     NP += 1
-    print("size phi = ", NP)
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
             hypot = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
             indin = Path(VPoly.T).contains_points(np.array([hypot,Pts[2,:]]).T,
                                                   transform=None, radius=0.0)
-            firsthund = 0
-            ii = 0
-            import matplotlib
-            matplotlib.use("Qt5Agg")
-            import matplotlib.pyplot as plt
-            plt.ion()
-            print("shape vpoly = ", VPoly.shape)
-            plt.plot(VPoly[0,:], VPoly[1,:], 'bo')
-            print(VPoly[0,0], VPoly[1,0])
-            print(VPoly[0,-1], VPoly[1,-1])
-            # print("ooooooooooooooooooold")
-            # while ii < indin.size: #100*10**3:
-            #     if not indin[ii]:
-            #         if ii >= 0: #20*10**3:
-            #             print(ii)
-            #             # print("IN ", ii, " hypot =", hypot[ii])
-            #             # 
-            #         firsthund += 1
-            #     ii += 1
-            ii = 20979436
-            print("is in =", indin[ii], hypot[ii])
-            plt.plot(hypot[ii], Pts[2,ii], 'rx')
-            plt.show(block=True)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
-            print("1. reshaping pts =", Pts.shape[1])
             Ru = np.unique(hypot)
         else:
             indin = Path(VPoly.T).contains_points(Pts[:-1,:].T, transform=None,
                                                   radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
-            print("2. reshaping pts =", Pts.shape[1])
             Ru = np.unique(Pts[0,:])
         # TODO : Warning : do we need the following lines ????
         # if not np.all(Ru==R):
@@ -1129,8 +1098,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_z, reso_z, &lindex_z,
                                       ncells_z)
-    print("size R discretized = ", sz_r)
-    print("size Z discretized = ", sz_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
     # .. in the proper quadrants ...............................................
     if DPhi is None:
@@ -1142,7 +1109,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         max_phi = DPhi[1] # to avoid conversions
         max_phi = Catan2(Csin(max_phi), Ccos(max_phi))
     abs0 = Cabs(min_phi + Cpi)
-    print("min phi, max_phi = ", min_phi, max_phi)
     # .. Initialization ........................................................
     sz_phi = <long*>malloc(sz_r*sizeof(long))
     tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
@@ -1211,7 +1177,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             for jj in range(loc_nc_rphi - nphi0, sz_phi[ii]):
                 indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * sz_phi[ii]
-    print("size phi = ", NP)
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
@@ -1231,7 +1196,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           reso_r_z, step_rphi,
                           disc_r, disc_z, lnp, sz_phi,
                           dv_mv, reso_phi_mv, pts_mv, ind_mv)
-    print("size phi = ", NP)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
@@ -1256,7 +1220,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                                 ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0])
-        print("reshaping pts =", nb_in_poly)
         pts = np.empty((3,nb_in_poly))
         ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
         res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0

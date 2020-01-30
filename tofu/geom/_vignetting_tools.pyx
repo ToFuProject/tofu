@@ -389,7 +389,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef vecpp[double] vec_z
     cdef vecpp[double] vec_vres
     cdef vecpp[long] vec_lind
-    cdef int debugii = 0
     # -- initialization --------------------------------------------------------
     are_in_poly = <int *>malloc(npts * sizeof(int))
     npts_vpoly = vpoly.shape[1] - 1
@@ -399,9 +398,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
             loc_hypot = Csqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 loc_hypot, pts[2,ii]):
-                # if 100*10**3 <= ii and ii < 2*10**6:
-                #     with gil:
-                #         print(ii)
                 nb_in_poly += 1
                 vec_x.push_back(pts[0,ii])
                 vec_y.push_back(pts[1,ii])
@@ -410,19 +406,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 vec_lind.push_back(lind[ii])
                 # we create a set for the new radius in vpoly:
                 set_r.insert(loc_hypot)
-            else:
-                if ii == 20979436:
-                    with gil:
-                        print("OUT ", ii, " hypot =", loc_hypot," y = ", pts[2,ii],
-                              " first and last = ", vpoly[0][0], vpoly[1][0],
-                              vpoly[0][npts_vpoly-1], vpoly[1][npts_vpoly-1] )
-                # #if ii >= 0 and ii < 10000:
-                # with gil:
-                #     print(ii)
-                #     # print("OUT ", ii, " hypot =", loc_hypot," y = ", pts[2,ii],
-                #     #       " first and last = ", vpoly[0][0], vpoly[1][0],
-                #     #       vpoly[0][npts_vpoly-1], vpoly[1][npts_vpoly-1] )
-                debugii += 1
         # We initialize the arrays:
         res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))

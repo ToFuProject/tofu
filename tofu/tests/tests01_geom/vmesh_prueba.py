@@ -1,6 +1,4 @@
 # External modules
-import matplotlib
-print(matplotlib.get_backend())
 import os
 import timeit
 import numpy as np
@@ -89,7 +87,7 @@ def bigger_test():
         for c in dobj[typ].keys():
             if issubclass(eval('tfg.%s' % c), tfg._core.StructOut):
                 continue
-            for n in ["VesOut"]:#dobj[typ][c].keys():
+            for n in dobj[typ][c].keys():
                 print("\n For type = " + str(typ) + " c = " + str(c)
                       + " n = ", n)
                 obj = dobj[typ][c][n]
@@ -98,7 +96,7 @@ def bigger_test():
                 try:
                     ii = 0
                     start = time.clock()
-                    reso = 0.02
+                    reso = 0.01
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
                     pts1, _ = out[0], out[2]
