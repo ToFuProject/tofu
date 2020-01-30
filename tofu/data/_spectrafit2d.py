@@ -538,7 +538,7 @@ def multigausfit1d_from_dlines_ind(dions=None,
 
     # index to get back unique ions values from width and shift
     indions = np.repeat(np.arange(0, nions), lnlines)
-    indions_back = np.r_[0, lnlines[:-1]]
+    indions_back = np.r_[0, np.cumsum(lnlines[:-1])]
 
     if double:
         lines = np.tile(lines, 2)
