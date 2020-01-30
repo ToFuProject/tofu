@@ -1041,7 +1041,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
 def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                    double[::1] RMinMax, double[::1] ZMinMax,
                                    double[::1] DR=None, double[::1] DZ=None,
-                                   DPhi=None, VPoly=None,
+                                   DPhi=None, double[:,::1] VPoly=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL):
     """Returns the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi).
@@ -1082,6 +1082,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[::1] dv_mv
     cdef double[::1] R, Z, reso_phi_mv, dPhir, hypot
     cdef double[:, ::1] pts_mv
+    cdef double[:, ::1] poly_mv
     cdef long[:, :, ::1] lnp
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
@@ -1234,8 +1235,13 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
+        # we make sure it is closed
+        if not np.allclose(VPoly[:,0],VPoly[:,-1], atol=_VSMALL):
+            poly_mv = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
+        else:
+            poly_mv = VPoly
         # initializations:
-        npts_vpoly = VPoly.shape[1] - 1
+        npts_vpoly = poly_mv.shape[1] - 1
         res_x = <double**> malloc(sizeof(double*))
         res_y = <double**> malloc(sizeof(double*))
         res_z = <double**> malloc(sizeof(double*))
@@ -1245,7 +1251,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
         # TODO : format here !!!!!!!!!! poly must be closed !!!!!!!!!!!!!!!!!!!!!!!!!
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv, pts,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
