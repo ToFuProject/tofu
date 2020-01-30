@@ -108,6 +108,10 @@ dlines = {
                 'symbol': 'n=3', 'lambda': 3.9550e-10,
                 'transition': ['unknown', 'unknwown'],
                 'source': 'adhoc'},
+    'ArXV_n>3': {'q': 14, 'ION': 'ArXV',
+                 'symbol': 'n>3', 'lambda': 3.9495e-10,
+                 'transition': ['unknown', 'unknwown'],
+                 'source': 'adhoc'},
 
 
     'ArXVI_a_Kallne': {'q': 15, 'ION': 'ArXVI',
