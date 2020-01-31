@@ -624,51 +624,37 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
     inddratio = dind['dratio']
     inddshift = dind['dshift']
 
-    lines = lines[:, None]
-    lamb = lamb[None, :]
-    shape = (shapey0, lamb.size)
+    lines = lines[None, :]
+    lamb = lamb[:, None]
+    shape = (lamb.size, shapey0)
     # w2 with Ti in eV -> J
     # w2 = 2*scpct.k/scpct.c**2
 
-    if double is False:
-        def func_detail(x, lamb=lamb, lines=lines, shape=shape,
-                        indbck=indbck, indamp=indamp, indwidth=indwidth,
-                        indshift=indshift, inddratio=inddratio,
-                        inddshift=inddshift,
-                        bckscale=1., ampscale=1.,
-                        shscale=1., wscale=1.):
-            y = np.full(shape, np.nan)
-            y[0, :] = x[indbck] * bckscale
+    def func_detail(x, lamb=lamb, lines=lines, shape=shape,
+                    indbck=indbck, indamp=indamp, indwidth=indwidth,
+                    indshift=indshift, inddratio=inddratio,
+                    inddshift=inddshift,
+                    bckscale=1., ampscale=1.,
+                    shscale=1., wscale=1., double=double):
+        y = np.full(shape, np.nan)
+        y[:, 0] = x[indbck] * bckscale
 
-            # lines
-            wi2 = 2 * x[indwidth][:, None] * wscale
-            shifti = x[indshift][:, None] * shscale
-            y[1:, :] = ampscale*x[indamp][:, None] * (
-                np.exp(-(lamb/lines - (1 + shifti))**2 / wi2))
-            return y
-
-    else:
-        def func_detail(x, lamb=lamb, lines=lines, shape=shape,
-                        indbck=indbck, indamp=indamp, indwidth=indwidth,
-                        indshift=indshift, inddratio=inddratio,
-                        inddshift=inddshift,
-                        bckscale=1., ampscale=1.,
-                        shscale=1., wscale=1.):
-            y = np.full(shape, np.nan)
-            y[0, :] = x[indbck] * bckscale
-
-            # lines
-            wi2 = 2 * x[indwidth][:, None] * wscale
+        # lines
+        if double:
+            amp = ampscale * (
+                np.concatenate((x[indamp], x[indamp]*x[inddratio]))[None, :])
             shifti = (np.concatenate((x[indshift],
                                       x[indshift]+x[inddshift]))
-                      * shscale)[:, None]
-            amp = ampscale * (
-                np.concatenate((x[indamp], x[indamp]*x[inddratio]))[:, None])
-            y[1:, :] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / wi2)
-            return y
+                      * shscale)[None, :]
+        else:
+            amp = ampscale*x[indamp][None, :]
+            shifti = x[indshift][None, :] * shscale
+        wi2 = x[indwidth][None, :] * wscale
+        y[:, 1:] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2))
+        return y
 
     def func(x):
-        return np.sum(func_detail(x), axis=0)
+        return np.sum(func_detail(x), axis=1)
 
     def cost_scale(x, data=data,
                    bckscale=bckscale, ampscale=ampscale,
@@ -677,33 +663,34 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
                                    bckscale=bckscale,
                                    ampscale=ampscale,
                                    wscale=wscale,
-                                   shscale=shscale), axis=0) - data)
+                                   shscale=shscale), axis=1) - data)
 
     if jac is None:
         # Define a callable jac returning (nlamb, sizex) matrix of partial
         # derivatives of np.sum(func_details(scaled), axis=0)
-        if double is False:
-            def jac_scale(x, lamb=lamb, lines=lines, shape=shape,
-                          indbck=indbck, indamp=indamp, indwidth=indwidth,
-                          indshift=indshift, inddratio=inddratio,
-                          inddshift=inddshift,
-                          bckscale=1., ampscale=1.,
-                          shscale=1., wscale=1.):
-                jac = np.full((nlamb, sizex), np.nan)   # TBF
-                jac[:, 0] = bckscale
+        def jac_scale(x, lamb=lamb, lines=lines, shape=shape,
+                      indbck=indbck, indamp=indamp, indwidth=indwidth,
+                      indshift=indshift, inddratio=inddratio,
+                      inddshift=inddshift,
+                      bckscale=1., ampscale=1.,
+                      shscale=1., wscale=1., double=double):
+            jac = np.full((nlamb, sizex), np.nan)   # TBF
+            jac[:, 0] = bckscale
 
-                wi2 = 2 * x[indwidth][:, None] * wscale
-                shifti = x[indshift][:, None] * shscale
-                jac[:, indamp] = ampscale*np.exp(-() / )
-                # y = np.full(shape, np.nan)
-                # y[0, :] = x[indbck] * bckscale
+            amp = ampscale*x[indamp][None, :]
+            wi2 = x[indwidth][None, :] * wscale
+            shifti = x[indshift][None, :] * shscale
+            alpha = -(lamb/lines - (1 + shifti))**2 / (2*wi2)
+            exp = np.exp(alpha)
 
-                # # lines
-                # wi2 = x[indwidth][:, None] * wscale
-                # shifti = x[indshift][:, None] * shscale
-                # y[1:, :] = ampscale*x[indamp][:, None] * (
-                    # np.exp(-(lamb/lines - (1 + shifti))**2 / wi2))
-                return jac
+            jac[:, indamp] = ampscale * exp
+            jac[:, indwidth] = np.sum(amp * alpha * (-1./wi2) * exp, axis=)
+            jac[:, indshift] = np.sum(amp * alpha * (-shscale/(lamb/lines - (1 + shifti))) * exp, axis=)
+            if double is True:
+                jac[:, indamp] += jac[:, indamp]*x[inddratio]
+                jac[:, inddratio] = None
+                jac[:, inddshift] = None
+            return jac
     else:
         if jac not in ['2-point', '3-point']:
             msg = "jac should be None or in ['2-point', '3-point']"
@@ -833,7 +820,7 @@ def multigausfit1d_from_dlines(data, lamb,
     # Separate and reshape output
     sol_detail = func_detail(res.x,
                              bckscale=dscale['bck'], ampscale=dscale['amp'],
-                             wscale=dscale['width'], shscale=dscale['shift'])
+                             wscale=dscale['width'], shscale=dscale['shift']).T
 
     # Get result in physical units
     bck = res.x[dind['bck']] * dscale['bck']
