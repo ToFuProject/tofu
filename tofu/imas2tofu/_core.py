@@ -1262,6 +1262,18 @@ class MultiIDSLoader(object):
         return lids
 
     def open_get_close(self, ids=None, occ=None, verb=True):
+        """ Force data loading
+
+        If at instanciation or when using method add_ids() you specified option
+        get = False, then the latest added ids may not have been loaded.
+
+        This method forces a refresh and loads all ids contained in the instance
+
+        The name comes from:
+            - open (all the idd)
+            - get (all the ids)
+            - close (all the idd)
+        """
         llids = self._checkformat_get_ids(ids)
         lidd = [lids[0] for lids in llids]
         self._open(idd=lidd)
