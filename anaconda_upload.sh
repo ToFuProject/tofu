@@ -6,6 +6,7 @@ set -e
 
 echo "Deploying to anaconda.org..."
 export USER=ToFuProject
+export PKG_DIR=$HOME/miniconda/conda-bld/$OS/
 anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $PKG_DIR/tofu-*.tar.bz2
 echo "Successfully uploaded !"
 exit 0
