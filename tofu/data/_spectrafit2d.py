@@ -641,7 +641,7 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
             y[0, :] = x[indbck] * bckscale
 
             # lines
-            wi2 = x[indwidth][:, None] * wscale
+            wi2 = 2 * x[indwidth][:, None] * wscale
             shifti = x[indshift][:, None] * shscale
             y[1:, :] = ampscale*x[indamp][:, None] * (
                 np.exp(-(lamb/lines - (1 + shifti))**2 / wi2))
@@ -662,9 +662,8 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
             shifti = (np.concatenate((x[indshift],
                                       x[indshift]+x[inddshift]))
                       * shscale)[:, None]
-            amp = ampscale * (np.concatenate((x[indamp],
-                                              x[indamp]*x[inddratio]))[:,
-                                                                       None])
+            amp = ampscale * (
+                np.concatenate((x[indamp], x[indamp]*x[inddratio]))[:, None])
             y[1:, :] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / wi2)
             return y
 
@@ -691,6 +690,11 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
                           bckscale=1., ampscale=1.,
                           shscale=1., wscale=1.):
                 jac = np.full((nlamb, sizex), np.nan)   # TBF
+                jac[:, 0] = bckscale
+
+                wi2 = 2 * x[indwidth][:, None] * wscale
+                shifti = x[indshift][:, None] * shscale
+                jac[:, indamp] = ampscale*np.exp(-() / )
                 # y = np.full(shape, np.nan)
                 # y[0, :] = x[indbck] * bckscale
 
