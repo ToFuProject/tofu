@@ -656,6 +656,78 @@ class MultiIDSLoader(object):
                  shot=None, run=None, refshot=None, refrun=None,
                  user=None, tokamak=None, version=None,
                  ids_base=None, synthdiag=None, get=None, ref=True):
+        """ A class for handling multiple ids loading from IMAS
+
+        IMAS provides access to a database via a standardized structure (idd
+        and ids). This class is a convenient tool to interact with IMAS.
+
+        idd: An IMAS data dictionnary (idd) is like a 'shotfile', it contains
+            all data for a given shot, in a given version.
+            An idd is identified by:
+                - user:     the name of the user to whom the idd belongs.
+                            Indeed, each idd can e stored in an official
+                            centralized database identified by a generic user
+                            name (e.g.: 'public') or locally on a personnal
+                            database identified by your own user name.
+                            An idd stored locally on the database of user A can
+                            be read by other users if they provide the
+                            user name 'A'.
+                - tokamak:  the name of the experiment (e.g.: 'ITER')
+                - shot:     the shot number
+                - run:      It's the 'version' of the shotfile.
+                            Indeed, IMAS allows to store both experimental and
+                            simulation data. A given experimental data can
+                            exist in several versions (more or less filtered or
+                            treated) and the same goes for simulation data (the
+                            same simulation can be run with different sets of
+                            parameters, or with a different code).
+                            For a given shot, several runs can exist
+
+        ids: Once the idd has been chosen, it contains all the available data
+            in the form of IMAS data Structures (ids).
+            Each ids contains a 'family' or 'group' of data. It has an explicit
+            name to indicate what that group is.
+            There are typically diagnostic ids (e.g.: 'barometry',
+            'intereferometer', 'soft_x_rays', ...) that contain all data
+            produced by these diagnostics (with their time bases, units...),
+            advanced data treatment ids (e.g.: 'equilibrium'...) and simulation
+            ids (e.g.: 'core_profiles', 'edge_sources'...)
+
+        In a typical use case, you would want to load all data from several ids
+        from the same idd (e.g.: from the official centralized idd of a shot
+        that contains official, validated data).
+        But for some analysis, you may want to load different ids from
+        different idd (e.g.: to compare official experimental data of a
+        diagnostics to synthetic data computed from the core profiles produced
+        by a simulation and interpolated via an equilibrium produced by a
+        third-party code).
+
+        This class provides an easy interface to access several ids from
+        several idd (or a unique idd of course).
+
+
+        Example
+        -------
+
+        # Tis will load 2 ids from the same public idd
+        # But we know we will need to add another ids from a different idd
+        # So we instanciate the class and secpify get=False to postpone the
+        # data loading itself until we have added all we need
+        import tofu as tf
+        user = 'imas_public'
+        ids = ['interferometer', 'polarimeter']
+        multi = tf.imas2tofu.MultiIDSLoader(shot=55583, user=user,
+                                            tokamak='west', ids=ids, get=False)
+
+        # This will ad an ids from a different idd and automatically load
+        # ('get') everything
+        multi.add_ids('bolometer', shot=55583, user='myusername',
+                      tokamak='west')
+
+        # To have an overview of what your multi instance contains, type
+        multi
+
+        """
         super(MultiIDSLoader, self).__init__()
 
         # Initialize dicts
