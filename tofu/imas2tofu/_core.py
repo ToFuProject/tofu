@@ -2422,7 +2422,7 @@ class MultiIDSLoader(object):
         indoc = np.nonzero(self._dids[ids]['occ'] == occ)[0][0]
 
         if description_2d is None:
-            if len(self._dids[ids]['ids'][indoc].description_2d) >= 1:
+            if len(self._dids[ids]['ids'][indoc].description_2d) >= 2:
                 description_2d = 1
             else:
                 description_2d = 0
