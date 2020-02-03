@@ -55,6 +55,7 @@ _LIDS = _LIDS_DIAG
 _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
+_EXTRA = True
 
 ###################################################
 ###################################################
@@ -75,7 +76,7 @@ def _get_exception(q, ids, qtype='quantity'):
 
 def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
-                    ids=None, t0=_T0,
+                    ids=None, t0=_T0, extra=_EXTRA,
                     plot_compare=True, Brightness=None,
                     res=None, interp_t=None,
                     sharex=_SHAREX, indch=None, indch_auto=None,
@@ -87,7 +88,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
     tf.calc_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
-                      plot_compare=plot_compare,
+                      plot_compare=plot_compare, extra=extra,
                       Brightness=Brightness, res=res, interp_t=interp_t,
                       t0=t0, plot=True, sharex=sharex, bck=background)
 
@@ -153,6 +154,9 @@ if __name__ == '__main__':
     parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
                         help='automatically determine indices of channels to be loaded',
                         default=True)
+    parser.add_argument('-e', '--extra', type=_str2bool, required=False,
+                        help='If True loads separatrix and heating power',
+                        default=_EXTRA)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
