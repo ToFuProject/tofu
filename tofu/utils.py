@@ -651,7 +651,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
-                   sharex=False, invertx=None,
+                   sharex=False, invertx=None, extra=True,
                    bck=True, indch_auto=True, t=None, init=None, dR_sep=None):
     # -------------------
     # import imas2tofu
@@ -922,7 +922,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nDat > 0 or nCam > 0 or nPla > 0:
         if 'wall' not in lids:
             lids.append('wall')
-        if nDat > 0 or nPla > 0 and dextra is None:
+        if (nDat > 0 or nPla > 0) and extra is True:
             if 'equilibrium' not in lids:
                 lids.append('equilibrium')
             if 'lh_antennas' not in lids:

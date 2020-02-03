@@ -3882,7 +3882,11 @@ class MultiIDSLoader(object):
                 ipdb.set_trace()
                 raise Exception(msg)
 
-            assert out[dsig[kk]].ndim in [1, 2, 3]
+            if out[dsig[kk]].size == 0 or out[dsig[kk]].ndim not in [1, 2, 3]:
+                msg = ("\nSome data seem to have inconsistent shape:\n"
+                       + "\t- out[{}].shape = {}".format(dsig[kk],
+                                                         out[dsig[kk]].shape))
+                raise Exception(msg)
 
             if out[dsig[kk]].ndim == 1:
                 out[dsig[kk]] = np.atleast_2d(out[dsig[kk]])
@@ -3890,6 +3894,7 @@ class MultiIDSLoader(object):
             if out[dsig[kk]].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
                     if np.allclose(out[dsig[kk]], out[dsig[kk]][:,0:1]):
+                        import pdb; pdb.set_trace() # DB
                         dins[kk] = out[dsig[kk]][:,0]
                     else:
                         dins[kk] = out[dsig[kk]]
@@ -3945,8 +3950,9 @@ class MultiIDSLoader(object):
         if t0 != False:
             if 't' in dins.keys():
                 dins['t'] = dins['t'] - t0
-            for tt in dextra.keys():
-                dextra[tt]['t'] = dextra[tt]['t'] - t0
+            if dextra is not None:
+                for tt in dextra.keys():
+                    dextra[tt]['t'] = dextra[tt]['t'] - t0
 
         # --------------
         # Create objects
