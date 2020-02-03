@@ -3331,6 +3331,94 @@ class MultiIDSLoader(object):
 
         return geomcls
 
+
+    def _inspect_channels(self, indch=None, indch_auto=None,
+                          dgeom=None, t=None,
+                          ids=None, out=None, dsig=None, kk=None):
+        nch_check = None
+        nch = 0 if indch is None else len(indch)
+        isdata = all([ss is not None for ss in [out, kk, dsig]])
+
+        # Get geom, t.shape and data.shape
+        geom, nch_geom, msgch_geom = None, None, ""
+        if dgeom is not None:
+            geom = ~np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
+                                  np.any(np.isnan(dgeom[1]), axis=0))
+            nch_geom = geom.size
+            msgch_geom = "los".ljust(12)
+            geomstr = [str(gg) for gg in geom]
+
+        shape_t, nch_t, msgch_t = None, None, ""
+        if t is not None:
+            shape_t = [t[ii].shape for ii in range(0, len(t))]
+            ltok = list(set([ss for ss in shape_t if 0 not in ss]))
+            indtok = np.array([ii for ii in range(0, len(t))
+                               if shape_t[ii] in ltok])
+            nch_t = len(shape_t)
+            msgch_t = "t.shape".ljust(12)
+
+
+        shape_data, nch_data, msgch_data = None, None, ""
+        if isdata:
+            shape_data = [out[dsig[kk]][ii].shape
+                          for ii in range(0, len(out[dsig[kk]]))]
+            ldataok = list(set([ss for ss in shape_data if 0 not in ss]))
+            inddataok = np.array([ii for ii in range(0, len(out[dsig[kk]]))
+                                  if shape_data[ii] in ldataok])
+            nch_data = len(shape_data)
+            msgch_data = "data.shape".ljust(12)
+
+        # Check consistency
+        lnch = np.unique([nn for nn in [nch_geom, nch_t, nch_data]
+                          if nn is not None])
+        if not (lnch.size == 1 and lnch[0] != 0):
+            msg = ("Number of channels seems inconsistent:\n"
+                   + "\t- nch_geom: {}\n".format(nch_geom)
+                   + "\t- nch_t: {}\n".format(nch_t)
+                   + "\t- nch_data: {}\n".format(nch_data))
+            raise Exception(msg)
+
+        # Remove non-valid indices
+        indok = np.ones((lnch[0]), dtype=bool)
+        if geom is not None:
+            indok[~geom] = False
+        if t is not None:
+            indok[~indtok] = False
+        if isdata:
+            indok[~inddataok] = False
+
+        import pdb; pdb.set_trace()  # DB
+        # Cross-check
+        indchin = np.arange(0, lnch[0]) if indch is None else indch
+        if not np.any(indok[indch]):
+            msg = ""
+            raise Exception(msg)
+
+        elif np.any(~indok[indch]):
+            msgch = ("index      " + msgch_geom + msgch_t + msgch_data + "\n"
+                     + "-"*(12+len(msgch_geom + msgch_t + msgch_data)))
+            msgch += "\n".join([str(ii).ljust(12) + geomstr[ii]
+                                + tstr[ii] + datastr[ii]
+                                for ii in range(lnch[0])])
+            if indch_auto is True:
+                indch = indchin[indok[indch]]
+                msg = ("Not all desired channels are available:\n"
+                       + msgch
+                       + "\n  => indch set to {}".format(indch))
+                warnings.warn(msg)
+            else:
+                msg = ("Not all desired channels are available:\n"
+                       + msgch
+                       + "  => Either:\n"
+                       + "\t- set indch manually\n"
+                       + "\t- use indch_auto=True (will set indch as suggested)\n"
+                       + "  => suggested indch = {}".format(indch))
+                raise Exception(msg)
+
+        nchout = indch.size
+        return indch, nchout != nch
+
+
     def _get_indch_geomtdata(self, indch=None, indch_auto=None,
                              dgeom=None, t=None,
                              ids=None, out=None, dsig=None, kk=None):
@@ -3578,6 +3666,9 @@ class MultiIDSLoader(object):
                                                                pos=pos)
 
             # Check all channels can be used, reset indch if necessary
+            indch, modif = self._inspect_channels(indch=indch,
+                                                  indch_auto=indch_auto,
+                                                  dgeom=dgeom)
             indch, modif = self._get_indch_geomtdata(indch=indch,
                                                      indch_auto=indch_auto,
                                                      dgeom=dgeom)
@@ -3836,11 +3927,17 @@ class MultiIDSLoader(object):
         # -----------
         # Check indch
         if type(t) is list:
+            indch, modif = self._inspect_channels(indch=indch,
+                                                  indch_auto=indch_auto,
+                                                  dgeom=dgeom, t=t)
             indch, modif = self._get_indch_geomtdata(indch=indch,
                                                      indch_auto=indch_auto,
                                                      dgeom=dgeom, t=t)
             assert modif is True
         else:
+            indch, modif = self._inspect_channels(indch=indch,
+                                                  indch_auto=indch_auto,
+                                                  dgeom=dgeom)
             indch, modif = self._get_indch_geomtdata(indch=indch,
                                                      indch_auto=indch_auto,
                                                      dgeom=dgeom)
@@ -3866,6 +3963,9 @@ class MultiIDSLoader(object):
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
+                indch, modifk = self._inspect_channels(
+                    indch=indch, indch_auto=indch_auto,
+                    out=out, dsig=dsig, kk=kk)
                 indch, modifk = self._get_indch_geomtdata(
                     indch=indch, indch_auto=indch_auto,
                     out=out, dsig=dsig, kk=kk)
