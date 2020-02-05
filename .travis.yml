@@ -59,12 +59,15 @@ install:
   codecov
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)
-- export IS_MASTER=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/master$" | grep -o "master")
-- export IS_DEPLOY=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/deploy-test$" | grep -o "deploy-test")
-- echo $IS_MASTER
-- echo $IS_DEPLOY
 - echo $REV
 - pip install -e ".[dev]"
+- export IS_MASTER=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/master$" | grep -o "master")
+- export IS_DEPLOY=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/deploy-test$" | grep -o "deploy-test")
+- echo $TRAVIS_COMMIT
+- git ls-remote origin
+- echo $IS_MASTER
+- echo $IS_DEPLOY
+
 script:
 - cd $HOME
 - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
