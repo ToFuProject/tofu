@@ -82,6 +82,9 @@ before_deploy:
       export PKG_REAL=$(conda build . --output | tail -1)
       export IS_MASTER=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/master$" | grep -o "master")
       export IS_DEPLOY=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/deploy-test$" | grep -o "deploy-test")
+      echo $IS_MASTER
+      echo $IS_DEPLOY
+      echo $PKG_REAL
       echo "BEFORE DEPLOY END.........."
     fi
 deploy:
@@ -92,7 +95,7 @@ deploy:
     cleanup: False
     on:
       tags: true
-      condition: $IS_DEPLOY = deploy-test
+      condition: $IS_DEPLOY = "deploy-test"
     server: https://test.pypi.org/legacy/
     password:
       secure: xfVFuoz9YYNChzmT8DC9y+8eH6zdFkfoy3B51uqy8b+vhJNzCzLay4F0uSHvhHy6iYorM6UQKr6soC4D7n3PhmnFOTX/cgLtd/p4gBWGYZF6yXacvw+UHKMshgbAhn2sEynxdSAqdAlNttMI8jsUu9RhbzGiv1l5zSNnFWF4Zsly02G68UnztxIGoz8AYTRW2N2oQhGrl/ryj/YG4mSRKjled6BzK7kNoJUqLGl12DqdMMTEmdJ9NHBXgK3Dv0ya17ReFz3TcxE/4+Yc38NwSR4Ia2EvVSMtyIaccQ1uSrXwW8JQOMn+9CmDWZVUMDD2bzKYbm2WGGM9Fh8WrHnwlWRujoLDofhYEK0Cus11gULFF+J88XucOJlyJNrHP6TWxdSVVoQfwWr2ABqZIvilsvHpF+sjDLqomTNHdi+BbzP2koRv0nJb9K1W24bjPLtSK8+plX7suv7gdBNwlsJ+dPLDM87v4+jGHGthQ6P4X2guTMHZm1PU0PSPB9LCbENCN1uktLLhkgx7gZ42Ag+Jwiu02ENkChLaEB4WpPb9mjLnomu5LDYXFGtPJ/uLMOi3VCXyda0LrzqDhXYT3Cg4hvXySwJcgMYSXalfTxnTm9oouePiEXDbK+XwjMP9mjC5CeMg3SaFFTywqaTH0WUqiOBUJ6H3Gsm0sB15Tj4lNKQ=
@@ -103,7 +106,7 @@ deploy:
     cleanup: False
     on:
       tags: true
-      condition: $IS_DEPLOY = deploy-test
+      condition: $IS_DEPLOY = "deploy-test"
       condition: $OS = osx-64
     server: https://test.pypi.org/legacy/
     password:
@@ -115,7 +118,7 @@ deploy:
     cleanup: False
     on:
       tags: true
-      condition: $IS_MASTER = master
+      condition: $IS_MASTER = "master"
     password:
       secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
   - provider: pypi
@@ -126,7 +129,7 @@ deploy:
     on:
       condition: $OS = osx-64
       tags: true
-      condition: $IS_MASTER = master
+      condition: $IS_MASTER = "master"
     password:
       secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
   - provider: script
@@ -134,4 +137,4 @@ deploy:
     cleanup: False
     on:
       tags: true
-      condition: $IS_MASTER = master
+      condition: $IS_MASTER = "master"
