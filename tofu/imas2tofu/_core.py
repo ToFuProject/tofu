@@ -3345,6 +3345,10 @@ class MultiIDSLoader(object):
             msg = "Arg geomcls must be in {}".format([False]+lgeom)
             raise Exception(msg)
 
+        if geomcls is False:
+            msg = "ids {} does not seem to be a ids with a camera".format(ids)
+            raise Exception(msg)
+
         return geomcls
 
     def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
@@ -3380,6 +3384,8 @@ class MultiIDSLoader(object):
                                                              data=data, X=X,
                                                              datacls=datacls,
                                                              geomcls=geomcls)
+        if geomcls is False:
+            geom = False
 
         # ------------------
         # Extract sig and shapes / values
@@ -3388,7 +3394,7 @@ class MultiIDSLoader(object):
         else:
             lsig = sorted(dsig.values())
         lsigshape = list(lsig)
-        if 'LOS' in geomcls and geom in ['only', True]:
+        if geom in ['only', True] and 'LOS' in geomcls:
             lkok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
             lsig += [ss for ss in ['los_ptsRZPhi', 'etendue', 'surface', 'names']
                      if ss in lkok]
@@ -3398,17 +3404,27 @@ class MultiIDSLoader(object):
                             pos=False)
         dout = {}
         for k0, v0 in out.items():
+            if len(v0) != nch:
+                if len(v0) != 1:
+                    import pdb; pdb.set_trace() # DB
+                continue
             if isinstance(v0[0], np.ndarray):
                 dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
-                            'isnan': np.array([np.any(np.isnan(vv)) for vv in v0])}
+                            'isnan': np.array([np.any(np.isnan(vv))
+                                               for vv in v0])}
+                if k0 == 'los_ptsRZPhi':
+                    dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
+                                                              vv[1, ...])
+                                                 for vv in v0])
             elif type(v0[0]) in [int, float, np.int, np.float, str]:
                 dout[k0] = {'value': np.asarray(v0).ravel()}
             else:
                 msg = ("\nUnknown data type:\n"
                        + "\t- channels.{}: {}".format(k0, type(v0)))
-                import pdb; pdb.set_trace() # DB
                 raise Exception(msg)
 
+        lsig = sorted(set(lsig).intersection(dout.keys()))
+        lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
 
         # --------------
         # Get ind, msg
@@ -3416,7 +3432,8 @@ class MultiIDSLoader(object):
         if compute_ind:
             if geom in ['only', True] and 'los_ptsRZPhi' in out.keys():
                 indg = ((np.prod(dout['los_ptsRZPhi']['shapes'], axis=1) == 0)
-                        | dout['los_ptsRZPhi']['isnan'])
+                        | dout['los_ptsRZPhi']['isnan']
+                        | dout['los_ptsRZPhi']['equal'])
                 if geom == 'only':
                     indok = ~indg
                     indchout = indok.nonzero()[0]
@@ -3468,225 +3485,6 @@ class MultiIDSLoader(object):
             return lout[0]
         elif len(lout) > 1:
             return lout
-
-    def _inspect_channels(self, ids, indch=None, indch_auto=None,
-                          dgeom=None, t=None, out=None, dsig=None, kk=None):
-        """ Check availability of geometry and data shape in desired order """
-        nch_check = None
-        nch = 0 if indch is None else len(indch)
-        isdata = all([ss is not None for ss in [out, kk, dsig]])
-
-        # Get geom, t.shape and data.shape
-        geom, nch_geom, msgch_geom = None, None, ""
-        if dgeom is not None:
-            geom = ~np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
-                                  np.any(np.isnan(dgeom[1]), axis=0))
-            nch_geom = geom.size
-            msgch_geom = "los".ljust(12)
-            geomstr = [str(gg) for gg in geom]
-
-        shape_t, nch_t, msgch_t = None, None, ""
-        if t is not None:
-            shape_t = np.array([t[ii].shape for ii in range(0, len(t))])
-            ltok = np.unique([ss for ss in shape_t
-                              if 0 not in ss], axis=0)
-            indtok = np.array([shape_t[ii] in ltok for ii in range(0, len(t))])
-            nch_t = len(shape_t)
-            msgch_t = "t.shape".ljust(12)
-
-        shape_data, nch_data, msgch_data = None, None, ""
-        if isdata:
-            shape_data = np.array([out[dsig[kk]][ii].shape
-                                   for ii in range(0, len(out[dsig[kk]]))])
-            ldataok = np.unique([ss for ss in shape_data
-                                 if 0 not in ss], axis=0)
-            inddataok = np.array([shape_data[ii] in ldataok
-                                  for ii in range(0, len(out[dsig[kk]]))])
-            nch_data = len(shape_data)
-            msgch_data = "data.shape".ljust(12)
-
-        # Check consistency
-        lnch = np.unique([nn for nn in [nch_geom, nch_t, nch_data]
-                          if nn is not None])
-        if not (lnch.size == 1 and lnch[0] != 0):
-            msg = ("Number of channels seems inconsistent:\n"
-                   + "\t- nch_geom: {}\n".format(nch_geom)
-                   + "\t- nch_t: {}\n".format(nch_t)
-                   + "\t- nch_data: {}\n".format(nch_data))
-            raise Exception(msg)
-
-        # Remove non-valid indices
-        indok = np.ones((lnch[0]), dtype=bool)
-        if geom is not None:
-            indok[~geom] = False
-        if t is not None:
-            indok[~indtok] = False
-        if isdata:
-            indok[~inddataok] = False
-
-        # Cross-check
-        indchin = np.arange(0, lnch[0]) if indch is None else indch
-        if isdata:
-            shape_data = shape_data[indok, :]
-            ldataok, ldata_indinv, ldata_counts = np.unique(shape_data, axis=0,
-                                                            return_counts=True,
-                                                            return_inverse=True)
-            if ldata_counts.size > 1:
-                indfalse = ldata_indinv != np.argmax(ldata_counts)
-                indok[indok.nonzero()[0][indfalse]] = False
-
-        if t is not None:
-            shape_t = shape_t[indok, :]
-            ltok, lt_indinv, lt_counts = np.unique(shape_t, axis=0,
-                                                   return_counts=True,
-                                                   return_inverse=True)
-            if lt_counts.size > 1:
-                indfalse = lt_indinv != np.argmax(lt_counts)
-                indok[indok.nonzero()[0][indfalse]] = False
-        import pdb; pdb.set_trace() # DB
-        indch = indchin[indok]
-
-        # Choose whether to warn user
-        if indch.size != indchin.size or not np.allclose(indch, indchin):
-            if indch_auto is True:
-                msg = ("\nNot all desired channels are available!\n"
-                       + "indch automatically adjusted to:\n"
-                       + "\t- indch = [{}]".format(', '.join(map(str, indch)))
-                       + "\n  => use self.inspect_channels() to see why")
-                warnings.warn(msg)
-            else:
-                import pdb; pdb.set_trace()  # DB
-                msgch = ("index      " + msgch_geom + msgch_t + msgch_data + "\n"
-                         + "-"*(12+len(msgch_geom + msgch_t + msgch_data)))
-                msgch += "\n".join([str(ii).ljust(12) + geomstr[ii]
-                                    + tstr[ii] + datastr[ii]
-                                    for ii in range(lnch[0])])
-                msg = ("Not all desired channels are available:\n"
-                       + msgch
-                       + "  => Either:\n"
-                       + "\t- set indch manually\n"
-                       + "\t- use indch_auto=True (will set indch as suggested)\n"
-                       + "  => suggested indch = {}".format(indch))
-                raise Exception(msg)
-
-        return indch, indch.size != nch
-
-
-    def _get_indch_geomtdata(self, indch=None, indch_auto=None,
-                             dgeom=None, t=None,
-                             ids=None, out=None, dsig=None, kk=None):
-        nch = 0 if indch is None else len(indch)
-        # Get from geometry of LOS consistency
-        if dgeom is not None:
-            indnan = np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
-                                   np.any(np.isnan(dgeom[1]), axis=0))
-            if np.any(indnan) and not np.all(indnan):
-                if indch_auto is not True:
-                    dmsg = {True: 'not available', False: 'ok'}
-                    ls = ['index {} los {}'.format(ii, dmsg[indnan[ii]])
-                          for ii in range(0, dgeom[0].shape[1])]
-                    msg = ("The geometry of all channels is not available !\n"
-                           + "Please choose indch to get all LOS!\n"
-                           + "Currently:\n"
-                           + "\n    ".join(ls)
-                           + "\n\n  => Solution: choose indch accordingly !")
-                    raise Exception(msg)
-                else:
-                    msg = ("Geometry missing for some los !\n"
-                           + "  => indch automatically set to:\n"
-                           + "  {}".format(indch))
-                    warnings.warn(msg)
-                if indch is None:
-                    indch = (~indnan).nonzero()[0]
-                else:
-                    indch = set(indch).intersection((~indnan).nonzero()[0])
-                    indch = np.array(indch, dtype=int)
-
-        # Get from time vectors consistency
-        if t is not None:
-            if indch_auto is not True:
-                if indch is None:
-                    ls = [
-                        'index {}  {}.shape {}'.format(ii, kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                else:
-                    ls = [
-                        'index {}  {}.shape {}'.format(indch[ii], kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                msg = ("The following is supposed to be a np.ndarray:\n"
-                       + "    - diag:     {}\n".format(ids)
-                       + "    - shortcut: {}\n".format(dsig[kk])
-                       + "    - used as:  {} input\n".format(kk)
-                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
-                       + "  Probable cause: non-uniform shape (vs channels)\n"
-                       + "  => shapes :\n    "
-                       + "\n    ".join(ls)
-                       + "\n  => Solution: choose indch accordingly !")
-                raise Exception(msg)
-            ls = [t[ii].shape for ii in range(0, len(t))]
-            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-            msg = ("indch set automatically for {}\n".format(ids)
-                   + "  (due to inhomogenous time shapes)\n"
-                   + "    - main shape: {}\n".format(su)
-                   + "    - nb. chan. selected: {}\n".format(len(indch))
-                   + "    - indch: {}".format(indch))
-            warnings.warn(msg)
-
-            if indch is None:
-                indch = [ii for ii in range(0, len(t)) if ls[ii] == su]
-            else:
-                indch = [indch[ii] for ii in range(0, len(indch))
-                         if ls[indch[ii]] == su]
-
-        # Get from data consistency
-        if all([ss is not None for ss in [out, kk, dsig]]):
-            if indch_auto:
-                ls = [out[dsig[kk]][ii].shape
-                      for ii in range(0, len(out[dsig[kk]]))]
-                lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-                su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-                if indch is None:
-                    indch = [ii for ii in range(0, len(out[dsig[kk]]))
-                             if ls[ii] == su]
-                else:
-                    indch = [indch[ii] for ii in range(0, len(out[dsig[kk]]))
-                             if ls[ii] == su]
-                msg = ("indch set automatically for {}\n".format(ids)
-                       + "  (due to inhomogeneous data shapes)\n"
-                       + "    - main shape: {}\n".format(su)
-                       + "    - nb. chan. selected: {}\n".format(len(indch))
-                       + "    - indch: {}".format(indch))
-                warnings.warn(msg)
-            else:
-                if indch is None:
-                    ls = [
-                        'index {}  {}.shape {}'.format(ii, kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                else:
-                    ls = [
-                        'index {}  {}.shape {}'.format(indch[ii], kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                msg = ("The following is supposed to be a np.ndarray:\n"
-                       + "    - diag:     {}\n".format(ids)
-                       + "    - shortcut: {}\n".format(dsig[kk])
-                       + "    - used as:  {} input\n".format(kk)
-                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
-                       + "  Probable cause: non-uniform shape (vs channels)\n"
-                       + "  => shapes :\n    "
-                       + "\n    ".join(ls)
-                       + "\n  => Solution: choose indch accordingly !")
-                raise Exception(msg)
-        nchout = 0 if indch is None else len(indch)
-        return indch, nchout != nch
 
     @staticmethod
     def _compare_indch_indchr(indch, indchr, nch, indch_auto=None):
@@ -4123,32 +3921,6 @@ class MultiIDSLoader(object):
             msg += "    - 'data' = %s"%str(out[dsig['data']])
             raise Exception(msg)
 
-        # # -----------
-        # # Check indch
-        # if type(t) is list:
-            # indch, modif = self._inspect_channels(ids, indch=indch,
-                                                  # indch_auto=indch_auto,
-                                                  # dgeom=dgeom, t=t,
-                                                  # out=out, dsig=dsig, kk='data')
-            # # indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     # # indch_auto=indch_auto,
-                                                     # # dgeom=dgeom, t=t)
-            # assert modif is True
-        # else:
-            # indch, modif = self._inspect_channels(ids, indch=indch,
-                                                  # indch_auto=indch_auto,
-                                                  # dgeom=dgeom,
-                                                  # out=out, dsig=dsig, kk='data')
-            # # indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     # # indch_auto=indch_auto,
-                                                     # # dgeom=dgeom)
-        # if modif is True:
-            # if geomcls is not False:
-                # dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                    # ids, lk_geom, indch, nan=nan, pos=pos)
-            # t = self.get_data(ids, sig='t', indch=indch)['t']
-            # modif = False
-
         if names is not None:
             dchans['names'] = names
 
@@ -4163,32 +3935,15 @@ class MultiIDSLoader(object):
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
-            # if not isinstance(out[dsig[kk]], np.ndarray):
-                # import pdb;  pdb.set_trace()
-                # indch, modifk = self._inspect_channels(ids,
-                    # indch=indch, indch_auto=indch_auto,
-                    # out=out, dsig=dsig, kk=kk)
-                # # indch, modifk = self._get_indch_geomtdata(
-                    # # indch=indch, indch_auto=indch_auto,
-                    # # out=out, dsig=dsig, kk=kk)
-                # if modifk is True:
-                    # out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        # indt=indt, indch=indch,
-                                        # nan=nan, pos=pos)
-                    # modif = True
-
-
             # Arrange depending on shape and field
             if type(out[dsig[kk]]) is not np.ndarray:
                 msg = "BEWARE : non-conform data !"
-                import pdb;  pdb.set_trace()
                 raise Exception(msg)
 
             if out[dsig[kk]].size == 0 or out[dsig[kk]].ndim not in [1, 2, 3]:
                 msg = ("\nSome data seem to have inconsistent shape:\n"
                        + "\t- out[{}].shape = {}".format(dsig[kk],
                                                          out[dsig[kk]].shape))
-                import pdb;  pdb.set_trace()
                 raise Exception(msg)
 
             if out[dsig[kk]].ndim == 1:
@@ -4197,7 +3952,6 @@ class MultiIDSLoader(object):
             if out[dsig[kk]].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
                     if np.allclose(out[dsig[kk]], out[dsig[kk]][:,0:1]):
-                        import pdb; pdb.set_trace() # DB
                         dins[kk] = out[dsig[kk]][:,0]
                     else:
                         dins[kk] = out[dsig[kk]]
@@ -4207,13 +3961,6 @@ class MultiIDSLoader(object):
             elif out[dsig[kk]].ndim == 3:
                 assert kk == 'data'
                 dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
-
-        # Update dgeom if necessary
-        # if modif is True and geomcls is not False:
-            # dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                # ids, lk_geom, indch,
-                # nan=nan, pos=pos)
-            # modif = False
 
         # --------------------------
         # Format special ids cases
