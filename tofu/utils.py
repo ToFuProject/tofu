@@ -651,7 +651,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
-                   sharex=False, invertx=None,
+                   sharex=False, invertx=None, extra=True,
                    bck=True, indch_auto=True, t=None, init=None, dR_sep=None):
     # -------------------
     # import imas2tofu
@@ -922,7 +922,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nDat > 0 or nCam > 0 or nPla > 0:
         if 'wall' not in lids:
             lids.append('wall')
-        if nDat > 0 or nPla > 0 and dextra is None:
+        if (nDat > 0 or nPla > 0) and extra is True:
             if 'equilibrium' not in lids:
                 lids.append('equilibrium')
             if 'lh_antennas' not in lids:
@@ -1039,7 +1039,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
-                   Brightness=None, res=None, interp_t=None,
+                   Brightness=None, res=None, interp_t=None, extra=True,
                    plot=True, plot_compare=True, sharex=False,
                    bck=True, indch_auto=True, t=None, init=None):
     # -------------------
@@ -1161,7 +1161,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nDat > 0 or nCam > 0 or nPla > 0:
         if 'wall' not in lids:
             lids.append('wall')
-        if nDat > 0 or nPla > 0 and dextra is None:
+        if (nDat > 0 or nPla > 0) and extra is True:
             if 'equilibrium' not in lids:
                 lids.append('equilibrium')
             if 'lh_antennas' not in lids:
@@ -1173,16 +1173,16 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 lids.append('pulse_schedule')
 
     # Complement ids in diag-specific way
-    for ids in lids:
-        if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
-            dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
-            if dd.get('synth') is not None:
-                for v0 in dd['synth']['dsynth'].values():
-                    for v1 in v0:
-                        if '.' in v1:
-                            v20, v21 = v1.split('.')
-                            if v20 not in lids:
-                                lids.append(v20)
+    # for ids in lids:
+        # if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
+            # dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
+            # if dd.get('synth') is not None:
+                # for v0 in dd['synth']['dsynth'].values():
+                    # for v1 in v0:
+                        # if '.' in v1:
+                            # v20, v21 = v1.split('.')
+                            # if v20 not in lids:
+                                # lids.append(v20)
 
     # -------------------
     # If plot and plasma, default dsig, plot_sig, plot_X
@@ -1218,7 +1218,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     for ss in shot:
         multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
                                          tokamak=tokamak, version=version,
-                                         ids=lids)
+                                         ids=lids, synthdiag=True)
 
         # export to instances
         for ii in range(0,nids):
