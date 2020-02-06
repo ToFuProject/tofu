@@ -436,20 +436,20 @@ class MultiIDSLoader(object):
                                             'dsig': {'core_profiles': ['t'],
                                                      'equilibrium': ['t']},
                                             'Brightness': True}},
-                 'polarimeter':{'datacls': 'DataCam1D',
-                                'geomcls': 'CamLOS1D',
-                                'sig': {'t': 't',
-                                        'data': 'fangle'},
-                                'synth': {'dsynth': {
-                                    'fargs': ['core_profiles.1dne',
-                                              'equilibrium.2dBR',
-                                              'equilibrium.2dBT',
-                                              'equilibrium.2dBZ',
-                                              'core_profiles.1drhotn',
-                                              'equilibrium.2drhotn']},
-                                          'dsig': {'core_profiles': ['t'],
-                                                   'equilibrium': ['t']},
-                                          'Brightness': True}},
+                 'polarimeter': {'datacls': 'DataCam1D',
+                                 'geomcls': 'CamLOS1D',
+                                 'sig': {'t': 't',
+                                         'data': 'fangle'},
+                                 'synth': {'dsynth': {
+                                     'fargs': ['core_profiles.1dne',
+                                               'equilibrium.2dBR',
+                                               'equilibrium.2dBT',
+                                               'equilibrium.2dBZ',
+                                               'core_profiles.1drhotn',
+                                               'equilibrium.2drhotn']},
+                                           'dsig': {'core_profiles': ['t'],
+                                                    'equilibrium': ['t']},
+                                           'Brightness': True}},
                  'bolometer': {'datacls': 'DataCam1D',
                                'geomcls': 'CamLOS1D',
                                'sig': {'t': 't',
@@ -483,7 +483,8 @@ class MultiIDSLoader(object):
                                             'ref2d': 'equilibrium.2drhotn'},
                                         'dsig': {'core_profiles': ['t'],
                                                  'equilibrium': ['t']},
-                                        'Brightness': True}}}
+                                        'Brightness': True
+                                            }}}
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
@@ -522,6 +523,7 @@ class MultiIDSLoader(object):
 
 
     # Computing functions
+
     def _events(names, t):
         ustr = 'U{}'.format(np.nanmax(np.char.str_len(np.char.strip(names))))
         return np.array([(nn, tt)
@@ -529,7 +531,7 @@ class MultiIDSLoader(object):
                         dtype=[('name', ustr), ('t', np.float)])
 
     def _RZ2array(ptsR, ptsZ):
-        return np.array([ptsR,ptsZ]).T
+        return np.array([ptsR, ptsZ]).T
 
     def _losptsRZP(*pt12RZP):
         return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
@@ -540,7 +542,7 @@ class MultiIDSLoader(object):
     def _eqB(BT, BR, BZ):
         return np.sqrt(BT**2 + BR**2 + BZ**2)
 
-    def _icmod (al, ar, axis=0):
+    def _icmod(al, ar, axis=0):
         return np.sum(al - ar, axis=axis)
 
     def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
