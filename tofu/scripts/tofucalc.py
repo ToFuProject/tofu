@@ -113,8 +113,8 @@ def _str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected !')
 
 
-if __name__ == '__main__':
-
+# if __name__ == '__main__':
+def main():
     # Parse input arguments
     msg = """Fast interactive visualization tool for diagnostics data in
     imas
