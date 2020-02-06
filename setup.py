@@ -151,6 +151,7 @@ def get_version_tofu(path=_HERE):
     # Try from git
     isgit = ".git" in os.listdir(path)
     if isgit:
+        print(">>>> is git branch")
         try:
             git_branch = (
                 subprocess.check_output(
@@ -164,7 +165,9 @@ def get_version_tofu(path=_HERE):
                 .rstrip()
                 .decode()
             )
+            print(">>>> git branch => ", git_branch)
             if git_branch in ["master", "deploy-test"]:
+                print(">>>> updating version")
                 version_tofu = up.updateversion()
             else:
                 isgit = False
@@ -172,6 +175,7 @@ def get_version_tofu(path=_HERE):
             isgit = False
 
     if not isgit:
+        print(">>>> is NOT git")
         version_tofu = os.path.join(path, "tofu")
         version_tofu = os.path.join(version_tofu, "version.py")
         with open(version_tofu, "r") as fh:
