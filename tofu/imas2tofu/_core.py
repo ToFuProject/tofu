@@ -47,9 +47,10 @@ _IMAS_TOKAMAK = 'west'
 _IMAS_VERSION = '3'
 _IMAS_SHOTR = -1
 _IMAS_RUNR = -1
-_IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
-              'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR,
-              'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
+_IMAS_DIDD = {'shot': _IMAS_SHOT, 'run': _IMAS_RUN,
+              'refshot': _IMAS_SHOTR, 'refrun': _IMAS_RUNR,
+              'user': _IMAS_USER, 'tokamak': _IMAS_TOKAMAK,
+              'version': _IMAS_VERSION}
 
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -417,8 +418,8 @@ class MultiIDSLoader(object):
                                  'data': 'Te'}},
                  'neutron_diagnostic': {'datacls': 'DataCam1D',
                                         'geomcls': False,
-                                        'sig':{'t': 't',
-                                               'data': 'flux_total'}},
+                                        'sig': {'t': 't',
+                                                'data': 'flux_total'}},
                  'reflectometer_profile': {'datacls': 'DataCam1D',
                                            'geomcls': False,
                                            'sig': {'t': 't',
@@ -428,9 +429,10 @@ class MultiIDSLoader(object):
                                    'geomcls':'CamLOS1D',
                                    'sig':{'t':'t',
                                           'data':'ne_integ'},
-                                   'synth':{'dsynth':{'quant':'core_profiles.1dne',
-                                                      'ref1d':'core_profiles.1drhotn',
-                                                      'ref2d':'equilibrium.2drhotn'},
+                                   'synth':{'dsynth':{
+                                       'quant':'core_profiles.1dne',
+                                       'ref1d':'core_profiles.1drhotn',
+                                       'ref2d':'equilibrium.2drhotn'},
                                             'dsig':{'core_profiles':['t'],
                                                     'equilibrium':['t']},
                                             'Brightness':True}},
@@ -438,12 +440,13 @@ class MultiIDSLoader(object):
                                 'geomcls': 'CamLOS1D',
                                 'sig': {'t': 't',
                                         'data': 'fangle'},
-                                'synth': {'dsynth': {'fargs': ['core_profiles.1dne',
-                                                               'equilibrium.2dBR',
-                                                               'equilibrium.2dBT',
-                                                               'equilibrium.2dBZ',
-                                                               'core_profiles.1drhotn',
-                                                               'equilibrium.2drhotn']},
+                                'synth': {'dsynth': {
+                                    'fargs': ['core_profiles.1dne',
+                                              'equilibrium.2dBR',
+                                              'equilibrium.2dBT',
+                                              'equilibrium.2dBZ',
+                                              'core_profiles.1drhotn',
+                                              'equilibrium.2drhotn']},
                                          'dsig':{'core_profiles': ['t'],
                                                  'equilibrium': ['t']},
                                          'Brightness': True}},
@@ -451,9 +454,10 @@ class MultiIDSLoader(object):
                                'geomcls': 'CamLOS1D',
                                'sig':{'t': 't',
                                       'data': 'power'},
-                               'synth': {'dsynth': {'quant': 'core_sources.1dprad',
-                                                    'ref1d': 'core_sources.1drhotn',
-                                                    'ref2d': 'equilibrium.2drhotn'},
+                               'synth': {'dsynth': {
+                                   'quant': 'core_sources.1dprad',
+                                   'ref1d': 'core_sources.1drhotn',
+                                   'ref2d': 'equilibrium.2drhotn'},
                                          'dsig':{'core_sources': ['t'],
                                                  'equilibrium': ['t']},
                                          'Brightness': True}},
@@ -470,14 +474,16 @@ class MultiIDSLoader(object):
                                             'geomcls': 'CamLOS1D',
                                             'sig': {'t': 't',
                                                     'data': 'radiance'},
-                                            'synth': {'dsynth': {'quant': ['core_profiles.1dTe',
-                                                                           'core_profiles.1dne',
-                                                                           'core_profiles.1dzeff'],
-                                                                 'ref1d': 'core_profiles.1drhotn',
-                                                                 'ref2d': 'equilibrium.2drhotn'},
-                                                     'dsig': {'core_profiles': ['t'],
-                                                              'equilibrium': ['t']},
-                                                     'Brightness': True}}}
+                                            'synth': {
+                                        'dsynth': {
+                                            'quant': ['core_profiles.1dTe',
+                                                      'core_profiles.1dne',
+                                                      'core_profiles.1dzeff'],
+                                        'ref1d': 'core_profiles.1drhotn',
+                                        'ref2d': 'equilibrium.2drhotn'},
+                                        'dsig': {'core_profiles': ['t'],
+                                                 'equilibrium': ['t']},
+                                        'Brightness': True}}}
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
