@@ -447,9 +447,9 @@ class MultiIDSLoader(object):
                                               'equilibrium.2dBZ',
                                               'core_profiles.1drhotn',
                                               'equilibrium.2drhotn']},
-                                         'dsig':{'core_profiles': ['t'],
-                                                 'equilibrium': ['t']},
-                                         'Brightness': True}},
+                                          'dsig': {'core_profiles': ['t'],
+                                                   'equilibrium': ['t']},
+                                          'Brightness': True}},
                  'bolometer': {'datacls': 'DataCam1D',
                                'geomcls': 'CamLOS1D',
                                'sig': {'t': 't',
@@ -479,8 +479,8 @@ class MultiIDSLoader(object):
                                             'quant': ['core_profiles.1dTe',
                                                       'core_profiles.1dne',
                                                       'core_profiles.1dzeff'],
-                                        'ref1d': 'core_profiles.1drhotn',
-                                        'ref2d': 'equilibrium.2drhotn'},
+                                            'ref1d': 'core_profiles.1drhotn',
+                                            'ref2d': 'equilibrium.2drhotn'},
                                         'dsig': {'core_profiles': ['t'],
                                                  'equilibrium': ['t']},
                                         'Brightness': True}}}
@@ -522,17 +522,23 @@ class MultiIDSLoader(object):
 
 
     # Computing functions
-    _events = lambda names, t: np.array([(nn,tt)
-                                         for nn,tt in zip(*[np.char.strip(names),t])],
-                                        dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
-                                               ('t',np.float)])
-    _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
+    def _events(names, t):
+        ustr = 'U{}'.format(np.nanmax(np.char.str_len(np.char.strip(names))))
+        return np.array([(nn, tt)
+                         for nn, tt in zip(*[np.char.strip(names), t])],
+                        dtype=[('name', ustr), ('t', np.float)])
+
+    def _RZ2array(ptsR, ptsZ):
+        return np.array([ptsR,ptsZ]).T
 
     def _losptsRZP(*pt12RZP):
         return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
 
-    _add = lambda a0, a1: np.abs(a0 + a1)
-    _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
+    def _add(a0, a1):
+        return np.abs(a0 + a1)
+
+    def _eqB(BT, BR, BZ):
+        return np.sqrt(BT**2 + BR**2 + BZ**2)
 
     def _icmod (al, ar, axis=0):
         return np.sum(al - ar, axis=axis)
