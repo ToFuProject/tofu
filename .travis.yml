@@ -64,7 +64,6 @@ install:
 - export IS_MASTER=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/master$" | grep -o "master")
 - export IS_DEPLOY=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/deploy-test$" | grep -o "deploy-test")
 - echo $TRAVIS_COMMIT
-- git ls-remote origin
 - echo $IS_MASTER
 - echo $IS_DEPLOY
 
