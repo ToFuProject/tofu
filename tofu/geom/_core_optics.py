@@ -1682,7 +1682,7 @@ class CrystalBragg(utils.ToFuObject):
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0,
+                               loss=None, verbose=0, jac=None,
                                plot=True, fs=None, dmargin=None,
                                tit=None, wintit=None, returnas=None):
         # Check / format inputs
@@ -1724,7 +1724,7 @@ class CrystalBragg(utils.ToFuObject):
             dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev, verbose=0,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            double=double, Ti=Ti, vi=vi)
+            double=double, Ti=Ti, vi=vi, jac=jac)
 
         # Plot
         dax = None

@@ -3,6 +3,7 @@
 import os
 import warnings
 import itertools as itt
+import datetime as dtm      # DB
 
 # Common
 import numpy as np
@@ -665,31 +666,32 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
                                    wscale=wscale,
                                    shscale=shscale), axis=1) - data)
 
-    if jac is None:
+    if jac == 'call':
         # Define a callable jac returning (nlamb, sizex) matrix of partial
         # derivatives of np.sum(func_details(scaled), axis=0)
-        def jac_scale(x, lamb=lamb, lines=lines, shape=shape,
+        def jac_scale(x, lamb=lamb, lines=lines,
                       indbck=indbck, indamp=indamp, indwidth=indwidth,
                       indshift=indshift, inddratio=inddratio,
                       inddshift=inddshift,
-                      bckscale=1., ampscale=1.,
-                      shscale=1., wscale=1., double=double):
-            jac = np.full((nlamb, sizex), np.nan)   # TBF
+                      bckscale=bckscale, ampscale=ampscale,
+                      shscale=shscale, wscale=wscale, double=double):
+            jac = np.full((lamb.size, x.size), np.nan)
             jac[:, 0] = bckscale
 
-            amp = ampscale*x[indamp][None, :]
-            wi2 = x[indwidth][None, :] * wscale
-            shifti = x[indshift][None, :] * shscale
-            alpha = -(lamb/lines - (1 + shifti))**2 / (2*wi2)
-            exp = np.exp(alpha)
+            if double is False:
+                # Assuming Ti = False and vi = False
+                amp = ampscale*x[indamp][None, :]
+                wi2 = x[indwidth][None, :] * wscale
+                shifti = x[indshift][None, :] * shscale
+                alpha = -(lamb/lines - (1 + shifti))**2 / (2*wi2)
+                exp = np.exp(alpha)
 
-            import ipdb; ipdb.set_trace()       # DB
-            jac[:, indamp] = ampscale * exp
-            jac[:, indwidth] = np.sum(amp * alpha * (-1./wi2) * exp, axis=)
-            jac[:, indshift] = np.sum(amp * alpha
-                                      * (-shscale/(lamb/lines - (1 + shifti)))
-                                      * exp, axis=)
-            if double is True:
+                jac[:, indamp] = ampscale * exp
+                jac[:, indwidth] = amp * (-alpha/x[indwidth][None, :]) * exp
+                jac[:, indshift] = (amp * 2.*alpha
+                                    * (-shscale/(lamb/lines - (1 + shifti)))
+                                    * exp)
+            else:
                 jac[:, indamp] += jac[:, indamp]*x[inddratio]
                 jac[:, inddratio] = None
                 jac[:, inddshift] = None
@@ -811,6 +813,7 @@ def multigausfit1d_from_dlines(data, lamb,
          lines=lines, shapey0=shapey0, double=double, jac=jac)
 
     # Minimize
+    t0 = dtm.datetime.now()     # DB
     res = scpopt.least_squares(cost_scale, x0_scale,
                                jac=jac_scale, bounds=bounds_scale,
                                method=method, ftol=ftol, xtol=xtol,
@@ -819,6 +822,11 @@ def multigausfit1d_from_dlines(data, lamb,
                                tr_options={}, jac_sparsity=None,
                                max_nfev=max_nfev, verbose=verbose,
                                args=(), kwargs={})
+    msg = ("{}:   time (s)    cost   nfev   njev   term\n\t  ".format(jac)
+           + str(round((dtm.datetime.now()-t0).total_seconds(), ndigits=3))
+           + "    {}   {}  {}".format(round(res.cost), res.nfev, res.njev)
+           + "   "+res.message)
+    print(msg)
 
     # Separate and reshape output
     sol_detail = func_detail(res.x,
