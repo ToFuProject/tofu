@@ -188,45 +188,65 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 
 def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     """ Assuming 2D closed Poly !
-    TODO @LM :
     http://www.faqs.org/faqs/graphics/algorithms-faq/
-    A slightly faster method is based on the observation that it isn't
-    necessary to compute the area.  Find the lowest vertex (or, if
-    there is more than one vertex with the same lowest coordinate,
-    the rightmost of those vertices) and then take the cross product
-    of the edges fore and aft of it.  Both methods are O(n) for n vertices,
-    but it does seem a waste to add up the total area when a single cross
-    product (of just the right edges) suffices.  Code for this is
-    available at ftp://cs.smith.edu/pub/code/polyorient.C (2K).
+    Find the lowest vertex (or, if there is more than one vertex with
+    the same lowest coordinate, the rightmost of those vertices) and then
+    take the cross product of the edges before and after it.
+    Both methods are O(n) for n vertices, but it does seem a waste to add up
+    the total area when a single cross product (of just the right edges)
+    suffices.  Code for this is available at
+    ftp://cs.smith.edu/pub/code/polyorient.C (2K).
     """
     cdef double res
     cdef double[:,::1] mv_poly = np.ascontiguousarray(Poly)
     cdef int npts = mv_poly.shape[1]
-    cdef double[::1] mvx = mv_poly[0,:]
-    cdef double[::1] mvy = mv_poly[1,:]
-    cdef int idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
-    cdef int idm1 = idmin - 1
-    cdef int idp1 = (idmin + 1)%npts
+    cdef int ndim = mv_poly.shape[0]
+    cdef double[::1] mvx
+    cdef double[::1] mvy
+    cdef int idmin
+    cdef int idm1
+    cdef int idp1
+    cdef str err_msg = ""
+    # Checking that Poly wasn't given in the shape (npts, ndim)
+    if ndim > npts:
+        mv_poly = np.ascontiguousarray(Poly.T)
+        npts = mv_poly.shape[1]
+        ndim = mv_poly.shape[0]
+    mvx = mv_poly[0,:]
+    mvy = mv_poly[1,:]
+    # Getting index of lower right corner and its neighbors
+    idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
+    idm1 = idmin - 1
+    idp1 = (idmin + 1) % npts
     if idmin == 0 :
-        idm1 = npts - 1
+        idm1 = npts - 2
+    # Computing area of lower right triangle
     res = mvx[idm1]  * (mvy[idmin] - mvy[idp1]) + \
           mvx[idmin] * (mvy[idp1]  - mvy[idm1]) + \
           mvx[idp1]  * (mvy[idm1]  - mvy[idmin])
+    if abs(res) < _VSMALL:
+        err_msg += ("In Poly_isClockwise : \n"
+                    + "   Found lowest right point at index : "
+                    + str(idmin)
+                    + ", of coordinates :" + str(mvx[idmin])
+                    + ", " + str(mvy[idmin]) + ".\n"
+                    + "   The two neighboring points are : "
+                    + str(idm1) + " and " + str(idp1) + ".")
+        raise Exception(err_msg) # not working
     return res < 0.
 
 
-def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
-               close=True, str layout='(cc,N)',
-               str layout_in=None, Test=True):
+def format_poly(np.ndarray[double,ndim=2] poly, str order='C', Clock=False,
+               close=True, Test=True):
     """
-    Return a polygon Poly as a np.ndarray formatted according to parameters
+    Return a polygon poly as a np.ndarray formatted according to parameters
 
     Parameters
     ----------
-        Poly    np.ndarray or list    Input polygon under from of (cc,N) or
-                or tuple              (N,cc) np.ndarray (where cc = 2 or 3, the
-                                      number of coordinates and N points), or
-                                      list or tuple of vertices
+        poly    np.ndarray or list    Input np.ndarray of shape (cc,N)
+                or tuple              (where cc = 2 or 3, the number of
+                                      coordinates and N points), or
+                                      list or tuple of vertices of a polygon
         order   str                   Flag indicating whether the output
                                       np.ndarray shall be C-contiguous ('C') or
                                       Fortran-contiguous ('F')
@@ -239,9 +259,6 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
                                       cating whether the output array shall be
                                       closed (True, ie: last point==first point)
                                       or not closed (False)
-        layout  str                   Flag indicating whether the output
-                                      np.ndarray shall be of shape '(cc,N)'
-                                      or '(N,cc)'
         Test    bool                  Flag indicating whether the inputs should
                                       be tested for conformity, default: True
 
@@ -250,36 +267,25 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
         poly    np.ndarray            Output formatted polygon
     """
     if Test:
-        assert (2 in np.shape(Poly) or 3 in np.shape(Poly)), \
-          "Arg Poly must contain the 2D or 3D coordinates of at least 3 points!"
-        assert max(np.shape(Poly))>=3, ("Arg Poly must contain the 2D or 3D",
-                                        " coordinates of at least 3 points!")
+        assert (poly.shape[0] == 2 or poly.shape[0] == 3), \
+            ("Arg poly must contain the 2D or 3D coordinates of N points."
+             " And be shaped in the form (dim, N).")
+        assert poly.shape[1]>=3, ("Arg poly must contain the 2D or 3D",
+                                  " coordinates of at least 3 points!")
         assert order.lower() in ['c','f'], "Arg order must be in ['c','f']!"
         assert type(Clock) is bool, "Arg Clock must be a bool!"
         assert type(close) is bool, "Arg close must be a bool!"
-        assert layout.lower() in ['(cc,n)','(n,cc)'], \
-          "Arg layout must be in ['(cc,n)','(n,cc)']!"
-        assert layout_in is None or layout_in.lower() in ['(cc,n)','(n,cc)'],\
-          "Arg layout_in must be None or in ['(cc,n)','(n,cc)']!"
 
-    if np.shape(Poly)==(3,3):
-        assert not layout_in is None, \
-          ("Could not resolve the input layout of Poly because shape==(3,3)",
-           " Please specify if input is in '(cc,n)' or '(n,cc)' format!")
-        poly = np.array(Poly).T if layout_in.lower()=='(n,cc)' \
-           else np.array(Poly)
-    else:
-        poly = np.array(Poly).T if min(np.shape(Poly))==Poly.shape[1]\
-           else np.array(Poly)
     if not np.allclose(poly[:,0],poly[:,-1], atol=_VSMALL):
         poly = np.concatenate((poly,poly[:,0:1]),axis=1)
     if poly.shape[0]==2 and not Clock is None:
-        if not Clock==Poly_isClockwise(poly):
-            poly = poly[:,::-1]
+        try:
+            if not Clock==Poly_isClockwise(poly):
+                poly = poly[:,::-1]
+        except Exception as excp:
+            raise excp
     if not close:
         poly = poly[:,:-1]
-    if layout.lower()=='(n,cc)':
-        poly = poly.T
     poly = np.ascontiguousarray(poly) if order.lower()=='c' \
            else np.asfortranarray(poly)
     return poly

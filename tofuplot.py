@@ -53,6 +53,7 @@ _LIDS = _LIDS_DIAG + _LIDS_PLASMA + ['magfieldlines']
 _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
+_EXTRA = True
 
 ###################################################
 ###################################################
@@ -72,7 +73,7 @@ def _get_exception(q, ids, qtype='quantity'):
 
 
 def call_tfloadimas(shot=None, run=_RUN, user=_USER,
-                    tokamak=_TOKAMAK, version=_VERSION,
+                    tokamak=_TOKAMAK, version=_VERSION, extra=_EXTRA,
                     ids=None, quantity=None, X=None, t0=_T0,
                     sharex=_SHAREX, indch=None, indch_auto=None,
                     background=_BCK, t=None, dR_sep=None, init=None):
@@ -84,7 +85,7 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
-                      plot_sig=quantity, plot_X=X,
+                      plot_sig=quantity, plot_X=X, extra=extra,
                       t0=t0, plot=True, sharex=sharex, bck=background,
                       t=t, dR_sep=dR_sep, init=init)
 
@@ -156,9 +157,12 @@ if __name__ == '__main__':
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
-    parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
+    parser.add_argument('-ichauto', '--indch_auto', type=_str2bool, required=False,
                         help='automatically determine indices of'
                         + ' channels to be loaded', default=True)
+    parser.add_argument('-e', '--extra', type=_str2bool, required=False,
+                        help='If True loads separatrix and heating power',
+                        default=_EXTRA)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
