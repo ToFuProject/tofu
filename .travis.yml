@@ -83,7 +83,6 @@ before_deploy:
       echo "BEFORE DEPLOY START........"
       ls $START
       cd $START
-      more tofu/version.py
       echo "BEFORE DEPLOY END.........."
     fi
 deploy:
@@ -91,7 +90,7 @@ deploy:
     distributions: sdist
     username: __token__
     skip_existing: true
-    cleanup: False
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test"
@@ -102,7 +101,7 @@ deploy:
     distributions: bdist_wheel
     username: __token__
     skip_existing: true
-    cleanup: False
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test"
@@ -114,7 +113,7 @@ deploy:
     distributions: sdist
     username: "Didou09"
     skip_existing: true
-    cleanup: False
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_MASTER = "master"
@@ -124,7 +123,7 @@ deploy:
     distributions: bdist_wheel
     username: "Didou09"
     skip_existing: true
-    cleanup: False
+    skip_cleanup: true
     on:
       condition: $OS = osx-64
       tags: true
@@ -133,7 +132,7 @@ deploy:
       secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
   - provider: script
     script: $START/anaconda_upload.sh
-    cleanup: False
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_MASTER = "master"
