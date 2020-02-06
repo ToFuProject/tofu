@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-#echo "Converting conda package..."
-#conda convert --platform all $PKG_DIR/tofu-*.tar.bz2 --output-dir $PKG_DIR
+conda config --set anaconda_upload no
+conda install anaconda-client conda-build
+conda build conda_recipe
+export PKG_REAL=$(conda build . --output | tail -1)
+echo $PKG_REAL
 
 echo "Deploying to anaconda.org..."
 export USER=ToFuProject
