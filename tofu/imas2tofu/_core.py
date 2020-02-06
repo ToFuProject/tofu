@@ -470,21 +470,21 @@ class MultiIDSLoader(object):
                                           'sig': {'data': 'spectra',
                                                   't': 't',
                                                   'lamb': 'lamb'}},
-                 'bremsstrahlung_visible': {'datacls': 'DataCam1D',
-                                            'geomcls': 'CamLOS1D',
-                                            'sig': {'t': 't',
-                                                    'data': 'radiance'},
-                                            'synth': {
-                                        'dsynth': {
-                                            'quant': ['core_profiles.1dTe',
-                                                      'core_profiles.1dne',
-                                                      'core_profiles.1dzeff'],
-                                            'ref1d': 'core_profiles.1drhotn',
-                                            'ref2d': 'equilibrium.2drhotn'},
-                                        'dsig': {'core_profiles': ['t'],
-                                                 'equilibrium': ['t']},
-                                        'Brightness': True
-                                            }}}
+                 'bremsstrahlung_visible': {
+                     'datacls': 'DataCam1D',
+                     'geomcls': 'CamLOS1D',
+                     'sig': {'t': 't',
+                             'data': 'radiance'},
+                     'synth': {
+                         'dsynth': {
+                             'quant': ['core_profiles.1dTe',
+                                       'core_profiles.1dne',
+                                       'core_profiles.1dzeff'],
+                             'ref1d': 'core_profiles.1drhotn',
+                             'ref2d': 'equilibrium.2drhotn'},
+                         'dsig': {'core_profiles': ['t'],
+                                  'equilibrium': ['t']},
+                         'Brightness': True}}}
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
@@ -622,7 +622,7 @@ class MultiIDSLoader(object):
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
-            'ic_antennas': {
+             'ic_antennas': {
                 'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
                            'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
                 'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
