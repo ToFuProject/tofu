@@ -60,6 +60,7 @@ install:
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)
 - echo $REV
+- conda install -q --file requirements.txt
 - python setup.py install
 - export IS_MASTER=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/master$" | grep -o "master")
 - export IS_DEPLOY=$(git ls-remote origin | grep "$TRAVIS_COMMIT\s\+refs/heads/deploy-test$" | grep -o "deploy-test")
