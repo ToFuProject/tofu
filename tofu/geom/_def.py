@@ -164,7 +164,7 @@ def Plot_3D_plt_Tor_DefAxes(fs=None, wintit='tofu'):
     ax.set_xlabel(r"X (m)")
     ax.set_ylabel(r"Y (m)")
     ax.set_zlabel(r"Z (m)")
-    ax.set_aspect(aspect="equal", adjustable='datalim')
+    # ax.set_aspect(aspect="equal", adjustable='datalim')
     return ax
 
 

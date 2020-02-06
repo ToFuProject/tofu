@@ -47,9 +47,10 @@ _IMAS_TOKAMAK = 'west'
 _IMAS_VERSION = '3'
 _IMAS_SHOTR = -1
 _IMAS_RUNR = -1
-_IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
-              'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR,
-              'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
+_IMAS_DIDD = {'shot': _IMAS_SHOT, 'run': _IMAS_RUN,
+              'refshot': _IMAS_SHOTR, 'refrun': _IMAS_RUNR,
+              'user': _IMAS_USER, 'tokamak': _IMAS_TOKAMAK,
+              'version': _IMAS_VERSION}
 
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -268,6 +269,13 @@ class MultiIDSLoader(object):
                 'p': {'str': 'gauge[chan].pressure.data',
                       'dim': 'pressure', 'quant': 'p', 'units': 'Pa?'}},
 
+               'calorimetry':
+               {'t': {'str': 'group[chan].component[0].power.time'},
+                'names': {'str': 'group[chan].name'},
+                'power': {'str': 'group[chan].component[0].power.data',
+                          'dim': 'power', 'quant': 'extracted power',
+                          'units': 'W'}},
+
                'neutron_diagnostic':
                {'t':{'str':'time', 'units':'s'},
                 'flux_total':{'str':'synthetic_signals.total_neutron_flux',
@@ -383,82 +391,100 @@ class MultiIDSLoader(object):
                 'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
               }
 
-    _didsdiag = {'magnetics': {'datacls':'DataCam1D',
-                               'geomcls':False,
-                               'sig':{'t':'t',
-                                      'data':'bpol_B'}},
-                 'barometry':{'datacls':'DataCam1D',
-                              'geomcls':False,
-                              'sig':{'t':'t',
-                                     'data':'p'}},
-                'ece':{'datacls':'DataCam1D',
-                       'geomcls':False,
-                       'sig':{'t':'t',
-                              'X':'rhotn_sign',
-                              'data':'Te'}},
-                'neutron_diagnostic':{'datacls':'DataCam1D',
-                                      'geomcls':False,
-                                      'sig':{'t':'t',
-                                             'data':'flux_total'}},
-                'reflectometer_profile':{'datacls':'DataCam1D',
-                                         'geomcls':False,
-                                         'sig':{'t':'t',
-                                                'X':'R',
-                                                'data':'ne'}},
-                'interferometer':{'datacls':'DataCam1D',
-                                  'geomcls':'CamLOS1D',
-                                  'sig':{'t':'t',
-                                         'data':'ne_integ'},
-                                  'synth':{'dsynth':{'quant':'core_profiles.1dne',
-                                                     'ref1d':'core_profiles.1drhotn',
-                                                     'ref2d':'equilibrium.2drhotn'},
-                                           'dsig':{'core_profiles':['t'],
-                                                   'equilibrium':['t']},
-                                           'Brightness':True}},
-                'polarimeter':{'datacls':'DataCam1D',
-                               'geomcls':'CamLOS1D',
-                               'sig':{'t':'t',
-                                      'data':'fangle'},
-                               'synth':{'dsynth':{'fargs':['core_profiles.1dne',
-                                                           'equilibrium.2dBR',
-                                                           'equilibrium.2dBT',
-                                                           'equilibrium.2dBZ',
-                                                           'core_profiles.1drhotn',
-                                                           'equilibrium.2drhotn']},
-                                        'dsig':{'core_profiles':['t'],
-                                                'equilibrium':['t']},
-                                        'Brightness':True}},
-                'bolometer':{'datacls':'DataCam1D',
-                             'geomcls':'CamLOS1D',
-                             'sig':{'t':'t',
-                                    'data':'power'},
-                             'synth':{'dsynth':{'quant':'core_sources.1dprad',
-                                                'ref1d':'core_sources.1drhotn',
-                                                'ref2d':'equilibrium.2drhotn'},
-                                      'dsig':{'core_sources':['t'],
-                                              'equilibrium':['t']},
-                                      'Brightness':True}},
-                'soft_x_rays':{'datacls':'DataCam1D',
-                               'geomcls':'CamLOS1D',
-                               'sig':{'t':'t',
-                                      'data':'power'}},
-                'spectrometer_visible':{'datacls':'DataCam1DSpectral',
-                                        'geomcls':'CamLOS1D',
-                                        'sig':{'t':'t',
-                                               'lamb':'lamb',
-                                               'data':'spectra'}},
-                'bremsstrahlung_visible':{'datacls':'DataCam1D',
-                                          'geomcls':'CamLOS1D',
-                                          'sig':{'t':'t',
-                                                 'data':'radiance'},
-                                          'synth':{'dsynth':{'quant':['core_profiles.1dTe',
-                                                                      'core_profiles.1dne',
-                                                                      'core_profiles.1dzeff'],
-                                                             'ref1d':'core_profiles.1drhotn',
-                                                             'ref2d':'equilibrium.2drhotn'},
-                                                   'dsig':{'core_profiles':['t'],
-                                                           'equilibrium':['t']},
-                                                   'Brightness':True}}}
+    _didsdiag = {'lh_antennas': {'datacls': 'DataCam1D',
+                                 'geomcls': False,
+                                 'sig': {'data': 'power',
+                                         't': 't'}},
+                 'ic_antennas': {'datacls': 'DataCam1D',
+                                 'geomcls': False,
+                                 'sig': {'data': 'power',
+                                         't': 't'}},
+                 'magnetics': {'datacls': 'DataCam1D',
+                               'geomcls': False,
+                               'sig': {'data': 'bpol_B',
+                                       't': 't'}},
+                 'barometry': {'datacls': 'DataCam1D',
+                               'geomcls': False,
+                               'sig': {'data': 'p',
+                                       't': 't'}},
+                 'calorimetry': {'datacls': 'DataCam1D',
+                                 'geomcls': False,
+                                 'sig': {'data': 'power',
+                                         't': 't'}},
+                 'ece': {'datacls': 'DataCam1D',
+                         'geomcls': False,
+                         'sig': {'t': 't',
+                                 'X': 'rhotn_sign',
+                                 'data': 'Te'}},
+                 'neutron_diagnostic': {'datacls': 'DataCam1D',
+                                        'geomcls': False,
+                                        'sig': {'t': 't',
+                                                'data': 'flux_total'}},
+                 'reflectometer_profile': {'datacls': 'DataCam1D',
+                                           'geomcls': False,
+                                           'sig': {'t': 't',
+                                                   'X': 'R',
+                                                   'data': 'ne'}},
+                 'interferometer': {'datacls': 'DataCam1D',
+                                    'geomcls': 'CamLOS1D',
+                                    'sig': {'t': 't',
+                                            'data': 'ne_integ'},
+                                    'synth': {'dsynth': {
+                                        'quant': 'core_profiles.1dne',
+                                        'ref1d': 'core_profiles.1drhotn',
+                                        'ref2d': 'equilibrium.2drhotn'},
+                                            'dsig': {'core_profiles': ['t'],
+                                                     'equilibrium': ['t']},
+                                            'Brightness': True}},
+                 'polarimeter': {'datacls': 'DataCam1D',
+                                 'geomcls': 'CamLOS1D',
+                                 'sig': {'t': 't',
+                                         'data': 'fangle'},
+                                 'synth': {'dsynth': {
+                                     'fargs': ['core_profiles.1dne',
+                                               'equilibrium.2dBR',
+                                               'equilibrium.2dBT',
+                                               'equilibrium.2dBZ',
+                                               'core_profiles.1drhotn',
+                                               'equilibrium.2drhotn']},
+                                           'dsig': {'core_profiles': ['t'],
+                                                    'equilibrium': ['t']},
+                                           'Brightness': True}},
+                 'bolometer': {'datacls': 'DataCam1D',
+                               'geomcls': 'CamLOS1D',
+                               'sig': {'t': 't',
+                                       'data': 'power'},
+                               'synth': {'dsynth': {
+                                   'quant': 'core_sources.1dprad',
+                                   'ref1d': 'core_sources.1drhotn',
+                                   'ref2d': 'equilibrium.2drhotn'},
+                                         'dsig': {'core_sources': ['t'],
+                                                  'equilibrium': ['t']},
+                                         'Brightness': True}},
+                 'soft_x_rays': {'datacls': 'DataCam1D',
+                                 'geomcls': 'CamLOS1D',
+                                 'sig': {'t': 't',
+                                         'data': 'power'}},
+                 'spectrometer_visible': {'datacls': 'DataCam1DSpectral',
+                                          'geomcls': 'CamLOS1D',
+                                          'sig': {'data': 'spectra',
+                                                  't': 't',
+                                                  'lamb': 'lamb'}},
+                 'bremsstrahlung_visible': {
+                     'datacls': 'DataCam1D',
+                     'geomcls': 'CamLOS1D',
+                     'sig': {'t': 't',
+                             'data': 'radiance'},
+                     'synth': {
+                         'dsynth': {
+                             'quant': ['core_profiles.1dTe',
+                                       'core_profiles.1dne',
+                                       'core_profiles.1dzeff'],
+                             'ref1d': 'core_profiles.1drhotn',
+                             'ref2d': 'equilibrium.2drhotn'},
+                         'dsig': {'core_profiles': ['t'],
+                                  'equilibrium': ['t']},
+                         'Brightness': True}}}
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
@@ -495,22 +521,41 @@ class MultiIDSLoader(object):
         dlos['los_pt2Phi'] = {'str':'channel[chan].%s.second_point.phi'%strlos}
         _dshort[ids].update( dlos )
 
-
     # Computing functions
-    _events = lambda names, t: np.array([(nn,tt)
-                                         for nn,tt in zip(*[np.char.strip(names),t])],
-                                        dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
-                                               ('t',np.float)])
-    _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
-    _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
-    _add = lambda a0, a1: np.abs(a0 + a1)
-    _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
-    _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
+
+    def _events(names, t):
+        ustr = 'U{}'.format(np.nanmax(np.char.str_len(np.char.strip(names))))
+        return np.array([(nn, tt)
+                         for nn, tt in zip(*[np.char.strip(names), t])],
+                        dtype=[('name', ustr), ('t', np.float)])
+
+    def _RZ2array(ptsR, ptsZ):
+        return np.array([ptsR, ptsZ]).T
+
+    def _losptsRZP(*pt12RZP):
+        return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
+
+    def _add(a0, a1):
+        return np.abs(a0 + a1)
+
+    def _eqB(BT, BR, BZ):
+        return np.sqrt(BT**2 + BR**2 + BZ**2)
+
+    def _icmod(al, ar, axis=0):
+        return np.sum(al - ar, axis=axis)
+
+    def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
+        return (np.sum(al0 - ar0, axis=axis)
+                + np.sum(al1 - ar1, axis=axis)
+                + np.sum(al2 - ar2, axis=axis))
+
     def _rhopn1d(psi):
         return np.sqrt((psi - psi[:, 0:1]) / (psi[:, -1] - psi[:, 0])[:, None])
+
     def _rhopn2d(psi, psi0, psisep):
         return np.sqrt(
             (psi - psi0[:, None]) / (psisep[:, None] - psi0[:, None]))
+
     def _rhotn2d(phi):
         return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:, None])
 
@@ -577,13 +622,18 @@ class MultiIDSLoader(object):
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
-            'ic_antennas':
-             {'power0': {'lstr':['power0mod_fwd', 'power0mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
-              'power1': {'lstr':['power1mod_fwd', 'power1mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
-              'power2': {'lstr':['power2mod_fwd', 'power2mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True}},
+             'ic_antennas': {
+                'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
+                                   'power1mod_fwd', 'power1mod_reflect',
+                                   'power2mod_fwd', 'power2mod_reflect'],
+                          'func': _icmodadd, 'kargs': {'axis': 0},
+                          'pos': True}},
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
@@ -902,13 +952,25 @@ class MultiIDSLoader(object):
 
     @staticmethod
     def _getcharray(ar, col=None, sep='  ', line='-', just='l', msg=True):
-
+        c0 = ar is None or len(ar) == 0
+        if c0:
+            return ''
         ar = np.array(ar, dtype='U')
+
+        if ar.ndim == 1:
+            ar = ar.reshape((1, ar.size))
 
         # Get just len
         nn = np.char.str_len(ar).max(axis=0)
         if col is not None:
-            assert len(col) == ar.shape[1]
+            if len(col) not in ar.shape:
+                msg = ("len(col) should be in np.array(ar, dtype='U').shape:\n"
+                       + "\t- len(col) = {}\n".format(len(col))
+                       + "\t- ar.shape = {}".format(ar.shape))
+                raise Exception(msg)
+            if len(col) != ar.shape[1]:
+                ar = ar.T
+                nn = np.char.str_len(ar).max(axis=0)
             nn = np.fmax(nn, [len(cc) for cc in col])
 
         # Apply to array
@@ -3309,6 +3371,10 @@ class MultiIDSLoader(object):
     def _checkformat_Cam_geom(self, ids=None, geomcls=None, indch=None):
 
         # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         if ids not in self._dids.keys():
             msg = "Provided ids should be available as a self.dids.keys() !"
             raise Exception(msg)
@@ -3329,123 +3395,175 @@ class MultiIDSLoader(object):
             msg = "Arg geomcls must be in {}".format([False]+lgeom)
             raise Exception(msg)
 
+        if geomcls is False:
+            msg = "ids {} does not seem to be a ids with a camera".format(ids)
+            raise Exception(msg)
+
         return geomcls
 
-    def _get_indch_geomtdata(self, indch=None, indch_auto=None,
-                             dgeom=None, t=None,
-                             ids=None, out=None, dsig=None, kk=None):
-        nch = 0 if indch is None else len(indch)
-        # Get from geometry of LOS consistency
-        if dgeom is not None:
-            indnan = np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
-                                   np.any(np.isnan(dgeom[1]), axis=0))
-            if np.any(indnan) and not np.all(indnan):
-                if indch_auto is not True:
-                    dmsg = {True: 'not available', False: 'ok'}
-                    ls = ['index {} los {}'.format(ii, dmsg[indnan[ii]])
-                          for ii in range(0, dgeom[0].shape[1])]
-                    msg = ("The geometry of all channels is not available !\n"
-                           + "Please choose indch to get all LOS!\n"
-                           + "Currently:\n"
-                           + "\n    ".join(ls)
-                           + "\n\n  => Solution: choose indch accordingly !")
-                    raise Exception(msg)
-                else:
-                    msg = ("Geometry missing for some los !\n"
-                           + "  => indch automatically set to:\n"
-                           + "  {}".format(indch))
-                    warnings.warn(msg)
-                if indch is None:
-                    indch = (~indnan).nonzero()[0]
-                else:
-                    indch = set(indch).intersection((~indnan).nonzero()[0])
-                    indch = np.array(indch, dtype=int)
+    def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
+                         dsig=None, data=None, X=None, datacls=None,
+                         geomcls=None, return_dict=None, return_ind=None,
+                         return_msg=None, verb=None):
+        # ------------------
+        # Preliminary checks
+        if return_dict is None:
+            return_dict = False
+        if return_ind is None:
+            return_ind = False
+        if return_msg is None:
+            return_msg = False
+        if verb is None:
+            verb = True
+        if occ is None:
+            occ = 0
+        if geom is None:
+            geom = True
+        compute_ind = return_ind or return_msg or verb
 
-        # Get from time vectors consistency
-        if t is not None:
-            if indch_auto is not True:
-                if indch is None:
-                    ls = [
-                        'index {}  {}.shape {}'.format(ii, kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                else:
-                    ls = [
-                        'index {}  {}.shape {}'.format(indch[ii], kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                msg = ("The following is supposed to be a np.ndarray:\n"
-                       + "    - diag:     {}\n".format(ids)
-                       + "    - shortcut: {}\n".format(dsig[kk])
-                       + "    - used as:  {} input\n".format(kk)
-                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
-                       + "  Probable cause: non-uniform shape (vs channels)\n"
-                       + "  => shapes :\n    "
-                       + "\n    ".join(ls)
-                       + "\n  => Solution: choose indch accordingly !")
-                raise Exception(msg)
-            ls = [t[ii].shape for ii in range(0, len(t))]
-            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-            msg = ("indch set automatically for {}\n".format(ids)
-                   + "  (due to inhomogenous time shapes)\n"
-                   + "    - main shape: {}\n".format(su)
-                   + "    - nb. chan. selected: {}\n".format(len(indch))
-                   + "    - indch: {}".format(indch))
-            warnings.warn(msg)
+        # Check ids is relevant
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
 
-            if indch is None:
-                indch = [ii for ii in range(0, len(t)) if ls[ii] == su]
+        # Check ids has channels (channel, gauge, ...)
+        lch = ['channel', 'gauge', 'group', 'antenna',
+               'pipe', 'reciprocating', 'bpol_probe']
+        ind = [ii for ii in range(len(lch))
+               if hasattr(self._dids[ids]['ids'][occ], lch[ii])]
+        if len(ind) == 0:
+            msg = "ids {} has no attribute with '[chan]' index!".format(ids)
+            raise Exception(msg)
+        nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
+
+        datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
+                                                             data=data, X=X,
+                                                             datacls=datacls,
+                                                             geomcls=geomcls)
+        if geomcls is False:
+            geom = False
+
+        # ------------------
+        # Extract sig and shapes / values
+        if geom == 'only':
+            lsig = []
+        else:
+            lsig = sorted(dsig.values())
+        lsigshape = list(lsig)
+        if geom in ['only', True] and 'LOS' in geomcls:
+            lkok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
+            lsig += [ss for ss in ['los_ptsRZPhi', 'etendue',
+                                   'surface', 'names']
+                     if ss in lkok]
+
+        out = self.get_data(ids, sig=lsig,
+                            isclose=False, stack=False, nan=True,
+                            pos=False)
+        dout = {}
+        for k0, v0 in out.items():
+            if len(v0) != nch:
+                if len(v0) != 1:
+                    import pdb          # DB
+                    pdb.set_trace()     # DB
+                continue
+            if isinstance(v0[0], np.ndarray):
+                dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
+                            'isnan': np.array([np.any(np.isnan(vv))
+                                               for vv in v0])}
+                if k0 == 'los_ptsRZPhi':
+                    dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
+                                                              vv[1, ...])
+                                                 for vv in v0])
+            elif type(v0[0]) in [int, float, np.int, np.float, str]:
+                dout[k0] = {'value': np.asarray(v0).ravel()}
             else:
-                indch = [indch[ii] for ii in range(0, len(indch))
-                         if ls[indch[ii]] == su]
+                typv = type(v0[0])
+                k0str = (self._dshort[ids][k0]['str']
+                         if k0 in self._dshort[ids].keys() else k0)
+                msg = ("\nUnknown data type:\n"
+                       + "\ttype({}) = {}".format(k0str, typv))
+                raise Exception(msg)
 
-        # Get from data consistency
-        if all([ss is not None for ss in [out, kk, dsig]]):
-            if indch_auto:
-                ls = [out[dsig[kk]][ii].shape
-                      for ii in range(0, len(out[dsig[kk]]))]
-                lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-                su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-                if indch is None:
-                    indch = [ii for ii in range(0, len(out[dsig[kk]]))
-                             if ls[ii] == su]
-                else:
-                    indch = [indch[ii] for ii in range(0, len(out[dsig[kk]]))
-                             if ls[ii] == su]
-                msg = ("indch set automatically for {}\n".format(ids)
-                       + "  (due to inhomogeneous data shapes)\n"
-                       + "    - main shape: {}\n".format(su)
-                       + "    - nb. chan. selected: {}\n".format(len(indch))
-                       + "    - indch: {}".format(indch))
+        lsig = sorted(set(lsig).intersection(dout.keys()))
+        lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
+
+        # --------------
+        # Get ind, msg
+        ind, msg = None, None
+        if compute_ind:
+            if geom in ['only', True] and 'los_ptsRZPhi' in out.keys():
+                indg = ((np.prod(dout['los_ptsRZPhi']['shapes'], axis=1) == 0)
+                        | dout['los_ptsRZPhi']['isnan']
+                        | dout['los_ptsRZPhi']['equal'])
+                if geom == 'only':
+                    indok = ~indg
+                    indchout = indok.nonzero()[0]
+            if geom != 'only':
+                shapes0 = np.concatenate([np.prod(dout[k0]['shapes'],
+                                                  axis=1, keepdims=True)
+                                          for k0 in lsigshape], axis=1)
+                indok = np.all(shapes0 != 0, axis=1)
+                if geom is True and 'los_ptsRZPhi' in out.keys():
+                    indok[indg] = False
+            if not np.any(indok):
+                indchout = np.array([], dtype=int)
+            elif geom != 'only':
+                indchout = (np.arange(0, nch)[indok]
+                            if indch is None else np.r_[indch][indok])
+                lshapes = [dout[k0]['shapes'][indchout, :] for k0 in lsigshape]
+                lshapesu = [np.unique(ss, axis=0) for ss in lshapes]
+                if any([ss.shape[0] > 1 for ss in lshapesu]):
+                    for ii in range(len(lshapesu)):
+                        if lshapesu[ii].shape[0] > 1:
+                            _, inv, counts = np.unique(lshapes[ii], axis=0,
+                                                       return_counts=True,
+                                                       return_inverse=True)
+                            indchout = indchout[inv == np.argmax(counts)]
+                            lshapes = [dout[k0]['shapes'][indchout, :]
+                                       for k0 in lsigshape]
+                            lshapesu = [np.unique(ss, axis=0)
+                                        for ss in lshapes]
+
+        if return_msg is True or verb is True:
+            col = ['index'] + [k0 for k0 in dout.keys()]
+            ar = ([np.arange(nch)]
+                  + [['{} {}'.format(tuple(v0['shapes'][ii]), 'nan')
+                      if v0['isnan'][ii] else str(tuple(v0['shapes'][ii]))
+                      for ii in range(nch)]
+                     if 'shapes' in v0.keys()
+                     else v0['value'].astype(str) for v0 in dout.values()])
+            msg = self._getcharray(ar, col, msg=True)
+            if verb is True:
+                indstr = ', '.join(map(str, indchout))
+                msg += "\n\n => recommended indch = [{}]".format(indstr)
+                print(msg)
+
+        # ------------------
+        # Return
+        lv = [(dout, return_dict), (indchout, return_ind), (msg, return_msg)]
+        lout = [vv[0] for vv in lv if vv[1] is True]
+        if len(lout) == 1:
+            return lout[0]
+        elif len(lout) > 1:
+            return lout
+
+    @staticmethod
+    def _compare_indch_indchr(indch, indchr, nch, indch_auto=None):
+        if indch_auto is None:
+            indch_auto = True
+        if indch is None:
+            indch = np.arange(0, nch)
+        if not np.all(np.in1d(indch, indchr)):
+            msg = ("indch has to be changed, some data may be missing\n"
+                   + "\t- indch: {}\n".format(indch)
+                   + "\t- indch recommended: {}".format(indchr)
+                   + "\n\n  => check self.inspect_channels() for details")
+            if indch_auto is True:
+                indch = indchr
                 warnings.warn(msg)
             else:
-                if indch is None:
-                    ls = [
-                        'index {}  {}.shape {}'.format(ii, kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                else:
-                    ls = [
-                        'index {}  {}.shape {}'.format(indch[ii], kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                msg = ("The following is supposed to be a np.ndarray:\n"
-                       + "    - diag:     {}\n".format(ids)
-                       + "    - shortcut: {}\n".format(dsig[kk])
-                       + "    - used as:  {} input\n".format(kk)
-                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
-                       + "  Probable cause: non-uniform shape (vs channels)\n"
-                       + "  => shapes :\n    "
-                       + "\n    ".join(ls)
-                       + "\n  => Solution: choose indch accordingly !")
                 raise Exception(msg)
-        nchout = 0 if indch is None else len(indch)
-        return indch, nchout != nch
+        return indch
 
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces, names = None, None, None
@@ -3538,6 +3656,11 @@ class MultiIDSLoader(object):
 
         """
 
+        # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         # dsig
         geom = self._checkformat_Cam_geom(ids)
         if Name is None:
@@ -3569,6 +3692,14 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
         if 'LOS' in geom:
+            # Check channel indices
+            indchr = self.inspect_channels(ids, indch=indch,
+                                           geom='only', return_ind=True,
+                                           verb=False)
+            indch = self._compare_indch_indchr(indch, indchr, nchMax,
+                                               indch_auto=indch_auto)
+
+            # Load geometrical data
             lk = ['los_ptsRZPhi', 'etendue', 'surface', 'names']
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
@@ -3576,16 +3707,6 @@ class MultiIDSLoader(object):
             dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
                                                                nan=nan,
                                                                pos=pos)
-
-            # Check all channels can be used, reset indch if necessary
-            indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     indch_auto=indch_auto,
-                                                     dgeom=dgeom)
-            if modif is True:
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk,
-                                                                   indch,
-                                                                   nan=nan,
-                                                                   pos=pos)
 
             if names is not None:
                 dchans['names'] = names
@@ -3606,6 +3727,10 @@ class MultiIDSLoader(object):
                                datacls=None, geomcls=None):
 
         # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         if ids not in self._dids.keys():
             msg = "Provided ids should be available as a self.dids.keys() !"
             raise Exception(msg)
@@ -3775,6 +3900,11 @@ class MultiIDSLoader(object):
             return_indch = True
         """
 
+        # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
                                                              data=data, X=X,
@@ -3807,8 +3937,17 @@ class MultiIDSLoader(object):
         indchanstr = self._dshort[ids][dsig['data']]['str'].index('[chan]')
         chanstr = self._dshort[ids][dsig['data']]['str'][:indchanstr]
         nchMax = len(getattr(self._dids[ids]['ids'][0], chanstr))
-        dgeom = None
-        if geomcls != False:
+
+        # Check channel indices
+        indchr = self.inspect_channels(ids, indch=indch,
+                                       geom=(geomcls is not False),
+                                       return_ind=True,
+                                       verb=False)
+        indch = self._compare_indch_indchr(indch, indchr, nchMax,
+                                           indch_auto=indch_auto)
+
+        dgeom, names = None, None
+        if geomcls is not False:
             Etendues, Surfaces = None, None
             if config is None:
                 msg = "A config must be provided to compute the geometry !"
@@ -3833,23 +3972,16 @@ class MultiIDSLoader(object):
             msg += "    - 't' = %s"%str(t)
             raise Exception(msg)
 
-        # -----------
-        # Check indch
-        if type(t) is list:
-            indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     indch_auto=indch_auto,
-                                                     dgeom=dgeom, t=t)
-            assert modif is True
-        else:
-            indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     indch_auto=indch_auto,
-                                                     dgeom=dgeom)
-        if modif is True:
-            if geomcls is not False:
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                    ids, lk_geom, indch, nan=nan, pos=pos)
-            t = self.get_data(ids, sig='t', indch=indch)['t']
-            modif = False
+        # ----------
+        # Get data
+        out = self.get_data(ids, sig=dsig['data'],
+                            indch=indch, nan=nan, pos=pos)
+        if len(out[dsig['data']]) == 0:
+            msgstr = self._dshort[ids]['data']['str']
+            msg = ("The data array is not available for {}:\n".format(ids)
+                   + "    - 'data' <=> {}.{}\n".format(ids, msgstr)
+                   + "    - 'data' = {}".format(out[dsig['data']]))
+            raise Exception(msg)
 
         if names is not None:
             dchans['names'] = names
@@ -3865,21 +3997,9 @@ class MultiIDSLoader(object):
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
-            if not isinstance(out[dsig[kk]], np.ndarray):
-                indch, modifk = self._get_indch_geomtdata(
-                    indch=indch, indch_auto=indch_auto,
-                    out=out, dsig=dsig, kk=kk)
-                if modifk is True:
-                    out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        indt=indt, indch=indch,
-                                        nan=nan, pos=pos)
-                    modif = True
-
             # Arrange depending on shape and field
             if type(out[dsig[kk]]) is not np.ndarray:
                 msg = "BEWARE : non-conform data !"
-                import ipdb
-                ipdb.set_trace()
                 raise Exception(msg)
 
             if out[dsig[kk]].size == 0 or out[dsig[kk]].ndim not in [1, 2, 3]:
@@ -3894,7 +4014,6 @@ class MultiIDSLoader(object):
             if out[dsig[kk]].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
                     if np.allclose(out[dsig[kk]], out[dsig[kk]][:,0:1]):
-                        import pdb; pdb.set_trace() # DB
                         dins[kk] = out[dsig[kk]][:,0]
                     else:
                         dins[kk] = out[dsig[kk]]
@@ -3904,13 +4023,6 @@ class MultiIDSLoader(object):
             elif out[dsig[kk]].ndim == 3:
                 assert kk == 'data'
                 dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
-
-        # Update dgeom if necessary
-        if modif is True and geomcls is not False:
-            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                ids, lk_geom, indch,
-                nan=nan, pos=pos)
-            modif = False
 
         # --------------------------
         # Format special ids cases
@@ -4152,7 +4264,7 @@ class MultiIDSLoader(object):
                                        return_indch=True, plot=False)
 
         # Get camera
-        cam = self.to_Cam(ids=ids, indch=indch,
+        cam = self.to_Cam(ids=ids, indch=indch, indch_auto=indch_auto,
                           Name=None, occ=occ_cam,
                           config=config, description_2d=description_2d,
                           plot=False, nan=True, pos=None)
