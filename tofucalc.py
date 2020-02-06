@@ -56,6 +56,7 @@ _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
 _EXTRA = True
+_INDCH_AUTO = True
 
 ###################################################
 ###################################################
@@ -79,7 +80,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     ids=None, t0=_T0, extra=_EXTRA,
                     plot_compare=True, Brightness=None,
                     res=None, interp_t=None,
-                    sharex=_SHAREX, indch=None, indch_auto=None,
+                    sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
                     background=_BCK):
 
     if t0.lower() == 'none':
@@ -153,7 +154,7 @@ if __name__ == '__main__':
                         nargs='+', default=None)
     parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
                         help='automatically determine indices of channels to be loaded',
-                        default=True)
+                        default=_INDCH_AUTO)
     parser.add_argument('-e', '--extra', type=_str2bool, required=False,
                         help='If True loads separatrix and heating power',
                         default=_EXTRA)
