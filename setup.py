@@ -166,7 +166,8 @@ def get_version_tofu(path=_HERE):
                 .decode()
             )
             print(">>>> git branch => ", git_branch)
-            if git_branch in ["master", "deploy-test"]:
+            deploy_branches = ["master", "deploy-test"]
+            if (git_branch in deploy_branches or "TRAVIS_TAG" in os.environ):
                 print(">>>> updating version")
                 version_tofu = up.updateversion()
             else:
