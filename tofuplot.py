@@ -54,6 +54,7 @@ _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
 _EXTRA = True
+_INDCH_AUTO = True
 
 ###################################################
 ###################################################
@@ -75,7 +76,7 @@ def _get_exception(q, ids, qtype='quantity'):
 def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION, extra=_EXTRA,
                     ids=None, quantity=None, X=None, t0=_T0,
-                    sharex=_SHAREX, indch=None, indch_auto=None,
+                    sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
                     background=_BCK, t=None, dR_sep=None, init=None):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
@@ -159,7 +160,7 @@ if __name__ == '__main__':
                         nargs='+', default=None)
     parser.add_argument('-ichauto', '--indch_auto', type=_str2bool, required=False,
                         help='automatically determine indices of'
-                        + ' channels to be loaded', default=True)
+                        + ' channels to be loaded', default=_INDCH_AUTO)
     parser.add_argument('-e', '--extra', type=_str2bool, required=False,
                         help='If True loads separatrix and heating power',
                         default=_EXTRA)

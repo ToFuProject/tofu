@@ -3529,7 +3529,7 @@ class MultiIDSLoader(object):
             indch_auto = True
         if indch is None:
             indch = np.arange(0, nch)
-        if indchr.size != indch.size or not np.allclose(indch, indchr):
+        if not np.all(np.in1d(indch, indchr)):
             msg = ("indch has to be changed, some data may be missing\n"
                    + "\t- indch: {}\n".format(indch)
                    + "\t- indch recommended: {}".format(indchr)
@@ -4239,7 +4239,7 @@ class MultiIDSLoader(object):
                                        return_indch=True, plot=False)
 
         # Get camera
-        cam = self.to_Cam(ids=ids, indch=indch,
+        cam = self.to_Cam(ids=ids, indch=indch, indch_auto=indch_auto,
                           Name=None, occ=occ_cam,
                           config=config, description_2d=description_2d,
                           plot=False, nan=True, pos=None)
