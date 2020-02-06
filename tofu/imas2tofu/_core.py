@@ -425,17 +425,17 @@ class MultiIDSLoader(object):
                                            'sig': {'t': 't',
                                                    'X': 'R',
                                                    'data': 'ne'}},
-                 'interferometer':{'datacls':'DataCam1D',
-                                   'geomcls':'CamLOS1D',
-                                   'sig':{'t':'t',
-                                          'data':'ne_integ'},
-                                   'synth':{'dsynth':{
-                                       'quant':'core_profiles.1dne',
-                                       'ref1d':'core_profiles.1drhotn',
-                                       'ref2d':'equilibrium.2drhotn'},
-                                            'dsig':{'core_profiles':['t'],
-                                                    'equilibrium':['t']},
-                                            'Brightness':True}},
+                 'interferometer': {'datacls': 'DataCam1D',
+                                    'geomcls': 'CamLOS1D',
+                                    'sig': {'t': 't',
+                                            'data': 'ne_integ'},
+                                    'synth': {'dsynth': {
+                                        'quant': 'core_profiles.1dne',
+                                        'ref1d': 'core_profiles.1drhotn',
+                                        'ref2d': 'equilibrium.2drhotn'},
+                                            'dsig': {'core_profiles': ['t'],
+                                                     'equilibrium': ['t']},
+                                            'Brightness': True}},
                  'polarimeter':{'datacls': 'DataCam1D',
                                 'geomcls': 'CamLOS1D',
                                 'sig': {'t': 't',
@@ -452,14 +452,14 @@ class MultiIDSLoader(object):
                                          'Brightness': True}},
                  'bolometer': {'datacls': 'DataCam1D',
                                'geomcls': 'CamLOS1D',
-                               'sig':{'t': 't',
-                                      'data': 'power'},
+                               'sig': {'t': 't',
+                                       'data': 'power'},
                                'synth': {'dsynth': {
                                    'quant': 'core_sources.1dprad',
                                    'ref1d': 'core_sources.1drhotn',
                                    'ref2d': 'equilibrium.2drhotn'},
-                                         'dsig':{'core_sources': ['t'],
-                                                 'equilibrium': ['t']},
+                                         'dsig': {'core_sources': ['t'],
+                                                  'equilibrium': ['t']},
                                          'Brightness': True}},
                  'soft_x_rays': {'datacls': 'DataCam1D',
                                  'geomcls': 'CamLOS1D',
@@ -527,20 +527,28 @@ class MultiIDSLoader(object):
                                         dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
                                                ('t',np.float)])
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
-    _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
+
+    def _losptsRZP(*pt12RZP):
+        return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
+
     _add = lambda a0, a1: np.abs(a0 + a1)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
+
     def _icmod (al, ar, axis=0):
         return np.sum(al - ar, axis=axis)
+
     def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
         return (np.sum(al0 - ar0, axis=axis)
                 + np.sum(al1 - ar1, axis=axis)
                 + np.sum(al2 - ar2, axis=axis))
+
     def _rhopn1d(psi):
         return np.sqrt((psi - psi[:, 0:1]) / (psi[:, -1] - psi[:, 0])[:, None])
+
     def _rhopn2d(psi, psi0, psisep):
         return np.sqrt(
             (psi - psi0[:, None]) / (psisep[:, None] - psi0[:, None]))
+
     def _rhotn2d(phi):
         return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:, None])
 
@@ -617,7 +625,7 @@ class MultiIDSLoader(object):
               'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
                                  'power1mod_fwd', 'power1mod_reflect',
                                  'power2mod_fwd', 'power2mod_reflect'],
-                        'func': _icmodadd, 'kargs':{'axis': 0}, 'pos': True}},
+                        'func': _icmodadd, 'kargs': {'axis': 0}, 'pos': True}},
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
