@@ -4482,14 +4482,14 @@ class Rays(utils.ToFuObject):
                 warnings.warn(msg2)
                 # plot 3d debug figure
                 # _plot._LOS_calc_InOutPolProj_Debug(
-                    # self.config,
-                    # self.D[:, ind],
-                    # self.u[:, ind],
-                    # PIn,
-                    # POut,
-                    # nptstot=kOut.size,
-                    # Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
-                    # Nstep=50,
+                # self.config,
+                # self.D[:, ind],
+                # self.u[:, ind],
+                # PIn,
+                # POut,
+                # nptstot=kOut.size,
+                # Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
+                # Nstep=50,
                 # )
             kOut[ind] = np.nan
             raise Exception(msg)

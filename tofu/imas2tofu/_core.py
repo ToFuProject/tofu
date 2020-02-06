@@ -391,40 +391,40 @@ class MultiIDSLoader(object):
               }
 
     _didsdiag = {
-                 'lh_antennas':{'datacls':'DataCam1D',
-                                'geomcls':False,
-                                'sig':{'data':'power',
+                 'lh_antennas': {'datacls': 'DataCam1D',
+                                 'geomcls': False,
+                                 'sig': {'data': 'power',
+                                         't': 't'}},
+                 'ic_antennas': {'datacls': 'DataCam1D',
+                                 'geomcls': False,
+                                 'sig': {'data': 'power',
+                                         't': 't'}},
+                 'magnetics': {'datacls': 'DataCam1D',
+                               'geomcls': False,
+                               'sig': {'data': 'bpol_B',
                                        't': 't'}},
-                 'ic_antennas':{'datacls':'DataCam1D',
-                                'geomcls':False,
-                                'sig':{'data':'power',
+                 'barometry': {'datacls': 'DataCam1D',
+                               'geomcls': False,
+                               'sig': {'data': 'p',
                                        't': 't'}},
-                 'magnetics': {'datacls':'DataCam1D',
-                               'geomcls':False,
-                               'sig':{'data': 'bpol_B',
-                                      't':'t'}},
-                 'barometry':{'datacls':'DataCam1D',
-                              'geomcls':False,
-                              'sig':{'data':'p',
-                                     't': 't'}},
-                 'calorimetry':{'datacls':'DataCam1D',
-                                'geomcls':False,
-                                'sig':{'data':'power',
-                                       't': 't'}},
-                'ece':{'datacls':'DataCam1D',
-                       'geomcls':False,
-                       'sig':{'t':'t',
-                              'X':'rhotn_sign',
-                              'data':'Te'}},
-                'neutron_diagnostic':{'datacls':'DataCam1D',
-                                      'geomcls':False,
-                                      'sig':{'t':'t',
-                                             'data':'flux_total'}},
-                'reflectometer_profile':{'datacls':'DataCam1D',
-                                         'geomcls':False,
-                                         'sig':{'t':'t',
-                                                'X':'R',
-                                                'data':'ne'}},
+                 'calorimetry': {'datacls': 'DataCam1D',
+                                 'geomcls': False,
+                                 'sig': {'data': 'power',
+                                         't': 't'}},
+                'ece': {'datacls': 'DataCam1D',
+                        'geomcls': False,
+                        'sig': {'t': 't',
+                                'X': 'rhotn_sign',
+                                'data': 'Te'}},
+                'neutron_diagnostic': {'datacls': 'DataCam1D',
+                                       'geomcls': False,
+                                       'sig':{'t': 't',
+                                              'data': 'flux_total'}},
+                'reflectometer_profile': {'datacls': 'DataCam1D',
+                                          'geomcls': False,
+                                          'sig': {'t': 't',
+                                                  'X': 'R',
+                                                  'data': 'ne'}},
                 'interferometer':{'datacls':'DataCam1D',
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
@@ -458,15 +458,15 @@ class MultiIDSLoader(object):
                                       'dsig':{'core_sources':['t'],
                                               'equilibrium':['t']},
                                       'Brightness':True}},
-                'soft_x_rays':{'datacls':'DataCam1D',
-                               'geomcls':'CamLOS1D',
-                               'sig':{'t':'t',
-                                      'data':'power'}},
-                'spectrometer_visible':{'datacls':'DataCam1DSpectral',
-                                        'geomcls':'CamLOS1D',
-                                        'sig':{'data':'spectra',
-                                               't':'t',
-                                               'lamb':'lamb'}},
+                'soft_x_rays': {'datacls': 'DataCam1D',
+                                'geomcls': 'CamLOS1D',
+                                'sig': {'t': 't',
+                                        'data': 'power'}},
+                'spectrometer_visible': {'datacls': 'DataCam1DSpectral',
+                                         'geomcls': 'CamLOS1D',
+                                         'sig': {'data': 'spectra',
+                                                 't': 't',
+                                                 'lamb': 'lamb'}},
                 'bremsstrahlung_visible':{'datacls':'DataCam1D',
                                           'geomcls':'CamLOS1D',
                                           'sig':{'t':'t',
@@ -522,10 +522,11 @@ class MultiIDSLoader(object):
                                         dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
                                                ('t',np.float)])
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
-    _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
+    _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
     _add = lambda a0, a1: np.abs(a0 + a1)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
-    _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
+    def _icmod (al, ar, axis=0):
+        return np.sum(al - ar, axis=axis)
     def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
         return (np.sum(al0 - ar0, axis=axis)
                 + np.sum(al1 - ar1, axis=axis)
@@ -602,16 +603,16 @@ class MultiIDSLoader(object):
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
             'ic_antennas':
-             {'power0': {'lstr':['power0mod_fwd', 'power0mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
-              'power1': {'lstr':['power1mod_fwd', 'power1mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
-              'power2': {'lstr':['power2mod_fwd', 'power2mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
+             {'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
+                         'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+              'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
+                         'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+              'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
+                         'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
               'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
                                  'power1mod_fwd', 'power1mod_reflect',
                                  'power2mod_fwd', 'power2mod_reflect'],
-                        'func': _icmodadd, 'kargs':{'axis':0}, 'pos':True}},
+                        'func': _icmodadd, 'kargs':{'axis': 0}, 'pos': True}},
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
@@ -936,7 +937,7 @@ class MultiIDSLoader(object):
         ar = np.array(ar, dtype='U')
 
         if ar.ndim == 1:
-            ar = ar.reshape((1,ar.size))
+            ar = ar.reshape((1, ar.size))
 
         # Get just len
         nn = np.char.str_len(ar).max(axis=0)
@@ -3430,7 +3431,8 @@ class MultiIDSLoader(object):
         lsigshape = list(lsig)
         if geom in ['only', True] and 'LOS' in geomcls:
             lkok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
-            lsig += [ss for ss in ['los_ptsRZPhi', 'etendue', 'surface', 'names']
+            lsig += [ss for ss in ['los_ptsRZPhi', 'etendue',
+                                   'surface', 'names']
                      if ss in lkok]
 
         out = self.get_data(ids, sig=lsig,
@@ -3440,7 +3442,8 @@ class MultiIDSLoader(object):
         for k0, v0 in out.items():
             if len(v0) != nch:
                 if len(v0) != 1:
-                    import pdb; pdb.set_trace() # DB
+                    import pdb          # DB
+                    pdb.set_trace()     # DB
                 continue
             if isinstance(v0[0], np.ndarray):
                 dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
@@ -3485,8 +3488,8 @@ class MultiIDSLoader(object):
                 indchout = np.array([], dtype=int)
             elif geom != 'only':
                 indchout = (np.arange(0, nch)[indok]
-                           if indch is None else np.r_[indch][indok])
-                lshapes = [dout[k0]['shapes'][indchout,:] for k0 in lsigshape]
+                            if indch is None else np.r_[indch][indok])
+                lshapes = [dout[k0]['shapes'][indchout, :] for k0 in lsigshape]
                 lshapesu = [np.unique(ss, axis=0) for ss in lshapes]
                 if any([ss.shape[0] > 1 for ss in lshapesu]):
                     for ii in range(len(lshapesu)):
@@ -3495,7 +3498,7 @@ class MultiIDSLoader(object):
                                                        return_counts=True,
                                                        return_inverse=True)
                             indchout = indchout[inv == np.argmax(counts)]
-                            lshapes = [dout[k0]['shapes'][indchout,:]
+                            lshapes = [dout[k0]['shapes'][indchout, :]
                                        for k0 in lsigshape]
                             lshapesu = [np.unique(ss, axis=0)
                                         for ss in lshapes]
@@ -3923,7 +3926,7 @@ class MultiIDSLoader(object):
                                            indch_auto=indch_auto)
 
         dgeom, names = None, None
-        if geomcls != False:
+        if geomcls is not False:
             Etendues, Surfaces = None, None
             if config is None:
                 msg = "A config must be provided to compute the geometry !"
@@ -3953,9 +3956,10 @@ class MultiIDSLoader(object):
         out = self.get_data(ids, sig=dsig['data'],
                             indch=indch, nan=nan, pos=pos)
         if len(out[dsig['data']]) == 0:
-            msg = "The data array is not available for %s:\n"%ids
-            msg += "    - 'data' <=> %s.%s\n"%(ids,self._dshort[ids]['data']['str'])
-            msg += "    - 'data' = %s"%str(out[dsig['data']])
+            msgstr = self._dshort[ids]['data']['str']
+            msg = ("The data array is not available for {}:\n".format(ids)
+                   + "    - 'data' <=> {}.{}\n".format(ids, msgstr)
+                   + "    - 'data' = {}".format(out[dsig['data']]))
             raise Exception(msg)
 
         if names is not None:

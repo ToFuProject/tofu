@@ -788,9 +788,11 @@ def _LOS_calc_InOutPolProj_Debug(config, Ds, us ,PIns, POuts,
     msg = '_LOS_calc_InOutPolProj - Debugging %s / %s pts'%(str(nP),str(nptstot))
     ax.set_title(msg)
     ax.plot(pts[0,:], pts[1,:], pts[2,:], c='k', lw=1, ls='-')
-    # ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
-    # ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
-    #ax.legend(**_def.TorLegd)
+    # ax.plot(PIns[0,:],PIns[1,:],PIns[2,:],
+    #         c='b', ls='None', marker='o', label=r"PIn")
+    # ax.plot(POuts[0,:],POuts[1,:],POuts[2,:],
+    #         c='r', ls='None', marker='x', label=r"POut")
+    # ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
 
