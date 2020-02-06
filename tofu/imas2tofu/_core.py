@@ -3406,7 +3406,7 @@ class MultiIDSLoader(object):
 
         # Check ids has channels (channel, gauge, ...)
         lch = ['channel', 'gauge', 'group', 'antenna',
-               'pipe', 'reciprocating']
+               'pipe', 'reciprocating', 'bpol_probe']
         ind = [ii for ii in range(len(lch))
                if hasattr(self._dids[ids]['ids'][occ], lch[ii])]
         if len(ind) == 0:
