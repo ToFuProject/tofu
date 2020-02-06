@@ -683,9 +683,12 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
             alpha = -(lamb/lines - (1 + shifti))**2 / (2*wi2)
             exp = np.exp(alpha)
 
+            import ipdb; ipdb.set_trace()       # DB
             jac[:, indamp] = ampscale * exp
             jac[:, indwidth] = np.sum(amp * alpha * (-1./wi2) * exp, axis=)
-            jac[:, indshift] = np.sum(amp * alpha * (-shscale/(lamb/lines - (1 + shifti))) * exp, axis=)
+            jac[:, indshift] = np.sum(amp * alpha
+                                      * (-shscale/(lamb/lines - (1 + shifti)))
+                                      * exp, axis=)
             if double is True:
                 jac[:, indamp] += jac[:, indamp]*x[inddratio]
                 jac[:, inddratio] = None
