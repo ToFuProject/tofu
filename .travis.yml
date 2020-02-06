@@ -84,6 +84,7 @@ before_deploy:
       echo "BEFORE DEPLOY START........"
       ls $START
       cd $START
+      more tofu/version.py
       echo "BEFORE DEPLOY END.........."
     fi
 deploy:
