@@ -1491,7 +1491,11 @@ class ToFuObjectBase(object):
         # Get just len
         nn = np.char.str_len(ar).max(axis=0)
         if col is not None:
-            assert len(col) in ar.shape
+            if len(col) not in ar.shape:
+                msg = ("len(col) should be in np.array(ar, dtype='U').shape:\n"
+                       + "\t- len(col) = {}\n".format(len(col))
+                       + "\t- ar.shape = {}".format(ar.shape))
+                raise Exception(msg)
             if len(col) != ar.shape[1]:
                 ar = ar.T
                 nn = np.char.str_len(ar).max(axis=0)
