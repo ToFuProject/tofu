@@ -521,7 +521,6 @@ class MultiIDSLoader(object):
         dlos['los_pt2Phi'] = {'str':'channel[chan].%s.second_point.phi'%strlos}
         _dshort[ids].update( dlos )
 
-
     # Computing functions
 
     def _events(names, t):
@@ -623,17 +622,18 @@ class MultiIDSLoader(object):
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
-            'ic_antennas':
-             {'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
-                         'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
-              'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
-                         'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
-              'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
-                         'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
-              'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
-                                 'power1mod_fwd', 'power1mod_reflect',
-                                 'power2mod_fwd', 'power2mod_reflect'],
-                        'func': _icmodadd, 'kargs': {'axis': 0}, 'pos': True}},
+            'ic_antennas': {
+                'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
+                                   'power1mod_fwd', 'power1mod_reflect',
+                                   'power2mod_fwd', 'power2mod_reflect'],
+                          'func': _icmodadd, 'kargs': {'axis': 0},
+                          'pos': True}},
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
