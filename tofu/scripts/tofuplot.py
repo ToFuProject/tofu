@@ -13,8 +13,9 @@ plt.ioff()
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
+_HERE = os.path.dirname(os.path.dirname(_HERE))
 istofugit = False
-if '.git' in _HERE and 'tofu' in _HERE:
+if '.git' in os.listdir(_HERE) and 'tofu' in _HERE:
     istofugit = True
 
 if istofugit:
@@ -28,7 +29,7 @@ else:
     from tofu.imas2tofu import MultiIDSLoader
 tforigin = tf.__file__
 tfversion = tf.__version__
-
+print(tforigin, tfversion)
 
 if 'imas2tofu' not in dir(tf):
     msg = "imas does not seem to be available\n"
@@ -83,6 +84,8 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
     if t0.lower() == 'none':
         t0 = None
 
+    print("OK 2")   # DB
+
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
@@ -121,6 +124,7 @@ def main():
     ids:
         %s
     """%repr(_LIDS)
+    print("OK 1")   # DB
     parser = argparse.ArgumentParser(description = msg)
 
     parser.add_argument('-s', '--shot', type=int,
@@ -175,3 +179,7 @@ def main():
 
     # Call wrapper function
     call_tfloadimas(**dict(args._get_kwargs()))
+
+# Add this to make sure it remains executable even without install
+if __name__ == '__main__':
+    main()
