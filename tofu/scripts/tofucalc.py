@@ -168,6 +168,7 @@ def main():
     # Call wrapper function
     call_tfcalcimas(**dict(args._get_kwargs()))
 
+
 # Add this to make sure it remains executable even without install
 if __name__ == '__main__':
     main()
