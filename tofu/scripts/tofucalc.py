@@ -13,8 +13,9 @@ plt.ioff()
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
+_HERE = os.path.dirname(os.path.dirname(_HERE))
 istofugit = False
-if '.git' in _HERE and 'tofu' in _HERE:
+if '.git' in os.listdir(_HERE) and 'tofu' in _HERE:
     istofugit = True
 
 if istofugit:
@@ -28,10 +29,7 @@ else:
     from tofu.imas2tofu import MultiIDSLoader
 tforigin = tf.__file__
 tfversion = tf.__version__
-
-# if tf.__version__ < '1.4.1':
-    # msg = "tofuplot only works with tofu >= 1.4.1"
-    # raise Exception(msg)
+print(tforigin, tfversion)
 
 if 'imas2tofu' not in dir(tf):
     msg = "imas does not seem to be available\n"
@@ -55,6 +53,8 @@ _LIDS = _LIDS_DIAG
 _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
+_EXTRA = True
+_INDCH_AUTO = True
 
 ###################################################
 ###################################################
@@ -75,10 +75,10 @@ def _get_exception(q, ids, qtype='quantity'):
 
 def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
-                    ids=None, t0=_T0,
+                    ids=None, t0=_T0, extra=_EXTRA,
                     plot_compare=True, Brightness=None,
                     res=None, interp_t=None,
-                    sharex=_SHAREX, indch=None, indch_auto=None,
+                    sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
                     background=_BCK):
 
     if t0.lower() == 'none':
@@ -87,7 +87,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
     tf.calc_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
-                      plot_compare=plot_compare,
+                      plot_compare=plot_compare, extra=extra,
                       Brightness=Brightness, res=res, interp_t=interp_t,
                       t0=t0, plot=True, sharex=sharex, bck=background)
 
@@ -111,8 +111,8 @@ def _str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected !')
 
 
-if __name__ == '__main__':
-
+# if __name__ == '__main__':
+def main():
     # Parse input arguments
     msg = """Fast interactive visualization tool for diagnostics data in
     imas
@@ -152,7 +152,10 @@ if __name__ == '__main__':
                         nargs='+', default=None)
     parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
                         help='automatically determine indices of channels to be loaded',
-                        default=True)
+                        default=_INDCH_AUTO)
+    parser.add_argument('-e', '--extra', type=_str2bool, required=False,
+                        help='If True loads separatrix and heating power',
+                        default=_EXTRA)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
@@ -164,3 +167,8 @@ if __name__ == '__main__':
 
     # Call wrapper function
     call_tfcalcimas(**dict(args._get_kwargs()))
+
+
+# Add this to make sure it remains executable even without install
+if __name__ == '__main__':
+    main()
