@@ -84,8 +84,6 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
     if t0.lower() == 'none':
         t0 = None
 
-    print("OK 2")   # DB
-
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
@@ -124,7 +122,6 @@ def main():
     ids:
         %s
     """%repr(_LIDS)
-    print("OK 1")   # DB
     parser = argparse.ArgumentParser(description = msg)
 
     parser.add_argument('-s', '--shot', type=int,
