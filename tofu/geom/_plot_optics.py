@@ -884,10 +884,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
     lions = list(dfit1d['dions'].keys())
     nions = len(lions)
     shift = dfit1d['shift']
-    if dfit1d['double'] is True:
-        x = dfit1d['lines'][:dfit1d['nlines']] + shift
-    else:
-        x = dfit1d['lines'] + shift
+    x = dfit1d['lines'] + shift
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
 
