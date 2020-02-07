@@ -16,11 +16,8 @@ from setuptools import Extension
 # ... packages that need to be in pyproject.toml
 from Cython.Distutils import build_ext
 import numpy as np
-# ...
-# Remove _updateversion import due to build-time dependency
-#   => updateversion defined in here for commodity
-#   => find a cleaner solution later
-# import _updateversion as up
+# ... local script
+import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
@@ -149,25 +146,6 @@ else:
 _HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-def updateversion(path=_HERE):
-    # Fetch version from git tags, and write to version.py
-    # Also, when git is not available (PyPi package), use stored version.py
-    version_py = os.path.join(path, 'tofu', 'version.py')
-    try:
-        version_git = subprocess.check_output(["git",
-                                               "describe"]).rstrip().decode()
-    except subprocess.CalledProcessError:
-        with open(version_py, 'r') as fh:
-            version_git = fh.read().strip().split("=")[-1].replace("'", '')
-    version_git = version_git.lower().replace('v', '')
-
-    version_msg = "# Do not edit, pipeline versioning governed by git tags!"
-    with open(version_py, "w") as fh:
-        msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
-        fh.write(version_msg + msg)
-    return version_git
-
-
 def get_version_tofu(path=_HERE):
 
     # Try from git
@@ -186,8 +164,9 @@ def get_version_tofu(path=_HERE):
                 .rstrip()
                 .decode()
             )
-            if git_branch in ["master", "deploy-test"]:
-                version_tofu = updateversion()
+            deploy_branches = ["master", "deploy-test"]
+            if (git_branch in deploy_branches or "TRAVIS_TAG" in os.environ):
+                version_tofu = up.updateversion()
             else:
                 isgit = False
         except Exception:
