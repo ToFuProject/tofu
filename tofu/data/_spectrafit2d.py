@@ -891,7 +891,7 @@ def multigausfit1d_from_dlines(data, lamb,
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
         kTiev = conv * width2[dind['ions_back']] * mz * scpct.c**2
     if vi is True:
-        vims = (res.x[dind['shift'][dind['ions_back']]]
+        vims = (res.x[dind['shift_lines'][dind['ions_back']]]
                 * dscale['shift'] * scpct.c)
 
     kTe = None
