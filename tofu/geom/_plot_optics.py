@@ -900,15 +900,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
 
     ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][0, :], ls='-', c='k')
     ax.set_prop_cycle(None)
-    if dfit1d['double'] is True:
-        for ii in range(1, dfit1d['nlines']+1):
-            li, = ax.plot(dfit1d['lamb'],
-                          dfit1d['sol_detail'][ii, :], ls='-', lw=1.)
-            ax.plot(dfit1d['lamb'],
-                    dfit1d['sol_detail'][ii+dfit1d['nlines'], :],
-                    ls='--', lw=1., c=li.get_color())
-    else:
-        ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
+    ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
     ax.plot(dfit1d['lamb'], dfit1d['sol'],
             c='k', lw=2.)
     ax.plot(dfit1d['lamb'], dfit1d['data'],
