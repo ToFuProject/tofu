@@ -746,7 +746,7 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
 
 def multigausfit1d_from_dlines(data, lamb,
                                lambmin=None, lambmax=None,
-                               dlines=None, ratioTe=None,
+                               dlines=None, ratio=None,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -894,11 +894,13 @@ def multigausfit1d_from_dlines(data, lamb,
         vims = (res.x[dind['shift_lines'][dind['ions_back']]]
                 * dscale['shift'] * scpct.c)
 
-    kTe = None
-    if ratioTe is not None:
+    if ratio is not None:
         # Te can only be obtained as a proxy, units don't matter at this point
-        kTe = (coefs[keys.index(ratioTe['up'])]
-               / coefs[keys.index(ratioTe['lo'])])
+        indup = keys.index(ratio['up'])
+        indlow = keys.index(ratio['low'])
+        ratio['value'] = coefs[indup] / coefs[indlow]
+        ratio['str'] = "{}/{}".format(dlines[ratio['up']]['symbol'],
+                                      dlines[ratio['low']]['symbol'])
 
     # Create output dict
     dout = {'data': data, 'lamb': lamb,
@@ -908,7 +910,7 @@ def multigausfit1d_from_dlines(data, lamb,
             'Ti': Ti, 'vi': vi, 'double': double,
             'bck': bck, 'width2': width2, 'shift': shift, 'amp': amp,
             'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
-            'dions': dions, 'kTiev': kTiev, 'vims': vims, 'kTe': kTe,
+            'dions': dions, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
             'nfev': res.nfev, 'njev': res.njev, 'status': res.status,
             'msg': res.message, 'success': res.success}

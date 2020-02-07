@@ -1586,7 +1586,7 @@ class CrystalBragg(utils.ToFuObject):
                                 for ii in np.unique(ind)])
         else:
             indcent = (np.abs(phi - np.nanmean(phifit))
-                       < 0.2*(phifit[-1]-phifit[0]))
+                       < 0.2*np.abs(phifit[-1]-phifit[0]))
             spect1d = np.array([np.nanmean(data[indcent & (ind == ii)])
                                 for ii in np.unique(ind)])
 
@@ -1678,7 +1678,7 @@ class CrystalBragg(utils.ToFuObject):
                                nlambfit=None, nphifit=None,
                                lambmin=None, lambmax=None,
                                dlines=None, spect1d=None,
-                               double=None, Ti=None, vi=None,
+                               double=None, Ti=None, vi=None, ratio=None,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -1724,7 +1724,7 @@ class CrystalBragg(utils.ToFuObject):
             dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev, verbose=0,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            double=double, Ti=Ti, vi=vi, jac=jac)
+            double=double, Ti=Ti, vi=vi, ratio=ratio, jac=jac)
 
         # Plot
         dax = None

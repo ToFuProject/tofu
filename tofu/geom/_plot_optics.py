@@ -937,6 +937,15 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
     ax.legend(hand, lleg,
               bbox_to_anchor=(1., 1.02), loc='upper left')
 
+    if dfit1d['ratio'] is not None:
+        msg = '{} =  {:4.2e}'.format(dfit1d['ratio']['str'],
+                                     dfit1d['ratio']['value'])
+        ax.annotate(msg,
+                    xy=(1.01, 0.5), xycoords='axes fraction',
+                    color='k', arrowprops=None,
+                    horizontalalignment='left',
+                    verticalalignment='center')
+
     ax.set_xlim(lambmin, lambmax)
 
     if tit is not False:
