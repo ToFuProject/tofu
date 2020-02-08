@@ -108,7 +108,7 @@ def dumpro(filename, w_dir, shot_name, vid = True, rate = None,
         reshape = {}
     else:
         #reshaping images
-        cropped, reshape = reshape_image.reshape_image(filename, w_dir, 
+        cropped, reshape = reshape_image.reshape_image(im_path, w_dir, 
                                                        shot_name, tlim,
                                                        hlim, wlim,
                                                        im_out, 
