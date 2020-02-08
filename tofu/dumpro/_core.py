@@ -103,7 +103,12 @@ class Cluster(object):
         self.__area = area
         self.__parent = parent
         self.__child = child
-    
+        self._p_dist = None
+
+####################################################################
+#   setters for attributes
+####################################################################
+        
     def set_child(self,child):
         if self.__child == 0:
             self.__child = [child]
@@ -112,7 +117,11 @@ class Cluster(object):
     
     def set_parent(self,parent):
         self.__parent = parent
-    
+
+####################################################################
+#   Getters for attributes
+####################################################################
+        
     @property
     def get_id(self):
         """Returns the of the cluster"""
