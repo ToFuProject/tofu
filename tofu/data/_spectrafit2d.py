@@ -654,10 +654,11 @@ def multigausfit1d_from_dlines(data, lamb,
                                Ti=None, vi=None, double=None,
                                verbose=None,
                                loss=None, jac=None):
-    """ Solve multi_gaussian fit from dlines
+    """ Solve multi_gaussian fit in 1d from dlines
 
     If Ti is True, all lines from the same ion have the same width
     If vi is True, all lines from the same ion have the same normalised shift
+    If double is True, all lines are double with common shift and ratio
 
     Unknowns are:
         x = [bck, w0, v0, c00, c01, ..., c0n, w1, v1, c10, c11, ..., c1N, ...]
@@ -1038,35 +1039,105 @@ def multigaussianfit2d(lamb, phi, data, std=None,
                        method=None, max_nfev=None,
                        xtol=None, ftol=None, gtol=None,
                        loss=None, verbose=0, debug=None):
+    """ Solve multi_gaussian fit in 2d from dlines and bsplines
 
-    # Check inputs
-    if deg is None:
-        deg = 3
-    if nbsplines is None:
-        nbsplines = 5
+    If Ti is True, all lines from the same ion have the same width
+    If vi is True, all lines from the same ion have the same normalised shift
+    If double is True, all lines are double with common shift and ratio
+
+    Unknowns are:
+        x = [bck, w0, v0, c00, c01, ..., c0n, w1, v1, c10, c11, ..., c1N, ...]
+
+        - bck : constant background
+        - wi  : spectral width of a group of lines (ion): wi^2 = 2kTi / m*c**2
+                This way, it is dimensionless
+        - vni : normalised velicity of the ion: vni = vi / c
+        - cij : normalised coef (intensity) of line: cij = Aij
+
+    Scaling is done so each quantity is close to unity:
+        - bck: np.mean(data[data < mean(data)/2])
+        - wi : Dlamb / 20
+        - vni: 10 km/s
+        - cij: np.mean(data)
+
+    """
+
+    # Check format
+    if Ti is None:
+        Ti = False
+    if vi is None:
+        vi = False
+    if double is None:
+        double = False
+    assert isinstance(double, bool)
+    if jac is None:
+        jac = 'call'
     if method is None:
         method = 'trf'
-    # Only 2 method for pb. with bounds
     assert method in ['trf', 'dogbox'], method
     if xtol is None:
-        xtol = 1.e-6
+        xtol = 1.e-12
     if ftol is None:
-        ftol = 1.e-6
+        ftol = 1.e-12
     if gtol is None:
-        gtol = 1.e-8
+        gtol = 1.e-12
     if loss is None:
         loss = 'linear'
     if max_nfev is None:
         max_nfev = None
-    if std is None:
-        std = 0.1*np.nanmean(data)
-    assert lamb0 is not None
+
+    if deg is None:
+        deg = 3
+    if nbsplines is None:
+        nbsplines = 5
+
+    # Use valid data only and optionally restrict lamb
+    if lambmin is not None:
+        data[lamb<lambmin] = np.nan
+    if lambmax is not None:
+        data[lamb>lambmax] = np.nan
+    indok = ~np.isnan(data)
+    data = data[indok]
+    lamb = lamb[indok]
+
+    # Prepare
+    assert np.allclose(np.unique(lamb), lamb)
+    DLamb = lamb[-1] - lamb[0]
+    dlines = {k0: v0 for k0, v0 in dlines.items()
+              if v0['lambda'] >= lamb[0] and v0['lambda'] <= lamb[-1]}
+    lions = sorted(set([dlines[k0]['ION'] for k0 in dlines.keys()]))
+    nions = len(lions)
+    dions = {k0: [k1 for k1 in dlines.keys() if dlines[k1]['ION'] == k0]
+             for k0 in lions}
+    dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
+                                    for k1 in dions[k0]]),
+                  'key': [k1 for k1 in dions[k0]],
+                  'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
+                  'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
+             for k0 in lions}
+    nlines = np.sum([v0['lamb'].size for v0 in dions.values()])
 
     # Get knots
     if knots is None:
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         knots = np.linspace(phimin, phimax, nbsplines+1-deg)
     knots, nkperbs, nbs = get_knots_nbs_for_bsplines(np.unique(knots), deg)
+
+    # Get indices
+    dind, lines, mz, keys, sizex, shapey0 = multigausfit1d_from_dlines_ind(
+        dions=dions, double=double, Ti=Ti, vi=vi)
+
+
+
+
+    # -------------------------------------
+    # ------ Back-up ----------------------
+    # -------------------------------------
+
+
+    # Check inputs
+    if std is None:
+        std = 0.1*np.nanmean(data)
 
     # Scaling
     lambmin = np.nanmin(lamb)
@@ -1137,190 +1208,3 @@ def multigaussianfit2d(lamb, phi, data, std=None,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
             'nfev': res.nfev, 'njev': res.njev, 'status': res.status}
     return dout
-
-
-
-
-###########################################################
-#
-#           From DataCam2D
-#
-###########################################################
-###########################################################
-
-
-# DEPRECATED
-def fit_spectra2d_x0_per_row():
-
-    # Loop from centre to edges
-    for jj in range(ny):
-        out = multiplegaussianfit(x, datat[jj,:], nmax=nmax, p0=p0u, bounds=None,
-                                  max_nfev=None, xtol=1.e-8, verbose=0,
-                                  percent=20, plot_debug=False)
-        x0[jj,:], x0_std[jj,:] = out[:2]
-
-        for jj in range(nybis):
-            # Upper half
-            ju = indy1[jj]
-            out = multiplegaussianfit(x, spect, nmax=nmax, p0=p0u, bounds=None,
-                                      max_nfev=None, xtol=1.e-8, verbose=0,
-                                      percent=20, plot_debug=False)
-            x0[ju,:], x0_std[ju,:] = out[:2]
-            p0u[:nmax], p0u[nmax:2*nmax], = amp[ii,ju,:], x0[ii,ju,:]
-            p0u[2*nmax:3*nmax], p0u[3*nmax:] = sigma[ii,ju,:], bck0
-
-            # Lower half
-            jl = indy2[jj]
-    return x0
-
-
-
-def get_func2d(y0, y1, x0_y, bspl_n, bspl_deg):
-    knots = np.linspace(y0,y1, 6)
-    bspliney = scpinterp.LSQUnivariateSpline()
-    def func(x, y, ampy_coefs, sigy_coefs, bcky_coefs):
-        amp_bs = BSpline(knots, ampy_coefs, k=bspl_deg,
-                         extrapolate=False, axis=0)
-        amp = amp_bs(y)
-        x0y = x0_y(y)
-        return np.sum(amp*np.exp((x-xoy)**2/sig**2) + bck0, axis=-1)
-    return func
-
-
-
-def fit_spectra_2d(data2d, indt=None, nbin_init=None,
-                   nmax=None, bck=None, nbsplines=None):
-    """ Return fitted spectra
-
-    Can handle unique or multiple time
-    Takes already formatted 2d data:
-        - (nx, ny)
-        - (nt, nx, ny)
-    x being the horizontal / spectral direction (lambda)
-
-    """
-
-    #####################
-    # Check / format input
-    #####################
-
-    # Check data
-    assert isinstance(data, np.ndarray)
-    assert data.ndim in [2,3]
-    if data.ndim == 2:
-        data = np.reshape((1,data.shape[0],data.shape[1]))
-    if indt is not None:
-        data = data[indt,...]
-
-    # Set bck type
-    if bck is None:
-        bck = 0
-    assert type(bck) in [int, str]
-    if type(bck) is int:
-        nbck = bck + 1
-    elif bck == 'exp':
-        nbck = 3
-
-    # Extract shape
-    nt = data.shape[0]
-    nlamb, ny = data.shape[1:]
-    x = np.arange(0,nlamb)
-
-    # max number of spectral lines (gaussians)
-    if nmax is None:
-        nmax = 10
-
-    # Check nbin_init vs ny
-    if nbin_init is None:
-        nbin_init = 100
-    if ny % 2 != nbin_init % 2:
-        nbin_init += 1
-
-    # get indybin
-    indybin = np.arange(0, nbin_init)
-    if ny % 2 == 0:
-        indybin += int(ny/2 - nbin_init/2)
-    else:
-        indybin += int((ny-1)/2 - (nbin_init-1)/2)
-
-    # get indybis
-    if ny % 2 == 0:
-        indy1 = np.arange(ny/2-1, -1, -1)
-        indy2 = np.arange(ny/2, ny, 1)
-    else:
-        indy1 = np.arange((ny-1)/2-1, -1, -1)
-        indy2 = np.arange((ny-1)/2+1, ny, 1)
-    nybis = indy1.size
-    assert nybis == indy2.size
-
-    #####################
-    # initialize output
-    #####################
-
-    # results
-    amp = np.full((nt, ny, nmax), np.nan)
-    x0 = np.full((ny, nmax), np.nan)
-    sigma = np.full((nt, ny, nmax), np.nan)
-    bck0 = np.full((nt, ny, nbck), np.nan)
-    p0u = np.full((nmax*3 + nbck,), np.nan)
-    p0l = np.full((nmax*3 + nbck,), np.nan)
-
-    # results std
-    amp_std = np.full((nt, ny, nmax), np.nan)
-    x0_std = np.full((nt, ny, nmax), np.nan)
-    sigma_std = np.full((nt, ny, nmax), np.nan)
-    bck0_std = np.full((nt, ny, nbck), np.nan)
-    std = np.full((nt,), np.nan)
-
-
-    #####################
-    # Determine x0 for each row
-    #####################
-
-    datat = np.sum(data, axis=0)
-
-    # Start with central binned (initial guess)
-
-    # if ny is odd => use binned result for central line
-
-
-    x0 = None
-
-    # Deduce ellipses
-
-    # Derive x0_func(y, x0)
-
-
-    #####################
-    # Define 2d multi-gaussian
-    #####################
-
-    # Define x0(y) law
-
-
-
-
-    #####################
-    # compute fits, with fixed x0
-    #####################
-
-    # Get binned spectra to deduce initial guess
-    databin =  None
-
-    # loop over y to fit spectra, start from middle, extent to edges
-    for ii in range(nt):
-
-            out = fit2dspectra(x, y, data[ii,:,:])
-
-            p0u[:nmax] = amp[ii-1,indy1[0],:]
-            p0u[nmax:2*nmax] = x0[ii-1,indy1[0],:]
-            p0u[2*nmax:3*nmax] = sigma[ii,indy1[0],:]
-            p0u[3*nmax:] = bck0[ii,indy1[0]]
-
-            p0l[:nmax] = amp[ii-1,indy2[0],:]
-            p0l[nmax:2*nmax] = x0[ii-1,indy2[0],:]
-            p0l[2*nmax:3*nmax] = sigma[ii,indy2[0],:]
-            p0l[3*nmax:] = bck0[ii,indy2[0]]
-
-
-    return (x0, x0_std), ( )
