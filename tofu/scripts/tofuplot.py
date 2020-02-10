@@ -13,8 +13,9 @@ plt.ioff()
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
+_HERE = os.path.dirname(os.path.dirname(_HERE))
 istofugit = False
-if '.git' in _HERE and 'tofu' in _HERE:
+if '.git' in os.listdir(_HERE) and 'tofu' in _HERE:
     istofugit = True
 
 if istofugit:
@@ -28,7 +29,7 @@ else:
     from tofu.imas2tofu import MultiIDSLoader
 tforigin = tf.__file__
 tfversion = tf.__version__
-
+print(tforigin, tfversion)
 
 if 'imas2tofu' not in dir(tf):
     msg = "imas does not seem to be available\n"
@@ -175,3 +176,8 @@ def main():
 
     # Call wrapper function
     call_tfloadimas(**dict(args._get_kwargs()))
+
+
+# Add this to make sure it remains executable even without install
+if __name__ == '__main__':
+    main()
