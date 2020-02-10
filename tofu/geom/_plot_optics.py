@@ -794,9 +794,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     fig = fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(4, 4, **dmargin)
-    ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
-    ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
-                          sharex=ax0, sharey=ax0)
+    ax0 = fig.add_subplot(gs[:3, 0], aspect='equal')    #, adjustable='datalim'
+    ax1 = fig.add_subplot(gs[:3, 1], aspect='equal',
+                          sharex=ax0, sharey=ax0)       #, adjustable='datalim'
     axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
     ax2 = fig.add_subplot(gs[:3, 2])
     axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)

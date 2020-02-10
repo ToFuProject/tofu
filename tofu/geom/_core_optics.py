@@ -1568,8 +1568,16 @@ class CrystalBragg(utils.ToFuObject):
         # Check / format inputs
         if spect1d is None:
             spect1d = 'mean'
-        assert spect1d in ['mean', 'center']
-
+        lc = [isinstance(spect1d, tuple) and len(spect1d) == 2,
+              spect1d in ['mean', 'cent']]
+        if not any(lc):
+            msg = ("spect1d must be either:\n"
+                   + "\t- 'mean': the avearge spectrum\n"
+                   + "\t- 'cent': the central spectrum +/- 20%\n"
+                   + "\t- (target, tol); a tuple of 2 floats:\n"
+                   + "\t\ttarget: the central value of the window in [-1,1]\n"
+                   + "\t\ttol:    the window tolerance (width) in [0,1]")
+            raise Exception(msg)
         # Compute lambfit / phifit and spectrum1d
         if mask is not None:
             data[~mask] = np.nan
@@ -1581,20 +1589,26 @@ class CrystalBragg(utils.ToFuObject):
                                                       nlambfit, nphifit)
         lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
         ind = np.digitize(lamb, lambfitbins)
-        if spect1d  == 'mean':
-            spect1d = np.array([np.nanmean(data[ind == ii])
-                                for ii in np.unique(ind)])
+
+        # Get phi window
+        if spect1d == 'mean':
+            indphi = np.ones(phi.shape, dtype=bool)
         else:
-            indcent = (np.abs(phi - np.nanmean(phifit))
-                       < 0.2*np.abs(phifit[-1]-phifit[0]))
-            spect1d = np.array([np.nanmean(data[indcent & (ind == ii)])
-                                for ii in np.unique(ind)])
+            if spect1d == 'cent':
+                spect1d = (0., 0.2)
+            dphi = np.abs(phifit[-1]-phifit[0])
+            phicent = np.nanmean(phifit) + spect1d[0]*dphi/2.
+            indphi = (np.abs(phi - np.nanmean(phifit)) < spect1d[1]*dphi)
+        phiminmax = (np.nanmin(phi[indphi]), np.nanmax(phi[indphi]))
+
+        spect1d = np.array([np.nanmean(data[indphi & (ind == ii)])
+                            for ii in np.unique(ind)])
 
         phifitbins = 0.5*(phifit[1:] + phifit[:-1])
         ind = np.digitize(phi, phifitbins)
         vertsum1d = np.array([np.nanmean(data[ind == ii])
                               for ii in np.unique(ind)])
-        return spect1d, lambfit, phifit, vertsum1d
+        return spect1d, lambfit, phifit, vertsum1d, phiminmax
 
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
@@ -1631,7 +1645,8 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
-        spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
+        (spect1d, lambfit, phifit,
+         vertsum1d, phiminmax) = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
             spect1d=spect1d, mask=mask
@@ -1709,7 +1724,8 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
-        spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
+        (spect1d, lambfit, phifit,
+         vertsum1d, phiminmax) = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
             spect1d=spect1d, mask=mask
