@@ -1614,8 +1614,10 @@ class CrystalBragg(utils.ToFuObject):
     def get_dions_from_dlines(dlines, lamb0, lamb1):
         dlines = {k0: v0 for k0, v0 in dlines.items()
                   if v0['lambda'] >= lamb0 and v0['lambda'] <= lamb1}
-        lions = sorted(set([dlines[k0]['ION'] for k0 in dlines.keys()]))
-        dions = {k0: [k1 for k1 in dlines.keys() if dlines[k1]['ION'] == k0]
+        lions = sorted(set([dlines[k0]['ION'] + dlines[k0].get('width', '')
+                            for k0 in dlines.keys()]))
+        dions = {k0: [k1 for k1 in dlines.keys()
+                      if dlines[k1]['ION']+dlines[k1].get('width', '') == k0]
                  for k0 in lions}
         dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
                                         for k1 in dions[k0]]),
