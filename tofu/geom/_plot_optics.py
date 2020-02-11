@@ -724,7 +724,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                                       lambfit=None, phifit=None,
                                       spect1d=None, vertsum1d=None,
                                       lambax=None, phiax=None,
-                                      dlines=None,
+                                      phiminmax=None, dlines=None,
                                       lambmin=None, lambmax=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
@@ -753,6 +753,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         phifit = phifit*180./np.pi
         if phiax is not None:
             phiax = 180*phiax/np.pi
+        phiminmax = (phiminmax[0]*180./np.pi, phiminmax[1]*180./np.pi)
 
     if dlines is not None:
         lines = [k0 for k0, v0 in dlines.items()
@@ -845,6 +846,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         axs2.legend(hand, lions,
                     bbox_to_anchor=(1., 1.02), loc='upper left')
 
+    ax2.axhline(phiminmax[0], c='r', ls='-', lw=1.)
+    ax2.axhline(phiminmax[1], c='r', ls='-', lw=1.)
+
     ax2.set_xlim(lambmin, lambmax)
     ax2.set_ylim(phifit.min(), phifit.max())
     plt.setp(ax1.get_xticklabels(), visible=False)
@@ -860,7 +864,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 
 
-def CrystalBragg_plot_data_fit1d(dfit1d,
+def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
                                  lambmin=None, lambmax=None,
                                  fs=None, dmargin=None,
                                  tit=None, wintit=None, ax=None):
@@ -898,11 +902,12 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
         ax.set_ylabel(r'data (a.u.)')
         ax.set_xlabel(r'$\lambda$ (m)')
 
-    ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][0, :], ls='-', c='k')
-    ax.set_prop_cycle(None)
-    ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
-    ax.plot(dfit1d['lamb'], dfit1d['sol'],
-            c='k', lw=2.)
+    if showonly is not True:
+        ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][0, :], ls='-', c='k')
+        ax.set_prop_cycle(None)
+        ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
+        ax.plot(dfit1d['lamb'], dfit1d['sol'],
+                c='k', lw=2.)
     ax.plot(dfit1d['lamb'], dfit1d['data'],
             marker='.', c='k', ls='None', ms=8)
 
@@ -925,12 +930,13 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
             ni += 1
     hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
             for ii in range(nions)]
+
     lleg = lions
-    if dfit1d['Ti'] is True:
+    if dfit1d.get('Ti') is True:
         lleg = [(ll
                  + ' Ti = {:4.2f} keV'.format(dfit1d['kTiev'][ii]*1.e-3))
                 for ii, ll in enumerate(lleg)]
-    if dfit1d['vi'] is True:
+    if dfit1d.get('vi') is True:
         lleg = [(ll
                  +' vi = {:5.1f} km/s)'.format(dfit1d['vims'][ii]*1.e-3))
                 for ii, ll in enumerate(lleg)]
@@ -942,6 +948,16 @@ def CrystalBragg_plot_data_fit1d(dfit1d,
                                      dfit1d['ratio']['value'])
         ax.annotate(msg,
                     xy=(1.01, 0.5), xycoords='axes fraction',
+                    color='k', arrowprops=None,
+                    horizontalalignment='left',
+                    verticalalignment='center')
+    if dfit1d['double'] is True:
+        msg = ('double:\n'
+               + '  ratio = {:4.2f}\n'.format(dfit1d['dratio'])
+               + '  shift '+r'$\approx$'
+               + ' {:4.2e}'.format(np.nanmean(dfit1d['dshift'])))
+        ax.annotate(msg,
+                    xy=(1.01, 0.4), xycoords='axes fraction',
                     color='k', arrowprops=None,
                     horizontalalignment='left',
                     verticalalignment='center')

@@ -647,7 +647,7 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
 
 def multigausfit1d_from_dlines(data, lamb,
                                lambmin=None, lambmax=None,
-                               dlines=None, ratio=None,
+                               dlines=None, dions=None, ratio=None,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -701,30 +701,8 @@ def multigausfit1d_from_dlines(data, lamb,
     if max_nfev is None:
         max_nfev = None
 
-    # Use valid data only and optionally restrict lamb
-    if lambmin is not None:
-        data[lamb<lambmin] = np.nan
-    if lambmax is not None:
-        data[lamb>lambmax] = np.nan
-    indok = ~np.isnan(data)
-    data = data[indok]
-    lamb = lamb[indok]
-
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
-    DLamb = lamb[-1] - lamb[0]
-    dlines = {k0: v0 for k0, v0 in dlines.items()
-              if v0['lambda'] >= lamb[0] and v0['lambda'] <= lamb[-1]}
-    lions = sorted(set([dlines[k0]['ION'] for k0 in dlines.keys()]))
-    nions = len(lions)
-    dions = {k0: [k1 for k1 in dlines.keys() if dlines[k1]['ION'] == k0]
-             for k0 in lions}
-    dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
-                                    for k1 in dions[k0]]),
-                  'key': [k1 for k1 in dions[k0]],
-                  'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
-                  'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
-             for k0 in lions}
     nlines = np.sum([v0['lamb'].size for v0 in dions.values()])
 
     # Get indices

@@ -1596,9 +1596,9 @@ class CrystalBragg(utils.ToFuObject):
         else:
             if spect1d == 'cent':
                 spect1d = (0., 0.2)
-            dphi = np.abs(phifit[-1]-phifit[0])
+            dphi = np.nanmax(phifit) - np.nanmin(phifit)
             phicent = np.nanmean(phifit) + spect1d[0]*dphi/2.
-            indphi = (np.abs(phi - np.nanmean(phifit)) < spect1d[1]*dphi)
+            indphi = np.abs(phi - phicent) < spect1d[1]*dphi
         phiminmax = (np.nanmin(phi[indphi]), np.nanmax(phi[indphi]))
 
         spect1d = np.array([np.nanmean(data[indphi & (ind == ii)])
@@ -1610,6 +1610,20 @@ class CrystalBragg(utils.ToFuObject):
                               for ii in np.unique(ind)])
         return spect1d, lambfit, phifit, vertsum1d, phiminmax
 
+    @staticmethod
+    def get_dions_from_dlines(dlines, lamb0, lamb1):
+        dlines = {k0: v0 for k0, v0 in dlines.items()
+                  if v0['lambda'] >= lamb0 and v0['lambda'] <= lamb1}
+        lions = sorted(set([dlines[k0]['ION'] for k0 in dlines.keys()]))
+        dions = {k0: [k1 for k1 in dlines.keys() if dlines[k1]['ION'] == k0]
+                 for k0 in lions}
+        dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
+                                        for k1 in dions[k0]]),
+                      'key': [k1 for k1 in dions[k0]],
+                      'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
+                      'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
+                 for k0 in lions}
+        return dions
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,
@@ -1679,7 +1693,7 @@ class CrystalBragg(utils.ToFuObject):
                 xi, xj, bragg, lamb, phi, data,
                 lambfit=lambfit, phifit=phifit, spect1d=spect1d,
                 vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
-                lambmin=lambmin, lambmax=lambmax,
+                lambmin=lambmin, lambmax=lambmax, phiminmax=phiminmax,
                 cmap=cmap, vmin=vmin, vmax=vmax, dlines=dlines,
                 tit=tit, wintit=wintit, fs=fs)
         if returnas == 'spect':
@@ -1697,11 +1711,13 @@ class CrystalBragg(utils.ToFuObject):
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0, jac=None,
+                               loss=None, verbose=0, jac=None, showonly=None,
                                plot=True, fs=None, dmargin=None,
                                tit=None, wintit=None, returnas=None):
         # Check / format inputs
         assert data is not None
+        if showonly is None:
+            showonly = False
         if returnas is None:
             returnas = 'dict'
         lreturn = ['ax', 'dict']
@@ -1731,22 +1747,47 @@ class CrystalBragg(utils.ToFuObject):
             spect1d=spect1d, mask=mask
         )
 
-        # Compute fit for spect1d to get lamb0 if not provided
-        import tofu.data._spectrafit2d as _spectrafit2d
+        # Use valid data only and optionally restrict lamb
+        if lambmin is not None:
+            spect1d[lambfit<lambmin] = np.nan
+        if lambmax is not None:
+            spect1d[lambfit>lambmax] = np.nan
+        indok = (~np.isnan(spect1d)) & (~np.isnan(lambfit))
+        spect1d = spect1d[indok]
+        lambfit = lambfit[indok]
 
-        dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
-            spect1d, lambfit,
-            lambmin=lambmin, lambmax=lambmax, dlines=dlines,
-            dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
-            method=method, max_nfev=max_nfev, verbose=0,
-            xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            double=double, Ti=Ti, vi=vi, ratio=ratio, jac=jac)
+        # Get dions and lines
+        dions = self.get_dions_from_dlines(dlines,
+                                           lambfit.min(), lambfit.max())
+
+        # Compute fit for spect1d to get lamb0 if not provided
+        if showonly is True:
+            llines = [v0['lamb'] for v0 in dions.values()]
+            lines = np.concatenate(llines)
+            dfit1d = {'shift': np.zeros((lines.size,)),
+                      'coefs': np.zeros((lines.size,)),
+                      'lines': lines,
+                      'dions': dions,
+                      'lamb': lambfit,
+                      'data': spect1d,
+                      'ratio': None}
+        else:
+            import tofu.data._spectrafit2d as _spectrafit2d
+
+            dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
+                spect1d, lambfit, dlines=dlines, dions=dions,
+                lambmin=lambmin, lambmax=lambmax,
+                dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
+                method=method, max_nfev=max_nfev, verbose=verbose,
+                xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
+                double=double, Ti=Ti, vi=vi, ratio=ratio, jac=jac)
+            dfit1d['phiminmax'] = phiminmax
 
         # Plot
         dax = None
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_data_fit1d(
-                dfit1d,
+                dfit1d, showonly=showonly,
                 lambmin=lambmin, lambmax=lambmax,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)
