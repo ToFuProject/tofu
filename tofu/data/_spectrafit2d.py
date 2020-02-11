@@ -483,7 +483,7 @@ def multigausfit1d_from_dlines_ind(dions=None,
 def multigausfit1d_from_dlines_scale(data, lamb):
     Dlamb = lamb[-1]-lamb[0]
     lambm = np.nanmin(lamb)
-    dscale = {'bck': np.nanmean(data)/2., 'amp': np.nanmax(data),
+    dscale = {'bck': np.nanmin(data), 'amp': np.nanmax(data),
               'width': (Dlamb/(20*lambm))**2, 'shift': Dlamb/(10*lambm)}
     return dscale
 
@@ -492,21 +492,21 @@ def multigausfit1d_from_dlines_x0(sizex, dind,
                                   dscale=None, double=None):
     # Each x0 should be understood as x0*scale
     x0_scale = np.full((sizex,), np.nan)
-    x0_scale[dind['bck']] = 0.2
+    x0_scale[dind['bck']] = 1.
     amp0 = data[np.searchsorted(lamb, lines)]
     x0_scale[dind['amp']] = amp0 / dscale['amp']
     x0_scale[dind['width']] = 0.4
     x0_scale[dind['shift']] = 0.
     if double is True:
-        x0_scale[dind['dratio']] = 1.
-        x0_scale[dind['dshift']] = 0.
+        x0_scale[dind['dratio']] = 0.8
+        x0_scale[dind['dshift']] = 0.2
     return x0_scale
 
 def multigausfit1d_from_dlines_bounds(sizex=None, dind=None, double=None):
     # Each x0 should be understood as x0*scale
     xup = np.full((sizex,), np.nan)
     xlo = np.full((sizex,), np.nan)
-    xup[dind['bck']] = 1.
+    xup[dind['bck']] = 2.
     xlo[dind['bck']] = 0.
     xup[dind['amp']] = 1
     xlo[dind['amp']] = 0.
@@ -816,199 +816,286 @@ def get_knots_nbs_for_bsplines(knots_unique, deg):
     assert nbs == knots.size - 1 - deg
     return knots, nbknotsperbs, nbs
 
+def multigausfit2d_from_dlines_ind(dions=None,
+                                   double=None,
+                                   Ti=None, vi=None, nbs=None):
+    """ Return the indices of quantities in x to compute y """
 
-def get_2dspectralfit_func(lamb0, forcelamb=False,
-                           deg=None, knots=None):
+    # Prepare lines concatenation
+    nions = len(dions)
+    llines = [v0['lamb'] for v0 in dions.values()]
+    mz = np.array([v0['m'][0] for v0 in dions.values()])
+    lkeys = [v0['key'] for v0 in dions.values()]
+    lines = np.concatenate(llines)
+    keys = list(itt.chain.from_iterable(lkeys))
+    lnlines = np.array([ll.size for ll in llines])
+    nlines = lines.size
 
-    lamb0 = np.atleast_1d(lamb0).ravel()
-    nlamb = lamb0.size
-    knots = np.atleast_1d(knots).ravel()
-    nknots = knots.size
-    nbsplines = np.unique(knots).size - 1 + deg
-
-    # Define function
-    def func(lamb, phi,
-             camp=None, cwidth=None, cshift=None,
-             lamb0=lamb0, nlamb=nlamb,
-             knots=knots, deg=deg, forcelamb=forcelamb,
-             nbsplines=nbsplines, mesh=True):
-        assert phi.ndim in [1, 2]
-        if camp is not None:
-            assert camp.shape[0] == nbsplines
-            bsamp = BSpline(knots, camp, deg,
-                            extrapolate=False, axis=0)
-        if csigma is not None:
-            assert csigma.shape[0] == nbsplines
-            bssigma = BSpline(knots, csigma, deg,
-                              extrapolate=False, axis=0)
-        if mesh or phi.ndim == 2:
-            lamb0 = lamb0[None, None, :]
-        else:
-            lamb0 = lamb0[None, :]
-        if forcelamb:
-            if mesh:
-                assert angle.ndim == lamb.ndim == 1
-                # shape (lamb, angle, lines)
-                return np.sum(bsamp(phi)[None,:,:]
-                              * np.exp(-(lamb[:,None,None]
-                                         - lamb0)**2
-                                       /(bssigma(phi)[None,:,:]**2)), axis=-1)
-            else:
-                assert phi.shape == lamb.shape
-                lamb = lamb[..., None]
-                # shape (lamb/angle, lines)
-                return np.sum(bsamp(phi)
-                              * np.exp(-(lamb
-                                         - lamb0)**2
-                                       /(bssigma(phi)**2)), axis=-1)
-        else:
-            if cdlamb is not None:
-                assert cdlamb.shape[0] == nbsplines
-                bsdlamb = BSpline(knots, cdlamb, deg,
-                                  extrapolate=False, axis=0)
-
-    return func
-
-
-def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
-                                    lamb0=None, forcelamb=None,
-                                    deg=None, knots=None,
-                                    nlamb0=None, nkperbs=None, nbs=None,
-                                    nc=None, debug=None):
-    assert lamb.shape == phi.shape == data.shape
-    assert lamb.ndim == 1
-    assert nc == nbs*nlamb0
-
-    if forcelamb is None:
-        forcelamb = False
-    if debug is None:
-        debug = False
-
-    # Define func assuming all inpus properly formatted
-    if forcelamb:
-        # x = [camp[1-nbs,...,nbs*(nlamb0-1)-nc}, csigma[1-nc]]
-        def func(x,
-                 lamb=lamb, phi=phi, data=data, std=std,
-                 lamb0=lamb0, knots=knots, deg=deg, nc=nc):
-            amp = BSpline(knots, x[:nc], deg,
-                          extrapolate=False, axis=0)(phi)
-            sigma = BSpline(knots, x[nc:], deg,
-                            extrapolate=False, axis=0)(phi)
-            val = np.sum(amp[:, None]
-                         * np.exp(-(lamb[:, None] - lamb0[None, :])**2
-                                  /(sigma[:, None]**2)), axis=-1)
-            return (val-data)/(std*data.size)
-
-        def jac(x,
-                lamb=lamb, phi=phi, std=std,
-                lamb0=lamb0, knots=knots, deg=deg,
-                nlamb0=nlamb0, nkperbs=nkperbs, nbs=nbs, nc=nc):
-            amp = BSpline(knots, x[:nc], deg,
-                          extrapolate=False, axis=0)(phi)
-            sigma = BSpline(knots, x[nc:], deg,
-                            extrapolate=False, axis=0)(phi)
-            jacx = sparse.csr_matrix((phi.size, 2*nc), dtype=float)
-            #jacx = np.zeros((phi.size, 2*nc), dtype=float)
-            for ii in range(nlamb0):
-                expi = np.exp(-(lamb-lamb0[ii])**2/sigma**2)
-                for jj in range(nbs):
-                    ind = ii*nbs + jj
-                    indk = np.r_[jj*nkperbs:(jj+1)*nkperbs]
-                    # all bsplines are the same, only coefs (x) are changing
-                    bj = BSpline.basis_element(knots[indk],
-                                               extrapolate=False)(phi)
-                    #bj[np.isnan(bj)] = 0.
-                    indok = ~np.isnan(bj)
-                    # Differentiate wrt camp
-                    jacx[indok, ind] = (bj * expi)[indok]
-                    # Differentiate wrt csigma
-                    jacx[indok, nc+ind] = (
-                        amp * (2*(lamb-lamb0[ii])**2*bj/sigma**3) * expi
-                    )[indok]
-            return jacx/(std*phi.size)
+    # indices
+    # General shape: [bck, widths, shifts, amp]
+    # If double [..., double_shift, double_ratio]
+    # Excpet for bck, all indices should render nlines (2*nlines if double)
+    indbck = np.arange(0, nbs)
+    inddratio, inddshift = None, None
+    if Ti is False and vi is False:
+        indw = nbs + np.arange(0, nlines*nbs)
+        indw_lines = indw
+        inds = indw + nlines*nbs
+        inds_lines = inds
+        inda = inds + nlines*nbs
+        inda_lines = inda
+        sizex = nbs*(1 + 3*nlines)
+    elif Ti is True and vi is False:
+        indw = nbs + np.arange(0, nions*nbs)
+        indw_lines = np.repeat(indw, lnlines)
+        inds = nbs + nions*nbs + np.arange(0, nlines*nbs)
+        inds_lines = inds
+        inda = inds + nlines*nbs
+        inda_lines = inda
+        sizex = nbs*(1 + nions + 2*nlines)
+    elif Ti is False and vi is True:
+        indw = nbs + np.arange(0, nlines*nbs)
+        indw_lines = indw
+        inds = nbs + nlines*nbs + np.arange(0, nions*nbs)
+        inds_lines = np.repeat(inds, lnlines)
+        inda = indw + nlinesi*nbs + nions*nbs
+        inda_lines = inda
+        sizex = nbs*(1 + nions + 2*nlines)
     else:
-        # x = [camp1-nbs*nlamb, csigma1-nbs*nlamb, cdlamb1-nbs*nlamb]
-        def func(x,
-                 lamb=lamb, phi=phi, data=data, std=std,
-                 lamb0=lamb0, knots=knots, deg=deg,
-                 nbs=nbs, nlamb0=nlamb0, nc=nc, debug=debug):
-            amp = BSpline(knots, x[:nc].reshape((nbs, nlamb0), order='F'),
-                          deg, extrapolate=False, axis=0)(phi)
-            sigma = BSpline(knots, x[nc:2*nc].reshape((nbs, nlamb0), order='F'),
-                            deg, extrapolate=False, axis=0)(phi)
-            dlamb = BSpline(knots, x[2*nc:-1].reshape((nbs, nlamb0), order='F'),
-                            deg, extrapolate=False, axis=0)(phi)
-            val = np.nansum(amp
-                            * np.exp(-(lamb[:, None] - (lamb0[None, :]+dlamb))**2
-                                  / sigma**2),
-                            axis=-1) + x[-1]
-            if debug:
-                vmin, vmax = 0, np.nanmax(data)
-                fig = plt.figure(figsize=(14, 10));
-                ax0 = fig.add_axes([0.05,0.55,0.25,0.4])
-                ax1 = fig.add_axes([0.35,0.55,0.25,0.4], sharex=ax0, sharey=ax0)
-                ax2 = fig.add_axes([0.65,0.55,0.25,0.4], sharex=ax0, sharey=ax0)
-                ax3 = fig.add_axes([0.05,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
-                ax4 = fig.add_axes([0.35,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
-                ax5 = fig.add_axes([0.65,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
-                ax0.scatter(lamb, phi, c=data, s=2, marker='s', edgecolors='None',
-                           vmin=vmin, vmax=vmax)  # DB
-                ax1.scatter(lamb, phi, c=val, s=2, marker='s', edgecolors='None',  # DB
-                           vmin=vmin, vmax=vmax)  # DB
-                errmax = np.nanmax(np.abs((val-data) / (std*data.size)))
-                ax2.scatter(lamb, phi, c=(val-data) / (std*data.size),
-                            s=2, marker='s', edgecolors='None',  # DB
-                            vmin=-errmax, vmax=errmax, cmap=plt.cm.seismic)  # DB
-                dlamb0_amp = np.max(np.diff(lamb0))/np.nanmax(np.abs(amp))
-                dlamb0_sigma = np.max(np.diff(lamb0))/np.nanmax(np.abs(sigma))
-                dlamb0_dlamb = np.max(np.diff(lamb0))/np.nanmax(np.abs(dlamb))
-                for ii in range(nlamb0):
-                    ax3.axvline(lamb0[ii], ls='--', c='k')
-                    ax4.axvline(lamb0[ii], ls='--', c='k')
-                    ax5.axvline(lamb0[ii], ls='--', c='k')
-                    ax3.plot(lamb0[ii] + dlamb0_amp*amp[:, ii], phi, '.', ms=4)
-                    ax4.plot(lamb0[ii] + dlamb0_sigma*sigma[:, ii], phi, '.', ms=4)
-                    ax5.plot(lamb0[ii] + dlamb0_dlamb*dlamb[:, ii], phi, '.', ms=4)
-                import ipdb         # DB
-                ipdb.set_trace()    # DB
-            return (val-data) / (std*data.size)
+        indw = nbs + np.arange(0, nions*nbs)
+        indw_lines = np.repeat(indw, lnlines)
+        inds = indw + nions*nbs
+        inds_lines = indw_lines + nions*nbs
+        inda = nbs + 2*nions*nbs + np.arange(0, nlines*nbs)
+        inda_lines = inda
+        sizex = nbs*(1 + 2*nions + nlines)
+    shapey0 = nbs*(1 + nlines)
 
-        def jac(x,
-                lamb=lamb, phi=phi, std=std,
-                lamb0=lamb0, knots=knots, deg=deg,
-                nlamb0=nlamb0, nkperbs=nkperbs, nbs=nbs, nc=nc):
-            amp = BSpline(knots, x[:nc], deg,
-                          extrapolate=False, axis=0)(phi)
-            sigma = BSpline(knots, x[nc:2*nc], deg,
-                            extrapolate=False, axis=0)(phi)
-            dlamb = BSpline(knots, x[2*nc:], deg,
-                            extrapolate=False, axis=0)(phi)
-            #jacx = sparse.csr_matrix((phi.size, 2*nc), dtype=float)
-            jacx = np.zeros((phi.size, 3*nc+1), dtype=float)
-            for ii in range(nlamb0):
-                expi = np.exp(-(lamb-(lamb0[ii]+dlamb))**2/sigma**2)
-                indlamb = expi > 0.001
-                for jj in range(nbs):
-                    kk = ii*nbs + jj
-                    indk = jj + np.r_[:nkperbs]
-                    # all bsplines are the same, only coefs (x) are changing
-                    bj = BSpline.basis_element(knots[indk],
-                                               extrapolate=False)(phi)
-                    # bj[np.isnan(bj)] = 0.
-                    indok = (~np.isnan(bj)) & indlamb
-                    # Differentiate wrt camp
-                    jacx[indok, kk] = (bj[indok] * expi[indok])
-                    # Differentiate wrt csigma
-                    jacx[indok, nc+kk] = (
-                        amp * 2*(lamb-(lamb0[ii]+dlamb))**2*bj/sigma**3 * expi
-                    )[indok]
-                    # Differentiate wrt dlamb
-                    jacx[indok, 2*nc+kk] = (
-                         amp * 2*(lamb-(lamb0[ii]+dlamb))*bj/sigma**2 * expi
-                    )[indok]
-            jacx[:, -1] = 1.
-            return jacx/(std*phi.size)
-    return func, jac
+    # TBC...
+    # index to get back unique ions values from width and shift
+    indions = np.repeat(np.arange(0, nions), lnlines)
+    indions_back = np.r_[0, np.cumsum(lnlines[:-1])]
+
+    if double:
+        inddshift = -2
+        inddratio = -1
+        sizex += 2
+
+    # Indices for jacobian
+    if Ti is True:
+        indw_jac = indions_back
+    else:
+        indw_jac = np.arange(0, nlines)
+
+    if vi is True:
+        inds_jac = indions_back
+    else:
+        inds_jac = np.arange(0, nlines)
+
+    dind = {'bck': indbck,
+            'width': indw, 'shift': inds, 'amp': inda,
+            'width_lines': indw_lines, 'shift_lines': inds_lines,
+            'amp_lines': inda_lines, 'width_jac': indw_jac,
+            'shift_jac': inds_jac,
+            'dratio': inddratio, 'dshift': inddshift,
+            'ions': indions, 'ions_back': indions_back,
+            }
+    return dind, lines, mz, keys, sizex, shapey0
+
+
+# def get_2dspectralfit_func(lamb0, forcelamb=False,
+                           # deg=None, knots=None):
+
+    # lamb0 = np.atleast_1d(lamb0).ravel()
+    # nlamb = lamb0.size
+    # knots = np.atleast_1d(knots).ravel()
+    # nknots = knots.size
+    # nbsplines = np.unique(knots).size - 1 + deg
+
+    # # Define function
+    # def func(lamb, phi,
+             # camp=None, cwidth=None, cshift=None,
+             # lamb0=lamb0, nlamb=nlamb,
+             # knots=knots, deg=deg, forcelamb=forcelamb,
+             # nbsplines=nbsplines, mesh=True):
+        # assert phi.ndim in [1, 2]
+        # if camp is not None:
+            # assert camp.shape[0] == nbsplines
+            # bsamp = BSpline(knots, camp, deg,
+                            # extrapolate=False, axis=0)
+        # if csigma is not None:
+            # assert csigma.shape[0] == nbsplines
+            # bssigma = BSpline(knots, csigma, deg,
+                              # extrapolate=False, axis=0)
+        # if mesh or phi.ndim == 2:
+            # lamb0 = lamb0[None, None, :]
+        # else:
+            # lamb0 = lamb0[None, :]
+        # if forcelamb:
+            # if mesh:
+                # assert angle.ndim == lamb.ndim == 1
+                # # shape (lamb, angle, lines)
+                # return np.sum(bsamp(phi)[None,:,:]
+                              # * np.exp(-(lamb[:,None,None]
+                                         # - lamb0)**2
+                                       # /(bssigma(phi)[None,:,:]**2)), axis=-1)
+            # else:
+                # assert phi.shape == lamb.shape
+                # lamb = lamb[..., None]
+                # # shape (lamb/angle, lines)
+                # return np.sum(bsamp(phi)
+                              # * np.exp(-(lamb
+                                         # - lamb0)**2
+                                       # /(bssigma(phi)**2)), axis=-1)
+        # else:
+            # if cdlamb is not None:
+                # assert cdlamb.shape[0] == nbsplines
+                # bsdlamb = BSpline(knots, cdlamb, deg,
+                                  # extrapolate=False, axis=0)
+
+    # return func
+
+
+# def get_multigaussianfit2d_costfunc(lamb=None, phi=None, data=None, std=None,
+                                    # lamb0=None, forcelamb=None,
+                                    # deg=None, knots=None,
+                                    # nlamb0=None, nkperbs=None, nbs=None,
+                                    # nc=None, debug=None):
+    # assert lamb.shape == phi.shape == data.shape
+    # assert lamb.ndim == 1
+    # assert nc == nbs*nlamb0
+
+    # if forcelamb is None:
+        # forcelamb = False
+    # if debug is None:
+        # debug = False
+
+    # # Define func assuming all inpus properly formatted
+    # if forcelamb:
+        # # x = [camp[1-nbs,...,nbs*(nlamb0-1)-nc}, csigma[1-nc]]
+        # def func(x,
+                 # lamb=lamb, phi=phi, data=data, std=std,
+                 # lamb0=lamb0, knots=knots, deg=deg, nc=nc):
+            # amp = BSpline(knots, x[:nc], deg,
+                          # extrapolate=False, axis=0)(phi)
+            # sigma = BSpline(knots, x[nc:], deg,
+                            # extrapolate=False, axis=0)(phi)
+            # val = np.sum(amp[:, None]
+                         # * np.exp(-(lamb[:, None] - lamb0[None, :])**2
+                                  # /(sigma[:, None]**2)), axis=-1)
+            # return (val-data)/(std*data.size)
+
+        # def jac(x,
+                # lamb=lamb, phi=phi, std=std,
+                # lamb0=lamb0, knots=knots, deg=deg,
+                # nlamb0=nlamb0, nkperbs=nkperbs, nbs=nbs, nc=nc):
+            # amp = BSpline(knots, x[:nc], deg,
+                          # extrapolate=False, axis=0)(phi)
+            # sigma = BSpline(knots, x[nc:], deg,
+                            # extrapolate=False, axis=0)(phi)
+            # jacx = sparse.csr_matrix((phi.size, 2*nc), dtype=float)
+            # #jacx = np.zeros((phi.size, 2*nc), dtype=float)
+            # for ii in range(nlamb0):
+                # expi = np.exp(-(lamb-lamb0[ii])**2/sigma**2)
+                # for jj in range(nbs):
+                    # ind = ii*nbs + jj
+                    # indk = np.r_[jj*nkperbs:(jj+1)*nkperbs]
+                    # # all bsplines are the same, only coefs (x) are changing
+                    # bj = BSpline.basis_element(knots[indk],
+                                               # extrapolate=False)(phi)
+                    # #bj[np.isnan(bj)] = 0.
+                    # indok = ~np.isnan(bj)
+                    # # Differentiate wrt camp
+                    # jacx[indok, ind] = (bj * expi)[indok]
+                    # # Differentiate wrt csigma
+                    # jacx[indok, nc+ind] = (
+                        # amp * (2*(lamb-lamb0[ii])**2*bj/sigma**3) * expi
+                    # )[indok]
+            # return jacx/(std*phi.size)
+    # else:
+        # # x = [camp1-nbs*nlamb, csigma1-nbs*nlamb, cdlamb1-nbs*nlamb]
+        # def func(x,
+                 # lamb=lamb, phi=phi, data=data, std=std,
+                 # lamb0=lamb0, knots=knots, deg=deg,
+                 # nbs=nbs, nlamb0=nlamb0, nc=nc, debug=debug):
+            # amp = BSpline(knots, x[:nc].reshape((nbs, nlamb0), order='F'),
+                          # deg, extrapolate=False, axis=0)(phi)
+            # sigma = BSpline(knots, x[nc:2*nc].reshape((nbs, nlamb0), order='F'),
+                            # deg, extrapolate=False, axis=0)(phi)
+            # dlamb = BSpline(knots, x[2*nc:-1].reshape((nbs, nlamb0), order='F'),
+                            # deg, extrapolate=False, axis=0)(phi)
+            # val = np.nansum(amp
+                            # * np.exp(-(lamb[:, None] - (lamb0[None, :]+dlamb))**2
+                                  # / sigma**2),
+                            # axis=-1) + x[-1]
+            # if debug:
+                # vmin, vmax = 0, np.nanmax(data)
+                # fig = plt.figure(figsize=(14, 10));
+                # ax0 = fig.add_axes([0.05,0.55,0.25,0.4])
+                # ax1 = fig.add_axes([0.35,0.55,0.25,0.4], sharex=ax0, sharey=ax0)
+                # ax2 = fig.add_axes([0.65,0.55,0.25,0.4], sharex=ax0, sharey=ax0)
+                # ax3 = fig.add_axes([0.05,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
+                # ax4 = fig.add_axes([0.35,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
+                # ax5 = fig.add_axes([0.65,0.05,0.25,0.4], sharex=ax0, sharey=ax0)
+                # ax0.scatter(lamb, phi, c=data, s=2, marker='s', edgecolors='None',
+                           # vmin=vmin, vmax=vmax)  # DB
+                # ax1.scatter(lamb, phi, c=val, s=2, marker='s', edgecolors='None',  # DB
+                           # vmin=vmin, vmax=vmax)  # DB
+                # errmax = np.nanmax(np.abs((val-data) / (std*data.size)))
+                # ax2.scatter(lamb, phi, c=(val-data) / (std*data.size),
+                            # s=2, marker='s', edgecolors='None',  # DB
+                            # vmin=-errmax, vmax=errmax, cmap=plt.cm.seismic)  # DB
+                # dlamb0_amp = np.max(np.diff(lamb0))/np.nanmax(np.abs(amp))
+                # dlamb0_sigma = np.max(np.diff(lamb0))/np.nanmax(np.abs(sigma))
+                # dlamb0_dlamb = np.max(np.diff(lamb0))/np.nanmax(np.abs(dlamb))
+                # for ii in range(nlamb0):
+                    # ax3.axvline(lamb0[ii], ls='--', c='k')
+                    # ax4.axvline(lamb0[ii], ls='--', c='k')
+                    # ax5.axvline(lamb0[ii], ls='--', c='k')
+                    # ax3.plot(lamb0[ii] + dlamb0_amp*amp[:, ii], phi, '.', ms=4)
+                    # ax4.plot(lamb0[ii] + dlamb0_sigma*sigma[:, ii], phi, '.', ms=4)
+                    # ax5.plot(lamb0[ii] + dlamb0_dlamb*dlamb[:, ii], phi, '.', ms=4)
+                # import ipdb         # DB
+                # ipdb.set_trace()    # DB
+            # return (val-data) / (std*data.size)
+
+        # def jac(x,
+                # lamb=lamb, phi=phi, std=std,
+                # lamb0=lamb0, knots=knots, deg=deg,
+                # nlamb0=nlamb0, nkperbs=nkperbs, nbs=nbs, nc=nc):
+            # amp = BSpline(knots, x[:nc], deg,
+                          # extrapolate=False, axis=0)(phi)
+            # sigma = BSpline(knots, x[nc:2*nc], deg,
+                            # extrapolate=False, axis=0)(phi)
+            # dlamb = BSpline(knots, x[2*nc:], deg,
+                            # extrapolate=False, axis=0)(phi)
+            # #jacx = sparse.csr_matrix((phi.size, 2*nc), dtype=float)
+            # jacx = np.zeros((phi.size, 3*nc+1), dtype=float)
+            # for ii in range(nlamb0):
+                # expi = np.exp(-(lamb-(lamb0[ii]+dlamb))**2/sigma**2)
+                # indlamb = expi > 0.001
+                # for jj in range(nbs):
+                    # kk = ii*nbs + jj
+                    # indk = jj + np.r_[:nkperbs]
+                    # # all bsplines are the same, only coefs (x) are changing
+                    # bj = BSpline.basis_element(knots[indk],
+                                               # extrapolate=False)(phi)
+                    # # bj[np.isnan(bj)] = 0.
+                    # indok = (~np.isnan(bj)) & indlamb
+                    # # Differentiate wrt camp
+                    # jacx[indok, kk] = (bj[indok] * expi[indok])
+                    # # Differentiate wrt csigma
+                    # jacx[indok, nc+kk] = (
+                        # amp * 2*(lamb-(lamb0[ii]+dlamb))**2*bj/sigma**3 * expi
+                    # )[indok]
+                    # # Differentiate wrt dlamb
+                    # jacx[indok, 2*nc+kk] = (
+                         # amp * 2*(lamb-(lamb0[ii]+dlamb))*bj/sigma**2 * expi
+                    # )[indok]
+            # jacx[:, -1] = 1.
+            # return jacx/(std*phi.size)
+    # return func, jac
+
 
 def multigaussianfit2d(lamb, phi, data, std=None,
                        lamb0=None, forcelamb=None,
@@ -1069,30 +1156,8 @@ def multigaussianfit2d(lamb, phi, data, std=None,
     if nbsplines is None:
         nbsplines = 5
 
-    # Use valid data only and optionally restrict lamb
-    if lambmin is not None:
-        data[lamb<lambmin] = np.nan
-    if lambmax is not None:
-        data[lamb>lambmax] = np.nan
-    indok = ~np.isnan(data)
-    data = data[indok]
-    lamb = lamb[indok]
-
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
-    DLamb = lamb[-1] - lamb[0]
-    dlines = {k0: v0 for k0, v0 in dlines.items()
-              if v0['lambda'] >= lamb[0] and v0['lambda'] <= lamb[-1]}
-    lions = sorted(set([dlines[k0]['ION'] for k0 in dlines.keys()]))
-    nions = len(lions)
-    dions = {k0: [k1 for k1 in dlines.keys() if dlines[k1]['ION'] == k0]
-             for k0 in lions}
-    dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
-                                    for k1 in dions[k0]]),
-                  'key': [k1 for k1 in dions[k0]],
-                  'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
-                  'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
-             for k0 in lions}
     nlines = np.sum([v0['lamb'].size for v0 in dions.values()])
 
     # Get knots
@@ -1102,10 +1167,34 @@ def multigaussianfit2d(lamb, phi, data, std=None,
     knots, nkperbs, nbs = get_knots_nbs_for_bsplines(np.unique(knots), deg)
 
     # Get indices
-    dind, lines, mz, keys, sizex, shapey0 = multigausfit1d_from_dlines_ind(
-        dions=dions, double=double, Ti=Ti, vi=vi)
+    dind, lines, mz, keys, sizex, shapey0 = multigausfit2d_from_dlines_ind(
+        dions=dions, double=double, Ti=Ti, vi=vi, nbs=nbs)
 
 
+    # --------------
+    # Coming soon...
+
+    # Get scaling
+    if dscale is None:
+        dscale = multigausfit1d_from_dlines_scale(data, lamb)
+
+    # Get initial guess
+    if x0_scale is None:
+        x0_scale = multigausfit1d_from_dlines_x0(sizex, dind,
+                                                 lines=lines, data=data,
+                                                 lamb=lamb, dscale=dscale,
+                                                 double=double)
+
+    # get bounds
+    if bounds_scale is None:
+        bounds_scale = multigausfit1d_from_dlines_bounds(sizex, dind, double)
+
+    # Get function, cost function and jacobian
+    (func_detail, func,
+     cost_scale, jac_scale) = multigausfit1d_from_dlines_funccostjac(
+        data, lamb,
+        dind=dind, dscale=dscale,
+         lines=lines, shapey0=shapey0, double=double, jac=jac)
 
 
     # -------------------------------------

@@ -908,8 +908,11 @@ def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
         ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
         ax.plot(dfit1d['lamb'], dfit1d['sol'],
                 c='k', lw=2.)
-    ax.plot(dfit1d['lamb'], dfit1d['data'],
-            marker='.', c='k', ls='None', ms=8)
+        ax.plot(dfit1d['lamb'], dfit1d['data'],
+                marker='.', c='k', ls='None', ms=8)
+    else:
+        ax.plot(dfit1d['lamb'], dfit1d['data'],
+                marker='.', c='k', ls='-', ms=8)
 
     # Annotate lines
     ni = 0

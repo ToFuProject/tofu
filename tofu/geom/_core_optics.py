@@ -1770,6 +1770,7 @@ class CrystalBragg(utils.ToFuObject):
                       'dions': dions,
                       'lamb': lambfit,
                       'data': spect1d,
+                      'double': double,
                       'ratio': None}
         else:
             import tofu.data._spectrafit2d as _spectrafit2d
