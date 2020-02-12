@@ -397,7 +397,7 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 
 def multigausfit1d_from_dlines_ind(dlines2=None,
                                    double=None,
-                                   Ti=None, vi=None):
+                                   Ti=None, vi=None, dconst=None):
     """ Return the indices of quantities in x to compute y """
 
     # Prepare lines concatenation
@@ -479,6 +479,26 @@ def multigausfit1d_from_dlines_ind(dlines2=None,
         inds_jac = np.r_[0, np.cumsum(lnlines_s[:-1])]
     else:
         inds_jac = np.arange(0, nlines)
+
+
+    # Take into account amplitude ratio constraints
+    if dconst is not None and dconst.get(['ratio']) is not None:
+        lup = sorted(set([rr['up'] for rr in dconst['ratio']]))
+        llow = sorted(set([rr['low'] for rr in dconst['ratio']]))
+
+        # Remove upper amp from xi
+        # TBF !!!!
+
+        for ii, rr in enumerate(dconst['ratio']):
+            indup = (dlines2['key'] == rr['up']).nonzero()[0][0]
+            indup = (dlines2['key'] == rr['low']).nonzero()[0][0]
+            dconst['ratio'][ii]['indup'] = indup
+            dconst['ratio'][ii]['indlow'] = indlow
+
+            # Remove upper from x
+
+
+
 
     dind = {'bck': indbck,
             'width': indw, 'shift': inds, 'amp': inda,
