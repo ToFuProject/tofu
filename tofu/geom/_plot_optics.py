@@ -8,6 +8,7 @@ import numpy as np
 from scipy.interpolate import BSpline
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
@@ -864,7 +865,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 
 
-def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
+def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
                                  lambmin=None, lambmax=None,
                                  fs=None, dmargin=None,
                                  tit=None, wintit=None, ax=None):
@@ -873,7 +874,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
     # ------------
 
     if fs is None:
-        fs = (14, 8)
+        fs = (15, 8)
     if tit is None:
         tit = False
     if wintit is None:
@@ -885,12 +886,24 @@ def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
 
     # pre-compute
     # ------------
-    lions = list(dfit1d['dions'].keys())
+    nlines = dlines2['key'].size
+    width_u = dlines2['width_u']
+    shift_u = dlines2['shift_u']
+    lions = dlines2['ion_u']
     nions = len(lions)
-    shift = dfit1d['shift']
-    x = dfit1d['lines'] + shift
+    x = dlines2['lamb'] + dfit1d['shift']
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
+    if dfit1d['Ti'] is True:
+        lfcol = ['y', 'g', 'c', 'm']
+    else:
+        lfcol = [None]
+    nfcol = len(lfcol)
+    if dfit1d['vi'] is True:
+        lhatch = [None, '/', '\\', '|', '-', '+', 'x', '//']
+    else:
+        lhatch = [None]
+    nhatch = len(lhatch)
 
     # Plot
     # ------------
@@ -905,7 +918,14 @@ def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
     if showonly is not True:
         ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][0, :], ls='-', c='k')
         ax.set_prop_cycle(None)
-        ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
+        if dfit1d['Ti'] is True or dfit1d['vi'] is True:
+            for ii in range(nlines):
+                col = lfcol[width_u.index(dlines2['width'][ii])%nfcol]
+                hatch = lhatch[shift_u.index(dlines2['shift'][ii])%nhatch]
+                ax.fill_between(dfit1d['lamb'], dfit1d['sol_detail'][1+ii, :],
+                                alpha=0.3, color=col, hatch=hatch)
+        else:
+            ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
         ax.plot(dfit1d['lamb'], dfit1d['sol'],
                 c='k', lw=2.)
         ax.plot(dfit1d['lamb'], dfit1d['data'],
@@ -915,55 +935,80 @@ def CrystalBragg_plot_data_fit1d(dfit1d, showonly=None,
                 marker='.', c='k', ls='-', ms=8)
 
     # Annotate lines
-    ni = 0
     for ii, k0 in enumerate(lions):
-        for jj in range(dfit1d['dions'][k0]['lamb'].size):
-            col = lcol[ii%ncol]
-            ax.axvline(x[ni],
+        col = lcol[ii%ncol]
+        ind = (dlines2['ion'] == k0).nonzero()[0]
+        for jj in ind:
+            ax.axvline(x[jj],
                        c=col, ls='--')
-            lab = (dfit1d['dions'][k0]['symbol'][jj]
-                   + '\n{:4.2e}'.format(dfit1d['coefs'][ni])
-                   + '\n({:+4.2e} A)'.format(shift[ni]*1.e10))
+            lab = (dlines2['symb'][jj]
+                   + '\n{:4.2e}'.format(dfit1d['coefs'][jj])
+                   + '\n({:+4.2e} A)'.format(dfit1d['shift'][jj]*1.e10))
             ax.annotate(lab,
-                        xy=(x[ni], 1.01), xytext=None,
+                        xy=(x[jj], 1.01), xytext=None,
                         xycoords=('data', 'axes fraction'),
                         color=col, arrowprops=None,
                         horizontalalignment='center',
                         verticalalignment='bottom')
-            ni += 1
-    hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
+
+    # Ion legend
+    hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--',
+                          label=lions[ii])
             for ii in range(nions)]
+    legi = ax.legend(handles=hand,
+                     title='ions',
+                     bbox_to_anchor=(1.01, 1.), loc='upper left')
+    ax.add_artist(legi)
 
-    lleg = lions
-    if dfit1d.get('Ti') is True:
-        lleg = [(ll
-                 + ' Ti = {:4.2f} keV'.format(dfit1d['kTiev'][ii]*1.e-3))
-                for ii, ll in enumerate(lleg)]
-    if dfit1d.get('vi') is True:
-        lleg = [(ll
-                 +' vi = {:5.1f} km/s)'.format(dfit1d['vims'][ii]*1.e-3))
-                for ii, ll in enumerate(lleg)]
-    ax.legend(hand, lleg,
-              bbox_to_anchor=(1., 1.02), loc='upper left')
+    # Ti legend
+    if dfit1d['Ti'] is True:
+        hand = [mpatches.Patch(color=lfcol[ii%nfcol])
+                for ii in range(len(dlines2['width_u']))]
+        lleg = [dlines2['width_u'][ii]
+                + '  {:4.2f}'.format(dfit1d['kTiev'][ii]*1.e-3)
+                for ii in range(len(dlines2['width_u']))]
+        legT = ax.legend(handles=hand, labels=lleg,
+                         title='Ti (keV)',
+                         bbox_to_anchor=(1.01, 0.8), loc='upper left')
+        ax.add_artist(legT)
 
+    # vi legend
+    if dfit1d['vi'] is True:
+        hand = [mpatches.Patch(color='w',
+                               hatch=lhatch[ii%nhatch],
+                               label=dlines2['shift_u'][ii])
+                for ii in range(len(dlines2['shift_u']))]
+        lleg = [dlines2['shift_u'][ii]
+                + '  {:4.2f}'.format(dfit1d['vims'][ii]*1.e-3)
+                for ii in range(len(dlines2['shift_u']))]
+        legv = ax.legend(handles=hand,
+                         title='vi (km/s)',
+                         bbox_to_anchor=(1.01, 0.6), loc='upper left')
+        ax.add_artist(legv)
+
+    # Ratios legend
     if dfit1d['ratio'] is not None:
-        msg = '{} =  {:4.2e}'.format(dfit1d['ratio']['str'],
-                                     dfit1d['ratio']['value'])
-        ax.annotate(msg,
-                    xy=(1.01, 0.5), xycoords='axes fraction',
-                    color='k', arrowprops=None,
-                    horizontalalignment='left',
-                    verticalalignment='center')
+        nratio = len(dfit1d['ratio']['up'])
+        hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
+        lleg = ['{} =  {:4.2e}'.format(dfit1d['ratio']['str'][ii],
+                                       dfit1d['ratio']['value'][ii])
+                for ii in range(nratio)]
+        legr = ax.legend(handles=hand,
+                         labels=lleg,
+                         title='line ratio',
+                         bbox_to_anchor=(1.01, 0.4), loc='upper left')
+        ax.add_artist(legr)
+
+    # double legend
     if dfit1d['double'] is True:
-        msg = ('double:\n'
-               + '  ratio = {:4.2f}\n'.format(dfit1d['dratio'])
-               + '  shift '+r'$\approx$'
-               + ' {:4.2e}'.format(np.nanmean(dfit1d['dshift'])))
-        ax.annotate(msg,
-                    xy=(1.01, 0.4), xycoords='axes fraction',
-                    color='k', arrowprops=None,
-                    horizontalalignment='left',
-                    verticalalignment='center')
+        hand = [mlines.Line2D([], [], c='k', ls='None')]*2
+        lleg = ['ratio = {:4.2f}'.format(dfit1d['dratio']),
+                ('shift ' + r'$\approx$'
+                 + ' {:4.2e}'.format(np.nanmean(dfit1d['dshift'])))]
+        legr = ax.legend(handles=hand,
+                         labels=lleg,
+                         title='double',
+                         bbox_to_anchor=(1.01, 0.2), loc='upper left')
 
     ax.set_xlim(lambmin, lambmax)
 

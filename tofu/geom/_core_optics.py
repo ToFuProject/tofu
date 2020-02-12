@@ -1611,21 +1611,33 @@ class CrystalBragg(utils.ToFuObject):
         return spect1d, lambfit, phifit, vertsum1d, phiminmax
 
     @staticmethod
-    def get_dions_from_dlines(dlines, lamb0, lamb1):
-        dlines = {k0: v0 for k0, v0 in dlines.items()
-                  if v0['lambda'] >= lamb0 and v0['lambda'] <= lamb1}
-        lions = sorted(set([dlines[k0]['ION'] + dlines[k0].get('width', '')
-                            for k0 in dlines.keys()]))
-        dions = {k0: [k1 for k1 in dlines.keys()
-                      if dlines[k1]['ION']+dlines[k1].get('width', '') == k0]
-                 for k0 in lions}
-        dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
-                                        for k1 in dions[k0]]),
-                      'key': [k1 for k1 in dions[k0]],
-                      'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]],
-                      'm': np.array([dlines[k1]['m'] for k1 in dions[k0]])}
-                 for k0 in lions}
-        return dions
+    def get_dlines2_from_dlines(dlines, lambmin=None, lambmax=None):
+        keys = np.array([k0 for k0 in dlines.keys()])
+        lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
+        if lambmin is not None:
+            keys = keys[lamb >= lambmin]
+            lamb = lamb[lamb >= lambmin]
+        if lambmax is not None:
+            keys = keys[lamb <= lambmax]
+            lamb = lamb[lamb <= lambmax]
+        ion = [dlines[k0]['ION'] for k0 in keys]
+        width = [dlines[k0].get('width', dlines[k0]['ION']) for k0 in keys]
+        shift = [dlines[k0].get('shift', dlines[k0]['ION']) for k0 in keys]
+        symb = [dlines[k0]['symbol'] for k0 in keys]
+        mz = [dlines[k0]['m'] for k0 in keys]
+        dlines2 = {
+            'key': keys,
+            'ion': np.array(ion),
+            'width': np.array(width),
+            'shift': np.array(shift),
+            'ion_u': sorted(set(ion)),
+            'width_u': sorted(set(width)),
+            'shift_u': sorted(set(shift)),
+            'lamb': np.array(lamb),
+            'symb': np.array(symb),
+            'mz': np.array(mz)
+        }
+        return dlines2
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,
@@ -1758,9 +1770,9 @@ class CrystalBragg(utils.ToFuObject):
         spect1d = spect1d[indok]
         lambfit = lambfit[indok]
 
-        # Get dions and lines
-        dions = self.get_dions_from_dlines(dlines,
-                                           lambfit.min(), lambfit.max())
+        # Get dlines2
+        dlines2 = self.get_dlines2_from_dlines(dlines,
+                                               lambfit.min(), lambfit.max())
 
         # Compute fit for spect1d to get lamb0 if not provided
         if showonly is True:
@@ -1778,7 +1790,7 @@ class CrystalBragg(utils.ToFuObject):
             import tofu.data._spectrafit2d as _spectrafit2d
 
             dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
-                spect1d, lambfit, dlines=dlines, dions=dions,
+                spect1d, lambfit, dlines2=dlines2,
                 lambmin=lambmin, lambmax=lambmax,
                 dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
                 method=method, max_nfev=max_nfev, verbose=verbose,
@@ -1790,7 +1802,7 @@ class CrystalBragg(utils.ToFuObject):
         dax = None
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_data_fit1d(
-                dfit1d, showonly=showonly,
+                dfit1d, dlines2=dlines2, showonly=showonly,
                 lambmin=lambmin, lambmax=lambmax,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)

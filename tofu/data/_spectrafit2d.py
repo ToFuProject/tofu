@@ -395,20 +395,30 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 ###########################################################
 
 
-def multigausfit1d_from_dlines_ind(dions=None,
+def multigausfit1d_from_dlines_ind(dlines2=None,
                                    double=None,
                                    Ti=None, vi=None):
     """ Return the indices of quantities in x to compute y """
 
     # Prepare lines concatenation
-    nions = len(dions)
-    llines = [v0['lamb'] for v0 in dions.values()]
-    mz = np.array([v0['m'][0] for v0 in dions.values()])
-    lkeys = [v0['key'] for v0 in dions.values()]
-    lines = np.concatenate(llines)
-    keys = list(itt.chain.from_iterable(lkeys))
-    lnlines = np.array([ll.size for ll in llines])
-    nlines = lines.size
+    nlines = dlines2['key'].size
+    nion = len(dlines2['ion_u'])
+    nwidth = len(dlines2['width_u'])
+    nshift = len(dlines2['shift_u'])
+    lnlines_i = [np.sum(dlines2['ion'] == ii) for ii in dlines2['ion_u']]
+    lnlines_w = [np.sum(dlines2['width'] == ww) for ww in dlines2['width_u']]
+    lnlines_s = [np.sum(dlines2['shift'] == ss) for ss in dlines2['shift_u']]
+    assert np.sum(lnlines_w) == nlines
+    assert np.sum(lnlines_s) == nlines
+
+    # nions = len(dions)
+    # llines = [v0['lamb'] for v0 in dions.values()]
+    # mz = np.array([v0['m'][0] for v0 in dions.values()])
+    # lkeys = [v0['key'] for v0 in dions.values()]
+    # lines = np.concatenate(llines)
+    # keys = list(itt.chain.from_iterable(lkeys))
+    # lnlines = np.array([ll.size for ll in llines])
+    # nlines = lines.size
 
     # indices
     # General shape: [bck, widths, shifts, amp]
@@ -425,34 +435,34 @@ def multigausfit1d_from_dlines_ind(dions=None,
         inda_lines = inda
         sizex = 1 + 3*nlines
     elif Ti is True and vi is False:
-        indw = 1 + np.arange(0, nions)
-        indw_lines = np.repeat(indw, lnlines)
-        inds = 1 + nions + np.arange(0, nlines)
+        indw = 1 + np.arange(0, nwidth)
+        indw_lines = np.repeat(indw, lnlines_w)
+        inds = 1 + nwidth + np.arange(0, nlines)
         inds_lines = inds
         inda = inds + nlines
         inda_lines = inda
-        sizex = 1 + nions + 2*nlines
+        sizex = 1 + nwidth + 2*nlines
     elif Ti is False and vi is True:
         indw = 1 + np.arange(0, nlines)
         indw_lines = indw
-        inds = 1 + nlines + np.arange(0, nions)
-        inds_lines = np.repeat(inds, lnlines)
-        inda = indw + nlines + nions
+        inds = 1 + nlines + np.arange(0, nshift)
+        inds_lines = np.repeat(inds, lnlines_s)
+        inda = indw + nshift + nlines
         inda_lines = inda
-        sizex = 1 + nions + 2*nlines
+        sizex = 1 + nshift + 2*nlines
     else:
-        indw = 1 + np.arange(0, nions)
-        indw_lines = np.repeat(indw, lnlines)
-        inds = indw + nions
-        inds_lines = indw_lines + nions
-        inda = 1 + 2*nions + np.arange(0, nlines)
+        indw = 1 + np.arange(0, nwidth)
+        indw_lines = np.repeat(indw, lnlines_w)
+        inds = 1 + nwidth + np.arange(0, nshift)
+        inds_lines = np.repeat(inds, lnlines_s)
+        inda = 1 + nwidth + nshift + np.arange(0, nlines)
         inda_lines = inda
-        sizex = 1 + 2*nions + nlines
+        sizex = 1 + nwidth + nshift + nlines
     shapey0 = 1 + nlines
 
     # index to get back unique ions values from width and shift
-    indions = np.repeat(np.arange(0, nions), lnlines)
-    indions_back = np.r_[0, np.cumsum(lnlines[:-1])]
+    indions = np.repeat(np.arange(0, nion), lnlines_i)
+    indions_back = np.r_[0, np.cumsum(lnlines_i[:-1])]
 
     if double:
         inddshift = -2
@@ -461,12 +471,12 @@ def multigausfit1d_from_dlines_ind(dions=None,
 
     # Indices for jacobian
     if Ti is True:
-        indw_jac = indions_back
+        indw_jac = np.r_[0, np.cumsum(lnlines_w[:-1])]
     else:
         indw_jac = np.arange(0, nlines)
 
     if vi is True:
-        inds_jac = indions_back
+        inds_jac = np.r_[0, np.cumsum(lnlines_s[:-1])]
     else:
         inds_jac = np.arange(0, nlines)
 
@@ -478,7 +488,7 @@ def multigausfit1d_from_dlines_ind(dions=None,
             'dratio': inddratio, 'dshift': inddshift,
             'ions': indions, 'ions_back': indions_back,
             }
-    return dind, lines, mz, keys, sizex, shapey0
+    return dind, sizex, shapey0
 
 def multigausfit1d_from_dlines_scale(data, lamb):
     Dlamb = lamb[-1]-lamb[0]
@@ -557,8 +567,6 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
     lines = lines[None, :]
     lamb = lamb[:, None]
     shape = (lamb.size, shapey0)
-    # w2 with Ti in eV -> J
-    # w2 = 2*scpct.k/scpct.c**2
 
     def func_detail(x, lamb=lamb, lines=lines, shape=shape,
                     indbck=indbck, indal=indal, indwl=indwl, indsl=indsl,
@@ -580,9 +588,6 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
             y[:, 1:] += (ampd
                          * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2)))
         return y
-
-    def func(x):
-        return np.sum(func_detail(x), axis=1)
 
     def cost_scale(x, data=data,
                    bckscale=bckscale, ampscale=ampscale,
@@ -638,16 +643,16 @@ def multigausfit1d_from_dlines_funccostjac(data, lamb,
             return jac
     else:
         if jac not in ['2-point', '3-point']:
-            msg = "jac should be None or in ['2-point', '3-point']"
+            msg = "jac should be in ['call', '2-point', '3-point']"
             raise Exception(msg)
         jac_scale = jac
 
-    return func_detail, func, cost_scale, jac_scale
+    return func_detail, cost_scale, jac_scale
 
 
 def multigausfit1d_from_dlines(data, lamb,
                                lambmin=None, lambmax=None,
-                               dlines=None, dions=None, ratio=None,
+                               dlines2=None, ratio=None,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
@@ -703,11 +708,11 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
-    nlines = np.sum([v0['lamb'].size for v0 in dions.values()])
+    nlines = dlines2['lamb'].size
 
     # Get indices
-    dind, lines, mz, keys, sizex, shapey0 = multigausfit1d_from_dlines_ind(
-        dions=dions, double=double, Ti=Ti, vi=vi)
+    dind, sizex, shapey0 = multigausfit1d_from_dlines_ind(
+        dlines2=dlines2, double=double, Ti=Ti, vi=vi)
 
     # Get scaling
     if dscale is None:
@@ -716,7 +721,8 @@ def multigausfit1d_from_dlines(data, lamb,
     # Get initial guess
     if x0_scale is None:
         x0_scale = multigausfit1d_from_dlines_x0(sizex, dind,
-                                                 lines=lines, data=data,
+                                                 lines=dlines2['lamb'],
+                                                 data=data,
                                                  lamb=lamb, dscale=dscale,
                                                  double=double)
 
@@ -725,11 +731,11 @@ def multigausfit1d_from_dlines(data, lamb,
         bounds_scale = multigausfit1d_from_dlines_bounds(sizex, dind, double)
 
     # Get function, cost function and jacobian
-    (func_detail, func,
+    (func_detail,
      cost_scale, jac_scale) = multigausfit1d_from_dlines_funccostjac(
-        data, lamb,
-        dind=dind, dscale=dscale,
-         lines=lines, shapey0=shapey0, double=double, jac=jac)
+         data, lamb,
+         dind=dind, dscale=dscale,
+         lines=dlines2['lamb'], shapey0=shapey0, double=double, jac=jac)
 
     # Minimize
     t0 = dtm.datetime.now()     # DB
@@ -756,11 +762,11 @@ def multigausfit1d_from_dlines(data, lamb,
     bck = res.x[dind['bck']] * dscale['bck']
     amp = res.x[dind['amp_lines']] * dscale['amp']
     width2 = res.x[dind['width_lines']] * dscale['width']
-    shift = res.x[dind['shift_lines']] * dscale['shift']*lines
-    coefs = amp*lines*np.sqrt(2*np.pi*width2)
+    shift = res.x[dind['shift_lines']] * dscale['shift']*dlines2['lamb']
+    coefs = amp*dlines2['lamb']*np.sqrt(2*np.pi*width2)
     if double is True:
         dratio = res.x[dind['dratio']]
-        dshift = res.x[dind['dshift']] * dscale['shift']*lines
+        dshift = res.x[dind['dshift']] * dscale['shift']*dlines2['lamb']
     else:
         dratio, dshift = None, None
 
@@ -769,28 +775,36 @@ def multigausfit1d_from_dlines(data, lamb,
     if Ti is True:
         # Get Ti in eV and vi in m/s
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        kTiev = conv * width2[dind['ions_back']] * mz * scpct.c**2
+        kTiev = (conv * width2[dind['width_jac']]
+                 * dlines2['mz'][dind['width_jac']] * scpct.c**2)
     if vi is True:
-        vims = (res.x[dind['shift_lines'][dind['ions_back']]]
+        vims = (res.x[dind['shift_lines'][dind['shift_jac']]]
                 * dscale['shift'] * scpct.c)
 
     if ratio is not None:
         # Te can only be obtained as a proxy, units don't matter at this point
-        indup = keys.index(ratio['up'])
-        indlow = keys.index(ratio['low'])
+        if isinstance(ratio['up'], str):
+            ratio['up'] = [ratio['up']]
+        if isinstance(ratio['low'], str):
+            ratio['low'] = [ratio['low']]
+        assert len(ratio['up']) == len(ratio['low'])
+        indup = np.array([(dlines2['key'] == uu).nonzero()[0][0]
+                          for uu in ratio['up']])
+        indlow = np.array([(dlines2['key'] == ll).nonzero()[0][0]
+                           for ll in ratio['low']])
         ratio['value'] = coefs[indup] / coefs[indlow]
-        ratio['str'] = "{}/{}".format(dlines[ratio['up']]['symbol'],
-                                      dlines[ratio['low']]['symbol'])
+        ratio['str'] = ["{}/{}".format(dlines2['symb'][indup[ii]],
+                                       dlines2['symb'][indlow[ii]])
+                        for ii in range(len(ratio['up']))]
 
     # Create output dict
     dout = {'data': data, 'lamb': lamb,
-            'lines': lines, 'nlines': nlines,
             'sol_detail': sol_detail,
             'sol': np.sum(sol_detail, axis=0),
             'Ti': Ti, 'vi': vi, 'double': double,
             'bck': bck, 'width2': width2, 'shift': shift, 'amp': amp,
             'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
-            'dions': dions, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
+            'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
             'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
             'nfev': res.nfev, 'njev': res.njev, 'status': res.status,
             'msg': res.message, 'success': res.success}
