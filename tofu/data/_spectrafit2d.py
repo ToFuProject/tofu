@@ -411,15 +411,6 @@ def multigausfit1d_from_dlines_ind(dlines2=None,
     assert np.sum(lnlines_w) == nlines
     assert np.sum(lnlines_s) == nlines
 
-    # nions = len(dions)
-    # llines = [v0['lamb'] for v0 in dions.values()]
-    # mz = np.array([v0['m'][0] for v0 in dions.values()])
-    # lkeys = [v0['key'] for v0 in dions.values()]
-    # lines = np.concatenate(llines)
-    # keys = list(itt.chain.from_iterable(lkeys))
-    # lnlines = np.array([ll.size for ll in llines])
-    # nlines = lines.size
-
     # indices
     # General shape: [bck, widths, shifts, amp]
     # If double [..., double_shift, double_ratio]
@@ -496,9 +487,6 @@ def multigausfit1d_from_dlines_ind(dlines2=None,
             dconst['ratio'][ii]['indlow'] = indlow
 
             # Remove upper from x
-
-
-
 
     dind = {'bck': indbck,
             'width': indw, 'shift': inds, 'amp': inda,
@@ -850,20 +838,22 @@ def get_knots_nbs_for_bsplines(knots_unique, deg):
     assert nbs == knots.size - 1 - deg
     return knots, nbknotsperbs, nbs
 
-def multigausfit2d_from_dlines_ind(dions=None,
-                                   double=None,
-                                   Ti=None, vi=None, nbs=None):
+
+def multigausfit2d_from_dlines_ind(dlines2=None,
+                                   double=None, nbs=None,
+                                   Ti=None, vi=None, dconst=None):
     """ Return the indices of quantities in x to compute y """
 
     # Prepare lines concatenation
-    nions = len(dions)
-    llines = [v0['lamb'] for v0 in dions.values()]
-    mz = np.array([v0['m'][0] for v0 in dions.values()])
-    lkeys = [v0['key'] for v0 in dions.values()]
-    lines = np.concatenate(llines)
-    keys = list(itt.chain.from_iterable(lkeys))
-    lnlines = np.array([ll.size for ll in llines])
-    nlines = lines.size
+    nlines = dlines2['key'].size
+    nion = len(dlines2['ion_u'])
+    nwidth = len(dlines2['width_u'])
+    nshift = len(dlines2['shift_u'])
+    lnlines_i = [np.sum(dlines2['ion'] == ii) for ii in dlines2['ion_u']]
+    lnlines_w = [np.sum(dlines2['width'] == ww) for ww in dlines2['width_u']]
+    lnlines_s = [np.sum(dlines2['shift'] == ss) for ss in dlines2['shift_u']]
+    assert np.sum(lnlines_w) == nlines
+    assert np.sum(lnlines_s) == nlines
 
     # indices
     # General shape: [bck, widths, shifts, amp]
@@ -880,35 +870,35 @@ def multigausfit2d_from_dlines_ind(dions=None,
         inda_lines = inda
         sizex = nbs*(1 + 3*nlines)
     elif Ti is True and vi is False:
-        indw = nbs + np.arange(0, nions*nbs)
-        indw_lines = np.repeat(indw, lnlines)
-        inds = nbs + nions*nbs + np.arange(0, nlines*nbs)
+        indw = nbs + np.arange(0, nwidth*nbs)
+        indw_lines = np.repeat(indw, lnlines_w)
+        inds = nbs + nwidth*nbs + np.arange(0, nlines*nbs)
         inds_lines = inds
         inda = inds + nlines*nbs
         inda_lines = inda
-        sizex = nbs*(1 + nions + 2*nlines)
+        sizex = nbs*(1 + nwidth + 2*nlines)
     elif Ti is False and vi is True:
         indw = nbs + np.arange(0, nlines*nbs)
         indw_lines = indw
-        inds = nbs + nlines*nbs + np.arange(0, nions*nbs)
-        inds_lines = np.repeat(inds, lnlines)
-        inda = indw + nlinesi*nbs + nions*nbs
+        inds = nbs + nlines*nbs + np.arange(0, nshift*nbs)
+        inds_lines = np.repeat(inds, lnlines_s)
+        inda = indw + nshift*nbs + nlines*nbs
         inda_lines = inda
-        sizex = nbs*(1 + nions + 2*nlines)
+        sizex = nbs*(1 + nshift + 2*nlines)
     else:
-        indw = nbs + np.arange(0, nions*nbs)
-        indw_lines = np.repeat(indw, lnlines)
-        inds = indw + nions*nbs
-        inds_lines = indw_lines + nions*nbs
-        inda = nbs + 2*nions*nbs + np.arange(0, nlines*nbs)
+        indw = nbs + np.arange(0, nwidth*nbs)
+        indw_lines = np.repeat(indw, lnlines_w)
+        inds = nbs + nwidth*nbs + np.arange(0, nshift*nbs)
+        inds_lines = np.repeat(inds, lnlines_s)
+        inda = nbs + nwidth*nbs + nshift*nbs + np.arange(0, nlines*nbs)
         inda_lines = inda
-        sizex = nbs*(1 + 2*nions + nlines)
-    shapey0 = nbs*(1 + nlines)
+        sizex = nbs*(1 + nwidth + nshift + nlines)
+    shapey0 = 1 + nlines
 
-    # TBC...
     # index to get back unique ions values from width and shift
-    indions = np.repeat(np.arange(0, nions), lnlines)
-    indions_back = np.r_[0, np.cumsum(lnlines[:-1])]
+    indions = np.repeat(np.arange(0, nion**nbs), lnlines_i)
+    # TBC...
+    indions_back = np.r_[0, np.cumsum(lnlines_i[:-1])]
 
     if double:
         inddshift = -2
@@ -917,14 +907,31 @@ def multigausfit2d_from_dlines_ind(dions=None,
 
     # Indices for jacobian
     if Ti is True:
-        indw_jac = indions_back
+        indw_jac = np.r_[0, np.cumsum(nbs*lnlines_w[:-1])]
     else:
-        indw_jac = np.arange(0, nlines)
+        indw_jac = np.arange(0, nlines*nbs)
 
     if vi is True:
-        inds_jac = indions_back
+        inds_jac = np.r_[0, np.cumsum(nbs*lnlines_s[:-1])]
     else:
-        inds_jac = np.arange(0, nlines)
+        inds_jac = np.arange(0, nlines*nbs)
+
+
+    # Take into account amplitude ratio constraints
+    if dconst is not None and dconst.get(['ratio']) is not None:
+        lup = sorted(set([rr['up'] for rr in dconst['ratio']]))
+        llow = sorted(set([rr['low'] for rr in dconst['ratio']]))
+
+        # Remove upper amp from xi
+        # TBF !!!!
+
+        for ii, rr in enumerate(dconst['ratio']):
+            indup = (dlines2['key'] == rr['up']).nonzero()[0][0]
+            indup = (dlines2['key'] == rr['low']).nonzero()[0][0]
+            dconst['ratio'][ii]['indup'] = indup
+            dconst['ratio'][ii]['indlow'] = indlow
+
+            # Remove upper from x
 
     dind = {'bck': indbck,
             'width': indw, 'shift': inds, 'amp': inda,
@@ -934,7 +941,33 @@ def multigausfit2d_from_dlines_ind(dions=None,
             'dratio': inddratio, 'dshift': inddshift,
             'ions': indions, 'ions_back': indions_back,
             }
-    return dind, lines, mz, keys, sizex, shapey0
+    return dind, sizex, shapey0
+
+
+def multigausfit2d_from_dlines_scale(data_lamb_nbs, lamb):
+    Dlamb = lambfit[-1]-lambfit[0]
+    lambm = np.nanmin(lambfit)
+    dscale = {'bck': np.array([np.nanmin(da) for da in data_lamb_nbs])
+              'amp': np.array([np.nanmax(da) for da in data_lamb_nbs]),
+              'width': np.full((nbs,), (Dlamb/(20*lambm))**2),
+              'shift': np.full((nbs,), Dlamb/(10*lambm))}
+    return dscale
+
+
+def multigausfit2d_from_dlines_x0(sizex, dind,
+                                  lines=None, data_lamb_nbs=None, lamb=None,
+                                  dscale=None, double=None):
+    # Each x0 should be understood as x0*scale
+    x0_scale = np.full((sizex,), np.nan)
+    x0_scale[dind['bck']] = 1.
+    amp0 = [da[np.searchsorted(lamb, lines)] for da in data_lamb_nbs]
+    x0_scale[dind['amp']] = amp0 / dscale['amp']
+    x0_scale[dind['width']] = 0.4
+    x0_scale[dind['shift']] = 0.
+    if double is True:
+        x0_scale[dind['dratio']] = 0.8
+        x0_scale[dind['dshift']] = 0.2
+    return x0_scale
 
 
 # def get_2dspectralfit_func(lamb0, forcelamb=False,
@@ -1192,6 +1225,8 @@ def multigaussianfit2d(lamb, phi, data, std=None,
 
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
+    assert np.allclose(np.unique(phi), phi)
+
     nlines = np.sum([v0['lamb'].size for v0 in dions.values()])
 
     # Get knots
@@ -1201,16 +1236,16 @@ def multigaussianfit2d(lamb, phi, data, std=None,
     knots, nkperbs, nbs = get_knots_nbs_for_bsplines(np.unique(knots), deg)
 
     # Get indices
-    dind, lines, mz, keys, sizex, shapey0 = multigausfit2d_from_dlines_ind(
-        dions=dions, double=double, Ti=Ti, vi=vi, nbs=nbs)
+    dind, sizex, shapey0 = multigausfit2d_from_dlines_ind(
+        dlines2=dlines2, double=double, Ti=Ti, vi=vi, nbs=nbs)
+
+    # Get scaling
+    if dscale is None:
+        dscale = multigausfit1d_from_dlines_scale(data, lamb, phi)
 
 
     # --------------
     # Coming soon...
-
-    # Get scaling
-    if dscale is None:
-        dscale = multigausfit1d_from_dlines_scale(data, lamb)
 
     # Get initial guess
     if x0_scale is None:
