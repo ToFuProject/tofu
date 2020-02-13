@@ -498,18 +498,32 @@ def multigausfit1d_from_dlines_ind(dlines2=None,
             }
     return dind, sizex, shapey0
 
-def multigausfit1d_from_dlines_scale(data, lamb, dscale=None):
-    if dscale is None:
+def multigausfit1d_from_dlines_scale(data, lamb,
+                                     scales=None, nspect=None,
+                                     continuous=None):
+    if scales is None:
         Dlamb = lamb[-1]-lamb[0]
         lambm = np.nanmin(lamb)
         # bck, amp, width, shift
-        scales = np.r_[np.nanmin(data), np.nanmax(data),
-                      (Dlamb/(20*lambm))**2, Dlamb/(10*lambm)]
-        dscale = {'bck': np.nanmin(data),
-                  'amp': np.nanmax(data),
-                  'width': (Dlamb/(20*lambm))**2,
-                  'shift': Dlamb/(10*lambm)}
-    return dscale
+        if continuous is True:
+            scales = np.r_[np.nanmin(data[0, :]),
+                           np.nanmax(data[0, :]),
+                           (Dlamb/(20*lambm))**2,
+                           Dlamb/(10*lambm)][None, :]
+        else:
+            scales = np.array([np.nanmin(data, axis=1),
+                               np.nanmax(data, axis=1),
+                               np.full((nspect,), (Dlamb/(20*lambm))**2),
+                               np.full((nspect,), Dlamb/(10*lambm))]).T
+    else:
+        assert scales.ndim in [1, 2]
+        if scales.ndim == 1:
+            scales = scales[None, :]
+        if continunous is True:
+            assert scales.shape == (1, 4)
+        else:
+            assert scales.shape == (nspect, 4)
+    return scales
 
 def multigausfit1d_from_dlines_x0(sizex, dind,
                                   lines=None, data=None, lamb=None,
@@ -738,10 +752,9 @@ def multigausfit1d_from_dlines(data, lamb,
         dlines2=dlines2, double=double, Ti=Ti, vi=vi)
 
     # Get scaling
-    if dscale is None:
-        dscale = multigausfit1d_from_dlines_scale(data, lamb,
-                                                  dscale=dscale, nspect=nspect,
-                                                  continuous=continuous)
+    scales = multigausfit1d_from_dlines_scale(data, lamb,
+                                              dscale=dscale, nspect=nspect,
+                                              continuous=continuous)
 
     # Get initial guess
     if x0_scale is None:
@@ -767,7 +780,7 @@ def multigausfit1d_from_dlines(data, lamb,
     t0 = dtm.datetime.now()     # DB
     if continuous:
         for ii in range(nspect):
-            res = scpopt.least_squares(cost_scale, x0_scale[ii, :],
+            res = scpopt.least_squares(cost_scale, x0_scale,
                                        jac=jac_scale, bounds=bounds_scale,
                                        method=method, ftol=ftol, xtol=xtol,
                                        gtol=gtol, x_scale=1.0, f_scale=1.0,
