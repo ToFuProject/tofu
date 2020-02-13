@@ -1049,7 +1049,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] dv_mv
-    cdef double[::1] R, Z, reso_phi_mv, dPhir, hypot
+    cdef double[::1] reso_phi_mv, hypot
     cdef double[:, ::1] pts_mv
     cdef double[:, ::1] poly_mv
     cdef long[:, :, ::1] lnp
@@ -1214,7 +1214,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
-        # TODO : format here !!!!!!!!!! poly must be closed !!!!!!!!!!!!!!!!!!!!!!!!!
         nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv, pts,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,
@@ -1323,67 +1322,83 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
                 Ru[iiR] = 1.
     return Pts, dV, dRr, dZr, np.asarray(dRPhir)[~np.isnan(dRPhir)]
 
-def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
+def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phi_step,
                                      double[::1] RMinMax, double[::1] ZMinMax,
                                      long[::1] ind, str Out='(X,Y,Z)',
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the (numerical) indices,
-    for the desired resolution (dR,dZ,dRphi)
+    for the desired resolution (rstep, zstep, dRphi)
     """
     cdef str out_low = Out.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
-    cdef double[::1] R, Z, dRPhirRef, dPhir, Ru, dRPhir
+    cdef double[::1] dRPhirRef, Ru
     cdef double dRr, dZr, phi
-    cdef long[::1] indR, indZ, NRPhi0, NRPhi
-    cdef long NR, NZ, Rn, Zn, NP=len(ind), Rratio
+    cdef long[::1] indR, indZ, NRPhi0
+    cdef long NP=len(ind), Rratio
     cdef int ii=0, jj=0, iiR, iiZ, iiphi
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] res3d=np.empty((NP,))
-
+    cdef double[::1] reso_phi_mv
+    cdef long[1]   ncells_r, ncells_z
+    cdef double[1] reso_r, reso_z
+    cdef double[2] limits_dl
+    cdef long* ncells_rphi = NULL
+    cdef long* lindex    = NULL
+    cdef double* disc_r  = NULL
+    cdef double* disc_z  = NULL
+    cdef double* step_rphi = NULL
+    cdef np.ndarray[double,ndim=1] reso_phi
     # Get the actual R and Z resolutions and mesh elements
-    R, dRr, indR, NR = discretize_line1d(RMinMax, dR, None, Lim=True,
-                                         margin=margin)
-    # # .. We discretize R .......................................................
-    # _st.cythonize_subdomain_dl(None, limits_dl)
-    # sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
-    #                                   True, 0, # discretize in absolute mode
-    #                                   margin, &disc_r, reso_r, &lindex,
-    #                                   ncells_r)
-    # free(lindex) # getting rid of things we dont need
-
-    Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, dZ, None, Lim=True,
-                                         margin=margin)
-    Rn, Zn = len(R), len(Z)
-
+    # .. We discretize R .......................................................
+    _st.cythonize_subdomain_dl(None, limits_dl)
+    sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_r, reso_r, &lindex,
+                                      ncells_r)
+    free(lindex) # getting rid of things we dont need
+    lindex = NULL
+    # .. We discretize Z .......................................................
+    sz_z = _st.discretize_line1d_core(&ZMinMax[0], zstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_z, reso_z, &lindex,
+                                      ncells_z)
+    free(lindex)
     # Number of Phi per R
-    dRPhirRef, dPhir = np.empty((NR,)), np.empty((NR,))
-    Ru, dRPhir = np.zeros((NR,)), np.nan*np.ones((NR,))
-    NRPhi, NRPhi0 = np.empty((NR,),dtype=int), np.empty((NR+1,),dtype=int)
-    Rratio = int(Cceil(R[NR-1]/R[0]))
-    for ii in range(0,NR):
-        NRPhi[ii] = <long>(Cceil(_TWOPI*R[ii]/dRPhi))
-        dRPhirRef[ii] = _TWOPI*R[ii]/<double>(NRPhi[ii])
-        dPhir[ii] = _TWOPI/<double>(NRPhi[ii])
+    dRPhirRef, np.empty((sz_r,))
+    Ru, dRPhir = np.zeros((sz_r,)), np.nan*np.ones((sz_r,))
+    NRPhi0 = np.empty((sz_r+1,),dtype=int)
+    Rratio = int(Cceil(disc_r[sz_r-1]/disc_r[0]))
+    # .. Initialization ........................................................
+    ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
+    step_rphi    = <double*>malloc(sz_r*sizeof(double))
+    # replacing dRPhir by reso_phi means no nan lefts
+    reso_phi = np.empty((sz_r,)) # we create the numpy array
+    reso_phi_mv = reso_phi # and its associated memoryview
+
+    for ii in range(0,sz_r):
+        ncells_rphi[ii] = <long>(Cceil(_TWOPI*disc_r[ii]/phi_step))
+        dRPhirRef[ii] = _TWOPI*disc_r[ii]/<double>(ncells_rphi[ii])
+        step_rphi[ii] = _TWOPI/<double>(ncells_rphi[ii])
         if ii==0:
             NRPhi0[ii] = 0
-            Phi = np.empty((NR,NRPhi[ii]*Rratio+1))
+            Phi = np.empty((sz_r,ncells_rphi[ii]*Rratio+1))
         else:
-            NRPhi0[ii] = NRPhi0[ii-1] + NRPhi[ii-1]*NZ
-        for jj in range(0,NRPhi[ii]):
-            Phi[ii,jj] = -Cpi + (0.5+<double>jj)*dPhir[ii]
+            NRPhi0[ii] = NRPhi0[ii-1] + ncells_rphi[ii-1]*sz_z
+        for jj in range(ncells_rphi[ii]):
+            Phi[ii,jj] = -Cpi + (0.5+<double>jj)*step_rphi[ii]
 
     if is_cart:
         for ii in range(0,NP):
-            for jj in range(0,NR+1):
+            for jj in range(0,sz_r+1):
                 if ind[ii]-NRPhi0[jj]<0.:
                     break
             iiR = jj-1
-            iiZ = (ind[ii] - NRPhi0[iiR])//NRPhi[iiR]
-            iiphi = ind[ii] - NRPhi0[iiR] - iiZ*NRPhi[iiR]
+            iiZ = (ind[ii] - NRPhi0[iiR])//ncells_rphi[iiR]
+            iiphi = ind[ii] - NRPhi0[iiR] - iiZ*ncells_rphi[iiR]
             phi = Phi[iiR,iiphi]
-            pts[0,ii] = R[iiR]*Ccos(phi)
-            pts[1,ii] = R[iiR]*Csin(phi)
+            pts[0,ii] = disc_r[iiR]*Ccos(phi)
+            pts[1,ii] = disc_r[iiR]*Csin(phi)
             pts[2,ii] = Z[iiZ]
             res3d[ii] = dRr*dZr*dRPhirRef[iiR]
             if Ru[iiR]==0.:
@@ -1391,13 +1406,13 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
                 Ru[iiR] = 1.
     else:
         for ii in range(0,NP):
-            for jj in range(0,NR+1):
+            for jj in range(0,sz_r+1):
                 if ind[ii]-NRPhi0[jj]<0.:
                     break
             iiR = jj-1
-            iiZ = (ind[ii] - NRPhi0[iiR])//NRPhi[iiR]
-            iiphi = ind[ii] - NRPhi0[iiR] - iiZ*NRPhi[iiR]
-            pts[0,ii] = R[iiR]
+            iiZ = (ind[ii] - NRPhi0[iiR])//ncells_rphi[iiR]
+            iiphi = ind[ii] - NRPhi0[iiR] - iiZ*ncells_rphi[iiR]
+            pts[0,ii] = disc_r[iiR]
             pts[1,ii] = Z[iiZ]
             pts[2,ii] = Phi[iiR,iiphi]
             res3d[ii] = dRr*dZr*dRPhirRef[iiR]
