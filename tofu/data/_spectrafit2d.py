@@ -498,11 +498,17 @@ def multigausfit1d_from_dlines_ind(dlines2=None,
             }
     return dind, sizex, shapey0
 
-def multigausfit1d_from_dlines_scale(data, lamb):
-    Dlamb = lamb[-1]-lamb[0]
-    lambm = np.nanmin(lamb)
-    dscale = {'bck': np.nanmin(data), 'amp': np.nanmax(data),
-              'width': (Dlamb/(20*lambm))**2, 'shift': Dlamb/(10*lambm)}
+def multigausfit1d_from_dlines_scale(data, lamb, dscale=None):
+    if dscale is None:
+        Dlamb = lamb[-1]-lamb[0]
+        lambm = np.nanmin(lamb)
+        # bck, amp, width, shift
+        scales = np.r_[np.nanmin(data), np.nanmax(data),
+                      (Dlamb/(20*lambm))**2, Dlamb/(10*lambm)]
+        dscale = {'bck': np.nanmin(data),
+                  'amp': np.nanmax(data),
+                  'width': (Dlamb/(20*lambm))**2,
+                  'shift': Dlamb/(10*lambm)}
     return dscale
 
 def multigausfit1d_from_dlines_x0(sizex, dind,
@@ -665,7 +671,7 @@ def multigausfit1d_from_dlines(data, lamb,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
                                Ti=None, vi=None, double=None,
-                               verbose=None,
+                               continuous=None, verbose=None,
                                loss=None, jac=None):
     """ Solve multi_gaussian fit in 1d from dlines
 
@@ -697,7 +703,8 @@ def multigausfit1d_from_dlines(data, lamb,
         vi = False
     if double is None:
         double = False
-    assert isinstance(double, bool)
+    if continuous is None:
+        continuous = True
     if jac is None:
         jac = 'call'
     if method is None:
@@ -714,6 +721,14 @@ def multigausfit1d_from_dlines(data, lamb,
     if max_nfev is None:
         max_nfev = None
 
+    assert lamb.ndim == 1
+    assert data.ndim in [1, 2] and lamb.size in data.shape
+    if data.ndim == 1:
+        data = data[None, :]
+    if data.shape[1] != lamb.size:
+        data = data.T
+    nspect = data.shape[0]
+
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
     nlines = dlines2['lamb'].size
@@ -724,7 +739,9 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Get scaling
     if dscale is None:
-        dscale = multigausfit1d_from_dlines_scale(data, lamb)
+        dscale = multigausfit1d_from_dlines_scale(data, lamb,
+                                                  dscale=dscale, nspect=nspect,
+                                                  continuous=continuous)
 
     # Get initial guess
     if x0_scale is None:
@@ -732,7 +749,8 @@ def multigausfit1d_from_dlines(data, lamb,
                                                  lines=dlines2['lamb'],
                                                  data=data,
                                                  lamb=lamb, dscale=dscale,
-                                                 double=double)
+                                                 double=double, nspect=nspect,
+                                                 continuous=continuous)
 
     # get bounds
     if bounds_scale is None:
@@ -747,14 +765,29 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Minimize
     t0 = dtm.datetime.now()     # DB
-    res = scpopt.least_squares(cost_scale, x0_scale,
-                               jac=jac_scale, bounds=bounds_scale,
-                               method=method, ftol=ftol, xtol=xtol,
-                               gtol=gtol, x_scale=1.0, f_scale=1.0, loss=loss,
-                               diff_step=None, tr_solver=None,
-                               tr_options={}, jac_sparsity=None,
-                               max_nfev=max_nfev, verbose=verbose,
-                               args=(), kwargs={})
+    if continuous:
+        for ii in range(nspect):
+            res = scpopt.least_squares(cost_scale, x0_scale[ii, :],
+                                       jac=jac_scale, bounds=bounds_scale,
+                                       method=method, ftol=ftol, xtol=xtol,
+                                       gtol=gtol, x_scale=1.0, f_scale=1.0,
+                                       loss=loss, diff_step=None,
+                                       tr_solver=None, tr_options={},
+                                       jac_sparsity=None, max_nfev=max_nfev,
+                                       verbose=verbose, args=(), kwargs={})
+            x0_scale = None
+            bounds_scale = None
+
+    else:
+        for ii in range(nspect):
+            res = scpopt.least_squares(cost_scale, x0_scale[ii, :],
+                                       jac=jac_scale, bounds=bounds_scale,
+                                       method=method, ftol=ftol, xtol=xtol,
+                                       gtol=gtol, x_scale=1.0, f_scale=1.0,
+                                       loss=loss, diff_step=None,
+                                       tr_solver=None, tr_options={},
+                                       jac_sparsity=None, max_nfev=max_nfev,
+                                       verbose=verbose, args=(), kwargs={})
     msg = ("{}:   time (s)    cost   nfev   njev   term\n\t  ".format(jac)
            + str(round((dtm.datetime.now()-t0).total_seconds(), ndigits=2))
            + "    {}    {}   {}".format(round(res.cost), res.nfev, res.njev)
@@ -944,13 +977,42 @@ def multigausfit2d_from_dlines_ind(dlines2=None,
     return dind, sizex, shapey0
 
 
-def multigausfit2d_from_dlines_scale(data_lamb_nbs, lamb):
-    Dlamb = lambfit[-1]-lambfit[0]
-    lambm = np.nanmin(lambfit)
-    dscale = {'bck': np.array([np.nanmin(da) for da in data_lamb_nbs])
-              'amp': np.array([np.nanmax(da) for da in data_lamb_nbs]),
-              'width': np.full((nbs,), (Dlamb/(20*lambm))**2),
-              'shift': np.full((nbs,), Dlamb/(10*lambm))}
+def multigausfit2d_from_dlines_scale(data2d, lambfit, phifit,
+                                     lambmin=None, lambmax=None, dlines2=None,
+                                     Ti=None, vi=None, double=None,
+                                     xtol=None, ftol=None, gtol=None,
+                                     method=None, max_nfev=None,
+                                     loss=None, jac=None):
+
+    # Extract nbs spect1d for 1d fitting
+    for ii in range(nbs):
+        if np.any(np.isnan(spect1d)):
+            continue
+        dfit1d = multigausfit1d_from_dlines(spect1d, lambfit,
+                                            lambmin=lambmin, lambmax=lambmax,
+                                            dlines2=dlines2, ratio=None,
+                                            dscale=None, x0_scale=None,
+                                            bounds_scale=None,
+                                            method=method, max_nfev=max_nfev,
+                                            xtol=xtol, ftol=ftol, gtol=gtol,
+                                            Ti=Ti, vi=vi, double=double,
+                                            verbose=None,
+                                            loss=loss, jac=jac):
+        bck[ii] = dfit1d['bck']
+        amp[ii] = dfit1d['amp']
+        width[ii] = dfit1d['width']
+        shift[ii] = dfit1d['shift']
+
+    # Interpolate cases that could not be run
+    indnan = np.isnan(bck)
+    if np.any(indnan):
+        indok = ~indnan
+        bck[indnan] = scpinterp.interp1d(phifit[indok], bck[indok],
+                                         phifit[indnan])
+        amp[indnan] = scpinterp.interp1d(phifit[indok], amp[indok],
+                                         phifit[indnan])
+    # Return
+    dscale = {'bck': bck, 'amp': amp, 'width': width, 'shift': shift}
     return dscale
 
 
@@ -958,15 +1020,16 @@ def multigausfit2d_from_dlines_x0(sizex, dind,
                                   lines=None, data_lamb_nbs=None, lamb=None,
                                   dscale=None, double=None):
     # Each x0 should be understood as x0*scale
-    x0_scale = np.full((sizex,), np.nan)
-    x0_scale[dind['bck']] = 1.
-    amp0 = [da[np.searchsorted(lamb, lines)] for da in data_lamb_nbs]
-    x0_scale[dind['amp']] = amp0 / dscale['amp']
-    x0_scale[dind['width']] = 0.4
-    x0_scale[dind['shift']] = 0.
-    if double is True:
-        x0_scale[dind['dratio']] = 0.8
-        x0_scale[dind['dshift']] = 0.2
+    x0_scale = np.ones((sizex,), dtype=float)
+    # x0_scale = np.full((sizex,), np.nan)
+    # x0_scale[dind['bck']] = 1.
+    # amp0 = [da[np.searchsorted(lamb, lines)] for da in data_lamb_nbs]
+    # x0_scale[dind['amp']] = amp0 / dscale['amp']
+    # x0_scale[dind['width']] = 0.4
+    # x0_scale[dind['shift']] = 0.
+    # if double is True:
+        # x0_scale[dind['dratio']] = 0.8
+        # x0_scale[dind['dshift']] = 0.2
     return x0_scale
 
 
@@ -1238,6 +1301,10 @@ def multigaussianfit2d(lamb, phi, data, std=None,
     # Get indices
     dind, sizex, shapey0 = multigausfit2d_from_dlines_ind(
         dlines2=dlines2, double=double, Ti=Ti, vi=vi, nbs=nbs)
+
+    # Get nbs spect1d for scaling
+    for ii in range(nbs):
+        pass
 
     # Get scaling
     if dscale is None:
