@@ -754,7 +754,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         phifit = phifit*180./np.pi
         if phiax is not None:
             phiax = 180*phiax/np.pi
-        phiminmax = (phiminmax[0]*180./np.pi, phiminmax[1]*180./np.pi)
+        phiminmax = phiminmax*180./np.pi
+    nspect = spect1d.shape[0]
 
     if dlines is not None:
         lines = [k0 for k0, v0 in dlines.items()
@@ -780,6 +781,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
             [[lcol[ii]]*dions[lions[ii]]['lamb'].size
              for ii in range(nions)]))
         lcollamb = [lcollamb[ii] for ii in indsort]
+
+    lcolspect = ['k', 'r', 'b', 'g', 'y', 'm', 'c']
+    ncolspect = len(lcolspect)
 
     # pre-compute
     # ------------
@@ -824,11 +828,11 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=2,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
-    axs2.plot(lambfit, spect1d, c='k', ls='-')
     ax3.plot(vertsum1d, phifit, c='k', ls='-')
     if phiax is not None:
         ax2.plot(lambax, phiax, c='r', ls='-', lw=1.)
 
+    # Plot known spectral lines
     if dlines is not None:
         for ii, k0 in enumerate(lions):
             for jj in range(dions[k0]['lamb'].size):
@@ -847,8 +851,13 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         axs2.legend(hand, lions,
                     bbox_to_anchor=(1., 1.02), loc='upper left')
 
-    ax2.axhline(phiminmax[0], c='r', ls='-', lw=1.)
-    ax2.axhline(phiminmax[1], c='r', ls='-', lw=1.)
+    # Plot 1d spectra and associated phi windows
+    for ii in range(nspect):
+        axs2.plot(lambfit, spect1d[ii], c=lcolspect[ii%ncolspect], ls='-')
+        ax2.axhline(phiminmax[ii ,0], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
+        ax2.axhline(phiminmax[ii, 1], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
+        ax3.axhline(phiminmax[ii ,0], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
+        ax3.axhline(phiminmax[ii, 1], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
 
     ax2.set_xlim(lambmin, lambmax)
     ax2.set_ylim(phifit.min(), phifit.max())
@@ -868,15 +877,13 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
                                  lambmin=None, lambmax=None,
                                  fs=None, dmargin=None,
-                                 tit=None, wintit=None, ax=None):
+                                 tit=None, wintit=None):
 
     # Check inputs
     # ------------
 
     if fs is None:
         fs = (15, 8)
-    if tit is None:
-        tit = False
     if wintit is None:
         wintit = _WINTIT
     if dmargin is None:
@@ -891,7 +898,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
     shift_u = dlines2['shift_u']
     lions = dlines2['ion_u']
     nions = len(lions)
-    x = dlines2['lamb'] + dfit1d['shift']
+    x = dlines2['lamb'][None, :] + dfit1d['shift']
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
     if dfit1d['Ti'] is True:
@@ -904,118 +911,125 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
     else:
         lhatch = [None]
     nhatch = len(lhatch)
+    nspect = dfit1d['data'].shape[0]
 
     # Plot
     # ------------
 
-    if ax is None:
+    for ii in range(nspect):
+        if tit is None:
+            titi = ("spect1d {}\n".format(ii)
+                   + "phi in [{}, {}]".format(round(ii), ii))
+        else:
+            titi = tit
+
         fig = fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(1, 1, **dmargin)
         ax = fig.add_subplot(gs[0, 0])
         ax.set_ylabel(r'data (a.u.)')
         ax.set_xlabel(r'$\lambda$ (m)')
 
-    if showonly is not True:
-        ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][0, :], ls='-', c='k')
-        ax.set_prop_cycle(None)
-        if dfit1d['Ti'] is True or dfit1d['vi'] is True:
-            for ii in range(nlines):
-                col = lfcol[width_u.index(dlines2['width'][ii])%nfcol]
-                hatch = lhatch[shift_u.index(dlines2['shift'][ii])%nhatch]
-                ax.fill_between(dfit1d['lamb'], dfit1d['sol_detail'][1+ii, :],
-                                alpha=0.3, color=col, hatch=hatch)
+        if showonly is not True:
+            ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][ii, 0, :], ls='-', c='k')
+            ax.set_prop_cycle(None)
+            if dfit1d['Ti'] is True or dfit1d['vi'] is True:
+                for jj in range(nlines):
+                    col = lfcol[width_u.index(dlines2['width'][jj])%nfcol]
+                    hatch = lhatch[shift_u.index(dlines2['shift'][jj])%nhatch]
+                    ax.fill_between(dfit1d['lamb'],
+                                    dfit1d['sol_detail'][ii, 1+jj, :],
+                                    alpha=0.3, color=col, hatch=hatch)
+            else:
+                ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][ii, 1:, :].T)
+            ax.plot(dfit1d['lamb'], dfit1d['sol'][ii, :], c='k', lw=2.)
+            ax.plot(dfit1d['lamb'], dfit1d['data'][ii, :],
+                    marker='.', c='k', ls='None', ms=8)
         else:
-            ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][1:, :].T)
-        ax.plot(dfit1d['lamb'], dfit1d['sol'],
-                c='k', lw=2.)
-        ax.plot(dfit1d['lamb'], dfit1d['data'],
-                marker='.', c='k', ls='None', ms=8)
-    else:
-        ax.plot(dfit1d['lamb'], dfit1d['data'],
-                marker='.', c='k', ls='-', ms=8)
+            ax.plot(dfit1d['lamb'], dfit1d['data'][ii, :],
+                    marker='.', c='k', ls='-', ms=8)
 
-    # Annotate lines
-    for ii, k0 in enumerate(lions):
-        col = lcol[ii%ncol]
-        ind = (dlines2['ion'] == k0).nonzero()[0]
-        for jj in ind:
-            ax.axvline(x[jj],
-                       c=col, ls='--')
-            lab = (dlines2['symb'][jj]
-                   + '\n{:4.2e}'.format(dfit1d['coefs'][jj])
-                   + '\n({:+4.2e} A)'.format(dfit1d['shift'][jj]*1.e10))
-            ax.annotate(lab,
-                        xy=(x[jj], 1.01), xytext=None,
-                        xycoords=('data', 'axes fraction'),
-                        color=col, arrowprops=None,
-                        horizontalalignment='center',
-                        verticalalignment='bottom')
+        # Annotate lines
+        for jj, k0 in enumerate(lions):
+            col = lcol[jj%ncol]
+            ind = (dlines2['ion'] == k0).nonzero()[0]
+            for nn in ind:
+                ax.axvline(x[ii, nn],
+                           c=col, ls='--')
+                lab = (dlines2['symb'][nn]
+                       + '\n{:4.2e}'.format(dfit1d['coefs'][ii, nn])
+                       + '\n({:+4.2e} A)'.format(dfit1d['shift'][ii, nn]*1.e10))
+                ax.annotate(lab,
+                            xy=(x[ii, nn], 1.01), xytext=None,
+                            xycoords=('data', 'axes fraction'),
+                            color=col, arrowprops=None,
+                            horizontalalignment='center',
+                            verticalalignment='bottom')
 
-    # Ion legend
-    hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--',
-                          label=lions[ii])
-            for ii in range(nions)]
-    legi = ax.legend(handles=hand,
-                     title='ions',
-                     bbox_to_anchor=(1.01, 1.), loc='upper left')
-    ax.add_artist(legi)
+        # Ion legend
+        hand = [mlines.Line2D([], [], color=lcol[jj%ncol], ls='--',
+                              label=lions[jj])
+                for jj in range(nions)]
+        legi = ax.legend(handles=hand,
+                         title='ions',
+                         bbox_to_anchor=(1.01, 1.), loc='upper left')
+        ax.add_artist(legi)
 
-    # Ti legend
-    if dfit1d['Ti'] is True:
-        hand = [mpatches.Patch(color=lfcol[ii%nfcol])
-                for ii in range(len(dlines2['width_u']))]
-        lleg = [dlines2['width_u'][ii]
-                + '  {:4.2f}'.format(dfit1d['kTiev'][ii]*1.e-3)
-                for ii in range(len(dlines2['width_u']))]
-        legT = ax.legend(handles=hand, labels=lleg,
-                         title='Ti (keV)',
-                         bbox_to_anchor=(1.01, 0.8), loc='upper left')
-        ax.add_artist(legT)
+        # Ti legend
+        if dfit1d['Ti'] is True:
+            hand = [mpatches.Patch(color=lfcol[jj%nfcol])
+                    for jj in range(len(dlines2['width_u']))]
+            lleg = [dlines2['width_u'][jj]
+                    + '  {:4.2f}'.format(dfit1d['kTiev'][ii, jj]*1.e-3)
+                    for jj in range(len(dlines2['width_u']))]
+            legT = ax.legend(handles=hand, labels=lleg,
+                             title='Ti (keV)',
+                             bbox_to_anchor=(1.01, 0.8), loc='upper left')
+            ax.add_artist(legT)
 
-    # vi legend
-    if dfit1d['vi'] is True:
-        hand = [mpatches.Patch(color='w',
-                               hatch=lhatch[ii%nhatch],
-                               label=dlines2['shift_u'][ii])
-                for ii in range(len(dlines2['shift_u']))]
-        lleg = [dlines2['shift_u'][ii]
-                + '  {:4.2f}'.format(dfit1d['vims'][ii]*1.e-3)
-                for ii in range(len(dlines2['shift_u']))]
-        legv = ax.legend(handles=hand,
-                         title='vi (km/s)',
-                         bbox_to_anchor=(1.01, 0.6), loc='upper left')
-        ax.add_artist(legv)
+        # vi legend
+        if dfit1d['vi'] is True:
+            hand = [mpatches.Patch(color='w',
+                                   hatch=lhatch[jj%nhatch],
+                                   label=dlines2['shift_u'][jj])
+                    for jj in range(len(dlines2['shift_u']))]
+            lleg = [dlines2['shift_u'][jj]
+                    + '  {:4.2f}'.format(dfit1d['vims'][ii, jj]*1.e-3)
+                    for jj in range(len(dlines2['shift_u']))]
+            legv = ax.legend(handles=hand,
+                             title='vi (km/s)',
+                             bbox_to_anchor=(1.01, 0.6), loc='upper left')
+            ax.add_artist(legv)
 
-    # Ratios legend
-    if dfit1d['ratio'] is not None:
-        nratio = len(dfit1d['ratio']['up'])
-        hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
-        lleg = ['{} =  {:4.2e}'.format(dfit1d['ratio']['str'][ii],
-                                       dfit1d['ratio']['value'][ii])
-                for ii in range(nratio)]
-        legr = ax.legend(handles=hand,
-                         labels=lleg,
-                         title='line ratio',
-                         bbox_to_anchor=(1.01, 0.4), loc='upper left')
-        ax.add_artist(legr)
+        # Ratios legend
+        if dfit1d['ratio'] is not None:
+            nratio = len(dfit1d['ratio']['up'])
+            hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
+            lleg = ['{} =  {:4.2e}'.format(dfit1d['ratio']['str'][jj],
+                                           dfit1d['ratio']['value'][ii, jj])
+                    for jj in range(nratio)]
+            legr = ax.legend(handles=hand,
+                             labels=lleg,
+                             title='line ratio',
+                             bbox_to_anchor=(1.01, 0.4), loc='upper left')
+            ax.add_artist(legr)
 
-    # double legend
-    if dfit1d['double'] is True:
-        hand = [mlines.Line2D([], [], c='k', ls='None')]*2
-        lleg = ['ratio = {:4.2f}'.format(dfit1d['dratio']),
-                ('shift ' + r'$\approx$'
-                 + ' {:4.2e}'.format(np.nanmean(dfit1d['dshift'])))]
-        legr = ax.legend(handles=hand,
-                         labels=lleg,
-                         title='double',
-                         bbox_to_anchor=(1.01, 0.2), loc='upper left')
+        # double legend
+        if dfit1d['double'] is True:
+            hand = [mlines.Line2D([], [], c='k', ls='None')]*2
+            lleg = ['ratio = {:4.2f}'.format(dfit1d['dratio'][ii]),
+                    ('shift ' + r'$\approx$'
+                     + ' {:4.2e}'.format(np.nanmean(dfit1d['dshift'][ii, :])))]
+            legr = ax.legend(handles=hand,
+                             labels=lleg,
+                             title='double',
+                             bbox_to_anchor=(1.01, 0.2), loc='upper left')
 
-    ax.set_xlim(lambmin, lambmax)
+        ax.set_xlim(lambmin, lambmax)
 
-    if tit is not False:
-        fig.suptitle(tit, size=14, weight='bold')
-    if wintit is not False:
-        fig.canvas.set_window_title(wintit)
+        if titi is not False:
+            fig.suptitle(titi, size=14, weight='bold')
+        if wintit is not False:
+            fig.canvas.set_window_title(wintit)
     return ax
 
 

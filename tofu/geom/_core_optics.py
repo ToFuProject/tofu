@@ -1569,15 +1569,28 @@ class CrystalBragg(utils.ToFuObject):
         if spect1d is None:
             spect1d = 'mean'
         lc = [isinstance(spect1d, tuple) and len(spect1d) == 2,
+              (isinstance(spect1d, list)
+               and all([isinstance(ss, tuple) and len(ss) == 2
+                        for ss in spect1d])),
               spect1d in ['mean', 'cent']]
-        if not any(lc):
+        if lc[0]:
+            spect1d = [spect1d]
+        elif lc[1]:
+            pass
+        elif lc[2]:
+            if spect1d == 'cent':
+                spect1d = [(0., 0.2)]
+                nspect = 1
+        else:
             msg = ("spect1d must be either:\n"
                    + "\t- 'mean': the avearge spectrum\n"
                    + "\t- 'cent': the central spectrum +/- 20%\n"
                    + "\t- (target, tol); a tuple of 2 floats:\n"
                    + "\t\ttarget: the central value of the window in [-1,1]\n"
-                   + "\t\ttol:    the window tolerance (width) in [0,1]")
+                   + "\t\ttol:    the window tolerance (width) in [0,1]\n"
+                   + "\t- list of (target, tol)")
             raise Exception(msg)
+
         # Compute lambfit / phifit and spectrum1d
         if mask is not None:
             data[~mask] = np.nan
@@ -1592,23 +1605,26 @@ class CrystalBragg(utils.ToFuObject):
 
         # Get phi window
         if spect1d == 'mean':
-            indphi = np.ones(phi.shape, dtype=bool)
+            phiminmax = np.r_[phifit.min(), phifit.max()][None, :]
+            spect1d = [np.nanmean(data[ind == jj]) for jj in np.unique(ind)]
         else:
-            if spect1d == 'cent':
-                spect1d = (0., 0.2)
+            nspect = len(spect1d)
             dphi = np.nanmax(phifit) - np.nanmin(phifit)
-            phicent = np.nanmean(phifit) + spect1d[0]*dphi/2.
-            indphi = np.abs(phi - phicent) < spect1d[1]*dphi
-        phiminmax = (np.nanmin(phi[indphi]), np.nanmax(phi[indphi]))
-
-        spect1d = np.array([np.nanmean(data[indphi & (ind == ii)])
-                            for ii in np.unique(ind)])
+            spect1d_out = np.full((nspect, lambfit.size), np.nan)
+            phiminmax = np.full((nspect, 2), np.nan)
+            for ii in range(nspect):
+                phicent = np.nanmean(phifit) + spect1d[ii][0]*dphi/2.
+                indphi = np.abs(phi - phicent) < spect1d[ii][1]*dphi
+                spect1d_out[ii, :] = [np.nanmean(data[indphi & (ind == jj)])
+                                      for jj in np.unique(ind)]
+                phiminmax[ii, :] = (np.nanmin(phi[indphi]),
+                                    np.nanmax(phi[indphi]))
 
         phifitbins = 0.5*(phifit[1:] + phifit[:-1])
         ind = np.digitize(phi, phifitbins)
         vertsum1d = np.array([np.nanmean(data[ind == ii])
                               for ii in np.unique(ind)])
-        return spect1d, lambfit, phifit, vertsum1d, phiminmax
+        return spect1d_out, lambfit, phifit, vertsum1d, phiminmax
 
     @staticmethod
     def get_dlines2_from_dlines(dlines, lambmin=None, lambmax=None):
@@ -1722,7 +1738,7 @@ class CrystalBragg(utils.ToFuObject):
                                lambmin=None, lambmax=None,
                                dlines=None, spect1d=None,
                                double=None, Ti=None, vi=None, ratio=None,
-                               dscale=None, x0_scale=None, bounds_scale=None,
+                               scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
                                loss=None, verbose=0, jac=None, showonly=None,
@@ -1763,11 +1779,11 @@ class CrystalBragg(utils.ToFuObject):
 
         # Use valid data only and optionally restrict lamb
         if lambmin is not None:
-            spect1d[lambfit<lambmin] = np.nan
+            spect1d[:, lambfit<lambmin] = np.nan
         if lambmax is not None:
-            spect1d[lambfit>lambmax] = np.nan
-        indok = (~np.isnan(spect1d)) & (~np.isnan(lambfit))
-        spect1d = spect1d[indok]
+            spect1d[:, lambfit>lambmax] = np.nan
+        indok = (~np.any(np.isnan(spect1d), axis=0)) & (~np.isnan(lambfit))
+        spect1d = spect1d[:, indok]
         lambfit = lambfit[indok]
 
         # Get dlines2
@@ -1792,7 +1808,7 @@ class CrystalBragg(utils.ToFuObject):
             dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
                 spect1d, lambfit, dlines2=dlines2,
                 lambmin=lambmin, lambmax=lambmax,
-                dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
+                scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
                 method=method, max_nfev=max_nfev, verbose=verbose,
                 xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
                 double=double, Ti=Ti, vi=vi, ratio=ratio, jac=jac)
