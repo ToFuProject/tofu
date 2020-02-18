@@ -1741,7 +1741,8 @@ class CrystalBragg(utils.ToFuObject):
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0, jac=None, showonly=None,
+                               loss=None, verbose=0, continuous=None,
+                               jac=None, showonly=None,
                                plot=True, fs=None, dmargin=None,
                                tit=None, wintit=None, returnas=None):
         # Check / format inputs
@@ -1809,7 +1810,8 @@ class CrystalBragg(utils.ToFuObject):
                 spect1d, lambfit, dlines2=dlines2,
                 lambmin=lambmin, lambmax=lambmax,
                 scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
-                method=method, max_nfev=max_nfev, verbose=verbose,
+                method=method, max_nfev=max_nfev,
+                continuous=continuous, verbose=verbose,
                 xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
                 double=double, Ti=Ti, vi=vi, ratio=ratio, jac=jac)
             dfit1d['phiminmax'] = phiminmax

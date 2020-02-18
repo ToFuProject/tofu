@@ -528,7 +528,7 @@ def multigausfit1d_from_dlines_x0(sizex, dind,
                                   continuous=None, nspect=None):
     # Each x0 should be understood as x0*scale
     x0_scale = np.full((nspect, sizex), np.nan)
-    if continuous:
+    if continuous is True:
         x0_scale[0, dind['bck']] = 1.
         amp0 = data[0, np.searchsorted(lamb, lines)]
         x0_scale[0, dind['amp']] = amp0 / scales[0, 1]
@@ -540,7 +540,7 @@ def multigausfit1d_from_dlines_x0(sizex, dind,
     else:
         x0_scale[:, dind['bck']] = 1.
         amp0 = data[:, np.searchsorted(lamb, lines)]
-        x0_scale[:, dind['amp']] = amp0 / scales[:, 1]
+        x0_scale[:, dind['amp']] = amp0 / scales[:, 1:2]
         x0_scale[:, dind['width']] = 0.4
         x0_scale[:, dind['shift']] = 0.
         if double is True:
