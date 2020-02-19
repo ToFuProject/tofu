@@ -1737,6 +1737,7 @@ class CrystalBragg(utils.ToFuObject):
                                nlambfit=None, nphifit=None,
                                lambmin=None, lambmax=None,
                                dlines=None, spect1d=None,
+                               dconstraints=None,
                                double=None, Ti=None, vi=None, ratio=None,
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
