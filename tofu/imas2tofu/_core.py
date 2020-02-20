@@ -581,6 +581,8 @@ class MultiIDSLoader(object):
         rho[ind] = -rho[ind]
         return rho
 
+    def _lamb(lamb_up, lamb_lo):
+        return 0.5*(lamb_up + lamb_lo)
 
     _dcomp = {
               'pulse_schedule':
@@ -640,7 +642,7 @@ class MultiIDSLoader(object):
                             'units':'adim.'}},
 
              'bremsstrahlung_visible':
-             {'lamb':{'lstr':['lamb_up','lamb_lo'], 'func':np.mean,
+             {'lamb':{'lstr':['lamb_up','lamb_lo'], 'func':_lamb,
                       'dim':'distance', 'quantity':'wavelength', 'units':'m'}}
             }
 
@@ -2547,21 +2549,22 @@ class MultiIDSLoader(object):
                 mobile = True
             elif nmob == 0 and nlim > 0:
                 mobile = False
-            elif nmob == nlim:
+            elif nmob > nlim:
                 msgw = 'wall.description_2[{}]'.format(description_2d)
-                msg = ("\nids wall has same number of limiter / mobile units\n"
+                msg = ("\nids wall has less limiter than mobile units\n"
+                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
+                       + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
+                       + "  => Choosing mobile by default")
+                warnings.warn(msg)
+                mobile = True
+            elif nmob <= nlim:
+                msgw = 'wall.description_2[{}]'.format(description_2d)
+                msg = ("\nids wall has more limiter than mobile units\n"
                        + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
                        + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
                        + "  => Choosing limiter by default")
                 warnings.warn(msg)
                 mobile = False
-            else:
-                msgw = 'wall.description_2[{}]'.format(description_2d)
-                msg = ("Can't decide automatically whether to choose"
-                       + " limiter or mobile!\n"
-                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
-                       + "\t- len({}.mobile.unit) = {}".format(msgw, nmob))
-                raise Exception(msg)
         assert isinstance(mobile, bool)
 
         # Get PFC
