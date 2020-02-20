@@ -1287,12 +1287,12 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                 depend=('core_profiles.t',
                                         'core_profiles.radius'),
                                 origin='input_file')
-        cam = multi.to_Cam(plot=False)
-        sig = cam.calc_signal_from_Plasma2D(plasma,
-                                            quant='core_profiles.1dbrem',
-                                            ref1d='core_profiles.1drhotn',
-                                            ref2d='equilibrium.2drhotn',
-                                            Brightness=True, plot=plot)[0]
+            cam = multi.to_Cam(plot=False)
+            sig = cam.calc_signal_from_Plasma2D(plasma,
+                                                quant='core_profiles.1dbrem',
+                                                ref1d='core_profiles.1drhotn',
+                                                ref2d='equilibrium.2drhotn',
+                                                Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:
                 # Format output dictionnary to be saved
@@ -1317,7 +1317,6 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 msg += "\nCould not save computed synthetic signal to:\n"
                 msg += "scpio.savemat({0}, dout)".format(output_file)
                 warnings.warn(msg)
-        import pdb; pdb.set_trace()     # DB
 
 
 #############################################

@@ -79,6 +79,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     plot_compare=True, Brightness=None,
                     res=None, interp_t=None,
                     sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
+                    input_file=None, output_file=None,
                     background=_BCK):
 
     if t0.lower() == 'none':
@@ -89,6 +90,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_compare=plot_compare, extra=extra,
                       Brightness=Brightness, res=res, interp_t=interp_t,
+                      input_file=input_file, output_file=output_file,
                       t0=t0, plot=True, sharex=sharex, bck=background)
 
     plt.show(block=True)
@@ -159,6 +161,12 @@ def main():
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
+    parser.add_argument('-if', '--input_file', type=str, required=False,
+                        help='mat file from which to load core_profiles',
+                        default=None)
+    parser.add_argument('-of', '--output_file', type=str, required=False,
+                        help='mat file into which to save synthetic signal',
+                        default=None)
     parser.add_argument('-bck', '--background', type=_str2bool, required=False,
                         help='Plot data enveloppe as grey background ?',
                         default=_BCK, const=True, nargs='?')
