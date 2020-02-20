@@ -26,7 +26,7 @@ import datetime as dtm
 # tofu
 try:
     import tofu.imas2tofu._def as _defimas2tofu
-except:
+except Exception as err:
     from . import _def as _defimas2tofu
 
 # imas
@@ -254,8 +254,10 @@ class MultiIDSLoader(object):
                             'units':'adim.'}},
 
              'bremsstrahlung_visible':
-             {'lamb':{'lstr':['lamb_up','lamb_lo'], 'func':_lamb,
-                      'dim':'distance', 'quantity':'wavelength', 'units':'m'}}
+             {'lamb': {'lstr': ['lamb_up', 'lamb_lo'], 'func': _lamb,
+                       'dim': 'distance',
+                       'quantity': 'wavelength',
+                       'units': 'm'}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',

@@ -1247,7 +1247,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                              ids=lids, synthdiag=True)
 
             # export to instances
-            for ii in range(0,nids):
+            for ii in range(0, nids):
                 if out[ii] == "Data":
                     multi.calc_signal(ids=lids[ii],
                                       tlim=tlim, dsig=dsig,

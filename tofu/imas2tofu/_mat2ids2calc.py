@@ -33,7 +33,7 @@ def _get_indtlim(t, tlim=None, shot=None, out=bool):
         tlim = [-np.inf, np.inf]
     else:
         assert len(tlim) == 2
-        ls = [int, float, np.int64, np.float64] # , str
+        ls = [int, float, np.int64, np.float64]     # , str
         assert all([tt is None or type(tt) in ls for tt in tlim])
         tlim = list(tlim)
         for (ii, sgn) in [(0, -1.), (1, 1.)]:
@@ -118,7 +118,7 @@ def get_data_from_matids(input_pfe=None, tlim=None,
 
         ls = [pp.shape for pp in data]
         c0 = [len(ss) == 2 for ss in ls]
-        c1 = np.sum([ss == (1, 1) for ss in ls])==4
+        c1 = np.sum([ss == (1, 1) for ss in ls]) == 4
         c2 = np.sum([(ss[1] == 1 and ss[0] > ss[1]) for ss in ls]) == 1
         c3 = np.sum([(ss[0] == 1 and ss[1] > ss[0]) for ss in ls]) == 1
         if c0 and c1 and c2 and c3:
@@ -168,7 +168,7 @@ def get_data_from_matids(input_pfe=None, tlim=None,
             indrhotn = [ii for ii in range(len(desg))
                         if desg[ii] == 'rho_tor_norm'][0]
             dout['rhotn'] = np.array([
-                data[ii][0,0][indg][0,0][indrhotn].ravel()
+                data[ii][0, 0][indg][0, 0][indrhotn].ravel()
                 for ii in range(nt)])
 
         if 'brem' in return_fields or 'zeff' in return_fields:
@@ -186,7 +186,7 @@ def get_data_from_matids(input_pfe=None, tlim=None,
         if 'brem' in return_fields or 'Te' in return_fields:
             indTe = [ii for ii in range(len(dese))
                      if dese[ii] == 'temperature'][0]
-            Te = np.array([data[ii][0,0][inde][0,0][indTe].ravel()
+            Te = np.array([data[ii][0, 0][inde][0, 0][indTe].ravel()
                            for ii in range(nt)])
             if 'Te' in return_fields:
                 dout['Te'] = Te
@@ -194,7 +194,7 @@ def get_data_from_matids(input_pfe=None, tlim=None,
         if 'brem' in return_fields or 'ne' in return_fields:
             indne = [ii for ii in range(len(dese))
                      if dese[ii] == 'density'][0]
-            ne = np.array([data[ii][0,0][inde][0,0][indne].ravel()
+            ne = np.array([data[ii][0, 0][inde][0, 0][indne].ravel()
                            for ii in range(nt)])
             if 'ne' in return_fields:
                 dout['ne'] = ne
