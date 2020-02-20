@@ -23,8 +23,8 @@ _dshort = {
         'BT0': {'str': ('time_slice[time].global_quantities'
                         + '.magnetic_axis.b_field_tor'),
                 'dim': 'B', 'quant': 'BT', 'units': 'T'},
-        'axR':{'str': 'time_slice[time].global_quantities.magnetic_axis.r',
-               'dim': 'distance', 'quant': 'R', 'units': 'm'},
+        'axR': {'str': 'time_slice[time].global_quantities.magnetic_axis.r',
+                'dim': 'distance', 'quant': 'R', 'units': 'm'},
         'axZ': {'str': 'time_slice[time].global_quantities.magnetic_axis.z',
                 'dim': 'distance', 'quant': 'Z', 'units': 'm'},
         'x0R': {'str': 'time_slice[time].boundary.x_point[0].r'},
@@ -76,15 +76,15 @@ _dshort = {
         't': {'str': 'time'},
         'ip': {'str': 'global_quantities.ip',
                'dim': 'current', 'quant': 'Ip', 'units': 'A'},
-        'vloop':{'str': 'global_quantities.v_loop',
-                 'dim': 'voltage', 'quant': 'Vloop', 'units': 'V/m'},
+        'vloop': {'str': 'global_quantities.v_loop',
+                  'dim': 'voltage', 'quant': 'Vloop', 'units': 'V/m'},
 
         '1dTe': {'str': 'profiles_1d[time].electrons.temperature',
                  'dim': 'temperature',  'quant': 'Te', 'units': 'eV'},
         '1dne': {'str': 'profiles_1d[time].electrons.density',
                  'dim': 'density', 'quant': 'ne', 'units': '/m^3'},
         '1dzeff': {'str': 'profiles_1d[time].zeff',
-                  'dim': 'charge', 'quant': 'zeff', 'units': 'adim.'},
+                   'dim': 'charge', 'quant': 'zeff', 'units': 'adim.'},
         '1dphi': {'str': 'profiles_1d[time].grid.phi',
                   'dim': 'B flux', 'quant': 'phi', 'units': 'Wb'},
         '1dpsi': {'str': 'profiles_1d[time].grid.psi',
@@ -97,12 +97,12 @@ _dshort = {
                  'dim': 'density', 'quant': 'nI', 'units': '/m^3'}},
 
     'edge_profiles': {
-        't':{'str': 'time'}},
+        't': {'str': 'time'}},
 
     'core_sources': {
         't': {'str': 'time'},
-        '1dpsi': {'str': ('source[identifier.name=lineradiation]'+
-                          '.profiles_1d[time].grid.psi'),
+        '1dpsi': {'str': ('source[identifier.name=lineradiation]'
+                          + '.profiles_1d[time].grid.psi'),
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1drhotn': {'str': ('source[identifier.name=lineradiation]'
                             + '.profiles_1d[time].grid.rho_tor_norm'),
@@ -122,13 +122,13 @@ _dshort = {
                                 + '.object[].nodes')},
         '2dradiation': {'str': 'source[13].ggd[0].electrons.energy[0].values',
                         'dim': 'vol. emis.', 'quant': 'vol.emis.',
-                        'name': 'tot. vol. emis.','units': 'W/m^3'}},
+                        'name': 'tot. vol. emis.', 'units': 'W/m^3'}},
 
     'lh_antennas': {
         't': {'str': 'antenna[chan].power_launched.time'},
         'power0': {'str': 'antenna[0].power_launched.data',
                    'dim': 'power', 'quant': 'lh power', 'units': 'W',
-                   'pos':True},
+                   'pos': True},
         'power1': {'str': 'antenna[1].power_launched.data',
                    'dim': 'power', 'quant': 'lh power', 'units': 'W',
                    'pos': True},
@@ -148,12 +148,14 @@ _dshort = {
                               'units': 'W'},
         'power1mod_fwd': {'str': 'antenna[1].module[].power_forward.data',
                           'dim': 'power', 'quant': 'ic power', 'units': 'W'},
-        'power1mod_reflect': {'str': 'antenna[1].module[].power_reflected.data',
+        'power1mod_reflect': {'str': ('antenna[1].module[]'
+                                      + '.power_reflected.data'),
                               'dim': 'power', 'quant': 'ic power',
                               'units': 'W'},
         'power2mod_fwd': {'str': 'antenna[2].module[].power_forward.data',
                           'dim': 'power', 'quant': 'ic power', 'units': 'W'},
-        'power2mod_reflect': {'str': 'antenna[2].module[].power_reflected.data',
+        'power2mod_reflect': {'str': ('antenna[2].module[]'
+                                      + '.power_reflected.data'),
                               'dim': 'power', 'quant': 'ic power',
                               'units': 'W'}},
 
@@ -163,18 +165,18 @@ _dshort = {
         'diamagflux': {'str': 'method[0].diamagnetic_flux.data'},
         'bpol_B': {'str': 'bpol_probe[chan].field.data',
                    'dim': 'B', 'quant': 'Bpol', 'units': 'T'},
-        'bpol_name':{'str': 'bpol_probe[chan].name'},
-        'bpol_R':{'str': 'bpol_probe[chan].position.r',
-                  'dim': 'distance', 'quant': 'R', 'units': 'm'},
-        'bpol_Z':{'str': 'bpol_probe[chan].position.z',
-                  'dim': 'distance', 'quant': 'Z', 'units': 'm'},
-        'bpol_angpol':{'str': 'bpol_probe[chan].poloidal_angle',
-                       'dim': 'angle', 'quant': 'angle_pol', 'units': 'rad'},
-        'bpol_angtor':{'str': 'bpol_probe[chan].toroidal_angle',
+        'bpol_name': {'str': 'bpol_probe[chan].name'},
+        'bpol_R': {'str': 'bpol_probe[chan].position.r',
+                   'dim': 'distance', 'quant': 'R', 'units': 'm'},
+        'bpol_Z': {'str': 'bpol_probe[chan].position.z',
+                   'dim': 'distance', 'quant': 'Z', 'units': 'm'},
+        'bpol_angpol': {'str': 'bpol_probe[chan].poloidal_angle',
+                        'dim': 'angle', 'quant': 'angle_pol', 'units': 'rad'},
+        'bpol_angtor': {'str': 'bpol_probe[chan].toroidal_angle',
                        'dim': 'angle', 'quant': 'angle_tor', 'units': 'rad'},
-        'floop_flux':{'str': 'flux_loop[chan].flux.data',
-                      'dim': 'B flux', 'quant': 'B flux', 'units': 'Wb'},
-        'floop_name':{'str': 'flux_loop[chan].name'},
+        'floop_flux': {'str': 'flux_loop[chan].flux.data',
+                       'dim': 'B flux', 'quant': 'B flux', 'units': 'Wb'},
+        'floop_name': {'str': 'flux_loop[chan].name'},
         'floop_R': {'str': 'flux_loop[chan].position.r',
                     'dim': 'distance', 'quant': 'R', 'units': 'm'},
         'floop_Z': {'str': 'flux_loop[chan].position.z',
@@ -194,26 +196,26 @@ _dshort = {
                   'units': 'W'}},
 
     'neutron_diagnostic': {
-        't':{'str': 'time', 'units': 's'},
-        'flux_total':{'str': 'synthetic_signals.total_neutron_flux',
+        't': {'str': 'time', 'units': 's'},
+        'flux_total': {'str': 'synthetic_signals.total_neutron_flux',
                       'dim': 'particle flux', 'quant': 'particle flux',
                       'units': 'Hz'}},
 
     'ece': {
-        't':{'str': 'time',
-             'quant': 't', 'units': 's'},
-        'freq':{'str': 'channel[chan].frequency.data',
-                'dim': 'freq', 'quant': 'freq', 'units': 'Hz'},
+        't': {'str': 'time',
+              'quant': 't', 'units': 's'},
+        'freq': {'str': 'channel[chan].frequency.data',
+                 'dim': 'freq', 'quant': 'freq', 'units': 'Hz'},
         'Te': {'str': 'channel[chan].t_e.data',
-               'dim': 'temperature', 'quant': 'Te', 'units': 'eV'},
+                'dim': 'temperature', 'quant': 'Te', 'units': 'eV'},
         'R': {'str': 'channel[chan].position.r',
               'dim': 'distance', 'quant': 'R', 'units': 'm'},
-        'rhotn':{'str': 'channel[chan].position.rho_tor_norm',
-                 'dim': 'rho', 'quant': 'rhotn', 'units': 'adim.'},
-        'theta':{'str': 'channel[chan].position.theta',
-                 'dim': 'angle', 'quant': 'theta', 'units': 'rad.'},
-        'tau1keV':{'str': 'channel[chan].optical_depth.data',
-                   'dim': 'optical_depth', 'quant': 'tau', 'units': 'adim.'},
+        'rhotn': {'str': 'channel[chan].position.rho_tor_norm',
+                  'dim': 'rho', 'quant': 'rhotn', 'units': 'adim.'},
+        'theta': {'str': 'channel[chan].position.theta',
+                  'dim': 'angle', 'quant': 'theta', 'units': 'rad.'},
+        'tau1keV': {'str': 'channel[chan].optical_depth.data',
+                    'dim': 'optical_depth', 'quant': 'tau', 'units': 'adim.'},
         'validity_timed': {'str': 'channel[chan].t_e.validity_timed'},
         'names': {'str': 'channel[chan].name'},
         'Te0': {'str': 't_e_central.data',
@@ -285,7 +287,7 @@ _dshort = {
                     'units': 'm2.sr'}},
 
     'spectrometer_visible': {
-        't':{'str': ('channel[chan].grating_spectrometer'
+        't': {'str': ('channel[chan].grating_spectrometer'
                      + '.radiance_spectral.time'),
              'quant': 't', 'units': 's'},
         'spectra': {'str': ('channel[chan].grating_spectrometer'
@@ -294,7 +296,7 @@ _dshort = {
                     'quant': 'radiance_spectral',
                     'units': 'ph/s/(m2.sr)/m', 'Brightness': True},
         'names': {'str': 'channel[chan].name'},
-        'lamb':{'str': 'channel[chan].grating_spectrometer.wavelengths',
+        'lamb': {'str': 'channel[chan].grating_spectrometer.wavelengths',
                 'dim': 'wavelength', 'quant': 'wavelength', 'units': 'm'}},
 
     'bremsstrahlung_visible': {
