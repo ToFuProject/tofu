@@ -53,7 +53,7 @@ _LIDS = _LIDS_DIAG
 _T0 = 'IGNITRON'
 _SHAREX = False
 _BCK = True
-_EXTRA = True
+_EXTRA = None
 _INDCH_AUTO = True
 
 ###################################################
@@ -91,7 +91,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                       plot_compare=plot_compare, extra=extra,
                       Brightness=Brightness, res=res, interp_t=interp_t,
                       input_file=input_file, output_file=output_file,
-                      t0=t0, plot=True, sharex=sharex, bck=background)
+                      t0=t0, plot=None, sharex=sharex, bck=background)
 
     plt.show(block=True)
 
