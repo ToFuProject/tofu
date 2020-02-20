@@ -173,7 +173,7 @@ _dshort = {
         'bpol_angpol': {'str': 'bpol_probe[chan].poloidal_angle',
                         'dim': 'angle', 'quant': 'angle_pol', 'units': 'rad'},
         'bpol_angtor': {'str': 'bpol_probe[chan].toroidal_angle',
-                       'dim': 'angle', 'quant': 'angle_tor', 'units': 'rad'},
+                        'dim': 'angle', 'quant': 'angle_tor', 'units': 'rad'},
         'floop_flux': {'str': 'flux_loop[chan].flux.data',
                        'dim': 'B flux', 'quant': 'B flux', 'units': 'Wb'},
         'floop_name': {'str': 'flux_loop[chan].name'},
@@ -198,8 +198,8 @@ _dshort = {
     'neutron_diagnostic': {
         't': {'str': 'time', 'units': 's'},
         'flux_total': {'str': 'synthetic_signals.total_neutron_flux',
-                      'dim': 'particle flux', 'quant': 'particle flux',
-                      'units': 'Hz'}},
+                       'dim': 'particle flux', 'quant': 'particle flux',
+                       'units': 'Hz'}},
 
     'ece': {
         't': {'str': 'time',
@@ -207,7 +207,7 @@ _dshort = {
         'freq': {'str': 'channel[chan].frequency.data',
                  'dim': 'freq', 'quant': 'freq', 'units': 'Hz'},
         'Te': {'str': 'channel[chan].t_e.data',
-                'dim': 'temperature', 'quant': 'Te', 'units': 'eV'},
+               'dim': 'temperature', 'quant': 'Te', 'units': 'eV'},
         'R': {'str': 'channel[chan].position.r',
               'dim': 'distance', 'quant': 'R', 'units': 'm'},
         'rhotn': {'str': 'channel[chan].position.rho_tor_norm',
@@ -223,7 +223,7 @@ _dshort = {
 
     'reflectometer_profile': {
         't': {'str': 'time'},
-         'ne': {'str': 'channel[chan].n_e.data',
+        'ne': {'str': 'channel[chan].n_e.data',
                 'dim': 'density', 'quant': 'ne', 'units': '/m^3'},
          'R': {'str': 'channel[chan].position.r',
                'dim': 'distance', 'quant': 'R', 'units': 'm'},
@@ -288,8 +288,8 @@ _dshort = {
 
     'spectrometer_visible': {
         't': {'str': ('channel[chan].grating_spectrometer'
-                     + '.radiance_spectral.time'),
-             'quant': 't', 'units': 's'},
+                      + '.radiance_spectral.time'),
+              'quant': 't', 'units': 's'},
         'spectra': {'str': ('channel[chan].grating_spectrometer'
                             + '.radiance_spectral.data'),
                     'dim': 'radiance_spectral',
@@ -297,7 +297,7 @@ _dshort = {
                     'units': 'ph/s/(m2.sr)/m', 'Brightness': True},
         'names': {'str': 'channel[chan].name'},
         'lamb': {'str': 'channel[chan].grating_spectrometer.wavelengths',
-                'dim': 'wavelength', 'quant': 'wavelength', 'units': 'm'}},
+                 'dim': 'wavelength', 'quant': 'wavelength', 'units': 'm'}},
 
     'bremsstrahlung_visible': {
         't': {'str': 'time',
@@ -406,4 +406,4 @@ _didsdiag = {
                 'ref2d': 'equilibrium.2drhotn'},
             'dsig': {'core_profiles': ['t'],
                      'equilibrium': ['t']},
-           'Brightness': True}}}
+            'Brightness': True}}}
