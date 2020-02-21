@@ -280,7 +280,7 @@ setup(
     # The project's main homepage.
     url="https://github.com/ToFuProject/tofu",
     # Author details
-    author="Didier VEZINET",
+    author="Didier VEZINET and Laura MENDOZA",
     author_email="didier.vezinet@gmail.com",
 
     # Choose your license
