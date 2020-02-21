@@ -1814,7 +1814,7 @@ class CrystalBragg(utils.ToFuObject):
                 method=method, max_nfev=max_nfev,
                 continuous=continuous, verbose=verbose,
                 xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-                double=double, Ti=Ti, vi=vi, ratio=ratio, jac=jac)
+                dconstraints=dconstraints, ratio=ratio, jac=jac)
             dfit1d['phiminmax'] = phiminmax
 
         # Plot
