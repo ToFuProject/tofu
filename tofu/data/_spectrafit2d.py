@@ -394,6 +394,63 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 ###########################################################
 ###########################################################
 
+def multigausfit1d_from_dlines_dlinesdconstrainst(dlines, dconstraints=None):
+
+    # Select relevant lines (keys, lamb)
+    keys = np.array([k0 for k0 in dlines.keys()])
+    lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
+    if lambmin is not None:
+        keys = keys[lamb >= lambmin]
+        lamb = lamb[lamb >= lambmin]
+    if lambmax is not None:
+        keys = keys[lamb <= lambmax]
+        lamb = lamb[lamb <= lambmax]
+
+    # Check constraints
+    if dconstraints is None:
+        dconstraints = {'width': False,
+                        'shift': False,
+                        'double': False,
+                        'amp_ratio': None}
+    else:
+        msg = ''
+        lk = ['width', 'shift', 'double', 'amp_ratio']
+        c0= (isinstance(dconstraints, dict)
+             and all([k0 in lk for k0 in dconstraints.keys()]))
+        if not c0:
+            raise Exception(msg)
+
+        # double
+        dconstraints['double'] = dconstrainst.get('double', False)
+        if type(dconstraints['double']) is not bool:
+            raise Exception(msg)
+
+        # width
+        dconstraints['width'] = dconstrainst.get('width', False)
+        c0 = type(dconstraints['width']) in []
+
+    ion = [dlines[k0]['ION'] for k0 in keys]
+    width = [dlines[k0].get('width', dlines[k0]['ION']) for k0 in keys]
+    shift = [dlines[k0].get('shift', dlines[k0]['ION']) for k0 in keys]
+    symb = [dlines[k0]['symbol'] for k0 in keys]
+    mz = [dlines[k0]['m'] for k0 in keys]
+    dlines2 = {
+        'key': keys,
+        'ion': np.array(ion),
+        'width': np.array(width),
+        'shift': np.array(shift),
+        'ion_u': sorted(set(ion)),
+        'width_u': sorted(set(width)),
+        'shift_u': sorted(set(shift)),
+        'lamb': np.array(lamb),
+        'symb': np.array(symb),
+        'mz': np.array(mz)
+    }
+
+    return dlines, dconstraints
+
+
+
 
 def multigausfit1d_from_dlines_ind(dlines2=None,
                                    double=None,
@@ -672,7 +729,7 @@ def multigausfit1d_from_dlines(data, lamb,
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               Ti=None, vi=None, double=None,
+                               dconstraints=None,
                                continuous=None, verbose=None,
                                loss=None, jac=None):
     """ Solve multi_gaussian fit in 1d from dlines
