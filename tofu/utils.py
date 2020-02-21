@@ -1039,8 +1039,9 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
-                   Brightness=None, res=None, interp_t=None, extra=True,
-                   plot=True, plot_compare=True, sharex=False,
+                   Brightness=None, res=None, interp_t=None, extra=None,
+                   plot=None, plot_compare=True, sharex=False,
+                   input_file=None, output_file=None,
                    bck=True, indch_auto=True, t=None, init=None):
     # -------------------
     # import imas2tofu
@@ -1049,19 +1050,30 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         import tofu.imas2tofu as imas2tofu
     except Exception as err:
         msg = str(err)
-        msg += "\n\n module imas2tofu does not seem available\n"
-        msg += "  => imas may not be installed ?"
+        msg += ("\n\n module imas2tofu does not seem available\n"
+                + "  => imas may not be installed?")
         raise Exception(msg)
 
     lok = ['Data']
     c0 = out is None or out in lok
     if not c0:
-        msg = "Arg out must be in %s"%str(lok)
+        msg = "Arg out must be in {}".format(lok)
         raise Exception(msg)
+
+    if plot is None:
+        if output_file is not None:
+            plot = False
+        else:
+            plot = True
+    if extra is None:
+        if input_file is not None:
+            extra = False
+        else:
+            extra = True
 
     # -------------------
     # Prepare ids
-    assert ids is None or type(ids) in [list,str]
+    assert ids is None or type(ids) in [list, str]
     if type(ids) is str:
         ids = [ids]
     if type(ids) is list:
@@ -1083,12 +1095,24 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         assert not any([ids_ in ids for ids_ in lidscustom])
 
+    # Check if input_file
+    if input_file is not None:
+        lids_input_file = ['bremsstrahlung_visible']
+        if nids != 1 or ids[0] not in lids_input_file:
+            msg = ("input_file is only available for a single ids in:\n"
+                   + "\t- " + "\n\t- ".join(lids_input_file))
+            raise Exception(msg)
 
     # -------------------
     # Prepare shot
     shot = np.r_[shot].astype(int)
     nshot = shot.size
 
+    # Check if input_file
+    if input_file is not None:
+        if nshot != 1:
+            msg = "input_file not available for multiple shots!"
+            raise Exception(msg)
 
     # -------------------
     # Prepare out
@@ -1107,8 +1131,8 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
                     for ids_ in ids]):
-            msg = "tf.load_from_imas() only handles multipe ids\n"
-            msg += "if all are diagnostics ids !"
+            msg = ("tf.load_from_imas() only handles multipe ids "
+                   + "if all are diagnostics ids!")
             raise Exception(msg)
 
     # -------------------
@@ -1215,29 +1239,84 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     # -------------------
     # load
-    for ss in shot:
-        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+
+    if input_file is None:
+        for ss in shot:
+            multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                             tokamak=tokamak, version=version,
+                                             ids=lids, synthdiag=True)
+
+            # export to instances
+            for ii in range(0, nids):
+                if out[ii] == "Data":
+                    multi.calc_signal(ids=lids[ii],
+                                      tlim=tlim, dsig=dsig,
+                                      config=config, t=t,
+                                      res=res, indch=indch,
+                                      Brightness=Brightness,
+                                      interp_t=interp_t,
+                                      indch_auto=indch_auto,
+                                      t0=t0, dextra=dextra,
+                                      plot=True,
+                                      plot_compare=plot_compare)
+
+    else:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
                                          tokamak=tokamak, version=version,
-                                         ids=lids, synthdiag=True)
+                                         ids=lids, synthdiag=False, get=False)
+        if 'bremsstrahlung_visible' in lids:
+            multi.add_ids('equilibrium', get=True)
+            plasma = multi.to_Plasma2D()
+            lf = ['t', 'rhotn', 'brem']
+            lamb = multi.get_data('bremsstrahlung_visible', sig='lamb')['lamb']
+            dout = imas2tofu.get_data_from_matids(input_file,
+                                                  return_fields=lf,
+                                                  lamb=lamb[0])
+            plasma.add_ref(key='core_profiles.t', data=dout['t'], group='time',
+                           origin='input_file')
+            nrad = dout['rhotn'].shape[1]
+            plasma.add_ref(key='core_profiles.radius', data=np.arange(0, nrad),
+                           group='radius', origin='input_file')
+            plasma.add_quantity(key='core_profiles.1drhotn',
+                                data=dout['rhotn'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file',
+                                quant='rhotn', dim='rho', units='adim.')
+            plasma.add_quantity(key='core_profiles.1dbrem', data=dout['brem'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file')
+            cam = multi.to_Cam(plot=False)
+            sig = cam.calc_signal_from_Plasma2D(plasma,
+                                                quant='core_profiles.1dbrem',
+                                                ref1d='core_profiles.1drhotn',
+                                                ref2d='equilibrium.2drhotn',
+                                                Brightness=True, plot=plot)[0]
+        if output_file is not None:
+            try:
+                # Format output dictionnary to be saved
+                dout = {'shot': shot[0],
+                        't': sig.t,
+                        'data': sig.data,
+                        'units_t': 's',
+                        'units_data': 'ph / (s.m2.sr.m)',
+                        'channels': sig.dchans('names'),
+                        'tofu_version': __version__}
 
-        # export to instances
-        for ii in range(0,nids):
-            if out[ii] == "Data":
-                multi.calc_signal(ids=lids[ii],
-                                  tlim=tlim, dsig=dsig,
-                                  config=config, t=t,
-                                  res=res, indch=indch,
-                                  Brightness=Brightness,
-                                  interp_t=interp_t,
-                                  indch_auto=indch_auto,
-                                  t0=t0, dextra=dextra,
-                                  plot=True,
-                                  plot_compare=plot_compare)
-
-
-
-
-
+                # Save to specified path + filename + extension
+                if output_file[-4:] != '.mat':
+                    assert len(output_file.split('.')) == 1
+                    output_file += '.mat'
+                scpio.savemat(output_file, dout)
+                msg = ("Successfully saved in:\n"
+                       + "\t{}".format(output_file))
+                print(msg)
+            except Exception as err:
+                msg = str(err)
+                msg += "\nCould not save computed synthetic signal to:\n"
+                msg += "scpio.savemat({0}, dout)".format(output_file)
+                warnings.warn(msg)
 
 
 #############################################
