@@ -382,6 +382,7 @@ setup(
         'console_scripts': [
             'tofuplot=tofu.scripts.tofuplot:main',
             'tofucalc=tofu.scripts.tofucalc:main',
+            'tofu-custom=tofu.scripts.tofucustom:main',
         ],
     },
 
