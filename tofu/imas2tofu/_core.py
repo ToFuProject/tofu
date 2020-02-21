@@ -610,11 +610,9 @@ class MultiIDSLoader(object):
             out = '\n'.join(out)
         return out
 
-    @classmethod
-    def _shortcuts(cls, obj=None, ids=None, return_=False,
+    @staticmethod
+    def _shortcuts(obj, ids=None, return_=False,
                    verb=True, sep='  ', line='-', just='l'):
-        if obj is None:
-            obj = cls
         if ids is None:
             if hasattr(obj, '_dids'):
                 lids = list(obj._dids.keys())
@@ -630,7 +628,6 @@ class MultiIDSLoader(object):
                 lids = [ids]
             else:
                 lids = ids
-
         lids = sorted(set(lids).intersection(obj._dshort.keys()))
 
         short = []
@@ -656,7 +653,22 @@ class MultiIDSLoader(object):
             return short
 
     @classmethod
-    def get_shortcuts(cls, ids=None, return_=False,
+    def get_shortcutsc(cls, ids=None, return_=False,
+                       verb=True, sep='  ', line='-', just='l'):
+        """ Display and/or return the builtin shortcuts for imas signal names
+
+        By default (ids=None), only display shortcuts for stored ids
+        To display all possible shortcuts, use ids='all'
+        To display shortcuts for a specific ids, use ids=<idsname>
+
+        These shortcuts can be customized (with self.set_shortcuts())
+        They are useful for use with self.get_data()
+
+        """
+        return cls._shortcuts(cls, ids=ids, return_=return_, verb=verb,
+                              sep=sep, line=line, just=just)
+
+    def get_shortcuts(self, ids=None, return_=False,
                       verb=True, sep='  ', line='-', just='l'):
         """ Display and/or return the builtin shortcuts for imas signal names
 
@@ -668,8 +680,8 @@ class MultiIDSLoader(object):
         They are useful for use with self.get_data()
 
         """
-        return cls._shortcuts(obj=cls, ids=ids, return_=return_, verb=verb,
-                              sep=sep, line=line, just=just)
+        return self._shortcuts(self, ids=ids, return_=return_, verb=verb,
+                               sep=sep, line=line, just=just)
 
     def set_shortcuts(self, dshort=None):
         """ Set the dictionary of shortcuts
