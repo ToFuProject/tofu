@@ -1,3 +1,37 @@
+"""
+That's where the default shortcuts for imas2tofu are defined
+Shortcuts allow you (via the class MulTiIDSLoader) to define short str
+    for some important data contained in IMAS ids
+The are stored as a large dict, with:
+    {ids: {
+        shortcut1: long_version1,
+        ...
+        shortcutN: long_version1}
+        }
+
+There is a default copy of this file in the tfu install, but each user can
+(re)define his/her own shortcuts using a local copy that will take precedence
+at import time.
+
+To customize your tofu install with user-specific parameters, run in terminal:
+
+    tofu-custom
+
+This will create a .tofu/ in your home (~) with a local copy that you can edit
+To see the shortcuts available from your running ipython console do:
+
+    > import tof as tf
+    > tf.imas2tofu.MultiIDSLoader.get_shortcuts()
+
+Available since tofu 1.4.3
+"""
+
+# ############################################################################
+#
+#           shortcuts for imas2tofu interface (MultiIDSLoader class)
+#
+# ############################################################################
+
 _dshort = {
     'wall': {
         'wallR': {'str': 'description_2d[0].limiter.unit[0].outline.r'},
@@ -311,6 +345,14 @@ _dshort = {
         'lamb_up': {'str': 'channel[chan].filter.wavelength_upper'},
         'lamb_lo': {'str': 'channel[chan].filter.wavelength_lower'}}
     }
+
+
+# ############################################################################
+#
+#           default data for each ids (not used yet)
+#
+# ############################################################################
+
 
 _didsdiag = {
     'lh_antennas': {'datacls': 'DataCam1D',

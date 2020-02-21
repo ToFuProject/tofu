@@ -24,10 +24,17 @@ import matplotlib as mpl
 import datetime as dtm
 
 # tofu
-try:
-    import tofu.imas2tofu._def as _defimas2tofu
-except Exception as err:
-    from . import _def as _defimas2tofu
+pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
+if os.path.isfile(pfe):
+    cwd = os.getcwd()
+    os.chdir(os.path.join(os.path.expanduser('~'), '.tofu'))
+    import _imas2tofu_def as _defimas2tofu
+    os.chdir(cwd)
+else:
+    try:
+        import tofu.imas2tofu._def as _defimas2tofu
+    except Exception as err:
+        from . import _def as _defimas2tofu
 
 # imas
 try:
@@ -603,13 +610,14 @@ class MultiIDSLoader(object):
             out = '\n'.join(out)
         return out
 
-    @classmethod
-    def _shortcuts(cls, obj=None, ids=None, return_=False,
+    @staticmethod
+    def _shortcuts(obj, ids=None, return_=False,
                    verb=True, sep='  ', line='-', just='l'):
-        if obj is None:
-            obj = cls
         if ids is None:
-            lids = list(obj._dids.keys())
+            if hasattr(obj, '_dids'):
+                lids = list(obj._dids.keys())
+            else:
+                lids = list(obj._dshort.keys())
         elif ids == 'all':
             lids = list(obj._dshort.keys())
         else:
@@ -620,7 +628,6 @@ class MultiIDSLoader(object):
                 lids = [ids]
             else:
                 lids = ids
-
         lids = sorted(set(lids).intersection(obj._dshort.keys()))
 
         short = []
@@ -645,6 +652,22 @@ class MultiIDSLoader(object):
         if return_:
             return short
 
+    @classmethod
+    def get_shortcutsc(cls, ids=None, return_=False,
+                       verb=True, sep='  ', line='-', just='l'):
+        """ Display and/or return the builtin shortcuts for imas signal names
+
+        By default (ids=None), only display shortcuts for stored ids
+        To display all possible shortcuts, use ids='all'
+        To display shortcuts for a specific ids, use ids=<idsname>
+
+        These shortcuts can be customized (with self.set_shortcuts())
+        They are useful for use with self.get_data()
+
+        """
+        return cls._shortcuts(cls, ids=ids, return_=return_, verb=verb,
+                              sep=sep, line=line, just=just)
+
     def get_shortcuts(self, ids=None, return_=False,
                       verb=True, sep='  ', line='-', just='l'):
         """ Display and/or return the builtin shortcuts for imas signal names
@@ -657,7 +680,7 @@ class MultiIDSLoader(object):
         They are useful for use with self.get_data()
 
         """
-        return self._shortcuts(obj=self, ids=ids, return_=return_, verb=verb,
+        return self._shortcuts(self, ids=ids, return_=return_, verb=verb,
                                sep=sep, line=line, just=just)
 
     def set_shortcuts(self, dshort=None):
