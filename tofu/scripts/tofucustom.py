@@ -80,7 +80,7 @@ def main():
     """
 
     # Instanciate parser
-    parser = argparse.ArgumentParser(description = msg)
+    parser = argparse.ArgumentParser(description=msg)
 
     # Define input arguments
     parser.add_argument('-s', '--source',
@@ -88,13 +88,13 @@ def main():
                         help='tofu source directory',
                         required=False,
                         default=_SOURCE)
-    parser.add_argument('-t','--target',
+    parser.add_argument('-t', '--target',
                         type=str,
                         help=('directory where .tofu/ should be created'
                               + ' (default: {})'.format(_TARGET)),
                         required=False,
                         default=_TARGET)
-    parser.add_argument('-f','--files',
+    parser.add_argument('-f', '--files',
                         type=str,
                         help='list of files to be copied',
                         required=False,
@@ -107,6 +107,7 @@ def main():
 
     # Call function
     custom(**dict(args._get_kwargs()))
+
 
 if __name__ == '__main__':
     main()
