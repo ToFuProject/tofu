@@ -11,8 +11,10 @@ import itertools as itt
 try:
     try:
         from tofu.imas2tofu._core import *
+        from tofu.imas2tofu._mat2ids2calc import *
     except Exception:
         from ._core import *
+        from ._mat2ids2calc import *
 except Exception as err:
     if str(err) == 'imas not available':
         msg = ""
