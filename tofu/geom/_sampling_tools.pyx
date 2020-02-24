@@ -1561,21 +1561,21 @@ cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
     return
 
 cdef void vmesh_double_loop_cart(int ii,
-                                        int sz_z,
-                                        long* lindex_z,
-                                        long* ncells_rphi,
-                                        long* tot_nc_plane,
-                                        double reso_r_z,
-                                        double* step_rphi,
-                                        double* disc_r,
-                                        double* disc_z,
-                                        long[:,:,::1] lnp,
-                                        long* sz_phi,
-                                        long[::1] iii,
-                                        double[::1] dv_mv,
-                                        double[::1] reso_phi_mv,
-                                        double[:, ::1] pts_mv,
-                                        long[::1] ind_mv) nogil:
+                                 int sz_z,
+                                 long* lindex_z,
+                                 long* ncells_rphi,
+                                 long* tot_nc_plane,
+                                 double reso_r_z,
+                                 double* step_rphi,
+                                 double* disc_r,
+                                 double* disc_z,
+                                 long[:,:,::1] lnp,
+                                 long* sz_phi,
+                                 long[::1] iii,
+                                 double[::1] dv_mv,
+                                 double[::1] reso_phi_mv,
+                                 double[:, ::1] pts_mv,
+                                 long[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
     cdef long zrphi
@@ -1597,21 +1597,21 @@ cdef void vmesh_double_loop_cart(int ii,
     return
 
 cdef void vmesh_double_loop_polr(int ii,
-                                        int sz_z,
-                                        long* lindex_z,
-                                        long* ncells_rphi,
-                                        long* tot_nc_plane,
-                                        double reso_r_z,
-                                        double* step_rphi,
-                                        double* disc_r,
-                                        double* disc_z,
-                                        long[:,:,::1] lnp,
-                                        long* sz_phi,
-                                        long[::1] iii,
-                                        double[::1] dv_mv,
-                                        double[::1] reso_phi_mv,
-                                        double[:, ::1] pts_mv,
-                                        long[::1] ind_mv) nogil:
+                                 int sz_z,
+                                 long* lindex_z,
+                                 long* ncells_rphi,
+                                 long* tot_nc_plane,
+                                 double reso_r_z,
+                                 double* step_rphi,
+                                 double* disc_r,
+                                 double* disc_z,
+                                 long[:,:,::1] lnp,
+                                 long* sz_phi,
+                                 long[::1] iii,
+                                 double[::1] dv_mv,
+                                 double[::1] reso_phi_mv,
+                                 double[:, ::1] pts_mv,
+                                 long[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
     cdef long NP
