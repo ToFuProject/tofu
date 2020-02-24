@@ -1351,6 +1351,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phi_step
     cdef np.ndarray[double,ndim=1] reso_phi
     # Get the actual R and Z resolutions and mesh elements
     # .. We discretize R .......................................................
+    print("before discretize R")
     _st.cythonize_subdomain_dl(None, limits_dl)
     sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
                                       True, 0, # discretize in absolute mode
@@ -1359,24 +1360,31 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phi_step
     free(lindex) # getting rid of things we dont need
     lindex = NULL
     # .. We discretize Z .......................................................
+    print("before discretize Z")
     sz_z = _st.discretize_line1d_core(&ZMinMax[0], zstep, limits_dl,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_z, reso_z, &lindex,
                                       ncells_z)
+    print("before free")
     free(lindex)
     # Number of Phi per R
-    dRPhirRef, np.empty((sz_r,))
+    print("before np empties and zeros after disc 1d")
+    dRPhirRef =  np.empty((sz_r,))
+    print("1")
     Ru, dRPhir = np.zeros((sz_r,)), np.nan*np.ones((sz_r,))
+    print("2")
     NRPhi0 = np.empty((sz_r+1,),dtype=int)
+    print("3")
     Rratio = int(Cceil(disc_r[sz_r-1]/disc_r[0]))
     # .. Initialization ........................................................
+    print("before mallocs")
     ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
     step_rphi    = <double*>malloc(sz_r*sizeof(double))
     # replacing dRPhir by reso_phi means no nan lefts
     reso_phi = np.empty((sz_r,)) # we create the numpy array
     reso_phi_mv = reso_phi # and its associated memoryview
-
-    for ii in range(0,sz_r):
+    print("before for")
+    for ii in range(sz_r):
         ncells_rphi[ii] = <long>(Cceil(_TWOPI*disc_r[ii]/phi_step))
         dRPhirRef[ii] = _TWOPI*disc_r[ii]/<double>(ncells_rphi[ii])
         step_rphi[ii] = _TWOPI/<double>(ncells_rphi[ii])
@@ -1388,9 +1396,10 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phi_step
         for jj in range(ncells_rphi[ii]):
             Phi[ii,jj] = -Cpi + (0.5+<double>jj)*step_rphi[ii]
 
+    print("before is cartesian loop", is_cart)
     if is_cart:
-        for ii in range(0,NP):
-            for jj in range(0,sz_r+1):
+        for ii in range(NP):
+            for jj in range(sz_r+1):
                 if ind[ii]-NRPhi0[jj]<0.:
                     break
             iiR = jj-1
@@ -1399,26 +1408,33 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phi_step
             phi = Phi[iiR,iiphi]
             pts[0,ii] = disc_r[iiR]*Ccos(phi)
             pts[1,ii] = disc_r[iiR]*Csin(phi)
-            pts[2,ii] = Z[iiZ]
+            pts[2,ii] = disc_z[iiZ]
             res3d[ii] = dRr*dZr*dRPhirRef[iiR]
             if Ru[iiR]==0.:
                 dRPhir[iiR] = dRPhirRef[iiR]
                 Ru[iiR] = 1.
     else:
-        for ii in range(0,NP):
-            for jj in range(0,sz_r+1):
+        for ii in range(NP):
+            for jj in range(sz_r+1):
                 if ind[ii]-NRPhi0[jj]<0.:
                     break
+            print(">>> ii = ", ii)
             iiR = jj-1
             iiZ = (ind[ii] - NRPhi0[iiR])//ncells_rphi[iiR]
+            print("ii phi ", ii)
+            print(ind[ii])
             iiphi = ind[ii] - NRPhi0[iiR] - iiZ*ncells_rphi[iiR]
+            print("initializing pts")
             pts[0,ii] = disc_r[iiR]
-            pts[1,ii] = Z[iiZ]
+            pts[1,ii] = disc_z[iiZ]
+            print("using Phi")
             pts[2,ii] = Phi[iiR,iiphi]
             res3d[ii] = dRr*dZr*dRPhirRef[iiR]
+            print("before if    ", ii)
             if Ru[iiR]==0.:
                 dRPhir[iiR] = dRPhirRef[iiR]
                 Ru[iiR] = 1.
+    print("before return")
     return pts, res3d, dRr, dZr, np.asarray(dRPhir)[~np.isnan(dRPhir)]
 
 
