@@ -20,6 +20,13 @@ import matplotlib.pyplot as plt
 
 
 _NPEAKMAX = 12
+_DCONSTRAINTS = {'x0': None,
+                 'bounds': None,
+                 'width': False,
+                 'shift': False,
+                 'amp_ratio': False,
+                 'double': False}
+
 
 ###########################################################
 ###########################################################
@@ -394,7 +401,13 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 ###########################################################
 ###########################################################
 
-def multigausfit1d_from_dlines_dlinesdconstrainst(dlines, dconstraints=None):
+def multigausfit1d_from_dlines_dlinesdconstrainst(dlines=None,
+                                                  dconstraints=None,
+                                                  defconst=_DCONSTRAINTS):
+
+    # ------------------------
+    # Check / format basics
+    # ------------------------
 
     # Select relevant lines (keys, lamb)
     keys = np.array([k0 for k0 in dlines.keys()])
@@ -405,29 +418,109 @@ def multigausfit1d_from_dlines_dlinesdconstrainst(dlines, dconstraints=None):
     if lambmax is not None:
         keys = keys[lamb <= lambmax]
         lamb = lamb[lamb <= lambmax]
+    inds = np.argsort(lamb)
+    keys, lamb = keys[inds], lamb[inds]
+    nlines = lamb.size
 
     # Check constraints
     if dconstraints is None:
-        dconstraints = {'width': False,
-                        'shift': False,
-                        'double': False,
-                        'amp_ratio': None}
+        dconstraints =  defconst
+
+    # ------------------------
+    # Prepare error message
+    # ------------------------
+
+    msg = ''
+
+    # ------------------------
+    # Check keys
+    # ------------------------
+
+    # Check dconstraints keys
+    lk = sorted(_DCONSTRAINTS.keys())
+    c0= (isinstance(dconstraints, dict)
+         and all([k0 in lk for k0 in dconstraints.keys()]))
+    if not c0:
+        raise Exception(msg)
+
+    # ------------------------
+    # Check / format double
+    # ------------------------
+
+    dconstraints['double'] = dconstrainst.get('double', defconst['double'])
+    if type(dconstraints['double']) is not bool:
+        raise Exception(msg)
+
+    # ------------------------
+    # Check / format width
+    # ------------------------
+
+    # width: False / dict of width key with lines keys
+    dconstraints['width'] = dconstrainst.get('width', defconst['width'])
+    lc = [constraints['width'] is False,
+          isinstance(constraints['width'], str),
+          (isinstance(constraints['width'], dict)
+           and all([isinstance(k0) is str
+                    and (isinstance(v0, list) or isinstance(v0, str))
+                    for k0, v0 in constraints['width'].items()])),
+          (isinstance(constraints['width'], dict)
+           and sorted(constraints['width'].keys()) == ['ind', 'keys']
+           and isinstance(constraints['width']['keys'], list)
+           and isinstance(constraints['width']['ind'], np.ndarray))]
+    if not any(lc):
+        raise Exception(msg)
+
+    # str key to be taken from dlines as criterion
+    if lc[1] or lc[2]:
+        if lc[1]:
+            lw = sorted(set([dlines[k0].get(dconstraints['width'], k0)
+                             for k0 in keys]))
+        else:
+            lkl = []
+            for k0, v0 in dconstraints['width'].items():
+                if isinstance(v0, str):
+                    v0 = [v0]
+                assert len(set(v0)) == len(v0)
+                assert all([k1 in dlines.keys() and k1 not in lkl
+                            for k1 in v0])
+                dconstraints['width'][k0] = v0
+                lkl += v0
+            for k0 in set(dlines.keys()).difference(lkl):
+                dconstraints['width'][k0] = [k0]
+            lw = sorted(set(dconstraints['width'].keys()))
+
+        dconstraints['width'] = {
+            'keys': lw,
+            'ind': np.array([[dlines[k1].get(dconstraints['width'], k1) == k0
+                              for k1 for k1 in keys]
+                             for k0 in lw])}
+
+    if not lc[0]:
+        assert np.all(np.sum(dconstraints['width']['ind'], axis=0) == 1)
+
+    # ------------------------
+    # Check / format shift
+    # ------------------------
+
+    dconstraints['shift'] = dconstrainst.get('shift', defconst['shift'])
+
+    # ------------------------
+    # Check / format x0
+    # ------------------------
+
+    dconstraints['x0'] = dconstrainst.get('x0', defconst['x0'])
+    if dconstraints['x0'] is None:
+        dconstraints['x0'] = {'width': np.ones((nlines,)),
+                              'shift': np.ones((nlines,)),
+                              'amp': np.ones((nlines,))}
     else:
-        msg = ''
-        lk = ['width', 'shift', 'double', 'amp_ratio']
-        c0= (isinstance(dconstraints, dict)
-             and all([k0 in lk for k0 in dconstraints.keys()]))
-        if not c0:
-            raise Exception(msg)
+        c0 = all([k0 in dlines.keys()
+                  and type(v0) in [float, int, np.float, np.int]
+                  for k0, v0 in dconstraints['x0'].items()])
 
-        # double
-        dconstraints['double'] = dconstrainst.get('double', False)
-        if type(dconstraints['double']) is not bool:
-            raise Exception(msg)
-
-        # width
-        dconstraints['width'] = dconstrainst.get('width', False)
-        c0 = type(dconstraints['width']) in []
+    # ------------------------
+    # back-up
+    # ------------------------
 
     ion = [dlines[k0]['ION'] for k0 in keys]
     width = [dlines[k0].get('width', dlines[k0]['ION']) for k0 in keys]
