@@ -3901,20 +3901,31 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _checkformat_inputs_dconfig(config=None):
-        C0 = isinstance(config, Config)
-        msg = "Arg config must be a Config instance !"
-        msg += "\n    expected : {0}".format(str(Config))
-        msg += "\n    obtained : {0}".format(str(config.__class__))
-        assert C0, msg
+        # Check config has proper class
+        if not isinstance(config, Config):
+            msg = ("Arg config must be a Config instance!\n"
+                   + "\t- expected: {}".format(str(Config))
+                   + "\t- provided: {}".format(str(config.__class__)))
+            raise Exception(msg)
+
+        # Check all structures
         lS = config.lStruct
-        lC = [
-            hasattr(ss, "_InOut") and ss._InOut in ["in", "out"] for ss in lS
-        ]
-        msg = "All Struct in config must have self._InOut in ['in','out']"
-        assert all(lC), msg
+        lC = [hasattr(ss, "_InOut") and ss._InOut in ["in", "out"]
+              for ss in lS]
+        if not all(lC):
+            msg = "All Struct in config must have self._InOut in ['in','out']"
+            raise Exception(msg)
+
+        # Check there is at least one struct which is a subclass of StructIn
         lSIn = [ss for ss in lS if ss._InOut == "in"]
-        msg = "Arg config must have at least a StructIn subclass !"
-        assert len(lSIn) > 0, msg
+        if len(lSIn) == 0:
+            lclsnames = ['{}; {}'.format(ss.Id.Name, ss.Id.Cls, ss._InOut)
+                         for ss in lS]
+            msg = ("Config {} is missing a StructIn!\n".format(config.Id.Name)
+                   + "\t- " + "\n\t- ".join(lclsnames))
+            raise Exception(msg)
+
+        # Add 'compute' parameter if not present
         if "compute" not in config._dextraprop["lprop"]:
             config = config.copy()
             config.add_extraprop("compute", True)
