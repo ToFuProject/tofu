@@ -170,7 +170,7 @@ cdef void vmesh_ind_cart_loop(int np,
                               int sz_r,
                               long[::1] ind,
                               long* tot_nc_plane,
-                              int* ncells_rphi
+                              int* ncells_rphi,
                               double* phi_tab,
                               double* disc_r,
                               double* disc_z,
@@ -180,4 +180,4 @@ cdef void vmesh_ind_cart_loop(int np,
                               double[::1] dRPhirRef,
                               long[::1] Ru,
                               double[::1] dRPhir,
-                              int num_threads) nogil:
+                              int num_threads) nogil

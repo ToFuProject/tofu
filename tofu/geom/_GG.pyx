@@ -1183,10 +1183,10 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
                             num_threads)
     # .. Computing the points coordinates ......................................
     if is_cart:
-        _st.vmes_ind_cart_loop(NP, sz_r, ind, tot_nc_plane,
-                               ncells_rphi, phi_tab, disc_r, disc_z,
+        _st.vmesh_ind_cart_loop(NP, sz_r, ind, tot_nc_plane,
+                               ncells_rphi, phi_tab[0], disc_r, disc_z,
                                pts, res3d, reso_r_z, dRPhirRef, Ru,
-                               dRPhir, numthreads)
+                               dRPhir, num_threads)
     else:
         for ii in range(NP):
             for jj in range(sz_r):
