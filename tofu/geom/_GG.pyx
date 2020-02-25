@@ -1131,7 +1131,8 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     cdef long NP=len(ind)
     cdef double phi
     cdef double twopi_over_dphi
-    cdef double[::1] dRPhirRef, Ru
+    cdef double[::1] dRPhirRef
+    cdef long[::1] Ru
     cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] res3d=np.empty((NP,))
     cdef double[::1] reso_phi_mv
@@ -1163,7 +1164,8 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     free(lindex)
     # Number of Phi per R
     dRPhirRef =  np.empty((sz_r,))
-    Ru, dRPhir = np.zeros((sz_r,)), np.nan*np.ones((sz_r,))
+    Ru = np.zeros((sz_r,), dtype=int)
+    dRPhir = np.nan*np.ones((sz_r,))
     tot_nc_plane = <long*> malloc((sz_r + 1) * sizeof(long))
     # .. Initialization ........................................................
     ncells_rphi  = <int*>malloc(sz_r * sizeof(int))
@@ -1181,21 +1183,10 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
                             num_threads)
     # .. Computing the points coordinates ......................................
     if is_cart:
-        for ii in range(NP):
-            for jj in range(sz_r+1):
-                if ind[ii]-tot_nc_plane[jj]<0:
-                    break
-            iiR = jj-1
-            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
-            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
-            phi = phi_tab[0][iiR + sz_r * iiphi]
-            pts[0,ii] = disc_r[iiR] * Ccos(phi)
-            pts[1,ii] = disc_r[iiR] * Csin(phi)
-            pts[2,ii] = disc_z[iiZ]
-            res3d[ii] = reso_r_z * dRPhirRef[iiR]
-            if Ru[iiR]==0.:
-                dRPhir[iiR] = dRPhirRef[iiR]
-                Ru[iiR] = 1.
+        _st.vmes_ind_cart_loop(NP, sz_r, ind, tot_nc_plane,
+                               ncells_rphi, phi_tab, disc_r, disc_z,
+                               pts, res3d, reso_r_z, dRPhirRef, Ru,
+                               dRPhir, numthreads)
     else:
         for ii in range(NP):
             for jj in range(sz_r):
@@ -1208,9 +1199,9 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
             pts[1,ii] = disc_z[iiZ]
             pts[2,ii] = phi_tab[0][iiR + sz_r * iiphi]
             res3d[ii] = reso_r_z * dRPhirRef[iiR]
-            if Ru[iiR]==0.:
+            if Ru[iiR]==0:
                 dRPhir[iiR] = dRPhirRef[iiR]
-                Ru[iiR] = 1.
+                Ru[iiR] = 1
     free(ncells_rphi)
     free(tot_nc_plane)
     if not phi_tab[0] == NULL:

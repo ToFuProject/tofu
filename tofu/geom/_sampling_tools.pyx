@@ -1717,3 +1717,38 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
     tot_nc_plane[sz_r] = tot_nc_plane[sz_r-1] + ncells_rphi[sz_r-1] * sz_z
     free(step_rphi)
     return
+
+cdef inline void vmesh_ind_cart_loop(int np,
+                                     int sz_r,
+                                     long[::1] ind,
+                                     long* tot_nc_plane,
+                                     int* ncells_rphi
+                                     double* phi_tab,
+                                     double* disc_r,
+                                     double* disc_z,
+                                     double[:,::1] pts,
+                                     double[::1] res3d,
+                                     double reso_r_z,
+                                     double[::1] dRPhirRef,
+                                     long[::1] Ru,
+                                     double[::1] dRPhir,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int iiR, iiZ, iiphi
+
+    for ii in range(NP):
+        for jj in range(sz_r+1):
+            if ind[ii]-tot_nc_plane[jj]<0:
+                break
+        iiR = jj-1
+        iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
+        iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
+        phi = phi_tab[0][iiR + sz_r * iiphi]
+        pts[0,ii] = disc_r[iiR] * Ccos(phi)
+        pts[1,ii] = disc_r[iiR] * Csin(phi)
+        pts[2,ii] = disc_z[iiZ]
+        res3d[ii] = reso_r_z * dRPhirRef[iiR]
+        if Ru[iiR]==0:
+            dRPhir[iiR] = dRPhirRef[iiR]
+            Ru[iiR] = 1
