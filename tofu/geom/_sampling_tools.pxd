@@ -154,4 +154,14 @@ cdef void vmesh_double_loop(long[::1] first_ind_mv,
                             double[::1] dv_mv,
                             double[::1] r_on_phi_mv,
                             double[:, ::1] pts_mv,
-                            long[::1] ind_mv) nogil
+                            long[::1] ind_mv,
+                            int num_threads) nogil
+
+cdef void vmesh_ind_init_tabs(int* ncells_rphi,
+                              double* disc_r,
+                              int sz_r, int sz_z,
+                              double twopi_over_dphi,
+                              double[::1] dRPhirRef,
+                              long* tot_nc_plane,
+                              double** phi_mv,
+                              int num_threads) nogil

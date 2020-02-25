@@ -95,27 +95,29 @@ def bigger_test():
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
-                    start = time.clock()
-                    reso = 0.005
+                    reso = 0.01
+                    start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
-                    pts1, _ = out[0], out[2]
-                    print("NEW sample V total time = ", time.clock() - start)
-                    start = time.clock()
-                    out = obj.get_sampleV(reso, resMode='abs', DV=box,
-                                          Out='(X,Y,Z)', algo="old")
-                    print("OLD sample V total time = ", time.clock() - start)
-                    pts0, _ = out[0], out[2]
-                    ii = 1
-                    # start = time.clock()
-                    # out = obj.get_sampleV(reso, resMode='abs', ind=ind,
-                    #                       Out='(X,Y,Z)')
-                    # print("NEW sample V total time = ", time.clock() - start)
-                    # start = time.clock()
-                    # out = obj.get_sampleV(reso, resMode='abs', ind=ind,
+                    print("NEW sample V total time = ", time.perf_counter() - start)
+                    pts0, ind = out[0], out[2]
+                    # start = time.perf_counter()
+                    # out = obj.get_sampleV(reso, resMode='abs', DV=box,
                     #                       Out='(X,Y,Z)', algo="old")
-                    # print("OLD sample V total time = ", time.clock() - start)
-                    # pts1 = out[0]
+                    # print("OLD sample V total time = ", time.perf_counter() - start)
+                    # pts1, ind1 = out[0], out[2]
+                    # assert np.allclose(ind1, ind)
+                    ii = 1
+                    start = time.perf_counter()
+                    out = obj.get_sampleV(reso, resMode='abs', ind=ind,
+                                          Out='(X,Y,Z)', num_threads=48)
+                    print("NEW sample V total time = ", time.perf_counter() - start)
+                    pts4 = out[0]
+                    start = time.perf_counter()
+                    out = obj.get_sampleV(reso, resMode='abs', ind=ind,
+                                          Out='(X,Y,Z)', algo="old")
+                    print("OLD sample V total time = ", time.perf_counter() - start)
+                    pts3 = out[0]
                 except Exception as err:
                     msg = str(err)
                     msg += "\nFailed for {0}_{1}_{2}".format(typ, c, n)
@@ -125,10 +127,16 @@ def bigger_test():
                     raise Exception(msg)
 
                 if type(pts0) is list:
-                    assert all([np.allclose(pts0[ii], pts1[ii])
+                    # assert all([np.allclose(pts0[ii], pts1[ii])
+                    #             for ii in range(0, len(pts0))])
+                    assert all([np.allclose(pts3[ii], pts4[ii])
+                                for ii in range(0, len(pts3))])
+                    assert all([np.allclose(pts0[ii], pts4[ii])
                                 for ii in range(0, len(pts0))])
                 else:
-                    assert np.allclose(pts0, pts1)
+                    # assert np.allclose(pts0, pts1)
+                    assert np.allclose(pts3, pts4)
+                    assert np.allclose(pts0, pts4)
 
 
 def small_test():

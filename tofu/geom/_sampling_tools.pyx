@@ -16,6 +16,7 @@ from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from _basic_geom_tools cimport _VSMALL
+from _basic_geom_tools cimport _TWOPI
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
@@ -1537,11 +1538,11 @@ cdef inline void los_get_sample_pts(int nlos,
             usz[ii] = loc_vz
     return
 
-# .................
-cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
-                            int sz_r,
-                            int sz_z,
-                            long* sz_phi) nogil:
+# -- utility for vmesh sub from D ----------------------------------------------
+cdef inline void vmesh_prepare_tab(long[:,:,::1] lnp,
+                                   int sz_r,
+                                   int sz_z,
+                                   long* sz_phi) nogil:
     cdef int ii, zz, jj
     cdef int kk
     cdef int NP = 0
@@ -1560,22 +1561,22 @@ cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
                 NP += 1
     return
 
-cdef void vmesh_double_loop_cart(int ii,
-                                 int sz_z,
-                                 long* lindex_z,
-                                 long* ncells_rphi,
-                                 long* tot_nc_plane,
-                                 double reso_r_z,
-                                 double* step_rphi,
-                                 double* disc_r,
-                                 double* disc_z,
-                                 long[:,:,::1] lnp,
-                                 long* sz_phi,
-                                 long[::1] iii,
-                                 double[::1] dv_mv,
-                                 double[::1] reso_phi_mv,
-                                 double[:, ::1] pts_mv,
-                                 long[::1] ind_mv) nogil:
+cdef inline void vmesh_double_loop_cart(int ii,
+                                        int sz_z,
+                                        long* lindex_z,
+                                        long* ncells_rphi,
+                                        long* tot_nc_plane,
+                                        double reso_r_z,
+                                        double* step_rphi,
+                                        double* disc_r,
+                                        double* disc_z,
+                                        long[:,:,::1] lnp,
+                                        long* sz_phi,
+                                        long[::1] iii,
+                                        double[::1] dv_mv,
+                                        double[::1] reso_phi_mv,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
     cdef long zrphi
@@ -1596,22 +1597,22 @@ cdef void vmesh_double_loop_cart(int ii,
             dv_mv[NP] = reso_r_z*reso_phi_mv[ii]
     return
 
-cdef void vmesh_double_loop_polr(int ii,
-                                 int sz_z,
-                                 long* lindex_z,
-                                 long* ncells_rphi,
-                                 long* tot_nc_plane,
-                                 double reso_r_z,
-                                 double* step_rphi,
-                                 double* disc_r,
-                                 double* disc_z,
-                                 long[:,:,::1] lnp,
-                                 long* sz_phi,
-                                 long[::1] iii,
-                                 double[::1] dv_mv,
-                                 double[::1] reso_phi_mv,
-                                 double[:, ::1] pts_mv,
-                                 long[::1] ind_mv) nogil:
+cdef inline void vmesh_double_loop_polr(int ii,
+                                        int sz_z,
+                                        long* lindex_z,
+                                        long* ncells_rphi,
+                                        long* tot_nc_plane,
+                                        double reso_r_z,
+                                        double* step_rphi,
+                                        double* disc_r,
+                                        double* disc_z,
+                                        long[:,:,::1] lnp,
+                                        long* sz_phi,
+                                        long[::1] iii,
+                                        double[::1] dv_mv,
+                                        double[::1] reso_phi_mv,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv) nogil:
     cdef int zz
     cdef int jj
     cdef long NP
@@ -1630,6 +1631,7 @@ cdef void vmesh_double_loop_polr(int ii,
             dv_mv[NP] = reso_r_z * reso_phi_mv[ii]
     return
 
+
 cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    long[:,::1] indi_mv,
                                    bint is_cart,
@@ -1647,10 +1649,11 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    double[::1] dv_mv,
                                    double[::1] reso_phi_mv,
                                    double[:, ::1] pts_mv,
-                                   long[::1] ind_mv) nogil:
+                                   long[::1] ind_mv,
+                                   int num_threads) nogil:
     cdef int ii
     # ...
-    with nogil, parallel():
+    with nogil, parallel(num_threads=num_threads):
         if is_cart:
             for ii in prange(sz_r):
                 # To make sure the indices are in increasing order
@@ -1668,4 +1671,49 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                        disc_r, disc_z, lnp, sz_phi,
                                        indi_mv[ii,first_ind_mv[ii]:],
                                        dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    return
+
+
+# -- utility for vmesh from indices --------------------------------------------
+
+cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
+                                     double* disc_r,
+                                     int sz_r, int sz_z,
+                                     double twopi_over_dphi,
+                                     double[::1] dRPhirRef,
+                                     long* tot_nc_plane,
+                                     double** phi_tab,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int radius_ratio
+    cdef int loc_nc_rphi
+    cdef double* step_rphi = NULL
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    step_rphi    = <double*>malloc(sz_r * sizeof(double))
+    radius_ratio = <int>Cceil(disc_r[sz_r-1]/disc_r[0])
+    # we do first the step 0 to avoid an if in a for loop:
+    loc_nc_rphi = <int>(Cceil(disc_r[0] * twopi_over_dphi))
+    ncells_rphi[0] = loc_nc_rphi
+    step_rphi[0] = _TWOPI / loc_nc_rphi
+    dRPhirRef[0] = disc_r[0] * step_rphi[0]
+    tot_nc_plane[0] = 0
+    phi_tab[0] = <double*>malloc(sz_r * (loc_nc_rphi * radius_ratio + 1)
+                             * sizeof(double))
+    with nogil, parallel(num_threads=num_threads):
+        for jj in prange(loc_nc_rphi):
+            phi_tab[0][jj * sz_r] = -Cpi + (0.5+jj) * step_rphi[0]
+    # now we do the rest of the loop
+    for ii in range(1, sz_r):
+        loc_nc_rphi = <int>(Cceil(disc_r[ii] * twopi_over_dphi))
+        ncells_rphi[ii] = loc_nc_rphi
+        step_rphi[ii] = _TWOPI / loc_nc_rphi
+        dRPhirRef[ii] = disc_r[ii] * step_rphi[ii]
+        tot_nc_plane[ii] = tot_nc_plane[ii-1] + ncells_rphi[ii-1] * sz_z
+        with nogil, parallel(num_threads=num_threads):
+            for jj in range(loc_nc_rphi):
+                phi_tab[0][ii + sz_r * jj] = -Cpi + (0.5+jj) * step_rphi[ii]
+
+    tot_nc_plane[sz_r] = tot_nc_plane[sz_r-1] + ncells_rphi[sz_r-1] * sz_z
+    free(step_rphi)
     return

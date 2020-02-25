@@ -356,6 +356,7 @@ def _Ves_get_sampleV(
     Out="(X,Y,Z)",
     margin=1.0e-9,
     algo="new",
+    num_threads=48,
 ):
     types = [int, float, np.int32, np.int64, np.float32, np.float64]
     assert type(dV) in types or (
@@ -415,6 +416,7 @@ def _Ves_get_sampleV(
                     VPoly=VPoly,
                     Out=Out,
                     margin=margin,
+                    num_threads=num_threads,
                 )
             else:
                 print("~~~~~~CALLING OLD ALGO~~~~~~~")
@@ -463,6 +465,7 @@ def _Ves_get_sampleV(
                     ind,
                     Out=Out,
                     margin=margin,
+                    num_threads=num_threads,
                 )
             else:
                 print("~~~~~~CALLING OLD ALGO~~~~~~~")

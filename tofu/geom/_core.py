@@ -1217,7 +1217,8 @@ class Struct(utils.ToFuObject):
         return pts, dS, ind, reseff
 
     def get_sampleV(
-        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)", algo="new"
+        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)", algo="new",
+        num_threads=48
     ):
         """ Sample, with resolution res, the volume defined by DV or ind """
 
@@ -1238,6 +1239,7 @@ class Struct(utils.ToFuObject):
             Out=Out,
             margin=1.0e-9,
             algo=algo,
+            num_threads=num_threads
         )
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
