@@ -1627,33 +1627,16 @@ class CrystalBragg(utils.ToFuObject):
         return spect1d_out, lambfit, phifit, vertsum1d, phiminmax
 
     @staticmethod
-    def get_dlines2_from_dlines(dlines, lambmin=None, lambmax=None):
-        keys = np.array([k0 for k0 in dlines.keys()])
-        lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
-        if lambmin is not None:
-            keys = keys[lamb >= lambmin]
-            lamb = lamb[lamb >= lambmin]
-        if lambmax is not None:
-            keys = keys[lamb <= lambmax]
-            lamb = lamb[lamb <= lambmax]
-        ion = [dlines[k0]['ION'] for k0 in keys]
-        width = [dlines[k0].get('width', dlines[k0]['ION']) for k0 in keys]
-        shift = [dlines[k0].get('shift', dlines[k0]['ION']) for k0 in keys]
-        symb = [dlines[k0]['symbol'] for k0 in keys]
-        mz = [dlines[k0]['m'] for k0 in keys]
-        dlines2 = {
-            'key': keys,
-            'ion': np.array(ion),
-            'width': np.array(width),
-            'shift': np.array(shift),
-            'ion_u': sorted(set(ion)),
-            'width_u': sorted(set(width)),
-            'shift_u': sorted(set(shift)),
-            'lamb': np.array(lamb),
-            'symb': np.array(symb),
-            'mz': np.array(mz)
-        }
-        return dlines2
+    def get_dinput_for_fit1d(dlines=None, dconstraints=None,
+                             lambmin=None, lambmax=None):
+        """ Return a formatted dict of lines and constraints
+
+        To be fed to _spectrafit2d.multigausfit1d_from_dlines()
+        Provides a user-friendly way of defining constraints
+        """
+        return _spectrafit2d.multigausfit1d_from_dlines_dinput(
+            dlines=dlines, dconstraints=dconstraints,
+            lambmin=lambmin, lambmax=lambmax)
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,
@@ -1789,8 +1772,9 @@ class CrystalBragg(utils.ToFuObject):
         lambfit = lambfit[indok]
 
         # Get dlines2
-        dlines2 = self.get_dlines2_from_dlines(dlines,
-                                               lambfit.min(), lambfit.max())
+        dinputs = self.get_dinput_for_fit1d(dlines=dlines,
+                                            dconstraints=dconstraints,
+                                            lambmin=lambmin, lambmax=lambmax)
 
         # Compute fit for spect1d to get lamb0 if not provided
         if showonly is True:
@@ -1808,7 +1792,7 @@ class CrystalBragg(utils.ToFuObject):
             import tofu.data._spectrafit2d as _spectrafit2d
 
             dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
-                spect1d, lambfit, dlines2=dlines2,
+                spect1d, lambfit, dinput=dinput,
                 lambmin=lambmin, lambmax=lambmax,
                 scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
                 method=method, max_nfev=max_nfev,

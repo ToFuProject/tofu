@@ -401,9 +401,87 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 ###########################################################
 ###########################################################
 
-def multigausfit1d_from_dlines_dlinesdconstrainst(dlines=None,
-                                                  dconstraints=None,
-                                                  defconst=_DCONSTRAINTS):
+def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
+
+    # ------------------------
+    # Prepare error message
+    msg = ''
+
+    # ------------------------
+    # Check case
+    c0 = indict is False
+    c1 = isinstance(indict, str)
+    c2 = (isinstance(indict, dict)
+          and all([isinstance(k0, str)
+                   and (isinstance(v0, list) or isinstance(v0, str))
+                   for k0, v0 in indict.items()]))
+    c3 = (isinstance(indict, dict)
+          and all([(ss in keys
+                    and isinstance(vv, dict)
+                    and all([s1 in ['coef', 'key'] for s1 in vv.keys()])
+                    and isinstance(vv['key'], str))
+                   for ss, vv in indict.items()]))
+    c4 = (isinstance(indict, dict)
+          and isinstance(indict.get('keys'), list)
+          and isinstance(indict.get('ind'), np.ndarray))
+    if not any([c0, c1, c2, c3, c4]):
+        msg = ("")
+        raise Exception(msg)
+
+    # ------------------------
+    # str key to be taken from dlines as criterion
+    if c1:
+        lk = sorted(set([dlines[k0].get(indict, k0)
+                         for k0 in keys]))
+        ind = np.array([[dlines[k1].get(indict, k1) == k0
+                         for k1 in keys] for k0 in lk])
+        outdict = {'keys': lk, 'ind': ind, 'coefs': np.ones((nlines,))}
+
+    elif c2:
+        lkl = []
+        for k0, v0 in indict.items():
+            if isinstance(v0, str):
+                v0 = [v0]
+            assert len(set(v0)) == len(v0)
+            assert all([k1 in keys and k1 not in lkl for k1 in v0])
+            indict[k0] = v0
+            lkl += v0
+        for k0 in set(keys).difference(lkl):
+            indict[k0] = [k0]
+        lk = sorted(set(indict.keys()))
+        ind = np.array([[k1 in indict[k0] for k1 in keys] for k0 in lk])
+        outdict = {'keys': lk, 'ind': ind, 'coefs': np.ones((nlines,))}
+
+    elif c3:
+        lk = sorted(set([v0['key'] for v0 in indict.values()]))
+        lk += sorted(set(keys).difference(indict.keys()))
+        ind = np.array([[indict.get(k1, {'key': k1})['key'] == k0
+                         for k1 in keys]
+                        for k0 in lk])
+        coefs = np.array([indict.get(k1, {'coef': 1.})['coef'] for k1 in keys])
+        outdict = {'keys': lk, 'ind': ind, 'coefs': coefs}
+
+    elif c4:
+        outdict = indict
+        if 'coefs' not in indict.keys():
+            outdict['coefs'] = np.ones((nlines,))
+
+    # ------------------------
+    # Ultimate conformity checks
+    if not c0:
+        assert sorted(outdict.keys()) == ['coefs', 'ind', 'keys']
+        assert isinstance(outdict['ind'], np.ndarray)
+        assert outdict['ind'].dtype == np.bool_
+        assert outdict['ind'].shape == (len(outdict['keys']), nlines)
+        assert np.all(np.sum(outdict['ind'], axis=0) == 1)
+        assert outdict['coefs'].shape == (nlines,)
+    return outdict
+
+
+def multigausfit1d_from_dlines_dinput(dlines=None,
+                                      dconstraints=None,
+                                      lambmin=None, lambmax=None,
+                                      defconst=_DCONSTRAINTS):
 
     # ------------------------
     # Check / format basics
@@ -426,11 +504,6 @@ def multigausfit1d_from_dlines_dlinesdconstrainst(dlines=None,
     if dconstraints is None:
         dconstraints =  defconst
 
-    # ------------------------
-    # Prepare error message
-    # ------------------------
-
-    msg = ''
 
     # ------------------------
     # Check keys
@@ -443,121 +516,49 @@ def multigausfit1d_from_dlines_dlinesdconstrainst(dlines=None,
     if not c0:
         raise Exception(msg)
 
+    dinput = {}
+
     # ------------------------
     # Check / format double
     # ------------------------
 
-    dconstraints['double'] = dconstrainst.get('double', defconst['double'])
-    if type(dconstraints['double']) is not bool:
+    dinput['double'] = dconstraints.get('double', defconst['double'])
+    if type(dinput['double']) is not bool:
         raise Exception(msg)
 
     # ------------------------
-    # Check / format width
+    # Check / format width, shift, amp (groups with posssible ratio)
     # ------------------------
-
-    # width: False / dict of width key with lines keys
-    dconstraints['width'] = dconstrainst.get('width', defconst['width'])
-    lc = [constraints['width'] is False,
-          isinstance(constraints['width'], str),
-          (isinstance(constraints['width'], dict)
-           and all([isinstance(k0) is str
-                    and (isinstance(v0, list) or isinstance(v0, str))
-                    for k0, v0 in constraints['width'].items()])),
-          (isinstance(constraints['width'], dict)
-           and sorted(constraints['width'].keys()) == ['ind', 'keys']
-           and isinstance(constraints['width']['keys'], list)
-           and isinstance(constraints['width']['ind'], np.ndarray))]
-    if not any(lc):
-        raise Exception(msg)
-
-    # str key to be taken from dlines as criterion
-    if lc[1] or lc[2]:
-        if lc[1]:
-            lw = sorted(set([dlines[k0].get(dconstraints['width'], k0)
-                             for k0 in keys]))
-        else:
-            lkl = []
-            for k0, v0 in dconstraints['width'].items():
-                if isinstance(v0, str):
-                    v0 = [v0]
-                assert len(set(v0)) == len(v0)
-                assert all([k1 in dlines.keys() and k1 not in lkl
-                            for k1 in v0])
-                dconstraints['width'][k0] = v0
-                lkl += v0
-            for k0 in set(dlines.keys()).difference(lkl):
-                dconstraints['width'][k0] = [k0]
-            lw = sorted(set(dconstraints['width'].keys()))
-
-        dconstraints['width'] = {
-            'keys': lw,
-            'ind': np.array([[dlines[k1].get(dconstraints['width'], k1) == k0
-                              for k1 for k1 in keys]
-                             for k0 in lw])}
-
-    if not lc[0]:
-        assert np.all(np.sum(dconstraints['width']['ind'], axis=0) == 1)
+    for k0 in ['width', 'shift', 'amp']:
+        dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]))
 
     # ------------------------
-    # Check / format shift
+    # add mz, symb, ION, keys, lamb
     # ------------------------
+    dinput['mz'] = np.array([dlines[k0].get('m', np.nan) for k0 in keys])
+    dinput['symb'] = np.array([dlines[k0].get('symbol', k0) for k0 in keys])
+    dinput['ion'] = np.array([dlines[k0].get('ION', '?') for k0 in keys])
 
-    dconstraints['shift'] = dconstrainst.get('shift', defconst['shift'])
+    dinput['keys'] = keys
+    dinput['lamb'] = lamb
+    dinput['nlines'] = nlines
 
-    # ------------------------
-    # Check / format x0
-    # ------------------------
-
-    dconstraints['x0'] = dconstrainst.get('x0', defconst['x0'])
-    if dconstraints['x0'] is None:
-        dconstraints['x0'] = {'width': np.ones((nlines,)),
-                              'shift': np.ones((nlines,)),
-                              'amp': np.ones((nlines,))}
-    else:
-        c0 = all([k0 in dlines.keys()
-                  and type(v0) in [float, int, np.float, np.int]
-                  for k0, v0 in dconstraints['x0'].items()])
-
-    # ------------------------
-    # back-up
-    # ------------------------
-
-    ion = [dlines[k0]['ION'] for k0 in keys]
-    width = [dlines[k0].get('width', dlines[k0]['ION']) for k0 in keys]
-    shift = [dlines[k0].get('shift', dlines[k0]['ION']) for k0 in keys]
-    symb = [dlines[k0]['symbol'] for k0 in keys]
-    mz = [dlines[k0]['m'] for k0 in keys]
-    dlines2 = {
-        'key': keys,
-        'ion': np.array(ion),
-        'width': np.array(width),
-        'shift': np.array(shift),
-        'ion_u': sorted(set(ion)),
-        'width_u': sorted(set(width)),
-        'shift_u': sorted(set(shift)),
-        'lamb': np.array(lamb),
-        'symb': np.array(symb),
-        'mz': np.array(mz)
-    }
-
-    return dlines, dconstraints
+    return dinput
 
 
-
-
-def multigausfit1d_from_dlines_ind(dlines2=None,
-                                   double=None,
-                                   Ti=None, vi=None, dconst=None):
+def multigausfit1d_from_dlines_ind(dinput=None):
     """ Return the indices of quantities in x to compute y """
 
     # Prepare lines concatenation
-    nlines = dlines2['key'].size
-    nion = len(dlines2['ion_u'])
-    nwidth = len(dlines2['width_u'])
-    nshift = len(dlines2['shift_u'])
-    lnlines_i = [np.sum(dlines2['ion'] == ii) for ii in dlines2['ion_u']]
-    lnlines_w = [np.sum(dlines2['width'] == ww) for ww in dlines2['width_u']]
-    lnlines_s = [np.sum(dlines2['shift'] == ss) for ss in dlines2['shift_u']]
+    nlines = dinput['nlines']
+    namp = len(dinput['amp']['keys'])
+    nwidth = len(dinput['width']['keys'])
+    nshift = len(dinput['shift']['keys'])
+
+    # TBF...
+    lnlines_a = [np.sum(dinput['ion'] == ii) for ii in dinput['ion_u']]
+    lnlines_w = [np.sum(dinput['width'] == ww) for ww in dinput['width_u']]
+    lnlines_s = [np.sum(dinput['shift'] == ss) for ss in dinput['shift_u']]
     assert np.sum(lnlines_w) == nlines
     assert np.sum(lnlines_s) == nlines
 
@@ -620,23 +621,6 @@ def multigausfit1d_from_dlines_ind(dlines2=None,
         inds_jac = np.r_[0, np.cumsum(lnlines_s[:-1])]
     else:
         inds_jac = np.arange(0, nlines)
-
-
-    # Take into account amplitude ratio constraints
-    if dconst is not None and dconst.get(['ratio']) is not None:
-        lup = sorted(set([rr['up'] for rr in dconst['ratio']]))
-        llow = sorted(set([rr['low'] for rr in dconst['ratio']]))
-
-        # Remove upper amp from xi
-        # TBF !!!!
-
-        for ii, rr in enumerate(dconst['ratio']):
-            indup = (dlines2['key'] == rr['up']).nonzero()[0][0]
-            indup = (dlines2['key'] == rr['low']).nonzero()[0][0]
-            dconst['ratio'][ii]['indup'] = indup
-            dconst['ratio'][ii]['indlow'] = indlow
-
-            # Remove upper from x
 
     dind = {'bck': indbck,
             'width': indw, 'shift': inds, 'amp': inda,
@@ -818,11 +802,10 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
 
 def multigausfit1d_from_dlines(data, lamb,
                                lambmin=None, lambmax=None,
-                               dlines2=None, ratio=None,
+                               dinput=None, ratio=None,
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               dconstraints=None,
                                continuous=None, verbose=None,
                                loss=None, jac=None):
     """ Solve multi_gaussian fit in 1d from dlines
@@ -849,12 +832,6 @@ def multigausfit1d_from_dlines(data, lamb,
     """
 
     # Check format
-    if Ti is None:
-        Ti = False
-    if vi is None:
-        vi = False
-    if double is None:
-        double = False
     if continuous is None:
         continuous = True
     if jac is None:
@@ -883,11 +860,13 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Prepare
     assert np.allclose(np.unique(lamb), lamb)
-    nlines = dlines2['lamb'].size
+    nlines = dinput['nlines']
 
     # Get indices
-    dind, sizex, shapey0 = multigausfit1d_from_dlines_ind(
-        dlines2=dlines2, double=double, Ti=Ti, vi=vi)
+    dind, sizex, shapey0 = multigausfit1d_from_dlines_ind(dinput)
+
+
+    # TBF
 
     # Get scaling
     scales = multigausfit1d_from_dlines_scale(data, lamb,
