@@ -55,7 +55,8 @@ __all__ = ['CoordShift',
            'discretize_line1d',
            'discretize_segment2d', '_Ves_meshCross_FromInd',
            'discretize_vpoly',
-           '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
+           '_Ves_Vmesh_Tor_SubFromD_cython',
+           '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Tor_SubFromD_cython_old',
            '_Ves_Vmesh_Tor_SubFromInd_cython_old',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
@@ -1077,13 +1078,14 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_vres = <double**> malloc(sizeof(double*))
         res_rphi = <double**> malloc(sizeof(double*))
         res_lind = <long**>   malloc(sizeof(long*))
+        res_lind[0] = NULL
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
         nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv, pts,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
-                                                &sz_rphi[0])
+                                                &sz_rphi[0], num_threads)
         pts = np.empty((3,nb_in_poly))
         ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
         res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
@@ -1145,7 +1147,6 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     cdef double* disc_r = NULL
     cdef double* disc_z = NULL
     cdef double** phi_tab = NULL
-
     cdef np.ndarray[double,ndim=1] reso_phi
     # Get the actual R and Z resolutions and mesh elements
     # .. We discretize R .......................................................
@@ -1184,24 +1185,14 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     # .. Computing the points coordinates ......................................
     if is_cart:
         _st.vmesh_ind_cart_loop(NP, sz_r, ind, tot_nc_plane,
-                               ncells_rphi, phi_tab[0], disc_r, disc_z,
-                               pts, res3d, reso_r_z, dRPhirRef, Ru,
-                               dRPhir, num_threads)
+                                ncells_rphi, phi_tab[0], disc_r, disc_z,
+                                pts, res3d, reso_r_z, dRPhirRef, Ru,
+                                dRPhir, num_threads)
     else:
-        for ii in range(NP):
-            for jj in range(sz_r):
-                if ind[ii]-tot_nc_plane[jj]<0:
-                    break
-            iiR = jj-1
-            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
-            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
-            pts[0,ii] = disc_r[iiR]
-            pts[1,ii] = disc_z[iiZ]
-            pts[2,ii] = phi_tab[0][iiR + sz_r * iiphi]
-            res3d[ii] = reso_r_z * dRPhirRef[iiR]
-            if Ru[iiR]==0:
-                dRPhir[iiR] = dRPhirRef[iiR]
-                Ru[iiR] = 1
+        _st.vmesh_ind_polr_loop(NP, sz_r, ind, tot_nc_plane,
+                                ncells_rphi, phi_tab[0], disc_r, disc_z,
+                                pts, res3d, reso_r_z, dRPhirRef, Ru,
+                                dRPhir, num_threads)
     free(ncells_rphi)
     free(tot_nc_plane)
     if not phi_tab[0] == NULL:

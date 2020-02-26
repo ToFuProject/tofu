@@ -59,4 +59,5 @@ cdef int vignetting_vmesh_vpoly(int npts, int sz_r,
                                 double** res_vres,
                                 double** res_rphi,
                                 long** res_lind,
-                                long* sz_rphi) nogil
+                                long* sz_rphi,
+                                int num_threads) nogil
