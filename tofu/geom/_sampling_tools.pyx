@@ -1739,21 +1739,22 @@ cdef inline void vmesh_ind_cart_loop(int np,
     cdef int iiR, iiZ, iiphi
     cdef double phi
     # we compute the points coordinates from the indices values
-    for ii in range(np):
-        for jj in range(sz_r+1):
-            if ind[ii]-tot_nc_plane[jj]<0:
-                break
-        iiR = jj-1
-        iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
-        iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
-        phi = phi_tab[iiR + sz_r * iiphi]
-        pts[0,ii] = disc_r[iiR] * Ccos(phi)
-        pts[1,ii] = disc_r[iiR] * Csin(phi)
-        pts[2,ii] = disc_z[iiZ]
-        res3d[ii] = reso_r_z * dRPhirRef[iiR]
-        if Ru[iiR]==0:
-            dRPhir[iiR] = dRPhirRef[iiR]
-            Ru[iiR] = 1
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(np):
+            for jj in range(sz_r+1):
+                if ind[ii]-tot_nc_plane[jj]<0:
+                    break
+            iiR = jj-1
+            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
+            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
+            phi = phi_tab[iiR + sz_r * iiphi]
+            pts[0,ii] = disc_r[iiR] * Ccos(phi)
+            pts[1,ii] = disc_r[iiR] * Csin(phi)
+            pts[2,ii] = disc_z[iiZ]
+            res3d[ii] = reso_r_z * dRPhirRef[iiR]
+            if Ru[iiR]==0:
+                dRPhir[iiR] = dRPhirRef[iiR]
+                Ru[iiR] = 1
     return
 
 
@@ -1777,18 +1778,19 @@ cdef inline void vmesh_ind_polr_loop(int np,
     cdef int iiR, iiZ, iiphi
     cdef double phi
     # we compute the points coordinates from the indices values
-    for ii in range(np):
-        for jj in range(sz_r+1):
-            if ind[ii]-tot_nc_plane[jj]<0:
-                break
-        iiR = jj-1
-        iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
-        iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
-        pts[0,ii] = disc_r[iiR]
-        pts[1,ii] = disc_z[iiZ]
-        pts[2,ii] = phi_tab[iiR + sz_r * iiphi]
-        res3d[ii] = reso_r_z * dRPhirRef[iiR]
-        if Ru[iiR]==0:
-            dRPhir[iiR] = dRPhirRef[iiR]
-            Ru[iiR] = 1
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(np):
+            for jj in range(sz_r+1):
+                if ind[ii]-tot_nc_plane[jj]<0:
+                    break
+            iiR = jj-1
+            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
+            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
+            pts[0,ii] = disc_r[iiR]
+            pts[1,ii] = disc_z[iiZ]
+            pts[2,ii] = phi_tab[iiR + sz_r * iiphi]
+            res3d[ii] = reso_r_z * dRPhirRef[iiR]
+            if Ru[iiR]==0:
+                dRPhir[iiR] = dRPhirRef[iiR]
+                Ru[iiR] = 1
     return
