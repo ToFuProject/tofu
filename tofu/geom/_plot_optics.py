@@ -874,14 +874,13 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 
 
-def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
+def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
                                  lambmin=None, lambmax=None,
                                  fs=None, dmargin=None,
                                  tit=None, wintit=None):
 
     # Check inputs
     # ------------
-
     if fs is None:
         fs = (15, 8)
     if wintit is None:
@@ -893,12 +892,16 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
 
     # pre-compute
     # ------------
-    nlines = dlines2['key'].size
-    width_u = dlines2['width_u']
-    shift_u = dlines2['shift_u']
-    lions = dlines2['ion_u']
-    nions = len(lions)
-    x = dlines2['lamb'][None, :] + dfit1d['shift']
+    nlines = dinput['nlines']
+    width_u = dinput['width']['keys']
+    shift_u = dinput['shift']['keys']
+    ions_u = sorted(set(dinput['ion'].tolist()))
+    nions = len(ions_u)
+
+    indwidth = np.argmax(dinput['width']['ind'], axis=0)
+    indshift = np.argmax(dinput['shift']['ind'], axis=0)
+
+    x = dinput['lines'][None, :] + dfit1d['shift']
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
     if dfit1d['Ti'] is True:
@@ -934,8 +937,8 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
             ax.set_prop_cycle(None)
             if dfit1d['Ti'] is True or dfit1d['vi'] is True:
                 for jj in range(nlines):
-                    col = lfcol[width_u.index(dlines2['width'][jj])%nfcol]
-                    hatch = lhatch[shift_u.index(dlines2['shift'][jj])%nhatch]
+                    col = lfcol[indwidth[jj]%nfcol]
+                    hatch = lhatch[indshift[jj]%nhatch]
                     ax.fill_between(dfit1d['lamb'],
                                     dfit1d['sol_detail'][ii, 1+jj, :],
                                     alpha=0.3, color=col, hatch=hatch)
@@ -949,13 +952,13 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
                     marker='.', c='k', ls='-', ms=8)
 
         # Annotate lines
-        for jj, k0 in enumerate(lions):
+        for jj, k0 in enumerate(ions_u):
             col = lcol[jj%ncol]
-            ind = (dlines2['ion'] == k0).nonzero()[0]
+            ind = (dinput['ion'] == k0).nonzero()[0]
             for nn in ind:
                 ax.axvline(x[ii, nn],
                            c=col, ls='--')
-                lab = (dlines2['symb'][nn]
+                lab = (dinput['symb'][nn]
                        + '\n{:4.2e}'.format(dfit1d['coefs'][ii, nn])
                        + '\n({:+4.2e} A)'.format(dfit1d['shift'][ii, nn]*1.e10))
                 ax.annotate(lab,
@@ -967,7 +970,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
 
         # Ion legend
         hand = [mlines.Line2D([], [], color=lcol[jj%ncol], ls='--',
-                              label=lions[jj])
+                              label=ions_u[jj])
                 for jj in range(nions)]
         legi = ax.legend(handles=hand,
                          title='ions',
@@ -977,10 +980,10 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
         # Ti legend
         if dfit1d['Ti'] is True:
             hand = [mpatches.Patch(color=lfcol[jj%nfcol])
-                    for jj in range(len(dlines2['width_u']))]
-            lleg = [dlines2['width_u'][jj]
+                    for jj in range(dinput['width']['ind'].shape[0])]
+            lleg = [dinput['width']['keys'][jj]
                     + '  {:4.2f}'.format(dfit1d['kTiev'][ii, jj]*1.e-3)
-                    for jj in range(len(dlines2['width_u']))]
+                    for jj in range(dinput['width']['ind'].shape[0])]
             legT = ax.legend(handles=hand, labels=lleg,
                              title='Ti (keV)',
                              bbox_to_anchor=(1.01, 0.8), loc='upper left')
@@ -989,13 +992,12 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dlines2=None, showonly=None,
         # vi legend
         if dfit1d['vi'] is True:
             hand = [mpatches.Patch(color='w',
-                                   hatch=lhatch[jj%nhatch],
-                                   label=dlines2['shift_u'][jj])
-                    for jj in range(len(dlines2['shift_u']))]
-            lleg = [dlines2['shift_u'][jj]
+                                   hatch=lhatch[jj%nhatch])
+                    for jj in range(dinput['shift']['ind'].shape[0])]
+            lleg = [dinput['shift']['keys'][jj]
                     + '  {:4.2f}'.format(dfit1d['vims'][ii, jj]*1.e-3)
-                    for jj in range(len(dlines2['shift_u']))]
-            legv = ax.legend(handles=hand,
+                    for jj in range(dinput['shift']['ind'].shape[0])]
+            legv = ax.legend(handles=hand, labels=lleg,
                              title='vi (km/s)',
                              bbox_to_anchor=(1.01, 0.6), loc='upper left')
             ax.add_artist(legv)

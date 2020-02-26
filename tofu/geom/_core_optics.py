@@ -1634,6 +1634,7 @@ class CrystalBragg(utils.ToFuObject):
         To be fed to _spectrafit2d.multigausfit1d_from_dlines()
         Provides a user-friendly way of defining constraints
         """
+        import tofu.data._spectrafit2d as _spectrafit2d
         return _spectrafit2d.multigausfit1d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints,
             lambmin=lambmin, lambmax=lambmax)
@@ -1720,12 +1721,12 @@ class CrystalBragg(utils.ToFuObject):
                                nlambfit=None, nphifit=None,
                                lambmin=None, lambmax=None,
                                dlines=None, spect1d=None,
-                               dconstraints=None,
+                               dconstraints=None, dx0=None,
                                double=None, Ti=None, vi=None, ratio=None,
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0, continuous=None,
+                               loss=None, verbose=0, chain=None,
                                jac=None, showonly=None,
                                plot=True, fs=None, dmargin=None,
                                tit=None, wintit=None, returnas=None):
@@ -1772,9 +1773,9 @@ class CrystalBragg(utils.ToFuObject):
         lambfit = lambfit[indok]
 
         # Get dlines2
-        dinputs = self.get_dinput_for_fit1d(dlines=dlines,
-                                            dconstraints=dconstraints,
-                                            lambmin=lambmin, lambmax=lambmax)
+        dinput = self.get_dinput_for_fit1d(dlines=dlines,
+                                           dconstraints=dconstraints,
+                                           lambmin=lambmin, lambmax=lambmax)
 
         # Compute fit for spect1d to get lamb0 if not provided
         if showonly is True:
@@ -1792,20 +1793,20 @@ class CrystalBragg(utils.ToFuObject):
             import tofu.data._spectrafit2d as _spectrafit2d
 
             dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
-                spect1d, lambfit, dinput=dinput,
+                spect1d, lambfit, dinput=dinput, dx0=dx0,
                 lambmin=lambmin, lambmax=lambmax,
                 scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
                 method=method, max_nfev=max_nfev,
-                continuous=continuous, verbose=verbose,
+                chain=chain, verbose=verbose,
                 xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-                dconstraints=dconstraints, ratio=ratio, jac=jac)
+                ratio=ratio, jac=jac)
             dfit1d['phiminmax'] = phiminmax
 
         # Plot
         dax = None
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_data_fit1d(
-                dfit1d, dlines2=dlines2, showonly=showonly,
+                dfit1d, dinput=dinput, showonly=showonly,
                 lambmin=lambmin, lambmax=lambmax,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)
