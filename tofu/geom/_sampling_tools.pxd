@@ -178,7 +178,7 @@ cdef void vmesh_ind_cart_loop(int np,
                               double[::1] res3d,
                               double reso_r_z,
                               double[::1] dRPhirRef,
-                              long[::1] Ru,
+                              int[::1] Ru,
                               double[::1] dRPhir,
                               int num_threads) nogil
 
@@ -194,6 +194,6 @@ cdef void vmesh_ind_polr_loop(int np,
                               double[::1] res3d,
                               double reso_r_z,
                               double[::1] dRPhirRef,
-                              long[::1] Ru,
+                              int[::1] Ru,
                               double[::1] dRPhir,
                               int num_threads) nogil
