@@ -1134,7 +1134,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     cdef double phi
     cdef double twopi_over_dphi
     cdef double[::1] dRPhirRef
-    cdef long[::1] Ru
+    cdef int[::1] Ru
     cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] res3d=np.empty((NP,))
     cdef double[::1] reso_phi_mv
@@ -1165,7 +1165,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     free(lindex)
     # Number of Phi per R
     dRPhirRef =  np.empty((sz_r,))
-    Ru = np.zeros((sz_r,), dtype=int)
+    Ru = np.zeros((sz_r,), dtype=np.dtype("i"))
     dRPhir = np.nan*np.ones((sz_r,))
     tot_nc_plane = <long*> malloc((sz_r + 1) * sizeof(long))
     # .. Initialization ........................................................
