@@ -95,7 +95,7 @@ def bigger_test():
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
-                    reso = 0.01
+                    reso = 0.02
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')

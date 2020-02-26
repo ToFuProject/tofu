@@ -1539,6 +1539,117 @@ cdef inline void los_get_sample_pts(int nlos,
     return
 
 # -- utility for vmesh sub from D ----------------------------------------------
+cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
+                                long* ncells_rphi,
+                                double phistep,
+                                double* disc_r,
+                                double* disc_r0,
+                                double* step_rphi,
+                                double[::1] reso_phi_mv,
+                                long* tot_nc_plane,
+                                int ncells_r0,
+                                int ncells_z,
+                                int* max_sz_phi,
+                                double min_phi,
+                                double max_phi,
+                                long* sz_phi,
+                                long[:,::1] indi_mv,
+                                double margin,
+                                ) nogil:
+    cdef int ii, jj
+    cdef int ncells_rphi0
+    cdef int ind_loc_r0
+    cdef int NP
+    cdef int loc_nc_rphi
+    cdef double inv_drphi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
+    cdef double abs0
+    cdef int nphi0, nphi1
+    # .. Initialization Variables ..............................................
+    ncells_rphi0 = 0
+    ind_loc_r0 = 0
+    NP = 0
+    twopi_over_dphi = _TWOPI / phistep
+    min_phi_pi = min_phi + Cpi
+    max_phi_pi = max_phi + Cpi
+    abs0 = Cabs(min_phi_pi)
+    abs1 = Cabs(max_phi + Cpi)
+    #
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    if min_phi < max_phi:
+        for ii in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+            ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
+            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            inv_drphi = 1. / step_rphi[ii]
+            reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            tot_nc_plane[ii] = 0 # initialization
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[ii]:
+                    ind_loc_r0 = jj
+                    break
+                else:
+                    ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                    tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[ii]:
+                nphi0 = int(Cround(min_phi_pi * inv_drphi))
+            else:
+                nphi0 = int(Cfloor(min_phi_pi * inv_drphi))
+            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[ii]:
+                nphi1 = int(Cround(max_phi_pi * inv_drphi)-1)
+            else:
+                nphi1 = int(Cfloor(max_phi_pi * inv_drphi))
+            sz_phi[ii] = nphi1 + 1 - nphi0
+            if max_sz_phi[0] < sz_phi[ii]:
+                max_sz_phi[0] = sz_phi[ii]
+            for jj in range(sz_phi[ii]):
+                indi_mv[ii,jj] = nphi0+jj
+            NP += sz_z * sz_phi[ii]
+    else:
+        for ii in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+            ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
+            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            inv_drphi = 1. / step_rphi[ii]
+            reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            tot_nc_plane[ii] = 0 # initialization
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[ii]:
+                    ind_loc_r0 = jj
+                    break
+                else:
+                    ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                    tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[ii]:
+                nphi0 = int(Cround(min_phi_pi * inv_drphi))
+            else:
+                nphi0 = int(Cfloor(min_phi_pi * inv_drphi))
+            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[ii]:
+                nphi1 = int(Cround(max_phi_pi * inv_drphi)-1)
+            else:
+                nphi1 = int(Cfloor(max_phi_pi * inv_drphi))
+            sz_phi[ii] = nphi1+1+loc_nc_rphi-nphi0
+            if max_sz_phi[0] < sz_phi[ii]:
+                max_sz_phi[0] = sz_phi[ii]
+            for jj in range(0,loc_nc_rphi-nphi0):
+                indi_mv[ii,jj] = nphi0 + jj
+            for jj in range(loc_nc_rphi - nphi0, sz_phi[ii]):
+                indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
+        NP += sz_z * sz_phi[ii]
+
+    return NP
+
 cdef inline void vmesh_prepare_tab(long[:,:,::1] lnp,
                                    int sz_r,
                                    int sz_z,

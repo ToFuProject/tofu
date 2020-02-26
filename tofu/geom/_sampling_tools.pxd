@@ -132,6 +132,24 @@ cdef void los_get_sample_pts(int nlos,
                              int num_threads) nogil
 
 # -- Vmesh utility functions --------------------------------------------------
+cdef int  vmesh_disc_phi(int sz_r, int sz_z,
+                         long* ncells_rphi,
+                         double phistep,
+                         double* disc_r,
+                         double* disc_r0,
+                         double* step_rphi,
+                         double[::1] reso_phi_mv,
+                         long* tot_nc_plane,
+                         int ncells_r0,
+                         int ncells_z,
+                         int* max_sz_phi,
+                         double min_phi,
+                         double max_phi,
+                         long* sz_phi,
+                         long[:,::1] indi_mv,
+                         double margin,
+                         ) nogil
+
 cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
                             int sz_r,
                             int sz_z,
