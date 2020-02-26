@@ -148,7 +148,7 @@ cdef int  vmesh_disc_phi(int sz_r, int sz_z,
                          long* sz_phi,
                          long[:,::1] indi_mv,
                          double margin,
-                         ) nogil
+                         int num_threads) nogil
 
 cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
                             int sz_r,

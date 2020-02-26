@@ -1055,12 +1055,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         NP += sz_z * sz_phi[0]
     # ... doing the others
     NP += _st.vmesh_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
-                            disc_r, disc_r0, step_rphi,
-                            reso_phi_mv, tot_nc_plane,
-                            ncells_r0[0], ncells_z[0], &max_sz_phi[0],
-                            min_phi, max_phi,
-                            sz_phi, indi_mv,
-                            margin)
+                             disc_r, disc_r0, step_rphi,
+                             reso_phi_mv, tot_nc_plane,
+                             ncells_r0[0], ncells_z[0], &max_sz_phi[0],
+                             min_phi, max_phi, sz_phi, indi_mv,
+                             margin, num_threads)
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
