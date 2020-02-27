@@ -95,18 +95,18 @@ def bigger_test():
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
-                    reso = 0.01
+                    reso = 0.005
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
                     print("NEW sample V total time = ", time.perf_counter() - start)
                     pts0, ind = out[0], out[2]
-                    # start = time.perf_counter()
-                    # out = obj.get_sampleV(reso, resMode='abs', DV=box,
-                    #                       Out='(X,Y,Z)', algo="old")
-                    # print("OLD sample V total time = ", time.perf_counter() - start)
-                    # pts1, ind1 = out[0], out[2]
-                    # assert np.allclose(ind1, ind)
+                    start = time.perf_counter()
+                    out = obj.get_sampleV(reso, resMode='abs', DV=box,
+                                          Out='(X,Y,Z)', algo="old")
+                    print("OLD sample V total time = ", time.perf_counter() - start)
+                    pts1, ind1 = out[0], out[2]
+                    assert np.allclose(ind1, ind)
                     ii = 1
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', ind=ind,
