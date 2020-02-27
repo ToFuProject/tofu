@@ -454,7 +454,7 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
 
 
 
-def load(name, path=None, strip=None, verb=True):
+def load(name, path=None, strip=None, verb=True, allow_pickle=None):
     """     Load a tofu object file
 
     Can load from .npz or .txt files
@@ -483,7 +483,7 @@ def load(name, path=None, strip=None, verb=True):
         obj = _load_from_txt(name, pfe)
     else:
         if mode == 'npz':
-            dd = _load_npz(pfe)
+            dd = _load_npz(pfe, allow_pîckle=allow_pickle)
         elif mode == 'mat':
             dd = _load_mat(pfe)
 
@@ -581,12 +581,15 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
 
 
 
-def _load_npz(pfe):
+def _load_npz(pfe, allow_pickle=None):
+    if allow_pickle is None:
+        allow_pickle = True
 
     try:
-        out = np.load(pfe, mmap_mode=None)
+        out = np.load(pfe, mmap_mode=None, allow_pickle=allow_pickle)
     except UnicodeError:
-        out = np.load(pfe, mmap_mode=None, encoding='latin1')
+        out = np.load(pfe, mmap_mode=None, allow_pickle=allow_pickle,
+                      encoding='latin1')
     except Exception as err:
         raise err
 
