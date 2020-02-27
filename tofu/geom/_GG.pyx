@@ -1217,7 +1217,8 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
         free(phi_tab[0])
     if not phi_tab == NULL:
         free(phi_tab)
-    return pts, res3d, reso_r[0], reso_z[0], np.asarray(dRPhir)[~np.isnan(dRPhir)]
+    return (pts, res3d, reso_r[0], reso_z[0],
+            np.asarray(dRPhir)[~np.isnan(dRPhir)])
 
 
 # ==============================================================================

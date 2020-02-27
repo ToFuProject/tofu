@@ -1564,6 +1564,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     cdef double inv_drphi
     cdef double min_phi_pi
     cdef double max_phi_pi
+    cdef double margin_step
     cdef double abs0
     cdef int nphi0, nphi1
     # .. Initialization Variables ..............................................
@@ -1579,7 +1580,8 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     # .. Discretizing Phi (with respect to the corresponding radius R) .........
     if min_phi < max_phi:
         for ii in range(1, sz_r):
-            # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
             ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
             loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
@@ -1597,11 +1599,12 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
             # be created within those limits
-            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[ii]:
+            margin_step = margin * step_rphi[ii]
+            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin_step:
                 nphi0 = int(Cround(min_phi_pi * inv_drphi))
             else:
                 nphi0 = int(Cfloor(min_phi_pi * inv_drphi))
-            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[ii]:
+            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin_step:
                 nphi1 = int(Cround(max_phi_pi * inv_drphi)-1)
             else:
                 nphi1 = int(Cfloor(max_phi_pi * inv_drphi))
@@ -1614,7 +1617,8 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             NP += sz_z * sz_phi[ii]
     else:
         for ii in range(1, sz_r):
-            # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
             ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
             loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
@@ -1632,11 +1636,12 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
             # be created within those limits
-            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[ii]:
+            margin_step = margin*step_rphi[ii]
+            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin_step:
                 nphi0 = int(Cround(min_phi_pi * inv_drphi))
             else:
                 nphi0 = int(Cfloor(min_phi_pi * inv_drphi))
-            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[ii]:
+            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin_step:
                 nphi1 = int(Cround(max_phi_pi * inv_drphi)-1)
             else:
                 nphi1 = int(Cfloor(max_phi_pi * inv_drphi))
