@@ -46,25 +46,29 @@ def bigger_test():
                     t0 = np.arange(0, 360, 60) * np.pi / 180.0
                     Dt = 5.0 * np.pi / 180.0
                     Lim = (
-                        t0[np.newaxis, :] + Dt * np.r_[-1.0, 1.0][:, np.newaxis]
+                        t0[np.newaxis, :] + Dt * np.r_[-1.0,
+                                                       1.0][:, np.newaxis]
                     )  # noqa
                 elif "Ripple" in ln[ii]:
                     t0 = np.arange(0, 360, 30) * np.pi / 180.0
                     Dt = 2.5 * np.pi / 180.0
                     Lim = (
-                        t0[np.newaxis, :] + Dt * np.r_[-1.0, 1.0][:, np.newaxis]
+                        t0[np.newaxis, :] + Dt * np.r_[-1.0,
+                                                       1.0][:, np.newaxis]
                     )  # noqa
                 elif "IC" in ln[ii]:
                     t0 = np.arange(0, 360, 120) * np.pi / 180.0
                     Dt = 10.0 * np.pi / 180.0
                     Lim = (
-                        t0[np.newaxis, :] + Dt * np.r_[-1.0, 1.0][:, np.newaxis]
+                        t0[np.newaxis, :] + Dt * np.r_[-1.0,
+                                                       1.0][:, np.newaxis]
                     )  # noqa
                 elif "LH" in ln[ii]:
                     t0 = np.arange(-180, 180, 120) * np.pi / 180.0
                     Dt = 10.0 * np.pi / 180.0
                     Lim = (
-                        t0[np.newaxis, :] + Dt * np.r_[-1.0, 1.0][:, np.newaxis]
+                        t0[np.newaxis, :] + Dt * np.r_[-1.0,
+                                                       1.0][:, np.newaxis]
                     )  # noqa
                 elif tt == "Lin":
                     Lim = np.r_[0.0, 10.0]
