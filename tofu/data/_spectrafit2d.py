@@ -679,7 +679,7 @@ def multigausfit1d_from_dlines_x0(dind=None,
         x0_scale[:, dind['shift']['x']] = 0.
         if double is True:
             x0_scale[:, dind['dratio']] = 1.2
-            x0_scale[:, dind['dshift']] = -0.5
+            x0_scale[:, dind['dshift']] = -0.8
         x0_scale[:, dind['amp']['x']] *= dx0['amp']
     return x0_scale
 
@@ -698,8 +698,8 @@ def multigausfit1d_from_dlines_bounds(sizex=None, dind=None, double=None):
     if double is True:
         xup[dind['dratio']] = 1.6
         xlo[dind['dratio']] = 0.4
-        xup[dind['dshift']] = 1.
-        xlo[dind['dshift']] = -1.
+        xup[dind['dshift']] = 2.
+        xlo[dind['dshift']] = -2.
     bounds_scale = (xlo, xup)
     return bounds_scale
 
@@ -746,13 +746,11 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         shifti = (scales[3]*x[indsl]*coefssl)[None, :]
         y[:, 1:] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2))
 
-        import pdb; pdb.set_trace() # DB
         if double is True:
             ampd = amp*x[inddratio]  # (scales[1]*x[indal]*x[inddratio]*coefsal)[None, :]
             shiftid = (scales[3]*(x[indsl]+x[inddshift])*coefssl)[None, :]
             y[:, 1:] += (ampd
                          * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2)))
-        import pdb; pdb.set_trace() # DB
         return y
 
     def cost(x, data=None, scales=None):
