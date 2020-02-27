@@ -1771,24 +1771,23 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    int num_threads) nogil:
     cdef int ii
     # ...
-    with nogil, parallel(num_threads=num_threads):
-        if is_cart:
-            for ii in prange(sz_r):
-                # To make sure the indices are in increasing order
-                vmesh_double_loop_cart(ii, sz_z, lindex_z,
-                                       ncells_rphi, tot_nc_plane,
-                                       reso_r_z, step_rphi,
-                                       disc_r, disc_z, lnp, sz_phi,
-                                       indi_mv[ii,first_ind_mv[ii]:],
-                                       dv_mv, reso_phi_mv, pts_mv, ind_mv)
-        else:
-            for ii in prange(sz_r):
-                vmesh_double_loop_polr(ii, sz_z, lindex_z,
-                                       ncells_rphi, tot_nc_plane,
-                                       reso_r_z, step_rphi,
-                                       disc_r, disc_z, lnp, sz_phi,
-                                       indi_mv[ii,first_ind_mv[ii]:],
-                                       dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    if is_cart:
+        for ii in range(sz_r):
+            # To make sure the indices are in increasing order
+            vmesh_double_loop_cart(ii, sz_z, lindex_z,
+                                   ncells_rphi, tot_nc_plane,
+                                   reso_r_z, step_rphi,
+                                   disc_r, disc_z, lnp, sz_phi,
+                                   indi_mv[ii,first_ind_mv[ii]:],
+                                   dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    else:
+        for ii in range(sz_r):
+            vmesh_double_loop_polr(ii, sz_z, lindex_z,
+                                   ncells_rphi, tot_nc_plane,
+                                   reso_r_z, step_rphi,
+                                   disc_r, disc_z, lnp, sz_phi,
+                                   indi_mv[ii,first_ind_mv[ii]:],
+                                   dv_mv, reso_phi_mv, pts_mv, ind_mv)
     return
 
 

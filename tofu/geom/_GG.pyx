@@ -271,8 +271,10 @@ def format_poly(np.ndarray[double,ndim=2] poly, str order='C', Clock=False,
     -------
         poly    np.ndarray            Output formatted polygon
     """
+    cdef int ndim = poly.shape[0]
+    cdef int npts = poly.shape[1]
     if Test:
-        assert (poly.shape[0] == 2 or poly.shape[0] == 3), \
+        assert (ndim == 2 or ndim == 3), \
             ("Arg poly must contain the 2D or 3D coordinates of N points."
              " And be shaped in the form (dim, N).")
         assert poly.shape[1]>=3, ("Arg poly must contain the 2D or 3D",
@@ -281,24 +283,25 @@ def format_poly(np.ndarray[double,ndim=2] poly, str order='C', Clock=False,
         assert type(Clock) is bool, "Arg Clock must be a bool!"
         assert type(close) is bool, "Arg close must be a bool!"
 
-    if not np.allclose(poly[:,0],poly[:,-1], atol=_VSMALL):
+    if not np.allclose(poly[:,0], poly[:,npts-1], atol=_VSMALL):
         poly = np.concatenate((poly,poly[:,0:1]),axis=1)
-    if poly.shape[0]==2 and not Clock is None:
+    if ndim==2 and not Clock is None:
         try:
             if not Clock==Poly_isClockwise(poly):
                 poly = poly[:,::-1]
         except Exception as excp:
             raise excp
     if not close:
-        poly = poly[:,:-1]
+        poly = poly[:,:npts-1]
     poly = np.ascontiguousarray(poly) if order.lower()=='c' \
            else np.asfortranarray(poly)
     return poly
 
 
 def Poly_VolAngTor(np.ndarray[double,ndim=2,mode='c'] Poly):
-    cdef np.ndarray[double,ndim=1] Ri0 = Poly[0,:-1], Ri1 = Poly[0,1:]
-    cdef np.ndarray[double,ndim=1] Zi0 = Poly[1,:-1], Zi1 = Poly[1,1:]
+    cdef int npts = Poly.shape[1]
+    cdef np.ndarray[double,ndim=1] Ri0 = Poly[0,:npts-1], Ri1 = Poly[0,1:]
+    cdef np.ndarray[double,ndim=1] Zi0 = Poly[1,:npts-1], Zi1 = Poly[1,1:]
     cdef double V   =  np.sum((Ri0*Zi1 - Zi0*Ri1) * (Ri0+Ri1)) / 6.
     cdef double BV0 =  np.sum(0.5 * (Ri0*Zi1 - Zi0*Ri1) *
                               (Ri1**2 + Ri1*Ri0 + Ri0**2)) / (6.*V)
@@ -1078,18 +1081,23 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           ncells_rphi, tot_nc_plane,
                           reso_r_z, step_rphi,
                           disc_r, disc_z, lnp, sz_phi,
-                          dv_mv, reso_phi_mv, pts_mv, ind_mv,
+                          dv_mv, reso_phi_mv, pts, ind_mv,
                           num_threads)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
+        npts_vpoly = VPoly.shape[1] - 1
         # we make sure it is closed
-        if not np.allclose(VPoly[:,0],VPoly[:,-1], atol=_VSMALL):
-            poly_mv = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
-        else:
-            poly_mv = VPoly
+        # print("closing vpoly................",npts_vpoly, VPoly[0,0])
+        # poly_mv = VPoly
+        # print("0 value of vpoly", poly_mv[0,0], VPoly[0,0])
+        # print("testing if")
+        # if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
+        #         and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
+        #     print("chaging vpoly")
+        #     poly_mv = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
+        # print("closed................", poly_mv[0,0], VPoly[0,0])
         # initializations:
-        npts_vpoly = poly_mv.shape[1] - 1
         res_x = <double**> malloc(sizeof(double*))
         res_y = <double**> malloc(sizeof(double*))
         res_z = <double**> malloc(sizeof(double*))
@@ -1099,31 +1107,44 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind[0] = NULL
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv, pts,
+        print("before vignetting", is_cart)
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0], num_threads)
+        print("after, initializing other stuff")
         pts = np.empty((3,nb_in_poly))
+        print("1 done", nb_in_poly, res_lind[0] == NULL)
         ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
+        print("2 done")
         res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
+        print("3 done")
         pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
+        print("4 done")
         pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
+        print("5 done")
         pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
+        print("6 done")
         reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
         # freeing the memory
+        print("got here.................")
         free(res_x[0])
         free(res_y[0])
         free(res_z[0])
+        print("res dones")
         free(res_vres[0])
         free(res_rphi[0])
         free(res_lind[0])
+        print("reses 2 done")
         free(res_x)
         free(res_y)
         free(res_z)
+        print("res 3 done")
         free(res_vres)
         free(res_rphi)
         free(res_lind)
+        print("done !!!!!!!!!!!!!!!!!!")
     free(disc_r)
     free(disc_z)
     free(disc_r0)
