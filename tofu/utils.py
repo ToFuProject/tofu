@@ -453,7 +453,6 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     return name, mode, pfe
 
 
-
 def load(name, path=None, strip=None, verb=True, allow_pickle=None):
     """     Load a tofu object file
 
@@ -578,7 +577,6 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
         raise Exception(msg)
 
     return dout
-
 
 
 def _load_npz(pfe, allow_pickle=None):
