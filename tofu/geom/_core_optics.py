@@ -1606,7 +1606,8 @@ class CrystalBragg(utils.ToFuObject):
         # Get phi window
         if spect1d == 'mean':
             phiminmax = np.r_[phifit.min(), phifit.max()][None, :]
-            spect1d = [np.nanmean(data[ind == jj]) for jj in np.unique(ind)]
+            spect1d_out = np.array([np.nanmean(data[ind == jj])
+                                    for jj in np.unique(ind)])[None, :]
         else:
             nspect = len(spect1d)
             dphi = np.nanmax(phifit) - np.nanmin(phifit)
@@ -1779,15 +1780,13 @@ class CrystalBragg(utils.ToFuObject):
 
         # Compute fit for spect1d to get lamb0 if not provided
         if showonly is True:
-            llines = [v0['lamb'] for v0 in dions.values()]
-            lines = np.concatenate(llines)
-            dfit1d = {'shift': np.zeros((lines.size,)),
-                      'coefs': np.zeros((lines.size,)),
-                      'lines': lines,
-                      'dions': dions,
+            dfit1d = {'shift': np.zeros((1, dinput['nlines'])),
+                      'coefs': np.zeros((1, dinput['nlines'])),
                       'lamb': lambfit,
                       'data': spect1d,
-                      'double': double,
+                      'double': False,
+                      'Ti': False,
+                      'vi': False,
                       'ratio': None}
         else:
             import tofu.data._spectrafit2d as _spectrafit2d

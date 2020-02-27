@@ -933,7 +933,8 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
         ax.set_xlabel(r'$\lambda$ (m)')
 
         if showonly is not True:
-            ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][ii, 0, :], ls='-', c='k')
+            ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][ii, 0, :],
+                    ls='-', c='k')
             ax.set_prop_cycle(None)
             if dfit1d['Ti'] is True or dfit1d['vi'] is True:
                 for jj in range(nlines):
@@ -991,7 +992,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
 
         # vi legend
         if dfit1d['vi'] is True:
-            hand = [mpatches.Patch(color='w',
+            hand = [mpatches.Patch(facecolor='w', edgecolor='k',
                                    hatch=lhatch[jj%nhatch])
                     for jj in range(dinput['shift']['ind'].shape[0])]
             lleg = [dinput['shift']['keys'][jj]
@@ -999,7 +1000,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
                     for jj in range(dinput['shift']['ind'].shape[0])]
             legv = ax.legend(handles=hand, labels=lleg,
                              title='vi (km/s)',
-                             bbox_to_anchor=(1.01, 0.6), loc='upper left')
+                             bbox_to_anchor=(1.01, 0.5), loc='upper left')
             ax.add_artist(legv)
 
         # Ratios legend
@@ -1012,7 +1013,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
             legr = ax.legend(handles=hand,
                              labels=lleg,
                              title='line ratio',
-                             bbox_to_anchor=(1.01, 0.4), loc='upper left')
+                             bbox_to_anchor=(1.01, 0.11), loc='lower left')
             ax.add_artist(legr)
 
         # double legend
@@ -1024,7 +1025,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
             legr = ax.legend(handles=hand,
                              labels=lleg,
                              title='double',
-                             bbox_to_anchor=(1.01, 0.2), loc='upper left')
+                             bbox_to_anchor=(1.01, 0.), loc='lower left')
 
         ax.set_xlim(lambmin, lambmax)
 
