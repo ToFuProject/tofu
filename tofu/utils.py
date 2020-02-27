@@ -483,7 +483,7 @@ def load(name, path=None, strip=None, verb=True, allow_pickle=None):
         obj = _load_from_txt(name, pfe)
     else:
         if mode == 'npz':
-            dd = _load_npz(pfe, allow_pîckle=allow_pickle)
+            dd = _load_npz(pfe, allow_pickle=allow_pickle)
         elif mode == 'mat':
             dd = _load_mat(pfe)
 
