@@ -95,28 +95,32 @@ def bigger_test():
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
-                    reso = 0.005
+                    reso = 0.02
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
-                    print("NEW sample V total time = ", time.perf_counter() - start)
+                    print("NEW sample V total time = ",
+                          time.perf_counter() - start)
                     pts0, ind = out[0], out[2]
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)', algo="old")
-                    print("OLD sample V total time = ", time.perf_counter() - start)
+                    print("OLD sample V total time = ",
+                          time.perf_counter() - start)
                     pts1, ind1 = out[0], out[2]
                     assert np.allclose(ind1, ind)
                     ii = 1
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', ind=ind,
                                           Out='(X,Y,Z)', num_threads=48)
-                    print("NEW sample V total time = ", time.perf_counter() - start)
+                    print("NEW sample V total time = ",
+                          time.perf_counter() - start)
                     pts4 = out[0]
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', ind=ind,
                                           Out='(X,Y,Z)', algo="old")
-                    print("OLD sample V total time = ", time.perf_counter() - start)
+                    print("OLD sample V total time = ",
+                          time.perf_counter() - start)
                     pts3 = out[0]
                 except Exception as err:
                     msg = str(err)
@@ -205,7 +209,8 @@ def small_test():
         )
         assert dRPhir.ndim == 1
         Ptsi, dVi, dRri, dZri, dRPhiri = GG._Ves_Vmesh_Tor_SubFromInd_cython(
-            dR, dZ, dRPhi, RMinMax, ZMinMax, ind, Out="(R,Z,Phi)", margin=1.0e-9
+            dR, dZ, dRPhi, RMinMax, ZMinMax, ind, Out="(R,Z,Phi)",
+            margin=1.0e-9
         )
         assert np.allclose(Pts, Ptsi)
         assert np.allclose(dV, dVi)
