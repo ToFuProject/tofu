@@ -3594,7 +3594,7 @@ class Rays(utils.ToFuObject):
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None, sep=None, method='optimized',
-                 SavePath=os.path.abspath('./'), color=None, plotdebug=True):
+                 SavePath=os.path.abspath('./'), color=None):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -3901,20 +3901,31 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _checkformat_inputs_dconfig(config=None):
-        C0 = isinstance(config, Config)
-        msg = "Arg config must be a Config instance !"
-        msg += "\n    expected : {0}".format(str(Config))
-        msg += "\n    obtained : {0}".format(str(config.__class__))
-        assert C0, msg
+        # Check config has proper class
+        if not isinstance(config, Config):
+            msg = ("Arg config must be a Config instance!\n"
+                   + "\t- expected: {}".format(str(Config))
+                   + "\t- provided: {}".format(str(config.__class__)))
+            raise Exception(msg)
+
+        # Check all structures
         lS = config.lStruct
-        lC = [
-            hasattr(ss, "_InOut") and ss._InOut in ["in", "out"] for ss in lS
-        ]
-        msg = "All Struct in config must have self._InOut in ['in','out']"
-        assert all(lC), msg
+        lC = [hasattr(ss, "_InOut") and ss._InOut in ["in", "out"]
+              for ss in lS]
+        if not all(lC):
+            msg = "All Struct in config must have self._InOut in ['in','out']"
+            raise Exception(msg)
+
+        # Check there is at least one struct which is a subclass of StructIn
         lSIn = [ss for ss in lS if ss._InOut == "in"]
-        msg = "Arg config must have at least a StructIn subclass !"
-        assert len(lSIn) > 0, msg
+        if len(lSIn) == 0:
+            lclsnames = ['{}; {}'.format(ss.Id.Name, ss.Id.Cls, ss._InOut)
+                         for ss in lS]
+            msg = ("Config {} is missing a StructIn!\n".format(config.Id.Name)
+                   + "\t- " + "\n\t- ".join(lclsnames))
+            raise Exception(msg)
+
+        # Add 'compute' parameter if not present
         if "compute" not in config._dextraprop["lprop"]:
             config = config.copy()
             config.add_extraprop("compute", True)
@@ -4436,10 +4447,20 @@ class Rays(utils.ToFuObject):
         indout[0, :] = indStruct[indout[0, :]]
         return kIn, kOut, vperp, indout, indStruct
 
-    def compute_dgeom(self, extra=True, plotdebug=True):
+    def compute_dgeom(self, extra=True, show_debug_plot=True):
+        """ Compute dictionnary of geometrical attributes (dgeom)
+
+        Parameters
+        ----------
+        show_debug_plot:    bool
+            In case some lines of sight have no visibility inside the tokamak,
+            they will be considered invalid. tofu will issue a warning with
+            their indices and if show_debug_plot is True, try to plot a 3d
+            figure to help understand why these los have no visibility
+        """
         # Can only be computed if config if provided
         if self._dconfig["Config"] is None:
-            msg = "Attribute dgeom cannot be computed without a config !"
+            msg = "Attribute dgeom cannot be computed without a config!"
             warnings.warn(msg)
             return
 
@@ -4450,36 +4471,39 @@ class Rays(utils.ToFuObject):
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout, indStruct = self._compute_kInOut()
 
-        # Clean up (in case of nans)
+        # Check for LOS that have no visibility inside the plasma domain (nan)
         ind = np.isnan(kIn)
         kIn[ind] = 0.0
         ind = np.isnan(kOut) | np.isinf(kOut)
         if np.any(ind):
-            kOut[ind] = np.nan
-            msg = "Some LOS have no visibility inside the plasma domain !\n"
-            msg += "Nb. of LOS concerned: %s out of %s\n" % (
-                str(ind.sum()),
-                str(kOut.size),
-            )
-            msg += "Indices of LOS ok:\n"
-            msg += repr((~ind).nonzero()[0])
-            msg += "\nIndices of LOS with no visibility:\n"
-            msg += repr(ind.nonzero()[0])
-            warnings.warn(msg)
-            if plotdebug:
+            msg = ("Some LOS have no visibility inside the plasma domain!\n"
+                   + "Nb. of LOS concerned: {} / {}\n".format(ind.sum(),
+                                                              kOut.size)
+                   + "Indices of LOS ok:\n"
+                   + repr((~ind).nonzero()[0])
+                   + "\nIndices of LOS with no visibility:\n"
+                   + repr(ind.nonzero()[0]))
+            if show_debug_plot is True:
                 PIn = self.D[:, ind] + kIn[None, ind] * self.u[:, ind]
                 POut = self.D[:, ind] + kOut[None, ind] * self.u[:, ind]
-                # To be updated
-                _plot._LOS_calc_InOutPolProj_Debug(
-                    self.config,
-                    self.D[:, ind],
-                    self.u[:, ind],
-                    PIn,
-                    POut,
-                    nptstot=kOut.size,
-                    Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
-                    Nstep=50,
-                )
+                msg2 = ("\n\tD = {}\n".format(self.D[:, ind])
+                        + "\tu = {}\n".format(self.u[:, ind])
+                        + "\tPIn = {}\n".format(PIn)
+                        + "\tPOut = {}".format(POut))
+                warnings.warn(msg2)
+                # plot 3d debug figure
+                # _plot._LOS_calc_InOutPolProj_Debug(
+                # self.config,
+                # self.D[:, ind],
+                # self.u[:, ind],
+                # PIn,
+                # POut,
+                # nptstot=kOut.size,
+                # Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
+                # Nstep=50,
+                # )
+            kOut[ind] = np.nan
+            raise Exception(msg)
 
         # Handle particular cases with kIn > kOut
         ind = np.zeros(kIn.shape, dtype=bool)

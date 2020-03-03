@@ -236,18 +236,17 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     return res < 0.
 
 
-def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
-               close=True, str layout='(cc,N)',
-               str layout_in=None, Test=True):
+def format_poly(np.ndarray[double,ndim=2] poly, str order='C', Clock=False,
+               close=True, Test=True):
     """
-    Return a polygon Poly as a np.ndarray formatted according to parameters
+    Return a polygon poly as a np.ndarray formatted according to parameters
 
     Parameters
     ----------
-        Poly    np.ndarray or list    Input polygon under from of (cc,N) or
-                or tuple              (N,cc) np.ndarray (where cc = 2 or 3, the
-                                      number of coordinates and N points), or
-                                      list or tuple of vertices
+        poly    np.ndarray or list    Input np.ndarray of shape (cc,N)
+                or tuple              (where cc = 2 or 3, the number of
+                                      coordinates and N points), or
+                                      list or tuple of vertices of a polygon
         order   str                   Flag indicating whether the output
                                       np.ndarray shall be C-contiguous ('C') or
                                       Fortran-contiguous ('F')
@@ -260,9 +259,6 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
                                       cating whether the output array shall be
                                       closed (True, ie: last point==first point)
                                       or not closed (False)
-        layout  str                   Flag indicating whether the output
-                                      np.ndarray shall be of shape '(cc,N)'
-                                      or '(N,cc)'
         Test    bool                  Flag indicating whether the inputs should
                                       be tested for conformity, default: True
 
@@ -271,27 +267,15 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
         poly    np.ndarray            Output formatted polygon
     """
     if Test:
-        assert (2 in np.shape(Poly) or 3 in np.shape(Poly)), \
-          "Arg Poly must contain the 2D or 3D coordinates of at least 3 points!"
-        assert max(np.shape(Poly))>=3, ("Arg Poly must contain the 2D or 3D",
-                                        " coordinates of at least 3 points!")
+        assert (poly.shape[0] == 2 or poly.shape[0] == 3), \
+            ("Arg poly must contain the 2D or 3D coordinates of N points."
+             " And be shaped in the form (dim, N).")
+        assert poly.shape[1]>=3, ("Arg poly must contain the 2D or 3D",
+                                  " coordinates of at least 3 points!")
         assert order.lower() in ['c','f'], "Arg order must be in ['c','f']!"
         assert type(Clock) is bool, "Arg Clock must be a bool!"
         assert type(close) is bool, "Arg close must be a bool!"
-        assert layout.lower() in ['(cc,n)','(n,cc)'], \
-          "Arg layout must be in ['(cc,n)','(n,cc)']!"
-        assert layout_in is None or layout_in.lower() in ['(cc,n)','(n,cc)'],\
-          "Arg layout_in must be None or in ['(cc,n)','(n,cc)']!"
 
-    if np.shape(Poly)==(3,3):
-        assert not layout_in is None, \
-          ("Could not resolve the input layout of Poly because shape==(3,3)",
-           " Please specify if input is in '(cc,n)' or '(n,cc)' format!")
-        poly = np.array(Poly).T if layout_in.lower()=='(n,cc)' \
-           else np.array(Poly)
-    else:
-        poly = np.array(Poly).T if min(np.shape(Poly))==Poly.shape[1]\
-           else np.array(Poly)
     if not np.allclose(poly[:,0],poly[:,-1], atol=_VSMALL):
         poly = np.concatenate((poly,poly[:,0:1]),axis=1)
     if poly.shape[0]==2 and not Clock is None:
@@ -302,8 +286,6 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
             raise excp
     if not close:
         poly = poly[:,:-1]
-    if layout.lower()=='(n,cc)':
-        poly = poly.T
     poly = np.ascontiguousarray(poly) if order.lower()=='c' \
            else np.asfortranarray(poly)
     return poly
