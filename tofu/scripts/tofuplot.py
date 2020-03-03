@@ -31,10 +31,10 @@ else:
 # default parameters
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_scripts_def.py')
 if os.path.isfile(pfe):
-    cwd = os.getcwd()
-    os.chdir(os.path.join(os.path.expanduser('~'), '.tofu'))
+    # Make sure we load the user-specific file
+    sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
     import _scripts_def as _defscripts
-    os.chdir(cwd)
+    _ = sys.path.pop(1)
 else:
     try:
         import tofu.scripts._def as _defscripts

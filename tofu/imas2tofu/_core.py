@@ -26,10 +26,10 @@ import datetime as dtm
 # tofu
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
 if os.path.isfile(pfe):
-    cwd = os.getcwd()
-    os.chdir(os.path.join(os.path.expanduser('~'), '.tofu'))
+    # Make sure we load the user-specific file
+    sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
     import _imas2tofu_def as _defimas2tofu
-    os.chdir(cwd)
+    _ = sys.path.pop(1)
 else:
     try:
         import tofu.imas2tofu._def as _defimas2tofu
