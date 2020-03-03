@@ -15,11 +15,14 @@ So far they include:
 
 .. _tofuplot:
 
+tofuplot
+--------
+
 tofuplot is available only if IMAS is also installed on your environment.
 In that case, the sub-package imas2tofu will be operational.
 This sub-package provides an interface between tofu and IMAS, and allows,
 among other things, to use tofu to plot experimental data stored in IMAS in
-interactive figure.
+interactive figures.
 
 This feature is typically used as follows:
 
@@ -31,10 +34,38 @@ The line above calls tofuplot with the following arguments:
 - -s / --shot : the shot number of the imas data entry (here 54178)
 - -i / --ids  : the name of the ids we want to get data from (here ece)
 
+The ids names that can be used are diagnostic ids, they include:
+- soft_x_rays
+- bolometer
+- interferometer
+- polarimeter
+- reflectometer_profile
+- barometry
+- spectrometer_visible
+- bremsstrahlung_visible
+
+Note that you can combine the plots from several ids in the same figure by
+simply adding more ids (they will have common time axis):
+
+::
+
+   $ tofuplot -s 54178 -i ece soft_x_rays interferometer
+
+
+In all cases, what tofuplot does is simply:
+- read the tokamak geometry from ids wall
+- read the diagnostic geometry from the provided ids
+- compute the Lines of Sight (LOS)
+- read the diagnostic experimental data from the provided ids
+- display the data (time traces per LOS) and the geometry (tokamak + LOS) in
+  an interactive figure
+
 There are many other parameters that can be specified, like in particular:
 - -tok / --tokamak: the name of the tokamak of the imas data entry
 - -u / --user     : the user of the imas data entry
 - -t0 / --t0      : the name of the time event used as origin (can be a float)
+
+When a parameter is not specified, a default value is used.
 
 For help on the other parameters, type:
 
@@ -42,132 +73,103 @@ For help on the other parameters, type:
 
    $ tofuplot --help
 
+Here is an example of the interactive figure
 
 
------
 
-To install and use `tofu` on Linux, we recommend to proceed in two steps: install the
-Python package manager conda and then install tofu.
-We recommend ``Miniconda`` (light version of the Anaconda Python distribution for data science,
-but you can also work with ``pip`` or another Python package manager of
-your choice).
+.. _tofucalc:
 
--  `Get the latest Miniconda version and install
-   it. <https://docs.conda.io/en/latest/miniconda.html>`__
-- Install tofu
-
-::
-
-   $ conda install -c tofuproject tofu
-
-- Check that tofu works by printing its version number:
-
-::
-
-   $ python -c "import tofu; print(tofu.__version__)"
-
-Now you can `follow a tutorial. <auto_examples/index.html>`__
-
-.. _installing-tofu-on-mac:
-
-Mac OS X
+tofucalc
 --------
 
-See :ref:`installing-as-a-developer`.
+tofuplot simply reads and plot data.
 
-Additional *caveat*: if you are using a version of `gcc < 8` be sure to
-turn off all parallelizations since there is a `known bug with cython
-<https://github.com/ToFuProject/tofu/issues/183>`__.
+By comparison, tofucalc also reads the diagnostics geometry,
+but more importantly, it reads plasma profiles (1d radial profiles or 2d maps)
+of the quantity of interest for the chosen diagnostic
+(i.e.: electron density for interferometer, total radiated power for
+bolometer...) and calculates the synthetic data of the
+diagnostic (it performs the Line Of Sight integrationi of the quantity).
+Finally, it displays the result in the same interactive figure as tofuplot.
 
-.. _installing-tofu-on-windows:
-
-Windows
--------
-
-See :ref:`installing-as-a-developer`.
-
-Additional *caveat*: you may need to open an ``Anaconda prompt`` (usually found by pressing
-the Windows key) to run the commands described in the linked section.
-
-
-.. _iter-users:
-
-Using tofu on a ITER cluster
-----------------------------
-
-If you have an **ITER** account, you can use **tofu** directly from ITER
-Computing Cluster. No need to install tofu !
-
--  Ask for access to ITER servers, if you don't have them already.
--  For information about the cluster, see `this
-   link. <https://confluence.iter.org/display/IMP/ITER+Computing+Cluster>`__
--  Open a new terminal and connect to server (see link above)
--  Create a new file in your ``$HOME`` directory, you can name it
-   ``load_tofu_modules.sh``
--  Open it and add the following lines:
+Once you have understood the parameters of tofuplot, tofucalc is intuitive
+as it requires the same input:
 
 ::
 
-   module refresh
-   source /etc/profile.d/modules.sh # make sure you have the module environment
-   module purge # unload any previously loaded modules
-   module load IMAS/3.24.0-4.1.5 # for IMAS data base
-   module load IPython/6.3.1-intel-2018a-Python-3.6.4 # for iPython
-   module load PySide2/5.12.0-intel-2018a-Python-3.6.4
-   module load ToFu/1.4.0-intel-2018a-Python-3.6.4 # Load tofu :)
+   $ tofucalc -s 54178 -i interferometer
 
--  Convert it to an executable, from the terminal:
-   ``chmod +x ~/load_tofu_modules.sh``
--  Execute it: ``./load_tofu_modules.sh``
--  If you are going to use *tofu* often, you might want to add the
-   execution of the script to your ``.bash_profile`` (or ``.bashrc``
-   file):
+Note however, that tofucalc is available for a limited number of diagnostics.
+Indeed, it requires pre-tabulating the quantity of interest for each ids and
+implementing proper 2D interpolation methods for each type of profile.
+So far, it is available for:
+- interefreometer
+- polarimeter
+- bolometer
+- bremsstrhalung_visible
 
-::
+Other diagnostics / ids will be added to this list as tofu is developped and
+tested on WEST.
 
-   echo './load_tofu_modules.sh' >> .bash_profile
+Also note that there is a default profile tabulated for each diagostics.
+For example interferometer used the 1d electron density profile stored in ids
+core_profiles.
+But one could of course object that electron density can be stored as a 2D map
+in another ids, produced, for example by a plasma edge code.
+Computing synthetic data from an alternative source than the tabulated default
+o ne is possible, but through the python console only as it requires a more
+advanced use of the features offered by tofu.
 
-You are all set, open a Python/IPython console and try importing tofu.
-
-::
-
-   $ python
-   In [1]: import tofu as tf
-
-You can now `follow a tutorial. <auto_examples/index.html>`__
-
-
-.. _installing-as-a-developer:
-
-Installing tofu as a developer
-------------------------------
-
-To install tofu as a developer, we recommend using the conda ecosystem (Miniconda in particular):
-
--  `Get the latest Miniconda version and install
-   it. <https://docs.conda.io/en/latest/miniconda.html>`__
-
-- create a dedicated (Python 3) environment for tofu development and activate it
+For some specific users, an alternative way of providing the profiles has been
+implemented: it is possible to pass the ids not by its identification
+parameters (shot, user, tokamak, ids name...), but via an input file saved with
+matlab (.mat).
+The input file shall contain an exact representation of the ids.
+Likewise, the result can be saved into a .mat output file.
+This feature is only available for ids bremsstrahlung_visible so far and it
+only the 1d radiation profile that is passed throught the input file.
+The equilibrium (for interpolation) and diagnostic geometry are still read from
+regular IMAS ids.
 
 ::
 
-   $ conda create -n tofu3 python=3.6 scipy numpy cython git
-   $ conda activate tofu3
+   $ tofucalc -s 54178 -i interferometer
 
--  Move to where you would like to install your local copy of ToFu ``$ cd some_path``
--  ``$ git clone https://github.com/ToFuProject/tofu.git`` (make sure you
-   remember the path where you are installing, if you want to install it
-   into your home repository, just make sure to ``$ cd ~`` before the
-   ``git clone...``)
--  Move to the "cloned" tofu directory that has been created by the git clone command:
-   ``cd ~/tofu``
--  Switch to the ``git`` branch you will be working on. If you are just
-   starting you probably want to start from the latest develop branch:
-   ``git checkout devel``. If you are not familiar with **git** take a
-   look at `this tutorial
-   (long) <https://www.atlassian.com/git/tutorials>`__ or `this short
-   one <https://rogerdudler.github.io/git-guide/>`__
--  Run ``pip install -e .[dev]``. This will install dependencies, compile the
-   tofu cython extensions and install it into your conda environment while you can still
-   modify the source files in the current repository.`
--  Make sure tofu tests are running by typing ``nosetests``
+
+
+
+.. _tofu-custom:
+
+tofu-custom
+-----------
+
+tofu used a lot of default parameters, such that providing no parameter at all
+is ok when using most method / functions.
+However, you may want to customize some of these default parameters to better
+suit your usage or liking.
+
+If tofu is installed on a shared cluster, you can't access tofu's default
+parametersas modifying them would also affect everybody else's usage.
+
+In order to allow for user-specific customization, run:
+
+::
+
+   $ tofu-custom
+
+
+This will create a .tofu/ directory in your home (~/), in which tofu will copy
+default parameters and data that you are free to edit.
+This local copy is thus user-specific and will always have precedence when
+importing tofu.
+
+Not all parameters can be customized, and this effort is on-going, but to,
+as of tofu 1.4.3, you can edit:
+- the imas shortcuts in _imas2tofu-def.py
+- the default parameters of tofuplot and tofcalc in _scripts_def.py
+
+Other parameters will be available for customization in future versions.
+
+This hidden directory also holds a openadas2tofu/ sub-directory where all data
+downloaded by tofu from `openadas <https://open.adas.ac.uk/>`__
+(a free online atomic database) is stored.
