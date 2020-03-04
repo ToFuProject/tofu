@@ -1,24 +1,56 @@
 
 # Built-in
 import os
+import re
 
 # Common
 import numpy as np
-from scipy.interpolate import RectBivariateSpline as scpRectSpline
+from scipy.interpolate import RectBivariateSpline as scpRectSpl
+
+
+__all__ = ['read']
 
 
 _LTYPES = ['adf11', 'adf15']
 _DEG = 1
 
 
-def read(pfe):
+def _get_PATH_LOCAL():
+    pfe = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
+    if os.path.isdir(pfe):
+        return pfe
+    else:
+        return None
+
+
+def read(adas_path):
     """ Read openadas-formatted files and return a dict of interpolators """
 
+    path_local = _get_PATH_LOCAL()
+
+    # Check whether the local .tofu repo exists, if not recommend tofu-custom
+    if path_local is None:
+        path = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
+        msg = ("You do not seem to have a local ./tofu repository\n"
+               + "tofu uses that local repository to store all user-specific "
+               + "data and downloads\n"
+               + "In particular, openadas files are downloaded and saved in:\n"
+               + "\t{}\n".format(path)
+               + "  => to set-up your local .tofu repo, run in a terminal:\n"
+               + "\ttofu-custom")
+        raise Exception(msg)
+
+    # make sure adas_path is not understood as absolute local path
+    if adas_path[0] == '/':
+        adas_path = adas_path[1:]
+
+    # Check file was downloaded locally
+    pfe = os.path.join(path_local, adas_path)
     if not os.path.isfile(pfe):
         msg = ("Provided file does not seem to exist:\n"
                + "\t{}\n".format(pfe)
                + "  => Search it online with tofu.openadas2tofu.search()\n"
-               + "  => Download it locally with ofu.openadas2tofu.download()")
+               + "  => Download it locally with tofu.openadas2tofu.download()")
         raise FileNotFoundError(msg)
 
     lc = [ss for ss in _LTYPES if ss in pfe]
@@ -46,6 +78,10 @@ def _read_adf11():
 # #############################################################################
 
 
+def _get_adf15_key(elem, charge, isoel, typ0, typ1):
+    return '{}{}_{}_openadas_{}_{}'.format(elem, charge, isoel,
+                                           typ0, typ1)
+
 def _read_adf15(pfe, deg=None):
 
     if deg is None:
@@ -56,7 +92,17 @@ def _read_adf15(pfe, deg=None):
     flag0 = 'superstage partition information'
     dout = {}
 
+    # Get file markers from name (elem, charge, typ0, typ1)
+    typ0, typ1, elemq = pfe.split('][')[1:]
+    ind = re.search(r'\d', elemq).start()
+    elem = elemq[:ind].title()
+    charge = int(elemq[ind:-4])
+    assert elem.lower() in typ0[:2]
+    assert elem.lower() == typ1.split('_')[0]
+    typ0 = typ0[len(elem)+1:]
+    typ1 = typ1.split('_')[1]
 
+    # Extract data from file
     nlines, nblock = None, 0
     in_ne, in_te, in_pec, in_tab, itab = False, False, False, False, np.inf
     with open(pfe) as search:
@@ -64,7 +110,8 @@ def _read_adf15(pfe, deg=None):
 
             # Get number of lines (transitions) stored in this file
             if ii == 0:
-                nlines = int(line[:line.index('/AR')].replace(' ',''))
+                lstr = line.split('/')
+                nlines = int(lstr[0].replace(' ',''))
                 continue
 
             # Get info about the transition being scanned (block)
@@ -110,17 +157,17 @@ def _read_adf15(pfe, deg=None):
                 ind += data.size
                 if ind == pec.size:
                     in_pec = False
-                    key = 'Ar{}_{}_openadas_adf15ic'.format(16, isoel)
+                    key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
                     dout[key] = {
                         'lamb': lamb,
-                        'origin': 'openadas_adf15_{}_ic',
+                        'origin': pfe,
                         'type': typ[0],
                         'ne': ne, 'te': te,
-                        'interp_log': scpRectSpline(np.log(ne),
-                                                    np.log(te),
-                                                    np.log(pec).reshape((nne,
-                                                                         nte)),
-                                                    kx=deg, ky=deg)}
+                        'interp2d_log_nete':
+                        scpRectSpl(np.log(ne), np.log(te),
+                                   np.log(pec).reshape((nne, nte)),
+                                   kx=deg, ky=deg)
+                    }
                     nblock += 1
 
             # Get transitions from table at the end
@@ -131,10 +178,9 @@ def _read_adf15(pfe, deg=None):
             if in_tab is True:
                 lstr = [kk for kk in line.rstrip().split(' ') if len(kk) > 0]
                 isoel = int(lstr[1])
-                key = 'Ar{}_{}_openadas_adf15ic'.format(16, isoel)
+                key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
                 assert dout[key]['lamb'] == float(lstr[2])*1.e-10
                 dout[key]['transition'] = None
                 if isoel == nlines:
                     in_tab = False
-    import pdb; pdb.set_trace()     # DB
     return dout

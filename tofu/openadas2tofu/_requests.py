@@ -8,14 +8,15 @@ import warnings
 # Common
 import numpy as np
 
+
+
+__all__ = ['search', 'download', 'download_all', 'clean_downloads']
+
+
 # Check whether a local .tofu/ repo exists
-pfe = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
-if os.path.isdir(pfe):
-    _PATH_LOCAL = pfe
-else:
-    _PATH_LOCAL = None
 _URL = 'https://open.adas.ac.uk'
 _URL_SEARCH = _URL + '/freeform?searchstring='
+_URL_SEARCH_WAVL = _URL + '/wavelength?'
 _URL_ADF15 = _URL + '/adf15'
 _URL_DOWNLOAD = _URL + '/download'
 
@@ -24,6 +25,14 @@ _INCLUDE_PARTIAL = True
 # #############################################################################
 #                           Utility functions
 # #############################################################################
+
+
+def _get_PATH_LOCAL():
+    pfe = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
+    if os.path.isdir(pfe):
+        return pfe
+    else:
+        return None
 
 
 def _getcharray(ar, col=None, sep='  ', line='-', just='l',
@@ -69,8 +78,9 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 
 
 # #############################################################################
-#                           Web-oriented functions
+#                          online search
 # #############################################################################
+
 
 class FileAlreayExistsException(Exception):
     pass
@@ -91,9 +101,9 @@ def search(searchstr=None, returnas=None,
     searchurl = '+'.join([requests.utils.quote(kk)
                           for kk in searchstr.split(' ')])
 
-    resp = requests.get('{}{}{}'.format(_URL_SEARCH,
+    resp = requests.get('{}{}&{}'.format(_URL_SEARCH,
                                         searchurl,
-                                        '&searching=1'))
+                                        'searching=1'))
 
     # Extract response from html
     out = resp.text.split('\n')
@@ -136,15 +146,67 @@ def search(searchstr=None, returnas=None,
     return arr
 
 
+def search_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
+                          returnas=None, verb=None):
+
+    # Check input
+    if returnas is None:
+        returnas = False
+    if verb is None:
+        verb = True
+    if lambmin is None:
+        lambmin = ''
+    if lambmax is None:
+        lambmax = ''
+    if resolveby is None:
+        resolveby = 'transition'
+    if resolveby not in ['transition', 'file']:
+        msg = ("Arg resolveeby must be:\n"
+               + "\t- 'transition': list all available transitions\n"
+               + "\t- 'file': list all files containing relevant transitions")
+        raise Exception(msg)
+
+    searchurl = '&'.join(['wavemin={}'.format(lambmin),
+                          'wavemax={}'.format(lambmax),
+                          'resolveby={}'.format(resolveby)])
+
+    resp = requests.get('{}{}&{}'.format(_URL_SEARCH_WAVL,
+                                         searchurl,
+                                         'searching=1'))
+
+    # Extract response from html
+    out = resp.text.split('\n')
+    import pdb; pdb.set_trace()     # DB
+    ind0 = out.index('<table summary="Freeform search results">')
+    out = out[ind0+1:]
+    ind1 = out.index('</table>')
+    out = out[:ind1-1]
+    nresults = len(out) -1
+
+    # Format output
+    char = np.array(lout)
+    col = ['Ion', 'charge', 'type of data', 'full file name']
+    arr = _getcharray(char, col=col,
+                      sep='  ', line='-', just='l',
+                      returnas=returnas, verb=verb)
+    return arr
+
+
+# #############################################################################
+#                          Download
+# #############################################################################
+
+
 def _check_exists(filename, update=None):
     # if target is None:
         # target = filename
 
     # In case a small modification becomes necessary later
     target = filename
+    path_local = _get_PATH_LOCAL()
 
     # Check whether the local .tofu repo exists, if not recommend tofu-custom
-    if _PATH_LOCAL is None:
+    if path_local is None:
         path = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
         msg = ("You do not seem to have a local ./tofu repository\n"
                + "tofu uses that local repository to store all user-specific "
@@ -158,12 +220,12 @@ def _check_exists(filename, update=None):
     # Parse intermediate repos and create if necessary
     lrep = target.split('/')[1:-1]
     for ii in range(len(lrep)):
-        repo = os.path.join(_PATH_LOCAL, *lrep[:ii+1])
+        repo = os.path.join(path_local, *lrep[:ii+1])
         if not os.path.isdir(repo):
             os.mkdir(repo)
 
     # Check if file already exists
-    path = os.path.join(_PATH_LOCAL, *lrep)
+    path = os.path.join(path_local, *lrep)
     pfe = os.path.join(path, target.split('/')[-1])
     if os.path.isfile(pfe):
         if update is False:
@@ -237,7 +299,7 @@ def download_all(searchstr=None,
     arr = search(searchstr=searchstr, include_partial=include_partial,
                  verb=False, returnas=np.ndarray)
     if verb is True:
-        msg = "Downloading from {} into {}:".format(_URL, _PATH_LOCAL)
+        msg = "Downloading from {} into {}:".format(_URL, _get_PATH_LOCAL())
         print(msg)
     for ii in range(arr.shape[0]):
         try:
@@ -260,13 +322,14 @@ def download_all(searchstr=None,
 
 
 def clean_downloads():
-    if _PATH_LOCAL is None:
+    path_local = _get_PATH_LOCAL()
+    if path_local is None:
         return
-    lf = [ff for ff in os.listdir(_PATH_LOCAL)
-          if os.path.isfile(os.path.join(_PATH_LOCAL, ff))]
-    ld = [ff for ff in os.listdir(_PATH_LOCAL)
-          if os.path.isdir(os.path.join(_PATH_LOCAL, ff))]
+    lf = [ff for ff in os.listdir(path_local)
+          if os.path.isfile(os.path.join(path_local, ff))]
+    ld = [ff for ff in os.listdir(path_local)
+          if os.path.isdir(os.path.join(path_local, ff))]
     for ff in lf:
         os.remove(ff)
     for dd in ld:
-        shutil.rmtree(os.path.join(_PATH_LOCAL, dd))
+        shutil.rmtree(os.path.join(path_local, dd))
