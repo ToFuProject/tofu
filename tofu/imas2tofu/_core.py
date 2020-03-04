@@ -27,9 +27,15 @@ import datetime as dtm
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
 if os.path.isfile(pfe):
     # Make sure we load the user-specific file
-    sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
-    import _imas2tofu_def as _defimas2tofu
-    _ = sys.path.pop(1)
+    # sys.path method
+    # sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
+    # import _scripts_def as _defscripts
+    # _ = sys.path.pop(1)
+    # importlib method
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_defimas2tofu", pfe)
+    _defimas2tofu = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_defimas2tofu)
 else:
     try:
         import tofu.imas2tofu._def as _defimas2tofu
