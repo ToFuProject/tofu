@@ -157,6 +157,8 @@ def search_online(searchstr=None, returnas=None,
             elm = elmq[:elmq.index('<sup>')]
             charge = elmq[elmq.index('<sup>')+len('<sup>'):]
             charge = charge.replace('</sup>', '')
+            if charge == '+':
+                charge = '1+'
         else:
             charge = ''
             elm = elmq
