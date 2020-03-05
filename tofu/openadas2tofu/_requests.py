@@ -115,25 +115,24 @@ def search_online(searchstr=None, returnas=None,
     searchurl = '+'.join([requests.utils.quote(kk)
                           for kk in searchstr.split(' ')])
 
-    resp = requests.get('{}{}&{}'.format(_URL_SEARCH,
-                                        searchurl,
-                                        'searching=1'))
+    total_url = '{}{}&{}'.format(_URL_SEARCH, searchurl, 'searching=1')
+    resp = requests.get(total_url)
 
     # Extract response from html
     out = resp.text.split('\n')
     flag0 = '<table summary="Freeform search results">'
-    flag1 = '</table></div></div></div>'
+    flag1 = '</table>'
     ind0 = [ii for ii, vv in enumerate(out) if flag0 in vv]
     ind1 = [ii for ii, vv in enumerate(out) if flag1 in vv]
-    import pdb; pdb.set_trace()     # DB
-    if len(ind0) != 1 or len(ind1) != 1:
+    if len(ind0) != 1 or len(ind1) == 0:
         msg = ("Format of html response seems to have changed!\n"
                + "Cannot find flags:\n"
                + "\t- {}\n".format(flag0)
                + "\t- {}\n".format(flag1)
                + "in requests.get({}).text".format(total_url))
         raise Exception(msg)
-    out = out[ind0+1:ind1-1]
+    ind1 = np.min([ii for ii in ind1 if ii > ind0[0]])
+    out = out[ind0[0]+1:ind1-1]
     nresults = len(out) -1
 
     # Get columns
@@ -154,9 +153,13 @@ def search_online(searchstr=None, returnas=None,
         lstri = out[ii+1].split('</td><td')
         assert len(lstri) == nhead
         elmq = lstri[0].replace('<tr><td>', '')
-        elm = elmq[:elmq.index('<sup>')]
-        charge = elmq[elmq.index('<sup>')+len('<sup>'):]
-        charge = charge.replace('</sup>', '')
+        if '<sup>' in elmq:
+            elm = elmq[:elmq.index('<sup>')]
+            charge = elmq[elmq.index('<sup>')+len('<sup>'):]
+            charge = charge.replace('</sup>', '')
+        else:
+            charge = ''
+            elm = elmq
         typ = lstri[2][1:]
         fil = lstri[3][lstri[3].index('detail')+len('detail'):]
         fil = fil[:fil.index('.dat')+len('.dat')]
@@ -421,8 +424,9 @@ def download_all(files=None, searchstr=None,
             msg = "files must be a list of full openadas file names!"
             raise Exception(msg)
     elif lc[1]:
-        arr = search(searchstr=searchstr, include_partial=include_partial,
-                     verb=False, returnas=np.ndarray)
+        arr = search_online(searchstr=searchstr,
+                            include_partial=include_partial,
+                            verb=False, returnas=np.ndarray)
         files = arr[:, -1]
     elif lc[2]:
         arr = search_online_by_wavelengthA(lambmin=lambmin,
