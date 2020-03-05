@@ -10,7 +10,8 @@ import numpy as np
 
 
 
-__all__ = ['search', 'download', 'download_all', 'clean_downloads']
+__all__ = ['search_online', 'search_online_by_wavelengthA',
+           'download', 'download_all', 'clean_downloads']
 
 
 # Check whether a local .tofu/ repo exists
@@ -86,8 +87,21 @@ class FileAlreayExistsException(Exception):
     pass
 
 
-def search(searchstr=None, returnas=None,
-           include_partial=None, verb=None):
+def search_online(searchstr=None, returnas=None,
+                  include_partial=None, verb=None):
+    """ Perform an online freeform search on https://open.adas.ac.uk
+
+    Pass searchstr to the online freeform search
+    Prints the results (if verb=True)
+    Optionally return the result as:
+        - a char array (returnas = np.ndarray)
+        - a formatted str (returnas = str)
+
+    example
+    -------
+        >>> import tofu as tf
+        >>> tf.openadas2tofu.search_online('ar+16 ADF15')
+    """
 
     # Check input
     if returnas is None:
@@ -107,17 +121,28 @@ def search(searchstr=None, returnas=None,
 
     # Extract response from html
     out = resp.text.split('\n')
-    ind0 = out.index('<table summary="Freeform search results">')
-    out = out[ind0+1:]
-    ind1 = out.index('</table>')
-    out = out[:ind1-1]
+    flag0 = '<table summary="Freeform search results">'
+    flag1 = '</table></div></div></div>'
+    ind0 = [ii for ii, vv in enumerate(out) if flag0 in vv]
+    ind1 = [ii for ii, vv in enumerate(out) if flag1 in vv]
+    import pdb; pdb.set_trace()     # DB
+    if len(ind0) != 1 or len(ind1) != 1:
+        msg = ("Format of html response seems to have changed!\n"
+               + "Cannot find flags:\n"
+               + "\t- {}\n".format(flag0)
+               + "\t- {}\n".format(flag1)
+               + "in requests.get({}).text".format(total_url))
+        raise Exception(msg)
+    out = out[ind0+1:ind1-1]
     nresults = len(out) -1
 
+    # Get columns
     heads = [str.replace(kk.replace('<tr>', '').replace('<th>', ''),
                          '</th>', '').replace('</tr>', '')
              for kk in out[0].split('</th><th>')]
     nhead = len(heads)
 
+    # Get results
     lout = []
     for ii in range(0, nresults):
         if 'Partial results are listed below' in out[ii+1]:
@@ -146,8 +171,24 @@ def search(searchstr=None, returnas=None,
     return arr
 
 
-def search_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
-                          returnas=None, verb=None):
+def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
+                                 element=None, returnas=None, verb=None):
+    """ Perform an online search by wavelength on https://open.adas.ac.uk
+
+    Pass the min / max wavelength (in Angstrom) to the online wavelength search
+    Prints the results (if verb=True)
+    Optionally return the result as:
+        - a char array (returnas = np.ndarray)
+        - a formatted str (returnas = str)
+
+    The result can be resolve by transition or by adas file
+    Optionally filter by element to return only the results of one element
+
+    example
+    -------
+        >>> import tofu as tf
+        >>> tf.openadas2tofu.search_online_by_wavelengthA(3., 4., element='ar')
+    """
 
     # Check input
     if returnas is None:
@@ -165,27 +206,66 @@ def search_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
                + "\t- 'transition': list all available transitions\n"
                + "\t- 'file': list all files containing relevant transitions")
         raise Exception(msg)
+    if element is not None and not isinstance(element, str):
+        msg = ("Arg element must be a str!\n"
+               + "\te.g.: element='ar'")
+        raise Exception(msg)
 
-    searchurl = '&'.join(['wavemin={}'.format(lambmin),
-                          'wavemax={}'.format(lambmax),
+    searchurl = '&'.join(['wave_min={}'.format(lambmin),
+                          'wave_max={}'.format(lambmax),
                           'resolveby={}'.format(resolveby)])
 
-    resp = requests.get('{}{}&{}'.format(_URL_SEARCH_WAVL,
-                                         searchurl,
-                                         'searching=1'))
+    total_url = '{}{}&{}'.format(_URL_SEARCH_WAVL, searchurl, 'searching=1')
+    resp = requests.get(total_url)
 
     # Extract response from html
     out = resp.text.split('\n')
-    import pdb; pdb.set_trace()     # DB
-    ind0 = out.index('<table summary="Freeform search results">')
-    out = out[ind0+1:]
-    ind1 = out.index('</table>')
-    out = out[:ind1-1]
+    flag0 = '<table summary="Search by Wavelength Search Results">'
+    flag1 = '</table></div></div></div>'
+    ind0 = [ii for ii, vv in enumerate(out) if flag0 in vv]
+    ind1 = [ii for ii, vv in enumerate(out) if flag1 in vv]
+    if len(ind0) != 1 or len(ind1) != 1:
+        msg = ("Format of html response seems to have changed!\n"
+               + "Cannot find flags:\n"
+               + "\t- {}\n".format(flag0)
+               + "\t- {}\n".format(flag1)
+               + "in requests.get({}).text".format(total_url))
+        raise Exception(msg)
+    out = out[ind0[0]+1].split('</tr><tr><td>')
     nresults = len(out) -1
+
+    # Get columns
+    col = [kk.replace('<tr><th>', '').replace('</th>', '').strip()
+           for kk in out[0].split('</th><th>')]
+    ncol = len(col)
+    colex = ['Wavelength', 'Ion', 'Data Type', 'Transition', 'File Details']
+    if col != colex:
+        msg = ("Format of table columns in html seems to have changed!\n"
+               + "\t- expected: {}\n".format(colex)
+               + "\t- observed: {}".format(col))
+        raise Exception(msg)
+
+    lout = []
+    for ii in range(0, nresults):
+        lstri = out[ii+1].split('</td><td>')
+        assert len(lstri) == ncol
+        lamb = lstri[0].replace('&Aring;', '')
+        elm, charge = lstri[1].replace('</sup>', '').split('<sup>')
+        if element is not None and elm.lower() != element.lower():
+            continue
+        typ = lstri[2].replace('</span>', '').split('>')[1]
+        trans = lstri[3].replace('&nbsp;', ' ')
+        trans = trans.replace('<sup>', '^{').replace('</sup>', '}')
+        trans = trans.replace('<sub>', '_{').replace('</sub>', '}')
+        trans = trans.replace('&rarr;', '->')
+        fil = lstri[4][lstri[4].index('detail')+len('detail'):]
+        fil = fil[:fil.index('.dat')+len('.dat')]
+        lout.append([lamb, elm, charge, typ, trans, fil])
 
     # Format output
     char = np.array(lout)
-    col = ['Ion', 'charge', 'type of data', 'full file name']
+    col = ['Wavelength', 'Element', 'Charge', 'Data Type',
+           'Transition', 'Full file name']
     arr = _getcharray(char, col=col,
                       sep='  ', line='-', just='l',
                       returnas=returnas, verb=verb)
@@ -242,6 +322,16 @@ def _check_exists(filename, update=None):
 
 def download(filename=None,
              update=None, verb=None, returnas=None):
+    """ Download desired file from  https://open.adas.ac.uk
+
+    All downloaded files are stored in your local tofu directory (~/.tofu/)
+
+    example
+    -------
+        >>> import tofu as tf
+        >>> filename = '/adf15/pec40][ar/pec40][ar_ls][ar16.dat'
+        >>> tf.openadas2tofu.download(filename)
+    """
 
     # ---------------------------
     # Check
@@ -285,8 +375,25 @@ def download(filename=None,
         return pfe
 
 
-def download_all(searchstr=None,
+def download_all(files=None, searchstr=None,
+                 lambmin=None, lambmax=None, element=None,
                  include_partial=None, update=None, verb=None):
+    """ Download all desired files from  https://open.adas.ac.uk
+
+    The files to download can be provided either as:
+        - a list of full openadas file names (files)
+        - the result of an online freeform search
+            (searchstr fed to search_online)
+        - the result of an online search by wavelength
+            (lambmin, lambmax and element fed to search_online_by_wavelengthA)
+
+    All downloaded files are stored in your local tofu directory (~/.tofu/)
+
+    example
+    -------
+        >>> import tofu as tf
+        >>> tf.openadas2tofu.download_all(lambmin=3., lambmax=4., element='ar')
+    """
     # Check
     if include_partial is None:
         include_partial = False
@@ -294,27 +401,54 @@ def download_all(searchstr=None,
         update = False
     if verb is None:
         verb = True
+    lc = [files is not None,
+          searchstr is not None,
+          any([ss is not None for ss in [lambmin, lambmax, element]])]
+    if np.sum(lc) != 1:
+        msg = (
+            "Please either searchstr xor (lambmin, lambmax, element)\n"
+            + "\t- files: list of full file names to be downloaded\n"
+            + "\t- searchstr: uses search_online()\n"
+            + "\t- lambmin, lambmax, element: search_online_by_wavelengthA")
+        raise Exception(msg)
+
+    # Get list of files
+    if lc[0]:
+        if isinstance(files, str):
+            files = [files]
+        if not (isinstance(files, list)
+                and all([isinstance(ss, str) for ss in files])):
+            msg = "files must be a list of full openadas file names!"
+            raise Exception(msg)
+    elif lc[1]:
+        arr = search(searchstr=searchstr, include_partial=include_partial,
+                     verb=False, returnas=np.ndarray)
+        files = arr[:, -1]
+    elif lc[2]:
+        arr = search_online_by_wavelengthA(lambmin=lambmin,
+                                           lambmax=lambmax,
+                                           element=element, verb=False,
+                                           returnas=np.ndarray)
+        files = np.unique(arr[:, -1])
 
     # Download
-    arr = search(searchstr=searchstr, include_partial=include_partial,
-                 verb=False, returnas=np.ndarray)
     if verb is True:
         msg = "Downloading from {} into {}:".format(_URL, _get_PATH_LOCAL())
         print(msg)
-    for ii in range(arr.shape[0]):
+    for ii in range(len(files)):
         try:
-            exists, pfe = _check_exists(arr[ii, 3], update=update)
-            pfe = download(filename=arr[ii, 3], update=update,
+            exists, pfe = _check_exists(files[ii], update=update)
+            pfe = download(filename=files[ii], update=update,
                            verb=False, returnas=str)
             if exists is True:
-                msg = "\toverwritten:   \t{}".format(arr[ii, 3])
+                msg = "\toverwritten:   \t{}".format(files[ii])
             else:
-                msg = "\tdownloaded:    \t{}".format(arr[ii, 3])
+                msg = "\tdownloaded:    \t{}".format(files[ii])
         except FileAlreayExistsException:
-            msg =     "\talready exists:  {}".format(arr[ii, 3])
+            msg =     "\talready exists:  {}".format(files[ii])
         except Exception as err:
             msg = (str(err)
-                   + "\n\nCould not download file {}".format(arr[ii, 3]))
+                   + "\n\nCould not download file {}".format(files[ii]))
             raise err
 
         if verb is True:
@@ -322,6 +456,7 @@ def download_all(searchstr=None,
 
 
 def clean_downloads():
+    """ Delete all openadas files downloaded in your ~/.tofu/ directory """
     path_local = _get_PATH_LOCAL()
     if path_local is None:
         return

@@ -82,7 +82,10 @@ def _get_adf15_key(elem, charge, isoel, typ0, typ1):
     return '{}{}_{}_openadas_{}_{}'.format(elem, charge, isoel,
                                            typ0, typ1)
 
-def _read_adf15(pfe, deg=None):
+def _read_adf15(pfe,
+                lambmin=None,
+                lambmax=None,
+                deg=None):
 
     if deg is None:
         deg = _DEG
@@ -129,6 +132,12 @@ def _read_adf15(pfe, deg=None):
                 te = np.array([])
                 pec = np.full((nne*nte,), np.nan)
                 ind = 0
+                continue
+
+            # Check lamb is ok
+            if lambmin is not None and lamb < lambmin:
+                continue
+            if lambmax is not None and lamb > lambmax:
                 continue
 
             # Get ne for the transition being scanned (block)
