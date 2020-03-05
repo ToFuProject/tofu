@@ -23,8 +23,8 @@ def _get_PATH_LOCAL():
         return None
 
 
-def read(adas_path):
-    """ Read openadas-formatted files and return a dict of interpolators """
+def read(adas_path, **kwdargs):
+    """ Read openadas-formatted files and return a dict with the data """
 
     path_local = _get_PATH_LOCAL()
 
@@ -40,18 +40,22 @@ def read(adas_path):
                + "\ttofu-custom")
         raise Exception(msg)
 
-    # make sure adas_path is not understood as absolute local path
-    if adas_path[0] == '/':
-        adas_path = adas_path[1:]
+    # Determine whether adas_path is an absolute path or an adas full name
+    if os.path.isfile(adas_path):
+        pfe = adas_path
+    else:
+        # make sure adas_path is not understood as absolute local path
+        if adas_path[0] == '/':
+            adas_path = adas_path[1:]
 
-    # Check file was downloaded locally
-    pfe = os.path.join(path_local, adas_path)
-    if not os.path.isfile(pfe):
-        msg = ("Provided file does not seem to exist:\n"
-               + "\t{}\n".format(pfe)
-               + "  => Search it online with tofu.openadas2tofu.search()\n"
-               + "  => Download it locally with tofu.openadas2tofu.download()")
-        raise FileNotFoundError(msg)
+        # Check file was downloaded locally
+        pfe = os.path.join(path_local, adas_path)
+        if not os.path.isfile(pfe):
+            msg = ("Provided file does not seem to exist:\n"
+                   + "\t{}\n".format(pfe)
+                   + "  => Search it online with tofu.openadas2tofu.search()\n"
+                   + "  => Download it with tofu.openadas2tofu.download()")
+            raise FileNotFoundError(msg)
 
     lc = [ss for ss in _LTYPES if ss in pfe]
     if not len(lc) == 1:
@@ -61,7 +65,7 @@ def read(adas_path):
         raise Exception(msg)
 
     func = eval('_read_{}'.format(lc[0]))
-    return func(pfe)
+    return func(pfe, **kwdargs)
 
 
 
@@ -91,7 +95,7 @@ def _read_adf15(pfe,
         deg = _DEG
 
     # Get summary of transitions
-    flagblock = 'isel ='
+    flagblock = '/isel ='
     flag0 = 'superstage partition information'
     dout = {}
 
@@ -118,7 +122,7 @@ def _read_adf15(pfe,
                 continue
 
             # Get info about the transition being scanned (block)
-            if flagblock in line and nblock < nlines:
+            if flagblock in line and 'C' not in line and nblock < nlines:
                 lstr = [kk for kk in line.rstrip().split(' ') if len(kk) > 0]
                 lamb = float(lstr[0])*1.e-10
                 nne, nte = int(lstr[1]), int(lstr[2])
@@ -135,9 +139,9 @@ def _read_adf15(pfe,
                 continue
 
             # Check lamb is ok
-            if lambmin is not None and lamb < lambmin:
+            if in_ne is True and lambmin is not None and lamb < lambmin:
                 continue
-            if lambmax is not None and lamb > lambmax:
+            if in_ne is True and lambmax is not None and lamb > lambmax:
                 continue
 
             # Get ne for the transition being scanned (block)
@@ -172,7 +176,7 @@ def _read_adf15(pfe,
                         'origin': pfe,
                         'type': typ[0],
                         'ne': ne, 'te': te,
-                        'interp2d_log_nete':
+                        'pec_interp2d_log_nete':
                         scpRectSpl(np.log(ne), np.log(te),
                                    np.log(pec).reshape((nne, nte)),
                                    kx=deg, ky=deg)
@@ -189,7 +193,14 @@ def _read_adf15(pfe,
                 isoel = int(lstr[1])
                 key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
                 assert dout[key]['lamb'] == float(lstr[2])*1.e-10
-                dout[key]['transition'] = None
+                if (dout[key]['type'] not in lstr
+                    or lstr.index(dout[key]['type']) < 4):
+                    msg = ("Inconsistency in table, type not found:\n"
+                           + "\t- expected: {}\n".format(dout[key]['type'])
+                           + "\t- line: {}".format(line))
+                    raise Exception(msg)
+                trans = lstr[3:lstr.index(dout[key]['type'])]
+                dout[key]['transition'] = ''.join(trans)
                 if isoel == nlines:
                     in_tab = False
     return dout
