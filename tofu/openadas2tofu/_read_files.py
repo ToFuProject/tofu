@@ -11,7 +11,8 @@ from scipy.interpolate import RectBivariateSpline as scpRectSpl
 __all__ = ['read', 'read_all']
 
 
-_LTYPES = ['adf11', 'adf15']
+_DTYPES = {'adf11': ['scd'],
+           'adf15': None}
 _DEG = 1
 
 
@@ -57,11 +58,11 @@ def read(adas_path, **kwdargs):
                    + "  => Download it with tofu.openadas2tofu.download()")
             raise FileNotFoundError(msg)
 
-    lc = [ss for ss in _LTYPES if ss in pfe]
+    lc = [ss for ss in _DTYPES.keys() if ss in pfe]
     if not len(lc) == 1:
         msg = ("File type could not be derived from absolute path:\n"
                + "\t- provided:  {}\n".format(pfe)
-               + "\t- supported: {}".format(sorted(_LTYPES)))
+               + "\t- supported: {}".format(sorted(_DTYPES.keys())))
         raise Exception(msg)
 
     func = eval('_read_{}'.format(lc[0]))
@@ -72,9 +73,9 @@ def read_all(element=None, charge=None, Type=None, verb=None, **kwdargs):
     # Check
     if Type is None:
         Type = 'adf15'
-    if not isinstance(Type, str) or Type.lower() not in _LTYPES:
+    if not isinstance(Type, str) or Type.lower() not in _DTYPES.keys():
         msg = ("Please choose a valid adas file type:\n"
-               + "\t- allowed:  {}\n".format(_LTYPES)
+               + "\t- allowed:  {}\n".format(_DTYPES.keys())
                + "\t- provided: {}".format(Type))
         raise Exception(msg)
     Type = Type.lower()
@@ -156,8 +157,88 @@ def read_all(element=None, charge=None, Type=None, verb=None, **kwdargs):
 #                       ADF 15
 # #############################################################################
 
-def _read_adf11():
-    pass
+def _read_adf11(pfe, deg=None):
+    if deg is None:
+        deg = _DEG
+
+    # Get second order file type
+    typ1 = [vv for vv in _DTYPES['adf11'] if vv in pfe]
+    if len(typ1) != 1:
+        msg = ("Second order file type culd not be inferred from file name!\n"
+               + "\t- available: {}\n".format(_DTYPES['adf11'])
+               + "\t- provided: {}".format(pfe))
+        raise Exception(msg)
+
+    # Get element
+    elem = pfe[:-4].split('_')[1]
+
+    if typ1[0] == 'scd':
+        # read blocks
+        nelog10 = np.array([])
+        telog10 = np.array([])
+        with open(pfe) as search:
+            for ii, line in enumerate(search):
+
+                # Get atomic number (transitions) stored in this file
+                if ii == 0:
+                    lstr = line.split('/')
+                    lin = [ss for ss in lstr[0].strip().split(' ')
+                            if ss.strip() != '']
+                    lc = [len(lin) == 5 and all([ss.isdigit() for ss in lin]),
+                          elem.upper() in lstr[1],
+                          'ADF11' in lstr[2]]
+                    if not all(lc):
+                        msg = ("File header format seems to have changed!\n"
+                               + "\t- lc = {}".format(lc))
+                        raise Exception(msg)
+                    Z, nne, nte, q0, qend = map(int, lin)
+                    coefs = np.full((nne, nte), np.nan)
+                    # Not TRue !! one extra line in-between !!!
+                    in_ne = True
+                    continue
+
+                # Get nelog10
+                if in_ne:
+                    nelog10 = np.append(
+                        nelog10,
+                        np.array(line.rstrip().strip().split(' '),
+                                 dtype=float))
+                    if nelog10.size == nne:
+                        in_ne = False
+                        in_te = True
+
+                # Get telog10
+                elif in_te is True:
+                    telog10 = np.append(
+                        telog10,
+                        np.array(line.rstrip().strip().split(' '),
+                                 dtype=float))
+                    if telog10.size == nte:
+                        in_te = False
+                        in_ion = True
+
+                # Get ion block
+                elif in_ion is True and '/IONIS' in line and 'Z1=' in line:
+                    charge = line[line.index('Z1='+len('Z1=')):].split('/')[0]
+                    charge = int(charge.strip())-1
+                elif in_ion is True and charge is not None:
+                    coefs = np.append(
+                        coefs,
+                        np.array(line.rstrip().strip().split(' '),
+                                 dtype=float))
+                    if coefs.size == nne*nte:
+                        key = '{}{}_openadas_{}'.format(elem, charge, typ1)
+                        func = scpRectSpl(nelog10, telog10,
+                                          coefs.reshape((nne, nte)),
+                                          kx=deg, ky=deg)
+                        dout[key] = {'element': elem,
+                                     'Z': Z,
+                                     'charge': charge,
+                                     'ionisation_interp2d_log10_nete': func}
+                    if charge == Z-1:
+                        break
+
+    return dout
 
 
 # #############################################################################
@@ -262,16 +343,14 @@ def _read_adf15(pfe,
                 if ind == pec.size:
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
-                    dout[key] = {
-                        'lamb': lamb,
-                        'origin': pfe,
-                        'type': typ[0],
-                        'ne': ne, 'te': te,
-                        'pec_interp2d_log_nete':
-                        scpRectSpl(np.log(ne), np.log(te),
-                                   np.log(pec).reshape((nne, nte)),
-                                   kx=deg, ky=deg)
-                    }
+                    func = scpRectSpl(np.log(ne), np.log(te),
+                                      np.log(pec).reshape((nne, nte)),
+                                      kx=deg, ky=deg)
+                    dout[key] = {'lamb': lamb,
+                                 'origin': pfe,
+                                 'type': typ[0],
+                                 'ne': ne, 'te': te,
+                                 'pec_interp2d_log_nete': func}
 
             # Get transitions from table at the end
             if 'photon emissivity atomic transitions' in line:

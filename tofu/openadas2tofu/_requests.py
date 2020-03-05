@@ -256,6 +256,8 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
         assert len(lstri) == ncol
         lamb = lstri[0].replace('&Aring;', '')
         elm, charge = lstri[1].replace('</sup>', '').split('<sup>')
+        if charge == '+':
+            charge = '1+'
         if element is not None and elm.lower() != element.lower():
             continue
         typ = lstri[2].replace('</span>', '').split('>')[1]
