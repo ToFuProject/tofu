@@ -8,7 +8,7 @@ import numpy as np
 from scipy.interpolate import RectBivariateSpline as scpRectSpl
 
 
-__all__ = ['read']
+__all__ = ['read', 'read_all']
 
 
 _LTYPES = ['adf11', 'adf15']
@@ -67,6 +67,89 @@ def read(adas_path, **kwdargs):
     func = eval('_read_{}'.format(lc[0]))
     return func(pfe, **kwdargs)
 
+def read_all(element=None, charge=None, Type=None, verb=None, **kwdargs):
+
+    # Check
+    if Type is None:
+        Type = 'adf15'
+    if not isinstance(Type, str) or Type.lower() not in _LTYPES:
+        msg = ("Please choose a valid adas file type:\n"
+               + "\t- allowed:  {}\n".format(_LTYPES)
+               + "\t- provided: {}".format(Type))
+        raise Exception(msg)
+    Type = Type.lower()
+    if not isinstance(element, str):
+        msg = "Please choose an element!"
+        raise Exception(msg)
+    element = element.lower()
+    if verb is None:
+        verb = True
+    if charge is not None and not isinstance(charge, int):
+        msg = "charge must be a int!"
+        raise Exception(msg)
+
+    path_local = _get_PATH_LOCAL()
+
+    # Check whether the local .tofu repo exists, if not recommend tofu-custom
+    if path_local is None:
+        path = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
+        msg = ("You do not seem to have a local ./tofu repository\n"
+               + "tofu uses that local repository to store all user-specific "
+               + "data and downloads\n"
+               + "In particular, openadas files are downloaded and saved in:\n"
+               + "\t{}\n".format(path)
+               + "  => to set-up your local .tofu repo, run in a terminal:\n"
+               + "\ttofu-custom")
+        raise Exception(msg)
+
+    # Get list of relevant directories
+    ld = [dd for dd in os.listdir(path_local)
+          if (os.path.isdir(os.path.join(path_local, dd))
+              and Type in dd)]
+    if len(ld) != 1:
+        av = [dd for dd in os.listdir(path_local)
+              if os.path.isdir(os.path.join(path_local, dd))]
+        msg = ("You have no / many directories in your local "
+               + "~/.tofu/openadas2tofu/ matching the desired file type:\n"
+               + "\t- provided Type: {}\n".format(Type)
+               + "\t- available:     {}\n".format(av)
+               + "  => download the data with tf.openadas2tofu.download()")
+        raise Exception(msg)
+    path = os.path.join(path_local, ld[0])
+    ld = [dd for dd in os.listdir(path)
+          if (os.path.isdir(os.path.join(path, dd))
+              and element in dd)]
+    if len(ld) != 1:
+        av = [dd for dd in os.listdir(path)
+              if os.path.isdir(os.path.join(path, dd))]
+        msg = ("You have no / many directories in your local "
+               + "~/.tofu/openadas2tofu/ matching the desired element:\n"
+               + "\t- provided element: {}\n".format(element)
+               + "\t- available:     {}\n".format(av)
+               + "  => download the data with tf.openadas2tofu.download()")
+        raise Exception(msg)
+    path = os.path.join(path, ld[0])
+
+    # Get list of relevant files pfe
+    lpfe = [os.path.join(path, ff) for ff in os.listdir(path)
+            if (os.path.isfile(os.path.join(path, ff))
+                and ff[-4:] == '.dat'
+                and element in ff)]
+    if charge is not None:
+        lpfe = [ff for ff in lpfe if str(charge) in ff]
+
+    # Extract data from each file
+    func = eval('_read_{}'.format(Type))
+    if Type == 'adf15':
+        out = {}
+        for pfe in lpfe:
+            if verb is True:
+                msg = "\tLoading data from {}".format(pfe)
+                print(msg)
+            out.update(func(pfe, **kwdargs))
+    return out
+
+
 
 
 # #############################################################################
@@ -112,6 +195,7 @@ def _read_adf15(pfe,
     # Extract data from file
     nlines, nblock = None, 0
     in_ne, in_te, in_pec, in_tab, itab = False, False, False, False, np.inf
+    skip = False
     with open(pfe) as search:
         for ii, line in enumerate(search):
 
@@ -125,12 +209,18 @@ def _read_adf15(pfe,
             if flagblock in line and 'C' not in line and nblock < nlines:
                 lstr = [kk for kk in line.rstrip().split(' ') if len(kk) > 0]
                 lamb = float(lstr[0])*1.e-10
+                isoel = nblock + 1
+                nblock += 1
+                if ((lambmin is not None and lamb < lambmin)
+                    or (lambmax is not None and lamb > lambmax)):
+                    skip = True
+                    continue
+                skip = False
                 nne, nte = int(lstr[1]), int(lstr[2])
                 typ = [ss[ss.index('type=')+len('type='):ss.index('/ispb')]
                        for ss in lstr[3:] if 'type=' in ss]
                 assert len(typ) == 1
                 # To be updated : proper rezading from line
-                isoel = nblock+1
                 in_ne = True
                 ne = np.array([])
                 te = np.array([])
@@ -138,10 +228,11 @@ def _read_adf15(pfe,
                 ind = 0
                 continue
 
+            if 'root partition information' in line and skip is True:
+                skip = False
+
             # Check lamb is ok
-            if in_ne is True and lambmin is not None and lamb < lambmin:
-                continue
-            if in_ne is True and lambmax is not None and lamb > lambmax:
+            if skip is True:
                 continue
 
             # Get ne for the transition being scanned (block)
@@ -181,7 +272,6 @@ def _read_adf15(pfe,
                                    np.log(pec).reshape((nne, nte)),
                                    kx=deg, ky=deg)
                     }
-                    nblock += 1
 
             # Get transitions from table at the end
             if 'photon emissivity atomic transitions' in line:
@@ -191,16 +281,26 @@ def _read_adf15(pfe,
             if in_tab is True:
                 lstr = [kk for kk in line.rstrip().split(' ') if len(kk) > 0]
                 isoel = int(lstr[1])
+                lamb = float(lstr[2])*1.e-10
                 key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
-                assert dout[key]['lamb'] == float(lstr[2])*1.e-10
-                if (dout[key]['type'] not in lstr
-                    or lstr.index(dout[key]['type']) < 4):
-                    msg = ("Inconsistency in table, type not found:\n"
-                           + "\t- expected: {}\n".format(dout[key]['type'])
-                           + "\t- line: {}".format(line))
-                    raise Exception(msg)
-                trans = lstr[3:lstr.index(dout[key]['type'])]
-                dout[key]['transition'] = ''.join(trans)
+                if ((lambmin is None or lambmin < lamb)
+                    and (lambmax is None or lambmax > lamb)):
+                    if key not in dout.keys():
+                        msg = "Inconsistency in file {}".format(pfe)
+                        raise Exception(msg)
+                if key in dout.keys():
+                    if dout[key]['lamb'] != lamb:
+                        msg = "Inconsistency in file {}".format(pfe)
+                        raise Exception(msg)
+                    if (dout[key]['type'] not in lstr
+                        or lstr.index(dout[key]['type']) < 4):
+                        msg = ("Inconsistency in table, type not found:\n"
+                               + "\t- expected: {}\n".format(dout[key]['type'])
+                               + "\t- line: {}".format(line))
+                        raise Exception(msg)
+                    trans = lstr[3:lstr.index(dout[key]['type'])]
+                    dout[key]['transition'] = ''.join(trans)
                 if isoel == nlines:
                     in_tab = False
+    assert all(['transition' in vv.keys() for vv in dout.values()])
     return dout
