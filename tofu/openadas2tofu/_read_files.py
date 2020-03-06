@@ -427,7 +427,7 @@ def _read_adf15(pfe, dout=None,
                 isoel = nblock + 1
                 nblock += 1
                 c0 = ((lambmin is not None and lamb < lambmin)
-                      and (lambmax is not None and lamb > lambmax))
+                      or (lambmax is not None and lamb > lambmax))
                 if c0:
                     skip = True
                     continue
@@ -504,10 +504,10 @@ def _read_adf15(pfe, dout=None,
                 key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
                 c0 = ((lambmin is None or lambmin < lamb)
                       and (lambmax is None or lambmax > lamb))
-                if c0:
-                    if key not in dout.keys():
-                        msg = "Inconsistency in file {}".format(pfe)
-                        raise Exception(msg)
+                if c0 and key not in dout.keys():
+                    msg = ("Inconsistency in file {}:\n".format(pfe)
+                           + "\t- line should be present".format(key))
+                    raise Exception(msg)
                 if key in dout.keys():
                     if dout[key]['lamb'] != lamb:
                         msg = "Inconsistency in file {}".format(pfe)
