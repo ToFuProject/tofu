@@ -485,7 +485,7 @@ def _read_adf15(pfe, dout=None,
                                  'origin': pfe,
                                  'type': typ[0],
                                  'ne': ne, 'te': te,
-                                 'pec': {'func': func
+                                 'pec': {'func': func,
                                          'type': 'log_nete',
                                          'units': 'log(m3/s)',
                                          'source': 'pfe'}}

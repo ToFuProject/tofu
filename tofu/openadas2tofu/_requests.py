@@ -177,7 +177,8 @@ def search_online(searchstr=None, returnas=None,
 
 
 def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
-                                 element=None, returnas=None, verb=None):
+                                 element=None, charge=None,
+                                 returnas=None, verb=None):
     """ Perform an online search by wavelength on https://open.adas.ac.uk
 
     Pass the min / max wavelength (in Angstrom) to the online wavelength search
@@ -212,9 +213,15 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
                + "\t- 'file': list all files containing relevant transitions")
         raise Exception(msg)
     if element is not None and not isinstance(element, str):
-        msg = ("Arg element must be a str!\n"
-               + "\te.g.: element='ar'")
+        msg = ("Arg element must be a str (e.g.: element='ar')\n"
+               + "\t- provided: {}".format(element))
         raise Exception(msg)
+    if charge is not None:
+        if not isinstance(charge, int):
+            msg = ("Arg charge must be a int!\n"
+                   + "\t- provided: {}".format(charge))
+            raise Exception(msg)
+        charge = '0' if charge == 0 else '{}+'.format(charge)
 
     searchurl = '&'.join(['wave_min={}'.format(lambmin),
                           'wave_max={}'.format(lambmax),
@@ -255,10 +262,12 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
         lstri = out[ii+1].split('</td><td>')
         assert len(lstri) == ncol
         lamb = lstri[0].replace('&Aring;', '')
-        elm, charge = lstri[1].replace('</sup>', '').split('<sup>')
-        if charge == '+':
-            charge = '1+'
+        elm, charg = lstri[1].replace('</sup>', '').split('<sup>')
+        if charg == '+':
+            charg = '1+'
         if element is not None and elm.lower() != element.lower():
+            continue
+        if charge is not None and charg != charge:
             continue
         typ = lstri[2].replace('</span>', '').split('>')[1]
         trans = lstri[3].replace('&nbsp;', ' ')
@@ -267,7 +276,7 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
         trans = trans.replace('&rarr;', '->')
         fil = lstri[4][lstri[4].index('detail')+len('detail'):]
         fil = fil[:fil.index('.dat')+len('.dat')]
-        lout.append([lamb, elm, charge, typ, trans, fil])
+        lout.append([lamb, elm, charg, typ, trans, fil])
 
     # Format output
     char = np.array(lout)
