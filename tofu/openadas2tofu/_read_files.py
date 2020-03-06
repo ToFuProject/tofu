@@ -51,7 +51,19 @@ def _get_subdir_from_pattern(path, pattern):
 
 
 def read(adas_path, **kwdargs):
-    """ Read openadas-formatted files and return a dict with the data """
+    """ Read openadas-formatted files and return a dict with the data
+
+    Povide the full adas file name
+    The result is returned as a dict
+
+    example
+    -------
+        >>> import tofu as tf
+        >>> fn = '/adf11/scd74/scd74_ar.dat'
+        >>> out = tf.openadas2tofu.read(fn)
+        >>> fn = '/adf15/pec40][ar/pec40][ar_ca][ar16.dat'
+        >>> out = tf.openadas2tofu.read(fn)
+    """
 
     path_local = _get_PATH_LOCAL()
 
@@ -97,6 +109,32 @@ def read(adas_path, **kwdargs):
 
 def read_all(element=None, charge=None, typ1=None, typ2=None,
              verb=None, **kwdargs):
+    """ Read all relevant openadas files for chosen typ1
+
+    Please specify:
+        - typ1: 'adf11' or 'adf15'
+        - element: the symbol of the element
+
+    If typ1 = 'adf11', you can also provide typ2 to specify the coefficients:
+        - 'scd': effective ionisation coefficients
+        - 'acd': effective electron-impact recombination coefficients
+        - 'ccd': effective hydrogen-impact recombination coefficients
+        - 'plt': line power due to electron-impact excitation
+        - 'prc': line power due to hydrogen-impact excitation
+        - 'prb': rad. recombination and bremmstrahlung due to electron-impact
+
+    If typ1 = 'adf15', you can optioanlly provide a min/max wavelength
+
+    The result is returned as a dict
+
+    examples
+    --------
+        >>> import tofu as tf
+        >>> dout = tf.openadas2tofu.read_all(element='ar', typ1='adf11')
+        >>> dout = tf.openadas2tofu.read_all(element='ar', typ1='adf15',
+                                             charge=16,
+                                             lambmin=3.94e-10, lambmax=4.e-10)
+    """
 
     # --------------------
     # Check whether the local .tofu repo exists, if not recommend tofu-custom
@@ -287,7 +325,7 @@ def _read_adf11(pfe, deg=None, dout=None):
                                               kx=deg, ky=deg)
                             dout[key]['ionis'] = {'func': func,
                                                   'type': 'log10_nete',
-                                                  'units': 'log10(m3.s)',
+                                                  'units': 'log10(m3/s)',
                                                   'source': pfe}
                         elif typ1 == 'acd':
                             # nelog10+6 to convert /cm3 -> /m3
@@ -297,7 +335,7 @@ def _read_adf11(pfe, deg=None, dout=None):
                                               kx=deg, ky=deg)
                             dout[key]['recomb'] = {'func': func,
                                                    'type': 'log10_nete',
-                                                   'units': 'log10(m3.s)',
+                                                   'units': 'log10(m3/s)',
                                                    'source': pfe}
                         elif typ1 == 'ccd':
                             # nelog10+6 to convert /cm3 -> /m3
@@ -307,7 +345,7 @@ def _read_adf11(pfe, deg=None, dout=None):
                                               kx=deg, ky=deg)
                             dout[key]['recomb_ce'] = {'func': func,
                                                       'type': 'log10_nete',
-                                                      'units': 'log10(m3.s)',
+                                                      'units': 'log10(m3/s)',
                                                       'source': pfe}
                         elif typ1 == 'plt':
                             # nelog10+6 to convert /cm3 -> /m3
@@ -438,14 +476,19 @@ def _read_adf15(pfe, dout=None,
                 if ind == pec.size:
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
-                    func = scpRectSpl(np.log(ne), np.log(te),
-                                      np.log(pec).reshape((nne, nte)),
+                    # log(ne)+6 to convert /cm3 -> /m3
+                    # log(pec)+6 to convert cm3/s -> m3/s
+                    func = scpRectSpl(np.log(ne)+6, np.log(te),
+                                      np.log(pec).reshape((nne, nte))+6,
                                       kx=deg, ky=deg)
                     dout[key] = {'lamb': lamb,
                                  'origin': pfe,
                                  'type': typ[0],
                                  'ne': ne, 'te': te,
-                                 'pec_interp2d_log_nete': func}
+                                 'pec': {'func': func
+                                         'type': 'log_nete',
+                                         'units': 'log(m3/s)',
+                                         'source': 'pfe'}}
 
             # Get transitions from table at the end
             if 'photon emissivity atomic transitions' in line:
