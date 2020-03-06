@@ -174,20 +174,12 @@ def read_all(element=None, charge=None, typ1=None, typ2=None,
     # --------------------
     # Extract data from each file
     func = eval('_read_{}'.format(typ1))
-    if typ1 == 'adf15':
-        out = {}
-        for pfe in lpfe:
-            if verb is True:
-                msg = "\tLoading data from {}".format(pfe)
-                print(msg)
-            out.update(func(pfe, **kwdargs))
-    elif typ1 == 'adf11':
-        dout = {}
-        for pfe in lpfe:
-            if verb is True:
-                msg = "\tLoading data from {}".format(pfe)
-                print(msg)
-            out = func(pfe, dout=dout, **kwdargs)
+    dout = {}
+    for pfe in lpfe:
+        if verb is True:
+            msg = "\tLoading data from {}".format(pfe)
+            print(msg)
+        out = func(pfe, dout=dout, **kwdargs)
     return out
 
 
@@ -352,18 +344,19 @@ def _get_adf15_key(elem, charge, isoel, typ0, typ1):
     return '{}{}_{}_openadas_{}_{}'.format(elem, charge, isoel,
                                            typ0, typ1)
 
-def _read_adf15(pfe,
+def _read_adf15(pfe, dout=None,
                 lambmin=None,
                 lambmax=None,
                 deg=None):
 
     if deg is None:
         deg = _DEG
+    if dout is None:
+        dout = {}
 
     # Get summary of transitions
     flagblock = '/isel ='
     flag0 = 'superstage partition information'
-    dout = {}
 
     # Get file markers from name (elem, charge, typ0, typ1)
     typ0, typ1, elemq = pfe.split('][')[1:]
