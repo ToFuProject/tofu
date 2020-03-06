@@ -512,8 +512,9 @@ def _read_adf15(pfe, dout=None,
                     if dout[key]['lamb'] != lamb:
                         msg = "Inconsistency in file {}".format(pfe)
                         raise Exception(msg)
-                    if (dout[key]['type'] not in lstr
-                        or lstr.index(dout[key]['type']) < 4):
+                    c0 = (dout[key]['type'] not in lstr
+                          or lstr.index(dout[key]['type']) < 4)
+                    if c0:
                         msg = ("Inconsistency in table, type not found:\n"
                                + "\t- expected: {}\n".format(dout[key]['type'])
                                + "\t- line: {}".format(line))

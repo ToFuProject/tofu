@@ -133,7 +133,7 @@ def search_online(searchstr=None, returnas=None,
         raise Exception(msg)
     ind1 = np.min([ii for ii in ind1 if ii > ind0[0]])
     out = out[ind0[0] + 1:ind1-1]
-    nresults = len(out) -1
+    nresults = len(out) - 1
 
     # Get columns
     heads = [str.replace(kk.replace('<tr>', '').replace('<th>', ''),
@@ -244,7 +244,7 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
                + "in requests.get({}).text".format(total_url))
         raise Exception(msg)
     out = out[ind0[0] + 1].split('</tr><tr><td>')
-    nresults = len(out) -1
+    nresults = len(out) - 1
 
     # Get columns
     col = [kk.replace('<tr><th>', '').replace('</th>', '').strip()
