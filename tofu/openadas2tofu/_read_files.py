@@ -511,7 +511,7 @@ def _read_adf15(pfe, dout=None,
                            + "\t- line should be present".format(key))
                     raise Exception(msg)
                 if key in dout.keys():
-                    if dout[key]['lamb'] != lamb:
+                    if dout[key]['lambda'] != lamb:
                         msg = "Inconsistency in file {}".format(pfe)
                         raise Exception(msg)
                     c0 = (dout[key]['type'] not in lstr
