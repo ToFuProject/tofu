@@ -3,6 +3,7 @@
 import os
 import warnings
 import itertools as itt
+import copy
 import datetime as dtm      # DB
 
 # Common
@@ -423,8 +424,8 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
           and isinstance(indict.get('keys'), list)
           and isinstance(indict.get('ind'), np.ndarray))
     if not any([c0, c1, c2, c3, c4]):
-        import pdb; pdb.set_trace()     # DB
-        msg = ("")
+        msg = ("Wrong input dict!\n"
+               + "\t{}".format([c0, c1, c2, c3, c4]))
         raise Exception(msg)
 
     # ------------------------
@@ -446,8 +447,13 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
         for k0, v0 in indict.items():
             if isinstance(v0, str):
                 v0 = [v0]
-            assert len(set(v0)) == len(v0)
-            assert all([k1 in keys and k1 not in lkl for k1 in v0])
+            if not (len(set(v0)) == len(v0)
+                    and all([k1 in keys and k1 not in lkl for k1 in v0])):
+                msg = ("Inconsistency in indict[{}], either:\n".format(k0)
+                       + "\t- v0 not unique: {}\n".format(v0)
+                       + "\t- some v0 not in keys: {}\n".format(keys)
+                       + "\t- some v0 in lkl:      {}".format(lkl))
+                raise Exception(msg)
             indict[k0] = v0
             lkl += v0
         for k0 in set(keys).difference(lkl):
@@ -520,6 +526,9 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
          and all([k0 in lk for k0 in dconstraints.keys()]))
     if not c0:
         raise Exception(msg)
+
+    # copy to avoid modifying reference
+    dconstraints = copy.deepcopy(dconstraints)
 
     dinput = {}
 
