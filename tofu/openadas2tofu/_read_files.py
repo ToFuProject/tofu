@@ -29,6 +29,7 @@ def _get_PATH_LOCAL():
     else:
         return None
 
+
 def _get_subdir_from_pattern(path, pattern):
     ld = [dd for dd in os.listdir(path)
           if (os.path.isdir(os.path.join(path, dd))
@@ -221,11 +222,10 @@ def read_all(element=None, charge=None, typ1=None, typ2=None,
     return out
 
 
-
-
 # #############################################################################
 #                      Specialized functions for ADF 11
 # #############################################################################
+
 
 def _read_adf11(pfe, deg=None, dout=None):
     if deg is None:
@@ -260,7 +260,7 @@ def _read_adf11(pfe, deg=None, dout=None):
                 if ii == 0:
                     lstr = line.split('/')
                     lin = [ss for ss in lstr[0].strip().split(' ')
-                            if ss.strip() != '']
+                           if ss.strip() != '']
                     lc = [len(lin) == 5 and all([ss.isdigit() for ss in lin]),
                           elem.upper() in lstr[1],
                           'ADF11' in lstr[2]]
@@ -382,6 +382,7 @@ def _get_adf15_key(elem, charge, isoel, typ0, typ1):
     return '{}{}_{}_openadas_{}_{}'.format(elem, charge, isoel,
                                            typ0, typ1)
 
+
 def _read_adf15(pfe, dout=None,
                 lambmin=None,
                 lambmax=None,
@@ -416,7 +417,7 @@ def _read_adf15(pfe, dout=None,
             # Get number of lines (transitions) stored in this file
             if ii == 0:
                 lstr = line.split('/')
-                nlines = int(lstr[0].replace(' ',''))
+                nlines = int(lstr[0].replace(' ', ''))
                 continue
 
             # Get info about the transition being scanned (block)
@@ -425,8 +426,9 @@ def _read_adf15(pfe, dout=None,
                 lamb = float(lstr[0])*1.e-10
                 isoel = nblock + 1
                 nblock += 1
-                if ((lambmin is not None and lamb < lambmin)
-                    or (lambmax is not None and lamb > lambmax)):
+                c0 = ((lambmin is not None and lamb < lambmin)
+                      and (lambmax is not None and lamb > lambmax))
+                if c0:
                     skip = True
                     continue
                 skip = False
@@ -500,8 +502,9 @@ def _read_adf15(pfe, dout=None,
                 isoel = int(lstr[1])
                 lamb = float(lstr[2])*1.e-10
                 key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
-                if ((lambmin is None or lambmin < lamb)
-                    and (lambmax is None or lambmax > lamb)):
+                c0 = ((lambmin is None or lambmin < lamb)
+                      and (lambmax is None or lambmax > lamb))
+                if c0:
                     if key not in dout.keys():
                         msg = "Inconsistency in file {}".format(pfe)
                         raise Exception(msg)

@@ -9,7 +9,6 @@ import warnings
 import numpy as np
 
 
-
 __all__ = ['search_online', 'search_online_by_wavelengthA',
            'download', 'download_all', 'clean_downloads']
 
@@ -22,6 +21,7 @@ _URL_ADF15 = _URL + '/adf15'
 _URL_DOWNLOAD = _URL + '/download'
 
 _INCLUDE_PARTIAL = True
+
 
 # #############################################################################
 #                           Utility functions
@@ -45,7 +45,7 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
     ar = np.array(ar, dtype='U')
 
     if ar.ndim == 1:
-        ar = ar.reshape((1,ar.size))
+        ar = ar.reshape((1, ar.size))
 
     # Get just len
     nn = np.char.str_len(ar).max(axis=0)
@@ -62,13 +62,13 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 
     # Apply to array
     fjust = np.char.ljust if just == 'l' else np.char.rjust
-    out = np.array([sep.join(v) for v in fjust(ar,nn)])
+    out = np.array([sep.join(v) for v in fjust(ar, nn)])
 
     # Apply to col
     if col is not None:
         arcol = np.array([col, [line*n for n in nn]], dtype='U')
-        arcol = np.array([sep.join(v) for v in fjust(arcol,nn)])
-        out = np.append(arcol,out)
+        arcol = np.array([sep.join(v) for v in fjust(arcol, nn)])
+        out = np.append(arcol, out)
 
     if verb is True:
         print('\n'.join(out))
@@ -132,7 +132,7 @@ def search_online(searchstr=None, returnas=None,
                + "in requests.get({}).text".format(total_url))
         raise Exception(msg)
     ind1 = np.min([ii for ii in ind1 if ii > ind0[0]])
-    out = out[ind0[0]+1:ind1-1]
+    out = out[ind0[0] + 1:ind1-1]
     nresults = len(out) -1
 
     # Get columns
@@ -243,7 +243,7 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
                + "\t- {}\n".format(flag1)
                + "in requests.get({}).text".format(total_url))
         raise Exception(msg)
-    out = out[ind0[0]+1].split('</tr><tr><td>')
+    out = out[ind0[0] + 1].split('</tr><tr><td>')
     nresults = len(out) -1
 
     # Get columns
@@ -294,8 +294,6 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
 
 
 def _check_exists(filename, update=None):
-    # if target is None:
-        # target = filename
 
     # In case a small modification becomes necessary later
     target = filename
@@ -358,8 +356,9 @@ def download(filename=None,
     if returnas is None:
         returnas = False
 
-    if (not isinstance(filename, str)
-        or filename[:4] != '/adf' or filename[-4:] != '.dat'):
+    c0 = (not isinstance(filename, str)
+          or filename[:4] != '/adf' or filename[-4:] != '.dat')
+    if c0:
         msg = ("filename must be a str (full file name) of the form:\n"
                + "\t/adf.../.../....dat")
         raise Exception(msg)
@@ -462,7 +461,7 @@ def download_all(files=None, searchstr=None,
             else:
                 msg = "\tdownloaded:    \t{}".format(files[ii])
         except FileAlreayExistsException:
-            msg =     "\talready exists:  {}".format(files[ii])
+            msg = "\talready exists:  {}".format(files[ii])
         except Exception as err:
             msg = (str(err)
                    + "\n\nCould not download file {}".format(files[ii]))
