@@ -2,6 +2,7 @@
 # Built-in
 import os
 import re
+import itertools as itt
 
 # Common
 import numpy as np
@@ -11,9 +12,14 @@ from scipy.interpolate import RectBivariateSpline as scpRectSpl
 __all__ = ['read', 'read_all']
 
 
-_DTYPES = {'adf11': ['scd'],
+_DTYPES = {'adf11': ['acd', 'ccd', 'scd', 'plt', 'prb'],
            'adf15': None}
 _DEG = 1
+
+
+# #############################################################################
+#                       Utility functions
+# #############################################################################
 
 
 def _get_PATH_LOCAL():
@@ -22,6 +28,26 @@ def _get_PATH_LOCAL():
         return pfe
     else:
         return None
+
+def _get_subdir_from_pattern(path, pattern):
+    ld = [dd for dd in os.listdir(path)
+          if (os.path.isdir(os.path.join(path, dd))
+              and pattern in dd)]
+    if len(ld) != 1:
+        av = [dd for dd in os.listdir(path)
+              if os.path.isdir(os.path.join(path, dd))]
+        msg = ("You have no / many directories in your local "
+               + "~/.tofu/openadas2tofu/ matching the desired file type:\n"
+               + "\t- provided : {}\n".format(pattern)
+               + "\t- available: {}\n".format(av)
+               + "  => download the data with tf.openadas2tofu.download()")
+        raise Exception(msg)
+    return os.path.join(path, ld[0])
+
+
+# #############################################################################
+#                       Main functions
+# #############################################################################
 
 
 def read(adas_path, **kwdargs):
@@ -68,30 +94,13 @@ def read(adas_path, **kwdargs):
     func = eval('_read_{}'.format(lc[0]))
     return func(pfe, **kwdargs)
 
-def read_all(element=None, charge=None, Type=None, verb=None, **kwdargs):
 
-    # Check
-    if Type is None:
-        Type = 'adf15'
-    if not isinstance(Type, str) or Type.lower() not in _DTYPES.keys():
-        msg = ("Please choose a valid adas file type:\n"
-               + "\t- allowed:  {}\n".format(_DTYPES.keys())
-               + "\t- provided: {}".format(Type))
-        raise Exception(msg)
-    Type = Type.lower()
-    if not isinstance(element, str):
-        msg = "Please choose an element!"
-        raise Exception(msg)
-    element = element.lower()
-    if verb is None:
-        verb = True
-    if charge is not None and not isinstance(charge, int):
-        msg = "charge must be a int!"
-        raise Exception(msg)
+def read_all(element=None, charge=None, typ1=None, typ2=None,
+             verb=None, **kwdargs):
 
-    path_local = _get_PATH_LOCAL()
-
+    # --------------------
     # Check whether the local .tofu repo exists, if not recommend tofu-custom
+    path_local = _get_PATH_LOCAL()
     if path_local is None:
         path = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
         msg = ("You do not seem to have a local ./tofu repository\n"
@@ -103,63 +112,96 @@ def read_all(element=None, charge=None, Type=None, verb=None, **kwdargs):
                + "\ttofu-custom")
         raise Exception(msg)
 
-    # Get list of relevant directories
-    ld = [dd for dd in os.listdir(path_local)
-          if (os.path.isdir(os.path.join(path_local, dd))
-              and Type in dd)]
-    if len(ld) != 1:
-        av = [dd for dd in os.listdir(path_local)
-              if os.path.isdir(os.path.join(path_local, dd))]
-        msg = ("You have no / many directories in your local "
-               + "~/.tofu/openadas2tofu/ matching the desired file type:\n"
-               + "\t- provided Type: {}\n".format(Type)
-               + "\t- available:     {}\n".format(av)
-               + "  => download the data with tf.openadas2tofu.download()")
+    # --------------------
+    # Check / format input
+    if typ1 is None:
+        typ1 = 'adf15'
+    if not isinstance(typ1, str) or typ1.lower() not in _DTYPES.keys():
+        msg = ("Please choose a valid adas file type:\n"
+               + "\t- allowed:  {}\n".format(_DTYPES.keys())
+               + "\t- provided: {}".format(typ1))
         raise Exception(msg)
-    path = os.path.join(path_local, ld[0])
-    ld = [dd for dd in os.listdir(path)
-          if (os.path.isdir(os.path.join(path, dd))
-              and element in dd)]
-    if len(ld) != 1:
-        av = [dd for dd in os.listdir(path)
-              if os.path.isdir(os.path.join(path, dd))]
-        msg = ("You have no / many directories in your local "
-               + "~/.tofu/openadas2tofu/ matching the desired element:\n"
-               + "\t- provided element: {}\n".format(element)
-               + "\t- available:     {}\n".format(av)
-               + "  => download the data with tf.openadas2tofu.download()")
+    typ1 = typ1.lower()
+    if typ1 == 'adf11' and typ2 is None:
+        typ2 = _DTYPES[typ1]
+        fd = os.listdir(os.path.join(path_local, typ1))
+        typ2 = [sorted([ss for ss in fd if tt in ss])[-1] for tt in typ2]
+    if isinstance(typ2, str):
+        typ2 = [typ2]
+    if (_DTYPES[typ1] is not None
+        and (not isinstance(typ2, list)
+             or not all([any([s1 in ss for s1 in _DTYPES[typ1]])
+                         for ss in typ2]))):
+        msg = ("typ2 must be a list of valid openadas file types for typ1:\n"
+               + "\t- provided:         {}\n".format(typ2)
+               + "\t- available for {}: {}".format(typ1, _DTYPES[typ1]))
         raise Exception(msg)
-    path = os.path.join(path, ld[0])
 
+    if not isinstance(element, str):
+        msg = "Please choose an element!"
+        raise Exception(msg)
+    element = element.lower()
+    if charge is not None and not isinstance(charge, int):
+        msg = "charge must be a int!"
+        raise Exception(msg)
+
+    if verb is None:
+        verb = True
+
+    # --------------------
+    # Get list of relevant directories
+
+    # Level 1: Type
+    path = _get_subdir_from_pattern(path_local, typ1)
+    # Level 2: element or typ2
+    if typ1 == 'adf11':
+        lpath = [_get_subdir_from_pattern(path, tt) for tt in typ2]
+    elif typ1 == 'adf15':
+        lpath = [_get_subdir_from_pattern(path, element)]
+
+    # --------------------
     # Get list of relevant files pfe
-    lpfe = [os.path.join(path, ff) for ff in os.listdir(path)
-            if (os.path.isfile(os.path.join(path, ff))
-                and ff[-4:] == '.dat'
-                and element in ff)]
-    if charge is not None:
+    lpfe = list(itt.chain.from_iterable(
+        [[os.path.join(path, ff) for ff in os.listdir(path)
+          if (os.path.isfile(os.path.join(path, ff))
+              and ff[-4:] == '.dat'
+              and element in ff)]
+         for path in lpath]))
+
+    if charge is not None and typ1 == 'adf15':
         lpfe = [ff for ff in lpfe if str(charge) in ff]
 
+    # --------------------
     # Extract data from each file
-    func = eval('_read_{}'.format(Type))
-    if Type == 'adf15':
+    func = eval('_read_{}'.format(typ1))
+    if typ1 == 'adf15':
         out = {}
         for pfe in lpfe:
             if verb is True:
                 msg = "\tLoading data from {}".format(pfe)
                 print(msg)
             out.update(func(pfe, **kwdargs))
+    elif typ1 == 'adf11':
+        dout = {}
+        for pfe in lpfe:
+            if verb is True:
+                msg = "\tLoading data from {}".format(pfe)
+                print(msg)
+            out = func(pfe, dout=dout, **kwdargs)
     return out
 
 
 
 
 # #############################################################################
-#                       ADF 15
+#                      Specialized functions for ADF 11
 # #############################################################################
 
-def _read_adf11(pfe, deg=None):
+def _read_adf11(pfe, deg=None, dout=None):
     if deg is None:
         deg = _DEG
+    if dout is None:
+        dout = {}
 
     # Get second order file type
     typ1 = [vv for vv in _DTYPES['adf11'] if vv in pfe]
@@ -168,16 +210,21 @@ def _read_adf11(pfe, deg=None):
                + "\t- available: {}\n".format(_DTYPES['adf11'])
                + "\t- provided: {}".format(pfe))
         raise Exception(msg)
+    typ1 = typ1[0]
 
     # Get element
     elem = pfe[:-4].split('_')[1]
+    comline = '-'*60
+    comline2 = 'C'+comline
 
-    if typ1[0] == 'scd':
+    if typ1 in ['acd', 'ccd', 'scd', 'plt', 'prb']:
+
         # read blocks
-        nelog10 = np.array([])
-        telog10 = np.array([])
         with open(pfe) as search:
             for ii, line in enumerate(search):
+
+                if comline2 in line:
+                    break
 
                 # Get atomic number (transitions) stored in this file
                 if ii == 0:
@@ -192,57 +239,112 @@ def _read_adf11(pfe, deg=None):
                                + "\t- lc = {}".format(lc))
                         raise Exception(msg)
                     Z, nne, nte, q0, qend = map(int, lin)
-                    coefs = np.full((nne, nte), np.nan)
-                    # Not TRue !! one extra line in-between !!!
+                    nelog10 = np.array([])
+                    telog10 = np.array([])
                     in_ne = True
+                    continue
+
+                if comline in line:
                     continue
 
                 # Get nelog10
                 if in_ne:
-                    nelog10 = np.append(
-                        nelog10,
-                        np.array(line.rstrip().strip().split(' '),
-                                 dtype=float))
+                    li = [ss for ss in line.strip().split(' ')
+                          if ss.strip() != '']
+                    nelog10 = np.append(nelog10, np.array(li, dtype=float))
                     if nelog10.size == nne:
                         in_ne = False
                         in_te = True
 
                 # Get telog10
                 elif in_te is True:
-                    telog10 = np.append(
-                        telog10,
-                        np.array(line.rstrip().strip().split(' '),
-                                 dtype=float))
+                    li = [ss for ss in line.strip().split(' ')
+                          if ss.strip() != '']
+                    telog10 = np.append(telog10, np.array(li, dtype=float))
                     if telog10.size == nte:
                         in_te = False
                         in_ion = True
 
                 # Get ion block
-                elif in_ion is True and '/IONIS' in line and 'Z1=' in line:
-                    charge = line[line.index('Z1='+len('Z1=')):].split('/')[0]
-                    charge = int(charge.strip())-1
+                elif (in_ion is True and 'Z1=' in line
+                      and ('------/' in line and 'DATE=' in line)):
+                    nion = int(
+                        line[line.index('Z1=')+len('Z1='):].split('/')[0])
+                    if typ1 in ['scd', 'plt']:
+                        charge = nion - 1
+                    else:
+                        charge = nion
+                    coefslog10 = np.array([])
                 elif in_ion is True and charge is not None:
-                    coefs = np.append(
-                        coefs,
-                        np.array(line.rstrip().strip().split(' '),
-                                 dtype=float))
-                    if coefs.size == nne*nte:
-                        key = '{}{}_openadas_{}'.format(elem, charge, typ1)
-                        func = scpRectSpl(nelog10, telog10,
-                                          coefs.reshape((nne, nte)),
-                                          kx=deg, ky=deg)
-                        dout[key] = {'element': elem,
-                                     'Z': Z,
-                                     'charge': charge,
-                                     'ionisation_interp2d_log10_nete': func}
-                    if charge == Z-1:
-                        break
+                    li = [ss for ss in line.strip().split(' ')
+                          if ss.strip() != '']
+                    coefslog10 = np.append(coefslog10,
+                                           np.array(li, dtype=float))
+                    if coefslog10.size == nne*nte:
+                        key = '{}{}'.format(elem, charge)
+                        tkv = [('element', elem), ('Z', Z), ('charge', charge)]
+                        if key in dout.keys():
+                            assert all([dout[key][ss] == vv for ss, vv in tkv])
+                        else:
+                            dout[key] = {ss: vv for ss, vv in tkv}
+                        if typ1 == 'scd':
+                            # nelog10+6 to convert /cm3 -> /m3
+                            # coefslog10-6 to convert cm3/s -> m3/s
+                            func = scpRectSpl(nelog10+6, telog10,
+                                              coefslog10.reshape((nne, nte))-6,
+                                              kx=deg, ky=deg)
+                            dout[key]['ionis'] = {'func': func,
+                                                  'type': 'log10_nete',
+                                                  'units': 'log10(m3.s)',
+                                                  'source': pfe}
+                        elif typ1 == 'acd':
+                            # nelog10+6 to convert /cm3 -> /m3
+                            # coefslog10-6 to convert cm3/s -> m3/s
+                            func = scpRectSpl(nelog10+6, telog10,
+                                              coefslog10.reshape((nne, nte))-6,
+                                              kx=deg, ky=deg)
+                            dout[key]['recomb'] = {'func': func,
+                                                   'type': 'log10_nete',
+                                                   'units': 'log10(m3.s)',
+                                                   'source': pfe}
+                        elif typ1 == 'ccd':
+                            # nelog10+6 to convert /cm3 -> /m3
+                            # coefslog10-6 to convert cm3/s -> m3/s
+                            func = scpRectSpl(nelog10+6, telog10,
+                                              coefslog10.reshape((nne, nte))-6,
+                                              kx=deg, ky=deg)
+                            dout[key]['recomb_ce'] = {'func': func,
+                                                      'type': 'log10_nete',
+                                                      'units': 'log10(m3.s)',
+                                                      'source': pfe}
+                        elif typ1 == 'plt':
+                            # nelog10+6 to convert /cm3 -> /m3
+                            # coefslog10+6 to convert W.cm3 -> W.m3
+                            func = scpRectSpl(nelog10+6, telog10,
+                                              coefslog10.reshape((nne, nte))+6,
+                                              kx=deg, ky=deg)
+                            dout[key]['rad_bb'] = {'func': func,
+                                                   'type': 'log10_nete',
+                                                   'units': 'log10(W.m3)',
+                                                   'source': pfe}
+                        elif typ1 == 'prb':
+                            # nelog10+6 to convert /cm3 -> /m3
+                            # coefslog10+6 to convert W.cm3 -> W.m3
+                            func = scpRectSpl(nelog10+6, telog10,
+                                              coefslog10.reshape((nne, nte))+6,
+                                              kx=deg, ky=deg)
+                            dout[key]['rad_fffb'] = {'func': func,
+                                                     'type': 'log10_nete',
+                                                     'units': 'log10(W.m3)',
+                                                     'source': pfe}
+                        if nion == Z:
+                            break
 
     return dout
 
 
 # #############################################################################
-#                       ADF 15
+#                      Specialized functions for ADF 15
 # #############################################################################
 
 
