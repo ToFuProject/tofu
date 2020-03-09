@@ -1773,7 +1773,7 @@ class CrystalBragg(utils.ToFuObject):
         spect1d = spect1d[:, indok]
         lambfit = lambfit[indok]
 
-        # Get dlines2
+        # Get dinput for 1d fitting
         dinput = self.get_dinput_for_fit1d(dlines=dlines,
                                            dconstraints=dconstraints,
                                            lambmin=lambmin, lambmax=lambmax)
@@ -1828,19 +1828,19 @@ class CrystalBragg(utils.ToFuObject):
                                dscale=None, x0_scale=None, bounds_scale=None,
                                deg=None, knots=None, nbsplines=None,
                                method=None, max_nfev=None,
-                               xtol=None, ftol=None, gtol=None,
+                               xtol=None, ftol=None, gtol=None, chain=None,
                                loss=None, verbose=0, debug=None,
                                plot=True, fs=None, dmoments=None,
                                cmap=None, vmin=None, vmax=None, returnas=None):
         # Check / format inputs
         assert data is not None
         if returnas is None:
-            returnas = 'spect'
-        lreturn = ['ax', 'spect']
+            returnas = 'dict'
+        lreturn = ['ax', 'dict']
         if not returnas in lreturn:
             msg = ("Arg returnas must be in {}\n:".format(lreturn)
-                   + "\t- 'spect': return a 1d vertically averaged spectrum\n"
-                   + "\t- 'ax'   : return a list of axes instances")
+                   + "\t- 'dict': return dict of fitted spectrum\n"
+                   + "\t- 'ax'  : return a list of axes instances")
             raise Exception(msg)
 
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -1856,21 +1856,54 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Compute lambfit / phifit and spectrum1d
-        spect1d, lambfit, phifit, vertsum1d = self._calc_spect1d_from_data2d(
+        (spect1d, lambfit, phifit,
+         vertsum1d, phiminmax) = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
             spect1d=spect1d, mask=mask
         )
 
-        # Compute fit for spect1d to get lamb0 if not provided
+        # Use valid data only and optionally restrict lamb
+        if mask is not None:
+            data[~mask] = np.nan
+        if lambmin is not None:
+            spect1d[:, lambfit<lambmin] = np.nan
+            data[lamb<lambmin] = np.nan
+        if lambmax is not None:
+            spect1d[:, lambfit>lambmax] = np.nan
+            data[lamb>lambmax] = np.nan
+        indok = (~np.any(np.isnan(spect1d), axis=0)) & (~np.isnan(lambfit))
+        spect1d = spect1d[:, indok]
+        lambfit = lambfit[indok]
+        import pdb.set_trace()      # DB
+        indok = ~np.isnan(data)
+        data = data[indok]
+        lamb = lamb[indok]
+        phi = phi[indok]
+
+        # Get dinput for 1d fitting
+        dinput = self.get_dinput_for_fit1d(dlines=dlines,
+                                           dconstraints=dconstraints,
+                                           lambmin=lambmin, lambmax=lambmax)
+
+        # Perform 1d fit to be used as initial guess for 2d fitting
         import tofu.data._spectrafit2d as _spectrafit2d
 
         dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
-            spect1d, lambfit,
-            lambmin=lambmin, lambmax=lambmax, dlines=dlines,
-            dscale=dscale, x0_scale=x0_scale, bounds_scale=bounds_scale,
-            method=method, max_nfev=max_nfev, xtol=xtol, verbose=verbose,
-            plot_debug=debug, double=double, freelines=freelines)
+            spect1d, lambfit, dinput=dinput, dx0=dx0,
+            lambmin=lambmin, lambmax=lambmax,
+            scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
+            method=method, max_nfev=max_nfev,
+            chain=chain, verbose=verbose,
+            xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
+            ratio=ratio, jac=jac)
+        dfit1d['phiminmax'] = phiminmax
+
+
+
+
+
+
 
         # Reorder wrt lamb0
         ind = np.argsort(dfit1d['lamb0'])
