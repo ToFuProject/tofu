@@ -1575,7 +1575,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     min_phi_pi = min_phi + Cpi
     max_phi_pi = max_phi + Cpi
     abs0 = Cabs(min_phi_pi)
-    abs1 = Cabs(max_phi + Cpi)
+    abs1 = Cabs(max_phi_pi)
     #
     # .. Discretizing Phi (with respect to the corresponding radius R) .........
     if min_phi < max_phi:
