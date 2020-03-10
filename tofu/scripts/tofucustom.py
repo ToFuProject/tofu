@@ -12,11 +12,13 @@ import argparse
 #       default values
 ###################################################
 
+
 _SOURCE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 _USER = getpass.getuser()
 _USER_HOME = os.path.expanduser('~')
 _TARGET = os.path.join(_USER_HOME, '.tofu')
 _LF = ['_imas2tofu_def.py', '_scripts_def.py']
+_LD = ['openadas2tofu']
 
 
 ###################################################
@@ -24,7 +26,9 @@ _LF = ['_imas2tofu_def.py', '_scripts_def.py']
 #       function
 ###################################################
 
-def custom(target=_TARGET, source=_SOURCE, files=_LF):
+
+def custom(target=_TARGET, source=_SOURCE,
+           files=_LF, directories=_LD):
 
     # Caveat (up to now only relevant for _TARGET)
     if target != _TARGET:
@@ -40,9 +44,16 @@ def custom(target=_TARGET, source=_SOURCE, files=_LF):
 
     # Try creating directory and copying modules
     try:
+        # Create .tofu/ if non-existent
         if not os.path.isdir(target):
             os.mkdir(target)
 
+        # Create directories
+        for dd in directories:
+            if not os.path.isdir(os.path.join(target, dd)):
+                os.mkdir(os.path.join(target, dd))
+
+        # Copy files
         for ff in files:
             mod, f0 = ff.split('_')[1:]
             copyfile(os.path.join(source, mod, '_'+f0),
