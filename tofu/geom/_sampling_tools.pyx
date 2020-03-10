@@ -1565,7 +1565,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     cdef double min_phi_pi
     cdef double max_phi_pi
     cdef double margin_step
-    cdef double abs0
+    cdef double abs0, abs1
     cdef int nphi0, nphi1
     # .. Initialization Variables ..............................................
     ncells_rphi0 = 0

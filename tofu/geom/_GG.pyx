@@ -907,6 +907,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef str out_low = Out.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
     cdef double min_phi, max_phi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
     cdef double abs0, abs1
     cdef double reso_r_z
     cdef double twopi_over_dphi
