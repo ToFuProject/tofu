@@ -2,57 +2,58 @@ tofu.data package
 =================
 
 .. automodule:: tofu.data
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Submodules
 ----------
 
-tofu.data._comp module
-----------------------
+tofu.data.\_comp module
+-----------------------
 
 .. automodule:: tofu.data._comp
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-tofu.data._core module
-----------------------
+tofu.data.\_core module
+-----------------------
 
 .. automodule:: tofu.data._core
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-tofu.data._core_new module
---------------------------
+tofu.data.\_core\_new module
+----------------------------
 
 .. automodule:: tofu.data._core_new
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-tofu.data._def module
----------------------
-
-.. automodule:: tofu.data._def
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-tofu.data._plot module
+tofu.data.\_def module
 ----------------------
 
-.. automodule:: tofu.data._plot
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: tofu.data._def
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-tofu.data._spectrafit2d module
-------------------------------
+tofu.data.\_plot module
+-----------------------
+
+.. automodule:: tofu.data._plot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+tofu.data.\_spectrafit2d module
+-------------------------------
 
 .. automodule:: tofu.data._spectrafit2d
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+

@@ -31,10 +31,12 @@ This feature is typically used as follows:
    $ tofuplot -s 54178 -i ece
 
 The line above calls tofuplot with the following arguments:
+
 - -s / --shot : the shot number of the imas data entry (here 54178)
 - -i / --ids  : the name of the ids we want to get data from (here ece)
 
 The ids names that can be used are diagnostic ids, they include:
+
 - soft_x_rays
 - bolometer
 - interferometer
@@ -53,14 +55,16 @@ simply adding more ids (they will have common time axis):
 
 
 In all cases, what tofuplot does is simply:
+
 - read the tokamak geometry from ids wall
 - read the diagnostic geometry from the provided ids
 - compute the Lines of Sight (LOS)
 - read the diagnostic experimental data from the provided ids
 - display the data (time traces per LOS) and the geometry (tokamak + LOS) in
-  an interactive figure
+an interactive figure
 
 There are many other parameters that can be specified, like in particular:
+
 - -tok / --tokamak: the name of the tokamak of the imas data entry
 - -u / --user     : the user of the imas data entry
 - -t0 / --t0      : the name of the time event used as origin (can be a float)
@@ -103,6 +107,7 @@ Note however, that tofucalc is available for a limited number of diagnostics.
 Indeed, it requires pre-tabulating the quantity of interest for each ids and
 implementing proper 2D interpolation methods for each type of profile.
 So far, it is available for:
+
 - interefreometer
 - polarimeter
 - bolometer
@@ -165,6 +170,7 @@ importing tofu.
 
 Not all parameters can be customized, and this effort is on-going, but to,
 as of tofu 1.4.3, you can edit:
+
 - the imas shortcuts in _imas2tofu-def.py
 - the default parameters of tofuplot and tofcalc in _scripts_def.py
 
