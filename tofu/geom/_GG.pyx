@@ -1072,6 +1072,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # ... doing the others
     print("doing the rest of the loop.....................")
     NP += _st.vmesh_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
+                             ncells_rphi0,
                              disc_r, disc_r0, step_rphi,
                              reso_phi_mv, tot_nc_plane,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],

@@ -1542,6 +1542,7 @@ cdef inline void los_get_sample_pts(int nlos,
 cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                                 long* ncells_rphi,
                                 double phistep,
+                                int ncells_rphi0,
                                 double* disc_r,
                                 double* disc_r0,
                                 double* step_rphi,
@@ -1557,7 +1558,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                                 double margin,
                                 int num_threads) nogil:
     cdef int ii, jj
-    cdef int ncells_rphi0
     cdef int ind_loc_r0
     cdef int NP
     cdef int loc_nc_rphi
@@ -1568,7 +1568,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     cdef double abs0, abs1
     cdef int nphi0, nphi1
     # .. Initialization Variables ..............................................
-    ncells_rphi0 = 0
     ind_loc_r0 = 0
     NP = 0
     twopi_over_dphi = _TWOPI / phistep
