@@ -1815,22 +1815,63 @@ class CrystalBragg(utils.ToFuObject):
         else:
             return ax
 
+    @staticmethod
+    def _checkformat_data_fit2d_dlines(data, lamb, phi, mask=None):
+        msg = ""
+        if not (data.ndim in [2, 3] and lamb.shape == phi.shape):
+            raise Exdeption(msg)
+        if mask is not None:
+            assert mask.shape == lamb.shape, msg
+        if data.ndim == 2:
+            lc = [data.shape == lamb.shape, data.shape[1] == lamb.size]
+            if lc[0]:
+                data = data.ravel()[None, :]
+                lamb = lamb.ravel()
+                phi = phi.ravel()
+                if mask is not None:
+                    mask = mask.ravel()
+            elif lc[1]:
+                assert lamb.ndim == 1
+            else:
+                raise Exception(msg)
+        else:
+            assert data.shape[1:] == lamb.shape
+            data = data.reshape((data.shape[0], np.prod(data.shape[1:])))
+            lamb = lamb.ravel()
+            phi = phi.ravel()
+            if mask is not None:
+                mask = mask.ravel()
+        return data, lamb, phi, mask
 
+    @staticmethod
+    def get_dinput_for_fit2d(dlines=None, dconstraints=None,
+                             deg=None, knots=None, nbsplines=None,
+                             lambmin=None, lambmax=None,
+                             phimin=None, phimax=None):
+        """ Return a formatted dict of lines and constraints
 
+        To be fed to _spectrafit2d.multigausfit1d_from_dlines()
+        Provides a user-friendly way of defining constraints
+        """
+        import tofu.data._spectrafit2d as _spectrafit2d
+        return _spectrafit2d.multigausfit2d_from_dlines_dinput(
+            dlines=dlines, dconstraints=dconstraints,
+            deg=deg, knots=knots, nbsplines=nbsplines,
+            lambmin=lambmin, lambmax=lambmax,
+            phimin=phimin, phimax=phimax)
 
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det_cent=None, det_ei=None, det_ej=None,
                                dtheta=None, psi=None, n=None,
-                               nlambfit=None, nphifit=None,
                                lambmin=None, lambmax=None,
-                               dlines=None, spect1d=None,
-                               double=None, freelines=None,
+                               phimin=None, phimax=None,
+                               dlines=None, dconstraints=None, dx0=None,
                                dscale=None, x0_scale=None, bounds_scale=None,
                                deg=None, knots=None, nbsplines=None,
-                               method=None, max_nfev=None,
-                               xtol=None, ftol=None, gtol=None, chain=None,
+                               method=None, max_nfev=None, chain=None,
+                               xtol=None, ftol=None, gtol=None,
                                loss=None, verbose=0, debug=None,
-                               plot=True, fs=None, dmoments=None,
+                               plot=True, fs=None,
                                cmap=None, vmin=None, vmax=None, returnas=None):
         # Check / format inputs
         assert data is not None
@@ -1852,87 +1893,65 @@ class CrystalBragg(utils.ToFuObject):
             xii, xjj, n=n,
             det_cent=det_cent, det_ei=det_ei, det_ej=det_ej,
             dtheta=dtheta, psi=psi, plot=False)
-        assert bragg.shape == phi.shape == data.shape
+        assert bragg.shape == phi.shape
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
-        # Compute lambfit / phifit and spectrum1d
-        (spect1d, lambfit, phifit,
-         vertsum1d, phiminmax) = self._calc_spect1d_from_data2d(
-            data, lamb, phi,
-            nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
-            spect1d=spect1d, mask=mask
-        )
+        # Check shape of data (multiple time slices possible)
+        data, lamb, phi, mask = self._checkformat_data_fit2d_dlines(
+            data, lamb, phi, mask=mask)
+        assert lamb.ndim == phi.ndim == 1
+        assert data.ndim == 2 and data.shape[1] == lamb.size
 
-        # Use valid data only and optionally restrict lamb
+        # Use valid data only and optionally restrict lamb / phi
+        indok = np.ones(lamb.shape, dtype=bool)
         if mask is not None:
-            data[~mask] = np.nan
+            indok &= mask
         if lambmin is not None:
-            spect1d[:, lambfit<lambmin] = np.nan
-            data[lamb<lambmin] = np.nan
+            indok &= lamb > lambmin
         if lambmax is not None:
-            spect1d[:, lambfit>lambmax] = np.nan
-            data[lamb>lambmax] = np.nan
-        indok = (~np.any(np.isnan(spect1d), axis=0)) & (~np.isnan(lambfit))
-        spect1d = spect1d[:, indok]
-        lambfit = lambfit[indok]
-        import pdb.set_trace()      # DB
-        indok = ~np.isnan(data)
-        data = data[indok]
+            indok &= lamb < lambmax
+        if phimin is not None:
+            indok &= phi > phimmin
+        if phimax is not None:
+            indok &= phi < phimax
+        data = data[:, indok]
         lamb = lamb[indok]
         phi = phi[indok]
 
         # Get dinput for 1d fitting
-        dinput = self.get_dinput_for_fit1d(dlines=dlines,
+        dinput = self.get_dinput_for_fit2d(dlines=dlines,
                                            dconstraints=dconstraints,
-                                           lambmin=lambmin, lambmax=lambmax)
+                                           deg=deg, knots=knots,
+                                           nbsplines=nbsplines,
+                                           lambmin=lambmin, lambmax=lambmax,
+                                           phimin=phi.min(),
+                                           phimax=phi.max())
 
         # Perform 1d fit to be used as initial guess for 2d fitting
         import tofu.data._spectrafit2d as _spectrafit2d
 
-        dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
-            spect1d, lambfit, dinput=dinput, dx0=dx0,
-            lambmin=lambmin, lambmax=lambmax,
+        dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
+            data, lamb, phi, dinput=dinput, dx0=dx0,
             scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev,
             chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
             ratio=ratio, jac=jac)
-        dfit1d['phiminmax'] = phiminmax
+
+        import pdb; pdb.set_trace()      # DB
 
 
 
 
+        # Plot
+        dax = None
+        if plot is True:
+            ax = _plot_optics.CrystalBragg_plot_data_fit2d(
+                dfit1d, dinput=dinput,
+                fs=fs, dmargin=dmargin,
+                tit=tit, wintit=wintit)
 
-
-
-        # Reorder wrt lamb0
-        ind = np.argsort(dfit1d['lamb0'])
-        for kk in ['lamb0', 'amp', 'ampstd',
-                   'sigma', 'sigmastd', 'dlamb', 'dlambstd']:
-            if dfit1d[kk].ndim == 1:
-                dfit1d[kk] = dfit1d[kk][ind]
-            else:
-                dfit1d[kk] = dfit1d[kk][0,ind]
-
-
-        # Compute dfit2d
-        if mask is None:
-            mask = np.ones(data.shape, dtype=bool)
-        func = _spectrafit2d.multigaussianfit2d
-        dfit2d = func(lamb[mask].ravel(), phi[mask].ravel(), data[mask].ravel(),
-                      std=dfit1d['std'],
-                      lamb0=dfit1d['lamb0'], forcelamb=forcelamb,
-                      deg=deg, nbsplines=nbsplines,
-                      method=method, max_nfev=max_nfev,
-                      xtol=xtol, ftol=ftol, gtol=gtol,
-                      loss=loss, verbose=verbose, debug=debug)
-
-
-        # plot
-        func = _plot_optics.CrystalBragg_plot_data_vs_fit
-        ax = func(xi, xj, bragg, lamb, phi, data, mask=mask,
-                  lambfit=lambfit, phifit=phifit, spect1d=spect1d,
-                  dfit1d=dfit1d, dfit2d=dfit2d, lambfitbins=lambfitbins,
-                  cmap=cmap, vmin=vmin, vmax=vmax,
-                  fs=fs, dmoments=dmoments)
-        return ax, dfit1d, None
+        if returnas == 'dict':
+            return dfit2d
+        else:
+            return ax
