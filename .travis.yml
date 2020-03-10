@@ -70,6 +70,7 @@ install:
 script:
 - cd $HOME
 - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
+- tofu-custom
 after_success:
 - codecov
 - chmod +x $START/anaconda_upload.sh
