@@ -985,6 +985,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     r_ratio = <int>(Cceil(disc_r[sz_r - 1] / disc_r[0]))
     twopi_over_dphi = _TWOPI / phistep
     ind_loc_r0 = 0
+    ncells_rphi0 = 0
     # ... doing 0 loop before
     if min_phi < max_phi:
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
