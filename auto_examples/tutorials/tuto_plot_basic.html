@@ -13,10 +13,6 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../_static/language_data.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Creating your first Geometry" href="tuto_plot_create_geometry.html" />
@@ -25,6 +21,10 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -66,6 +66,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">A guide to contributing to tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tofu.html">tofu package</a></li>
@@ -114,7 +115,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
@@ -152,6 +153,10 @@ to do just that:</p>
 </pre></div>
 </div>
 <img alt="../../_images/sphx_glr_tuto_plot_basic_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_basic_001.png" />
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x1c186baf60&gt;, &lt;matplotlib.axes._axes.Axes object at 0x1c18da1518&gt;]
+</pre></div>
+</div>
 <p>Since <cite>tofu</cite> is all about tomography, let’s create a 1D camera and plot its
 output.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span>
@@ -172,10 +177,12 @@ output.</p>
 </div>
 <img alt="../../_images/sphx_glr_tuto_plot_basic_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_basic_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/Users/mendoza/tofu/tofu/utils.py:2839: UserWarning: Not interactive backend!:
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/Users/mendoza/tofu/tofu/utils.py:2923: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
+
+&lt;tofu.utils.KeyHandler_mpl object at 0x1c1937ef28&gt;
 </pre></div>
 </div>
 <p>The principle is similar for 2D cameras.</p>
@@ -194,18 +201,22 @@ output.</p>
 </pre></div>
 </div>
 <img alt="../../_images/sphx_glr_tuto_plot_basic_003.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_basic_003.png" />
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;tofu.utils.KeyHandler_mpl object at 0x1c19cebda0&gt;
+</pre></div>
+</div>
 <p>What comes next is up to you!
 You could now play with the function parameters (change the cameras
 direction, refinement, aperture),
 with the plots (many are interactive) or create you own tomographic
 configuration.</p>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  1.589 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.016 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-basic-py">
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/542f4b6b28e34f8f1f9ad2ac6e5ff153/tuto_plot_basic.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_basic.py</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/dfd620612c263f27595ef0dc852ec1a7/tuto_plot_basic.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_basic.py</span></code></a></p>
 </div>
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/103a6e3a83d96b9a3cc7aabe22dee51b/tuto_plot_basic.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_basic.ipynb</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/c0bee79daf543f87292f8026f8ecc925/tuto_plot_basic.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_basic.ipynb</span></code></a></p>
 </div>
 </div>
 <p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
@@ -231,7 +242,7 @@ configuration.</p>
     </p>
     <p>
         &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

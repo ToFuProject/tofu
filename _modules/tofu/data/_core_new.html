@@ -13,16 +13,16 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -64,6 +64,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
@@ -109,7 +110,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <h1>Source code for tofu.data._core_new</h1><div class="highlight"><pre>
 <span></span><span class="c1"># -*- coding: utf-8 -*-</span>
@@ -120,7 +121,7 @@
 <span class="c1"># import itertools as itt</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 
 <span class="c1"># Common</span>
@@ -131,19 +132,19 @@
 
 
 <span class="c1"># tofu</span>
-<span class="kn">from</span> <span class="nn">tofu</span> <span class="k">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">tofu</span> <span class="kn">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">__version__</span>
 <span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
 <span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">utils</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">tofu.data._comp</span> <span class="k">as</span> <span class="nn">_comp</span>
     <span class="kn">import</span> <span class="nn">tofu.data._plot</span> <span class="k">as</span> <span class="nn">_plot</span>
     <span class="kn">import</span> <span class="nn">tofu.data._def</span> <span class="k">as</span> <span class="nn">_def</span>
-    <span class="kn">import</span> <span class="nn">tofu.data._physics</span> <span class="k">as</span> <span class="nn">_physics</span>
+    <span class="kn">import</span> <span class="nn">tofu._physics</span> <span class="k">as</span> <span class="nn">_physics</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_physics</span> <span class="k">as</span> <span class="n">_physics</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">_physics</span> <span class="k">as</span> <span class="n">_physics</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DataHolder&#39;</span><span class="p">]</span>  <span class="c1"># , &#39;Plasma0D&#39;]</span>
 
@@ -191,7 +192,7 @@
         <span class="c1"># cls._dplot = copy.deepcopy(Struct._dplot)</span>
         <span class="c1"># cls._set_color_ddef(cls._color)</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;./&#39;</span><span class="p">),</span>
                  <span class="n">SavePath_Include</span><span class="o">=</span><span class="n">tfpf</span><span class="o">.</span><span class="n">defInclude</span><span class="p">):</span>
@@ -359,7 +360,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="s1">&#39;lkey&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span>
 
     <span class="c1"># ------------- DB (start)</span>
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
     <span class="c1"># ------------- DB (end)</span>
 
@@ -1267,7 +1268,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

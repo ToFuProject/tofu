@@ -13,16 +13,16 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -64,6 +64,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
@@ -109,7 +110,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <h1>Source code for tofu.geom._comp</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
@@ -123,15 +124,15 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
 <span class="kn">import</span> <span class="nn">scipy.integrate</span> <span class="k">as</span> <span class="nn">scpintg</span>
-<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
 
 <span class="c1"># ToFu-specific</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._def</span> <span class="k">as</span> <span class="nn">_def</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._GG</span> <span class="k">as</span> <span class="nn">_GG</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
 
 
 <span class="c1">###############################################################################</span>
@@ -149,8 +150,8 @@
 
     <span class="c1"># Make Poly closed, counter-clockwise, with &#39;(cc,N)&#39; layout and arrayorder</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">Poly</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">Poly_Order</span><span class="p">(</span><span class="n">Poly</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">close</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                              <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;(cc,N)&quot;</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">Poly</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">format_poly</span><span class="p">(</span><span class="n">Poly</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">close</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                               <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">excp</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">excp</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">Poly</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Arg Poly must be a 2D polygon !&quot;</span>
@@ -195,12 +196,11 @@
     <span class="n">Vin</span> <span class="o">=</span> <span class="n">Vin</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">Vin</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">Vin</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
     <span class="n">Vin</span> <span class="o">=</span> <span class="n">fPfmt</span><span class="p">(</span><span class="n">Vin</span><span class="p">)</span>
 
-    <span class="n">poly</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">Poly_Order</span><span class="p">(</span>
+    <span class="n">poly</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">format_poly</span><span class="p">(</span>
         <span class="n">Poly</span><span class="p">,</span>
         <span class="n">order</span><span class="o">=</span><span class="n">arrayorder</span><span class="p">,</span>
         <span class="n">Clock</span><span class="o">=</span><span class="n">Clock</span><span class="p">,</span>
         <span class="n">close</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;(cc,N)&quot;</span><span class="p">,</span>
         <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -1315,7 +1315,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

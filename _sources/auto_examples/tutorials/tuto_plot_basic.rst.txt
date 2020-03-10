@@ -32,6 +32,7 @@ This is a tutorial that aims to get a new user a little familiar with tofu's str
 
 
 
+
 We start by loading `tofu`. You might see some warnings at this stage since
 optional modules for `tofu` could
 be missing on the machine you are working on. This can be ignored safely.
@@ -41,6 +42,7 @@ be missing on the machine you are working on. This can be ignored safely.
 
 
     import tofu as tf
+
 
 
 
@@ -66,6 +68,7 @@ to do just that:
 
 
 
+
 The configuration can easily be visualized using the `.plot()` method:
 
 
@@ -80,6 +83,15 @@ The configuration can easily be visualized using the `.plot()` method:
 .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_001.png
     :class: sphx-glr-single-img
 
+
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+
+    [<matplotlib.axes._axes.Axes object at 0x1c186baf60>, <matplotlib.axes._axes.Axes object at 0x1c18da1518>]
 
 
 
@@ -118,10 +130,12 @@ output.
 
  .. code-block:: none
 
-    /Users/mendoza/tofu/tofu/utils.py:2839: UserWarning: Not interactive backend!:
+    /Users/mendoza/tofu/tofu/utils.py:2923: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
+
+    <tofu.utils.KeyHandler_mpl object at 0x1c1937ef28>
 
 
 
@@ -151,6 +165,15 @@ The principle is similar for 2D cameras.
     :class: sphx-glr-single-img
 
 
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+
+    <tofu.utils.KeyHandler_mpl object at 0x1c19cebda0>
+
 
 
 What comes next is up to you!
@@ -162,7 +185,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.589 seconds)
+   **Total running time of the script:** ( 0 minutes  2.016 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:

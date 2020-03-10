@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.tests.tests01_geom.tests03_core_data.WEST_PFC_DivLowGC_Notes &#8212; tofu v1.4</title>
+    <link rel="stylesheet" href="../../../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../../../installation.html">Installation</a></li>
+                <li><a href="../../../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../../../aboutus.html">About</a></li>
+                <li><a href="../../../../../releases.html">Releases</a></li>
+                <li><a href="../../../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.tests.tests01_geom.tests03_core_data.WEST_PFC_DivLowGC_Notes</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">_save</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Notes&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">]])</span>
+               <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span><span class="p">]])</span>
+
+<div class="viewcode-block" id="get_notes"><a class="viewcode-back" href="../../../../../tofu.tests.tests01_geom.tests03_core_data.html#tofu.tests.tests01_geom.tests03_core_data.WEST_PFC_DivLowGC_Notes.get_notes">[docs]</a><span class="k">def</span> <span class="nf">get_notes</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; By convention : D is a length of the element, d is a gap  &quot;&quot;&quot;</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;DPhi&#39;</span><span class="p">:{},</span> <span class="s1">&#39;dPhi&#39;</span><span class="p">:{}}</span>
+    <span class="c1"># Toroidal width (mm, inner outer)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DPhi&#39;</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">25.508</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DPhi&#39;</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">32.908</span>
+
+    <span class="c1"># Inter tiles distance (mm, uniform)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.500</span>
+
+    <span class="c1"># Poloidal/Radial total length (mm)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">573.995</span>
+
+    <span class="c1"># Number of tiles radially</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nbPhi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">38</span><span class="o">*</span><span class="mi">12</span>
+
+    <span class="c1"># Radial length of a tile (mm)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;Dl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">316.495</span><span class="p">,</span><span class="mf">256.000</span><span class="p">])</span>
+
+    <span class="c1"># Vertical height of tiles (mm, uniform)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DZ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">25.538</span>
+
+    <span class="c1"># Toroidal space between needles (mm, inner outer)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dPhi&#39;</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.666</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dPhi&#39;</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.666</span>
+
+    <span class="c1"># (X,Z,Y) polygon of one needle (mm) !!!!!! (X,Z,Y)</span>
+    <span class="c1"># 1 mm should be added towards Z&gt;0 in the direction normal to the divertor&#39;s upper surface</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mf">440.221</span><span class="p">,</span> <span class="o">-</span><span class="mf">606.218</span><span class="p">,</span> <span class="mf">1854.847</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">440.163</span><span class="p">,</span> <span class="o">-</span><span class="mf">581.217</span><span class="p">,</span> <span class="mf">1854.860</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">440.748</span><span class="p">,</span> <span class="o">-</span><span class="mf">579.362</span><span class="p">,</span> <span class="mf">1857.546</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">506.714</span><span class="p">,</span> <span class="o">-</span><span class="mf">694.150</span><span class="p">,</span> <span class="mf">2133.992</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">506.951</span><span class="p">,</span> <span class="o">-</span><span class="mf">694.466</span><span class="p">,</span> <span class="mf">2134.837</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">510.087</span><span class="p">,</span> <span class="o">-</span><span class="mf">699.924</span><span class="p">,</span> <span class="mf">2147.977</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">510.336</span><span class="p">,</span> <span class="o">-</span><span class="mf">702.527</span><span class="p">,</span> <span class="mf">2149.054</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">508.309</span><span class="p">,</span> <span class="o">-</span><span class="mf">724.780</span><span class="p">,</span> <span class="mf">2140.295</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">508.995</span><span class="p">,</span> <span class="o">-</span><span class="mf">721.633</span><span class="p">,</span> <span class="mf">2143.101</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">510.684</span><span class="p">,</span> <span class="o">-</span><span class="mf">703.089</span><span class="p">,</span> <span class="mf">2150.401</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">511.270</span><span class="p">,</span> <span class="o">-</span><span class="mf">701.984</span><span class="p">,</span> <span class="mf">2152.937</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">514.021</span><span class="p">,</span> <span class="o">-</span><span class="mf">706.772</span><span class="p">,</span> <span class="mf">2164.465</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">514.742</span><span class="p">,</span> <span class="o">-</span><span class="mf">708.491</span><span class="p">,</span> <span class="mf">2167.329</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">565.491</span><span class="p">,</span> <span class="o">-</span><span class="mf">796.886</span><span class="p">,</span> <span class="mf">2380.007</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">565.707</span><span class="p">,</span> <span class="o">-</span><span class="mf">799.489</span><span class="p">,</span> <span class="mf">2381.092</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">563.726</span><span class="p">,</span> <span class="o">-</span><span class="mf">821.241</span><span class="p">,</span> <span class="mf">2372.530</span><span class="p">]]</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">notes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="s1">&#39;nb&#39;</span> <span class="ow">in</span> <span class="n">kk</span><span class="p">:</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+    <span class="k">return</span> <span class="n">notes</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_inter</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span><span class="n">u0</span><span class="p">,</span><span class="n">D1</span><span class="p">,</span><span class="n">u1</span><span class="p">):</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">D0</span><span class="o">-</span><span class="n">D1</span><span class="p">,</span><span class="n">u1</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">u0</span><span class="p">,</span><span class="n">u1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">D0</span> <span class="o">+</span> <span class="n">k</span><span class="o">*</span><span class="n">u0</span>
+
+<div class="viewcode-block" id="make_Poly"><a class="viewcode-back" href="../../../../../tofu.tests.tests01_geom.tests03_core_data.html#tofu.tests.tests01_geom.tests03_core_data.WEST_PFC_DivLowGC_Notes.make_Poly">[docs]</a><span class="k">def</span> <span class="nf">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">_save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_here</span><span class="p">):</span>
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">get_notes</span><span class="p">()</span>
+
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">indup</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[</span><span class="n">indup</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">R</span><span class="p">[</span><span class="n">indup</span><span class="p">],</span> <span class="n">Z</span><span class="p">[</span><span class="n">indup</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">Z</span><span class="p">[</span><span class="n">indup</span><span class="p">]])</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">e1</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e1</span><span class="p">)</span>
+    <span class="n">e2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="o">-</span><span class="n">e1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">e1</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+    <span class="n">P0</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span><span class="o">-</span><span class="mf">0.01</span><span class="o">*</span><span class="n">e2</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">PEnd</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">Z</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span><span class="o">-</span><span class="mf">0.01</span><span class="o">*</span><span class="n">e2</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">Poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">Z</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">Poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">P0</span><span class="p">,</span><span class="n">Poly</span><span class="p">,</span><span class="n">PEnd</span><span class="p">),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">Poly0</span> <span class="o">=</span> <span class="n">Poly</span><span class="p">[:,[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+
+    <span class="c1"># Making Poly1</span>
+    <span class="n">D0</span> <span class="o">=</span> <span class="n">Poly0</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">u0</span> <span class="o">=</span> <span class="n">Poly0</span><span class="p">[:,</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">D0</span>
+    <span class="n">k0</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">D0</span><span class="o">-</span><span class="n">Poly</span><span class="p">[:,</span><span class="mi">5</span><span class="p">])</span><span class="o">*</span><span class="n">u0</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">u0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">k1</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">D0</span><span class="o">-</span><span class="n">Poly</span><span class="p">[:,</span><span class="mi">10</span><span class="p">])</span><span class="o">*</span><span class="n">u0</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">u0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">P0</span> <span class="o">=</span> <span class="p">(</span><span class="n">D0</span> <span class="o">+</span> <span class="n">k0</span><span class="o">*</span><span class="n">u0</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">P1</span> <span class="o">=</span> <span class="p">(</span><span class="n">D0</span> <span class="o">+</span> <span class="n">k1</span><span class="o">*</span><span class="n">u0</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">D0</span><span class="p">,</span> <span class="n">D1</span> <span class="o">=</span> <span class="n">Poly</span><span class="p">[:,</span><span class="mi">5</span><span class="p">],</span> <span class="n">Poly</span><span class="p">[:,</span><span class="mi">10</span><span class="p">]</span>
+    <span class="n">u0</span><span class="p">,</span> <span class="n">u1</span> <span class="o">=</span> <span class="n">Poly</span><span class="p">[:,</span><span class="mi">6</span><span class="p">]</span><span class="o">-</span><span class="n">D0</span><span class="p">,</span> <span class="n">Poly</span><span class="p">[:,</span><span class="mi">9</span><span class="p">]</span><span class="o">-</span><span class="n">D1</span>
+    <span class="n">PI</span> <span class="o">=</span> <span class="n">_get_inter</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span><span class="n">u0</span><span class="p">,</span><span class="n">D1</span><span class="p">,</span><span class="n">u1</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">Poly1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">Poly0</span><span class="p">[:,:</span><span class="mi">2</span><span class="p">],</span> <span class="n">P0</span><span class="p">,</span><span class="n">PI</span><span class="p">,</span><span class="n">P1</span><span class="p">,</span> <span class="n">Poly0</span><span class="p">[:,</span><span class="mi">2</span><span class="p">:]),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">cstr</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">_Exp</span><span class="p">,</span><span class="n">_Cls</span><span class="p">,</span><span class="n">_name</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V0.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly0</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V1.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly1</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V2.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Poly0</span><span class="p">,</span> <span class="n">Poly1</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">notes</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Parse input arguments</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Launch creation of polygons txt from bash&#39;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span> <span class="o">=</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-save&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;save ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_save</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-path&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;saving path ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_here</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Call wrapper function</span>
+    <span class="n">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2019, Tofu contributors.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

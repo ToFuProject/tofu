@@ -13,17 +13,18 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="tofu.scripts package" href="tofu.scripts.html" />
     <link rel="prev" title="tofu.dust package" href="tofu.dust.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -65,6 +66,7 @@
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu_from_bash.html">Using tofu from a bash terminal</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="tofu.html">tofu package</a></li>
@@ -87,18 +89,24 @@
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">tofu.geom package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#tofu-geom-gg-cpython-36m-darwin-module">tofu.geom._GG.cpython-36m-darwin module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._GG">tofu.geom._GG module</a></li>
+<li><a class="reference internal" href="#tofu-geom-basic-geom-tools-cpython-36m-darwin-module">tofu.geom._basic_geom_tools.cpython-36m-darwin module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._basic_geom_tools">tofu.geom._basic_geom_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._comp">tofu.geom._comp module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._comp_optics">tofu.geom._comp_optics module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._core">tofu.geom._core module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._core_optics">tofu.geom._core_optics module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._def">tofu.geom._def module</a></li>
+<li><a class="reference internal" href="#tofu-geom-distance-tools-cpython-36m-darwin-module">tofu.geom._distance_tools.cpython-36m-darwin module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._distance_tools">tofu.geom._distance_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._plot">tofu.geom._plot module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._plot_optics">tofu.geom._plot_optics module</a></li>
+<li><a class="reference internal" href="#tofu-geom-raytracing-tools-cpython-36m-darwin-module">tofu.geom._raytracing_tools.cpython-36m-darwin module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._raytracing_tools">tofu.geom._raytracing_tools module</a></li>
+<li><a class="reference internal" href="#tofu-geom-sampling-tools-cpython-36m-darwin-module">tofu.geom._sampling_tools.cpython-36m-darwin module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._sampling_tools">tofu.geom._sampling_tools module</a></li>
+<li><a class="reference internal" href="#tofu-geom-vignetting-tools-cpython-36m-darwin-module">tofu.geom._vignetting_tools.cpython-36m-darwin module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom._vignetting_tools">tofu.geom._vignetting_tools module</a></li>
 <li><a class="reference internal" href="#module-tofu.geom.utils">tofu.geom.utils module</a></li>
 </ul>
@@ -130,7 +138,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <div class="section" id="module-tofu.geom">
 <span id="tofu-geom-package"></span><h1>tofu.geom package<a class="headerlink" href="#module-tofu.geom" title="Permalink to this headline">¶</a></h1>
@@ -141,6 +149,9 @@
 * apertures and detectors</p>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="tofu-geom-gg-cpython-36m-darwin-module">
+<h2>tofu.geom._GG.cpython-36m-darwin module<a class="headerlink" href="#tofu-geom-gg-cpython-36m-darwin-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-tofu.geom._GG">
 <span id="tofu-geom-gg-module"></span><h2>tofu.geom._GG module<a class="headerlink" href="#module-tofu.geom._GG" title="Permalink to this headline">¶</a></h2>
@@ -486,39 +497,6 @@ Both methods are O(n) for n vertices, but it does seem a waste to add up
 the total area when a single cross product (of just the right edges)
 suffices.  Code for this is available at
 <a class="reference external" href="ftp://cs.smith.edu/pub/code/polyorient.C">ftp://cs.smith.edu/pub/code/polyorient.C</a> (2K).</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tofu.geom._GG.Poly_Order">
-<code class="sig-prename descclassname">tofu.geom._GG.</code><code class="sig-name descname">Poly_Order</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tofu.geom._GG.Poly_Order" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a polygon Poly as a np.ndarray formatted according to parameters</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>np.ndarray</strong><strong> or </strong><strong>list    Input polygon under from of</strong><strong> (</strong><strong>cc</strong><strong>,</strong><strong>N</strong><strong>) </strong><strong>or</strong> (<em>Poly</em>) – <dl class="simple">
-<dt>or tuple              (N,cc) np.ndarray (where cc = 2 or 3, the</dt><dd><p>number of coordinates and N points), or
-list or tuple of vertices</p>
-</dd>
-</dl>
-</p></li>
-<li><p><strong>str                   Flag indicating whether the output</strong> (<em>layout</em>) – np.ndarray shall be C-contiguous (‘C’) or
-Fortran-contiguous (‘F’)</p></li>
-<li><p><strong>bool                  For 2-dimensional arrays only</strong><strong>, </strong><strong>flag indi-</strong> (<em>close</em>) – cating whether the output array shall
-represent a clockwise polygon (True) or
-anti-clockwise (False), or should be left
-unchanged (None)</p></li>
-<li><p><strong>bool                  For 2-dimensional arrays only</strong><strong>, </strong><strong>flag indi-</strong> – cating whether the output array shall be
-closed (True, ie: last point==first point)
-or not closed (False)</p></li>
-<li><p><strong>str                   Flag indicating whether the output</strong> – np.ndarray shall be of shape ‘(cc,N)’
-or ‘(N,cc)’</p></li>
-<li><p><strong>bool                  Flag indicating whether the inputs should</strong> (<em>Test</em>) – be tested for conformity, default: True</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><em>poly    np.ndarray            Output formatted polygon</em></p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="function">
@@ -956,6 +934,9 @@ If Ves (and optionally LSPoly) are provided, takes into account vignetting</p>
 </dd></dl>
 
 </div>
+<div class="section" id="tofu-geom-basic-geom-tools-cpython-36m-darwin-module">
+<h2>tofu.geom._basic_geom_tools.cpython-36m-darwin module<a class="headerlink" href="#tofu-geom-basic-geom-tools-cpython-36m-darwin-module" title="Permalink to this headline">¶</a></h2>
+</div>
 <div class="section" id="module-tofu.geom._basic_geom_tools">
 <span id="tofu-geom-basic-geom-tools-module"></span><h2>tofu.geom._basic_geom_tools module<a class="headerlink" href="#module-tofu.geom._basic_geom_tools" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -1365,7 +1346,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.Rays">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Rays</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">Rays</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tofu.html#tofu.utils.ToFuObject" title="tofu.utils.ToFuObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.utils.ToFuObject</span></code></a></p>
 <p>Parent class of rays (ray-tracing), LOS, CamLOS1D and CamLOS2D</p>
 <p>Focused on optimizing the computation time for many rays.</p>
@@ -1583,8 +1564,17 @@ vector was provided.</p></li>
 
 <dl class="method">
 <dt id="tofu.geom._core.Rays.compute_dgeom">
-<code class="sig-name descname">compute_dgeom</code><span class="sig-paren">(</span><em class="sig-param">extra=True</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.compute_dgeom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.compute_dgeom" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="sig-name descname">compute_dgeom</code><span class="sig-paren">(</span><em class="sig-param">extra=True</em>, <em class="sig-param">show_debug_plot=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Rays.compute_dgeom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Rays.compute_dgeom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute dictionnary of geometrical attributes (dgeom)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>show_debug_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – In case some lines of sight have no visibility inside the tokamak,
+they will be considered invalid. tofu will issue a warning with
+their indices and if show_debug_plot is True, try to plot a 3d
+figure to help understand why these los have no visibility</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="tofu.geom._core.Rays.config">
@@ -2113,7 +2103,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.CamLOS1D">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS1D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS1D" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS1D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS1D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tofu.geom._core.Rays" title="tofu.geom._core.Rays"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.Rays</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.CamLOS1D.get_summary">
@@ -2129,7 +2119,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="class">
 <dt id="tofu.geom._core.CamLOS2D">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS2D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em>, <em class="sig-param">plotdebug=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS2D" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">tofu.geom._core.</code><code class="sig-name descname">CamLOS2D</code><span class="sig-paren">(</span><em class="sig-param">dgeom=None</em>, <em class="sig-param">lOptics=None</em>, <em class="sig-param">Etendues=None</em>, <em class="sig-param">Surfaces=None</em>, <em class="sig-param">config=None</em>, <em class="sig-param">dchans=None</em>, <em class="sig-param">dX12='geom'</em>, <em class="sig-param">Id=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em>, <em class="sig-param">shot=None</em>, <em class="sig-param">Diag=None</em>, <em class="sig-param">sino_RefPt=None</em>, <em class="sig-param">fromdict=None</em>, <em class="sig-param">sep=None</em>, <em class="sig-param">method='optimized'</em>, <em class="sig-param">SavePath='/Users/mendoza/tofu/doc/source'</em>, <em class="sig-param">color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#CamLOS2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.CamLOS2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tofu.geom._core.Rays" title="tofu.geom._core.Rays"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.geom._core.Rays</span></code></a></p>
 <dl class="method">
 <dt id="tofu.geom._core.CamLOS2D.dX12">
@@ -2806,6 +2796,9 @@ return ax1, ax2, ax3</p>
 <dd></dd></dl>
 
 </div>
+<div class="section" id="tofu-geom-distance-tools-cpython-36m-darwin-module">
+<h2>tofu.geom._distance_tools.cpython-36m-darwin module<a class="headerlink" href="#tofu-geom-distance-tools-cpython-36m-darwin-module" title="Permalink to this headline">¶</a></h2>
+</div>
 <div class="section" id="module-tofu.geom._distance_tools">
 <span id="tofu-geom-distance-tools-module"></span><h2>tofu.geom._distance_tools module<a class="headerlink" href="#module-tofu.geom._distance_tools" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -2828,7 +2821,7 @@ return ax1, ax2, ax3</p>
 
 <dl class="function">
 <dt id="tofu.geom._plot.Plot_Impact_3DPoly">
-<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.2b13-70-gf5b8d06e        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.2b4-92-gf832ab7e        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plotting the toroidal projection of a Ves instance</p>
 <p>D. VEZINET, Aug. 2014
 Inputs :</p>
@@ -2944,11 +2937,20 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 <dd></dd></dl>
 
 </div>
+<div class="section" id="tofu-geom-raytracing-tools-cpython-36m-darwin-module">
+<h2>tofu.geom._raytracing_tools.cpython-36m-darwin module<a class="headerlink" href="#tofu-geom-raytracing-tools-cpython-36m-darwin-module" title="Permalink to this headline">¶</a></h2>
+</div>
 <div class="section" id="module-tofu.geom._raytracing_tools">
 <span id="tofu-geom-raytracing-tools-module"></span><h2>tofu.geom._raytracing_tools module<a class="headerlink" href="#module-tofu.geom._raytracing_tools" title="Permalink to this headline">¶</a></h2>
 </div>
+<div class="section" id="tofu-geom-sampling-tools-cpython-36m-darwin-module">
+<h2>tofu.geom._sampling_tools.cpython-36m-darwin module<a class="headerlink" href="#tofu-geom-sampling-tools-cpython-36m-darwin-module" title="Permalink to this headline">¶</a></h2>
+</div>
 <div class="section" id="module-tofu.geom._sampling_tools">
 <span id="tofu-geom-sampling-tools-module"></span><h2>tofu.geom._sampling_tools module<a class="headerlink" href="#module-tofu.geom._sampling_tools" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="tofu-geom-vignetting-tools-cpython-36m-darwin-module">
+<h2>tofu.geom._vignetting_tools.cpython-36m-darwin module<a class="headerlink" href="#tofu-geom-vignetting-tools-cpython-36m-darwin-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-tofu.geom._vignetting_tools">
 <span id="tofu-geom-vignetting-tools-module"></span><h2>tofu.geom._vignetting_tools module<a class="headerlink" href="#module-tofu.geom._vignetting_tools" title="Permalink to this headline">¶</a></h2>
@@ -2986,7 +2988,7 @@ standard name always refers to the latest (most detailed) available version
 of the geometry.</p>
 <p>Can also return the table as str</p>
 <dl>
-<dt>No input arg needed:</dt><dd><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<dt>No input arg needed:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_available_config</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -3176,7 +3178,7 @@ returned as:</p>
     </p>
     <p>
         &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

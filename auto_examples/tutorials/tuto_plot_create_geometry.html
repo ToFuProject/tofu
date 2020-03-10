@@ -13,10 +13,6 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../_static/language_data.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Computing a camera image with custom emissivity" href="tuto_plot_custom_emissivity.html" />
@@ -25,6 +21,10 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -66,6 +66,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">A guide to contributing to tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tofu.html">tofu package</a></li>
@@ -118,7 +119,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
@@ -161,6 +162,10 @@ shape at the bottom:</p>
 </pre></div>
 </div>
 <img alt="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" />
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(0.900292944643613, 3.099707055356387, -1.3099829327148826, 1.1096415870125362)
+</pre></div>
+</div>
 <p>Notice that the polygon does not have to be closed, ToFu will anyway check
 that and close it automatically if necessary.
 Now let’s feed this 2D polygon to the appropriate ToFu class and specify that
@@ -196,7 +201,7 @@ object, it is advised not to modify it.</p>
 </pre></div>
 </div>
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b13-70-gf5b8d06e
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b4-92-gf832ab7e
 </pre></div>
 </div>
 <p>Now, we can simply visualise the created vessel by using the dedicated method
@@ -219,7 +224,7 @@ it so that it can be used by other ToFu objects when necessary.</p>
 </div>
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Saved in :
-    /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b13-70-gf5b8d06e.npz
+    /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b4-92-gf832ab7e.npz
 </pre></div>
 </div>
 <p>This method will save the instance as a numpy compressed file (.npz), using
@@ -287,16 +292,16 @@ otherwise the type must be specified.</p>
   =&gt; Poly goes from 100 to 99 points
   warnings.warn(msg)
 Saved in :
-    /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.2b13-70-gf5b8d06e.npz
+    /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.2b4-92-gf832ab7e.npz
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.811 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.847 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py">
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/4473b4958faeb767a6086694c6f1c110/tuto_plot_create_geometry.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry.py</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/821737f695d098026bf8ea2b1bfa6101/tuto_plot_create_geometry.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry.py</span></code></a></p>
 </div>
 <div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/d376c6ade6b2900efee73dc657d5780c/tuto_plot_create_geometry.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_create_geometry.ipynb</span></code></a></p>
+<p><a class="reference download internal" download="" href="../../_downloads/721ae2bd4e53ca4b2cdb8d4e88f9536a/tuto_plot_create_geometry.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_create_geometry.ipynb</span></code></a></p>
 </div>
 </div>
 <p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
@@ -323,7 +328,7 @@ Saved in :
     </p>
     <p>
         &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

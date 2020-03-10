@@ -13,16 +13,16 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    <script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
 
@@ -64,6 +64,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
@@ -109,7 +110,7 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+    <div class="body col-md-12 content" role="main">
       
   <h1>Source code for tofu.geom._plot</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Built-in</span>
@@ -122,24 +123,24 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="k">import</span> <span class="n">Polygon</span> <span class="k">as</span> <span class="n">mPolygon</span>
-<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="k">import</span> <span class="n">Wedge</span> <span class="k">as</span> <span class="n">mWedge</span>
-<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="k">import</span>  <span class="n">Rectangle</span> <span class="k">as</span> <span class="n">mRectangle</span>
-<span class="kn">from</span> <span class="nn">matplotlib.axes._axes</span> <span class="k">import</span> <span class="n">Axes</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">Polygon</span> <span class="k">as</span> <span class="n">mPolygon</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span> <span class="n">Wedge</span> <span class="k">as</span> <span class="n">mWedge</span>
+<span class="kn">from</span> <span class="nn">matplotlib.patches</span> <span class="kn">import</span>  <span class="n">Rectangle</span> <span class="k">as</span> <span class="n">mRectangle</span>
+<span class="kn">from</span> <span class="nn">matplotlib.axes._axes</span> <span class="kn">import</span> <span class="n">Axes</span>
 <span class="kn">import</span> <span class="nn">matplotlib.gridspec</span> <span class="k">as</span> <span class="nn">gridspec</span>
-<span class="kn">from</span> <span class="nn">mpl_toolkits.mplot3d</span> <span class="k">import</span> <span class="n">Axes3D</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.mplot3d</span> <span class="kn">import</span> <span class="n">Axes3D</span>
 
 <span class="c1"># ToFu-specific</span>
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="k">import</span> <span class="n">__version__</span>
+    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="kn">import</span> <span class="n">__version__</span>
     <span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">utils</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._def</span> <span class="k">as</span> <span class="nn">_def</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._GG</span> <span class="k">as</span> <span class="nn">_GG</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="k">import</span> <span class="n">__version__</span>
-    <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">utils</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
+    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="kn">import</span> <span class="n">__version__</span>
+    <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">utils</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
 
 
 <span class="c1">#__author_email__ = &#39;didier.vezinet@cea.fr&#39;</span>
@@ -902,18 +903,13 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;_LOS_calc_InOutPolProj - Debugging </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1"> pts&#39;</span><span class="o">%</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">nP</span><span class="p">),</span><span class="nb">str</span><span class="p">(</span><span class="n">nptstot</span><span class="p">))</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:],</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">PIns</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">PIns</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">PIns</span><span class="p">[</span><span class="mi">2</span><span class="p">,:],</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;PIn&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">POuts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">POuts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">POuts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:],</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;POut&quot;</span><span class="p">)</span>
-    <span class="c1">#ax.legend(**_def.TorLegd)</span>
+    <span class="c1"># ax.plot(PIns[0,:],PIns[1,:],PIns[2,:],</span>
+    <span class="c1">#         c=&#39;b&#39;, ls=&#39;None&#39;, marker=&#39;o&#39;, label=r&quot;PIn&quot;)</span>
+    <span class="c1"># ax.plot(POuts[0,:],POuts[1,:],POuts[2,:],</span>
+    <span class="c1">#         c=&#39;r&#39;, ls=&#39;None&#39;, marker=&#39;x&#39;, label=r&quot;POut&quot;)</span>
+    <span class="c1"># ax.legend(**_def.TorLegd)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-
-    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Debugging </span><span class="si">%s</span><span class="s2"> / </span><span class="si">%s</span><span class="s2"> pts with no visibility:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">nP</span><span class="p">),</span><span class="nb">str</span><span class="p">(</span><span class="n">nptstot</span><span class="p">))</span>
-    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    D = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">Ds</span><span class="p">)</span>
-    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    u = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">us</span><span class="p">)</span>
-    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    PIn = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">PIns</span><span class="p">)</span>
-    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    POut = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">POuts</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_get_LLOS_Leg</span><span class="p">(</span><span class="n">GLLOS</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1809,7 +1805,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>
