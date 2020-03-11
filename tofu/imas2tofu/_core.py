@@ -23,6 +23,25 @@ import numpy as np
 import matplotlib as mpl
 import datetime as dtm
 
+# tofu
+pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
+if os.path.isfile(pfe):
+    # Make sure we load the user-specific file
+    # sys.path method
+    # sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
+    # import _scripts_def as _defscripts
+    # _ = sys.path.pop(1)
+    # importlib method
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_defimas2tofu", pfe)
+    _defimas2tofu = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_defimas2tofu)
+else:
+    try:
+        import tofu.imas2tofu._def as _defimas2tofu
+    except Exception as err:
+        from . import _def as _defimas2tofu
+
 # imas
 try:
     import imas
@@ -47,9 +66,10 @@ _IMAS_TOKAMAK = 'west'
 _IMAS_VERSION = '3'
 _IMAS_SHOTR = -1
 _IMAS_RUNR = -1
-_IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
-              'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR,
-              'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
+_IMAS_DIDD = {'shot': _IMAS_SHOT, 'run': _IMAS_RUN,
+              'refshot': _IMAS_SHOTR, 'refrun': _IMAS_RUNR,
+              'user': _IMAS_USER, 'tokamak': _IMAS_TOKAMAK,
+              'version': _IMAS_VERSION}
 
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -89,377 +109,8 @@ class MultiIDSLoader(object):
               'shot', 'run', 'refshot', 'refrun']
 
     # Known short version of signal str
-
-    _dshort = {
-               'wall':
-               {'wallR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
-                'wallZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
-
-               'pulse_schedule':
-               {'events_times':{'str':'event[].time_stamp'},
-                'events_names':{'str':'event[].identifier'}},
-
-               'equilibrium':
-               {'t':{'str':'time'},
-                'ip':{'str':'time_slice[time].global_quantities.ip',
-                      'dim':'current', 'quant':'Ip', 'units':'A'},
-                'q0':{'str':'time_slice[time].global_quantities.q_axis'},
-                'qmin':{'str':'time_slice[time].global_quantities.q_min.value'},
-                'q95':{'str':'time_slice[time].global_quantities.q_95'},
-                'volume':{'str':'time_slice[time].global_quantities.volume',
-                          'dim':'volume', 'quant':'pvol', 'units':'m3'},
-                'psiaxis':{'str':'time_slice[time].global_quantities.psi_axis',
-                           'dim':'B flux', 'quant':'psi', 'units':'Wb'},
-                'psisep':{'str':'time_slice[time].global_quantities.psi_boundary',
-                          'dim':'B flux', 'quant':'psi', 'units':'Wb'},
-                'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor',
-                       'dim':'B', 'quant':'BT', 'units':'T'},
-                'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r',
-                       'dim':'distance', 'quant':'R', 'units':'m'},
-                'axZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z',
-                       'dim':'distance', 'quant':'Z', 'units':'m'},
-                'x0R':{'str':'time_slice[time].boundary.x_point[0].r'},
-                'x0Z':{'str':'time_slice[time].boundary.x_point[0].z'},
-                'x1R':{'str':'time_slice[time].boundary.x_point[1].r'},
-                'x1Z':{'str':'time_slice[time].boundary.x_point[1].z'},
-                'strike0R':{'str':'time_slice[time].boundary.strike_point[0].r'},
-                'strike0Z':{'str':'time_slice[time].boundary.strike_point[0].z'},
-                'strike1R':{'str':'time_slice[time].boundary.strike_point[1].r'},
-                'strike1Z':{'str':'time_slice[time].boundary.strike_point[1].z'},
-                'sepR':{'str':'time_slice[time].boundary_separatrix.outline.r'},
-                'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'},
-
-                '1drhotn':{'str':'time_slice[time].profiles_1d.rho_tor_norm',
-                           'dim':'rho', 'quant':'rhotn', 'units':'adim.'},
-                '1dphi':{'str':'time_slice[time].profiles_1d.phi',
-                         'dim':'B flux', 'quant':'phi', 'units':'Wb'},
-                '1dpsi':{'str':'time_slice[time].profiles_1d.psi',
-                         'dim':'B flux', 'quant':'psi', 'units':'Wb'},
-                '1dq':{'str':'time_slice[time].profiles_1d.q',
-                       'dim':'safety factor', 'quant':'q', 'units':'adim.'},
-                '1dpe':{'str':'time_slice[time].profiles_1d.pressure',
-                        'dim':'pressure', 'quant':'pe', 'units':'Pa'},
-                '1djT':{'str':'time_slice[time].profiles_1d.j_tor',
-                        'dim':'vol. current dens.', 'quant':'jT', 'units':'A/m^2'},
-
-                '2dphi':{'str':'time_slice[time].ggd[0].phi[0].values',
-                         'dim':'B flux', 'quant':'phi', 'units':'Wb'},
-                '2dpsi':{'str':'time_slice[time].ggd[0].psi[0].values',
-                         'dim':'B flux', 'quant':'psi', 'units':'Wb'},
-                '2djT':{'str':'time_slice[time].ggd[0].j_tor[0].values',
-                        'dim':'vol. current dens.', 'quant':'jT', 'units':'A/m^2'},
-                '2dBR':{'str':'time_slice[time].ggd[0].b_field_r[0].values',
-                        'dim':'B', 'quant':'BR', 'units':'T'},
-                '2dBT':{'str':'time_slice[time].ggd[0].b_field_tor[0].values',
-                        'dim':'B', 'quant':'BT', 'units':'T'},
-                '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values',
-                        'dim':'B', 'quant':'BZ', 'units':'T'},
-                '2dmeshNodes': {'str': ('grids_ggd[0].grid[0].space[0]'
-                                        + '.objects_per_dimension[0]'
-                                        + '.object[].geometry')},
-                '2dmeshFaces': {'str': ('grids_ggd[0].grid[0].space[0]'
-                                        + '.objects_per_dimension[2]'
-                                        + '.object[].nodes')},
-                '2dmeshR': {'str': 'time_slice[0].profiles_2d[0].r'},
-                '2dmeshZ': {'str': 'time_slice[0].profiles_2d[0].z'}},
-
-               'core_profiles':
-               {'t':{'str':'time'},
-                'ip':{'str':'global_quantities.ip',
-                      'dim':'current', 'quant':'Ip', 'units':'A'},
-                'vloop':{'str':'global_quantities.v_loop',
-                         'dim':'voltage', 'quant':'Vloop', 'units':'V/m'},
-
-                '1dTe':{'str':'profiles_1d[time].electrons.temperature',
-                        'dim':'temperature',  'quant':'Te', 'units':'eV'},
-                '1dne':{'str':'profiles_1d[time].electrons.density',
-                        'dim':'density', 'quant':'ne', 'units':'/m^3'},
-                '1dzeff':{'str':'profiles_1d[time].zeff',
-                         'dim':'charge', 'quant':'zeff', 'units':'adim.'},
-                '1dphi':{'str':'profiles_1d[time].grid.phi',
-                         'dim':'B flux', 'quant':'phi', 'units':'Wb'},
-                '1dpsi':{'str':'profiles_1d[time].grid.psi',
-                         'dim':'B flux', 'quant':'psi', 'units':'Wb'},
-                '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm',
-                         'dim':'rho', 'quant':'rhotn', 'units':'adim.'},
-                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm',
-                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
-                '1dnW':{'str':'profiles_1d[time].ions[identifier.label=W].density',
-                         'dim':'density', 'quant':'nI', 'units':'/m^3'}},
-
-               'edge_profiles':
-               {'t':{'str':'time'}},
-
-               'core_sources':
-               {'t':{'str':'time'},
-                '1dpsi':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.psi',
-                         'dim':'B flux', 'quant':'psi', 'units':'Wb'},
-                '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm',
-                           'dim':'rho', 'quant':'rhotn', 'units':'Wb'},
-                '1dbrem':{'str':"source[identifier.name=bremsstrahlung].profiles_1d[time].electrons.energy",
-                          'dim':'vol.emis.', 'quant':'brem.', 'units':'W/m^3'},
-                '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy",
-                          'dim':'vol. emis.', 'quant':'lines', 'units':'W/m^3'}},
-
-               'edge_sources':
-               {'t':{'str':'time'},
-                '2dmeshNodes':{'str':'grid_ggd[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshFaces':{'str':'grid_ggd[0].space[0].objects_per_dimension[2].object[].nodes'},
-                '2dradiation':{'str':'source[13].ggd[0].electrons.energy[0].values',
-                               'dim':'vol. emis.', 'quant':'vol.emis.',
-                               'name':'tot. vol. emis.','units':'W/m^3'}},
-
-               'lh_antennas':
-               {'t':{'str':'antenna[chan].power_launched.time'},
-                'power0':{'str':'antenna[0].power_launched.data',
-                          'dim':'power', 'quant':'lh power', 'units':'W',
-                          'pos':True},
-                'power1':{'str':'antenna[1].power_launched.data',
-                          'dim':'power', 'quant':'lh power', 'units':'W',
-                          'pos':True},
-                'power':{'str':'antenna[chan].power_launched.data',
-                         'dim':'power', 'quant':'lh power', 'units':'W',
-                         'pos':True},
-                'R':{'str':'antenna[chan].position.r.data',
-                     'dim':'distance', 'quant':'R', 'units':'m'}},
-
-               'ic_antennas':
-               {'t':{'str':'antenna[chan].module[0].power_forward.time'},
-                'power0mod_fwd':{'str':'antenna[0].module[].power_forward.data',
-                                 'dim':'power', 'quant':'ic power', 'units':'W'},
-                'power0mod_reflect':{'str':'antenna[0].module[].power_reflected.data',
-                                     'dim':'power', 'quant':'ic power', 'units':'W'},
-                'power1mod_fwd':{'str':'antenna[1].module[].power_forward.data',
-                                 'dim':'power', 'quant':'ic power', 'units':'W'},
-                'power1mod_reflect':{'str':'antenna[1].module[].power_reflected.data',
-                                     'dim':'power', 'quant':'ic power', 'units':'W'},
-                'power2mod_fwd':{'str':'antenna[2].module[].power_forward.data',
-                                 'dim':'power', 'quant':'ic power', 'units':'W'},
-                'power2mod_reflect':{'str':'antenna[2].module[].power_reflected.data',
-                                     'dim':'power', 'quant':'ic power', 'units':'W'},
-               },
-
-               'magnetics':
-               {'t':{'str':'time'},
-                'ip':{'str':'method[0].ip.data'},
-                'diamagflux':{'str':'method[0].diamagnetic_flux.data'},
-                'bpol_B':{'str':'bpol_probe[chan].field.data',
-                          'dim':'B', 'quant':'Bpol', 'units':'T'},
-                'bpol_name':{'str':'bpol_probe[chan].name'},
-                'bpol_R':{'str':'bpol_probe[chan].position.r',
-                          'dim':'distance', 'quant':'R', 'units':'m'},
-                'bpol_Z':{'str':'bpol_probe[chan].position.z',
-                          'dim':'distance', 'quant':'Z', 'units':'m'},
-                'bpol_angpol':{'str':'bpol_probe[chan].poloidal_angle',
-                               'dim':'angle', 'quant':'angle_pol', 'units':'rad'},
-                'bpol_angtor':{'str':'bpol_probe[chan].toroidal_angle',
-                               'dim':'angle', 'quant':'angle_tor', 'units':'rad'},
-                'floop_flux':{'str':'flux_loop[chan].flux.data',
-                              'dim':'B flux', 'quant':'B flux', 'units':'Wb'},
-                'floop_name':{'str':'flux_loop[chan].name'},
-                'floop_R': {'str': 'flux_loop[chan].position.r',
-                            'dim': 'distance', 'quant': 'R', 'units': 'm'},
-                'floop_Z': {'str': 'flux_loop[chan].position.z',
-                            'dim': 'distance', 'quant': 'Z', 'units': 'm'}},
-
-               'barometry':
-               {'t': {'str': 'gauge[chan].pressure.time'},
-                'names': {'str': 'gauge[chan].name'},
-                'p': {'str': 'gauge[chan].pressure.data',
-                      'dim': 'pressure', 'quant': 'p', 'units': 'Pa?'}},
-
-               'neutron_diagnostic':
-               {'t':{'str':'time', 'units':'s'},
-                'flux_total':{'str':'synthetic_signals.total_neutron_flux',
-                              'dim':'particle flux', 'quant':'particle flux', 'units':'Hz'}},
-
-               'ece':
-               {'t':{'str':'time',
-                     'quant':'t', 'units':'s'},
-                'freq':{'str':'channel[chan].frequency.data',
-                        'dim':'freq', 'quant':'freq', 'units':'Hz'},
-                'Te': {'str':'channel[chan].t_e.data',
-                       'dim':'temperature', 'quant':'Te', 'units':'eV'},
-                'R': {'str':'channel[chan].position.r.data',
-                      'dim':'distance', 'quant':'R', 'units':'m'},
-                'rhotn':{'str':'channel[chan].position.rho_tor_norm.data',
-                         'dim':'rho', 'quant':'rhotn', 'units':'adim.'},
-                'theta':{'str':'channel[chan].position.theta.data',
-                         'dim':'angle', 'quant':'theta', 'units':'rad.'},
-                'tau1keV':{'str':'channel[chan].optical_depth.data',
-                           'dim':'optical_depth', 'quant':'tau', 'units':'adim.'},
-                'validity_timed': {'str':'channel[chan].t_e.validity_timed'},
-                'names': {'str': 'channel[chan].name'},
-                'Te0': {'str':'t_e_central.data',
-                        'dim':'temperature', 'quant':'Te', 'units':'eV'}},
-
-                'reflectometer_profile':
-                {'t':{'str':'time'},
-                 'ne':{'str':'channel[chan].n_e.data',
-                       'dim':'density', 'quant':'ne', 'units':'/m^3'},
-                 'R':{'str':'channel[chan].position.r.data',
-                      'dim':'distance', 'quant':'R', 'units':'m'},
-                 'Z':{'str':'channel[chan].position.z.data',
-                      'dim':'distance', 'quant':'Z', 'units':'m'},
-                 'phi':{'str':'channel[chan].position.phi.data',
-                        'dim':'angle', 'quant':'phi', 'units':'rad'},
-                 'names': {'str': 'channel[chan].name'},
-                 'mode': {'str': 'mode'},
-                 'sweep': {'str': 'sweep_time'}},
-
-               'interferometer':
-               {'t': {'str': 'time',
-                      'quant': 't', 'units': 's'},
-                'names': {'str': 'channel[chan].name'},
-                'ne_integ': {'str': 'channel[chan].n_e_line.data',
-                             'dim': 'ne_integ', 'quant': 'ne_integ',
-                             'units': '/m2', 'Brightness': True}},
-
-               'polarimeter':
-               {'t': {'str': 'time',
-                      'quant': 't', 'units': 's'},
-                'lamb': {'str': 'channel[chan].wavelength',
-                         'dim': 'distance', 'quant': 'wavelength',
-                         'units': 'm'},
-                'fangle': {'str': 'channel[chan].faraday_angle.data',
-                           'dim': 'angle', 'quant': 'faraday angle',
-                           'units': 'rad', 'Brightness': True},
-                'names': {'str': 'channel[chan].name'}},
-
-               'bolometer':
-               {'t': {'str': 'channel[chan].power.time',
-                      'quant': 't', 'units': 's'},
-                'power': {'str': 'channel[chan].power.data',
-                          'dim': 'power', 'quant': 'power radiative',
-                          'units': 'W', 'Brightness': False},
-                'etendue': {'str': 'channel[chan].etendue',
-                            'dim': 'etendue', 'quant': 'etendue',
-                            'units': 'm2.sr'},
-                'names': {'str': 'channel[chan].name'},
-                'tpower': {'str': 'time', 'quant': 't', 'units': 's'},
-                'prad': {'str': 'power_radiated_total',
-                         'dim': 'power', 'quant': 'power radiative',
-                         'units': 'W'},
-                'pradbulk': {'str': 'power_radiated_inside_lcfs',
-                             'dim': 'power', 'quant': 'power radiative',
-                             'units': 'W'}},
-
-               'soft_x_rays':
-               {'t': {'str': 'time',
-                      'quant': 't', 'units': 's'},
-                'power': {'str': 'channel[chan].power.data',
-                          'dim': 'power', 'quant': 'power radiative',
-                          'units': 'W', 'Brightness': False},
-                'brightness': {'str': 'channel[chan].brightness.data',
-                               'dim': 'brightness', 'quant': 'brightness',
-                               'units': 'W/(m2.sr)', 'Brightness': True},
-                'names': {'str': 'channel[chan].name'},
-                'etendue': {'str': 'channel[chan].etendue',
-                            'dim': 'etendue', 'quant': 'etendue',
-                            'units': 'm2.sr'}},
-
-               'spectrometer_visible':
-               {'t':{'str':'channel[chan].grating_spectrometer.radiance_spectral.time',
-                     'quant':'t', 'units':'s'},
-                'spectra': {'str': ('channel[chan].grating_spectrometer'
-                                    + '.radiance_spectral.data'),
-                            'dim': 'radiance_spectral',
-                            'quant': 'radiance_spectral',
-                            'units': 'ph/s/(m2.sr)/m', 'Brightness': True},
-                'names': {'str': 'channel[chan].name'},
-                'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths',
-                        'dim':'wavelength', 'quant':'wavelength', 'units':'m'}},
-
-               'bremsstrahlung_visible':
-               {'t': {'str': 'time',
-                      'quant': 't', 'units': 's'},
-                'radiance': {'str': 'channel[chan].radiance_spectral.data',
-                             'dim': 'radiance_spectral',
-                             'quant': 'radiance_spectral',
-                             'units': 'ph/s/(m2.sr)/m',
-                             'Brightness': True},
-                'names': {'str': 'channel[chan].name'},
-                'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
-                'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
-              }
-
-    _didsdiag = {'magnetics': {'datacls':'DataCam1D',
-                               'geomcls':False,
-                               'sig':{'t':'t',
-                                      'data':'bpol_B'}},
-                 'barometry':{'datacls':'DataCam1D',
-                              'geomcls':False,
-                              'sig':{'t':'t',
-                                     'data':'p'}},
-                'ece':{'datacls':'DataCam1D',
-                       'geomcls':False,
-                       'sig':{'t':'t',
-                              'X':'rhotn_sign',
-                              'data':'Te'}},
-                'neutron_diagnostic':{'datacls':'DataCam1D',
-                                      'geomcls':False,
-                                      'sig':{'t':'t',
-                                             'data':'flux_total'}},
-                'reflectometer_profile':{'datacls':'DataCam1D',
-                                         'geomcls':False,
-                                         'sig':{'t':'t',
-                                                'X':'R',
-                                                'data':'ne'}},
-                'interferometer':{'datacls':'DataCam1D',
-                                  'geomcls':'CamLOS1D',
-                                  'sig':{'t':'t',
-                                         'data':'ne_integ'},
-                                  'synth':{'dsynth':{'quant':'core_profiles.1dne',
-                                                     'ref1d':'core_profiles.1drhotn',
-                                                     'ref2d':'equilibrium.2drhotn'},
-                                           'dsig':{'core_profiles':['t'],
-                                                   'equilibrium':['t']},
-                                           'Brightness':True}},
-                'polarimeter':{'datacls':'DataCam1D',
-                               'geomcls':'CamLOS1D',
-                               'sig':{'t':'t',
-                                      'data':'fangle'},
-                               'synth':{'dsynth':{'fargs':['core_profiles.1dne',
-                                                           'equilibrium.2dBR',
-                                                           'equilibrium.2dBT',
-                                                           'equilibrium.2dBZ',
-                                                           'core_profiles.1drhotn',
-                                                           'equilibrium.2drhotn']},
-                                        'dsig':{'core_profiles':['t'],
-                                                'equilibrium':['t']},
-                                        'Brightness':True}},
-                'bolometer':{'datacls':'DataCam1D',
-                             'geomcls':'CamLOS1D',
-                             'sig':{'t':'t',
-                                    'data':'power'},
-                             'synth':{'dsynth':{'quant':'core_sources.1dprad',
-                                                'ref1d':'core_sources.1drhotn',
-                                                'ref2d':'equilibrium.2drhotn'},
-                                      'dsig':{'core_sources':['t'],
-                                              'equilibrium':['t']},
-                                      'Brightness':True}},
-                'soft_x_rays':{'datacls':'DataCam1D',
-                               'geomcls':'CamLOS1D',
-                               'sig':{'t':'t',
-                                      'data':'power'}},
-                'spectrometer_visible':{'datacls':'DataCam1DSpectral',
-                                        'geomcls':'CamLOS1D',
-                                        'sig':{'t':'t',
-                                               'lamb':'lamb',
-                                               'data':'spectra'}},
-                'bremsstrahlung_visible':{'datacls':'DataCam1D',
-                                          'geomcls':'CamLOS1D',
-                                          'sig':{'t':'t',
-                                                 'data':'radiance'},
-                                          'synth':{'dsynth':{'quant':['core_profiles.1dTe',
-                                                                      'core_profiles.1dne',
-                                                                      'core_profiles.1dzeff'],
-                                                             'ref1d':'core_profiles.1drhotn',
-                                                             'ref2d':'equilibrium.2drhotn'},
-                                                   'dsig':{'core_profiles':['t'],
-                                                           'equilibrium':['t']},
-                                                   'Brightness':True}}}
-
+    _dshort = _defimas2tofu._dshort
+    _didsdiag = _defimas2tofu._didsdiag
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
 
@@ -495,22 +146,41 @@ class MultiIDSLoader(object):
         dlos['los_pt2Phi'] = {'str':'channel[chan].%s.second_point.phi'%strlos}
         _dshort[ids].update( dlos )
 
-
     # Computing functions
-    _events = lambda names, t: np.array([(nn,tt)
-                                         for nn,tt in zip(*[np.char.strip(names),t])],
-                                        dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
-                                               ('t',np.float)])
-    _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
-    _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
-    _add = lambda a0, a1: np.abs(a0 + a1)
-    _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
-    _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
+
+    def _events(names, t):
+        ustr = 'U{}'.format(np.nanmax(np.char.str_len(np.char.strip(names))))
+        return np.array([(nn, tt)
+                         for nn, tt in zip(*[np.char.strip(names), t])],
+                        dtype=[('name', ustr), ('t', np.float)])
+
+    def _RZ2array(ptsR, ptsZ):
+        return np.array([ptsR, ptsZ]).T
+
+    def _losptsRZP(*pt12RZP):
+        return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
+
+    def _add(a0, a1):
+        return np.abs(a0 + a1)
+
+    def _eqB(BT, BR, BZ):
+        return np.sqrt(BT**2 + BR**2 + BZ**2)
+
+    def _icmod(al, ar, axis=0):
+        return np.sum(al - ar, axis=axis)
+
+    def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
+        return (np.sum(al0 - ar0, axis=axis)
+                + np.sum(al1 - ar1, axis=axis)
+                + np.sum(al2 - ar2, axis=axis))
+
     def _rhopn1d(psi):
         return np.sqrt((psi - psi[:, 0:1]) / (psi[:, -1] - psi[:, 0])[:, None])
+
     def _rhopn2d(psi, psi0, psisep):
         return np.sqrt(
             (psi - psi0[:, None]) / (psisep[:, None] - psi0[:, None]))
+
     def _rhotn2d(phi):
         return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:, None])
 
@@ -536,6 +206,8 @@ class MultiIDSLoader(object):
         rho[ind] = -rho[ind]
         return rho
 
+    def _lamb(lamb_up, lamb_lo):
+        return 0.5*(lamb_up + lamb_lo)
 
     _dcomp = {
               'pulse_schedule':
@@ -577,21 +249,28 @@ class MultiIDSLoader(object):
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
-            'ic_antennas':
-             {'power0': {'lstr':['power0mod_fwd', 'power0mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
-              'power1': {'lstr':['power1mod_fwd', 'power1mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
-              'power2': {'lstr':['power2mod_fwd', 'power2mod_reflect'],
-                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True}},
+             'ic_antennas': {
+                'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
+                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
+                'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
+                                   'power1mod_fwd', 'power1mod_reflect',
+                                   'power2mod_fwd', 'power2mod_reflect'],
+                          'func': _icmodadd, 'kargs': {'axis': 0},
+                          'pos': True}},
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
                             'units':'adim.'}},
 
              'bremsstrahlung_visible':
-             {'lamb':{'lstr':['lamb_up','lamb_lo'], 'func':np.mean,
-                      'dim':'distance', 'quantity':'wavelength', 'units':'m'}}
+             {'lamb': {'lstr': ['lamb_up', 'lamb_lo'], 'func': _lamb,
+                       'dim': 'distance',
+                       'quantity': 'wavelength',
+                       'units': 'm'}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -902,13 +581,25 @@ class MultiIDSLoader(object):
 
     @staticmethod
     def _getcharray(ar, col=None, sep='  ', line='-', just='l', msg=True):
-
+        c0 = ar is None or len(ar) == 0
+        if c0:
+            return ''
         ar = np.array(ar, dtype='U')
+
+        if ar.ndim == 1:
+            ar = ar.reshape((1, ar.size))
 
         # Get just len
         nn = np.char.str_len(ar).max(axis=0)
         if col is not None:
-            assert len(col) == ar.shape[1]
+            if len(col) not in ar.shape:
+                msg = ("len(col) should be in np.array(ar, dtype='U').shape:\n"
+                       + "\t- len(col) = {}\n".format(len(col))
+                       + "\t- ar.shape = {}".format(ar.shape))
+                raise Exception(msg)
+            if len(col) != ar.shape[1]:
+                ar = ar.T
+                nn = np.char.str_len(ar).max(axis=0)
             nn = np.fmax(nn, [len(cc) for cc in col])
 
         # Apply to array
@@ -925,13 +616,14 @@ class MultiIDSLoader(object):
             out = '\n'.join(out)
         return out
 
-    @classmethod
-    def _shortcuts(cls, obj=None, ids=None, return_=False,
+    @staticmethod
+    def _shortcuts(obj, ids=None, return_=False,
                    verb=True, sep='  ', line='-', just='l'):
-        if obj is None:
-            obj = cls
         if ids is None:
-            lids = list(obj._dids.keys())
+            if hasattr(obj, '_dids'):
+                lids = list(obj._dids.keys())
+            else:
+                lids = list(obj._dshort.keys())
         elif ids == 'all':
             lids = list(obj._dshort.keys())
         else:
@@ -942,7 +634,6 @@ class MultiIDSLoader(object):
                 lids = [ids]
             else:
                 lids = ids
-
         lids = sorted(set(lids).intersection(obj._dshort.keys()))
 
         short = []
@@ -967,6 +658,22 @@ class MultiIDSLoader(object):
         if return_:
             return short
 
+    @classmethod
+    def get_shortcutsc(cls, ids=None, return_=False,
+                       verb=True, sep='  ', line='-', just='l'):
+        """ Display and/or return the builtin shortcuts for imas signal names
+
+        By default (ids=None), only display shortcuts for stored ids
+        To display all possible shortcuts, use ids='all'
+        To display shortcuts for a specific ids, use ids=<idsname>
+
+        These shortcuts can be customized (with self.set_shortcuts())
+        They are useful for use with self.get_data()
+
+        """
+        return cls._shortcuts(cls, ids=ids, return_=return_, verb=verb,
+                              sep=sep, line=line, just=just)
+
     def get_shortcuts(self, ids=None, return_=False,
                       verb=True, sep='  ', line='-', just='l'):
         """ Display and/or return the builtin shortcuts for imas signal names
@@ -979,7 +686,7 @@ class MultiIDSLoader(object):
         They are useful for use with self.get_data()
 
         """
-        return self._shortcuts(obj=self, ids=ids, return_=return_, verb=verb,
+        return self._shortcuts(self, ids=ids, return_=return_, verb=verb,
                                sep=sep, line=line, just=just)
 
     def set_shortcuts(self, dshort=None):
@@ -2485,21 +2192,22 @@ class MultiIDSLoader(object):
                 mobile = True
             elif nmob == 0 and nlim > 0:
                 mobile = False
-            elif nmob == nlim:
+            elif nmob > nlim:
                 msgw = 'wall.description_2[{}]'.format(description_2d)
-                msg = ("\nids wall has same number of limiter / mobile units\n"
+                msg = ("\nids wall has less limiter than mobile units\n"
+                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
+                       + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
+                       + "  => Choosing mobile by default")
+                warnings.warn(msg)
+                mobile = True
+            elif nmob <= nlim:
+                msgw = 'wall.description_2[{}]'.format(description_2d)
+                msg = ("\nids wall has more limiter than mobile units\n"
                        + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
                        + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
                        + "  => Choosing limiter by default")
                 warnings.warn(msg)
                 mobile = False
-            else:
-                msgw = 'wall.description_2[{}]'.format(description_2d)
-                msg = ("Can't decide automatically whether to choose"
-                       + " limiter or mobile!\n"
-                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
-                       + "\t- len({}.mobile.unit) = {}".format(msgw, nmob))
-                raise Exception(msg)
         assert isinstance(mobile, bool)
 
         # Get PFC
@@ -3309,8 +3017,14 @@ class MultiIDSLoader(object):
     def _checkformat_Cam_geom(self, ids=None, geomcls=None, indch=None):
 
         # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         if ids not in self._dids.keys():
-            msg = "Provided ids should be available as a self.dids.keys() !"
+            msg = ("Provided ids should be available as a self.dids.keys()!\n"
+                   + "\t- provided: {}\n".format(str(ids))
+                   + "\t- available: {}".format(sorted(self._dids.keys())))
             raise Exception(msg)
 
         if ids not in self._lidsdiag:
@@ -3329,123 +3043,175 @@ class MultiIDSLoader(object):
             msg = "Arg geomcls must be in {}".format([False]+lgeom)
             raise Exception(msg)
 
+        if geomcls is False:
+            msg = "ids {} does not seem to be a ids with a camera".format(ids)
+            raise Exception(msg)
+
         return geomcls
 
-    def _get_indch_geomtdata(self, indch=None, indch_auto=None,
-                             dgeom=None, t=None,
-                             ids=None, out=None, dsig=None, kk=None):
-        nch = 0 if indch is None else len(indch)
-        # Get from geometry of LOS consistency
-        if dgeom is not None:
-            indnan = np.logical_or(np.any(np.isnan(dgeom[0]), axis=0),
-                                   np.any(np.isnan(dgeom[1]), axis=0))
-            if np.any(indnan) and not np.all(indnan):
-                if indch_auto is not True:
-                    dmsg = {True: 'not available', False: 'ok'}
-                    ls = ['index {} los {}'.format(ii, dmsg[indnan[ii]])
-                          for ii in range(0, dgeom[0].shape[1])]
-                    msg = ("The geometry of all channels is not available !\n"
-                           + "Please choose indch to get all LOS!\n"
-                           + "Currently:\n"
-                           + "\n    ".join(ls)
-                           + "\n\n  => Solution: choose indch accordingly !")
-                    raise Exception(msg)
-                else:
-                    msg = ("Geometry missing for some los !\n"
-                           + "  => indch automatically set to:\n"
-                           + "  {}".format(indch))
-                    warnings.warn(msg)
-                if indch is None:
-                    indch = (~indnan).nonzero()[0]
-                else:
-                    indch = set(indch).intersection((~indnan).nonzero()[0])
-                    indch = np.array(indch, dtype=int)
+    def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
+                         dsig=None, data=None, X=None, datacls=None,
+                         geomcls=None, return_dict=None, return_ind=None,
+                         return_msg=None, verb=None):
+        # ------------------
+        # Preliminary checks
+        if return_dict is None:
+            return_dict = False
+        if return_ind is None:
+            return_ind = False
+        if return_msg is None:
+            return_msg = False
+        if verb is None:
+            verb = True
+        if occ is None:
+            occ = 0
+        if geom is None:
+            geom = True
+        compute_ind = return_ind or return_msg or verb
 
-        # Get from time vectors consistency
-        if t is not None:
-            if indch_auto is not True:
-                if indch is None:
-                    ls = [
-                        'index {}  {}.shape {}'.format(ii, kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                else:
-                    ls = [
-                        'index {}  {}.shape {}'.format(indch[ii], kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                msg = ("The following is supposed to be a np.ndarray:\n"
-                       + "    - diag:     {}\n".format(ids)
-                       + "    - shortcut: {}\n".format(dsig[kk])
-                       + "    - used as:  {} input\n".format(kk)
-                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
-                       + "  Probable cause: non-uniform shape (vs channels)\n"
-                       + "  => shapes :\n    "
-                       + "\n    ".join(ls)
-                       + "\n  => Solution: choose indch accordingly !")
-                raise Exception(msg)
-            ls = [t[ii].shape for ii in range(0, len(t))]
-            lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-            su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-            msg = ("indch set automatically for {}\n".format(ids)
-                   + "  (due to inhomogenous time shapes)\n"
-                   + "    - main shape: {}\n".format(su)
-                   + "    - nb. chan. selected: {}\n".format(len(indch))
-                   + "    - indch: {}".format(indch))
-            warnings.warn(msg)
+        # Check ids is relevant
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
 
-            if indch is None:
-                indch = [ii for ii in range(0, len(t)) if ls[ii] == su]
+        # Check ids has channels (channel, gauge, ...)
+        lch = ['channel', 'gauge', 'group', 'antenna',
+               'pipe', 'reciprocating', 'bpol_probe']
+        ind = [ii for ii in range(len(lch))
+               if hasattr(self._dids[ids]['ids'][occ], lch[ii])]
+        if len(ind) == 0:
+            msg = "ids {} has no attribute with '[chan]' index!".format(ids)
+            raise Exception(msg)
+        nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
+
+        datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
+                                                             data=data, X=X,
+                                                             datacls=datacls,
+                                                             geomcls=geomcls)
+        if geomcls is False:
+            geom = False
+
+        # ------------------
+        # Extract sig and shapes / values
+        if geom == 'only':
+            lsig = []
+        else:
+            lsig = sorted(dsig.values())
+        lsigshape = list(lsig)
+        if geom in ['only', True] and 'LOS' in geomcls:
+            lkok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
+            lsig += [ss for ss in ['los_ptsRZPhi', 'etendue',
+                                   'surface', 'names']
+                     if ss in lkok]
+
+        out = self.get_data(ids, sig=lsig,
+                            isclose=False, stack=False, nan=True,
+                            pos=False)
+        dout = {}
+        for k0, v0 in out.items():
+            if len(v0) != nch:
+                if len(v0) != 1:
+                    import pdb          # DB
+                    pdb.set_trace()     # DB
+                continue
+            if isinstance(v0[0], np.ndarray):
+                dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
+                            'isnan': np.array([np.any(np.isnan(vv))
+                                               for vv in v0])}
+                if k0 == 'los_ptsRZPhi':
+                    dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
+                                                              vv[1, ...])
+                                                 for vv in v0])
+            elif type(v0[0]) in [int, float, np.int, np.float, str]:
+                dout[k0] = {'value': np.asarray(v0).ravel()}
             else:
-                indch = [indch[ii] for ii in range(0, len(indch))
-                         if ls[indch[ii]] == su]
+                typv = type(v0[0])
+                k0str = (self._dshort[ids][k0]['str']
+                         if k0 in self._dshort[ids].keys() else k0)
+                msg = ("\nUnknown data type:\n"
+                       + "\ttype({}) = {}".format(k0str, typv))
+                raise Exception(msg)
 
-        # Get from data consistency
-        if all([ss is not None for ss in [out, kk, dsig]]):
-            if indch_auto:
-                ls = [out[dsig[kk]][ii].shape
-                      for ii in range(0, len(out[dsig[kk]]))]
-                lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
-                su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-                if indch is None:
-                    indch = [ii for ii in range(0, len(out[dsig[kk]]))
-                             if ls[ii] == su]
-                else:
-                    indch = [indch[ii] for ii in range(0, len(out[dsig[kk]]))
-                             if ls[ii] == su]
-                msg = ("indch set automatically for {}\n".format(ids)
-                       + "  (due to inhomogeneous data shapes)\n"
-                       + "    - main shape: {}\n".format(su)
-                       + "    - nb. chan. selected: {}\n".format(len(indch))
-                       + "    - indch: {}".format(indch))
+        lsig = sorted(set(lsig).intersection(dout.keys()))
+        lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
+
+        # --------------
+        # Get ind, msg
+        ind, msg = None, None
+        if compute_ind:
+            if geom in ['only', True] and 'los_ptsRZPhi' in out.keys():
+                indg = ((np.prod(dout['los_ptsRZPhi']['shapes'], axis=1) == 0)
+                        | dout['los_ptsRZPhi']['isnan']
+                        | dout['los_ptsRZPhi']['equal'])
+                if geom == 'only':
+                    indok = ~indg
+                    indchout = indok.nonzero()[0]
+            if geom != 'only':
+                shapes0 = np.concatenate([np.prod(dout[k0]['shapes'],
+                                                  axis=1, keepdims=True)
+                                          for k0 in lsigshape], axis=1)
+                indok = np.all(shapes0 != 0, axis=1)
+                if geom is True and 'los_ptsRZPhi' in out.keys():
+                    indok[indg] = False
+            if not np.any(indok):
+                indchout = np.array([], dtype=int)
+            elif geom != 'only':
+                indchout = (np.arange(0, nch)[indok]
+                            if indch is None else np.r_[indch][indok])
+                lshapes = [dout[k0]['shapes'][indchout, :] for k0 in lsigshape]
+                lshapesu = [np.unique(ss, axis=0) for ss in lshapes]
+                if any([ss.shape[0] > 1 for ss in lshapesu]):
+                    for ii in range(len(lshapesu)):
+                        if lshapesu[ii].shape[0] > 1:
+                            _, inv, counts = np.unique(lshapes[ii], axis=0,
+                                                       return_counts=True,
+                                                       return_inverse=True)
+                            indchout = indchout[inv == np.argmax(counts)]
+                            lshapes = [dout[k0]['shapes'][indchout, :]
+                                       for k0 in lsigshape]
+                            lshapesu = [np.unique(ss, axis=0)
+                                        for ss in lshapes]
+
+        if return_msg is True or verb is True:
+            col = ['index'] + [k0 for k0 in dout.keys()]
+            ar = ([np.arange(nch)]
+                  + [['{} {}'.format(tuple(v0['shapes'][ii]), 'nan')
+                      if v0['isnan'][ii] else str(tuple(v0['shapes'][ii]))
+                      for ii in range(nch)]
+                     if 'shapes' in v0.keys()
+                     else v0['value'].astype(str) for v0 in dout.values()])
+            msg = self._getcharray(ar, col, msg=True)
+            if verb is True:
+                indstr = ', '.join(map(str, indchout))
+                msg += "\n\n => recommended indch = [{}]".format(indstr)
+                print(msg)
+
+        # ------------------
+        # Return
+        lv = [(dout, return_dict), (indchout, return_ind), (msg, return_msg)]
+        lout = [vv[0] for vv in lv if vv[1] is True]
+        if len(lout) == 1:
+            return lout[0]
+        elif len(lout) > 1:
+            return lout
+
+    @staticmethod
+    def _compare_indch_indchr(indch, indchr, nch, indch_auto=None):
+        if indch_auto is None:
+            indch_auto = True
+        if indch is None:
+            indch = np.arange(0, nch)
+        if not np.all(np.in1d(indch, indchr)):
+            msg = ("indch has to be changed, some data may be missing\n"
+                   + "\t- indch: {}\n".format(indch)
+                   + "\t- indch recommended: {}".format(indchr)
+                   + "\n\n  => check self.inspect_channels() for details")
+            if indch_auto is True:
+                indch = indchr
                 warnings.warn(msg)
             else:
-                if indch is None:
-                    ls = [
-                        'index {}  {}.shape {}'.format(ii, kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                else:
-                    ls = [
-                        'index {}  {}.shape {}'.format(indch[ii], kk,
-                                                       out[dsig[kk]][ii].shape)
-                        for ii in range(0, len(out[dsig[kk]]))
-                    ]
-                msg = ("The following is supposed to be a np.ndarray:\n"
-                       + "    - diag:     {}\n".format(ids)
-                       + "    - shortcut: {}\n".format(dsig[kk])
-                       + "    - used as:  {} input\n".format(kk)
-                       + "  Observed type: {}\n".format(type(out[dsig[kk]]))
-                       + "  Probable cause: non-uniform shape (vs channels)\n"
-                       + "  => shapes :\n    "
-                       + "\n    ".join(ls)
-                       + "\n  => Solution: choose indch accordingly !")
                 raise Exception(msg)
-        nchout = 0 if indch is None else len(indch)
-        return indch, nchout != nch
+        return indch
 
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces, names = None, None, None
@@ -3538,6 +3304,11 @@ class MultiIDSLoader(object):
 
         """
 
+        # Check ids
+        idsok = set(self._lidslos).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         # dsig
         geom = self._checkformat_Cam_geom(ids)
         if Name is None:
@@ -3569,6 +3340,14 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
         if 'LOS' in geom:
+            # Check channel indices
+            indchr = self.inspect_channels(ids, indch=indch,
+                                           geom='only', return_ind=True,
+                                           verb=False)
+            indch = self._compare_indch_indchr(indch, indchr, nchMax,
+                                               indch_auto=indch_auto)
+
+            # Load geometrical data
             lk = ['los_ptsRZPhi', 'etendue', 'surface', 'names']
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
@@ -3576,16 +3355,6 @@ class MultiIDSLoader(object):
             dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
                                                                nan=nan,
                                                                pos=pos)
-
-            # Check all channels can be used, reset indch if necessary
-            indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     indch_auto=indch_auto,
-                                                     dgeom=dgeom)
-            if modif is True:
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk,
-                                                                   indch,
-                                                                   nan=nan,
-                                                                   pos=pos)
 
             if names is not None:
                 dchans['names'] = names
@@ -3606,6 +3375,10 @@ class MultiIDSLoader(object):
                                datacls=None, geomcls=None):
 
         # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         if ids not in self._dids.keys():
             msg = "Provided ids should be available as a self.dids.keys() !"
             raise Exception(msg)
@@ -3775,6 +3548,11 @@ class MultiIDSLoader(object):
             return_indch = True
         """
 
+        # Check ids
+        idsok = set(self._lidsdiag).intersection(self._dids.keys())
+        if ids is None and len(idsok) == 1:
+            ids = next(iter(idsok))
+
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
                                                              data=data, X=X,
@@ -3807,8 +3585,17 @@ class MultiIDSLoader(object):
         indchanstr = self._dshort[ids][dsig['data']]['str'].index('[chan]')
         chanstr = self._dshort[ids][dsig['data']]['str'][:indchanstr]
         nchMax = len(getattr(self._dids[ids]['ids'][0], chanstr))
-        dgeom = None
-        if geomcls != False:
+
+        # Check channel indices
+        indchr = self.inspect_channels(ids, indch=indch,
+                                       geom=(geomcls is not False),
+                                       return_ind=True,
+                                       verb=False)
+        indch = self._compare_indch_indchr(indch, indchr, nchMax,
+                                           indch_auto=indch_auto)
+
+        dgeom, names = None, None
+        if geomcls is not False:
             Etendues, Surfaces = None, None
             if config is None:
                 msg = "A config must be provided to compute the geometry !"
@@ -3833,23 +3620,16 @@ class MultiIDSLoader(object):
             msg += "    - 't' = %s"%str(t)
             raise Exception(msg)
 
-        # -----------
-        # Check indch
-        if type(t) is list:
-            indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     indch_auto=indch_auto,
-                                                     dgeom=dgeom, t=t)
-            assert modif is True
-        else:
-            indch, modif = self._get_indch_geomtdata(indch=indch,
-                                                     indch_auto=indch_auto,
-                                                     dgeom=dgeom)
-        if modif is True:
-            if geomcls is not False:
-                dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                    ids, lk_geom, indch, nan=nan, pos=pos)
-            t = self.get_data(ids, sig='t', indch=indch)['t']
-            modif = False
+        # ----------
+        # Get data
+        out = self.get_data(ids, sig=dsig['data'],
+                            indch=indch, nan=nan, pos=pos)
+        if len(out[dsig['data']]) == 0:
+            msgstr = self._dshort[ids]['data']['str']
+            msg = ("The data array is not available for {}:\n".format(ids)
+                   + "    - 'data' <=> {}.{}\n".format(ids, msgstr)
+                   + "    - 'data' = {}".format(out[dsig['data']]))
+            raise Exception(msg)
 
         if names is not None:
             dchans['names'] = names
@@ -3865,21 +3645,9 @@ class MultiIDSLoader(object):
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
-            if not isinstance(out[dsig[kk]], np.ndarray):
-                indch, modifk = self._get_indch_geomtdata(
-                    indch=indch, indch_auto=indch_auto,
-                    out=out, dsig=dsig, kk=kk)
-                if modifk is True:
-                    out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        indt=indt, indch=indch,
-                                        nan=nan, pos=pos)
-                    modif = True
-
             # Arrange depending on shape and field
             if type(out[dsig[kk]]) is not np.ndarray:
                 msg = "BEWARE : non-conform data !"
-                import ipdb
-                ipdb.set_trace()
                 raise Exception(msg)
 
             if out[dsig[kk]].size == 0 or out[dsig[kk]].ndim not in [1, 2, 3]:
@@ -3894,7 +3662,6 @@ class MultiIDSLoader(object):
             if out[dsig[kk]].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
                     if np.allclose(out[dsig[kk]], out[dsig[kk]][:,0:1]):
-                        import pdb; pdb.set_trace() # DB
                         dins[kk] = out[dsig[kk]][:,0]
                     else:
                         dins[kk] = out[dsig[kk]]
@@ -3904,13 +3671,6 @@ class MultiIDSLoader(object):
             elif out[dsig[kk]].ndim == 3:
                 assert kk == 'data'
                 dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
-
-        # Update dgeom if necessary
-        if modif is True and geomcls is not False:
-            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                ids, lk_geom, indch,
-                nan=nan, pos=pos)
-            modif = False
 
         # --------------------------
         # Format special ids cases
@@ -4152,7 +3912,7 @@ class MultiIDSLoader(object):
                                        return_indch=True, plot=False)
 
         # Get camera
-        cam = self.to_Cam(ids=ids, indch=indch,
+        cam = self.to_Cam(ids=ids, indch=indch, indch_auto=indch_auto,
                           Name=None, occ=occ_cam,
                           config=config, description_2d=description_2d,
                           plot=False, nan=True, pos=None)

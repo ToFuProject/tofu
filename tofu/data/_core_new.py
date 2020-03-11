@@ -24,12 +24,12 @@ try:
     import tofu.data._comp as _comp
     import tofu.data._plot as _plot
     import tofu.data._def as _def
-    import tofu.data._physics as _physics
+    import tofu._physics as _physics
 except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
     from . import _def as _def
-    from . import _physics as _physics
+    from .. import _physics as _physics
 
 __all__ = ['DataHolder']  # , 'Plasma0D']
 
