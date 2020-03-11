@@ -704,6 +704,7 @@ def multigausfit1d_from_dlines_x0(dind=None,
         x0_scale[:, dind['amp']['x']] *= dx0['amp']
     return x0_scale
 
+
 def multigausfit1d_from_dlines_bounds(sizex=None, dind=None, double=None):
     # Each x0 should be understood as x0*scale
     xup = np.full((sizex,), np.nan)
@@ -723,6 +724,7 @@ def multigausfit1d_from_dlines_bounds(sizex=None, dind=None, double=None):
         xlo[dind['dshift']] = -10.
     bounds_scale = (xlo, xup)
     return bounds_scale
+
 
 def multigausfit1d_from_dlines_funccostjac(lamb,
                                            dinput=None,
@@ -1199,7 +1201,9 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
                                                        nbsplines=nbsplines,
                                                        phimin=phimin,
                                                        phimax=phimax))
-    import pdb; pdb.set_trace()     # DB
+    # Add boundaries
+    dinput['phiminmax'] = (phimin, phimax)
+    dinput['lambminmax'] = (lambmin, lambmax)
     return dinput
 
 
@@ -1210,19 +1214,26 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     # General shape: [bck, amp, widths, shifts]
     # If double [..., double_shift, double_ratio]
     # Excpet for bck, all indices should render nlines (2*nlines if double)
-    dind = {'bck': np.r_[0], 'dshift': None, 'dratio': None}
-    nn = dind['bck'].size
+    nbs = dinput['nbs']
+    dind = {'bck': {'x': np.arange(0, nbs),
+                    'y': np.arange(0, nbs)},
+            'dshift': None, 'dratio': None}
+    nn = dind['bck']['x'].size
     inddratio, inddshift = None, None
     for k0 in ['amp', 'width', 'shift']:
+        # l0bs0, l0bs1, ..., l0bsN, l1bs0, ...., lnbsN
         lnl = np.sum(dinput[k0]['ind'], axis=1).astype(int)
-        dind[k0] = {'x': nn + np.arange(0, dinput[k0]['ind'].shape[0]),
-                    'lines': nn + np.argmax(dinput[k0]['ind'], axis=0),
+        dind[k0] = {'x': nn + np.arange(0, dinput[k0]['ind'].shape[0]*nbs),
+                    'y': nn + np.arange(0, dinput[k0]['ind'].shape[0]*nbs),
+                    'lines': nn + np.repeat(
+                        np.argmax(dinput[k0]['ind'], axis=0), nbs),
+                    # TBF
                     'jac': [tuple(dinput[k0]['ind'][ii, :].nonzero()[0])
                             for ii in range(dinput[k0]['ind'].shape[0])]}
         nn += dind[k0]['x'].size
 
     sizex = dind['shift']['x'][-1] + 1
-    indx = np.r_[dind['bck'], dind['amp']['x'],
+    indx = np.r_[dind['bck']['x'], dind['amp']['x'],
                  dind['width']['x'], dind['shift']['x']]
     assert np.all(np.arange(0, sizex) == indx)
 
@@ -1233,9 +1244,10 @@ def multigausfit2d_from_dlines_ind(dinput=None):
         sizex += 2
 
     dind['sizex'] = sizex
-    dind['shapey1'] = dind['bck'].size + dinput['nlines']
+    dind['shapey1'] = int((dind['bck']['x'].size/nbs + dinput['nlines'])*nbs)
 
     # Ref line for amp (for x0)
+    # TBC !!!
     amp_x0 = np.zeros((dinput['amp']['ind'].shape[0],), dtype=int)
     for ii in range(dinput['amp']['ind'].shape[0]):
         indi = dinput['amp']['ind'][ii, :].nonzero()[0]
@@ -1245,76 +1257,195 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     return dind
 
 
-def multigausfit2d_from_dlines_funccostjac(lamb,
+def multigausfit2d_from_dlines_scale(data, lamb, phi,
+                                     scales=None,
+                                     dinput=None,
+                                     dind=None, nspect=None):
+    if scales is None:
+        scales = np.full((nspect, dind['sizex']), np.nan)
+        Dphi = dinput['phiminmax'][1] - dinput['phiminmax'][0]
+        Dlamb = dinput['lambminmax'][1] - dinput['lambminmax'][0]
+        lambm = dinput['lambminmax'][0]
+        ibckx, iax = dind['bck']['x'], dind['amp']['x']
+        iwx, isx = dind['width']['x'], dind['shift']['x']
+        # Perform by sector
+        nbs, nlines = dinput['nbs'], dinput['nlines']
+        na = dinput['amp']['ind'].shape[0]
+        for ii in range(nbs):
+            ind = np.abs(phi-dinput['ptsx0'][ii]) < Dphi/20.
+            for jj in range(nspect):
+                indbck = data[jj, ind] < np.nanmean(data[jj, ind])
+                scales[jj, ibckx[ii]] = np.nanmean(data[jj, ind][indbck])
+            for jj in range(na):
+                indl = dind['amp_x0'][jj]
+                indj = ind & (np.abs(lamb-dinput['lines'][indl])<Dlamb/20.)
+                scales[:, iax[ii+jj*nbs]] = np.nanmax(data[:, indj], axis=1)
+        scales[:, iwx] = (Dlamb/(20*lambm))**2
+        scales[:, isx] = Dlamb/(50*lambm)
+        scales[:, dind['dratio']] = 1.
+        scales[:, dind['dshift']] = Dlamb/(50*lambm)
+    assert scales.ndim in [1, 2]
+    if scales.ndim == 1:
+        scales = np.tile(scales, (nspect, scales.size))
+    assert scales.shape == (nspect, dind['sizex'])
+    return scales
+
+
+def multigausfit2d_from_dlines_x0(dind=None, nbs=None,
+                                  double=None, dx0=None,
+                                  nspect=None, keys=None):
+    # user-defined coefs on amplitude
+    dx0 = _checkformat_dx0(amp_x0=dind['amp_x0'], keys=keys, dx0=dx0)
+    dx0['amp'] = np.repeat(dx0['amp'], nbs)
+
+    # Each x0 should be understood as x0*scale
+    x0_scale = np.full((nspect, dind['sizex']), np.nan)
+    x0_scale[:, dind['amp']['x']] = dx0['amp']
+    x0_scale[:, dind['bck']['x']] = 1.
+    x0_scale[:, dind['width']['x']] = 0.4
+    x0_scale[:, dind['shift']['x']] = 0.
+    if double is True:
+        x0_scale[:, dind['dratio']] = 0.7
+        x0_scale[:, dind['dshift']] = 0.7
+    return x0_scale
+
+
+def multigausfit2d_from_dlines_bounds(sizex=None, dind=None, double=None):
+    # Each x0 should be understood as x0*scale
+    xup = np.full((sizex,), np.nan)
+    xlo = np.full((sizex,), np.nan)
+    xup[dind['bck']['x']] = 10.
+    xlo[dind['bck']['x']] = 0.
+    xup[dind['amp']['x']] = 2.
+    xlo[dind['amp']['x']] = 0.
+    xup[dind['width']['x']] = 2.
+    xlo[dind['width']['x']] = 0.01
+    xup[dind['shift']['x']] = 1.
+    xlo[dind['shift']['x']] = -1.
+    if double is True:
+        xup[dind['dratio']] = 1.6
+        xlo[dind['dratio']] = 0.4
+        xup[dind['dshift']] = 10.
+        xlo[dind['dshift']] = -10.
+    bounds_scale = (xlo, xup)
+    return bounds_scale
+
+
+def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                                            dinput=None,
                                            dind=None,
                                            scales=None,
                                            jac=None):
-    ibck = dind['bck']['x']
-    ia = dind['amp']['x']
-    iw = dind['width']['x']
-    ish = dind['shift']['x']
-    idratio = dind['dratio']
-    idshift = dind['dshift']
+    ibckx = dind['bck']['x']
+    iax = dind['amp']['x']
+    iwx = dind['width']['x']
+    ishx = dind['shift']['x']
+    idratiox = dind['dratio']
+    idshiftx = dind['dshift']
 
     ibcky = dind['bck']['y']
+    iay = dind['amp']['y']
+    iwy = dind['width']['y']
+    ishy = dind['shift']['y']
+    idratioy = dind['dratio']
+    idshifty = dind['dshift']
 
+    ial = dind['amp']['lines']
+    iwl = dind['width']['lines']
+    ishl = dind['shift']['lines']
 
-    indal = dind['amp']['lines']
-    indwl = dind['width']['lines']
-    indsl = dind['shift']['lines']
-
-    indaj = dind['amp']['jac']
-    indwj = dind['width']['jac']
-    indsj = dind['shift']['jac']
+    iaj = dind['amp']['jac']
+    iwj = dind['width']['jac']
+    ishj = dind['shift']['jac']
 
     coefsal = dinput['amp']['coefs']
     coefswl = dinput['width']['coefs']
     coefssl = dinput['shift']['coefs']
 
-    shape = (lamb.size, dind['shapey1'])
+    def func_detail(x, phi=phi, lamb=lamb,
+                    ibckx=ibckx, ibcky=ibcky,
+                    iax=iax, iay=iay, ial=ial,
+                    iwx=iwx, iwy=iwy, iwl=iwl,
+                    ishx=ishx, ishy=ishy, ishl=ishl,
+                    nbs=dinput['nbs'],
+                    nlines=dinput['nlines'],
+                    shapey1=dind['shapey1'],
+                    km=dinput['knots_mult'],
+                    kpb=dinput['nknotsperbs'],
+                    scales=scales,
+                    coefsal=coefsal,
+                    coefswl=coefswl,
+                    coefssl=coefssl):
+        y = np.full((lamb.size, shapey1), np.nan)
 
-    def func_detail(x, lamb=lamb[:, None],
-                    lines=dinput['lines'][None, :],
-                    double=dinput['double'],
-                    shape=shape,
-                    indbck=indbck, indal=indal, indwl=indwl, indsl=indsl,
-                    inddratio=inddratio, inddshift=inddshift,
-                    coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
-                    scales=scales):
-        y = np.full(shape, np.nan)
+        xscale = x*scales
+        y[:, ibcky] = xscale[ibckx]
 
-        # bck
-        cbck = x[ibck] * scales[ibck]
-        bsbck = BSpline(knots_mult, camp, deg,
-                        extrapolate=False, axis=0)
-        y[:, 0] = bsbck(phi)
+        import pdb; pdb.set_trace()     # DB
+        # make sure iwl is 2D to get all lines at once
+        cwi2 = xscale[iwl] * coefswl[None, :]
+        csh = xscale[ishl] * np.repeat(coefssl, nbs)
 
-        # lines
-        camp = (scales[ia]*x[ia]*coefsal)[None, :]
-        bsamp = BSpline(knots_mult, camp, deg,
-                        extrapolate=False, axis=0)
-        amp = None
+        exp = np.exp(-(lamb/lines
+                       - (1 + BSpline(knots_mult, csh, deg,
+                                      extrapolate=False, axis=0)(phi)))**2
+                     / (2*BSpline(knots_mult, cwi2, deg,
+                                  extrapolate=False, axis=0)(phi)))
 
-        cwi2 = (scales[iw]*x[iwl]*coefswl)[None, :]
-        bswi2 =  BSpline(knots_mult, cwi2, deg,
-                         extrapolate=False, axis=0)
+        # Loop on individual bsplines for amp
+        for ii in range(nbs):
+            bs = BSpline.basis_element(km[ii:ii+kpb],
+                                       extrapolate=False)(phi)
+            indok = ~np.isnan(bs)
+            bs = bs[indok]
 
-        y[:, i]
-
-
-        wi2 = (scales[2]*x[indwl]*coefswl)[None, :]
-        shifti = (scales[3]*x[indsl]*coefssl)[None, :]
-
-
-        y[:, 1:] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2))
-
-        if double is True:
-            ampd = amp*x[inddratio]  # (scales[1]*x[indal]*x[inddratio]*coefsal)[None, :]
-            shiftid = (scales[3]*(x[indsl]+x[inddshift])*coefssl)[None, :]
-            y[:, 1:] += (ampd
-                         * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2)))
+            import pdb; pdb.set_trace()     # DB
+            for jj in range(nlines):
+                amp = bs * xscale[iax[ii:]] * coefsal
+                y[indok, ilinesbs[ii]] = amp * exp[:, jj]
         return y
+
+
+    # def func_tot(x, lamb=lamb[:, None],
+                 # lines=dinput['lines'][None, :],
+                 # double=dinput['double'],
+                 # shape=shape,
+                 # indbck=indbck, indal=indal, indwl=indwl, indsl=indsl,
+                 # inddratio=inddratio, inddshift=inddshift,
+                 # coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
+                 # scales=scales):
+
+        # # bck
+        # cbck = x[ibck] * scales[ibck]
+        # bck = BSpline(knots_mult, cbck, deg,
+                      # extrapolate=False, axis=0)(phi)
+
+        # # lines
+        # camp = (scales[ia]*x[ia]*coefsal)   # [None, :]
+        # import pdb; pdb.set_trace()     # DB
+        # amp = BSpline(knots_mult, camp, deg,
+                      # extrapolate=False, axis=0)(phi)
+
+        # cwi2 = (scales[iw]*x[iwl]*coefswl)[None, :]
+        # bswi2 =  BSpline(knots_mult, cwi2, deg,
+                         # extrapolate=False, axis=0)
+
+        # y[:, i]
+
+
+        # wi2 = (scales[2]*x[indwl]*coefswl)[None, :]
+        # shifti = (scales[3]*x[indsl]*coefssl)[None, :]
+
+
+        # y[:, 1:] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2))
+        # y = bck + np.sum(None, axis=1)
+
+
+        # if double is True:
+            # ampd = amp*x[inddratio]  # (scales[1]*x[indal]*x[inddratio]*coefsal)[None, :]
+            # shiftid = (scales[3]*(x[indsl]+x[inddshift])*coefssl)[None, :]
+            # y += ampd * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2))
+        # return y
 
 
 
@@ -1322,7 +1453,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb,
 
 
     def cost(x, data=None, scales=None):
-        return (np.sum(func_detail(x, scales=scales), axis=1) - data)
+        return np.sum(func_detail(x, scales=scales), axis=1) - data
 
     if jac == 'call':
         # Define a callable jac returning (nlamb, sizex) matrix of partial
@@ -1452,55 +1583,53 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     dind = multigausfit2d_from_dlines_ind(dinput)
 
     # Get scaling
-    scales = multigausfit1d_from_dlines_scale(data, lamb,
-                                              scales=scales, nspect=nspect,
-                                              chain=chain)
+    scales = multigausfit2d_from_dlines_scale(data, lamb, phi,
+                                              dinput=dinput,
+                                              dind=dind,
+                                              scales=scales, nspect=nspect)
 
     # Get initial guess
-    x0_scale = multigausfit1d_from_dlines_x0(dind=dind,
-                                             lines=dinput['lines'],
-                                             data=data,
-                                             lamb=lamb,
-                                             scales=scales,
+    x0_scale = multigausfit2d_from_dlines_x0(dind=dind,
                                              double=dinput['double'],
-                                             nspect=nspect,
-                                             chain=chain,
+                                             nspect=nspect, nbs=dinput['nbs'],
                                              dx0=dx0, keys=dinput['keys'])
 
     # get bounds
-    bounds_scale = multigausfit1d_from_dlines_bounds(dind['sizex'],
+    bounds_scale = multigausfit2d_from_dlines_bounds(dind['sizex'],
                                                      dind,
                                                      dinput['double'])
 
     # Get function, cost function and jacobian
     (func_detail,
-     cost, jacob) = multigausfit1d_from_dlines_funccostjac(lamb,
+     cost, jacob) = multigausfit2d_from_dlines_funccostjac(lamb, phi,
                                                            dinput=dinput,
                                                            dind=dind,
                                                            jac=jac)
+
 
     # ---------------------------
     # Optimize
 
     # Initialize
     nlines = dinput['nlines']
-    sol_detail = np.full((nspect, dind['shapey1'], lamb.size), np.nan)
-    amp = np.full((nspect, nlines), np.nan)
-    width2 = np.full((nspect, nlines), np.nan)
-    shift = np.full((nspect, nlines), np.nan)
-    coefs = np.full((nspect, nlines), np.nan)
+    sol = np.full((nspect, dind['shapey1']), np.nan)
+    sol_tot = np.full((nspect, lamb.size), np.nan)
+    # amp = np.full((nspect, nlines), np.nan)
+    # width2 = np.full((nspect, nlines), np.nan)
+    # shift = np.full((nspect, nlines), np.nan)
+    # coefs = np.full((nspect, nlines), np.nan)
     if dinput['double'] is True:
         dratio = np.full((nspect,), np.nan)
-        dshift = np.full((nspect, nlines), np.nan)
+        dshift_norm = np.full((nspect,), np.nan)
     else:
         dratio, dshift = None, None
-    kTiev, vims = None, None
-    if dinput['Ti'] is True:
-        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        kTiev = np.full((nspect, dinput['width']['ind'].shape[0]), np.nan)
-    if dinput['vi'] is True:
-        indvi = np.array([iit[0] for iit in dind['shift']['jac']])
-        vims = np.full((nspect, dinput['shift']['ind'].shape[0]), np.nan)
+    # kTiev, vims = None, None
+    # if dinput['Ti'] is True:
+        # conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
+        # kTiev = np.full((nspect, dinput['width']['ind'].shape[0]), np.nan)
+    # if dinput['vi'] is True:
+        # indvi = np.array([iit[0] for iit in dind['shift']['jac']])
+        # vims = np.full((nspect, dinput['shift']['ind'].shape[0]), np.nan)
 
     # Prepare msg
     if verbose > 0:
@@ -1512,6 +1641,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     # Minimize
     for ii in range(nspect):
         t0 = dtm.datetime.now()     # DB
+        import pdb; pdb.set_trace()     # DB
         res = scpopt.least_squares(cost, x0_scale[ii, :],
                                    jac=jacob, bounds=bounds_scale,
                                    method=method, ftol=ftol, xtol=xtol,
@@ -1599,178 +1729,6 @@ def multigausfit2d_from_dlines(data, lamb, phi,
 #
 ###########################################################
 ###########################################################
-
-def get_knots_nbs_for_bsplines(knots_unique, deg):
-    if deg > 0:
-        knots = np.r_[[knots_unique[0]]*deg, knots_unique,
-                      [knots_unique[-1]]*deg]
-    else:
-        knots = knots_unique
-    nbknotsperbs = 2 + deg
-    nbs = knots_unique.size - 1 + deg
-    assert nbs == knots.size - 1 - deg
-    return knots, nbknotsperbs, nbs
-
-
-def multigausfit2d_from_dlines_ind(dlines2=None,
-                                   double=None, nbs=None,
-                                   Ti=None, vi=None, dconst=None):
-    """ Return the indices of quantities in x to compute y """
-
-    # Prepare lines concatenation
-    nlines = dlines2['key'].size
-    nion = len(dlines2['ion_u'])
-    nwidth = len(dlines2['width_u'])
-    nshift = len(dlines2['shift_u'])
-    lnlines_i = [np.sum(dlines2['ion'] == ii) for ii in dlines2['ion_u']]
-    lnlines_w = [np.sum(dlines2['width'] == ww) for ww in dlines2['width_u']]
-    lnlines_s = [np.sum(dlines2['shift'] == ss) for ss in dlines2['shift_u']]
-    assert np.sum(lnlines_w) == nlines
-    assert np.sum(lnlines_s) == nlines
-
-    # indices
-    # General shape: [bck, widths, shifts, amp]
-    # If double [..., double_shift, double_ratio]
-    # Excpet for bck, all indices should render nlines (2*nlines if double)
-    indbck = np.arange(0, nbs)
-    inddratio, inddshift = None, None
-    if Ti is False and vi is False:
-        indw = nbs + np.arange(0, nlines*nbs)
-        indw_lines = indw
-        inds = indw + nlines*nbs
-        inds_lines = inds
-        inda = inds + nlines*nbs
-        inda_lines = inda
-        sizex = nbs*(1 + 3*nlines)
-    elif Ti is True and vi is False:
-        indw = nbs + np.arange(0, nwidth*nbs)
-        indw_lines = np.repeat(indw, lnlines_w)
-        inds = nbs + nwidth*nbs + np.arange(0, nlines*nbs)
-        inds_lines = inds
-        inda = inds + nlines*nbs
-        inda_lines = inda
-        sizex = nbs*(1 + nwidth + 2*nlines)
-    elif Ti is False and vi is True:
-        indw = nbs + np.arange(0, nlines*nbs)
-        indw_lines = indw
-        inds = nbs + nlines*nbs + np.arange(0, nshift*nbs)
-        inds_lines = np.repeat(inds, lnlines_s)
-        inda = indw + nshift*nbs + nlines*nbs
-        inda_lines = inda
-        sizex = nbs*(1 + nshift + 2*nlines)
-    else:
-        indw = nbs + np.arange(0, nwidth*nbs)
-        indw_lines = np.repeat(indw, lnlines_w)
-        inds = nbs + nwidth*nbs + np.arange(0, nshift*nbs)
-        inds_lines = np.repeat(inds, lnlines_s)
-        inda = nbs + nwidth*nbs + nshift*nbs + np.arange(0, nlines*nbs)
-        inda_lines = inda
-        sizex = nbs*(1 + nwidth + nshift + nlines)
-    shapey0 = 1 + nlines
-
-    # index to get back unique ions values from width and shift
-    indions = np.repeat(np.arange(0, nion**nbs), lnlines_i)
-    # TBC...
-    indions_back = np.r_[0, np.cumsum(lnlines_i[:-1])]
-
-    if double:
-        inddshift = -2
-        inddratio = -1
-        sizex += 2
-
-    # Indices for jacobian
-    if Ti is True:
-        indw_jac = np.r_[0, np.cumsum(nbs*lnlines_w[:-1])]
-    else:
-        indw_jac = np.arange(0, nlines*nbs)
-
-    if vi is True:
-        inds_jac = np.r_[0, np.cumsum(nbs*lnlines_s[:-1])]
-    else:
-        inds_jac = np.arange(0, nlines*nbs)
-
-
-    # Take into account amplitude ratio constraints
-    if dconst is not None and dconst.get(['ratio']) is not None:
-        lup = sorted(set([rr['up'] for rr in dconst['ratio']]))
-        llow = sorted(set([rr['low'] for rr in dconst['ratio']]))
-
-        # Remove upper amp from xi
-        # TBF !!!!
-
-        for ii, rr in enumerate(dconst['ratio']):
-            indup = (dlines2['key'] == rr['up']).nonzero()[0][0]
-            indup = (dlines2['key'] == rr['low']).nonzero()[0][0]
-            dconst['ratio'][ii]['indup'] = indup
-            dconst['ratio'][ii]['indlow'] = indlow
-
-            # Remove upper from x
-
-    dind = {'bck': indbck,
-            'width': indw, 'shift': inds, 'amp': inda,
-            'width_lines': indw_lines, 'shift_lines': inds_lines,
-            'amp_lines': inda_lines, 'width_jac': indw_jac,
-            'shift_jac': inds_jac,
-            'dratio': inddratio, 'dshift': inddshift,
-            'ions': indions, 'ions_back': indions_back,
-            }
-    return dind, sizex, shapey0
-
-
-def multigausfit2d_from_dlines_scale(data2d, lambfit, phifit,
-                                     lambmin=None, lambmax=None, dlines2=None,
-                                     Ti=None, vi=None, double=None,
-                                     xtol=None, ftol=None, gtol=None,
-                                     method=None, max_nfev=None,
-                                     loss=None, jac=None):
-
-    # Extract nbs spect1d for 1d fitting
-    for ii in range(nbs):
-        if np.any(np.isnan(spect1d)):
-            continue
-        dfit1d = multigausfit1d_from_dlines(spect1d, lambfit,
-                                            lambmin=lambmin, lambmax=lambmax,
-                                            dlines2=dlines2, ratio=None,
-                                            dscale=None, x0_scale=None,
-                                            bounds_scale=None,
-                                            method=method, max_nfev=max_nfev,
-                                            xtol=xtol, ftol=ftol, gtol=gtol,
-                                            Ti=Ti, vi=vi, double=double,
-                                            verbose=None,
-                                            loss=loss, jac=jac)
-        bck[ii] = dfit1d['bck']
-        amp[ii] = dfit1d['amp']
-        width[ii] = dfit1d['width']
-        shift[ii] = dfit1d['shift']
-
-    # Interpolate cases that could not be run
-    indnan = np.isnan(bck)
-    if np.any(indnan):
-        indok = ~indnan
-        bck[indnan] = scpinterp.interp1d(phifit[indok], bck[indok],
-                                         phifit[indnan])
-        amp[indnan] = scpinterp.interp1d(phifit[indok], amp[indok],
-                                         phifit[indnan])
-    # Return
-    dscale = {'bck': bck, 'amp': amp, 'width': width, 'shift': shift}
-    return dscale
-
-
-def multigausfit2d_from_dlines_x0(sizex, dind,
-                                  lines=None, data_lamb_nbs=None, lamb=None,
-                                  dscale=None, double=None):
-    # Each x0 should be understood as x0*scale
-    x0_scale = np.ones((sizex,), dtype=float)
-    # x0_scale = np.full((sizex,), np.nan)
-    # x0_scale[dind['bck']] = 1.
-    # amp0 = [da[np.searchsorted(lamb, lines)] for da in data_lamb_nbs]
-    # x0_scale[dind['amp']] = amp0 / dscale['amp']
-    # x0_scale[dind['width']] = 0.4
-    # x0_scale[dind['shift']] = 0.
-    # if double is True:
-        # x0_scale[dind['dratio']] = 0.8
-        # x0_scale[dind['dshift']] = 0.2
-    return x0_scale
 
 
 # def get_2dspectralfit_func(lamb0, forcelamb=False,

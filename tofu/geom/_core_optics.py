@@ -1866,15 +1866,17 @@ class CrystalBragg(utils.ToFuObject):
                                lambmin=None, lambmax=None,
                                phimin=None, phimax=None,
                                dlines=None, dconstraints=None, dx0=None,
-                               dscale=None, x0_scale=None, bounds_scale=None,
+                               x0_scale=None, bounds_scale=None,
                                deg=None, knots=None, nbsplines=None,
                                method=None, max_nfev=None, chain=None,
                                xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0, debug=None,
-                               plot=True, fs=None,
+                               loss=None, verbose=0, debug=None, pos=None,
+                               ratio=None, jac=None, plot=True, fs=None,
                                cmap=None, vmin=None, vmax=None, returnas=None):
         # Check / format inputs
         assert data is not None
+        if pos is None:
+            pos = True
         if returnas is None:
             returnas = 'dict'
         lreturn = ['ax', 'dict']
@@ -1917,6 +1919,8 @@ class CrystalBragg(utils.ToFuObject):
         data = data[:, indok]
         lamb = lamb[indok]
         phi = phi[indok]
+        if pos is True:
+            data[data < 0.] = 0.
 
         # Get dinput for 1d fitting
         dinput = self.get_dinput_for_fit2d(dlines=dlines,
@@ -1932,7 +1936,7 @@ class CrystalBragg(utils.ToFuObject):
 
         dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
             data, lamb, phi, dinput=dinput, dx0=dx0,
-            scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
+            x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev,
             chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
