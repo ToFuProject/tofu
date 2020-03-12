@@ -792,7 +792,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                 coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
                 scales=None, double=dinput['double'], data=None):
             jac = np.full((lamb.size, x.size), np.nan)
-            jac[:, 0] =scales[0]
+            jac[:, 0] = scales[0]
 
             # Assuming Ti = False and vi = False
             amp = (scales[1]*x[indal]*coefsal)[None, :]
@@ -1381,9 +1381,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                     coefswl=coefswl,
                     coefssl=coefssl):
         y = np.full((lamb.size, nbck+nlines, nbs), np.nan)
-
         xscale = x*scales
-        y[:, 0, :] = xscale[ibckx]
 
         # make sure iwl is 2D to get all lines at once
         cwi2 = xscale[iwl] * coefswl[:, None]
@@ -1402,61 +1400,49 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
             indok = ~np.isnan(bs)
             bs = bs[indok]
 
+            y[indok, 0, ii] = xscale[0]*bs
+
             for jj in range(nlines):
                 amp = bs * xscale[ial[jj, ii]] * coefsal[jj]
                 y[indok, nbck+jj, ii] = amp * exp[jj, indok]
         import pdb; pdb.set_trace()     # DB
         return y
 
+    def cost(x, phi=phi, lamb=lamb,
+             ibckx=ibckx, ibcky=ibcky,
+             iax=iax, iay=iay, ial=ial,
+             iwx=iwx, iwy=iwy, iwl=iwl,
+             ishx=ishx, ishy=ishy, ishl=ishl,
+             nlines=dinput['nlines'],
+             nbck=dind['nbck'],
+             lines=dinput['lines'],
+             km=dinput['knots_mult'],
+             deg=dinput['deg'],
+             scales=scales,
+             coefsal=coefsal,
+             coefswl=coefswl,
+             coefssl=coefssl, data=None):
 
-    # def func_tot(x, lamb=lamb[:, None],
-                 # lines=dinput['lines'][None, :],
-                 # double=dinput['double'],
-                 # shape=shape,
-                 # indbck=indbck, indal=indal, indwl=indwl, indsl=indsl,
-                 # inddratio=inddratio, inddshift=inddshift,
-                 # coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
-                 # scales=scales):
+        xscale = x*scales
 
-        # # bck
-        # cbck = x[ibck] * scales[ibck]
-        # bck = BSpline(knots_mult, cbck, deg,
-                      # extrapolate=False, axis=0)(phi)
+        # Background
+        y = BSpline(km, xscale[ibckx], deg,
+                    extrapolate=False, axis=0)(phi)
 
-        # # lines
-        # camp = (scales[ia]*x[ia]*coefsal)   # [None, :]
+        # make sure iwl is 2D to get all lines at once
+        cwi2 = xscale[iwl] * coefswl[:, None]
+        csh = xscale[ishl] * coefssl[:, None]
+
+        exp = np.exp(-(lamb[None, :]/lines[:, None]
+                       - (1 + BSpline(km, csh, deg,
+                                      extrapolate=False, axis=1)(phi)))**2
+                     / (2*BSpline(km, cwi2, deg,
+                                  extrapolate=False, axis=1)(phi)))
+        y += np.nansum(exp * BSpline(km, xscale[ial] * coefsal[:, None], deg,
+                                     extrapolate=False, axis=1)(phi),
+                       axis=0)
         # import pdb; pdb.set_trace()     # DB
-        # amp = BSpline(knots_mult, camp, deg,
-                      # extrapolate=False, axis=0)(phi)
-
-        # cwi2 = (scales[iw]*x[iwl]*coefswl)[None, :]
-        # bswi2 =  BSpline(knots_mult, cwi2, deg,
-                         # extrapolate=False, axis=0)
-
-        # y[:, i]
-
-
-        # wi2 = (scales[2]*x[indwl]*coefswl)[None, :]
-        # shifti = (scales[3]*x[indsl]*coefssl)[None, :]
-
-
-        # y[:, 1:] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2))
-        # y = bck + np.sum(None, axis=1)
-
-
-        # if double is True:
-            # ampd = amp*x[inddratio]  # (scales[1]*x[indal]*x[inddratio]*coefsal)[None, :]
-            # shiftid = (scales[3]*(x[indsl]+x[inddshift])*coefssl)[None, :]
-            # y += ampd * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2))
-        # return y
-
-
-
-
-
-
-    def cost(x, data=None, scales=None):
-        return np.sum(func_detail(x, scales=scales), axis=1) - data
+        return y - data
 
     if jac == 'call':
         # Define a callable jac returning (nlamb, sizex) matrix of partial
@@ -1470,48 +1456,81 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                 indaj=indaj, indwj=indwj, indsj=indsj,
                 coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
                 scales=None, double=dinput['double'], data=None):
-            jac = np.full((lamb.size, x.size), np.nan)
-            jac[:, 0] =scales[0]
+            xscale = x*scales
 
-            # Assuming Ti = False and vi = False
-            amp = (scales[1]*x[indal]*coefsal)[None, :]
-            wi2 = (scales[2]*x[indwl]*coefswl)[None, :]
-            shifti = (scales[3]*x[indsl]*coefssl)[None, :]
-            beta = (lamb/lines - (1 + shifti)) / (2*wi2)
+            jac = np.full((lamb.size, x.size), np.nan)
+
+            # Intermediates
+            amp = BSpline(km, xscale[ial] * coefsal[:, None], deg,
+                          extrapolate=False, axis=1)
+            wi2 = BSpline(km, xscale[iwl] * coefswl[:, None], deg,
+                          extrapolate=False, axis=1)
+            shift = BSpline(km, xscale[ishl] * coefssl[:, None], deg,
+                            extrapolate=False, axis=1)
+            beta = (lamb/lines - (1 + shift)) / (2*wi2)
             alpha = -beta**2 * (2*wi2)
             exp = np.exp(alpha)
 
-            quant = scales[1] * coefsal[None, :] * exp
-            for ii in range(inda.size):
-                jac[:, inda[ii]] = np.sum(quant[:, indaj[ii]], axis=1)
-            quant = amp * (-alpha/x[indwl][None, :]) * exp
-            for ii in range(indw.size):
-                jac[:, indw[ii]] = np.sum(quant[:, indwj[ii]], axis=1)
-            quant = amp * 2.*beta*scales[3]*coefssl[None,:] * exp
-            for ii in range(inds.size):
-                jac[:, inds[ii]] = np.sum(quant[:, indsj[ii]], axis=1)
-            if double is True:
-                # Assuming Ti = False and vi = False
-                ampd = amp*x[inddratio]
-                shiftid = (scales[3]*(x[indsl]+x[inddshift])*coefssl)[None, :]
-                betad = (lamb/lines - (1 + shiftid)) / (2*wi2)
-                alphad = -betad**2 * (2*wi2)
-                expd = np.exp(alphad)
+            # Loop on bs
+            for ii in range(nbs):
+                bs = BSpline.basis_element(km[ii:ii+kpb],
+                                           extrapolate=False)(phi)
+                indok = ~np.isnan(bs)
+                bs = bs[indok]
 
-                quant = scales[1] * coefsal[None, :] * expd
-                for ii in range(inda.size):
-                    jac[:, inda[ii]] += np.sum(quant[:, indaj[ii]], axis=1)
-                quant = ampd * (-alphad/x[indwl][None, :]) * expd
-                for ii in range(indw.size):
-                    jac[:, indw[ii]] += np.sum(quant[:, indwj[ii]], axis=1)
-                quant = ampd * 2.*betad*scales[3]*coefssl[None,:] * expd
-                for ii in range(inds.size):
-                    jac[:, inds[ii]] += np.sum(quant[:, indsj[ii]], axis=1)
+                # Background
+                jac[indok, ibckx[ii]] = bs * scales[ibckx[ii]]
 
-                jac[:, inddratio] = np.sum(ampd * expd, axis=1)
-                jac[:, inddshift] = np.sum(ampd * 2.*betad*scales[3] * expd,
-                                           axis=1)
+                # amp
+                for jj in range(na):
+                    qj = 0.
+                    for ll in ila[jj]:
+                        qj += (bs * scales[iax[ii, jj]] * coefsal[jj]
+                               * exp[indok, jj])
+                    jac[indok, iax[ii, jj]] = qj
+
+                # width2
+                for jj in range(nw):
+                    qj = 0.
+                    for ll in ilw[jj]:
+                        qj += (amp[indok, ll] * (-alpha/x[]) * exp[indok, jj])
+                    jac[indok, iwx[ii, jj]] = qj
+
+                # shift
+                for jj in range(nsh):
+                    qj = 0.
+                    for ll in ilw[jj]:
+                        qj += (amp[indok, ll] * 2.*beta*scales*coefssl
+                               * exp[indok, jj])
+                    jac[indok, isx[ii, jj]] = qj
+
+                # double
+                if double is True:
+                    pass
             return jac
+
+            # if double is True:
+                # # Assuming Ti = False and vi = False
+                # ampd = amp*x[inddratio]
+                # shiftid = (scales[3]*(x[indsl]+x[inddshift])*coefssl)[None, :]
+                # betad = (lamb/lines - (1 + shiftid)) / (2*wi2)
+                # alphad = -betad**2 * (2*wi2)
+                # expd = np.exp(alphad)
+
+                # quant = scales[1] * coefsal[None, :] * expd
+                # for ii in range(inda.size):
+                    # jac[:, inda[ii]] += np.sum(quant[:, indaj[ii]], axis=1)
+                # quant = ampd * (-alphad/x[indwl][None, :]) * expd
+                # for ii in range(indw.size):
+                    # jac[:, indw[ii]] += np.sum(quant[:, indwj[ii]], axis=1)
+                # quant = ampd * 2.*betad*scales[3]*coefssl[None,:] * expd
+                # for ii in range(inds.size):
+                    # jac[:, inds[ii]] += np.sum(quant[:, indsj[ii]], axis=1)
+
+                # jac[:, inddratio] = np.sum(ampd * expd, axis=1)
+                # jac[:, inddshift] = np.sum(ampd * 2.*betad*scales[3] * expd,
+                                           # axis=1)
+            # return jac
     else:
         if jac not in ['2-point', '3-point']:
             msg = "jac should be in ['call', '2-point', '3-point']"
@@ -1655,6 +1674,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
                                    verbose=verbscp, args=(),
                                    kwargs={'data': data[ii, :],
                                            'scales': scales[ii, :]})
+        import pdb; pdb.set_trace() # DB
         if chain is True and ii < nspect-1:
             x0_scale[ii+1, :] = res.x
         if verbose > 0:
