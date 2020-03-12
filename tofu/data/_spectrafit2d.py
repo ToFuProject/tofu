@@ -1222,11 +1222,13 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     inddratio, inddshift = None, None
     for k0 in ['amp', 'width', 'shift']:
         # l0bs0, l0bs1, ..., l0bsN, l1bs0, ...., lnbsN
+        ind = dinput[k0]['ind']
         lnl = np.sum(dinput[k0]['ind'], axis=1).astype(int)
-        dind[k0] = {'x': nn + np.arange(0, dinput[k0]['ind'].shape[0]*nbs),
-                    'y': nn + np.arange(0, dinput[k0]['ind'].shape[0]*nbs),
-                    'lines': nn + np.repeat(
-                        np.argmax(dinput[k0]['ind'], axis=0), nbs),
+        dind[k0] = {'x': nn + np.arange(0, ind.shape[0]*nbs),
+                    'y': nn + np.arange(0, ind.shape[0]*nbs),
+                    'lines': (nn
+                              + nbs*np.argmax(ind, axis=0)[:, None]
+                              + np.arange(0, nbs)[None, :]),
                     # TBF
                     'jac': [tuple(dinput[k0]['ind'][ii, :].nonzero()[0])
                             for ii in range(dinput[k0]['ind'].shape[0])]}
@@ -1244,7 +1246,7 @@ def multigausfit2d_from_dlines_ind(dinput=None):
         sizex += 2
 
     dind['sizex'] = sizex
-    dind['shapey1'] = int((dind['bck']['x'].size/nbs + dinput['nlines'])*nbs)
+    dind['nbck'] = 1
 
     # Ref line for amp (for x0)
     # TBC !!!
@@ -1369,28 +1371,29 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                     ishx=ishx, ishy=ishy, ishl=ishl,
                     nbs=dinput['nbs'],
                     nlines=dinput['nlines'],
-                    shapey1=dind['shapey1'],
+                    nbck=dind['nbck'],
+                    lines=dinput['lines'],
                     km=dinput['knots_mult'],
                     kpb=dinput['nknotsperbs'],
+                    deg=dinput['deg'],
                     scales=scales,
                     coefsal=coefsal,
                     coefswl=coefswl,
                     coefssl=coefssl):
-        y = np.full((lamb.size, shapey1), np.nan)
+        y = np.full((lamb.size, nbck+nlines, nbs), np.nan)
 
         xscale = x*scales
-        y[:, ibcky] = xscale[ibckx]
+        y[:, 0, :] = xscale[ibckx]
 
-        import pdb; pdb.set_trace()     # DB
         # make sure iwl is 2D to get all lines at once
-        cwi2 = xscale[iwl] * coefswl[None, :]
-        csh = xscale[ishl] * np.repeat(coefssl, nbs)
+        cwi2 = xscale[iwl] * coefswl[:, None]
+        csh = xscale[ishl] * coefssl[:, None]
 
-        exp = np.exp(-(lamb/lines
-                       - (1 + BSpline(knots_mult, csh, deg,
-                                      extrapolate=False, axis=0)(phi)))**2
-                     / (2*BSpline(knots_mult, cwi2, deg,
-                                  extrapolate=False, axis=0)(phi)))
+        exp = np.exp(-(lamb[None, :]/lines[:, None]
+                       - (1 + BSpline(km, csh, deg,
+                                      extrapolate=False, axis=1)(phi)))**2
+                     / (2*BSpline(km, cwi2, deg,
+                                  extrapolate=False, axis=1)(phi)))
 
         # Loop on individual bsplines for amp
         for ii in range(nbs):
@@ -1399,10 +1402,10 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
             indok = ~np.isnan(bs)
             bs = bs[indok]
 
-            import pdb; pdb.set_trace()     # DB
             for jj in range(nlines):
-                amp = bs * xscale[iax[ii:]] * coefsal
-                y[indok, ilinesbs[ii]] = amp * exp[:, jj]
+                amp = bs * xscale[ial[jj, ii]] * coefsal[jj]
+                y[indok, nbck+jj, ii] = amp * exp[jj, indok]
+        import pdb; pdb.set_trace()     # DB
         return y
 
 
@@ -1612,7 +1615,8 @@ def multigausfit2d_from_dlines(data, lamb, phi,
 
     # Initialize
     nlines = dinput['nlines']
-    sol = np.full((nspect, dind['shapey1']), np.nan)
+    sol_x = np.full((nspect, dind['nbck']+dinput['nlines'], dinput['nbs']),
+                    np.nan)
     sol_tot = np.full((nspect, lamb.size), np.nan)
     # amp = np.full((nspect, nlines), np.nan)
     # width2 = np.full((nspect, nlines), np.nan)
@@ -1641,7 +1645,6 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     # Minimize
     for ii in range(nspect):
         t0 = dtm.datetime.now()     # DB
-        import pdb; pdb.set_trace()     # DB
         res = scpopt.least_squares(cost, x0_scale[ii, :],
                                    jac=jacob, bounds=bounds_scale,
                                    method=method, ftol=ftol, xtol=xtol,
@@ -1662,7 +1665,8 @@ def multigausfit2d_from_dlines(data, lamb, phi,
             print(msg)
 
         # Separate and reshape output
-        sol_detail[ii, ...] = func_detail(res.x, scales=scales[ii, :]).T
+        sol_x[ii, :, :] = res.x.reshape((1, 2))
+        sol_tot[ii, ...] = func_detail(res.x, scales=scales[ii, :])
 
         # Get result in physical units: TBC !!!
         amp[ii, :] = (res.x[dind['amp']['lines']]
