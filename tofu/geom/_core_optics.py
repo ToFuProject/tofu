@@ -1870,13 +1870,16 @@ class CrystalBragg(utils.ToFuObject):
                                deg=None, knots=None, nbsplines=None,
                                method=None, max_nfev=None, chain=None,
                                xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0, debug=None, pos=None,
+                               loss=None, verbose=0, debug=None,
+                               pos=None, subset=None, npts=None,
                                ratio=None, jac=None, plot=True, fs=None,
                                cmap=None, vmin=None, vmax=None, returnas=None):
         # Check / format inputs
         assert data is not None
         if pos is None:
             pos = True
+        if subset is not None:
+            assert isinstance(subset, int)
         if returnas is None:
             returnas = 'dict'
         lreturn = ['ax', 'dict']
@@ -1916,9 +1919,17 @@ class CrystalBragg(utils.ToFuObject):
             indok &= phi > phimmin
         if phimax is not None:
             indok &= phi < phimax
-        data = data[:, indok]
-        lamb = lamb[indok]
-        phi = phi[indok]
+
+        # Optionally fit only on subset
+        if subset is None:
+            data = data[:, indok]
+            lamb = lamb[indok]
+            phi = phi[indok]
+        else:
+            data = data[:, indok][:, ::subset]
+            lamb = lamb[indok][::subset]
+            phi = phi[indok][::subset]
+
         if pos is True:
             data[data < 0.] = 0.
 
@@ -1940,7 +1951,7 @@ class CrystalBragg(utils.ToFuObject):
             method=method, max_nfev=max_nfev,
             chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            ratio=ratio, jac=jac)
+            ratio=ratio, jac=jac, npts=npts)
 
         import pdb; pdb.set_trace()      # DB
 
