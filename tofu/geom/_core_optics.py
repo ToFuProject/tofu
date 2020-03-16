@@ -1871,13 +1871,16 @@ class CrystalBragg(utils.ToFuObject):
                                method=None, max_nfev=None, chain=None,
                                xtol=None, ftol=None, gtol=None,
                                loss=None, verbose=0, debug=None,
-                               pos=None, subset=None, npts=None,
+                               pos=None, subset=None, npts=None, dax=None,
+                               plotmode=None, angunits=None, indspect=None,
                                ratio=None, jac=None, plot=True, fs=None,
-                               cmap=None, vmin=None, vmax=None, returnas=None):
+                               cmap=None, vmin=None, vmax=None,
+                               dmargin=None, tit=None, wintit=None,
+                               returnas=None):
         # Check / format inputs
         assert data is not None
         if pos is None:
-            pos = True
+            pos = False
         if subset is not None:
             assert isinstance(subset, int)
         if returnas is None:
@@ -1902,36 +1905,42 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         # Check shape of data (multiple time slices possible)
-        data, lamb, phi, mask = self._checkformat_data_fit2d_dlines(
-            data, lamb, phi, mask=mask)
-        assert lamb.ndim == phi.ndim == 1
-        assert data.ndim == 2 and data.shape[1] == lamb.size
+        (dataflat, lambflat,
+         phiflat, maskflat) = self._checkformat_data_fit2d_dlines(data,
+                                                                  lamb,
+                                                                  phi,
+                                                                  mask=mask)
+        assert lambflat.ndim == phiflat.ndim == 1
+        assert dataflat.ndim == 2 and dataflat.shape[1] == lambflat.size
 
         # Use valid data only and optionally restrict lamb / phi
-        indok = np.ones(lamb.shape, dtype=bool)
-        if mask is not None:
-            indok &= mask
+        indok = np.ones(lambflat.shape, dtype=bool)
+        if maskflat is not None:
+            indok &= maskflat
         if lambmin is not None:
-            indok &= lamb > lambmin
+            indok &= lambflat > lambmin
         if lambmax is not None:
-            indok &= lamb < lambmax
+            indok &= lambflat < lambmax
         if phimin is not None:
-            indok &= phi > phimmin
+            indok &= phiflat > phimmin
         if phimax is not None:
-            indok &= phi < phimax
+            indok &= phiflat < phimax
 
         # Optionally fit only on subset
         if subset is None:
-            data = data[:, indok]
-            lamb = lamb[indok]
-            phi = phi[indok]
+            dataflat = dataflat[:, indok]
+            lambflat = lambflat[indok]
+            phiflat = phiflat[indok]
         else:
-            data = data[:, indok][:, ::subset]
-            lamb = lamb[indok][::subset]
-            phi = phi[indok][::subset]
+            # randomly pick subset indices (replace=False => no duplicates)i
+            indok = indok.nonzero()[0]
+            indok = indok[utils._get_subset_indices(subset, indok.size)]
+            dataflat = dataflat[:, indok]
+            lambflat = lambflat[indok]
+            phiflat = phiflat[indok]
 
         if pos is True:
-            data[data < 0.] = 0.
+            dataflat[dataflat < 0.] = 0.
 
         # Get dinput for 1d fitting
         dinput = self.get_dinput_for_fit2d(dlines=dlines,
@@ -1939,27 +1948,30 @@ class CrystalBragg(utils.ToFuObject):
                                            deg=deg, knots=knots,
                                            nbsplines=nbsplines,
                                            lambmin=lambmin, lambmax=lambmax,
-                                           phimin=phi.min(),
-                                           phimax=phi.max())
+                                           phimin=phiflat.min(),
+                                           phimax=phiflat.max())
 
         # Perform 1d fit to be used as initial guess for 2d fitting
         import tofu.data._spectrafit2d as _spectrafit2d
 
         dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
-            data, lamb, phi, dinput=dinput, dx0=dx0,
+            dataflat, lambflat, phiflat, dinput=dinput, dx0=dx0,
             x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev,
             chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
             ratio=ratio, jac=jac, npts=npts)
 
-        import pdb; pdb.set_trace()      # DB
-
         # Plot
-        dax = None
         if plot is True:
+            if plotmode is None:
+                plotmode = 'transform'
+
             dax = _plot_optics.CrystalBragg_plot_data_fit2d(
-                xi, xj, indok, dfit2d, dinput=dinput,
+                xi=xi, xj=xj, data=data, lamb=lamb, phi=phi, indspect=indspect,
+                indok=indok, dfit2d=dfit2d, dinput=dinput,
+                dax=dax, plotmode=plotmode, angunits=angunits,
+                cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)
 

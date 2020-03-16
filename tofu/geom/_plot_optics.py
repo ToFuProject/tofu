@@ -1036,56 +1036,54 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
     return ax
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
-                                 dfit2d=None, dax=None, indspect=None,
+                                 dfit2d=None, dinput=None,
+                                 dax=None, indspect=None, spect1d=None,
                                  cmap=None, vmin=None, vmax=None,
                                  plotmode=None, fs=None, dmargin=None,
-                                 angunits='deg', dmoments=None):
+                                 angunits='deg', tit=None, wintit=None):
 
     # Check inputs
     # ------------
 
     if dax is None:
         if fs is None:
-            fs = (16, 9)
+            fs = (18, 9)
         if cmap is None:
             cmap = plt.cm.viridis
         if dmargin is None:
-            dmargin = {'left':0.03, 'right':0.99,
-                       'bottom':0.05, 'top':0.92,
-                       'wspace':None, 'hspace':0.4}
+            dmargin = {'left':0.05, 'right':0.99,
+                       'bottom':0.06, 'top':0.95,
+                       'wspace':None, 'hspace':0.8}
+        if wintit is None:
+            wintit = _WINTIT
+        if tit is None:
+            tit = '2D fitting of X-Ray Crystal Bragg spectrometer'
+    if angunits is None:
+        angunits = 'deg'
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         phi = phi*180./np.pi
     if indspect is None:
         indspect = 0
-    if plotmode is None:
-        plotmode = 'transform'
-
+    if plotmode == 'transform':
+        xlab = r'$\lambda$ (m)'
+        ylab = r'$\phi$ ({})'.format(angunits)
+    else:
+        xlab = r'$x_i$' + r' (m)'
+        ylab = r'$x_j$' + r' ({})'.format(angunits)
+        spect1d = None
 
     # pre-compute
     # ------------
 
-    # extent
-    extent = (xi.min(), xi.max(), xj.min(), xj.max())
+    err = dfit2d['sol_tot'][indspect, :] - dfit2d['data'][indspect, :]
+    errm = np.nanmax(np.abs(err))
+    if vmin is None:
+        vmin = 0.
+    if vmax is None:
+        vmax = max(np.nanmax(dfit2d['data'][indspect, :]),
+                   np.nanmax(dfit2d['sol_tot'][indspect, :]))
 
     # Prepare figure if dax not provided
     # ------------
@@ -1093,101 +1091,136 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     if dax is None:
         fig = plt.figure(figsize=fs)
         naxh = 3 + dfit2d['Ti'] + dfit2d['vi'] + (dfit2d['ratio'] is not None)
-        naxv = 1 if spect1d is not None else 0
-        gs = gridspec.GridSpec(3+naxv, naxh, **dmargin)
-        ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
-        ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
+        naxv = 1
+        gs = gridspec.GridSpec((3+naxv)*3, naxh, **dmargin)
+        if plotmode == 'transform':
+            ax0 = fig.add_subplot(gs[:9, 0])
+            ax0.set_xlim(dinput['lambminmax'])
+            ax0.set_ylim(dinput['phiminmax'])
+        else:
+            ax0 = fig.add_subplot(gs[:9, 0], aspect='equal')
+        ax0c = fig.add_subplot(gs[10, 0])
+        ax1 = fig.add_subplot(gs[:9, 1],
                               sharex=ax0, sharey=ax0)
-        ax2 = fig.add_subplot(gs[:3, 2], sharex=ax1, sharey=ax1)
+        ax2 = fig.add_subplot(gs[:9, 2],
+                              sharex=ax0, sharey=ax0)
+        ax1c = fig.add_subplot(gs[10, 1])
+
         ax0.set_title('Residu')
+        ax0.set_xlabel(xlab)
+        ax0.set_ylabel(ylab)
         ax1.set_title('Original data')
+        ax1.set_xlabel(xlab)
         ax2.set_title('2d fit')
-        dax = {'err': ax0, 'data': ax1, 'fit': ax2}
+        dax = {'err': ax0, 'err_colorbar': ax0c,
+               'data': ax1, 'data_colorbar': ax1c,
+               'fit': ax2}
+        if tit is not False:
+            fig.suptitle(tit)
+        if wintit is not False:
+            fig.canvas.set_window_title(wintit)
 
         if naxv == 1:
-            ax2s = fig.add_subplot(gs[3+naxv, 2], sharex=ax2)
-            ax2s.set_title('1d sliced spectrum vs fit')
-            dax['fit1d'] = axs
+            dax['fit1d'] = fig.add_subplot(gs[9:11, 2], sharex=ax2)
+            dax['fit1d'].set_title('1d sliced spectrum vs fit')
+            dax['fit1d'].set_ylabel(r'data')
+            dax['err1d'] = fig.add_subplot(gs[11, 2], sharex=ax2)
+            dax['err1d'].set_ylabel(r'err')
+            dax['err1d'].set_xlabel(xlab)
 
         nn = 1
         if dfit2d['Ti'] is True:
-            dax['Ti'] = fig.add_subplot(gs[:3, 3+nn], sharey=ax2)
-            dax['Ti'].set_title(r'$Width$')
+            dax['Ti'] = fig.add_subplot(gs[:9, 2+nn], sharey=ax1)
+            dax['Ti'].set_title(r'Width')
+            dax['Ti'].set_xlabel(r'$\hat{T_i}$' + r' (keV)')
             nn += 1
         if dfit2d['vi'] is True:
-            dax['vi'] = fig.add_subplot(gs[:3, 3+nn], sharey=ax2)
+            dax['vi'] = fig.add_subplot(gs[:9, 2+nn], sharey=ax1)
+            dax['vi'].set_title(r'Shift')
+            dax['vi'].set_xlabel(r'$\hat{v_i}$' + r' (km/s)')
+            dax['vi'].axvline(0, ls='-', lw=1., c='k')
             nn += 1
         if dfit2d['ratio'] is not None:
-            dax['ratio'] = fig.add_subplot(gs[:3, 3+nn], sharey=ax2)
+            dax['ratio'] = fig.add_subplot(gs[:9, 2+nn], sharey=ax1)
+            dax['ratio'].set_title(r'Intensity Ratio')
+            dax['ratio'].set_xlabel(r'ratio (a.u)')
 
-
-        ax4.set_xlabel('%s'%angunits)
-        ax0.set_ylabel(r'incidence angle ($deg$)')
-
-    # Plot
+    # Plot main images
     # ------------
-    if dax.get('data_image') is not None:
-        dax['data_image'].imshow(dataor,
-                                 extent=extent, cmap=cmap,
-                                 origin='lower', vmin=vmin, vmax=vmax)
-    if dax.get('data_transform') is not None:
-        dax['data_transform'].scatter(dfit2d['lamb'][indspect, :],
-                                      dfit2d['phi'][indspect, :],
-                                      c=dfit2d['data'][indspect, :],
-                                      s=6, marker='s', edgecolors='None',
-                                      vmin=vmin, vmax=vmax, cmap=cmap)
-    if dax.get('fit_transform') is not None:
-        dax['fit_transform'].scatter(dfit2d['lamb'][indspect, :],
-                                     dfit2d['phi'][indspect, :],
-                                     c=dfit2d['sol_tot'][indspect, :],
-                                     s=6, marker='s', edgecolors='None',
-                                     vmin=vmin, vmax=vmax, cmap=cmap)
-        if dax.get('err_image') is not None:
-            dax['err_image'].imshow()
-    ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=1,
-                marker='s', edgecolors='None',
-                cmap=cmap, vmin=vmin, vmax=vmax)
-    axs2.plot(lambfit, spect1d, c='k', ls='None', marker='.', ms=4)
-    axs2.plot(lambfit, dfit1d['fit'].ravel(), c='r', ls='-', label='fit')
-    for ll in dfit1d['lamb0']:
-        axs2.axvline(ll, c='k', ls='--')
+    if plotmode == 'transform':
+        if dax.get('err') is not None:
+            errax = dax['err'].scatter(dfit2d['lamb'],
+                                       dfit2d['phi'],
+                                       c=err,
+                                       s=6, marker='s', edgecolors='None',
+                                       vmin=-errm, vmax=errm,
+                                       cmap=plt.cm.seismic)
+        if dax.get('data') is not None:
+            dataax = dax['data'].scatter(dfit2d['lamb'],
+                                         dfit2d['phi'],
+                                         c=dfit2d['data'][indspect, :],
+                                         s=6, marker='s', edgecolors='None',
+                                         vmin=vmin, vmax=vmax, cmap=cmap)
+        if dax.get('fit') is not None:
+            dax['fit'].scatter(dfit2d['lamb'],
+                               dfit2d['phi'],
+                               c=dfit2d['sol_tot'][indspect, :],
+                               s=6, marker='s', edgecolors='None',
+                               vmin=vmin, vmax=vmax, cmap=cmap)
+        if dax.get('fit1d') is not None:
+            # dax['fit1d'].plot()
+            pass
+    else:
+        extent = (xi.min(), xi.max(), xj.min(), xj.max())
+        if dax.get('err') is not None:
+            dax['err'].imshow(err,
+                              extent=extent, cmap=plt.cm.seismic,
+                              origin='lower', vmin=errm, vmax=errm)
+        if dax.get('data') is not None:
+            dax['data'].imshow(data,
+                               extent=extent, cmap=cmap,
+                               origin='lower', vmin=vmin, vmax=vmax)
+        if dax.get('fit') is not None:
+            dax['fit'].imshow(fit,
+                              extent=extent, cmap=cmap,
+                              origin='lower', vmin=vmin, vmax=vmax)
 
-    # dfit2d
-    ax3.scatter(lamb[mask].ravel(), phi[mask].ravel(), c=dfit2d['fit'], s=1,
-                marker='s', edgecolors='None',
-                cmap=cmap, vmin=vmin, vmax=vmax)
-    axs3.plot(lambfit, spect1d, c='k', ls='None', marker='.')
-    axs3.plot(lambfit, spect2dmean, c='b', ls='-')
-    err = dfit2d['fit'] - data[mask].ravel()
-    errmax = np.max(np.abs(err))
-    ax4.scatter(lamb[mask].ravel(), phi[mask].ravel(), c=err, s=1,
-                marker='s', edgecolors='None',
-                cmap=plt.cm.seismic, vmin=-errmax, vmax=errmax)
+    # Plot profiles
+    # ------------
+    if dax.get('Ti') is not None and dfit2d['Ti'] is True:
+        for ii in range(dfit2d['kTiev'].shape[1]):
+            dax['Ti'].plot(dfit2d['kTiev'][indspect, ii, :]*1.e-3,
+                           dfit2d['pts_phi'],
+                           ls='-', marker='.', ms=4,
+                           label=dinput['width']['keys'][ii])
+        dax['Ti'].set_xlim(left=0.)
 
-    # Moments
-    if dmoments is not None:
-        if dmoments.get('ratio') is not None:
-            ind = dmoments['ratio'].get('ind')
-            if ind is None:
-                ind = [np.argmin(np.abs(dfit2d['lamb0']-ll))
-                        for ll in dmoments['ratio']['lamb']]
-            for indi in ind:
-                axs3.axvline(dfit2d['lamb0'][indi], c='k', ls='--')
-            amp0 = BSpline(dfit2d['knots'], dfit2d['camp'][ind[0],:], dfit2d['deg'])(phifit)
-            amp1 = BSpline(dfit2d['knots'], dfit2d['camp'][ind[1],:], dfit2d['deg'])(phifit)
-            lab = dmoments['ratio']['name'] + '{} / {}'
-            ratio = (amp0 / amp1) / np.nanmax(amp0 / amp1)
-            ax5.plot(amp0 / amp1, phifit, ls='-', c='k', label=lab)
-        if dmoments.get('sigma') is not None:
-            ind = dmoments['sigma'].get('ind')
-            if ind is None:
-                ind = np.argmin(np.abs(dfit2d['lamb0']-dmoments['sigma']['lamb']))
-            axs3.axvline(dfit2d['lamb0'][ind], c='b', ls='--')
-            sigma = BSpline(dfit2d['knots'], dfit2d['csigma'][ind,:], dfit2d['deg'])(phifit)
-            lab = r'$\sigma({} A)$'.format(np.round(dfit2d['lamb0'][ind]*1.e10),
-                                        4)
-            ax5.plot(sigma/np.nanmax(sigma), phifit, ls='-', c='b', label=lab)
+    if dax.get('vi') is not None and dfit2d['vi'] is True:
+        for ii in range(dfit2d['vims'].shape[1]):
+            dax['vi'].plot(dfit2d['vims'][indspect, ii, :]*1.e-3,
+                           dfit2d['pts_phi'],
+                           ls='-', marker='.', ms=4,
+                           label=dinput['shift']['keys'][ii])
 
-    ax2.set_xlim(extent2[0], extent2[1])
-    ax2.set_ylim(extent2[2], extent2[3])
+    if dax.get('ratio') is not None and dfit2d['ratio'] is not None:
+        for ii in range(dfit2d['ratio']['value'].shape[1]):
+            dax['ratio'].plot(dfit2d['ratio']['value'][indspect, ii, :],
+                              dfit2d['pts_phi'],
+                              ls='-', marker='.', ms=4,
+                              label=dfit2d['ratio']['str'][ii])
+
+    # Polishing
+    # ------------
+    for kax in dax.keys():
+        if kax != 'err':
+            plt.setp(dax[kax].get_yticklabels(), visible=False)
+    if dax.get('fit') is not None:
+        plt.setp(dax['fit'].get_xticklabels(), visible=False)
+    if dax.get('err_colorbar') is not None and dax['err'] is not None:
+        plt.colorbar(errax, ax=dax['err'], cax=dax['err_colorbar'],
+                     orientation='horizontal')
+    if (dax.get('data_colorbar') is not None
+        and (dax['data'] is not None or dax['fit'] is not None)):
+        plt.colorbar(dataax, ax=dax['data'], cax=dax['data_colorbar'],
+                     orientation='horizontal')
     return dax

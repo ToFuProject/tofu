@@ -243,6 +243,33 @@ def _set_arrayorder(obj, arrayorder='C', sep=None):
     return d, account
 
 
+def _get_subset_indices(subset, size):
+    if subset is None:
+        return
+
+    msg = ("subset must be either:\n"
+           + "\t- in ]0; 1[ : a fraction of the total nb of points\n"
+           + "\t- in ]1; nb]: a number of points (here nb={})\n".format(size)
+           + "\t- a np.ndarray of int indices\n"
+           + "You provided: {}".format(subset))
+
+    if isinstance(subset, np.ndarray):
+        c0 = (subset.ndim == 1
+              and np.all(subset >= 0)
+              and np.all(subset <= size)
+              and 'int' in subset.dtype.name)
+        if not c0:
+            raise Exception(msg)
+    if subset > 0. and subset < 1.:
+        subset = np.random.default_rng().choice(
+            size, size=int(size/subset), replace=False, shuffle=False)
+    elif subset > 1. and subset < size:
+        subset = np.random.default_rng().choice(
+            size, size=int(subset), replace=False, shuffle=False)
+    else:
+        raise Exception(msg)
+    return subset
+
 #############################################
 #       save / load
 #############################################
