@@ -1665,10 +1665,10 @@ def multigausfit2d_from_dlines(data, lamb, phi,
 
     # Get function, cost function and jacobian
     (func_detail,
-     cost, jacob) = multigausfit2d_from_dlines_funccostjac(lamb, phi,
-                                                           dinput=dinput,
-                                                           dind=dind,
-                                                           jac=jac)
+     func_cost, jacob) = multigausfit2d_from_dlines_funccostjac(lamb, phi,
+                                                                dinput=dinput,
+                                                                dind=dind,
+                                                                jac=jac)
 
 
     # ---------------------------
@@ -1676,6 +1676,10 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     nlines = dinput['nlines']
     sol_x = np.full((nspect, dind['sizex']), np.nan)
     sol_tot = np.full((nspect, lamb.size), np.nan)
+    time = np.full((nspect,), np.nan)
+    cost = np.full((nspect,), np.nan)
+    nfev = np.full((nspect,), np.nan)
+    message = np.array(['' for ss in range(nspect)])
     if dinput['double'] is True:
         dratio = np.full((nspect,), np.nan)
         dshift_norm = np.full((nspect,), np.nan)
@@ -1722,7 +1726,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
         t0i = dtm.datetime.now()     # DB
-        res = scpopt.least_squares(cost, x0_scale[ii, :],
+        res = scpopt.least_squares(func_cost, x0_scale[ii, :],
                                    jac=jacob, bounds=bounds_scale,
                                    method=method, ftol=ftol, xtol=xtol,
                                    gtol=gtol, x_scale=1.0, f_scale=1.0,
@@ -1734,70 +1738,67 @@ def multigausfit2d_from_dlines(data, lamb, phi,
                                            'scales': scales[ii, :]})
         if chain is True and ii < nspect-1:
             x0_scale[ii+1, :] = res.x
+
+        # cost, message, time
+        cost[ii] = res.cost
+        message[ii] = res.message
+        time[ii] = round((dtm.datetime.now()-t0i).total_seconds(), ndigits=3)
         if verbose > 0:
-            dt = round((dtm.datetime.now()-t0i).total_seconds(), ndigits=3)
-            msg = " {}    {}    {}   {}   {}".format(dt, round(res.cost),
+            msg = " {}    {}    {}   {}   {}".format(time[ii],
+                                                     round(res.cost),
                                                      res.nfev, res.njev,
                                                      res.message)
             print(msg)
 
         # Separate and reshape output
         sol_x[ii, :] = res.x
-        sol_tot[ii, :] = cost(res.x, scales=scales[ii, :], data=0.)
+        sol_tot[ii, :] = func_cost(res.x, scales=scales[ii, :], data=0.)
 
         # Get result in physical units: TBC !!!
         if dinput['double'] is True:
             dratio[ii] = res.x[dind['dratio']]
             dshift_norm[ii] = (res.x[dind['dshift']]
                                * scales[ii, dind['dshift']])
-        import pdb; pdb.set_trace() # DB
         if dinput['Ti'] is True:
             # Get Ti in eV
             width2 = BSpline(dinput['knots_mult'],
                              (res.x[dind['width']['x']]
                               * scales[ii, dind['width']['x']]),
-                              dinput['deg'],
-                            extrapolate=False, axis=0)(pts).T
+                             dinput['deg'],
+                             extrapolate=False, axis=0)(pts).T
             kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
                               * scpct.c**2)
-        import pdb; pdb.set_trace() # DB
         if dinput['vi'] is True:
             # Get vi in m/s
-            vims[ii, :] = (res.x[dind['shift']['lines'][indvi]]
-                           * scales[ii, 3] * scpct.c)
+            vims[ii, ...] = BSpline(dinput['knots_mult'],
+                                    (res.x[dind['shift']['x']]
+                                     * scales[ii, dind['shift']['x']]),
+                                    dinput['deg'],
+                                    extrapolate=False, axis=0)(pts).T * scpct.c
+        if ratio is not None:
+            # Te can only be obtained as a proxy, units don't matter at this point
+            cup = BSpline(dinput['knots_mult'],
+                          (res.x[dind['amp']['lines']]
+                           * scales[ii, dind['amp']['lines']]),
+                          dinput['deg'],
+                          extrapolate=False, axis=0)(pts)[:, ratio['indup']]
+            clow = BSpline(dinput['knots_mult'],
+                           (res.x[dind['amp']['lines']]
+                            * scales[ii, dind['amp']['lines']]),
+                           dinput['deg'],
+                           extrapolate=False, axis=0)(pts)[:, ratio['indlow']]
+            ratio['value'][ii, ...] = (cup / clow).T
 
     if verbose > 0:
         dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
         msg = "Total computation time: {}".format(dt)
 
-    coefs = amp*dinput['lines']*np.sqrt(2*np.pi*width2)
-
-    if ratio is not None:
-        # Te can only be obtained as a proxy, units don't matter at this point
-        if isinstance(ratio['up'], str):
-            ratio['up'] = [ratio['up']]
-        if isinstance(ratio['low'], str):
-            ratio['low'] = [ratio['low']]
-        assert len(ratio['up']) == len(ratio['low'])
-        indup = np.array([(dinput['keys'] == uu).nonzero()[0][0]
-                          for uu in ratio['up']])
-        indlow = np.array([(dinput['keys'] == ll).nonzero()[0][0]
-                           for ll in ratio['low']])
-        ratio['value'] = coefs[:, indup] / coefs[:, indlow]
-        ratio['str'] = ["{}/{}".format(dinput['symb'][indup[ii]],
-                                       dinput['symb'][indlow[ii]])
-                        for ii in range(len(ratio['up']))]
 
     # ---------------------------
     # Format output as dict
-    dout = {'data': data, 'lamb': lamb,
-            'sol_detail': sol_detail,
-            'sol': np.sum(sol_detail, axis=1),
+    dout = {'data': data, 'lamb': lamb, 'phi': phi,
+            'sol_x': sol_x, 'sol_tot': sol_tot,
             'Ti': dinput['Ti'], 'vi': dinput['vi'], 'double': dinput['double'],
-            'width2': width2, 'shift': shift, 'amp': amp,
-            'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
-            'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
-            'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
-            'nfev': res.nfev, 'njev': res.njev, 'status': res.status,
-            'msg': res.message, 'success': res.success}
+            'pts_phi': pts, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
+            'cost': cost, 'nfev': nfev, 'msg': message}
     return dout

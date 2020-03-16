@@ -1955,18 +1955,15 @@ class CrystalBragg(utils.ToFuObject):
 
         import pdb; pdb.set_trace()      # DB
 
-
-
-
         # Plot
         dax = None
         if plot is True:
-            ax = _plot_optics.CrystalBragg_plot_data_fit2d(
-                dfit1d, dinput=dinput,
+            dax = _plot_optics.CrystalBragg_plot_data_fit2d(
+                xi, xj, indok, dfit2d, dinput=dinput,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)
 
         if returnas == 'dict':
             return dfit2d
         else:
-            return ax
+            return dax

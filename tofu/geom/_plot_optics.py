@@ -1054,29 +1054,31 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
 
 
 
-def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
-                                  lambfit=None, phifit=None, spect1d=None,
-                                  dfit1d=None, dfit2d=None, lambfitbins=None,
-                                  cmap=None, vmin=None, vmax=None,
-                                  fs=None, dmargin=None,
-                                  angunits='deg', dmoments=None):
+def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
+                                 dfit2d=None, dax=None, indspect=None,
+                                 cmap=None, vmin=None, vmax=None,
+                                 plotmode=None, fs=None, dmargin=None,
+                                 angunits='deg', dmoments=None):
 
     # Check inputs
     # ------------
 
-    if fs is None:
-        fs = (16, 9)
-    if cmap is None:
-        cmap = plt.cm.viridis
-    if dmargin is None:
-        dmargin = {'left':0.03, 'right':0.99,
-                   'bottom':0.05, 'top':0.92,
-                   'wspace':None, 'hspace':0.4}
+    if dax is None:
+        if fs is None:
+            fs = (16, 9)
+        if cmap is None:
+            cmap = plt.cm.viridis
+        if dmargin is None:
+            dmargin = {'left':0.03, 'right':0.99,
+                       'bottom':0.05, 'top':0.92,
+                       'wspace':None, 'hspace':0.4}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
-        bragg = bragg*180./np.pi
         phi = phi*180./np.pi
-        phifit = phifit*180./np.pi
+    if indspect is None:
+        indspect = 0
+    if plotmode is None:
+        plotmode = 'transform'
 
 
     # pre-compute
@@ -1084,47 +1086,64 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
 
     # extent
     extent = (xi.min(), xi.max(), xj.min(), xj.max())
-    extent2 = (lambfit.min(), lambfit.max(), phifit.min(), phifit.max())
 
-    ind = np.digitize(lamb[mask].ravel(), lambfitbins)
-    spect2dmean = np.zeros((lambfitbins.size+1,))
-    for ii in range(lambfitbins.size+1):
-        indi = ind==ii
-        if np.any(indi):
-            spect2dmean[ii] = np.nanmean(dfit2d['fit'][indi])
+    # Prepare figure if dax not provided
+    # ------------
+
+    if dax is None:
+        fig = plt.figure(figsize=fs)
+        naxh = 3 + dfit2d['Ti'] + dfit2d['vi'] + (dfit2d['ratio'] is not None)
+        naxv = 1 if spect1d is not None else 0
+        gs = gridspec.GridSpec(3+naxv, naxh, **dmargin)
+        ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
+        ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
+                              sharex=ax0, sharey=ax0)
+        ax2 = fig.add_subplot(gs[:3, 2], sharex=ax1, sharey=ax1)
+        ax0.set_title('Residu')
+        ax1.set_title('Original data')
+        ax2.set_title('2d fit')
+        dax = {'err': ax0, 'data': ax1, 'fit': ax2}
+
+        if naxv == 1:
+            ax2s = fig.add_subplot(gs[3+naxv, 2], sharex=ax2)
+            ax2s.set_title('1d sliced spectrum vs fit')
+            dax['fit1d'] = axs
+
+        nn = 1
+        if dfit2d['Ti'] is True:
+            dax['Ti'] = fig.add_subplot(gs[:3, 3+nn], sharey=ax2)
+            dax['Ti'].set_title(r'$Width$')
+            nn += 1
+        if dfit2d['vi'] is True:
+            dax['vi'] = fig.add_subplot(gs[:3, 3+nn], sharey=ax2)
+            nn += 1
+        if dfit2d['ratio'] is not None:
+            dax['ratio'] = fig.add_subplot(gs[:3, 3+nn], sharey=ax2)
+
+
+        ax4.set_xlabel('%s'%angunits)
+        ax0.set_ylabel(r'incidence angle ($deg$)')
 
     # Plot
     # ------------
-
-    fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(4, 6, **dmargin)
-    ax0 = fig.add_subplot(gs[:3, 0], aspect='equal', adjustable='datalim')
-    ax1 = fig.add_subplot(gs[:3, 1], aspect='equal', adjustable='datalim',
-                          sharex=ax0, sharey=ax0)
-    axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
-    ax2 = fig.add_subplot(gs[:3, 2])
-    axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
-    ax3 = fig.add_subplot(gs[:3, 3], sharex=ax2, sharey=ax2)
-    axs3 = fig.add_subplot(gs[3, 3], sharex=ax2)#, sharey=axs1)
-    ax4 = fig.add_subplot(gs[:3, 4], sharex=ax2, sharey=ax2)
-    axs4 = fig.add_subplot(gs[3, 3], sharex=ax2)#, sharey=axs1)
-    ax5 = fig.add_subplot(gs[:3, 5], sharey=ax2)
-
-    ax0.set_title('Coordinates transform')
-    ax1.set_title('Camera image')
-    ax2.set_title('Camera image transformed')
-    ax3.set_title('2d spectral fit')
-    ax4.set_title('2d error')
-    ax5.set_title('Moments')
-
-    ax4.set_xlabel('%s'%angunits)
-    ax0.set_ylabel(r'incidence angle ($deg$)')
-
-    ax0.contour(xi, xj, bragg, 10, cmap=cmap)
-    ax0.contour(xi, xj, phi, 10, cmap=cmap, ls='--')
-    ax1.imshow(data, extent=extent, aspect='equal',
-               origin='lower', vmin=vmin, vmax=vmax)
-    axs1.plot(xi, np.nanmean(data, axis=0), c='k', ls='-')
+    if dax.get('data_image') is not None:
+        dax['data_image'].imshow(dataor,
+                                 extent=extent, cmap=cmap,
+                                 origin='lower', vmin=vmin, vmax=vmax)
+    if dax.get('data_transform') is not None:
+        dax['data_transform'].scatter(dfit2d['lamb'][indspect, :],
+                                      dfit2d['phi'][indspect, :],
+                                      c=dfit2d['data'][indspect, :],
+                                      s=6, marker='s', edgecolors='None',
+                                      vmin=vmin, vmax=vmax, cmap=cmap)
+    if dax.get('fit_transform') is not None:
+        dax['fit_transform'].scatter(dfit2d['lamb'][indspect, :],
+                                     dfit2d['phi'][indspect, :],
+                                     c=dfit2d['sol_tot'][indspect, :],
+                                     s=6, marker='s', edgecolors='None',
+                                     vmin=vmin, vmax=vmax, cmap=cmap)
+        if dax.get('err_image') is not None:
+            dax['err_image'].imshow()
     ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=1,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
@@ -1171,4 +1190,4 @@ def CrystalBragg_plot_data_vs_fit(xi, xj, bragg, lamb, phi, data, mask=None,
 
     ax2.set_xlim(extent2[0], extent2[1])
     ax2.set_ylim(extent2[2], extent2[3])
-    return [ax0, ax1]
+    return dax
