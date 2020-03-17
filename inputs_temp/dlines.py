@@ -19,6 +19,14 @@ _DSOURCES = {
                    + "ions and 1s2lnl' of Li-like ions with Z=6-36 and n=2,3, "
                    + "Atomic Data and Nuclear Data Tables, vol. 113, "
                    + "pp 117-257, 2017"),
+    'Bruhns 07': ('Bruhns et al.,'
+                  + '"Testing QED Screening and Two-Loop Contributions "'
+                  + '"with He-Like Ions", '
+                  + 'Physical Review Letters, vol. 99, 113001, 2007'),
+    'Amaro 12': ('Amaro et al.,'
+                  + '"Absolute Measurement of the Relativistic Magnetic Dipole"
+                  + " Transition Energy in Heliumlike Argon", '
+                  + 'Physical Review Letters, vol. 109, 043005, 2012'),
 }
 
 
@@ -410,6 +418,10 @@ dlines = {
                          'lambda': 3.9493e-10,
                          'transition': ('He-like', 'w'),
                          'source': 'Goryaev 17'},
+    'ArXVII_w_Bruhns': {'q': 16, 'ION': 'ArXVII',
+                        'lambda': 3.94906e-10,
+                        'transition': ('He-like', 'w'),
+                        'source': 'Bruhns 07'},
     'ArXVII_x_Kallne': {'q': 16, 'ION': 'ArXVII',
                         'lambda': 3.9649e-10,
                         'transition': ('He-like', 'x'),
@@ -462,6 +474,10 @@ dlines = {
                              'lambda': 3.9682e-10,
                              'transition': ('He-like', 'z2'),
                              'source': 'Vainshtein 85'},
+    'ArXVII_z_Amaro': {'q': 16, 'ION': 'ArXVII',
+                       'lambda': 3.994129e-10,
+                       'transition': ('He-like', 'z'),
+                       'source': 'Amaro 12'},
     'ArXVII_T': {'q': 16, 'ION': 'ArXVII',
                  'symbol': 'T', 'lambda': 3.7544e-10,
                  'transition': [r'$2s2p(^1P_1)$', r'$1s2s(^1S_0)$'],
