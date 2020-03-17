@@ -245,7 +245,7 @@ def _set_arrayorder(obj, arrayorder='C', sep=None):
 
 def _get_subset_indices(subset, size):
     if subset is None:
-        return
+        return np.arange(0, size)
 
     msg = ("subset must be either:\n"
            + "\t- in ]0; 1[ : a fraction of the total nb of points\n"
@@ -260,7 +260,7 @@ def _get_subset_indices(subset, size):
               and 'int' in subset.dtype.name)
         if not c0:
             raise Exception(msg)
-    if subset > 0. and subset < 1.:
+    elif subset > 0. and subset < 1.:
         subset = np.random.default_rng().choice(
             size, size=int(size/subset), replace=False, shuffle=False)
     elif subset > 1. and subset < size:

@@ -1881,8 +1881,6 @@ class CrystalBragg(utils.ToFuObject):
         assert data is not None
         if pos is None:
             pos = False
-        if subset is not None:
-            assert isinstance(subset, int)
         if returnas is None:
             returnas = 'dict'
         lreturn = ['ax', 'dict']
@@ -1927,17 +1925,12 @@ class CrystalBragg(utils.ToFuObject):
             indok &= phiflat < phimax
 
         # Optionally fit only on subset
-        if subset is None:
-            dataflat = dataflat[:, indok]
-            lambflat = lambflat[indok]
-            phiflat = phiflat[indok]
-        else:
-            # randomly pick subset indices (replace=False => no duplicates)i
-            indok = indok.nonzero()[0]
-            indok = indok[utils._get_subset_indices(subset, indok.size)]
-            dataflat = dataflat[:, indok]
-            lambflat = lambflat[indok]
-            phiflat = phiflat[indok]
+        # randomly pick subset indices (replace=False => no duplicates)i
+        indok = indok.nonzero()[0]
+        indok = indok[utils._get_subset_indices(subset, indok.size)]
+        dataflat = dataflat[:, indok]
+        lambflat = lambflat[indok]
+        phiflat = phiflat[indok]
 
         if pos is True:
             dataflat[dataflat < 0.] = 0.

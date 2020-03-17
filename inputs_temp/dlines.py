@@ -24,8 +24,8 @@ _DSOURCES = {
                   + '"with He-Like Ions", '
                   + 'Physical Review Letters, vol. 99, 113001, 2007'),
     'Amaro 12': ('Amaro et al.,'
-                  + '"Absolute Measurement of the Relativistic Magnetic Dipole"
-                  + " Transition Energy in Heliumlike Argon", '
+                  + '"Absolute Measurement of the Relativistic Magnetic"'
+                  + '" Dipole Transition Energy in Heliumlike Argon", '
                   + 'Physical Review Letters, vol. 109, 043005, 2012'),
 }
 
