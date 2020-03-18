@@ -440,7 +440,8 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     else:
         with gil:
             print("??? is not cartesian, and npts = ", npts, npts_vpoly)
-            print("vpoly oo and vpoly 10", vpoly[0][0], vpoly[1][0])
+            print("vpoly 00 and vpoly 10", vpoly[0][0], vpoly[1][0])
+            print("vpoly 0n and vpoly 1n", vpoly[0][npts_vpoly], vpoly[1][npts_vpoly])
         for ii in range(npts):
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 pts[0,ii], pts[1,ii]):

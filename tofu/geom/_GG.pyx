@@ -944,6 +944,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=1] res3d
+    cdef double[:, ::1] pts_mv
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -1105,20 +1106,18 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     if VPoly is not None:
         npts_vpoly = VPoly.shape[1] - 1
         # we make sure it is closed
-        print("closing vpoly................",npts_vpoly, VPoly.shape[0])
-        print("0 value of vpoly", VPoly[0,0], VPoly[0,npts_vpoly])
-        print("0 value of vpoly", VPoly[1,0], VPoly[1,npts_vpoly])
+        print("closing vpoly................", VPoly.shape[0], npts_vpoly)
+        print("0st value of vpoly", VPoly[0,0], VPoly[0,npts_vpoly])
+        print("1st value of vpoly", VPoly[1,0], VPoly[1,npts_vpoly])
         print("testing if")
-        if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
-                and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
-            print("chaging vpoly")
-            poly_mv2 = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
-            print("concatenation done")
-            poly_mv = poly_mv2
-            print("trying other strategy done")
-        else:
-            poly_mv = VPoly
-        print("closed................", poly_mv[0,0], VPoly[0,0])
+        # if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
+        #         and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
+        #     poly_mv2 = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
+        #     poly_mv = poly_mv2
+        #     print("trying other strategy done")
+        # else:
+        #     poly_mv = VPoly
+        # print("closed................", VPoly[0,0], poly_mv[0,0])
         # initializations:
         res_x = <double**> malloc(sizeof(double*))
         res_y = <double**> malloc(sizeof(double*))
@@ -1129,26 +1128,29 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind[0] = NULL
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
+        print("making pts_mv !")
+        pts_mv = pts
         print("before vignetting", is_cart)
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts_mv,
                                                 dv_mv, reso_phi_mv, disc_r,
                                                 ind_mv, res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0], num_threads)
-        print("after, initializing other stuff")
-        pts = np.empty((3,nb_in_poly))
-        print("1 done", nb_in_poly, res_lind[0] == NULL)
-        ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-        print("2 done")
-        res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
-        print("3 done")
-        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
-        print("4 done")
-        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
-        print("5 done")
-        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-        print("6 done")
-        reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
+        print("after, initializing other stuff", nb_in_poly)
+        if nb_in_poly > 0:
+            pts = np.empty((3,nb_in_poly))
+            print("1 done", nb_in_poly, res_lind[0] == NULL)
+            ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
+            print("2 done")
+            res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
+            print("3 done")
+            pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
+            print("4 done")
+            pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
+            print("5 done")
+            pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
+            print("6 done")
+            reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
         # freeing the memory
         print("got here.................")
         free(res_x[0])
@@ -1180,7 +1182,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     print("ind =", ind[0])
     print("res_r=", reso_r[0])
     print("res_z=", reso_z[0])
-    print("reso phi = ", reso_phi)
+    print("reso phi = ", reso_phi[0])
     return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi
 
 
