@@ -1,6 +1,6 @@
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
-# cython: initializedcheck=False
+# cython: initializedcheck=True
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
@@ -920,7 +920,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] dv_mv
     cdef double[::1] reso_phi_mv, hypot
-    cdef double[:, ::1] pts_mv
     cdef double[:, ::1] poly_mv
     cdef long[:, :, ::1] lnp
     cdef long*  ncells_rphi  = NULL
@@ -1023,9 +1022,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
         indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
-        indi_mv = indI
+        # indi_mv = indI
         for jj in range(sz_phi[0]):
-            indi_mv[0,jj] = nphi0+jj
+            indI[0,jj] = nphi0+jj
         NP += sz_z * sz_phi[0]
     else:
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
@@ -1059,14 +1058,13 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         print("_________ taille indi =", sz_r, sz_phi[0] * r_ratio + 1)
         indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
         print("_________ indi 00 =", indI[0,0])
-        indi_mv = indI
-        print("_________ indi 00 =", indI[0,0])
+        #indi_mv = indI
         print("_________ loop until =", loc_nc_rphi-nphi0, loc_nc_rphi, nphi0)
         for jj in range(loc_nc_rphi-nphi0):
             print("_____________ jj =", jj)
-            indi_mv[0,jj] = nphi0 + jj
+            indI[0,jj] = nphi0 + jj
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
-            indi_mv[0,jj] = jj - (loc_nc_rphi - nphi0)
+            indI[0,jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * sz_phi[0]
     print("size indi >>>>>>>><< ", sz_r, sz_phi[0] * r_ratio + 1)
     # ... doing the others
@@ -1076,13 +1074,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              disc_r, disc_r0, step_rphi,
                              reso_phi_mv, tot_nc_plane,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
-                             min_phi, max_phi, sz_phi, indi_mv,
+                             min_phi, max_phi, sz_phi, indI,
                              margin, num_threads)
     print("out of vmesh disc phi............................................")
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
-    pts_mv = pts
     ind_mv = ind
     dv_mv  = res3d
     reso_r_z = reso_r[0]*reso_z[0]
@@ -1103,79 +1100,84 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           dv_mv, reso_phi_mv, pts, ind_mv,
                           num_threads)
     print("out of double loop........................................")
-    # # If we only want to discretize the volume inside a certain flux surface
-    # # describe by a VPoly:
-    # if VPoly is not None:
-    #     npts_vpoly = VPoly.shape[1] - 1
-    #     # we make sure it is closed
-    #     # print("closing vpoly................",npts_vpoly, VPoly[0,0])
-    #     # poly_mv = VPoly
-    #     # print("0 value of vpoly", poly_mv[0,0], VPoly[0,0])
-    #     # print("testing if")
-    #     # if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
-    #     #         and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
-    #     #     print("chaging vpoly")
-    #     #     poly_mv = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
-    #     # print("closed................", poly_mv[0,0], VPoly[0,0])
-    #     # initializations:
-    #     res_x = <double**> malloc(sizeof(double*))
-    #     res_y = <double**> malloc(sizeof(double*))
-    #     res_z = <double**> malloc(sizeof(double*))
-    #     res_vres = <double**> malloc(sizeof(double*))
-    #     res_rphi = <double**> malloc(sizeof(double*))
-    #     res_lind = <long**>   malloc(sizeof(long*))
-    #     res_lind[0] = NULL
-    #     # .. Calling main function
-    #     # this is now the bottleneck taking over 2/3 of the time....
-    #     print("before vignetting", is_cart)
-    #     nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
-    #                                             dv_mv, reso_phi_mv, disc_r,
-    #                                             ind_mv, res_x, res_y, res_z,
-    #                                             res_vres, res_rphi, res_lind,
-    #                                             &sz_rphi[0], num_threads)
-    #     print("after, initializing other stuff")
-    #     pts = np.empty((3,nb_in_poly))
-    #     print("1 done", nb_in_poly, res_lind[0] == NULL)
-    #     ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-    #     print("2 done")
-    #     res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
-    #     print("3 done")
-    #     pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
-    #     print("4 done")
-    #     pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
-    #     print("5 done")
-    #     pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-    #     print("6 done")
-    #     reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
-    #     # freeing the memory
-    #     print("got here.................")
-    #     free(res_x[0])
-    #     free(res_y[0])
-    #     free(res_z[0])
-    #     print("res dones")
-    #     free(res_vres[0])
-    #     free(res_rphi[0])
-    #     free(res_lind[0])
-    #     print("reses 2 done")
-    #     free(res_x)
-    #     free(res_y)
-    #     free(res_z)
-    #     print("res 3 done")
-    #     free(res_vres)
-    #     free(res_rphi)
-    #     free(res_lind)
-    #     print("done !!!!!!!!!!!!!!!!!!")
-    # free(disc_r)
-    # free(disc_z)
-    # free(disc_r0)
-    # free(sz_phi)
-    # free(lindex_z)
-    # free(step_rphi)
-    # free(ncells_rphi)
-    # free(tot_nc_plane)
-    print("pts =", pts)
-    print("res3d =", res3d)
-    print("ind =", ind)
+    # If we only want to discretize the volume inside a certain flux surface
+    # describe by a VPoly:
+    if VPoly is not None:
+        npts_vpoly = VPoly.shape[1] - 1
+        # we make sure it is closed
+        print("closing vpoly................",npts_vpoly, VPoly.shape[0])
+        print("0 value of vpoly", VPoly[0,0], VPoly[0,npts_vpoly])
+        print("0 value of vpoly", VPoly[1,0], VPoly[1,npts_vpoly])
+        print("testing if")
+        if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
+                and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
+            print("chaging vpoly")
+            poly_mv2 = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
+            print("concatenation done")
+            poly_mv = poly_mv2
+            print("trying other strategy done")
+        else:
+            poly_mv = VPoly
+        print("closed................", poly_mv[0,0], VPoly[0,0])
+        # initializations:
+        res_x = <double**> malloc(sizeof(double*))
+        res_y = <double**> malloc(sizeof(double*))
+        res_z = <double**> malloc(sizeof(double*))
+        res_vres = <double**> malloc(sizeof(double*))
+        res_rphi = <double**> malloc(sizeof(double*))
+        res_lind = <long**>   malloc(sizeof(long*))
+        res_lind[0] = NULL
+        # .. Calling main function
+        # this is now the bottleneck taking over 2/3 of the time....
+        print("before vignetting", is_cart)
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts,
+                                                dv_mv, reso_phi_mv, disc_r,
+                                                ind_mv, res_x, res_y, res_z,
+                                                res_vres, res_rphi, res_lind,
+                                                &sz_rphi[0], num_threads)
+        print("after, initializing other stuff")
+        pts = np.empty((3,nb_in_poly))
+        print("1 done", nb_in_poly, res_lind[0] == NULL)
+        ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
+        print("2 done")
+        res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
+        print("3 done")
+        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
+        print("4 done")
+        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
+        print("5 done")
+        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
+        print("6 done")
+        reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
+        # freeing the memory
+        print("got here.................")
+        free(res_x[0])
+        free(res_y[0])
+        free(res_z[0])
+        print("res dones")
+        free(res_vres[0])
+        free(res_rphi[0])
+        free(res_lind[0])
+        print("reses 2 done")
+        free(res_x)
+        free(res_y)
+        free(res_z)
+        print("res 3 done")
+        free(res_vres)
+        free(res_rphi)
+        free(res_lind)
+        print("done !!!!!!!!!!!!!!!!!!")
+    free(disc_r)
+    free(disc_z)
+    free(disc_r0)
+    free(sz_phi)
+    free(lindex_z)
+    free(step_rphi)
+    free(ncells_rphi)
+    free(tot_nc_plane)
+    print("pts =", pts[0,0], pts[1,0], pts[2,0])
+    print("res3d =", res3d[0])
+    print("ind =", ind[0])
     print("res_r=", reso_r[0])
     print("res_z=", reso_z[0])
     print("reso phi = ", reso_phi)

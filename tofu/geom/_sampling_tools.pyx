@@ -1760,6 +1760,7 @@ cdef inline void vmesh_double_loop_polr(int ii,
     return
 
 
+
 cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    long[:,::1] indi_mv,
                                    bint is_cart,
@@ -1797,7 +1798,7 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
             print("is polar")
         for ii in range(sz_r):
             with gil:
-                print("in polar double loop ii =", ii, "first =",
+                print("in polar double loop ii =", ii, "/", sz_r,"first =",
                       first_ind_mv[ii])
             vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                    ncells_rphi, tot_nc_plane,
@@ -1805,6 +1806,8 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    disc_r, disc_z, lnp, sz_phi,
                                    indi_mv[ii,first_ind_mv[ii]:],
                                    dv_mv, reso_phi_mv, pts_mv, ind_mv)
+            with gil:
+                print("in polar double loop ii =", ii, " DONE")
     return
 
 
