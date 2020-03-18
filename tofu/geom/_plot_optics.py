@@ -1038,7 +1038,9 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
 
 def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
                                  dfit2d=None, dinput=None,
-                                 dax=None, indspect=None, spect1d=None,
+                                 dax=None, indspect=None,
+                                 spect1d=None, fit1d=None,
+                                 lambfit=None, phiminmax=None,
                                  cmap=None, vmin=None, vmax=None,
                                  plotmode=None, fs=None, dmargin=None,
                                  angunits='deg', tit=None, wintit=None):
@@ -1064,8 +1066,6 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         phi = phi*180./np.pi
-    if indspect is None:
-        indspect = 0
     if plotmode == 'transform':
         xlab = r'$\lambda$ (m)'
         ylab = r'$\phi$ ({})'.format(angunits)
@@ -1077,34 +1077,37 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     # pre-compute
     # ------------
 
-    err = dfit2d['sol_tot'][indspect, :] - dfit2d['data'][indspect, :]
-    errm = np.nanmax(np.abs(err))
     if vmin is None:
         vmin = 0.
     if vmax is None:
         vmax = max(np.nanmax(dfit2d['data'][indspect, :]),
                    np.nanmax(dfit2d['sol_tot'][indspect, :]))
+    err = dfit2d['sol_tot'][indspect, :] - dfit2d['data'][indspect, :]
+    errm = vmax/10.
+
 
     # Prepare figure if dax not provided
     # ------------
 
     if dax is None:
         fig = plt.figure(figsize=fs)
-        naxh = 3 + dfit2d['Ti'] + dfit2d['vi'] + (dfit2d['ratio'] is not None)
+        naxh = (3*3
+                + 2*(dfit2d['Ti'] + dfit2d['vi']
+                     + (dfit2d['ratio'] is not None)))
         naxv = 1
         gs = gridspec.GridSpec((3+naxv)*3, naxh, **dmargin)
         if plotmode == 'transform':
-            ax0 = fig.add_subplot(gs[:9, 0])
+            ax0 = fig.add_subplot(gs[:9, :3])
             ax0.set_xlim(dinput['lambminmax'])
             ax0.set_ylim(dinput['phiminmax'])
         else:
-            ax0 = fig.add_subplot(gs[:9, 0], aspect='equal')
-        ax0c = fig.add_subplot(gs[10, 0])
-        ax1 = fig.add_subplot(gs[:9, 1],
-                              sharex=ax0, sharey=ax0)
-        ax2 = fig.add_subplot(gs[:9, 2],
-                              sharex=ax0, sharey=ax0)
-        ax1c = fig.add_subplot(gs[10, 1])
+            ax0 = fig.add_subplot(gs[:9, :3], aspect='equal')
+        ax0c = fig.add_subplot(gs[10, :3])
+        ax1 = fig.add_subplot(gs[:9, 3:6],
+                          sharex=ax0, sharey=ax0)
+        ax2 = fig.add_subplot(gs[:9, 6:9],
+                          sharex=ax0, sharey=ax0)
+        ax1c = fig.add_subplot(gs[10, 3:6])
 
         ax0.set_title('Residu')
         ax0.set_xlabel(xlab)
@@ -1121,27 +1124,27 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
             fig.canvas.set_window_title(wintit)
 
         if naxv == 1:
-            dax['fit1d'] = fig.add_subplot(gs[9:11, 2], sharex=ax2)
+            dax['fit1d'] = fig.add_subplot(gs[9:11, 6:9], sharex=ax2)
             dax['fit1d'].set_title('1d sliced spectrum vs fit')
             dax['fit1d'].set_ylabel(r'data')
-            dax['err1d'] = fig.add_subplot(gs[11, 2], sharex=ax2)
+            dax['err1d'] = fig.add_subplot(gs[11, 6:9], sharex=ax2)
             dax['err1d'].set_ylabel(r'err')
             dax['err1d'].set_xlabel(xlab)
 
         nn = 1
         if dfit2d['Ti'] is True:
-            dax['Ti'] = fig.add_subplot(gs[:9, 2+nn], sharey=ax1)
+            dax['Ti'] = fig.add_subplot(gs[:9, 9+2*(nn-1):9+2*nn], sharey=ax1)
             dax['Ti'].set_title(r'Width')
             dax['Ti'].set_xlabel(r'$\hat{T_i}$' + r' (keV)')
             nn += 1
         if dfit2d['vi'] is True:
-            dax['vi'] = fig.add_subplot(gs[:9, 2+nn], sharey=ax1)
+            dax['vi'] = fig.add_subplot(gs[:9, 9+2*(nn-1):9+2*nn], sharey=ax1)
             dax['vi'].set_title(r'Shift')
             dax['vi'].set_xlabel(r'$\hat{v_i}$' + r' (km/s)')
             dax['vi'].axvline(0, ls='-', lw=1., c='k')
             nn += 1
         if dfit2d['ratio'] is not None:
-            dax['ratio'] = fig.add_subplot(gs[:9, 2+nn], sharey=ax1)
+            dax['ratio'] = fig.add_subplot(gs[:9, 9+2*(nn-1):], sharey=ax1)
             dax['ratio'].set_title(r'Intensity Ratio')
             dax['ratio'].set_xlabel(r'ratio (a.u)')
 
@@ -1194,6 +1197,8 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
                            ls='-', marker='.', ms=4,
                            label=dinput['width']['keys'][ii])
         dax['Ti'].set_xlim(left=0.)
+        dax['Ti'].legend(frameon=True,
+                         loc='upper left', bbox_to_anchor=(0., -0.1))
 
     if dax.get('vi') is not None and dfit2d['vi'] is True:
         for ii in range(dfit2d['vims'].shape[1]):
@@ -1201,6 +1206,8 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
                            dfit2d['pts_phi'],
                            ls='-', marker='.', ms=4,
                            label=dinput['shift']['keys'][ii])
+        dax['vi'].legend(frameon=True,
+                         loc='upper left', bbox_to_anchor=(0., -0.1))
 
     if dax.get('ratio') is not None and dfit2d['ratio'] is not None:
         for ii in range(dfit2d['ratio']['value'].shape[1]):
@@ -1208,6 +1215,23 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
                               dfit2d['pts_phi'],
                               ls='-', marker='.', ms=4,
                               label=dfit2d['ratio']['str'][ii])
+        dax['ratio'].legend(frameon=True,
+                            loc='upper left', bbox_to_anchor=(0., -0.1))
+
+    # Add 1d prof
+    # ------------
+    if spect1d is not None:
+        lcol = ['r', 'k', 'm']
+        for ii in range(spect1d.shape[0]):
+            l, = dax['fit1d'].plot(lambfit, fit1d[ii, :],
+                                   ls='-', lw=1., c=lcol[ii%len(lcol)])
+            col = l.get_color()
+            dax['fit1d'].plot(lambfit, spect1d[ii, :],
+                              ls='None', marker='.', c=col, ms=4)
+            dax['err1d'].plot(lambfit, fit1d[ii, :] - spect1d[ii, :],
+                              ls='-', lw=1., c=col)
+            dax['fit'].axhline(phiminmax[ii][0], c=col, ls='-', lw=2.)
+            dax['fit'].axhline(phiminmax[ii][1], c=col, ls='-', lw=2.)
 
     # Polishing
     # ------------
@@ -1216,9 +1240,11 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
             plt.setp(dax[kax].get_yticklabels(), visible=False)
     if dax.get('fit') is not None:
         plt.setp(dax['fit'].get_xticklabels(), visible=False)
+    if dax.get('fit1d') is not None:
+        plt.setp(dax['fit1d'].get_xticklabels(), visible=False)
     if dax.get('err_colorbar') is not None and dax['err'] is not None:
         plt.colorbar(errax, ax=dax['err'], cax=dax['err_colorbar'],
-                     orientation='horizontal')
+                     orientation='horizontal', extend='both')
     if (dax.get('data_colorbar') is not None
         and (dax['data'] is not None or dax['fit'] is not None)):
         plt.colorbar(dataax, ax=dax['data'], cax=dax['data_colorbar'],

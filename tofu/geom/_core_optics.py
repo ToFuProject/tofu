@@ -1564,68 +1564,17 @@ class CrystalBragg(utils.ToFuObject):
     def _calc_spect1d_from_data2d(self, data, lamb, phi,
                                   nlambfit=None, nphifit=None,
                                   nxi=None, nxj=None,
-                                  spect1d=None, mask=None):
-        # Check / format inputs
-        if spect1d is None:
-            spect1d = 'mean'
-        lc = [isinstance(spect1d, tuple) and len(spect1d) == 2,
-              (isinstance(spect1d, list)
-               and all([isinstance(ss, tuple) and len(ss) == 2
-                        for ss in spect1d])),
-              spect1d in ['mean', 'cent']]
-        if lc[0]:
-            spect1d = [spect1d]
-        elif lc[1]:
-            pass
-        elif lc[2]:
-            if spect1d == 'cent':
-                spect1d = [(0., 0.2)]
-                nspect = 1
-        else:
-            msg = ("spect1d must be either:\n"
-                   + "\t- 'mean': the avearge spectrum\n"
-                   + "\t- 'cent': the central spectrum +/- 20%\n"
-                   + "\t- (target, tol); a tuple of 2 floats:\n"
-                   + "\t\ttarget: the central value of the window in [-1,1]\n"
-                   + "\t\ttol:    the window tolerance (width) in [0,1]\n"
-                   + "\t- list of (target, tol)")
-            raise Exception(msg)
-
-        # Compute lambfit / phifit and spectrum1d
-        if mask is not None:
-            data[~mask] = np.nan
+                                  spect1d=None, mask=None, vertsum1d=None):
         if nlambfit is None:
             nlambfit = nxi
         if nphifit is None:
             nphifit = nxj
-        lambfit, phifit = _comp_optics.get_lambphifit(lamb, phi,
-                                                      nlambfit, nphifit)
-        lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
-        ind = np.digitize(lamb, lambfitbins)
-
-        # Get phi window
-        if spect1d == 'mean':
-            phiminmax = np.r_[phifit.min(), phifit.max()][None, :]
-            spect1d_out = np.array([np.nanmean(data[ind == jj])
-                                    for jj in np.unique(ind)])[None, :]
-        else:
-            nspect = len(spect1d)
-            dphi = np.nanmax(phifit) - np.nanmin(phifit)
-            spect1d_out = np.full((nspect, lambfit.size), np.nan)
-            phiminmax = np.full((nspect, 2), np.nan)
-            for ii in range(nspect):
-                phicent = np.nanmean(phifit) + spect1d[ii][0]*dphi/2.
-                indphi = np.abs(phi - phicent) < spect1d[ii][1]*dphi
-                spect1d_out[ii, :] = [np.nanmean(data[indphi & (ind == jj)])
-                                      for jj in np.unique(ind)]
-                phiminmax[ii, :] = (np.nanmin(phi[indphi]),
-                                    np.nanmax(phi[indphi]))
-
-        phifitbins = 0.5*(phifit[1:] + phifit[:-1])
-        ind = np.digitize(phi, phifitbins)
-        vertsum1d = np.array([np.nanmean(data[ind == ii])
-                              for ii in np.unique(ind)])
-        return spect1d_out, lambfit, phifit, vertsum1d, phiminmax
+        return _comp_optics._calc_spect1d_from_data2d(data, lamb, phi,
+                                                      nlambfit=nlambfit,
+                                                      nphifit=nphifit,
+                                                      spect1d=spect1d,
+                                                      mask=mask,
+                                                      vertsum1d=vertsum1d)
 
     @staticmethod
     def get_dinput_for_fit1d(dlines=None, dconstraints=None,
@@ -1678,7 +1627,7 @@ class CrystalBragg(utils.ToFuObject):
          vertsum1d, phiminmax) = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
-            spect1d=spect1d, mask=mask
+            spect1d=spect1d, mask=mask, vertsum1d=True
         )
 
         # Get phiref from mag axis
@@ -1761,7 +1710,7 @@ class CrystalBragg(utils.ToFuObject):
          vertsum1d, phiminmax) = self._calc_spect1d_from_data2d(
             data, lamb, phi,
             nlambfit=nlambfit, nphifit=nphifit, nxi=nxi, nxj=nxj,
-            spect1d=spect1d, mask=mask
+            spect1d=spect1d, mask=mask, vertsum1d=True
         )
 
         # Use valid data only and optionally restrict lamb
@@ -1875,6 +1824,7 @@ class CrystalBragg(utils.ToFuObject):
                                plotmode=None, angunits=None, indspect=None,
                                ratio=None, jac=None, plot=True, fs=None,
                                cmap=None, vmin=None, vmax=None,
+                               spect1d=None, nlambfit=None,
                                dmargin=None, tit=None, wintit=None,
                                returnas=None):
         # Check / format inputs
@@ -1959,12 +1909,29 @@ class CrystalBragg(utils.ToFuObject):
         if plot is True:
             if plotmode is None:
                 plotmode = 'transform'
+        if indspect is None:
+            indspect = 0
+
+            if spect1d is not None:
+                # Compute lambfit / phifit and spectrum1d
+                if nlambfit is None:
+                    nlambfit = 200
+                ((spect1d, fit1d), lambfit,
+                 phifit, _, phiminmax) = self._calc_spect1d_from_data2d(
+                     [dataflat[indspect, :], dfit2d['sol_tot'][indspect, :]],
+                     lambflat, phiflat,
+                     nlambfit=nlambfit, nphifit=10,
+                     spect1d=spect1d, mask=None, vertsum1d=False)
+            else:
+                fit1d, lambfit, phiminmax = None, None
 
             dax = _plot_optics.CrystalBragg_plot_data_fit2d(
                 xi=xi, xj=xj, data=data, lamb=lamb, phi=phi, indspect=indspect,
                 indok=indok, dfit2d=dfit2d, dinput=dinput,
                 dax=dax, plotmode=plotmode, angunits=angunits,
                 cmap=cmap, vmin=vmin, vmax=vmax,
+                spect1d=spect1d, fit1d=fit1d,
+                lambfit=lambfit, phiminmax=phiminmax,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)
 

@@ -343,12 +343,102 @@ def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
     return bragg, phi
 
 
+# ###############################################
+#           2D spectra to 1D
+# ###############################################
+
+
 def get_lambphifit(lamb, phi, nxi, nxj):
     lambD = np.nanmax(lamb)-np.nanmin(lamb)
     lambfit = np.nanmin(lamb) +lambD*np.linspace(0, 1, nxi)
     phiD = np.nanmax(phi) - np.nanmin(phi)
     phifit = np.nanmin(phi) + phiD*np.linspace(0, 1, nxj)
     return lambfit, phifit
+
+
+def _calc_spect1d_from_data2d(ldata, lamb, phi,
+                              nlambfit=None, nphifit=None,
+                              spect1d=None, mask=None,
+                              vertsum1d=None):
+    # Check / format inputs
+    if spect1d is None:
+        spect1d = 'mean'
+    if isinstance(ldata, np.ndarray):
+        ldata = [ldata]
+    lc = [isinstance(spect1d, tuple) and len(spect1d) == 2,
+          (isinstance(spect1d, list)
+           and all([isinstance(ss, tuple) and len(ss) == 2
+                    for ss in spect1d])),
+          spect1d in ['mean', 'cent']]
+    if lc[0]:
+        spect1d = [spect1d]
+    elif lc[1]:
+        pass
+    elif lc[2]:
+        if spect1d == 'cent':
+            spect1d = [(0., 0.2)]
+            nspect = 1
+    else:
+        msg = ("spect1d must be either:\n"
+               + "\t- 'mean': the avearge spectrum\n"
+               + "\t- 'cent': the central spectrum +/- 20%\n"
+               + "\t- (target, tol); a tuple of 2 floats:\n"
+               + "\t\ttarget: the central value of the window in [-1,1]\n"
+               + "\t\ttol:    the window tolerance (width) in [0,1]\n"
+               + "\t- list of (target, tol)")
+        raise Exception(msg)
+
+    if not isinstance(nlambfit, int) or not isinstance(nphifit, int):
+        msg = ("nlambfit and nphifit must be int!\n"
+               + "\t- nlambfit provided: {}\n".format(nlambfit)
+               + "\t- nphifit provided : {}\n".format(nphifit))
+        raise Exception(msg)
+
+    if vertsum1d is None:
+        vertsum1d = True
+
+    # Compute lambfit / phifit and spectrum1d
+    if mask is not None:
+        for ii in range(len(ldata)):
+            ldata[ii][~mask] = np.nan
+    lambfit, phifit = get_lambphifit(lamb, phi, nlambfit, nphifit)
+    lambfitbins = 0.5*(lambfit[1:] + lambfit[:-1])
+    ind = np.digitize(lamb, lambfitbins)
+
+    # Get phi window
+    if spect1d == 'mean':
+        phiminmax = np.r_[phifit.min(), phifit.max()][None, :]
+        spect1d_out = [np.array([np.nanmean(dd[ind == jj])
+                                 for jj in np.unique(ind)])[None, :]
+                       for dd in ldata]
+    else:
+        nspect = len(spect1d)
+        dphi = np.nanmax(phifit) - np.nanmin(phifit)
+        spect1d_out = [np.full((nspect, lambfit.size), np.nan)
+                       for dd in ldata]
+        phiminmax = np.full((nspect, 2), np.nan)
+        for ii in range(nspect):
+            phicent = np.nanmean(phifit) + spect1d[ii][0]*dphi/2.
+            indphi = np.abs(phi - phicent) < spect1d[ii][1]*dphi
+            for jj in np.unique(ind):
+                indj = indphi & (ind == jj)
+                for ij in range(len(ldata)):
+                    spect1d_out[ij][ii, jj] = np.nanmean(
+                    ldata[ij][indj])
+            phiminmax[ii, :] = (np.nanmin(phi[indphi]),
+                                np.nanmax(phi[indphi]))
+
+    if vertsum1d is True:
+        phifitbins = 0.5*(phifit[1:] + phifit[:-1])
+        ind = np.digitize(phi, phifitbins)
+        vertsum1d = [np.array([np.nanmean(dd[ind == ii])
+                               for ii in np.unique(ind)])
+                     for dd in ldata]
+    if len(ldata) == 1:
+        spect1d_out = spect1d_out[0]
+        if vertsum1d is not False:
+            vertsum1d = vertsum1d[0]
+    return spect1d_out, lambfit, phifit, vertsum1d, phiminmax
 
 
 # ###############################################
