@@ -1909,8 +1909,8 @@ class CrystalBragg(utils.ToFuObject):
         if plot is True:
             if plotmode is None:
                 plotmode = 'transform'
-        if indspect is None:
-            indspect = 0
+            if indspect is None:
+                indspect = 0
 
             if spect1d is not None:
                 # Compute lambfit / phifit and spectrum1d
@@ -1923,7 +1923,7 @@ class CrystalBragg(utils.ToFuObject):
                      nlambfit=nlambfit, nphifit=10,
                      spect1d=spect1d, mask=None, vertsum1d=False)
             else:
-                fit1d, lambfit, phiminmax = None, None
+                fit1d, lambfit, phiminmax = None, None, None
 
             dax = _plot_optics.CrystalBragg_plot_data_fit2d(
                 xi=xi, xj=xj, data=data, lamb=lamb, phi=phi, indspect=indspect,
