@@ -23,17 +23,17 @@ _LSUB = np.r_[10000, 20000, 50000, 100000]
 _LTOL = np.logspace(-3, -6, 4)
 
 _CRYSTPATH = os.path.abspath(os.path.join(
-    '..',
+    _HERE, '..',
     'inputs_temp',
     'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.1-174-g453d6a3.npz'
 ))
 _DATAPATH = os.path.abspath(os.path.join(
-    '..',
+    _HERE, '..',
     'inputs_temp',
     'SpectroX2D_WEST_Ar_55076_t84.358s.npz'
 ))
 _MASKPATH = os.path.abspath(os.path.join(
-    '..',
+    _HERE, '..',
     'inputs_temp',
     'XICS_mask.npz'
 ))

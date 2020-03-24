@@ -684,7 +684,8 @@ def multigausfit1d_from_dlines_x0(dind=None,
     # Each x0 should be understood as x0*scale
     x0_scale = np.full((nspect, dind['sizex']), np.nan)
     if chain is True:
-        amp0 = data[0, np.searchsorted(lamb, linesbis)]
+        amp0 = data[0, np.minimum(np.searchsorted(lamb, linesbis),
+                                  lamb.size-1)]
         x0_scale[0, dind['amp']['x']] = amp0 / scales[0, 1]
         x0_scale[0, dind['bck']] = 1.
         x0_scale[0, dind['width']['x']] = 0.4
@@ -694,7 +695,8 @@ def multigausfit1d_from_dlines_x0(dind=None,
             x0_scale[0, dind['dshift']] = -0.5
         x0_scale[0, dind['amp']['x']] *= dx0['amp']
     else:
-        amp0 = data[:, np.searchsorted(lamb, linesbis)]
+        amp0 = data[:, np.minimum(np.searchsorted(lamb, linesbis),
+                                  lamb.size-1)]
         x0_scale[:, dind['amp']['x']] = amp0 / scales[:, 1:2]
         x0_scale[:, dind['bck']] = 1.
         x0_scale[:, dind['width']['x']] = 0.4
@@ -900,7 +902,12 @@ def multigausfit1d_from_dlines(data, lamb,
     else:
         verbscp = 0
 
-    assert lamb.ndim == 1
+    c0 = lamb.ndim == 1 and np.all(np.argsort(lamb) == np.arange(0, lamb.size))
+    if not c0:
+        msg = ("lamb must be a 1d sorted array!\n"
+               + "\t- provided: {}".format(lamb))
+        raise Exception(msg)
+
     assert data.ndim in [1, 2] and lamb.size in data.shape
     if data.ndim == 1:
         data = data[None, :]
@@ -939,10 +946,10 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Get function, cost function and jacobian
     (func_detail,
-     cost, jacob) = multigausfit1d_from_dlines_funccostjac(lamb,
-                                                           dinput=dinput,
-                                                           dind=dind,
-                                                           jac=jac)
+     func_cost, jacob) = multigausfit1d_from_dlines_funccostjac(lamb,
+                                                                dinput=dinput,
+                                                                dind=dind,
+                                                                jac=jac)
 
     # ---------------------------
     # Optimize
@@ -950,6 +957,9 @@ def multigausfit1d_from_dlines(data, lamb,
     # Initialize
     nlines = dinput['nlines']
     sol_detail = np.full((nspect, dind['shapey1'], lamb.size), np.nan)
+    time = np.full((nspect,), np.nan)
+    cost = np.full((nspect,), np.nan)
+    nfev = np.full((nspect,), np.nan)
     amp = np.full((nspect, nlines), np.nan)
     width2 = np.full((nspect, nlines), np.nan)
     shift = np.full((nspect, nlines), np.nan)
@@ -977,7 +987,7 @@ def multigausfit1d_from_dlines(data, lamb,
     # Minimize
     for ii in range(nspect):
         t0 = dtm.datetime.now()     # DB
-        res = scpopt.least_squares(cost, x0_scale[ii, :],
+        res = scpopt.least_squares(func_cost, x0_scale[ii, :],
                                    jac=jacob, bounds=bounds_scale,
                                    method=method, ftol=ftol, xtol=xtol,
                                    gtol=gtol, x_scale=1.0, f_scale=1.0,
@@ -987,11 +997,16 @@ def multigausfit1d_from_dlines(data, lamb,
                                    verbose=verbscp, args=(),
                                    kwargs={'data': data[ii, :],
                                            'scales': scales[ii, :]})
+        time[ii] = (dtm.datetime.now()-t0).total_seconds()
+        cost[ii] = res.cost
+        nfev[ii] = res.nfev
+
         if chain is True and ii < nspect-1:
             x0_scale[ii+1, :] = res.x
         if verbose > 0:
-            dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
-            msg = " {}    {}    {}   {}   {}".format(dt, round(res.cost),
+            dt = round(time[ii], ndigits=3)
+            msg = " {}    {}    {}   {}   {}".format(dt,
+                                                     round(res.cost),
                                                      res.nfev, res.njev,
                                                      res.message)
             print(msg)
@@ -1046,8 +1061,8 @@ def multigausfit1d_from_dlines(data, lamb,
             'width2': width2, 'shift': shift, 'amp': amp,
             'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
             'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
-            'cost': res.cost, 'fun': res.fun, 'active_mask': res.active_mask,
-            'nfev': res.nfev, 'njev': res.njev, 'status': res.status,
+            'cost': cost, 'fun': res.fun, 'active_mask': res.active_mask,
+            'time': time, 'nfev': nfev, 'njev': res.njev, 'status': res.status,
             'msg': res.message, 'success': res.success}
     return dout
 
