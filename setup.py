@@ -386,6 +386,8 @@ setup(
         ],
     },
 
+    py_modules = ['_updateversion'],
+
     # Extensions and commands
     ext_modules=extensions,
     cmdclass={"build_ext": build_ext,
