@@ -1578,7 +1578,8 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def get_dinput_for_fit1d(dlines=None, dconstraints=None,
-                             lambmin=None, lambmax=None):
+                             lambmin=None, lambmax=None,
+                             same_spectrum=None, nspect=None, dlamb=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _spectrafit2d.multigausfit1d_from_dlines()
@@ -1587,7 +1588,8 @@ class CrystalBragg(utils.ToFuObject):
         import tofu.data._spectrafit2d as _spectrafit2d
         return _spectrafit2d.multigausfit1d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints,
-            lambmin=lambmin, lambmax=lambmax)
+            lambmin=lambmin, lambmax=lambmax,
+            same_spectrum=same_spectrum, nspect=nspect, dlamb=dlamb)
 
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det_cent=None, det_ei=None, det_ej=None,
@@ -1672,6 +1674,7 @@ class CrystalBragg(utils.ToFuObject):
                                lambmin=None, lambmax=None,
                                dlines=None, spect1d=None,
                                dconstraints=None, dx0=None,
+                               same_spectrum=None, dlamb=None,
                                double=None, Ti=None, vi=None, ratio=None,
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
@@ -1723,9 +1726,14 @@ class CrystalBragg(utils.ToFuObject):
         lambfit = lambfit[indok]
 
         # Get dinput for 1d fitting
+        if dlamb is None:
+            dlamb = 2.*(np.nanmax(lamb) - np.nanmin(lamb))
         dinput = self.get_dinput_for_fit1d(dlines=dlines,
                                            dconstraints=dconstraints,
-                                           lambmin=lambmin, lambmax=lambmax)
+                                           lambmin=lambmin, lambmax=lambmax,
+                                           same_spectrum=same_spectrum,
+                                           nspect=spect1d.shape[0],
+                                           dlamb=dlamb)
 
         # Compute fit for spect1d to get lamb0 if not provided
         if showonly is True:
