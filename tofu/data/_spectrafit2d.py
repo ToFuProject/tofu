@@ -28,7 +28,8 @@ _DCONSTRAINTS = {'amp': False,
 _SAME_SPECTRUM = False
 _DEG = 3
 _NBSPLINES = 6
-
+_TOL1D = {'x': 1e-12, 'f': 1.e-12, 'g': 1.e-12}
+_TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 
 ###########################################################
 ###########################################################
@@ -593,17 +594,18 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
     if same_spectrum is True:
         keysadd = np.array([[kk+'_bis{:04.0f}'.format(ii) for kk in keys]
                             for ii in range(1, nspect)]).ravel()
-        lamb = (dlamb*np.arange(0, nspect)[:, None] + lamb[None, :]).ravel()
+        lamb = (dlamb*np.arange(0, nspect)[:, None] + lamb[None, :])
         keys = np.r_[keys, keysadd]
 
         for k0 in ['amp', 'width', 'shift']:
             # Add other lines to original group
             keyk = dinput[k0]['keys']
-            coefs = np.tile(dinput[k0]['coefs'], nspect)
             offset = np.tile(dinput[k0]['offset'], nspect)
             if k0 == 'shift':
                 ind = np.tile(dinput[k0]['ind'], (1, nspect))
+                coefs = (dinput[k0]['coefs'] * lamb[0, :] / lamb).ravel()
             else:
+                coefs = np.tile(dinput[k0]['coefs'], nspect)
                 keysadd = np.array([[kk+'_bis{:04.0f}'.format(ii)
                                      for kk in keyk]
                                     for ii in range(1, nspect)]).ravel()
@@ -618,6 +620,7 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
             dinput[k0]['coefs'] = coefs
             dinput[k0]['offset'] = offset
         nlines *= nspect
+        lamb = lamb.ravel()
 
         # update mz, symb, ion
         mz = np.tile(mz, nspect)
@@ -690,41 +693,57 @@ def multigausfit1d_from_dlines_ind(dinput=None):
 
 
 def multigausfit1d_from_dlines_scale(data, lamb,
-                                     scales=None,
+                                     dscales=None,
                                      dinput=None,
                                      nspect=None,
                                      dind=None):
-    if scales is None:
-        scales = np.full((nspect, dind['sizex']), np.nan)
-        Dlamb = dinput['lambminmax'][1] - dinput['lambminmax'][0]
-        scales[:, dind['bck']['x'][0]] = np.maximum(np.nanmin(data, axis=1),
-                                                    np.nanmax(data, axis=1)/20)
-        # amp
-        for ii, ij in enumerate(dind['amp_x0']):
-            indi = np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.
-            scales[:, dind['amp']['x'][ii]] = np.nanmax(data[:, indi], axis=1)
+    scales = np.full((nspect, dind['sizex']), np.nan)
+    Dlamb = dinput['lambminmax'][1] - dinput['lambminmax'][0]
+    scales[:, dind['bck']['x'][0]] = np.maximum(np.nanmin(data, axis=1),
+                                                np.nanmax(data, axis=1)/20)
+    # amp
+    for ii, ij in enumerate(dind['amp_x0']):
+        indi = np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.
+        scales[:, dind['amp']['x'][ii]] = np.nanmax(data[:, indi], axis=1)
 
-        # width and shift
-        lambm = dinput['lambminmax'][0]
-        if dinput['same_spectrum'] is True:
-            lambm2 = (lambm
-                     + dinput['same_spectrum_dlamb']
-                     * np.arange(0, dinput['same_spectrum_nspect']))
-            nw0 = dind['width']['x'].size / dinput['same_spectrum_nspect']
-            lambmw = np.repeat(lambm2, nw0)
-            scales[:, dind['width']['x']] = (Dlamb/(20*lambmw))**2
-        else:
-            scales[:, dind['width']['x']] = (Dlamb/(20*lambm))**2
-        scales[:, dind['shift']['x']] = Dlamb/(50*lambm)
+    # width and shift
+    lambm = dinput['lambminmax'][0]
+    if dinput['same_spectrum'] is True:
+        lambm2 = (lambm
+                 + dinput['same_spectrum_dlamb']
+                 * np.arange(0, dinput['same_spectrum_nspect']))
+        nw0 = dind['width']['x'].size / dinput['same_spectrum_nspect']
+        lambmw = np.repeat(lambm2, nw0)
+        scales[:, dind['width']['x']] = (Dlamb/(20*lambmw))**2
+    else:
+        scales[:, dind['width']['x']] = (Dlamb/(20*lambm))**2
+    scales[:, dind['shift']['x']] = Dlamb/(20*lambm)
 
-        # Double
-        if dinput['double'] is True:
-            scales[:, dind['dratio']] = 1.
-            scales[:, dind['dshift']] = Dlamb/(50*lambm)
+    # Double
+    if dinput['double'] is True:
+        scales[:, dind['dratio']] = 1.
+        scales[:, dind['dshift']] = Dlamb/(20*lambm)
     assert scales.ndim in [1, 2]
-    if scales.ndim == 1:
-        scales = np.tile(scales, (nspect, scales.size))
     assert scales.shape == (nspect, dind['sizex'])
+
+    # Adjust with user-provided dscales
+    lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
+    if dscales is None:
+        dscales = dict.fromkeys(lk, 1.)
+    ltypes = [int, float, np.int, np.float]
+    c0 = (isinstance(dscales, dict)
+          and all([type(dscales.get(ss, 1.)) in ltypes for ss in lk]))
+    if not c0:
+        msg = ("Arg dscales must be a dict of the form (1. is default):\n"
+               + "\t- {}\n".format(dict.fromkeys(lk, 1.))
+               + "\t- provided: {}".format(dscales))
+        raise Exception(msg)
+
+    for kk in lk:
+        if kk in ['dratio', 'dshift']:
+            scales[:, dind[kk]] *= dscales.get(kk, 1.)
+        else:
+            scales[:, dind[kk]['x']] *= dscales.get(kk, 1.)
     return scales
 
 
@@ -803,13 +822,13 @@ def multigausfit1d_from_dlines_bounds(sizex=None, dind=None, double=None):
     xlo[dind['amp']['x']] = 0.
     xup[dind['width']['x']] = 1.
     xlo[dind['width']['x']] = 0.01
-    xup[dind['shift']['x']] = 1.
-    xlo[dind['shift']['x']] = -1.
+    xup[dind['shift']['x']] = 2.
+    xlo[dind['shift']['x']] = -2.
     if double is True:
         xup[dind['dratio']] = 1.6
         xlo[dind['dratio']] = 0.4
-        xup[dind['dshift']] = 10.
-        xlo[dind['dshift']] = -10.
+        xup[dind['dshift']] = 2.
+        xlo[dind['dshift']] = -2.
     bounds_scale = (xlo, xup)
     return bounds_scale
 
@@ -937,8 +956,8 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                 jac[:, ishx[ii]] = np.sum(quant[:, ishj[ii]], axis=1)
             if double is True:
                 # Assuming Ti = False and vi = False
-                ampd = amp*x[idratiox]
-                shiftid = shifti + scales[ishl]*x[idshx]
+                ampd = amp*x[idratiox]*scales[idratiox]
+                shiftid = shifti + scales[idshx]*x[idshx]
                 betad = (lamb/lines - (1 + shiftid)) / (2*wi2)
                 alphad = -betad**2 * (2*wi2)
                 expd = np.exp(alphad)
@@ -953,9 +972,10 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                 for ii in range(ishx.size):
                     jac[:, ishx[ii]] += np.sum(quant[:, ishj[ii]], axis=1)
 
-                jac[:, idratiox] = np.sum(amp * expd, axis=1)
+                jac[:, idratiox] = np.sum(amp * scales[idratiox] * expd,
+                                          axis=1)
                 # * coefssl => NO, line-specific
-                jac[:, idshx] = np.sum(ampd * 2.*betad*scales[ishl] * expd,
+                jac[:, idshx] = np.sum(ampd * 2.*betad*scales[idshx] * expd,
                                        axis=1)
             return jac
     else:
@@ -970,7 +990,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
 def multigausfit1d_from_dlines(data, lamb,
                                lambmin=None, lambmax=None,
                                dinput=None, dx0=None, ratio=None,
-                               scales=None, x0_scale=None, bounds_scale=None,
+                               dscales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
                                chain=None, verbose=None,
@@ -1007,11 +1027,11 @@ def multigausfit1d_from_dlines(data, lamb,
         method = 'trf'
     assert method in ['trf', 'dogbox'], method
     if xtol is None:
-        xtol = 1.e-12
+        xtol = _TOL1D['x']
     if ftol is None:
-        ftol = 1.e-12
+        ftol = _TOL1D['f']
     if gtol is None:
-        gtol = 1.e-12
+        gtol = _TOL1D['g']
     if loss is None:
         loss = 'linear'
     if max_nfev is None:
@@ -1054,7 +1074,7 @@ def multigausfit1d_from_dlines(data, lamb,
 
     # Get scaling
     scales = multigausfit1d_from_dlines_scale(data, lamb,
-                                              scales=scales,
+                                              dscales=dscales,
                                               dinput=dinput,
                                               dind=dind,
                                               nspect=nspect)
@@ -1122,7 +1142,7 @@ def multigausfit1d_from_dlines(data, lamb,
         res = scpopt.least_squares(func_cost, x0_scale[ii, :],
                                    jac=jacob, bounds=bounds_scale,
                                    method=method, ftol=ftol, xtol=xtol,
-                                   gtol=gtol, x_scale=1.0, f_scale=1.0,
+                                   gtol=gtol, x_scale='jac', f_scale=1.0,
                                    loss=loss, diff_step=None,
                                    tr_solver=None, tr_options={},
                                    jac_sparsity=None, max_nfev=max_nfev,
@@ -1166,6 +1186,7 @@ def multigausfit1d_from_dlines(data, lamb,
         ind = np.array([iit[0] for iit in dind['width']['jac']])
         kTiev = conv * width2[:, ind] * dinput['mz'][ind] * scpct.c**2
 
+    # import pdb; pdb.set_trace()     # DB
     # Reshape in case of same_spectrum
     if dinput['same_spectrum'] is True:
         nspect0 = dinput['same_spectrum_nspect']
@@ -1825,11 +1846,11 @@ def multigausfit2d_from_dlines(data, lamb, phi,
         method = 'trf'
     assert method in ['trf', 'dogbox'], method
     if xtol is None:
-        xtol = 1.e-12
+        xtol = _TOL2D['x']
     if ftol is None:
-        ftol = 1.e-12
+        ftol = _TOL2D['f']
     if gtol is None:
-        gtol = 1.e-12
+        gtol = _TOL2D['g']
     if loss is None:
         loss = 'linear'
     if max_nfev is None:

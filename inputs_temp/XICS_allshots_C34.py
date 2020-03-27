@@ -839,7 +839,7 @@ def fit(pfe=None, allow_pickle=True,
         lambmin=None, lambmax=None,
         same_spectrum=None, dlamb=None,
         method=None, max_nfev=None,
-        scales=None, x0_scale=None, bounds_scale=None,
+        dscales=None, x0_scale=None, bounds_scale=None,
         xtol=None, ftol=None, gtol=None,
         loss=None, verbose=None, showonly=None,
         fs=None, dmargin=None, cmap=None):
@@ -958,7 +958,7 @@ def fit(pfe=None, allow_pickle=True,
                     lamb[jj, ii, :],
                     dinput=dinput, dx0=dx0,
                     lambmin=lambmin, lambmax=lambmax,
-                    scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
+                    dscales=dscales, x0_scale=x0_scale, bounds_scale=bounds_scale,
                     method=method, max_nfev=max_nfev,
                     chain=True, verbose=verbose,
                     xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
@@ -966,13 +966,15 @@ def fit(pfe=None, allow_pickle=True,
                 spectfit[ind[ll], :, ii, :] = dfit1d['sol']
                 time[ind[ll], :, ii] = dfit1d['time']
                 chinorm[ind[ll], :, ii] = np.sqrt(dfit1d['cost']) / nxi
-                indsig = np.abs(dfit1d['dshift']) >= dshiftmin[ind[ll]]
+                indsig = np.abs(dfit1d['dshift']) >= dshiftmin[jj]
                 indpos = dfit1d['dshift'] > 0.
                 ind098 = indsig & indpos & (dfit1d['dratio'] > 0.98)
                 ind102 = indsig & (~indpos) & (dfit1d['dratio'] < 1.02)
                 if np.any(ind098):
                     msg = ("Some to high (> 0.98) dratio with dshift > 0:\n"
-                           + "\t- shitmin = {}\n".format(dshiftmin[ind[ll]])
+                           + "\t- shot: {}\n".format(shots[ind[ll]])
+                           + "\t- xj[{}] = {}\n".format(ii, xj[ii])
+                           + "\t- shitmin = {}\n".format(dshiftmin[jj])
                            + "\t- dshift[{}]".format(ind098.nonzero()[0])
                            + " = {}\n".format(dfit1d['dshift'][ind098])
                            + "\t- dratio[{}]".format(ind098.nonzero()[0])
@@ -980,7 +982,7 @@ def fit(pfe=None, allow_pickle=True,
                     warnings.warn(msg)
                 if np.any(ind102):
                     msg = ("Some to high dratio with dshift > 0:\n"
-                           + "\t- shitmin = {}\n".format(dshiftmin[ind[ll]])
+                           + "\t- shitmin = {}\n".format(dshiftmin[jj])
                            + "\t- dshift[{}]".format(ind102.nonzero()[0])
                            + " = {}\n".format(dfit1d['dshift'][ind102])
                            + "\t- dratio[{}]".format(ind102.nonzero()[0])
@@ -1132,6 +1134,58 @@ def fit(pfe=None, allow_pickle=True,
     dax['time'][i1].set_yticks(range(0, nt))
     if indt is not None:
         dax['time'][i1].set_yticklabels(indt)
+
+    # -------- Extra plot ----
+    if nang == 1 or (key0 is None and key1 is None):
+        return dax
+
+    shift0m, shift1m = None, None
+    if key0 is not None:
+        shift0m = np.array([[np.nanmean(shift0[ang == angu[jj], :, ii])
+                            for jj in range(nang)] for ii in range(nxj)])
+    if key1 is not None:
+        shift1m = np.array([[np.nanmean(shift1[ang == angu[jj], :, ii])
+                            for jj in range(nang)] for ii in range(nxj)])
+
+    lkey = [kk for kk in [key0, key1] if kk is not None]
+    lshiftm = [ss for ss in [shift0m, shift1m] if ss is not None]
+    nl = len(lkey)
+
+    dmargin = {'left':0.06, 'right':0.95,
+               'bottom':0.08, 'top':0.90,
+               'wspace':0.4, 'hspace':0.2}
+
+    fig = plt.figure(figsize=fs)
+    if shot is not None:
+        fig.suptitle('shot = {}'.format(shot))
+    gs = gridspec.GridSpec(2, nl, **dmargin)
+
+    shy = None
+    ax0 = [None for ii in range(nl)]
+    ax1 = [None for ii in range(nl)]
+    for ii in range(nl):
+        ax0[ii] = fig.add_subplot(gs[0, ii], sharey=shy)
+        ax1[ii] = fig.add_subplot(gs[1, ii], sharey=shy)
+        if ii == 0:
+            shy = ax0[ii]
+        ax0[ii].set_title(lkey[ii])
+        ax0[ii].set_xlabel('table angle')
+        ax0[ii].set_ylabel(r'$\Delta \lambda$ (m)')
+        ax1[ii].set_xlabel('xi (m)')
+        for jj in range(nxj):
+            ax0[ii].plot(angu, lshiftm[ii][jj, :],
+                         ls='-', lw=1., marker='.', ms=8,
+                         label='xj[{}] = {} m'.format(jj, xj[jj]))
+        ax0[ii].axhline(0, ls='--', lw=1., c='k')
+        for jj in range(nang):
+            ax1[ii].plot(xj, lshiftm[ii][:, jj],
+                         ls='-', lw=1., marker='.', ms=8,
+                         label='ang[{}] = {}'.format(jj, angu[jj]))
+
+    ax0[0].legend(loc='upper left',
+                 bbox_to_anchor=(1.01, 1.))
+    ax1[0].legend(loc='upper left',
+                 bbox_to_anchor=(1.01, 1.))
     return dax
 
 
@@ -1150,7 +1204,7 @@ def scan_det(pfe=None, allow_pickle=True,
              lambmin=None, lambmax=None,
              same_spectrum=None, dlamb=None,
              method=None, max_nfev=None,
-             scales=None, x0_scale=None, bounds_scale=None,
+             dscales=None, x0_scale=None, bounds_scale=None,
              xtol=None, ftol=None, gtol=None,
              loss=None, verbose=None, showonly=None,
              fs=None, dmargin=None, cmap=None):
@@ -1270,7 +1324,7 @@ def scan_det(pfe=None, allow_pickle=True,
                                 lamb[jj, ii, :],
                                 dinput=dinput, dx0=dx0,
                                 lambmin=lambmin, lambmax=lambmax,
-                                scales=scales, x0_scale=x0_scale,
+                                dscales=dscales, x0_scale=x0_scale,
                                 bounds_scale=bounds_scale,
                                 method=method, max_nfev=max_nfev,
                                 chain=True, verbose=1,
