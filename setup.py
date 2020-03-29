@@ -386,7 +386,7 @@ setup(
         ],
     },
 
-    py_modules = ['_updateversion'],
+    py_modules=['_updateversion'],
 
     # Extensions and commands
     ext_modules=extensions,
