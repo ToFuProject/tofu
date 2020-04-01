@@ -1,19 +1,28 @@
 
 import os
+import sys
 import shutil
 import warnings
+import datetime as dtm
 
 import numpy as np
+import scipy.optimize as scpopt
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.lines as mlines
 
 _HERE = os.path.dirname(__file__)
-cwd = os.getcwd()
-os.chdir(os.path.abspath(os.path.join(_HERE, os.pardir)))
-import tofu as tf
-os.chdir(cwd)
+_TOFUPATH = os.path.abspath(os.path.join(_HERE, os.pardir))
 
+sys.path.insert(1, _TOFUPATH)
+import tofu as tf
+from inputs_temp.dlines import dlines
+import inputs_temp.XICS_allshots_C34 as xics
+_ = sys.path.pop(1)
+
+
+print(('tofu in {}: \n\t'.format(__file__)
+       + tf.__version__  + '\n\t' + tf.__file__), file=sys.stdout)
 
 
 # #############################################################################
@@ -29,6 +38,53 @@ _PATHC4 = os.path.abspath(os.path.join(
     _HERE,
     'XICS_allshots_C4_sh54179-55987.npz'))
 _PATH = _HERE
+
+
+# #############################################################################
+#                   Detector from CAD
+# #############################################################################
+
+
+_DET_CAD_CORNERS_XYZ = np.array([
+    [-2332.061, -126.662, -7606.628],
+    [-2363.382, -126.662, -7685.393],
+    [-2363.382,  126.662, -7685.393],
+    [-2332.061,  126.662, -7606.628],
+]).T*1.e-3
+# (-x)zy -> xyz
+_DET_CAD_CORNERS_XYZ = np.array([-_DET_CAD_CORNERS_XYZ[0, :],
+                                 _DET_CAD_CORNERS_XYZ[2, :],
+                                 _DET_CAD_CORNERS_XYZ[1, :]])
+_DET_CAD_CENT = np.mean(_DET_CAD_CORNERS_XYZ, axis=1)
+_DET_CAD_EI = _DET_CAD_CORNERS_XYZ[:, 1] - _DET_CAD_CORNERS_XYZ[:, 0]
+_DET_CAD_EI = _DET_CAD_EI / np.linalg.norm(_DET_CAD_EI)
+_DET_CAD_EJ = _DET_CAD_CORNERS_XYZ[:, -1] - _DET_CAD_CORNERS_XYZ[:, 0]
+_DET_CAD_EJ = _DET_CAD_EJ - np.sum(_DET_CAD_EJ*_DET_CAD_EI)*_DET_CAD_EI
+_DET_CAD_EJ = _DET_CAD_EJ / np.linalg.norm(_DET_CAD_EJ)
+_DET_CAD_NOUT = np.cross(_DET_CAD_EI, _DET_CAD_EJ)
+_DET_CAD_NOUT = _DET_CAD_NOUT / np.linalg.norm(_DET_CAD_NOUT)
+
+
+# #############################################################################
+#                   Spectral lines dict
+# #############################################################################
+
+
+_DLINES_ARXVII = {
+    k0: v0 for k0, v0 in dlines.items()
+    if ((v0['source'] == 'Vainshtein 85'
+         and v0['ION'] == 'ArXVII'
+         and v0['symbol'] not in ['y2', 'z2'])
+        or (v0['source'] == 'Goryaev 17'
+            and v0['ION'] == 'ArXVI'
+            and v0['symbol'] not in ['l', 'n3-h1', 'n3-h2', 'd',
+                                     'n3-e1', 'n3-f4', 'n3-f2', 'n3-e2',
+                                     'n3-f1', 'n3-g1', 'n3-g2', 'n3-g3',
+                                     'n3-f3', 'n3-a1', 'n3-a2', 'n3-c1',
+                                     'n3-c2', 'g', 'i', 'e', 'f', 'u',
+                                     'v', 'h', 'c', 'b', 'n3-b1',
+                                     'n3-b2', 'n3-b4', 'n3-d1', 'n3-d2']
+           ))}
 
 
 # #############################################################################
@@ -160,6 +216,11 @@ _DSHOTS = {
     }
 }
 
+_DSHOTS_DEF = {
+    'ArXVII': [54044, 54045, 54046, 54047, 54049, 54061],
+    'FeXXV': [],
+}
+
 
 for cryst, v0 in _DSHOTS.items():
     for shot, v1 in v0.items():
@@ -196,8 +257,12 @@ _DCRYST = {
 }
 
 _DDET = {'ArXVII':
-         dict(ddist=0.04, di=-0.004, dj=0.,
-              dtheta=0., dpsi=0., tilt=0.011, tangent_to_rowland=True)}
+         dict(ddist=0.05, di=-0.0053, dj=0.,
+              dtheta=0., dpsi=0.01, tilt=-0.009, tangent_to_rowland=True),
+         'FeXXV':
+         dict(ddist=0., di=0., dj=0.,
+              dtheta=0., dpsi=0., tilt=0., tangent_to_rowland=True),
+        }
 
 
 # #############################################################################
@@ -560,6 +625,10 @@ def _get_crystanddet(cryst=None, det=None):
         assert cryst.__class__.__name__ == 'CrystalBragg'
 
     if cryst is not False:
+        if det is False:
+            det_cent, det_nout, det_ei, det_ej = cryst.get_detector_approx()
+            det = {'det_cent': det_cent, 'det_nout': det_nout,
+                   'det_ei': det_ei, 'det_ej': det_ej}
         c0 = (isinstance(det, dict)
               and all([kk in det.keys() for kk in ['det_cent', 'det_nout',
                                                    'det_ei', 'det_ej']]))
@@ -626,6 +695,7 @@ def _extract_data(pfe, allow_pickle=None,
 def plot(pfe=None, allow_pickle=True,
          shot=None, maskxi=None,
          cryst=None, det=None,
+         dlines=None,
          fs=None, dmargin=None, cmap=None):
 
     # Check input
@@ -720,7 +790,6 @@ def plot(pfe=None, allow_pickle=True,
                     dax['spectn'][ii].plot(xibis,
                                            spectn[ind[ss], tt, ii, :],
                                            c=col, ls=ls, label=lab)
-
     # Polish
     dax['spect'][0].set_title('raw spectra')
     dax['spectn'][0].set_title('normalized spectra')
@@ -771,6 +840,21 @@ def plot(pfe=None, allow_pickle=True,
                     dax2['spectn'][ii].plot(lamb[ind[ss], ii, :],
                                             spectn[ind[ss], tt, ii, :],
                                             c=col, ls=ls, label=lab)
+        if dlines is not None:
+            for kk in dlines.keys():
+                dax2['spect'][ii].axvline(dlines[kk]['lambda'],
+                                          c='k', ls='-', lw=1.)
+                dax2['spectn'][ii].axvline(dlines[kk]['lambda'],
+                                           c='k', ls='-', lw=1.)
+    if dlines is not None:
+        for kk in dlines.keys():
+            dax2['spect'][0].annotate(kk,
+                                      xy=(dlines[kk]['lambda'], 1.),
+                                      xycoords=('data', 'axes fraction'),
+                                      horizontalalignment='left',
+                                      verticalalignment='bottom',
+                                      rotation=45,
+                                      arrowprops=None)
 
     # Polish
     dax2['spect'][0].set_title('raw spectra')
@@ -788,7 +872,7 @@ def plot(pfe=None, allow_pickle=True,
 
 
 # #############################################################################
-#                   Fit and Scan detector
+#                   Fit several data for one det
 # #############################################################################
 
 
@@ -841,19 +925,24 @@ def fit(pfe=None, allow_pickle=True,
         method=None, max_nfev=None,
         dscales=None, x0_scale=None, bounds_scale=None,
         xtol=None, ftol=None, gtol=None,
-        loss=None, verbose=None, showonly=None,
-        fs=None, dmargin=None, cmap=None):
+        loss=None, verbose=None, plot=None,
+        fs=None, dmargin=None, cmap=None, warn=True):
 
     # -----------
     # Check input
 
+    if verbose is None or verbose is True:
+        verbose = 1
+    if verbose is False:
+        verbose = 0
+
     # input data file
     lc = [pfe is not None,
-          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj, thr]])]
+          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj]])]
     if np.sum(lc) != 1:
         msg = ("Please provide eithe (xor):\n"
                + "\t- pfe\n"
-               + "\t- spectn, shots, t, ang, xi, xj, thr")
+               + "\t- spectn, shots, t, ang, xi, xj")
         raise Exception(msg)
     if lc[0]:
         if not os.path.isfile(pfe):
@@ -941,18 +1030,20 @@ def fit(pfe=None, allow_pickle=True,
     if key1 is not None:
         shift1 = np.full(spectn.shape[:-1], np.nan)
     for jj in range(nang):
-        msg = ("\nOptimizing for ang = {}  ({}/{})\n".format(angu[jj],
-                                                             jj+1, nang)
-               + "--------------------------------")
-        print(msg)
+        if verbose > 0:
+            msg = ("\nOptimizing for ang = {}  ({}/{})\n".format(angu[jj],
+                                                                 jj+1, nang)
+                   + "--------------------------------")
+            print(msg)
         ind = (ang == angu[jj]).nonzero()[0]
         for ll in range(ind.size):
             msgsh = "---------- shot {} ({}/{})".format(shots[ind[ll]],
                                                         ll+1, ind.size)
             for ii in range(nxj):
-                msg = ("  xj = {}  ({}/{}):".format(xj[ii], ii+1, nxj)
-                       + "\t{} spectra".format(spectn.shape[1]))
-                print(msgsh + msg)
+                if verbose > 0:
+                    msg = ("  xj = {}  ({}/{}):".format(xj[ii], ii+1, nxj)
+                           + "\t{} spectra".format(spectn.shape[1]))
+                    print(msgsh + msg)
                 dfit1d = tf.data._spectrafit2d.multigausfit1d_from_dlines(
                     spectn[ind[ll], :, ii, :],
                     lamb[jj, ii, :],
@@ -970,7 +1061,7 @@ def fit(pfe=None, allow_pickle=True,
                 indpos = dfit1d['dshift'] > 0.
                 ind098 = indsig & indpos & (dfit1d['dratio'] > 0.98)
                 ind102 = indsig & (~indpos) & (dfit1d['dratio'] < 1.02)
-                if np.any(ind098):
+                if np.any(ind098) and warn is True:
                     msg = ("Some to high (> 0.98) dratio with dshift > 0:\n"
                            + "\t- shot: {}\n".format(shots[ind[ll]])
                            + "\t- xj[{}] = {}\n".format(ii, xj[ii])
@@ -980,7 +1071,7 @@ def fit(pfe=None, allow_pickle=True,
                            + "\t- dratio[{}]".format(ind098.nonzero()[0])
                            + " = {}".format(dfit1d['dratio'][ind098]))
                     warnings.warn(msg)
-                if np.any(ind102):
+                if np.any(ind102) and warn is True:
                     msg = ("Some to high dratio with dshift > 0:\n"
                            + "\t- shitmin = {}\n".format(dshiftmin[jj])
                            + "\t- dshift[{}]".format(ind102.nonzero()[0])
@@ -1001,11 +1092,24 @@ def fit(pfe=None, allow_pickle=True,
                                                   *dinput['lines'][indl1])
                     shift1[ind[ll], ind098 | ind102, ii] = np.nan
 
+    dcost = {}
+    shift0m, shift1m = None, None
+    if key0 is not None:
+        dcost[key0] = {
+            'shift': shift0,
+            'shiftm': np.array([[np.nanmean(shift0[ang == angu[jj], :, ii])
+                                 for jj in range(nang)] for ii in range(nxj)])}
+    if key1 is not None:
+        dcost[key1] = {
+            'shift': shift1,
+            'shiftm': np.array([[np.nanmean(shift0[ang == angu[jj], :, ii])
+                                 for jj in range(nang)] for ii in range(nxj)])}
+
     shiftabs = 0.
     if key0 is not None:
-        shiftabs = max(np.max(np.abs(shift0)), shiftabs)
+        shiftabs = max(np.nanmax(np.abs(shift0)), shiftabs)
     if key1 is not None:
-        shiftabs = max(np.max(np.abs(shift1)), shiftabs)
+        shiftabs = max(np.nanmax(np.abs(shift1)), shiftabs)
 
     # -------------
     # Plot
@@ -1014,7 +1118,8 @@ def fit(pfe=None, allow_pickle=True,
                 'lamb': lamb, 'phi': phi,
                 'spectn': spectn, 'spectfit': spectfit,
                 'time': time, 'chinorm': chinorm,
-                'shitf0': shift0, 'shift1': shitf1}
+                'dcost': dcost,
+                }
 
     if fs is None:
         fs = (18, 9)
@@ -1139,16 +1244,7 @@ def fit(pfe=None, allow_pickle=True,
     if nang == 1 or (key0 is None and key1 is None):
         return dax
 
-    shift0m, shift1m = None, None
-    if key0 is not None:
-        shift0m = np.array([[np.nanmean(shift0[ang == angu[jj], :, ii])
-                            for jj in range(nang)] for ii in range(nxj)])
-    if key1 is not None:
-        shift1m = np.array([[np.nanmean(shift1[ang == angu[jj], :, ii])
-                            for jj in range(nang)] for ii in range(nxj)])
-
     lkey = [kk for kk in [key0, key1] if kk is not None]
-    lshiftm = [ss for ss in [shift0m, shift1m] if ss is not None]
     nl = len(lkey)
 
     dmargin = {'left':0.06, 'right':0.95,
@@ -1173,14 +1269,15 @@ def fit(pfe=None, allow_pickle=True,
         ax0[ii].set_ylabel(r'$\Delta \lambda$ (m)')
         ax1[ii].set_xlabel('xi (m)')
         for jj in range(nxj):
-            ax0[ii].plot(angu, lshiftm[ii][jj, :],
+            ax0[ii].plot(angu, dcost[lkey[ii]]['shiftm'][jj, :],
                          ls='-', lw=1., marker='.', ms=8,
                          label='xj[{}] = {} m'.format(jj, xj[jj]))
         ax0[ii].axhline(0, ls='--', lw=1., c='k')
         for jj in range(nang):
-            ax1[ii].plot(xj, lshiftm[ii][:, jj],
+            ax1[ii].plot(xj, dcost[lkey[ii]]['shiftm'][:, jj],
                          ls='-', lw=1., marker='.', ms=8,
                          label='ang[{}] = {}'.format(jj, angu[jj]))
+        ax1[ii].axhline(0, ls='--', lw=1., c='k')
 
     ax0[0].legend(loc='upper left',
                  bbox_to_anchor=(1.01, 1.))
@@ -1189,14 +1286,37 @@ def fit(pfe=None, allow_pickle=True,
     return dax
 
 
-_DX = 0.001
-_DROT = 1./1000.
+# #############################################################################
+#                   Scan det
+# #############################################################################
+
+
+_DX = [0.01, 0.002, 0.002] # 0.0004
+_DROT = [0.01, 0.01, 0.01]   # 0.0004
 _NDX = 2
 _NDROT = 2
 
 
+def _check_orthonormal(cent, nout, ei, ej, ndx, ndrot, msg=''):
+    lc = [cent.shape == (3, 2*ndx+1, 2*ndx+1, 2*ndx+1),
+          nout.shape == ei.shape == ej.shape == (3, 2*ndrot+1, 2*ndrot+1,
+                                                  2*ndrot+1),
+          np.allclose(np.sum(nout**2, axis=0), 1.),
+          np.allclose(np.sum(ei**2, axis=0), 1.),
+          np.allclose(np.sum(ej**2, axis=0), 1.),
+          np.allclose(np.sum(nout*ei, axis=0), 0.),
+          np.allclose(np.sum(nout*ej, axis=0), 0.)]
+    if not all(lc):
+        msg = ("Non-conform set of detector parameters! " + msg)
+        import pdb; pdb.set_trace()     # DB
+        raise Exception(msg)
+
+
 def scan_det(pfe=None, allow_pickle=True,
              ndx=None, dx=None, ndrot=None, drot=None,
+             spectn=None, shots=None, t=None, ang=None,
+             xi=None, xj=None, thr=None,
+             dinput=None, indl0=None, indl1=None,
              shot=None, indt=None, indxj=None, maskxi=None,
              cryst=None, det=None,
              dlines=None, dconstraints=None, dx0=None,
@@ -1206,10 +1326,13 @@ def scan_det(pfe=None, allow_pickle=True,
              method=None, max_nfev=None,
              dscales=None, x0_scale=None, bounds_scale=None,
              xtol=None, ftol=None, gtol=None,
-             loss=None, verbose=None, showonly=None,
-             fs=None, dmargin=None, cmap=None):
+             loss=None, verbose=None, plot=None,
+             fs=None, dmargin=None, cmap=None,
+             save=None, pfe_out=None):
 
     # Check input
+    if verbose is None:
+        verbose = 1
     if dx is None:
         dx = _DX
     if drot is None:
@@ -1218,14 +1341,23 @@ def scan_det(pfe=None, allow_pickle=True,
         ndx = _NDX
     if ndrot is None:
         ndrot = _NDROT
+    if plot is None:
+        plot = True
+    if save is None:
+        save = isinstance(pfe_out, str)
+
+    if not (hasattr(dx, '__iter__') and len(dx) == 3):
+        dx = [dx, dx, dx]
+    if not (hasattr(drot, '__iter__') and len(drot) == 3):
+        drot = [drot, drot, drot]
 
     # input data file
     lc = [pfe is not None,
-          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj, thr]])]
+          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj]])]
     if np.sum(lc) != 1:
         msg = ("Please provide eithe (xor):\n"
                + "\t- pfe\n"
-               + "\t- spectn, shots, t, ang, xi, xj, thr")
+               + "\t- spectn, shots, t, ang, xi, xj")
         raise Exception(msg)
     if lc[0]:
         if not os.path.isfile(pfe):
@@ -1248,6 +1380,13 @@ def scan_det(pfe=None, allow_pickle=True,
                                                            allow_pickle,
                                                            maskxi, shot,
                                                            indt, indxj)[1:]
+    # Group by angle
+    angu = np.unique(ang)
+    nang = angu.size
+    lcol = ['r', 'g', 'b', 'k', 'm', 'c', 'y']
+    ncol = len(lcol)
+
+    nshot, nt, nxj, nxi = spectn.shape
 
     # Cryst part
     cryst, det = _get_crystanddet(cryst=cryst, det=det)
@@ -1263,50 +1402,73 @@ def scan_det(pfe=None, allow_pickle=True,
 
     # --------
     # Prepare
-    refdet = None
-    dxv = np.linspace(-ndx*dx, ndx*dx, 2*nx+1)
-    drotv = np.linspace(-ndrot*drot, ndrot*drot, 2*ndrot+1)
+    dxv = np.linspace(-ndx, ndx, 2*ndx+1)
+    drotv = np.linspace(-ndrot, ndrot, 2*ndrot+1)
 
-    cent = detref['det_cent'][:, None, None, None]
-    eout = detref['det_nout'][:, None, None, None]
-    e1 = detref['det_ei'][:, None, None, None]
-    e2 = detref['det_ej'][:, None, None, None]
+    cent = det['det_cent'][:, None, None, None]
+    eout = det['det_nout'][:, None, None, None]
+    e1 = det['det_ei'][:, None, None, None]
+    e2 = det['det_ej'][:, None, None, None]
 
     # x and rot
-    x0 = dxv[None, :, None, None]
-    x1 = dxv[None, None, :, None]
-    x2 = dxv[None, None, None, :]
-    rot0 = drotv[None, :, None, None]
-    rot1 = drotv[None, None, :, None]
-    rot2 = drotv[None, None, None, :]
+    x0 = dxv[None, :, None, None]*dx[0]
+    x1 = dxv[None, None, :, None]*dx[1]
+    x2 = dxv[None, None, None, :]*dx[2]
+    rot0 = drotv[None, :, None, None]*drot[0]
+    rot1 = drotv[None, None, :, None]*drot[1]
+    rot2 = drotv[None, None, None, :]*drot[2]
 
     # Cent and vect
     cent = cent + x0*eout + x1*e1 + x2*e2
     nout = (np.sin(rot0)*e2
             + np.cos(rot0)*(eout*np.cos(rot1) + e1*np.sin(rot1)))
-    ei = np.cos(rot1)*e1 - np.sin(rot1)*eout
+    nout = np.repeat(nout, 2*ndrot+1, axis=-1)
+    ei = np.repeat(np.repeat(
+        np.cos(rot1)*e1 - np.sin(rot1)*eout, 2*ndrot+1, axis=1),
+        2*ndrot+1, axis=-1)
     ej = np.array([nout[1, ...]*ei[2, ...] - nout[2, ...]*ei[1, ...],
                    nout[2, ...]*ei[0, ...] - nout[0, ...]*ei[2, ...],
                    nout[0, ...]*ei[1, ...] - nout[1, ...]*ei[0, ...]])
+    _check_orthonormal(cent, nout, ei, ej, ndx, ndrot, '1')
     ei = np.cos(rot2)*ei + np.sin(rot2)*ej
-    ej = np.cos(rot2)*ej - np.sin(rot2)*ei
-    assert np.allclose(np.sum(eout**2, axis=0), 1.)
-    assert np.allclose(np.sum(ei**2, axis=0), 1.)
-    assert np.allclose(np.sum(ej**2, axis=0), 1.)
-    assert np.allclose(np.sum(eout*ei, axis=0), 0.)
-    assert np.allclose(np.sum(eout*ej, axis=0), 0.)
+    ej = np.array([nout[1, ...]*ei[2, ...] - nout[2, ...]*ei[1, ...],
+                   nout[2, ...]*ei[0, ...] - nout[0, ...]*ei[2, ...],
+                   nout[0, ...]*ei[1, ...] - nout[1, ...]*ei[0, ...]])
+    _check_orthonormal(cent, nout, ei, ej, ndx, ndrot, '2')
 
     def func_msg(ndx, ndrot, i0, i1, i2, j0, j1, j2):
+        nx = 2*ndx + 1
+        nrot = 2*ndrot + 1
         msg = ("-"*10 + "\n"
-               + "{1}/{0} {2}/{0} {3}/{0}".format(ndx, i0, i1, i2)
-               + "{1}/{0} {2}/{0} {3}/{0}".format(ndrot, j0, j1, j2))
+               + "ii = {1}/{0} {2}/{0} {3}/{0}\t".format(nx, i0+1, i1+1, i2+1)
+               + "jj = {1}/{0} {2}/{0} {3}/{0}".format(nrot, j0+1, j1+1, j2+1)
+               + "...\t")
         return msg
 
     # --------------
     # Iterate around reference
     x0_scale = None
     func = tf.data._spectrafit2d.multigausfit1d_from_dlines
-    cost = np.full((ndx, ndx, ndx, ndrot, ndrot, ndrot), np.nan)
+    shape = tuple(np.r_[[2*ndx+1]*3 + [2*ndrot+1]*3 + [nxj, nang]])
+    time = np.full(shape, np.nan)
+    done = np.array([np.zeros((6,)),
+                     [2*ndx+1, 2*ndx+1, 2*ndx+1,
+                      2*ndrot+1, 2*ndrot+1, 2*ndrot+1]])
+    dcost = {kk: {'detail': np.full(shape, np.nan),
+                  'chin': np.full(shape[:-2], np.nan)}
+             for kk in [key0, key1] if kk is not None}
+
+    # --------------
+    # Iterate around reference
+    dout = {'dcost': dcost, 'time': time, 'angu': angu, 'xj': xj,
+            'dx': dx, 'ndx': ndx, 'drot': drot, 'ndrot': ndrot,
+            'x0': x0, 'x1': x1, 'x2': x2,
+            'rot0': rot0, 'rot1': rot1, 'rot2': rot2,
+            'cent': cent, 'nout': nout, 'ei': ei, 'ej': ej,
+            'pfe': pfe, 'shots': shots, 'done': done}
+
+    # --------------
+    # Loop
     for i0 in range(x0.size):
         for i1 in range(x1.size):
             for i2 in range(x2.size):
@@ -1314,25 +1476,385 @@ def scan_det(pfe=None, allow_pickle=True,
                     for j1 in range(rot1.size):
                         for j2 in range(rot2.size):
                             ind = (i0, i1, i2, j0, j1, j2)
-                            print(func_msg(ndx, ndrot, *ind))
-                            det = {'det_cent': cent[ind],
-                                   'det_nout': eout[ind],
-                                   'det_ei': ei[ind],
-                                   'det_ej': ej[ind]}
-                            dfit1d = func(
-                                spectn[ind[ll], :, ii, :],
-                                lamb[jj, ii, :],
-                                dinput=dinput, dx0=dx0,
-                                lambmin=lambmin, lambmax=lambmax,
-                                dscales=dscales, x0_scale=x0_scale,
-                                bounds_scale=bounds_scale,
-                                method=method, max_nfev=max_nfev,
-                                chain=True, verbose=1,
-                                xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-                                ratio=None, jac='call', plot=False)
-                            x0_scale = dfit1d['x']
-                            time[ind] = np.mean(dfit1d['time'])
-                            cost[ind] = np.mean(dfit1d['cost'])
-                            shift0[ind] = dfit1d['shift'][:, indl0]
-                            shift1[ind] = dfit1d['shift'][:, indl1]
-    return
+                            if verbose > 0:
+                                print(func_msg(ndx, ndrot, *ind),
+                                      end='', flush=True, file=sys.stdout)
+                            det = {'det_cent': cent[:, i0, i1, i2],
+                                   'det_nout': nout[:, j0, j1, j2],
+                                   'det_ei': ei[:, j0, j1, j2],
+                                   'det_ej': ej[:, j0, j1, j2]}
+                            try:
+                                dfit1d = fit(
+                                    spectn=spectn, shots=shots, t=t, ang=ang,
+                                    xi=xi, xj=xj, thr=thr,
+                                    shot=None, indt=None, indxj=None,
+                                    maskxi=None, cryst=cryst, det=det,
+                                    dlines=None, dconstraints=None, dx0=None,
+                                    key0=key0, key1=key1,
+                                    dinput=dinput, indl0=indl0, indl1=indl1,
+                                    lambmin=lambmin, lambmax=lambmax,
+                                    same_spectrum=same_spectrum, dlamb=dlamb,
+                                    method=method, max_nfev=max_nfev,
+                                    dscales=dscales, x0_scale=x0_scale,
+                                    bounds_scale=bounds_scale,
+                                    xtol=xtol, ftol=ftol, gtol=gtol,
+                                    loss=None, verbose=0,
+                                    warn=False, plot=False)
+                                for ii in range(nang):
+                                    indi = ang == angu[ii]
+                                    dout['time'][ind][:, ii] = \
+                                            np.nanmean(np.nanmean(
+                                                dfit1d['time'][indi, :, :],
+                                                axis=1), axis=0)
+                                for kk in dfit1d['dcost'].keys():
+                                    aa = dfit1d['dcost'][kk]['shiftm']
+                                    dout['dcost'][kk]['detail'][ind] = aa
+                                    nbok = np.sum(np.sum(~np.isnan(aa),
+                                                         axis=-1), axis=-1)
+                                    dout['dcost'][kk]['chin'][ind] = \
+                                            np.sqrt(np.nansum(np.nansum(aa**2,
+                                                axis=-1), axis=-1)) / nbok
+                                    dout['done'][0, :] = [i0+1, i1+1, i2+1,
+                                                          j0+1, j1+1, j2+1]
+                                    print('ok', flush=True, file=sys.stdout)
+                            except Exception as err:
+                                print('failed: '+ str(err),
+                                      flush=True, file=sys.stdout)
+                                pass
+                        # Save regulary (for long jobs)
+                        if save is True:
+                            np.savez(pfe_out, **dout)
+                            msg = "Saved in :\n\t" + pfe_out
+                            print(msg)
+
+    if save is True:
+        np.savez(pfe_out, **dout)
+        msg = "Saved in:\n\t" + pfe_out
+        print(msg)
+    return dout
+
+
+def scan_det_plot(din,
+                  nsol=None, yscale='log',
+                  fs=None, dmargin=None, cmap=None):
+
+    if isinstance(din, str):
+        din = dict(np.load(din, allow_pickle=True))
+        din['dcost'] = din['dcost'].tolist()
+    if nsol is None:
+        nsol = 3
+
+    print('done:\n\t{}\n\t{}'.format(din['done'][0, :], din['done'][1, :]))
+
+    # Prepare
+    ndx = din.get('ndx', int((din['x0'].size-1)/2))
+    ndrot = din.get('ndrot', int((din['rot0'].size-1)/2))
+    dx = din.get('dx', np.nanmean(np.diff(din['x0'], axis=1)))
+    drot = din.get('drot', np.nanmean(np.diff(din['rot0'], axis=1)))
+    if not (hasattr(dx, '__iter__') and len(dx) == 3):
+        dx = np.r_[dx, dx, dx]
+    if not (hasattr(drot, '__iter__') and len(drot) == 3):
+        drot = np.r_[drot, drot, drot]
+    if np.any(np.isnan(dx)):
+        ylx = (-0.001, 0.001)
+        dxv = np.r_[0]
+    else:
+        ylx = (ndx+0.5)*np.max(dx)*np.r_[-1, 1]
+        dxv = np.linspace(-ndx, ndx, 2*ndx+1)
+    if np.any(np.isnan(drot)):
+        ylr = (-0.001, 0.001)
+        drotv = np.r_[0]
+    else:
+        ylr = (ndx+0.5)*np.max(drot)*np.r_[-1, 1]
+        drotv = np.linspace(-ndrot, ndrot, 2*ndrot+1)
+
+    dind = dict.fromkeys(din['dcost'].keys(), {'chi2d': None,
+                                               'ind': None, 'lab': None})
+    for kk in dind.keys():
+        if 'chin' not in din['dcost'][kk].keys():
+            nbok = np.sum(np.sum(~np.isnan(din['dcost'][kk]['detail']),
+                                 axis=-1), axis=-1)
+            dind[kk]['chinf'] = np.ravel(np.sqrt(np.nansum(np.nansum(
+                din['dcost'][kk]['detail']**2, axis=-1), axis=-1)) / nbok)
+        else:
+            dind[kk]['chinf'] = din['dcost'][kk]['chin'].ravel()
+        dind[kk]['ind'] = np.argsort(dind[kk]['chinf'], axis=None)
+        [ix0, ix1, ix2,
+         irot0, irot1, irot2] = np.unravel_index(
+             dind[kk]['ind'], din['dcost'][kk]['chin'].shape)
+        dind[kk]['indxrot'] = np.array([ix0, ix1, ix2,
+                                        irot0, irot1, irot2])
+        dind[kk]['valxrot'] = np.array([
+            dxv[ix0]*dx[0], dxv[ix1]*dx[1], dxv[ix2]*dx[2],
+            drotv[irot0]*drot[0], drotv[irot1]*drot[1], drotv[irot2]*drot[2]])
+    i0 = int((dind[kk]['chinf'].size-1)/2)
+    i0bis = (dind[kk]['ind']==i0).nonzero()[0] + 1
+
+    ldet = [{'det_cent': din['cent'][:, ix0[ll], ix1[ll], ix2[ll]],
+             'det_nout': din['nout'][:, irot0[ll], irot1[ll], irot2[ll]],
+             'det_ei': din['ei'][:, irot0[ll], irot1[ll], irot2[ll]],
+             'det_ej': din['ej'][:, irot0[ll], irot1[ll], irot2[ll]]}
+            for ll in range(nsol)]
+
+    xlbck = np.r_[1, 2, 3][:, None] + 0.3*np.r_[-1, 1, np.nan][None, :]
+    xlbckx = np.tile(xlbck.ravel(), 2*ndx+1)
+    xlbckrot = np.tile(xlbck.ravel(), 2*ndrot+1)
+    ylbckx = dxv[:, None] * dx[None, :]
+    ylbckx = np.repeat(ylbckx.ravel(), 3)
+    ylbckrot = drotv[:, None] * drot[None, :]
+    ylbckrot = np.repeat(ylbckrot.ravel(), 3)
+
+    # --------------
+    # Plot
+
+    if fs is None:
+        fs = (18, 9)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left':0.06, 'right':0.99,
+                   'bottom':0.06, 'top':0.93,
+                   'wspace':0.3, 'hspace':0.2}
+
+    fig = plt.figure(figsize=fs)
+    if din.get('shots') is not None:
+        fig.suptitle('shots = {}'.format(din['shots']))
+    gs = gridspec.GridSpec(2, len(dind)*2, **dmargin)
+
+    shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
+    dax = {'best': [None for kk in dind.keys()],
+           'map_x': [None for kk in dind.keys()],
+           'map_rot': [None for kk in dind.keys()]}
+    for ii, kk in enumerate(dind.keys()):
+        dax['best'][ii] = fig.add_subplot(gs[0, ii*2:(ii+1)*2],
+                                          yscale=yscale,
+                                          sharex=shx0, sharey=shy0)
+        dax['map_x'][ii] = fig.add_subplot(gs[1, ii*2],
+                                           sharex=shx1, sharey=shy1)
+        dax['map_rot'][ii] = fig.add_subplot(gs[1, ii*2+1],
+                                             sharex=shx2, sharey=shy2)
+        if ii == 0:
+            shx0, shy0 = dax['best'][ii], dax['best'][ii]
+            shx1, shy1 = dax['map_x'][ii], dax['map_x'][ii]
+            shx2, shy2 = dax['map_rot'][ii], dax['map_rot'][ii]
+        dax['best'][ii].set_title(kk)
+
+        dax['best'][ii].plot(range(nsol+1, dind[kk]['ind'].size + 1),
+                             dind[kk]['chinf'][dind[kk]['ind'][nsol:]],
+                             c='k', ls='-', lw=1., marker='.', ms=3)
+        dax['best'][ii].plot(i0bis,
+                             dind[kk]['chinf'][i0],
+                             c='k', ls='None', lw=2., marker='x')
+        for jj in range(nsol):
+            l, = dax['best'][ii].plot(
+                jj+1,
+                dind[kk]['chinf'][dind[kk]['ind'][jj]],
+                ls='None', marker='x', ms=6)
+            dax['map_x'][ii].plot(range(1, 4), dind[kk]['valxrot'][:3, jj],
+                                  ls='-', marker='o', lw=1., c=l.get_color())
+            dax['map_rot'][ii].plot(range(1, 4), dind[kk]['valxrot'][3:, jj],
+                                    ls='-', marker='o', lw=1., c=l.get_color())
+
+            dax['map_x'][ii].plot(xlbckx, ylbckx,
+                                  ls='-', lw=1., c='k')
+            dax['map_rot'][ii].plot(xlbckrot, ylbckrot,
+                                    ls='-', lw=1., c='k')
+            dax['map_x'][ii].axhline(0., ls='--', lw=1., c='k')
+            dax['map_rot'][ii].axhline(0., ls='--', lw=1., c='k')
+
+    dax['best'][0].set_xlim(0, max(50, i0bis))
+    dax['map_x'][0].set_xlim(0, 4)
+    dax['map_rot'][0].set_xlim(0, 4)
+    dax['map_x'][0].set_ylim(*ylx)
+    dax['best'][0].set_ylabel(r'$\chi_{norm}$')
+    dax['map_x'][0].set_xticks([1, 2, 3])
+    # dax['map_x'][0].set_yticks(dxv)
+    dax['map_rot'][0].set_xticks([1, 2, 3])
+    # dax['map_rot'][0].set_yticks(drotv)
+    dax['map_x'][0].set_xticklabels([r'$x_0$', r'$x_1$', r'$x_2$'])
+    dax['map_x'][0].set_ylabel(r'$\delta x$')
+    dax['map_rot'][0].set_xticklabels([r'$rot_0$', r'$rot_1$', r'$rot_2$'])
+    dax['map_rot'][0].set_ylabel(r'$\delta rot$')
+    dax['map_rot'][0].set_ylim(*ylr)
+    return dax, ldet
+
+
+# #############################################################################
+#                   least_square det
+# #############################################################################
+
+def _get_det_from_det0_xscale(x, det0=None, scales=None):
+    xs = x*scales
+    cent = (det0['det_cent']
+            + xs[0]*det0['det_nout']
+            + xs[1]*det0['det_ei'] + xs[2]*det0['det_ei'])
+    nout = (np.sin(xs[3])*det0['det_ej']
+            + np.cos(xs[3])*(det0['det_nout']*np.cos(xs[4])
+                             + det0['det_ei']*np.sin(xs[4])))
+    ei = np.cos(xs[4])*det0['det_ei'] - np.sin(xs[4])*det0['det_nout']
+    ej = np.cross(nout, ei)
+    ei = np.cos(xs[5])*ei + np.sin(xs[5])*ej
+    ej = np.cross(nout, ei)
+    return {'det_cent': cent, 'det_nout': nout,
+            'det_ei': ei, 'det_ej': ej}
+
+
+def get_func_cost(spectn=None, shots=None, t=None, ang=None,
+                  xi=None, xj=None,
+                  cryst=None, det0=None,
+                  key0=None, key1=None, dinput=None, indl0=None, indl1=None,
+                  lambmin=None, lambmax=None, same_spectrum=None, dlamb=None):
+
+    def func_cost(x, scales=None):
+        dfit1d = fit(spectn=spectn, shots=shots, t=t, ang=ang,
+                     xi=xi, xj=xj,
+                     shot=None, indt=None, indxj=None, maskxi=None,
+                     det=_get_det_from_det0_xscale(x, det0, scales=scales),
+                     cryst=cryst,
+                     dlines=None, dconstraints=None, dx0=None,
+                     key0=key0, key1=key1,
+                     dinput=dinput, indl0=indl0, indl1=indl1,
+                     lambmin=lambmin, lambmax=lambmax,
+                     same_spectrum=same_spectrum, dlamb=dlamb,
+                     method=None, max_nfev=None,
+                     dscales=None, x0_scale=None,
+                     bounds_scale=None,
+                     xtol=None, ftol=None, gtol=None,
+                     loss=None, verbose=0, plot=False, warn=False)
+        shiftm = np.concatenate([dfit1d['dcost'][kk]['shiftm'].ravel()
+                                 for kk in dfit1d['dcost'].keys()])
+        return shiftm*1.e13
+    return func_cost
+
+
+def scan_det_least_square(pfe=None, allow_pickle=True,
+                          ndx=None, dx=None, ndrot=None, drot=None,
+                          spectn=None, shots=None, t=None, ang=None,
+                          xi=None, xj=None,
+                          dinput=None, indl0=None, indl1=None,
+                          shot=None, indt=None, indxj=None, maskxi=None,
+                          cryst=None, det=None,
+                          dlines=None, dconstraints=None, dx0=None,
+                          key0=None, key1=None,
+                          lambmin=None, lambmax=None,
+                          same_spectrum=None, dlamb=None,
+                          method=None, max_nfev=None,
+                          dscales=None, x0_scale=None, bounds_scale=None,
+                          xtol=None, ftol=None, gtol=None, jac=None,
+                          loss=None, verbose=None, plot=None,
+                          fs=None, dmargin=None, cmap=None,
+                          save=None, pfe_out=None):
+
+    # Check input
+    if verbose is None:
+        verbose = 2
+    if dx is None:
+        dx = _DX
+    if drot is None:
+        drot = _DROT
+    if ndx is None:
+        ndx = _NDX
+    if ndrot is None:
+        ndrot = _NDROT
+    if method is None:
+        method = 'trf'
+    if xtol is None:
+        xtol = 1.e-6
+    if ftol is None:
+        ftol = 1.e-6
+    if gtol is None:
+        gtol = 1.e-6
+    if jac is None:
+        jac = '3-point'
+    if loss is None:
+        loss = 'linear'
+    if plot is None:
+        plot = True
+    if save is None:
+        save = isinstance(pfe_out, str)
+
+    # input data file
+    lc = [pfe is not None,
+          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj]])]
+    if np.sum(lc) != 1:
+        msg = ("Please provide eithe (xor):\n"
+               + "\t- pfe\n"
+               + "\t- spectn, shots, t, ang, xi, xj")
+        raise Exception(msg)
+    if lc[0]:
+        if not os.path.isfile(pfe):
+            msg = ("Provided file does not exist!\n"
+                   + "\t- provided: {}".format(pfe))
+            raise Exception(msg)
+
+        # subset of shots
+        if shot is not None:
+            if not hasattr(shot, '__iter__'):
+                shot = np.array([shot], dtype=int)
+            else:
+                shot = np.r_[shot].astype(int)
+
+        if maskxi is None:
+            maskxi = _MASKXI
+
+        # extract data
+        spectn, shots, t, ang, xi, xj, thr = _extract_data(pfe,
+                                                           allow_pickle,
+                                                           maskxi, shot,
+                                                           indt, indxj)[1:]
+    # Group by angle
+    angu = np.unique(ang)
+    nang = angu.size
+    nshot, nt, nxj, nxi = spectn.shape
+
+    # Cryst part
+    cryst, det0 = _get_crystanddet(cryst=cryst, det=det)
+    assert cryst is not False
+
+    # Get dinput for 1d fitting
+    dinput, key0, key1, indl0, indl1 = _get_dinput_key01(
+        dinput=dinput, key0=key0, key1=key1, indl0=indl0, indl1=indl1,
+        dlines=dlines, dconstraints=dconstraints,
+        lambmin=lambmin, lambmax=lambmax,
+        same_spectrum=same_spectrum, nspect=spectn.shape[0], dlamb=dlamb)
+
+    # --------
+    # Prepare
+    scales = [10, 1, 1, 10, 10, 10]
+    x0_scale = np.zeros((6,), dtype=float)
+    bounds_scale = np.r_[0.05, 0.05, 0.05, 0.05, 0.05, 0.05]/scales
+    bounds_scale = (-bounds_scale, bounds_scale)
+
+    func_cost = get_func_cost(spectn=spectn, shots=shots, t=t, ang=ang,
+                              xi=xi, xj=xj,
+                              cryst=cryst, det0=det0,
+                              key0=key0, key1=key1,
+                              dinput=dinput, indl0=indl0, indl1=indl1,
+                              lambmin=lambmin, lambmax=lambmax,
+                              same_spectrum=same_spectrum, dlamb=dlamb)
+
+    # --------
+    # Optimize
+    t0 = dtm.datetime.now()
+    res = scpopt.least_squares(func_cost, x0_scale,
+                               jac=jac, bounds=bounds_scale,
+                               method=method, ftol=ftol, xtol=xtol,
+                               gtol=gtol, x_scale='jac', f_scale=1.0,
+                               loss=loss, diff_step=None,
+                               tr_solver=None, tr_options={},
+                               jac_sparsity=None, max_nfev=max_nfev,
+                               verbose=verbose,
+                               kwargs={'scales': scales})
+
+    dt = (dtm.datetime.now()-t0).total_seconds()
+    msg = ("Ellapsed time: {} min".format(dt/60.))
+    print(msg)
+
+    # --------
+    # Extract solution
+    det = _get_det_from_det0_xscale(res.x, det0, scales=scales)
+    return {'chin': np.sqrt(res.cost)/(nang*nxj),
+            'time': dt,
+            'x': res.x, 'det0': det0, 'det': det,
+            'nfev':res.nfev, 'xtol': xtol, 'ftol': ftol, 'gtol': gtol,
+            'method': method, 'scales': scales}

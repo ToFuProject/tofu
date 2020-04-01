@@ -9,11 +9,12 @@ import matplotlib.lines as mlines
 import matplotlib.colors as mplcolors
 
 _HERE = os.path.dirname(__file__)
-cwd = os.getcwd()
-os.chdir(os.path.join(_HERE, os.pardir))
+_TOFUPATH = os.path.abspath(os.path.join(_HERE, os.pardir))
+
+sys.path.insert(1, _TOFUPATH)
 import tofu as tf
 from inputs_temp.dlines import dlines
-os.chdir(cwd)
+_ = sys.path.pop(1)
 
 
 _OUTPUTFILE = 'CrystalBragg_Benchmark_Fit2d_OK.npz'
@@ -51,6 +52,10 @@ _DLINES = {k0: v0 for k0, v0 in dlines.items()
                                             'n3-b2', 'n3-b4', 'n3-d1', 'n3-d2']
                   ))
           }
+_DLINESFE = {k0: v0 for k0, v0 in dlines.items()
+             if v0['element'] == 'Fe'
+}
+
 _DCONST0 = {
     'double': True,
     'amp': {'ArXVI_j_Goryaev': {'key': 'kj', 'coef': 1.3576},
