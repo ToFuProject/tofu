@@ -123,6 +123,7 @@ def get_lamb_from_bragg(bragg, d, n=None):
 # ###############################################
 
 def get_approx_detector_rel(rcurve, bragg,
+                            braggref=None, xiref=None,
                             bragg01=None, dist01=None,
                             tangent_to_rowland=None):
 
@@ -161,6 +162,7 @@ def get_approx_detector_rel(rcurve, bragg,
         else:
             d01 = d0 + d1
         det_dist = det_dist * dist01 / d01
+
     return det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel
 
 

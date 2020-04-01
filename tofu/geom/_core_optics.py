@@ -1027,11 +1027,12 @@ class CrystalBragg(utils.ToFuObject):
             to the line between the crystal and the detector
         Assumes detector center matching lamb (m) / bragg (rad)
 
-        The distance to the crystal can be adjusted to make sure the distance
-            between 2 wavelength (lamb0 and lamb1) on the detector's plane
-            matches a desired distance (dist01, in m)
+        The detector can be translated towards / away from the crystal
+            to make sure the distance between 2 spectral lines
+            (lamb0 and lamb1) on the detector's plane matches
+            a desired distance (dist01, in m)
 
-        Additionally, a desired offset (translation) can be added
+        Finally, a desired offset (translation) can be added
             via (ddist, di, dj), in m
         Similarly, an extra rotation can be added via (dtheta, dpsi, tilt)
 
@@ -1077,11 +1078,10 @@ class CrystalBragg(utils.ToFuObject):
                    + "({})".format(dist01)
                   )
             raise Exception(msg)
+        bragg01 = None
         if all(lc):
             bragg01 = self._checkformat_bragglamb(lamb=np.r_[lamb0, lamb1],
                                                   n=n)
-        else:
-            bragg01 = None
 
         lf = ['summit', 'nout', 'e1', 'e2']
         lc = [rcurve is None] + [self._dgeom[kk] is None for kk in lf]
