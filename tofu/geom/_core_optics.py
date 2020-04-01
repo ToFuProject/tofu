@@ -1013,6 +1013,7 @@ class CrystalBragg(utils.ToFuObject):
                             rcurve=None, n=None,
                             ddist=None, di=None, dj=None,
                             dtheta=None, dpsi=None, tilt=None,
+                            lamb0=None, lamb1=None, dist01=None,
                             tangent_to_rowland=None, plot=False):
         """ Return approximate ideal detector geometry
 
@@ -1049,6 +1050,21 @@ class CrystalBragg(utils.ToFuObject):
                    + "  => Check the vlue of self.dmat['d'] vs lamb")
             raise Exception(msg)
 
+        lc = [lamb0 is not None, lamb1 is not None, dist01 is not None]
+        if any(lc) and not all(lc):
+            msg = ("Arg lamb0, lamb1 and dist01 must be provided together:\n"
+                   + "\t- lamb0: line0 wavelength ({})\n".format(lamb0)
+                   + "\t- lamb1: line1 wavelength ({})\n".format(lamb1)
+                   + "\t- dist01: distance (m) on detector between lines "
+                   + "({})".format(dist01)
+                  )
+            raise Exception(msg)
+        if all(lc):
+            bragg01 = self._checkformat_bragglamb(lamb=np.r_[lamb0, lamb1],
+                                                  n=n)
+        else:
+            bragg01 = None
+
         lf = ['summit', 'nout', 'e1', 'e2']
         lc = [rcurve is None] + [self._dgeom[kk] is None for kk in lf]
         if any(lc):
@@ -1057,10 +1073,11 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         # Compute crystal-centered parameters in (nout, e1, e2)
-        func = _comp_optics.get_approx_detector_rel
         (det_dist, n_crystdet_rel,
          det_nout_rel, det_ei_rel) = _comp_optics.get_approx_detector_rel(
-            rcurve, bragg, tangent_to_rowland=tangent_to_rowland)
+             rcurve, bragg,
+             bragg01=bragg01, dist01=dist01,
+             tangent_to_rowland=tangent_to_rowland)
 
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
@@ -1082,7 +1099,8 @@ class CrystalBragg(utils.ToFuObject):
                                 units='xy', color='b')
             dax['hor'].quiver(p0[0, :], p0[1, :], vv[0, :], vv[1, :],
                               units='xy', color='b')
-        return det_cent, det_nout, det_ei, det_ej
+        return {'cent': det_cent, 'nout': det_nout,
+                'ei': det_ei, 'ej': det_ej}
 
     def get_local_noute1e2(self, dtheta, psi):
         """ Return (nout, e1, e2) associated to pts on the crystal's surface

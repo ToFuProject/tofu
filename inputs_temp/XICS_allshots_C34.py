@@ -1824,10 +1824,15 @@ def scan_det_least_square(pfe=None, allow_pickle=True,
 
     # --------
     # Prepare
-    scales = [10, 1, 1, 10, 10, 10]
+    scales = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
     x0_scale = np.zeros((6,), dtype=float)
-    bounds_scale = np.r_[0.05, 0.05, 0.05, 0.05, 0.05, 0.05]/scales
-    bounds_scale = (-bounds_scale, bounds_scale)
+    if method == 'lm':
+        jac = '2-point'
+        bounds_scale = (-np.inf, np.inf)
+    else:
+        bounds_scale = np.r_[0.10, 0.10, 0.10, 0.10, 0.10, 0.10]/scales
+        bounds_scale = (-bounds_scale, bounds_scale)
+    diff_step = [0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
 
     func_cost = get_func_cost(spectn=spectn, shots=shots, t=t, ang=ang,
                               xi=xi, xj=xj,
@@ -1844,7 +1849,7 @@ def scan_det_least_square(pfe=None, allow_pickle=True,
                                jac=jac, bounds=bounds_scale,
                                method=method, ftol=ftol, xtol=xtol,
                                gtol=gtol, x_scale='jac', f_scale=1.0,
-                               loss=loss, diff_step=None,
+                               loss=loss, diff_step=diff_step,
                                tr_solver=None, tr_options={},
                                jac_sparsity=None, max_nfev=max_nfev,
                                verbose=verbose,
