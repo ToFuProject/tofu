@@ -615,8 +615,6 @@ def _get_crystanddet(cryst=None, det=None):
             else:
                 msg = "Det must be provided if cryst is provided!"
                 raise Exception(msg)
-            det = {'det_cent': det[0], 'det_nout': det[1],
-                   'det_ei': det[2], 'det_ej': det[3]}
         cryst = crystobj
 
     if isinstance(cryst, str) and os.path.isfile(cryst):
@@ -626,18 +624,16 @@ def _get_crystanddet(cryst=None, det=None):
 
     if cryst is not False:
         if det is False:
-            det_cent, det_nout, det_ei, det_ej = cryst.get_detector_approx()
-            det = {'det_cent': det_cent, 'det_nout': det_nout,
-                   'det_ei': det_ei, 'det_ej': det_ej}
+            det = cryst.get_detector_approx()
         c0 = (isinstance(det, dict)
-              and all([kk in det.keys() for kk in ['det_cent', 'det_nout',
-                                                   'det_ei', 'det_ej']]))
+              and all([kk in det.keys() for kk in ['cent', 'nout',
+                                                   'ei', 'ej']]))
         if not c0:
             msg = ("det must be a dict with keys:\n"
-                   + "\t- det_cent: [x,y,z] of the detector center\n"
-                   + "\t- det_nout: [x,y,z] of unit vector normal to plane\n"
-                   + "\t- det_ei: [x,y,z] of unit vector ei\n"
-                   + "\t- det_ej: [x,y,z] of unit vector ej = nout x ei\n"
+                   + "\t- cent: [x,y,z] of the detector center\n"
+                   + "\t- nout: [x,y,z] of unit vector normal to plane\n"
+                   + "\t- ei: [x,y,z] of unit vector ei\n"
+                   + "\t- ej: [x,y,z] of unit vector ej = nout x ei\n"
                    + "\n\t- provided: {}".format(det))
             raise Exception(msg)
     return cryst, det
@@ -742,7 +738,7 @@ def plot(pfe=None, allow_pickle=True,
 
             bragg, phii = cryst.calc_phibragg_from_xixj(
                 xif, xjf, n=1,
-                dtheta=None, psi=None, plot=False, **det)
+                dtheta=None, psi=None, plot=False, det=det)
             phi[ind, ...] = phii[None, ...]
             lamb[ind, ...] = cryst.get_lamb_from_bragg(bragg, n=1)[None, ...]
 
@@ -995,7 +991,7 @@ def fit(pfe=None, allow_pickle=True,
 
         bragg, phii = cryst.calc_phibragg_from_xixj(
             xif, xjf, n=1,
-            dtheta=None, psi=None, plot=False, **det)
+            dtheta=None, psi=None, plot=False, det=det)
         phi[jj, ...] = phii[None, ...]
         lamb[jj, ...] = cryst.get_lamb_from_bragg(bragg, n=1)[None, ...]
 
@@ -1409,10 +1405,10 @@ def scan_det(pfe=None, allow_pickle=True,
     dxv = np.linspace(-ndx, ndx, 2*ndx+1)
     drotv = np.linspace(-ndrot, ndrot, 2*ndrot+1)
 
-    cent = det['det_cent'][:, None, None, None]
-    eout = det['det_nout'][:, None, None, None]
-    e1 = det['det_ei'][:, None, None, None]
-    e2 = det['det_ej'][:, None, None, None]
+    cent = det['cent'][:, None, None, None]
+    eout = det['nout'][:, None, None, None]
+    e1 = det['ei'][:, None, None, None]
+    e2 = det['ej'][:, None, None, None]
 
     # x and rot
     x0 = dxv[None, :, None, None]*dx[0]
@@ -1483,10 +1479,10 @@ def scan_det(pfe=None, allow_pickle=True,
                             if verbose > 0:
                                 print(func_msg(ndx, ndrot, *ind),
                                       end='', flush=True, file=sys.stdout)
-                            det = {'det_cent': cent[:, i0, i1, i2],
-                                   'det_nout': nout[:, j0, j1, j2],
-                                   'det_ei': ei[:, j0, j1, j2],
-                                   'det_ej': ej[:, j0, j1, j2]}
+                            det = {'cent': cent[:, i0, i1, i2],
+                                   'nout': nout[:, j0, j1, j2],
+                                   'ei': ei[:, j0, j1, j2],
+                                   'ej': ej[:, j0, j1, j2]}
                             try:
                                 dfit1d = fit(
                                     spectn=spectn, shots=shots, t=t, ang=ang,
@@ -1594,10 +1590,10 @@ def scan_det_plot(din,
     i0 = int((dind[kk]['chinf'].size-1)/2)
     i0bis = (dind[kk]['ind']==i0).nonzero()[0] + 1
 
-    ldet = [{'det_cent': din['cent'][:, ix0[ll], ix1[ll], ix2[ll]],
-             'det_nout': din['nout'][:, irot0[ll], irot1[ll], irot2[ll]],
-             'det_ei': din['ei'][:, irot0[ll], irot1[ll], irot2[ll]],
-             'det_ej': din['ej'][:, irot0[ll], irot1[ll], irot2[ll]]}
+    ldet = [{'cent': din['cent'][:, ix0[ll], ix1[ll], ix2[ll]],
+             'nout': din['nout'][:, irot0[ll], irot1[ll], irot2[ll]],
+             'ei': din['ei'][:, irot0[ll], irot1[ll], irot2[ll]],
+             'ej': din['ej'][:, irot0[ll], irot1[ll], irot2[ll]]}
             for ll in range(nsol)]
 
     xlbck = np.r_[1, 2, 3][:, None] + 0.3*np.r_[-1, 1, np.nan][None, :]
@@ -1689,18 +1685,18 @@ def scan_det_plot(din,
 
 def _get_det_from_det0_xscale(x, det0=None, scales=None):
     xs = x*scales
-    cent = (det0['det_cent']
-            + xs[0]*det0['det_nout']
-            + xs[1]*det0['det_ei'] + xs[2]*det0['det_ei'])
-    nout = (np.sin(xs[3])*det0['det_ej']
-            + np.cos(xs[3])*(det0['det_nout']*np.cos(xs[4])
-                             + det0['det_ei']*np.sin(xs[4])))
-    ei = np.cos(xs[4])*det0['det_ei'] - np.sin(xs[4])*det0['det_nout']
+    cent = (det0['cent']
+            + xs[0]*det0['nout']
+            + xs[1]*det0['ei'] + xs[2]*det0['ei'])
+    nout = (np.sin(xs[3])*det0['ej']
+            + np.cos(xs[3])*(det0['nout']*np.cos(xs[4])
+                             + det0['ei']*np.sin(xs[4])))
+    ei = np.cos(xs[4])*det0['ei'] - np.sin(xs[4])*det0['nout']
     ej = np.cross(nout, ei)
     ei = np.cos(xs[5])*ei + np.sin(xs[5])*ej
     ej = np.cross(nout, ei)
-    return {'det_cent': cent, 'det_nout': nout,
-            'det_ei': ei, 'det_ej': ej}
+    return {'cent': cent, 'nout': nout,
+            'ei': ei, 'ej': ej}
 
 
 def get_func_cost(spectn=None, shots=None, t=None, ang=None,
