@@ -818,10 +818,12 @@ def plot(pfe=None, allow_pickle=True,
 
     shx = None
     for ii in range(nxj):
-        dax2['spect'][ii] = fig.add_subplot(gs[ii, 0], sharex=shx)
+        dax2['spect'][ii] = fig.add_subplot(gs[ii, 0],
+                                            sharex=shx)
         if ii == 0:
-            shx = dax2['spect'][0]
-        dax2['spectn'][ii] = fig.add_subplot(gs[ii, 1], sharex=shx)
+            shx, shy = dax2['spect'][0], dax2['spect'][0]
+        dax2['spectn'][ii] = fig.add_subplot(gs[ii, 1],
+                                             sharex=shx)
         dax2['spect'][ii].set_ylabel('data (a.u.)'.format(xj[ii]))
 
         for jj in range(nang):
@@ -1102,7 +1104,7 @@ def fit(pfe=None, allow_pickle=True,
     if key1 is not None:
         dcost[key1] = {
             'shift': shift1,
-            'shiftm': np.array([[np.nanmean(shift0[ang == angu[jj], :, ii])
+            'shiftm': np.array([[np.nanmean(shift1[ang == angu[jj], :, ii])
                                  for jj in range(nang)] for ii in range(nxj)])}
 
     shiftabs = 0.
@@ -1256,14 +1258,16 @@ def fit(pfe=None, allow_pickle=True,
         fig.suptitle('shot = {}'.format(shot))
     gs = gridspec.GridSpec(2, nl, **dmargin)
 
-    shy = None
+    shx0, shx1, shy = None, None, None
     ax0 = [None for ii in range(nl)]
     ax1 = [None for ii in range(nl)]
     for ii in range(nl):
-        ax0[ii] = fig.add_subplot(gs[0, ii], sharey=shy)
-        ax1[ii] = fig.add_subplot(gs[1, ii], sharey=shy)
+        ax0[ii] = fig.add_subplot(gs[0, ii], sharex=shx0, sharey=shy)
         if ii == 0:
-            shy = ax0[ii]
+            shx0, shy = ax0[ii], ax0[ii]
+        ax1[ii] = fig.add_subplot(gs[1, ii], sharex=shx1, sharey=shy)
+        if ii == 0:
+            shx1 = ax1[ii]
         ax0[ii].set_title(lkey[ii])
         ax0[ii].set_xlabel('table angle')
         ax0[ii].set_ylabel(r'$\Delta \lambda$ (m)')
