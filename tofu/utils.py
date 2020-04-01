@@ -2041,6 +2041,56 @@ class ToFuObject(ToFuObjectBase):
             indr[ind2[ii],ind1[ii]] = ii
         return ind1, ind2, indr
 
+    @staticmethod
+    def _checkformat_Narray(aa, name='aa', N=3)
+        if aa is not None:
+            assert N in [2, 3]
+            aa = np.atleast_1d(aa)
+            assert N in aa.shape, aa.shape
+            if aa.ndim == 1:
+                aa = aa[:, None]
+            if aa.shape[0] != N and aa.ndim == 2:
+                aa = aa.T
+            if not (aa.ndim >= 2 and aa.shape[0] == N):
+                msg = (
+                    "Arg {} must be a ({}, ...) np.ndarray\n".format(name, N)
+                    + "\t- provided: {}".format(aa))
+                raise Exception(msg)
+        return aa
+
+    @classmethod
+    def _rotate_pts_vectors_around_3daxis(cls, pts=None, vect=None,
+                                          angle=None, dangle=None,
+                                          angleref=None, axis=None):
+
+        # ------------
+        # Check input
+
+        # pts, vect and axis
+        pts = cls._checkformat_3Narray(pts, name='pts')
+        vect = cls._checkformat_3Narray(vect, name='vect')
+        axis = cls._checkformat_3Narray(vect, name='vect', N=2)
+        if axis.shape != (2, 3):
+            msg = ("Arg axis must be a tuple of 2 arrays of len()=3\n"
+                   + "\t- axis[0] is the (x,y,z) coords of a pts\n"
+                   + "\t- axis[1] is the (x,y,z) coords of a vector")
+            raise Exception(msg)
+        ax_pt = axis[0, :]
+        ax_v = axis[1, :] / np.linlg.norm(axis[1, :])
+
+        # angle vs dangle
+        c0 = [angle is not None, dangle is not None]
+        if np.sum(lc) != 1:
+            msg = ("For a rotation, provide either:\n"
+                   + "\t- angle:  the absolute angle to got to\n"
+                   + "\t- dangle: the incremental angle by which to move\n"
+                   + "  you provided\n:"
+                   + "\t- angle = {}\n".format(angle)
+                   + "\t- danlge = {}".format(dangle))
+            raise Exception(msg)
+
+
+
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
