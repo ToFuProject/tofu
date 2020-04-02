@@ -560,6 +560,9 @@ class Struct(utils.ToFuObject):
             "circ-r",
             "Clock",
             "arrayorder",
+            "move",
+            "move_param",
+            "move_kwdargs",
         ]
         return lk
 
@@ -696,7 +699,9 @@ class Struct(utils.ToFuObject):
     ###########
 
     def _strip_dgeom(
-        self, lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder"]
+        self,
+        lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder",
+               "move", "move_param", "move_kwdargs"]
     ):
         utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -938,14 +943,8 @@ class Struct(utils.ToFuObject):
         )
 
     ###########
-    # public methods
+    # public methods for movement
     ###########
-
-    def set_color(self, col):
-        self._set_color(col)
-
-    def get_color(self):
-        return self._dmisc["color"]
 
     def _update_or_copy(self, poly,
                         pos=None,
@@ -1012,26 +1011,60 @@ class Struct(utils.ToFuObject):
                                     update_extent=False,
                                     return_copy=return_copy, name=name)
 
-    def move(self):
-        """ To be overriden at object-level after instance creation
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
 
-        To do so:
-            1/ create the instance:
-                >> S = tfg.Struct('test', poly, Exp='Test')
-            2/ Define a moving function f taking the instance as first argument
-                >> def f(self, Delta=1.):
-                       Polynew = self.Poly
-                       Polynew[0,:] = Polynew[0,:] + Delta
-                       self._set_geom(Polynew, Lim=self.Lim)
-            3/ Bound your custom function to the self.move() method
-               using types.MethodType() found in the types module
-                >> import types
-                >> S.move = types.MethodType(f, S)
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
 
-            See the following page for info and details on method-patching:
-            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
         """
-        print(self.move.__doc__)
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
+
+    ###########
+    # Other public methods
+    ###########
+
+    def set_color(self, col):
+        self._set_color(col)
+
+    def get_color(self):
+        return self._dmisc["color"]
 
     def isInside(self, pts, In="(X,Y,Z)"):
         """ Return an array of booleans indicating whether each point lies
@@ -4053,6 +4086,9 @@ class Rays(utils.ToFuObject):
             "Surfaces",
             "dX12",
             "dreflect",
+            "move",
+            "move_param",
+            "move_kwdargs",
         ]
         return lk
 
@@ -4950,6 +4986,9 @@ class Rays(utils.ToFuObject):
                     "isImage",
                     "dX12",
                     "dreflect",
+                    "move",
+                    "move_param",
+                    "move_kwdargs",
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip["strip"] <= 1 and strip >= 2:
@@ -4968,6 +5007,9 @@ class Rays(utils.ToFuObject):
                     "isImage",
                     "dX12",
                     "dreflect",
+                    "move",
+                    "move_param",
+                    "move_kwdargs",
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -5266,12 +5308,27 @@ class Rays(utils.ToFuObject):
                                   shot=self.Id.shot,
                                   SavePath=self.Id.SavePath)
         else:
-            self._set_dgeom(dgeom=dgeom,
-                            Etendues=self.Etendues,
-                            Surfaces=self.Surfaces,
-                            sino_RefPt=self._dsino['RefPt'],
-                            extra=True,
-                            sino=True)
+            dgeom0 = ((self.D, self.pinhole)
+                      if self.isPinhole is True else (self.D, self.u))
+            try:
+                self._set_dgeom(dgeom=dgeom,
+                                Etendues=self.Etendues,
+                                Surfaces=self.Surfaces,
+                                sino_RefPt=self._dsino['RefPt'],
+                                extra=True,
+                                sino=True)
+            except Exception as err:
+                # Make sure instance does not move
+                self._set_dgeom(dgeom=dgeom0,
+                                Etendues=self.Etendues,
+                                Surfaces=self.Surfaces,
+                                sino_RefPt=self._dsino['RefPt'],
+                                extra=True,
+                                sino=True)
+                msg = (str(err)
+                       + "\nAn exception occured during updating\n"
+                       + "  => instance unmoved")
+                raise Exception(msg)
 
     def _rotate_DPinholeu(self, func, **kwdargs):
         pinhole, u = None, None
@@ -5284,6 +5341,7 @@ class Rays(utils.ToFuObject):
             D, u = func(pts=self.D, vect=self.u, **kwdargs)
         else:
             D = func(pts=self.D, **kwdargs)
+            u = self.u
         return D, pinhole, u
 
     def translate_in_poloidal_plane(self, distance=None, direction_rz=None,
@@ -5297,7 +5355,7 @@ class Rays(utils.ToFuObject):
             elif self.isPinhole:
                 phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
             else:
-                msg = ("Camera is notassociated to a specific poloidal plane\n"
+                msg = ("Instance not associated to a specific poloidal plane\n"
                        + "\tPlease specify which poloidal plane (phi) to use")
                 raise Exception(msg)
         D, pinhole, u = self._rotate_DPinholeu(
@@ -5307,7 +5365,7 @@ class Rays(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
 
-    def translate_3d(self, direction=None, distance=None,
+    def translate_3d(selfi, distance=None, direction=None,
                      return_copy=None,
                      diag=None, name=None, dchans=None):
         """ Translate the instance in provided direction """
@@ -5350,7 +5408,7 @@ class Rays(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
 
-    def rotate_around_3daxis(self, axis=None, angle=None,
+    def rotate_around_3daxis(self, angle=None, axis=None,
                              return_copy=None,
                              diag=None, name=None, dchans=None):
         """ Rotate the instance around the provided 3d axis """
@@ -5360,6 +5418,51 @@ class Rays(utils.ToFuObject):
         return self._update_or_copy(D, u, pinhole,
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
+
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
+
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
+
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
+        """
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
 
     ###########
     # public methods

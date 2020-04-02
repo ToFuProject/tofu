@@ -9,6 +9,7 @@ import getpass
 import subprocess
 import itertools as itt
 import warnings
+import inspect
 
 # Common
 import scipy.io as scpio
@@ -430,10 +431,11 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     lf = os.listdir(path)
     lf = [ff for ff in lf if all([ss in ff for ss in name])]
     if len(lf) != 1:
-        msg = "No / several matching files found:"
-        msg += "\n  folder: {0}".format(path)
-        msg += "\n  for   : {0}".format('['+', '.join(name)+']')
-        msg += "\n    " + "\n    ".join(lf)
+        msg = ("No / several matching files found:\n"
+               + "  folder:      {}\n".format(path)
+               + "  looking for: {}\n".format('['+', '.join(name)+']')
+               + "  found:\n\t"
+               + "\n\t".join(lf))
         raise Exception(msg)
     nameext = lf[0]
 
@@ -2067,7 +2069,7 @@ class ToFuObject(ToFuObjectBase):
         return aa
 
     @staticmethod
-    def _checkfornat_scalar(ss, name='ss', extramsg=''):
+    def _checkformat_scalar(ss, name='ss', extramsg=''):
         if ss is not None:
             if type(ss) not in [int, float, np.int_, np.float_]:
                 msg = ("Please provide {} as a float:\n".format(name)
@@ -2081,7 +2083,7 @@ class ToFuObject(ToFuObjectBase):
                                           angle=None, axis=None):
 
         # angle, pts, vect and axis
-        angle = cls._checkfornat_scalar(angle, name='angle')
+        angle = cls._checkformat_scalar(angle, name='angle')
         pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
         vect = cls._checkformat_Narray(vect, name='vect', N=3, dim=2)
         axis = cls._checkformat_Narray(axis, name='vect', N=2, dim=2)
@@ -2144,7 +2146,7 @@ class ToFuObject(ToFuObjectBase):
                                               angle=None,
                                               phi=None, axis_rz=None):
         # phi
-        phi = cls._checkfornat_scalar(phi, name='phi')
+        phi = cls._checkformat_scalar(phi, name='phi')
         axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
         ax_pt = np.r_[axis_rz[0]*np.cos(phi),
                       axis_rz[0]*np.sin(phi), axis_rz[1]]
@@ -2159,7 +2161,7 @@ class ToFuObject(ToFuObjectBase):
                                                  angle=None,
                                                  axis_rz=None):
         # Check format input
-        angle = cls._checkfornat_scalar(angle, name='angle')
+        angle = cls._checkformat_scalar(angle, name='angle')
         pts_rz = cls._checkformat_Narray(pts_rz, name='pts_rz', N=2, dim=2)
         vect_rz = cls._checkformat_Narray(vect_rz, name='vect_rz', N=2, dim=2)
         axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
@@ -2192,7 +2194,7 @@ class ToFuObject(ToFuObjectBase):
     def _translate_pts_3d(cls, pts=None,
                           direction=None, distance=None):
         pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
-        distance = cls._checkfornat_scalar(distance, name='distance')
+        distance = cls._checkformat_scalar(distance, name='distance')
         direction = cls._checkformat_Narray(direction,
                                             name='direction', N=3, dim=1)
         direction = direction / np.linalg.norm(direction)
@@ -2201,7 +2203,7 @@ class ToFuObject(ToFuObjectBase):
     @classmethod
     def _translate_pts_poloidal_plane(cls, pts=None, phi=None,
                                       direction_rz=None, distance=None):
-        phi = cls._checkfornat_scalar(phi, name='phi')
+        phi = cls._checkformat_scalar(phi, name='phi')
         direction_rz = cls._checkformat_Narray(direction_rz,
                                                name='direction', N=2, dim=1)
         try:
@@ -2226,8 +2228,48 @@ class ToFuObject(ToFuObjectBase):
                                                N=2, dim=1)
         pts_rz = cls._checkformat_Narray(pts_rz,
                                          name='pts_rz', N=2, dim=2)
-        distance = cls._checkfornat_scalar(distance, name='distance')
+        distance = cls._checkformat_scalar(distance, name='distance')
         return pts_rz + distance*direction_rz[:, None]
+
+    def _checkformat_set_move(cls, move, param, kwdargs):
+        c0 = (isinstance(move, str)
+              and hasattr(cls, move)
+              and any([ss in move for ss in ['rotate', 'translate']]))
+        if not c0:
+            msg = ("move must be a str mathcing the name of a valid"
+                   + " movement method (rotate/translate)")
+            raise Exception(msg)
+        func = getattr(cls, move)
+        sig = inspect.signature(func).parameters.keys()
+        if param is None:
+            param = 0.
+        param = cls._checkformat_scalar(param)
+        lc0 = [kk in sig for kk in kwdargs.keys()]
+        lc1 = ['angle' not in kwdargs.keys(), 'distance' not in kwdargs.keys(),
+               'return_copy' not in kwdargs.keys()]
+        if not (all(lc0) and all(lc1)):
+            msg = ("extra keyword arguments cannot include:\n"
+                   + "\t- 'angle'\n"
+                   + "\t- 'distance'\n"
+                   + "\t- 'return_copy'\n"
+                   + "  you provided: {}".format(kwdargs.keys()))
+            raise Exception(msg)
+        kwdargs = {kk: np.asarray(vv) if hasattr(vv, '__iter__') else vv
+                   for kk, vv in kwdargs.items()}
+        return move, param, kwdargs
+
+    def _move(self, param, dictname=''):
+        if getattr(self, dictname).get('move') is None:
+            msg = ("Default movement not defined\n"
+                   + "  => use self.set_move()")
+            raise Exception(msg)
+        lk =['move', 'move_param', 'move_kwdargs']
+        move, param0, kwdargs = [getattr(self, dictname)[kk] for kk in lk]
+
+        func = getattr(self, move)
+        dparam = param - param0
+        func(dparam, return_copy=False, **kwdargs)
+        return param
 
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',
