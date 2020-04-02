@@ -2043,12 +2043,15 @@ class ToFuObject(ToFuObjectBase):
 
     @staticmethod
     def _checkformat_Narray(aa, name='aa', N=3, dim=2,
-                            extramsg='')
+                            extramsg=''):
         if aa is not None:
             assert N in [2, 3]
-            assert dim in [1, 2]
+            assert dim in [1, 2, 3]
             aa = np.atleast_1d(aa)
-            assert N in aa.shape, aa.shape
+            if N not in aa.shape:
+                msg = ("Array {}.shape should containg {}\n".format(name, N)
+                       + "\t- provided shape: {}".format(aa.shape))
+                raise Exception(msg)
             if aa.ndim == 1 and dim == 2:
                 aa = aa[:, None]
             elif aa.ndim == 2 and dim == 1:
@@ -2066,28 +2069,30 @@ class ToFuObject(ToFuObjectBase):
     @staticmethod
     def _checkfornat_scalar(ss, name='ss', extramsg=''):
         if ss is not None:
-            if type(ss) not in [int, float, np.int, np.float]:
+            if type(ss) not in [int, float, np.int_, np.float_]:
                 msg = ("Please provide {} as a float:\n".format(name)
-                       + "\t- provided: {}\n".format(ss)
+                       + "\t- provided: {} ({})\n".format(ss, type(ss))
                        + extramsg)
                 raise Exception(msg)
+        return ss
 
     @classmethod
     def _rotate_pts_vectors_around_3daxis(cls, pts=None, vect=None,
                                           angle=None, axis=None):
 
-        # pts, vect and axis
-        pts = cls._checkformat_3Narray(pts, name='pts', dim=2)
-        vect = cls._checkformat_3Narray(vect, name='vect', dim=2)
-        axis = cls._checkformat_3Narray(vect, name='vect', N=2, dim=2)
+        # angle, pts, vect and axis
+        angle = cls._checkfornat_scalar(angle, name='angle')
+        pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        vect = cls._checkformat_Narray(vect, name='vect', N=3, dim=2)
+        axis = cls._checkformat_Narray(axis, name='vect', N=2, dim=2)
         if axis.shape != (2, 3):
             msg = ("Arg axis must be a tuple of 2 arrays of len()=3\n"
-                   + "\t- axis[0] is the (x,y,z) coords of a pts\n"
+                   + "\t- axis[0] is the (x,y,z) coords of a point\n"
                    + "\t- axis[1] is the (x,y,z) coords of a vector")
             raise Exception(msg)
         ax_pt = axis[0, :][:, None]
         ax_ez = axis[1, :] / np.linalg.norm(axis[1, :])
-        if np.abs(ax_v[2]) > 0.999:
+        if np.abs(ax_ez[2]) > 0.999:
             ax_ex = np.r_[1, 0, 0]
         else:
             ax_ex = np.r_[-ax_ez[1], ax_ez[0], 0.]
@@ -2097,9 +2102,6 @@ class ToFuObject(ToFuObjectBase):
         ax_ex = ax_ex[:, None]
         ax_ey = ax_ey[:, None]
         ax_ez = ax_ez[:, None]
-
-        # angle vs dangle
-        angle = cls._checkfornat_scalar(angle, name='angle'):
 
         # Compute pts
         if pts is not None:
@@ -2140,45 +2142,92 @@ class ToFuObject(ToFuObjectBase):
     @classmethod
     def _rotate_pts_vectors_in_poloidal_plane(cls, pts=None, vect=None,
                                               angle=None,
-                                              phi=None, ptrz=None):
+                                              phi=None, axis_rz=None):
         # phi
         phi = cls._checkfornat_scalar(phi, name='phi')
-        ptrz = _checkformat_3Narray(ptrz, name='ptrz', N=2, dim=1)
-        ax_pt = np.r_[ptrz[0]*np.cos(phi), ptrz[0]*np.sin(phi), ptrz[1]]
+        axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
+        ax_pt = np.r_[axis_rz[0]*np.cos(phi),
+                      axis_rz[0]*np.sin(phi), axis_rz[1]]
         ax_v = np.r_[np.sin(phi), -np.cos(phi), 0.]
         return cls._rotate_pts_vectors_around_3daxis(pts, vect,
                                                      angle=angle,
                                                      axis=(ax_pt, ax_v))
 
     @classmethod
+    def _rotate_pts_vectors_in_poloidal_plane_2D(cls, pts_rz=None,
+                                                 vect_rz=None,
+                                                 angle=None,
+                                                 axis_rz=None):
+        # Check format input
+        angle = cls._checkfornat_scalar(angle, name='angle')
+        pts_rz = cls._checkformat_Narray(pts_rz, name='pts_rz', N=2, dim=2)
+        vect_rz = cls._checkformat_Narray(vect_rz, name='vect_rz', N=2, dim=2)
+        axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
+        if any([axis_rz is None, angle is None]):
+            msg = "Please provide both axis_rz and angle !"
+            raise Exception(msg)
+        if all([pts_rz is None, vect_rz is None]):
+            msg = "Neither pts_rz nor vect_rz was provided, nothing to rotate"
+            raise Exception(msg)
+
+        # Compute
+        if pts_rz is not None:
+            rad = np.hypot(pts_rz[1]-axis_rz[1], pts_rz[0]-axis_rz[0])
+            ang = np.arctan2(pts_rz[1]-axis_rz[1], pts_rz[0]-axis_rz[0])
+            ptsrz2 = np.array([axis_rz[0] + rad*np.cos(ang+angle),
+                               axis_rz[1] + rad*np.sin(ang+angle)])
+            if vect_rz is None:
+                return ptsrz2
+
+        if vect_rz is not None:
+            rad = np.linalg.norm(vect_rz)
+            ang = np.arctan2(vect_rz[1], vect_rz[0])
+            vectrz2 = np.array([rad*np.cos(ang+angle),
+                                rad*np.sin(ang+angle)])
+            if pts_rz is None:
+                return vectrz2
+        return ptsrz2, vectrz2
+
+    @classmethod
     def _translate_pts_3d(cls, pts=None,
                           direction=None, distance=None):
-        pts = cls._checkformat_3Narray(pts, name='pts', dim=2)
-        distance = cls._checkfornat_scalar(distance, name='distance'):
-        translation = cls._checkformat_3Narray(translation,
-                                               name='direction', dim=2)
-        directtion = direction / np.linalg.norm(direction)
-        return pts + distance*direction
+        pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        distance = cls._checkfornat_scalar(distance, name='distance')
+        direction = cls._checkformat_Narray(direction,
+                                            name='direction', N=3, dim=1)
+        direction = direction / np.linalg.norm(direction)
+        return pts + distance*direction[:, None]
 
     @classmethod
     def _translate_pts_poloidal_plane(cls, pts=None, phi=None,
-                                      direction=None, distance=None):
+                                      direction_rz=None, distance=None):
         phi = cls._checkfornat_scalar(phi, name='phi')
-        direction = cls._checkformat_3Narray(direction,
-                                             name='direction', N=2, dim=2)
+        direction_rz = cls._checkformat_Narray(direction_rz,
+                                               name='direction', N=2, dim=1)
         try:
-            pts = cls._checkformat_3Narray(pts, name='pts', N=3, dim=2)
+            pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
         except Exception as err:
-            pts = cls._checkformat_3Narray(pts, name='pts', N=2, dim=2)
+            pts = cls._checkformat_Narray(pts, name='pts', N=2, dim=2)
             if phi is None:
                 msg = "If pts are in (R, Z) coordinates, please provide phi!"
                 raise Exception(msg)
             pts = np.array([pts[0, :]*np.cos(phi),
                             pts[0, :]*np.sin(phi), pts[1, :]])
 
-        direction = np.array([direction[0]*np.cos(phi),
-                              direction[0]*np.sin(phi), direction[1]])
+        direction = np.array([direction_rz[0]*np.cos(phi),
+                              direction_rz[0]*np.sin(phi), direction_rz[1]])
         return cls._translate_pts_3d(pts, direction, distance)
+
+    @classmethod
+    def _translate_pts_poloidal_plane_2D(cls, pts_rz=None,
+                                         direction_rz=None, distance=None):
+        direction_rz = cls._checkformat_Narray(direction_rz,
+                                               name='direction_rz',
+                                               N=2, dim=1)
+        pts_rz = cls._checkformat_Narray(pts_rz,
+                                         name='pts_rz', N=2, dim=2)
+        distance = cls._checkfornat_scalar(distance, name='distance')
+        return pts_rz + distance*direction_rz[:, None]
 
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',

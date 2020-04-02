@@ -48,11 +48,18 @@ __all__ = [
 _arrayorder = "C"
 _Clock = False
 _Type = "Tor"
+
+# rotate / translate instance
+_UPDATE_EXTENT = True
+_RETURN_COPY = False
+
+# Parallelization
 _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
 _DREFLECT = {"specular": 0, "diffusive": 1, "ccube": 2}
+
 
 """
 ###############################################################################
@@ -939,6 +946,71 @@ class Struct(utils.ToFuObject):
 
     def get_color(self):
         return self._dmisc["color"]
+
+    def _update_or_copy(self, poly,
+                        pos=None,
+                        update_extent=None,
+                        return_copy=None, name=None):
+        if update_extent is None:
+            update_extent = _UPDATE_EXTENT
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        extent = self.extent
+        if update_extent is True:
+            if extent is not None:
+                ratio = np.nanmin(poly[0, :]) / np.nanmin(self.Poly[0, :])
+                extent = extent*ratio
+        if pos is None:
+            pos = self.pos
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            return self.__class__(Poly=poly,
+                                  extent=extent, pos=pos,
+                                  mobile=self._dgeom['mobile'],
+                                  sino_RefPt=self._dsino['RefPt'],
+                                  sino_nP=self._dsino['nP'],
+                                  color=self._dmisc['color'],
+                                  Exp=self.Id.Exp,
+                                  Name=name,
+                                  shot=self.Id.shot,
+                                  SavePath=self.Id.SavePath,
+                                  Type=self.Id.Type)
+        else:
+            self._set_dgeom(poly, pos=pos, extent=extent,
+                            mobile=self._dgeom['mobile'],
+                            sino_RefPt=self._dsino['RefPt'],
+                            sino_nP=self._dsino['nP'])
+
+    def translate_in_poloidal_plane(self, distance=None, direction_rz=None,
+                                    update_extent=None,
+                                    return_copy=None, name=None):
+        """ Translate the structure in the poloidal plane """
+        poly = self._translate_pts_poloidal_plane_2D(
+            pts_rz=self.Poly,
+            direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(poly, update_extent=update_extent,
+                                    return_copy=return_copy, name=name)
+
+    def rotate_in_poloidal_plane(self, angle=None, axis_rz=None,
+                                 update_extent=True,
+                                 return_copy=None, name=None):
+        """ Rotate the structure in the poloidal plane """
+        poly = self._rotate_pts_vectors_in_poloidal_plane_2D(
+            pts_rz=self.Poly,
+            axis_rz=axis_rz, angle=angle)
+        return self._update_or_copy(poly, update_extent=update_extent,
+                                    return_copy=return_copy, name=name)
+
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None, name=None):
+        """ Rotate the structure in the poloidal plane """
+        pos = self.pos
+        if pos is not None:
+            pos = pos + angle
+        return self._update_or_copy(self.Poly, pos=pos,
+                                    update_extent=False,
+                                    return_copy=return_copy, name=name)
 
     def move(self):
         """ To be overriden at object-level after instance creation
@@ -5039,9 +5111,24 @@ class Rays(utils.ToFuObject):
         return self._dsino
 
     @property
+    def lOptics(self):
+        return [self._dOptics['dobj'][k0][k1]
+                for (k0, k1) in map(lambda x: str.split(x, '_'),
+                                    self._dOptics['lorder'])]
+
+    @property
     def isPinhole(self):
         c0 = "pinhole" in self._dgeom.keys()
         return c0 and self._dgeom["pinhole"] is not None
+
+    @property
+    def isInPoloidalPlane(self):
+        phiD = np.arctan2(self.D[1, :], self.D[0, :])
+        if self.nRays > 1 and not np.allclose(phiD[0], phiD[1:]):
+            return False
+        phiD = phiD[0]
+        ephi = np.array([-np.sin(phiD), np.cos(phiD), 0.])[:, None]
+        return np.allclose(np.sum(self.u*ephi, axis=0), 0.)
 
     @property
     def nRays(self):
@@ -5143,6 +5230,136 @@ class Rays(utils.ToFuObject):
     def _isLOS(cls):
         c0 = "los" in cls.__name__.lower()
         return c0
+
+    ###########
+    # Movement methods
+    ###########
+
+    def _update_or_copy(self, D, u, pinhole=None,
+                        return_copy=None,
+                        name=None, diag=None, dchans=None):
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        if self.isPinhole is True:
+            dgeom = {'pinhole': pinhole,
+                     'D': D}
+        else:
+            dgeom = (D, u)
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            if diag is None:
+                diag = self.Id.Diag
+            if dchans is None:
+                dchans = self.dchans
+            return self.__class__(dgeom=dgeom,
+                                  lOptics=self.lOptics,
+                                  Etendues=self.Etendues,
+                                  Surfaces=self.Surfaces,
+                                  config=self.config,
+                                  sino_RefPt=self._dsino['RefPt'],
+                                  color=self._dmisc['color'],
+                                  dchans=dchans,
+                                  Exp=self.Id.Exp,
+                                  Diag=diag,
+                                  Name=name,
+                                  shot=self.Id.shot,
+                                  SavePath=self.Id.SavePath)
+        else:
+            self._set_dgeom(dgeom=dgeom,
+                            Etendues=self.Etendues,
+                            Surfaces=self.Surfaces,
+                            sino_RefPt=self._dsino['RefPt'],
+                            extra=True,
+                            sino=True)
+
+    def _rotate_DPinholeu(self, func, **kwdargs):
+        pinhole, u = None, None
+        if self.isPinhole is True:
+            D = np.concatenate((self.D, self._dgeom['pinhole'][:, None]),
+                               axis=1)
+            D = func(pts=D, **kwdargs)
+            D, pinhole = D[:, :-1], D[:, -1]
+        elif 'rotate' in func.__name__:
+            D, u = func(pts=self.D, vect=self.u, **kwdargs)
+        else:
+            D = func(pts=self.D, **kwdargs)
+        return D, pinhole, u
+
+    def translate_in_poloidal_plane(self, distance=None, direction_rz=None,
+                                    phi=None,
+                                    return_copy=None,
+                                    diag=None, name=None, dchans=None):
+        """ Translate the instance in the poloidal plane """
+        if phi is None:
+            if self.isInPoloidalPlane:
+                phi = np.arctan2(*self.D[1::-1, 0])
+            elif self.isPinhole:
+                phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
+            else:
+                msg = ("Camera is notassociated to a specific poloidal plane\n"
+                       + "\tPlease specify which poloidal plane (phi) to use")
+                raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._translate_pts_poloidal_plane,
+            phi=phi, direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def translate_3d(self, direction=None, distance=None,
+                     return_copy=None,
+                     diag=None, name=None, dchans=None):
+        """ Translate the instance in provided direction """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._translate_pts_3d,
+            direction=direction, distance=distance)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_in_poloidal_plane(self, angle=None, axis_rz=None,
+                                 phi=None,
+                                 return_copy=None,
+                                 diag=None, name=None, dchans=None):
+        """ Rotate the instance in the poloidal plane """
+        if phi is None:
+            if self.isInPoloidalPlane:
+                phi = np.arctan2(*self.D[1::-1, 0])
+            elif self.isPinhole:
+                phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
+            else:
+                msg = ("Camera not associated to a specific poloidal plane\n"
+                       + "\tPlease specify which poloidal plane (phi) to use")
+                raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_in_poloidal_plane,
+            axis_rz=axis_rz, angle=angle, phi=phi)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None,
+                                diag=None, name=None, dchans=None):
+        """ Rotate the instance in the poloidal plane """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_around_torusaxis,
+            angle=angle)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_around_3daxis(self, axis=None, angle=None,
+                             return_copy=None,
+                             diag=None, name=None, dchans=None):
+        """ Rotate the instance around the provided 3d axis """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_around_3daxis,
+            axis=axis, angle=angle)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
 
     ###########
     # public methods
