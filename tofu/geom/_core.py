@@ -7275,6 +7275,10 @@ class CamLOS2D(Rays):
             "{:.2f}".format(np.nanmin(angles)),
             "{:.2f}".format(np.nanmax(angles)),
         ]
+        if self._dgeom['move'] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom['move'],
+                    str(round(self._dgeom['move_param'], ndigits=4))]
 
         # call base method
         return self._get_summary(
