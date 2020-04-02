@@ -99,7 +99,6 @@ class CrystalBragg(utils.ToFuObject):
                      'dBv':{'color':'g','ls':'--'},
                      'Nstep':50},
               '3d':{}}
-    _DEFLMOVEOK = ['rotate']
     _DEFLAMB = 3.971561e-10
     _DEFNPEAKS = 12
     # _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
@@ -266,21 +265,6 @@ class CrystalBragg(utils.ToFuObject):
                 assert np.abs(np.sum(dgeom['e2']*dgeom['nin'])) < 1.e-12
                 assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
                                       + dgeom['nin']) < 1.e-12
-        if dgeom['rotateaxis'] is not None:
-            rotax = np.asarray(dgeom['rotateaxis'], dtype=float)
-            assert rotax.shape == (2, 3)
-            rotax[1,:] = rotax[1,:] / np.linalg.norm(rotax[1,:])
-            dgeom['rotateaxis'] = rotax
-        if dgeom['rotateangle'] is not None:
-            dgeom['rotateangle'] = float(dgeom['rotateangle'])
-        if dgeom['mobile'] is None:
-            if dgeom['rotateaxis'] is not None:
-                dgeom['mobile'] = 'rotate'
-            else:
-                dgeom['mobile'] = False
-        else:
-            assert isinstance(dgeom['mobile'], str)
-            assert dgeom['mobile'] in cls._DEFLMOVEOK
         return dgeom
 
     @classmethod
@@ -463,6 +447,9 @@ class CrystalBragg(utils.ToFuObject):
                 sindtheta = np.sin(dgeom['extenthalf'][ind-1])
                 dgeom['surface'] = 4.*dgeom['rcurve']**2*dphi*sindtheta
         self._dgeom = dgeom
+        if dgeom['move'] is not None:
+            self.set_move(move=dgeom['move'], param=dgeom['move_param'],
+                          **dgeom['move_kwdargs'])
 
     def set_dmat(self, dmat=None):
         dmat = self._checkformat_dmat(dmat)
@@ -676,8 +663,8 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------------------
         # Build geometry
-        col1 = ['Type', 'Type outline', 'surface (cm^2)', 'rcurve',
-                'half-extent', 'summit', 'center', 'nin', 'e1', 'e2']
+        col1 = ['Type', 'outline', 'surface (cm^2)', 'rcurve',
+                'half-extent', 'summit', 'center', 'nin', 'e1']
         ar1 = [self._dgeom['Type'], self._dgeom['Typeoutline'],
                '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
                '{0:5.2f}'.format(self._dgeom['rcurve']),
@@ -685,8 +672,11 @@ class CrystalBragg(utils.ToFuObject):
                str(np.round(self._dgeom['summit'], decimals=2)),
                str(np.round(self._dgeom['center'], decimals=2)),
                str(np.round(self._dgeom['nin'], decimals=2)),
-               str(np.round(self._dgeom['e1'], decimals=2)),
-               str(np.round(self._dgeom['e2'], decimals=2))]
+               str(np.round(self._dgeom['e1'], decimals=2))]
+        if self._dgeom.get('move') not in [None, False]:
+            col1 += ['move', 'param']
+            ar1 += [self._dgeom['move'],
+                    str(np.round(self._dgeom['move_param'], decimals=5))]
 
         if self._dmisc.get('color') is not None:
             col1.append('color')
@@ -696,16 +686,16 @@ class CrystalBragg(utils.ToFuObject):
         lar = [ar0, ar1]
 
         # -----------------------
-        # Build mobile
-        if self._dgeom['mobile'] != False:
-            if self._dgeom['mobile'] == 'rotate':
-                col2 = ['Mov. type', 'axis pt.', 'axis vector', 'pos. (deg)']
-                ar2 = [self._dgeom['mobile'],
-                       str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
-                       str(np.round(self._dgeom['rotateaxis'][1], decimals=2)),
-                       '{0:7.3f}'.format(self._dgeom['rotateangle']*180./np.pi)]
-            lcol.append(col2)
-            lar.append(ar2)
+        # Build mobile - DEPRECATED
+        # if self._dgeom.get('mobile') not in [None, False]:
+            # if self._dgeom['mobile'] == 'rotate':
+                # col2 = ['Mov. type', 'axis pt.', 'axis vector', 'pos. (deg)']
+                # ar2 = [self._dgeom['mobile'],
+                       # str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
+                       # str(np.round(self._dgeom['rotateaxis'][1], decimals=2)),
+                       # '{0:7.3f}'.format(self._dgeom['rotateangle']*180./np.pi)]
+            # lcol.append(col2)
+            # lar.append(ar2)
         return self._get_summary(lar, lcol,
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
@@ -756,7 +746,8 @@ class CrystalBragg(utils.ToFuObject):
                              self._dgeom['e1'], self._dgeom['e2']]).T
             pts, vect = func(pts=pts, vect=vect, **kwdargs)
             return {'summit': pts[:, 0], 'center': pts[:, 1],
-                    'nout': vect[:, 0], 'e1': vect[:, 1], 'e2': vect[:, 2]}
+                    'nout': vect[:, 0], 'nin': -vect[:, 0],
+                    'e1': vect[:, 1], 'e2': vect[:, 2]}
         else:
             pts = func(pts=pts, **kwdargs)
             return {'summit': pts[:, 0], 'center': pts[:, 1]}
