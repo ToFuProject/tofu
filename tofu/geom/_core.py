@@ -975,9 +975,9 @@ class Struct(utils.ToFuObject):
                             sino_RefPt=self._dsino['RefPt'],
                             sino_nP=self._dsino['nP'])
 
-    def translate_in_poloidal_plane(self, distance=None, direction_rz=None,
-                                    update_extent=None,
-                                    return_copy=None, name=None):
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   update_extent=None,
+                                   return_copy=None, name=None):
         """ Translate the structure in the poloidal plane """
         poly = self._translate_pts_poloidal_plane_2D(
             pts_rz=self.Poly,
@@ -985,9 +985,9 @@ class Struct(utils.ToFuObject):
         return self._update_or_copy(poly, update_extent=update_extent,
                                     return_copy=return_copy, name=name)
 
-    def rotate_in_poloidal_plane(self, angle=None, axis_rz=None,
-                                 update_extent=True,
-                                 return_copy=None, name=None):
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                update_extent=True,
+                                return_copy=None, name=None):
         """ Rotate the structure in the poloidal plane """
         poly = self._rotate_pts_vectors_in_poloidal_plane_2D(
             pts_rz=self.Poly,
@@ -998,6 +998,9 @@ class Struct(utils.ToFuObject):
     def rotate_around_torusaxis(self, angle=None,
                                 return_copy=None, name=None):
         """ Rotate the structure in the poloidal plane """
+        if self.Id.Type != 'Tor':
+            msg = "Movement only available for Tor configurations!"
+            raise Exception(msg)
         pos = self.pos
         if pos is not None:
             pos = pos + angle
@@ -1039,6 +1042,8 @@ class Struct(utils.ToFuObject):
         move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
         self._dgeom['move'] = move
         self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
         self._dgeom['move_kwdargs'] = kwdargs
 
     def move(self, param):
@@ -5333,11 +5338,11 @@ class Rays(utils.ToFuObject):
             u = self.u
         return D, pinhole, u
 
-    def translate_in_poloidal_plane(self, distance=None, direction_rz=None,
-                                    phi=None,
-                                    return_copy=None,
-                                    diag=None, name=None, dchans=None):
-        """ Translate the instance in the poloidal plane """
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   phi=None,
+                                   return_copy=None,
+                                   diag=None, name=None, dchans=None):
+        """ Translate the instance in the cross-section """
         if phi is None:
             if self.isInPoloidalPlane:
                 phi = np.arctan2(*self.D[1::-1, 0])
@@ -5365,11 +5370,11 @@ class Rays(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
 
-    def rotate_in_poloidal_plane(self, angle=None, axis_rz=None,
-                                 phi=None,
-                                 return_copy=None,
-                                 diag=None, name=None, dchans=None):
-        """ Rotate the instance in the poloidal plane """
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                phi=None,
+                                return_copy=None,
+                                diag=None, name=None, dchans=None):
+        """ Rotate the instance in the cross-section """
         if phi is None:
             if self.isInPoloidalPlane:
                 phi = np.arctan2(*self.D[1::-1, 0])
@@ -5389,7 +5394,10 @@ class Rays(utils.ToFuObject):
     def rotate_around_torusaxis(self, angle=None,
                                 return_copy=None,
                                 diag=None, name=None, dchans=None):
-        """ Rotate the instance in the poloidal plane """
+        """ Rotate the instance around the torus axis """
+        if self.config is not None and self.config.Id.Type != 'Tor':
+            msg = "Movement only available for Tor configurations!"
+            raise Exception(msg)
         D, pinhole, u = self._rotate_DPinholeu(
             self._rotate_pts_vectors_around_torusaxis,
             angle=angle)

@@ -752,11 +752,11 @@ class CrystalBragg(utils.ToFuObject):
             pts = func(pts=pts, **kwdargs)
             return {'summit': pts[:, 0], 'center': pts[:, 1]}
 
-    def translate_in_poloidal_plane(self, distance=None, direction_rz=None,
-                                    phi=None,
-                                    return_copy=None,
-                                    diag=None, name=None, shot=None):
-        """ Translate the instance in the poloidal plane """
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   phi=None,
+                                   return_copy=None,
+                                   diag=None, name=None, shot=None):
+        """ Translate the instance in the cross-section """
         if phi is None:
             phi = np.arctan2(*self.summit[1::-1])
             msg = ("Poloidal plane was not explicitely specified\n"
@@ -780,11 +780,11 @@ class CrystalBragg(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, shot=shot)
 
-    def rotate_in_poloidal_plane(self, angle=None, axis_rz=None,
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
                                  phi=None,
                                  return_copy=None,
                                  diag=None, name=None, shot=None):
-        """ Rotate the instance in the poloidal plane """
+        """ Rotate the instance in the cross-section """
         if phi is None:
             phi = np.arctan2(*self.summit[1::-1])
             msg = ("Poloidal plane was not explicitely specified\n"
@@ -800,7 +800,7 @@ class CrystalBragg(utils.ToFuObject):
     def rotate_around_torusaxis(self, angle=None,
                                 return_copy=None,
                                 diag=None, name=None, shot=None):
-        """ Rotate the instance in the poloidal plane """
+        """ Rotate the instance around the torus axis """
         dgeom = self._rotate_or_translate(
             self._rotate_pts_vectors_around_torusaxis,
             angle=angle)

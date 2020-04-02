@@ -2235,10 +2235,15 @@ class ToFuObject(ToFuObjectBase):
         c0 = (isinstance(move, str)
               and hasattr(cls, move)
               and any([ss in move for ss in ['rotate', 'translate']]))
-        if not c0:
-            msg = ("move must be a str mathcing the name of a valid"
-                   + " movement method (rotate/translate)")
+        if not (c0 or move is None):
+            msg = ("move must be a str matching the name of a valid"
+                   + " movement method (rotate/translate)\n"
+                   + "\t- provided: {}".format(move))
             raise Exception(msg)
+
+        if move is None:
+            return None, None, None
+
         func = getattr(cls, move)
         sig = inspect.signature(func).parameters.keys()
         if param is None:
@@ -2265,6 +2270,8 @@ class ToFuObject(ToFuObjectBase):
             raise Exception(msg)
         lk =['move', 'move_param', 'move_kwdargs']
         move, param0, kwdargs = [getattr(self, dictname)[kk] for kk in lk]
+        if kwdargs is None:
+            kwdargs = {}
 
         func = getattr(self, move)
         dparam = param - param0

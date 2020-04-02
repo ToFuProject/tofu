@@ -190,6 +190,20 @@ class Test01_Struct(object):
         #print("TestUM:teardown() after each test method")
         pass
 
+    def test00_set_move(self):
+        for typ in self.dobj.keys():
+            if typ == 'Tor':
+                move = 'rotate_around_torusaxis'
+                kwd = {}
+            else:
+                move = 'translate_in_cross_section'
+                kwd = {'direction_rz': [1., 0., 0.]}
+            for c in self.dobj[typ].keys():
+                for ii, n in enumerate(self.dobj[typ][c].keys()):
+                    if ii%2 == 0:
+                        self.dobj[typ][c][n].set_move(move=move,
+                                                      **kwd)
+
     def test01_todict(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
@@ -234,20 +248,43 @@ class Test01_Struct(object):
                     for ii in lok[::-1]:
                         obj.strip(ii)
 
-    def test06_set_dsino(self):
+    def test06_set_move_None(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    self.dobj[typ][c][n].set_move()
+
+    def test07_rotate_copy(self):
+        for typ in self.dobj.keys():
+            if typ == 'Lin':
+                continue
+            dkwd0 = dict(axis_rz=[2.4, 0], angle=np.pi/4,
+                         return_copy=True)
+            dkwd1 = dict(direction_rz=[1, 0], distance=0.1,
+                         return_copy=True)
+            for c in self.dobj[typ].keys():
+                for ii, n in enumerate(self.dobj[typ][c].keys()):
+                    if ii%2 == 0:
+                        obj = getattr(self.dobj[typ][c][n],
+                                      'rotate_in_cross_section')(**dkwd0)
+                    else:
+                        obj = getattr(self.dobj[typ][c][n],
+                                      'translate_in_cross_section')(**dkwd1)
+
+    def test08_set_dsino(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     self.dobj[typ][c][n].set_dsino([2.4,0.])
 
-    def test07_setget_color(self):
+    def test09_setget_color(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     col = self.dobj[typ][c][n].get_color()
                     self.dobj[typ][c][n].set_color(col)
 
-    def test08_isInside(self, NR=20, NZ=20, NThet=10):
+    def test10_isInside(self, NR=20, NZ=20, NThet=10):
         for typ in self.dobj.keys():
             if tt=='Tor':
                 R = np.linspace(1,3,100)
@@ -278,16 +315,14 @@ class Test01_Struct(object):
                         msg += "\n  and npts = {0}".format(pts.shape[1])
                         raise Exception(msg)
 
-
-
-    def test09_InsideConvexPoly(self):
+    def test11_InsideConvexPoly(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     self.dobj[typ][c][n].get_InsideConvexPoly(Plot=False,
                                                               Test=True)
 
-    def test10_get_sampleEdge(self):
+    def test12_get_sampleEdge(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
@@ -299,7 +334,7 @@ class Test01_Struct(object):
                     out = obj.get_sampleEdge(0.05, DS=[None,[-2.,0.]],
                                              resMode='abs', offsetIn=0.)
 
-    def test11_get_sampleCross(self):
+    def test13_get_sampleCross(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
@@ -322,7 +357,7 @@ class Test01_Struct(object):
                         msg += " and ii={0}".format(ii)
                         raise Exception(msg)
 
-    def test12_get_sampleS(self):
+    def test14_get_sampleS(self):
         for typ in self.dobj.keys():
             # Todo : introduce possibility of choosing In coordinates !
             for c in self.dobj[typ].keys():
@@ -354,7 +389,7 @@ class Test01_Struct(object):
                     else:
                         assert np.allclose(pts0,pts1)
 
-    def test13_get_sampleV(self):
+    def test15_get_sampleV(self):
         for typ in self.dobj.keys():
             # Todo : introduce possibility of choosing In coordinates !
             for c in self.dobj[typ].keys():
@@ -388,7 +423,7 @@ class Test01_Struct(object):
                     else:
                         assert np.allclose(pts0,pts1)
 
-    def test14_plot(self):
+    def test16_plot(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
@@ -398,7 +433,7 @@ class Test01_Struct(object):
                     lax = obj.plot(element='P', indices=True, draw=False)
                     plt.close('all')
 
-    def test15_plot_sino(self):
+    def test17_plot_sino(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
@@ -411,7 +446,7 @@ class Test01_Struct(object):
                                         Sketch=False, draw=False, fs='a4')
                     plt.close('all')
 
-    def test16_saveload(self, verb=False):
+    def test18_saveload(self, verb=False):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
@@ -421,7 +456,7 @@ class Test01_Struct(object):
                     assert obj==obj2
                     os.remove(pfe)
 
-    def test17_save_to_txt(self, verb=False):
+    def test19_save_to_txt(self, verb=False):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
