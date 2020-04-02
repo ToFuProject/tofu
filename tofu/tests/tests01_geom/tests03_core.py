@@ -13,8 +13,7 @@ import warnings as warn
 # Nose-specific
 from nose import with_setup # optional
 
-
-# Importing package tofu.geom
+# Importing package tofu.gem
 import tofu as tf
 from tofu import __version__
 import tofu.defaults as tfd

@@ -209,7 +209,7 @@ class Struct(utils.ToFuObject):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
     def __init__(self, Poly=None, Type=None,
-                 Lim=None, pos=None, extent=None, mobile=False,
+                 Lim=None, pos=None, extent=None,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
@@ -288,7 +288,6 @@ class Struct(utils.ToFuObject):
             "Lim",
             "pos",
             "extent",
-            "mobile",
             "Clock",
             "arrayorder",
         ]
@@ -413,7 +412,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Type=None,
         Clock=False,
         arrayorder=None,
@@ -431,7 +429,6 @@ class Struct(utils.ToFuObject):
                 "inshape": 2,
             },
             "Clock": {"var": Clock, "cls": bool},
-            "mobile": {"var": mobile, "cls": bool},
             "arrayorder": {"var": arrayorder, "in": ["C", "F"]},
             "Type": {"var": Type, "in": ["Tor", "Lin"]},
         }
@@ -555,7 +552,6 @@ class Struct(utils.ToFuObject):
             "VolAng",
             "Vect",
             "VIn",
-            "mobile",
             "circ-C",
             "circ-r",
             "Clock",
@@ -597,7 +593,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Clock=_Clock,
         arrayorder=_arrayorder,
         sino_RefPt=None,
@@ -630,7 +625,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Clock=False,
         arrayorder="C",
         sino_RefPt=None,
@@ -642,7 +636,6 @@ class Struct(utils.ToFuObject):
             Lim=Lim,
             pos=pos,
             extent=extent,
-            mobile=mobile,
             Type=self.Id.Type,
             Clock=Clock,
         )
@@ -656,8 +649,7 @@ class Struct(utils.ToFuObject):
             Clock=Clock,
         )
         dgeom["arrayorder"] = arrayorder
-        dgeom["mobile"] = mobile
-        self._dgeom = dgeom
+        self._dgeom.update(dgeom)
         if sino:
             self.set_dsino(sino_RefPt, nP=sino_nP)
 
@@ -700,7 +692,7 @@ class Struct(utils.ToFuObject):
 
     def _strip_dgeom(
         self,
-        lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder",
+        lkeep=["Poly", "pos", "extent", "Clock", "arrayorder",
                "move", "move_param", "move_kwdargs"]
     ):
         utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
@@ -723,8 +715,7 @@ class Struct(utils.ToFuObject):
 
     def _rebuild_dgeom(
         self,
-        lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder",
-               "move", "move_param", "move_kwdargs"]
+        lkeep=["Poly", "pos", "extent", "Clock", "arrayorder"]
     ):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
@@ -971,7 +962,6 @@ class Struct(utils.ToFuObject):
                 name = self.Id.Name + 'copy'
             return self.__class__(Poly=poly,
                                   extent=extent, pos=pos,
-                                  mobile=self._dgeom['mobile'],
                                   sino_RefPt=self._dsino['RefPt'],
                                   sino_nP=self._dsino['nP'],
                                   color=self._dmisc['color'],
@@ -982,7 +972,6 @@ class Struct(utils.ToFuObject):
                                   Type=self.Id.Type)
         else:
             self._set_dgeom(poly, pos=pos, extent=extent,
-                            mobile=self._dgeom['mobile'],
                             sino_RefPt=self._dsino['RefPt'],
                             sino_nP=self._dsino['nP'])
 
@@ -1792,7 +1781,6 @@ class Struct(utils.ToFuObject):
         Name=None,
         shot=None,
         Type=None,
-        mobile=False,
         color=None,
         SavePath=os.path.abspath("./"),
     ):
@@ -1879,7 +1867,6 @@ class Struct(utils.ToFuObject):
                 Exp=Exp,
                 shot=shot,
                 Type=Type,
-                mobile=mobile,
                 Poly=poly,
                 pos=pos,
                 extent=extent,
@@ -1980,7 +1967,6 @@ class StructIn(Struct):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Type=None,
         Clock=False,
         arrayorder=None,
@@ -2037,7 +2023,7 @@ class CoilPF(StructOut):
     def __init__(self, nturns=None, superconducting=None, active=None,
                  **kwdargs):
         # super()
-        super(CoilPF, self).__init__(mobile=False, **kwdargs)
+        super(CoilPF, self).__init__(**kwdargs)
 
     def _reset(self):
         # super()
@@ -2911,7 +2897,6 @@ class Config(utils.ToFuObject):
         Cls=None,
         Name=None,
         Poly=None,
-        mobile=False,
         shot=None,
         Lim=None,
         Type=None,
@@ -2957,7 +2942,6 @@ class Config(utils.ToFuObject):
                 Name=Name,
                 Lim=Lim,
                 Type=Type,
-                mobile=mobile,
                 shot=shot,
                 Exp=self.Id.Exp,
             )
