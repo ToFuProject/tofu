@@ -722,7 +722,9 @@ class Struct(utils.ToFuObject):
     ###########
 
     def _rebuild_dgeom(
-        self, lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder"]
+        self,
+        lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder",
+               "move", "move_param", "move_kwdargs"]
     ):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
@@ -920,8 +922,6 @@ class Struct(utils.ToFuObject):
             "SaveName",
             "nP",
             "noccur",
-            "mobile",
-            "color",
         ]
         ar0 = [
             self._Id.Cls,
@@ -929,8 +929,13 @@ class Struct(utils.ToFuObject):
             self._Id.SaveName,
             str(self._dgeom["nP"]),
             str(self._dgeom["noccur"]),
-            str(self._dgeom["mobile"]),
-            str(self._dmisc["color"])]
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        ar0.append(str(self._dmisc["color"]))
 
         return self._get_summary(
             [ar0],
@@ -3093,7 +3098,7 @@ class Config(utils.ToFuObject):
             "SaveName",
             "nP",
             "noccur",
-            "mobile",
+            "move",
             "color",
         ] + self._dextraprop["lprop"]
         d = self._dStruct["dObj"]
@@ -3108,7 +3113,7 @@ class Config(utils.ToFuObject):
                     self._dStruct["dObj"][k][kk]._Id._dall["SaveName"],
                     str(self._dStruct["dObj"][k][kk]._dgeom["nP"]),
                     str(self._dStruct["dObj"][k][kk]._dgeom["noccur"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["mobile"]),
+                    str(self._dStruct["dObj"][k][kk]._dgeom["move"]),
                     str(self._dStruct["dObj"][k][kk]._dmisc["color"]),
                 ]
                 for pp in self._dextraprop["lprop"]:
@@ -7134,6 +7139,10 @@ class CamLOS1D(Rays):
             "{:.2f}".format(np.nanmin(angles)),
             "{:.2f}".format(np.nanmax(angles)),
         ]
+        if self._dgeom['move'] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom['move'],
+                    str(round(self._dgeom['move_param'], ndigits=4))]
 
         # ar1
         col1 = ["los index", "length", "touch", "angle (rad)"]
