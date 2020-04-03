@@ -65,6 +65,7 @@ Contents
    A guide to contributing to tofu <contributing.rst>
    A list of all different device configurations available (ITER, WEST, JET, ...) <auto_examples/tutorials/tuto_plot_gallery_fusion_machines.rst>
    Tutorials and examples <auto_examples/index.rst>
+   Using tofu from a bash terminal <tofu_from_bash.rst>
 
 * How to create / handle a diagnostic geometry
    - Visit the basic_ tutorial for getting started: create, plot and save

@@ -1,0 +1,6 @@
+# all files to be included
+
+include MANIFEST.in
+include pyproject.toml
+include _updateversion.py
+recursive-include tofu/geom *.pxd
