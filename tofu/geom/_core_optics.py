@@ -684,18 +684,6 @@ class CrystalBragg(utils.ToFuObject):
 
         lcol = [col0, col1]
         lar = [ar0, ar1]
-
-        # -----------------------
-        # Build mobile - DEPRECATED
-        # if self._dgeom.get('mobile') not in [None, False]:
-            # if self._dgeom['mobile'] == 'rotate':
-                # col2 = ['Mov. type', 'axis pt.', 'axis vector', 'pos. (deg)']
-                # ar2 = [self._dgeom['mobile'],
-                       # str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
-                       # str(np.round(self._dgeom['rotateaxis'][1], decimals=2)),
-                       # '{0:7.3f}'.format(self._dgeom['rotateangle']*180./np.pi)]
-            # lcol.append(col2)
-            # lar.append(ar2)
         return self._get_summary(lar, lcol,
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
@@ -781,9 +769,9 @@ class CrystalBragg(utils.ToFuObject):
                                     diag=diag, name=name, shot=shot)
 
     def rotate_in_cross_section(self, angle=None, axis_rz=None,
-                                 phi=None,
-                                 return_copy=None,
-                                 diag=None, name=None, shot=None):
+                                phi=None,
+                                return_copy=None,
+                                diag=None, name=None, shot=None):
         """ Rotate the instance in the cross-section """
         if phi is None:
             phi = np.arctan2(*self.summit[1::-1])

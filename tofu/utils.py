@@ -2268,7 +2268,7 @@ class ToFuObject(ToFuObjectBase):
             msg = ("Default movement not defined\n"
                    + "  => use self.set_move()")
             raise Exception(msg)
-        lk =['move', 'move_param', 'move_kwdargs']
+        lk = ['move', 'move_param', 'move_kwdargs']
         move, param0, kwdargs = [getattr(self, dictname)[kk] for kk in lk]
         if kwdargs is None:
             kwdargs = {}

@@ -200,7 +200,7 @@ class Test01_Struct(object):
                 kwd = {'direction_rz': [1., 0., 0.]}
             for c in self.dobj[typ].keys():
                 for ii, n in enumerate(self.dobj[typ][c].keys()):
-                    if ii%2 == 0:
+                    if ii % 2 == 0:
                         self.dobj[typ][c][n].set_move(move=move,
                                                       **kwd)
 
@@ -264,7 +264,7 @@ class Test01_Struct(object):
                          return_copy=True)
             for c in self.dobj[typ].keys():
                 for ii, n in enumerate(self.dobj[typ][c].keys()):
-                    if ii%2 == 0:
+                    if ii % 2 == 0:
                         obj = getattr(self.dobj[typ][c][n],
                                       'rotate_in_cross_section')(**dkwd0)
                     else:
@@ -735,7 +735,7 @@ class Test03_Rays(object):
                 move = 'translate_in_cross_section'
                 kwd = {'direction_rz': [1., 0., 0.]}
             for c in self.dobj[typ].keys():
-                    self.dobj[typ][c].set_move(move=move, **kwd)
+                self.dobj[typ][c].set_move(move=move, **kwd)
 
     def test01_todict(self):
         for typ in self.dobj.keys():
@@ -790,8 +790,8 @@ class Test03_Rays(object):
             dkwd0 = dict(axis_rz=[2.4, 0], angle=np.pi/4,
                          return_copy=True)
             for c in self.dobj[typ].keys():
-                        obj = getattr(self.dobj[typ][c],
-                                      'rotate_in_cross_section')(**dkwd0)
+                obj = getattr(self.dobj[typ][c],
+                              'rotate_in_cross_section')(**dkwd0)
 
     def test07_set_dsino(self):
         for typ in self.dobj.keys():
@@ -885,7 +885,6 @@ class Test03_Rays(object):
                         msg += "\n {0}".format(str(kIn[ii, ind]))
                         msg += "\n {0}".format(str(kOut[ii, ind]))
                         raise Exception(msg)
-
 
     def test11_calc_signal(self):
         def ffL(Pts, t=None, vect=None):
