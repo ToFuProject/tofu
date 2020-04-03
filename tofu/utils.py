@@ -1055,7 +1055,8 @@ def calc_from_imas(
     Brightness=None, res=None, interp_t=None, extra=None,
     plot=None, plot_compare=True, sharex=False,
     input_file=None, output_file=None,
-    bck=True, indch_auto=True, t=None, init=None):
+    bck=True, indch_auto=True, t=None, init=None
+):
     """ Calculate syntehtic signal for a diagnostic
 
     Read the geometry from an idd (tokamak, user, shot, run)
