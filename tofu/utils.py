@@ -973,30 +973,34 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                          ids=lids)
 
         # export to instances
-        for ii in range(0,nids):
-            if returnas[ii] == 'Config':
-                dout[ss]['Config'].append(multi.to_Config(
-                    Name=Name, occ=occ,
-                    description_2d=description_2d, plot=False))
+        for ii in range(0, nids):
+            try:
+                if returnas[ii] == 'Config':
+                    dout[ss]['Config'].append(multi.to_Config(
+                        Name=Name, occ=occ,
+                        description_2d=description_2d, plot=False))
 
-            elif returnas[ii] == 'Plasma2D':
-                dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
-                                                              tlim=tlim, dsig=dsig, t0=t0,
-                                                              plot=False, plot_sig=plot_sig,
-                                                              dextra=dextra, plot_X=plot_X,
-                                                              config=config,
-                                                              bck=bck))
-            elif returnas[ii] == 'Cam':
-                dout[ss]['Cam'].append(multi.to_Cam(Name=Name, occ=occ,
-                                                    ids=lids[ii], indch=indch, config=config,
-                                                    plot=False))
-            elif returnas[ii] == "Data":
-                dout[ss]['Data'].append(multi.to_Data(Name=Name, occ=occ,
-                                                      ids=lids[ii], tlim=tlim, dsig=dsig,
-                                                      config=config, data=data, X=X, indch=indch,
-                                                      indch_auto=indch_auto, t0=t0,
-                                                      dextra=dextra,
-                                                      plot=False, bck=bck))
+                elif returnas[ii] == 'Plasma2D':
+                    dout[ss]['Plasma2D'].append(multi.to_Plasma2D(
+                        Name=Name, occ=occ,
+                        tlim=tlim, dsig=dsig, t0=t0,
+                        plot=False, plot_sig=plot_sig,
+                        dextra=dextra, plot_X=plot_X,
+                        config=config, bck=bck))
+                elif returnas[ii] == 'Cam':
+                    dout[ss]['Cam'].append(multi.to_Cam(
+                        Name=Name, occ=occ,
+                        ids=lids[ii], indch=indch, config=config,
+                        plot=False))
+                elif returnas[ii] == "Data":
+                    dout[ss]['Data'].append(multi.to_Data(
+                        Name=Name, occ=occ,
+                        ids=lids[ii], tlim=tlim, dsig=dsig,
+                        config=config, data=data, X=X, indch=indch,
+                        indch_auto=indch_auto, t0=t0,
+                        dextra=dextra, plot=False, bck=bck))
+            except Exception as err:
+                warnings.warn(str(err))
 
     # -------------------
     # plot if relevant
@@ -1023,11 +1027,15 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         elif nshot == 1 and nDat == 1:
             dout[shot[0]]['Data'][0].plot(bck=bck)
         elif nshot > 1 and nDat == 1:
+            tit = "{} - {}".format(dout[shot[0]]['Data'][0].Id.Exp,
+                                   dout[shot[0]]['Data'][0].Id.Diag)
             ld = [dout[ss]['Data'][0] for ss in shot[1:]]
-            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck)
+            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck, tit=tit)
         elif nshot == 1 and nDat > 1:
+            tit = multi._dids[dout[shot[0]]['Data'][0].Id.Diag]['idd']
             ld = dout[shot[0]]['Data'][1:]
-            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex, bck=bck)
+            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex,
+                                                  bck=bck, tit=tit)
 
     # return
     if nshot == 1 and nDat == 1:

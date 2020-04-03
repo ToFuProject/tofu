@@ -3083,6 +3083,12 @@ class MultiIDSLoader(object):
             msg = "ids {} has no attribute with '[chan]' index!".format(ids)
             raise Exception(msg)
         nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
+        if nch == 0:
+            msg = ('ids {} has 0 channels:\n'
+                   + '\t- len({}.{}) = 0\n'.format(ids, lch[ind[0]])
+                   + '\t- idd: {}'.format(self._dids[ids]['idd']))
+            raise Exception(msg)
+
 
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
                                                              data=data, X=X,
@@ -3114,23 +3120,27 @@ class MultiIDSLoader(object):
                     import pdb          # DB
                     pdb.set_trace()     # DB
                 continue
-            if isinstance(v0[0], np.ndarray):
-                dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
-                            'isnan': np.array([np.any(np.isnan(vv))
-                                               for vv in v0])}
-                if k0 == 'los_ptsRZPhi':
-                    dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
-                                                              vv[1, ...])
-                                                 for vv in v0])
-            elif type(v0[0]) in [int, float, np.int, np.float, str]:
-                dout[k0] = {'value': np.asarray(v0).ravel()}
-            else:
-                typv = type(v0[0])
-                k0str = (self._dshort[ids][k0]['str']
-                         if k0 in self._dshort[ids].keys() else k0)
-                msg = ("\nUnknown data type:\n"
-                       + "\ttype({}) = {}".format(k0str, typv))
-                raise Exception(msg)
+            try:
+                if isinstance(v0[0], np.ndarray):
+                    dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
+                                'isnan': np.array([np.any(np.isnan(vv))
+                                                   for vv in v0])}
+                    if k0 == 'los_ptsRZPhi':
+                        dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
+                                                                  vv[1, ...])
+                                                     for vv in v0])
+                elif type(v0[0]) in [int, float, np.int, np.float, str]:
+                    dout[k0] = {'value': np.asarray(v0).ravel()}
+                else:
+                    typv = type(v0[0])
+                    k0str = (self._dshort[ids][k0]['str']
+                             if k0 in self._dshort[ids].keys() else k0)
+                    msg = ("\nUnknown data type:\n"
+                           + "\ttype({}) = {}".format(k0str, typv))
+                    raise Exception(msg)
+            except Exception as err:
+                import pdb; pdb.set_trace() # DB
+                pass
 
         lsig = sorted(set(lsig).intersection(dout.keys()))
         lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
