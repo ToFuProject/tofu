@@ -100,6 +100,10 @@ def _get_exception(q, ids, qtype='quantity'):
 
 def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
+                    tokamak_eq=None, user_eq=None,
+                    shot_eq=None, run_eq=None,
+                    tokamak_prof=None, user_prof=None,
+                    shot_prof=None, run_prof=None,
                     ids=None, t0=_T0, extra=_EXTRA,
                     plot_compare=True, Brightness=None,
                     res=None, interp_t=None,
@@ -112,6 +116,10 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
 
     tf.calc_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
+                      tokamak_eq=tokamak_eq, user_eq=user_eq,
+                      shot_eq=shot_eq, run_eq=run_eq,
+                      tokamak_prof=tokamak_prof, user_prof=user_prof,
+                      shot_prof=shot_prof, run_prof=run_prof,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_compare=plot_compare, extra=extra,
                       Brightness=Brightness, res=res, interp_t=interp_t,
@@ -151,17 +159,47 @@ def main():
     """%repr(_LIDS)
     parser = argparse.ArgumentParser(description = msg)
 
+    # Main idd parameters
     parser.add_argument('-s', '--shot', type=int,
                         help='shot number', required=True)
     msg = 'username of the DB where the datafile is located'
-    parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
+    parser.add_argument('-u', '--user',
+                        help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-t','--tokamak',help=msg, required=False,
+    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
                         default=_TOKAMAK)
-    parser.add_argument('-r','--run',help='run number',
+    parser.add_argument('-r', '--run', help='run number',
                         required=False, type=int, default=_RUN)
-    parser.add_argument('-v','--version',help='version number',
+    parser.add_argument('-v', '--version', help='version number',
                         required=False, type=str, default=_VERSION)
+
+    # Equilibrium idd parameters
+    parser.add_argument('-s_eq', '--shot_eq', type=int,
+                        help='shot number for equilibrium, defaults to -s',
+                        required=False, default=None)
+    msg = 'username for the equilibrium, defaults to -u'
+    parser.add_argument('-u_eq', '--user_eq',
+                        help=msg, required=False, default=None)
+    msg = 'tokamak for the equilibrium, defaults to -tok'
+    parser.add_argument('-tok_eq', '--tokamak_eq',
+                        help=msg, required=False, default=None)
+    parser.add_argument('-r_eq', '--run_eq',
+                        help='run number for the equilibrium, defaults to -r',
+                        required=False, type=int, default=None)
+
+    # Profile idd parameters
+    parser.add_argument('-s_prof', '--shot_prof', type=int,
+                        help='shot number for profiles, defaults to -s',
+                        required=False, default=None)
+    msg = 'username for the profiles, defaults to -u'
+    parser.add_argument('-u_prof', '--user_prof',
+                        help=msg, required=False, default=None)
+    msg = 'tokamak for the profiles, defaults to -tok'
+    parser.add_argument('-tok_prof', '--tokamak_prof',
+                        help=msg, required=False, default=None)
+    parser.add_argument('-r_prof', '--run_prof',
+                        help='run number for the profiles, defaults to -r',
+                        required=False, type=int, default=None)
 
     msg = "ids from which to load diagnostics data, can be:\n%s"%repr(_LIDS)
     parser.add_argument('-i', '--ids', type=str, required=True,

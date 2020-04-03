@@ -973,30 +973,34 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                          ids=lids)
 
         # export to instances
-        for ii in range(0,nids):
-            if returnas[ii] == 'Config':
-                dout[ss]['Config'].append(multi.to_Config(
-                    Name=Name, occ=occ,
-                    description_2d=description_2d, plot=False))
+        for ii in range(0, nids):
+            try:
+                if returnas[ii] == 'Config':
+                    dout[ss]['Config'].append(multi.to_Config(
+                        Name=Name, occ=occ,
+                        description_2d=description_2d, plot=False))
 
-            elif returnas[ii] == 'Plasma2D':
-                dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
-                                                              tlim=tlim, dsig=dsig, t0=t0,
-                                                              plot=False, plot_sig=plot_sig,
-                                                              dextra=dextra, plot_X=plot_X,
-                                                              config=config,
-                                                              bck=bck))
-            elif returnas[ii] == 'Cam':
-                dout[ss]['Cam'].append(multi.to_Cam(Name=Name, occ=occ,
-                                                    ids=lids[ii], indch=indch, config=config,
-                                                    plot=False))
-            elif returnas[ii] == "Data":
-                dout[ss]['Data'].append(multi.to_Data(Name=Name, occ=occ,
-                                                      ids=lids[ii], tlim=tlim, dsig=dsig,
-                                                      config=config, data=data, X=X, indch=indch,
-                                                      indch_auto=indch_auto, t0=t0,
-                                                      dextra=dextra,
-                                                      plot=False, bck=bck))
+                elif returnas[ii] == 'Plasma2D':
+                    dout[ss]['Plasma2D'].append(multi.to_Plasma2D(
+                        Name=Name, occ=occ,
+                        tlim=tlim, dsig=dsig, t0=t0,
+                        plot=False, plot_sig=plot_sig,
+                        dextra=dextra, plot_X=plot_X,
+                        config=config, bck=bck))
+                elif returnas[ii] == 'Cam':
+                    dout[ss]['Cam'].append(multi.to_Cam(
+                        Name=Name, occ=occ,
+                        ids=lids[ii], indch=indch, config=config,
+                        plot=False))
+                elif returnas[ii] == "Data":
+                    dout[ss]['Data'].append(multi.to_Data(
+                        Name=Name, occ=occ,
+                        ids=lids[ii], tlim=tlim, dsig=dsig,
+                        config=config, data=data, X=X, indch=indch,
+                        indch_auto=indch_auto, t0=t0,
+                        dextra=dextra, plot=False, bck=bck))
+            except Exception as err:
+                warnings.warn('{}: {}'.format(lids[ii], str(err)))
 
     # -------------------
     # plot if relevant
@@ -1023,11 +1027,15 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         elif nshot == 1 and nDat == 1:
             dout[shot[0]]['Data'][0].plot(bck=bck)
         elif nshot > 1 and nDat == 1:
+            tit = "{} - {}".format(dout[shot[0]]['Data'][0].Id.Exp,
+                                   dout[shot[0]]['Data'][0].Id.Diag)
             ld = [dout[ss]['Data'][0] for ss in shot[1:]]
-            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck)
+            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck, tit=tit)
         elif nshot == 1 and nDat > 1:
+            tit = multi._dids[dout[shot[0]]['Data'][0].Id.Diag]['idd']
             ld = dout[shot[0]]['Data'][1:]
-            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex, bck=bck)
+            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex,
+                                                  bck=bck, tit=tit)
 
     # return
     if nshot == 1 and nDat == 1:
@@ -1037,15 +1045,26 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     return dout
 
 
+def calc_from_imas(
+    shot=None, run=None, user=None, tokamak=None, version=None,
+    shot_eq=None, run_eq=None, user_eq=None, tokamak_eq=None,
+    shot_prof=None, run_prof=None, user_prof=None, tokamak_prof=None,
+    ids=None, Name=None, out=None, tlim=None, config=None,
+    occ=None, indch=None, description_2d=None, equilibrium=None,
+    dsig=None, data=None, X=None, t0=None, dextra=None,
+    Brightness=None, res=None, interp_t=None, extra=None,
+    plot=None, plot_compare=True, sharex=False,
+    input_file=None, output_file=None,
+    bck=True, indch_auto=True, t=None, init=None
+):
+    """ Calculate syntehtic signal for a diagnostic
 
-def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, out=None, tlim=None, config=None,
-                   occ=None, indch=None, description_2d=None, equilibrium=None,
-                   dsig=None, data=None, X=None, t0=None, dextra=None,
-                   Brightness=None, res=None, interp_t=None, extra=None,
-                   plot=None, plot_compare=True, sharex=False,
-                   input_file=None, output_file=None,
-                   bck=True, indch_auto=True, t=None, init=None):
+    Read the geometry from an idd (tokamak, user, shot, run)
+    Read the equilibrium from the same / another idd
+    Read the profile from the same / another idd
+
+    """
+
     # -------------------
     # import imas2tofu
     try:
@@ -1074,6 +1093,26 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         else:
             extra = True
 
+    # Equilibrium idd
+    if tokamak_eq is None:
+        tokamak_eq = tokamak
+    if user_eq is None:
+        user_eq = user
+    if shot_eq is None:
+        shot_eq = shot
+    if run_eq is None:
+        run_eq = run
+
+    # prof idd
+    if tokamak_prof is None:
+        tokamak_prof = tokamak
+    if user_prof is None:
+        user_prof = user
+    if shot_prof is None:
+        shot_prof = shot
+    if run_prof is None:
+        run_prof = run
+
     # -------------------
     # Prepare ids
     assert ids is None or type(ids) in [list, str]
@@ -1089,7 +1128,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     lidsout = [ids_ for ids_ in ids
                if (ids_ is not None and ids_ not in lidsok+lidscustom)]
     if len(lidsout) > 0:
-        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg = "ids {} matched no known imas ids !\n".format(lidsout)
         msg += "  => Available imas ids are:\n"
         msg += repr(lidsok)
         raise Exception(msg)
@@ -1189,7 +1228,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if 'wall' not in lids:
             lids.append('wall')
         if (nDat > 0 or nPla > 0) and extra is True:
-            if 'equilibrium' not in lids:
+            if nPla > 0 and 'equilibrium' not in lids:
                 lids.append('equilibrium')
             if 'lh_antennas' not in lids:
                 lids.append('lh_antennas')
@@ -1198,18 +1237,6 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if t0 not in [None, False] and (nDat > 0 or nPla > 0):
             if 'pulse_schedule' not in lids:
                 lids.append('pulse_schedule')
-
-    # Complement ids in diag-specific way
-    # for ids in lids:
-        # if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
-            # dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
-            # if dd.get('synth') is not None:
-                # for v0 in dd['synth']['dsynth'].values():
-                    # for v1 in v0:
-                        # if '.' in v1:
-                            # v20, v21 = v1.split('.')
-                            # if v20 not in lids:
-                                # lids.append(v20)
 
     # -------------------
     # If plot and plasma, default dsig, plot_sig, plot_X
@@ -1239,15 +1266,32 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             if qq not in lk:
                 _get_exception(qq, lids[0], qtype='X')
 
-
     # -------------------
     # load
 
+    lidsdiag = [kk for kk in lids
+                if kk in imas2tofu.MultiIDSLoader._lidsdiag]
     if input_file is None:
         for ss in shot:
             multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
                                              tokamak=tokamak, version=version,
-                                             ids=lids, synthdiag=True)
+                                             ids=lids, synthdiag=False,
+                                             get=False)
+
+            lids_synth = multi.get_inputs_for_synthsignal(lidsdiag,
+                                                          returnas=list,
+                                                          verb=False)
+            if 'equilibrium' in lids_synth:
+                multi.add_ids('equilibrium', tokamak=tokamak_eq,
+                              user=user_eq, shot=shot_eq, run=run_eq,
+                              get=False)
+                lids_synth.remove('equilibrium')
+
+            if len(lids_synth) > 0:
+                multi.add_ids(lids_synth, tokamak=tokamak_prof,
+                              user=user_prof, shot=shot_prof, run=run_prof,
+                              get=False)
+            multi.open_get_close()
 
             # export to instances
             for ii in range(0, nids):
