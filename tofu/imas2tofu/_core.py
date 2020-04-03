@@ -2014,9 +2014,9 @@ class MultiIDSLoader(object):
                 if crit is None:
                     crit = v0['params'][imasstr]
                 elif crit != v0['params'][imasstr]:
-                    ss = '%s : %s'%(idd,str(v0['params'][imasstr]))
-                    msg = "All idd should refer to the same %s !\n"%imasstr
-                    msg += "    - " + ss
+                    ss = '{} : {}'.format(idd, str(v0['params'][imasstr]))
+                    msg = ("All idd refer to different {}!\n".format(imasstr)
+                           + "\t- {}".format(ss))
                     if err:
                         raise Exception(msg)
                     else:
@@ -2106,8 +2106,9 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok, errshot=True,
-                                                          errExp=True,
+        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok,
+                                                          errshot=False,
+                                                          errExp=False,
                                                           upper=True)
         # ----------------
         #   Trivial case
@@ -2771,7 +2772,8 @@ class MultiIDSLoader(object):
         # ---------------------------
         # Preliminary checks on data source consistency
         _, _, shot, Exp = self._get_lidsidd_shotExp(lids, upper=True,
-                                                    errshot=True, errExp=True)
+                                                    errshot=False,
+                                                    errExp=False)
         # get data
         out0 = self.get_data_all(dsig=dsig)
 
@@ -3327,7 +3329,8 @@ class MultiIDSLoader(object):
         # ---------------------------
         # Preliminary checks on data source consistency
         _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
-                                                    errshot=True, errExp=True)
+                                                    errshot=False,
+                                                    errExp=False)
         # -------------
         #   Input dicts
 
@@ -3574,7 +3577,8 @@ class MultiIDSLoader(object):
         # ---------------------------
         # Preliminary checks on data source consistency
         _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
-                                                    errshot=True, errExp=True)
+                                                    errshot=False,
+                                                    errExp=False)
         # -------------
         #   Input dicts
 
