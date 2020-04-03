@@ -1120,7 +1120,7 @@ class MultiIDSLoader(object):
             set(ids).intersection(lidssynth).intersection(self._dids.keys()))
         if len(ids) == 0:
             msg = ("The provided ids must be:\n"
-                   + "\t- an is name (str)\n"
+                   + "\t- an ids name (str)\n"
                    + "\t- a list of ids names\n"
                    + "\t- an ids instance\n"
                    + "\t- None\n"
@@ -3084,7 +3084,7 @@ class MultiIDSLoader(object):
             raise Exception(msg)
         nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
         if nch == 0:
-            msg = ('ids {} has 0 channels:\n'
+            msg = ('ids {} has 0 channels:\n'.format(ids)
                    + '\t- len({}.{}) = 0\n'.format(ids, lch[ind[0]])
                    + '\t- idd: {}'.format(self._dids[ids]['idd']))
             raise Exception(msg)

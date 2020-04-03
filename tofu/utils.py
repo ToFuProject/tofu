@@ -1000,7 +1000,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                         indch_auto=indch_auto, t0=t0,
                         dextra=dextra, plot=False, bck=bck))
             except Exception as err:
-                warnings.warn(str(err))
+                warnings.warn('{}: {}'.format(lids[ii], str(err)))
 
     # -------------------
     # plot if relevant
