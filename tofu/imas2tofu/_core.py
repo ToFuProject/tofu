@@ -2255,10 +2255,10 @@ class MultiIDSLoader(object):
                         cls = 'Ves'
                     else:
                         cls = 'PFC'
-                mobi = mobi == 'mobile'
+                # mobi = mobi == 'mobile'
                 lS[ii] = getattr(mod, cls)(Poly=poly, pos=pos,
                                            extent=extent,
-                                           Name=name, mobile=mobi,
+                                           Name=name,
                                            **kwargs)
             except Exception as err:
                 msg = ("PFC unit[{}] named {} ".format(ii, name)
@@ -4347,7 +4347,7 @@ def _save_to_imas_Struct(obj,
                          occ=None, user=None, tokamak=None, version=None,
                          dryrun=False, tfversion=None, verb=True,
                          description_2d=None, description_typeindex=None,
-                         unit=None):
+                         unit=None, mobile=None):
 
     if occ is None:
         occ = 0
@@ -4358,6 +4358,8 @@ def _save_to_imas_Struct(obj,
     description_typeindex = int(description_typeindex)
     if unit is None:
         unit = 0
+    if mobile is None:
+        mobile = False
 
     # Create or open IDS
     # ------------------
@@ -4379,7 +4381,7 @@ def _save_to_imas_Struct(obj,
         idd.wall.description_2d[description_2d].type.description = (
             "tofu-generated wall. Each PFC is represented independently as a"
             + " closed polygon in tofu, which saves them as disjoint PFCs")
-        if obj._dgeom['mobile'] is True:
+        if mobile is True:
             idd.wall.description_2d[description_2d].mobile.unit.resize(unit+1)
             node = idd.wall.description_2d[description_2d].mobile.unit[unit]
         else:
@@ -4418,12 +4420,15 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
                          dryrun=False, tfversion=None, close=True, verb=True,
-                         description_2d=None, description_typeindex=None):
+                         description_2d=None, description_typeindex=None,
+                         mobile=None):
 
     if occ is None:
         occ = 0
     if description_2d is None:
         description_2d = 0
+    if mobile is None:
+        mobile = False
 
     # Create or open IDS
     # ------------------
@@ -4452,9 +4457,6 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
             description_typeindex = 1
     assert description_typeindex in [0, 1]
 
-    # Check whether there is any mobile element
-    ismobile = any([ss._dgeom['mobile'] for ss in lS])
-
     # Isolate StructIn and take out from lS
     ves = lS.pop(lcls.index(lclsIn[0]))
     nS = len(lS)
@@ -4473,7 +4475,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
             + " closed polygon in tofu, which saves them as disjoint PFCs")
 
         # Fill limiter / mobile
-        if ismobile:
+        if mobile is True:
             # resize nS + 1 for vessel
             wall.mobile.unit.resize(nS + 1)
             units = wall.mobile.unit
@@ -4487,7 +4489,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
                 units[ii].closed = True
                 name = '{}_{}'.format(lS[ii].__class__.__name__,
                                       lS[ii].Id.Name)
-                if lS[ii]._dgeom['mobile'] is True:
+                if lS[ii]._dgeom['move'] is not None:
                     name = name + '_mobile'
                 units[ii].name = name
 
@@ -4504,7 +4506,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
                 units[ii].closed = True
                 name = '{}_{}'.format(lS[ii].__class__.__name__,
                                       lS[ii].Id.Name)
-                if lS[ii]._dgeom['mobile'] is True:
+                if lS[ii]._dgeom['move'] is not None:
                     name = name + '_mobile'
                 units[ii].name = name
 
