@@ -726,6 +726,17 @@ class Test03_Rays(object):
         #print ("TestUM:teardown() after each test method")
         pass
 
+    def test00_set_move(self):
+        for typ in self.dobj.keys():
+            if typ == 'Tor':
+                move = 'rotate_around_torusaxis'
+                kwd = {}
+            else:
+                move = 'translate_in_cross_section'
+                kwd = {'direction_rz': [1., 0., 0.]}
+            for c in self.dobj[typ].keys():
+                    self.dobj[typ][c].set_move(move=move, **kwd)
+
     def test01_todict(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
@@ -767,12 +778,27 @@ class Test03_Rays(object):
                 for ii in lok[::-1]:
                     obj.strip(ii, verb=verb)
 
-    def test06_set_dsino(self):
+    def test06_set_move_None(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                self.dobj[typ][c].set_move()
+
+    def test07_rotate_copy(self):
+        for typ in self.dobj.keys():
+            if typ == 'Lin':
+                continue
+            dkwd0 = dict(axis_rz=[2.4, 0], angle=np.pi/4,
+                         return_copy=True)
+            for c in self.dobj[typ].keys():
+                        obj = getattr(self.dobj[typ][c],
+                                      'rotate_in_cross_section')(**dkwd0)
+
+    def test07_set_dsino(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 self.dobj[typ][c].set_dsino([2.4,0.])
 
-    def test07_select(self):
+    def test08_select(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 n = [ss.Id.Name for ss in self.dobj[typ][c].config.lStruct
@@ -780,7 +806,7 @@ class Test03_Rays(object):
                 ind = self.dobj[typ][c].select(touch='PFC_%s'%n)
                 ind = self.dobj[typ][c].select(touch=['PFC_%s'%n,[],[7,8,9]])
 
-    def test08_get_sample(self):
+    def test09_get_sample(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
@@ -825,7 +851,7 @@ class Test03_Rays(object):
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
                                       & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
 
-    def test09_calc_kInkOut_Isoflux(self):
+    def test10_calc_kInkOut_Isoflux(self):
         nP = 10
         r = np.linspace(0.1,0.4,nP)
         theta = np.linspace(0.,2*np.pi,100)
@@ -861,7 +887,7 @@ class Test03_Rays(object):
                         raise Exception(msg)
 
 
-    def test10_calc_signal(self):
+    def test11_calc_signal(self):
         def ffL(Pts, t=None, vect=None):
             E = np.exp(-(Pts[1,:]-2.4)**2/0.1 - Pts[2,:]**2/0.1)
             if vect is not None:
@@ -919,7 +945,7 @@ class Test03_Rays(object):
                             ii += 1
         plt.close('all')
 
-    def test11_plot(self):
+    def test12_plot(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
@@ -941,14 +967,14 @@ class Test03_Rays(object):
                     # print(msg)
                 plt.close('all')
 
-    def test12_plot_sino(self):
+    def test13_plot_sino(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
                 ax = obj.plot_sino()
             plt.close('all')
 
-    def test13_plot_touch(self):
+    def test14_plot_touch(self):
         connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
                    and getattr(plt.get_current_fig_manager(),'toolbar')
                    is not None)
@@ -959,7 +985,7 @@ class Test03_Rays(object):
                 lax = obj.plot_touch(ind=ind, connect=connect)
             plt.close('all')
 
-    def test14_saveload(self, verb=False):
+    def test15_saveload(self, verb=False):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
@@ -972,7 +998,7 @@ class Test03_Rays(object):
                 obj2.strip(0, verb=verb)
                 os.remove(pfe)
 
-    def test15_get_sample_same_res_unit(self):
+    def test16_get_sample_same_res_unit(self):
         dmeths = ['rel', 'abs']
         qmeths = ['simps', 'romb', 'sum']
         list_res = [0.25, np.r_[0.2, 0.5]]

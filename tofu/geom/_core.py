@@ -5450,6 +5450,8 @@ class Rays(utils.ToFuObject):
         move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
         self._dgeom['move'] = move
         self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
         self._dgeom['move_kwdargs'] = kwdargs
 
     def move(self, param):
