@@ -12,7 +12,6 @@ dR, dZ, dRPhi = 0.05, 0.05, 0.05
 LDPhi = [None, [3.*np.pi/4.,5.*np.pi/4.], [-np.pi/4.,np.pi/4.]]
 
 for ii in range(0,len(LDPhi)):
-    print("ii  =================== ", ii)
     out = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
                                                              RMinMax,
                                                              ZMinMax,

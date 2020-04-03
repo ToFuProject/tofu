@@ -937,7 +937,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_z  = NULL
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
-    cdef long[:,::1] indi_mv
     cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
@@ -1023,7 +1022,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
         indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
-        # indi_mv = indI
         for jj in range(sz_phi[0]):
             indI[0,jj] = nphi0+jj
         NP += sz_z * sz_phi[0]
@@ -1056,20 +1054,13 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
-        print("_________ taille indi =", sz_r, sz_phi[0] * r_ratio + 1)
         indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
-        print("_________ indi 00 =", indI[0,0])
-        #indi_mv = indI
-        print("_________ loop until =", loc_nc_rphi-nphi0, loc_nc_rphi, nphi0)
         for jj in range(loc_nc_rphi-nphi0):
-            print("_____________ jj =", jj)
             indI[0,jj] = nphi0 + jj
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
             indI[0,jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * sz_phi[0]
-    print("size indi >>>>>>>><< ", sz_r, sz_phi[0] * r_ratio + 1)
     # ... doing the others
-    print("doing the rest of the loop.....................")
     NP += _st.vmesh_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
                              ncells_rphi0,
                              disc_r, disc_r0, step_rphi,
@@ -1077,7 +1068,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                              min_phi, max_phi, sz_phi, indI,
                              margin, num_threads)
-    print("out of vmesh disc phi............................................")
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
@@ -1085,13 +1075,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     dv_mv  = res3d
     reso_r_z = reso_r[0]*reso_z[0]
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
-    print("preparing tabs.............................................")
     _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
-    print("out of vmesh prepare tab...................................")
     indI = np.sort(indI, axis=1)
-    # indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1)
-    print("treating indi done........................................")
     _st.vmesh_double_loop(first_ind_mv, indI,
                           is_cart, sz_r,
                           sz_z, lindex_z,
@@ -1100,24 +1086,16 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           disc_r, disc_z, lnp, sz_phi,
                           dv_mv, reso_phi_mv, pts, ind_mv,
                           num_threads)
-    print("out of double loop........................................")
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
         npts_vpoly = VPoly.shape[1] - 1
         # we make sure it is closed
-        print("closing vpoly................", VPoly.shape[0], npts_vpoly)
-        print("0st value of vpoly", VPoly[0,0], VPoly[0,npts_vpoly])
-        print("1st value of vpoly", VPoly[1,0], VPoly[1,npts_vpoly])
-        print("testing if")
-        # if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
-        #         and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
-        #     poly_mv2 = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
-        #     poly_mv = poly_mv2
-        #     print("trying other strategy done")
-        # else:
-        #     poly_mv = VPoly
-        # print("closed................", VPoly[0,0], poly_mv[0,0])
+        if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
+                and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
+            poly_mv = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
+        else:
+            poly_mv = VPoly
         # initializations:
         res_x = <double**> malloc(sizeof(double*))
         res_y = <double**> malloc(sizeof(double*))
@@ -1128,47 +1106,34 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind[0] = NULL
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
-        print("making pts_mv !")
-        pts_mv = pts
-        print("before vignetting", is_cart)
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts_mv,
-                                                dv_mv, reso_phi_mv, disc_r,
-                                                ind_mv, res_x, res_y, res_z,
+        pts_mv = pts[:]
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv,
+                                                pts_mv, dv_mv, reso_phi_mv,
+                                                disc_r, ind_mv,
+                                                res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0], num_threads)
-        print("after, initializing other stuff", nb_in_poly)
         if nb_in_poly > 0:
             pts = np.empty((3,nb_in_poly))
-            print("1 done", nb_in_poly, res_lind[0] == NULL)
             ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-            print("2 done")
             res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
-            print("3 done")
             pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
-            print("4 done")
             pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
-            print("5 done")
             pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-            print("6 done")
             reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
         # freeing the memory
-        print("got here.................")
         free(res_x[0])
         free(res_y[0])
         free(res_z[0])
-        print("res dones")
         free(res_vres[0])
         free(res_rphi[0])
         free(res_lind[0])
-        print("reses 2 done")
         free(res_x)
         free(res_y)
         free(res_z)
-        print("res 3 done")
         free(res_vres)
         free(res_rphi)
         free(res_lind)
-        print("done !!!!!!!!!!!!!!!!!!")
     free(disc_r)
     free(disc_z)
     free(disc_r0)
@@ -1177,12 +1142,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    print("pts =", pts[0,0], pts[1,0], pts[2,0])
-    print("res3d =", res3d[0])
-    print("ind =", ind[0])
-    print("res_r=", reso_r[0])
-    print("res_z=", reso_z[0])
-    print("reso phi = ", reso_phi[0])
     return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi
 
 

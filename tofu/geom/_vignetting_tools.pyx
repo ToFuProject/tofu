@@ -392,14 +392,8 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef vecpp[double] vec_vres
     cdef vecpp[long] vec_lind
     # -- initialization --------------------------------------------------------
-    with gil:
-        print("      are in poly is being initialized with ", npts)
     are_in_poly = <int *>malloc(npts * sizeof(int))
-    with gil:
-        print("computing ntps vpoly")
     npts_vpoly = vpoly.shape[1] - 1
-    with gil:
-        print("shape = ", npts_vpoly)
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
         for ii in range(npts):
@@ -438,16 +432,9 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
             for ii in prange(sz_rphi[0]):
                 res_rphi[0][ii] = vec_rphi[ii]
     else:
-        with gil:
-            print("??? is not cartesian, and npts = ", npts, npts_vpoly)
-            print("vpoly 00 and vpoly 10", vpoly[0][0], vpoly[1][0])
-            print("vpoly 0n and vpoly 1n", vpoly[0][npts_vpoly], vpoly[1][npts_vpoly])
         for ii in range(npts):
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 pts[0,ii], pts[1,ii]):
-                if ii < 100:
-                    with gil:
-                        print("   point is in path")
                 nb_in_poly += 1
                 vec_x.push_back(pts[0,ii])
                 vec_y.push_back(pts[1,ii])

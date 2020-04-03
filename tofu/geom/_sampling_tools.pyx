@@ -1,4 +1,4 @@
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
 # cython: cdivision=True
 #
@@ -1650,7 +1650,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                 indi_mv[ii,jj] = nphi0 + jj
             for jj in range(loc_nc_rphi - nphi0, sz_phi[ii]):
                 indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
-        NP += sz_z * sz_phi[ii]
+            NP += sz_z * sz_phi[ii]
 
     return NP
 
@@ -1663,24 +1663,17 @@ cdef inline void vmesh_prepare_tab(long[:,:,::1] lnp,
     cdef int NP = 0
     cdef int rem
     for ii in range(sz_r):
-        with gil:
-            print("ii, sz_phi[ii] =", ii, sz_phi[ii])
         for zz in range(sz_z):
-            # rem = sz_phi[ii] % 4
-            # for jj in range(0, sz_phi[ii]-rem, 4):
-            #     lnp[ii, zz, jj] = NP
-            #     lnp[ii, zz, jj + 1] = NP + 1
-            #     lnp[ii, zz, jj + 2] = NP + 2
-            #     lnp[ii, zz, jj + 3] = NP + 3
-            #     NP += 4
-            # for kk in range(jj+4, sz_phi[ii]):
-            #     lnp[ii, zz, kk] = NP
-            #     NP += 1
-            for kk in range(sz_phi[ii]):
+            rem = sz_phi[ii] % 4
+            for jj in range(0, sz_phi[ii]-rem, 4):
+                lnp[ii, zz, jj] = NP
+                lnp[ii, zz, jj + 1] = NP + 1
+                lnp[ii, zz, jj + 2] = NP + 2
+                lnp[ii, zz, jj + 3] = NP + 3
+                NP += 4
+            for kk in range(jj+4, sz_phi[ii]):
                 lnp[ii, zz, kk] = NP
                 NP += 1
-    with gil:
-        print("**** final NP = ", NP, "\n")
     return
 
 cdef inline void vmesh_double_loop_cart(int ii,
@@ -1741,8 +1734,6 @@ cdef inline void vmesh_double_loop_polr(int ii,
     cdef long zrphi
     cdef long indiijj
     # ..
-    with gil:
-        print(".... ii, first NP =", ii, lnp[ii, 0, 0])
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
         for jj in range(sz_phi[ii]):
@@ -1751,12 +1742,8 @@ cdef inline void vmesh_double_loop_polr(int ii,
             pts_mv[0,NP] = disc_r[ii]
             pts_mv[1,NP] = disc_z[zz]
             pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            # with gil:
-            #     print(" ind mv = at np = ", NP, ind_mv[NP])
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             dv_mv[NP] = reso_r_z * reso_phi_mv[ii]
-    with gil:
-        print("..... done np =", NP)
     return
 
 
@@ -1783,8 +1770,6 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
     cdef int ii
     # ...
     if is_cart:
-        with gil:
-            print("is cart =", is_cart)
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
             vmesh_double_loop_cart(ii, sz_z, lindex_z,
@@ -1794,20 +1779,13 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    indi_mv[ii,first_ind_mv[ii]:],
                                    dv_mv, reso_phi_mv, pts_mv, ind_mv)
     else:
-        with gil:
-            print("is polar")
         for ii in range(sz_r):
-            with gil:
-                print("in polar double loop ii =", ii, "/", sz_r,"first =",
-                      first_ind_mv[ii])
             vmesh_double_loop_polr(ii, sz_z, lindex_z,
                                    ncells_rphi, tot_nc_plane,
                                    reso_r_z, step_rphi,
                                    disc_r, disc_z, lnp, sz_phi,
                                    indi_mv[ii,first_ind_mv[ii]:],
                                    dv_mv, reso_phi_mv, pts_mv, ind_mv)
-            with gil:
-                print("in polar double loop ii =", ii, " DONE")
     return
 
 
