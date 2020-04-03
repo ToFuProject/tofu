@@ -27,6 +27,26 @@ if istofugit:
 else:
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
+
+# default parameters
+pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_scripts_def.py')
+if os.path.isfile(pfe):
+    # Make sure we load the user-specific file
+    # sys.path method
+    # sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
+    # import _scripts_def as _defscripts
+    # _ = sys.path.pop(1)
+    # importlib method
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_defscripts", pfe)
+    _defscripts = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_defscripts)
+else:
+    try:
+        import tofu.scripts._def as _defscripts
+    except Exception as err:
+        from . import _def as _defscripts
+
 tforigin = tf.__file__
 tfversion = tf.__version__
 print(tforigin, tfversion)
@@ -44,18 +64,23 @@ if 'imas2tofu' not in dir(tf):
 #       default values
 ###################################################
 
-_RUN = 0
-_USER = 'imas_public'
-_TOKAMAK = 'west'
-_VERSION = '3'
+
+# User-customizable
+_RUN = _defscripts._TFPLOT_RUN
+_USER = _defscripts._TFPLOT_USER
+_TOKAMAK = _defscripts._TFPLOT_TOKAMAK
+_VERSION = _defscripts._TFPLOT_VERSION
+_T0 = _defscripts._TFPLOT_T0
+_SHAREX = _defscripts._TFPLOT_SHAREX
+_BCK = _defscripts._TFPLOT_BCK
+_EXTRA = _defscripts._TFPLOT_EXTRA
+_INDCH_AUTO = _defscripts._TFPLOT_INDCH_AUTO
+
+# Not user-customizable
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
 _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
 _LIDS = _LIDS_DIAG + _LIDS_PLASMA + ['magfieldlines']
-_T0 = 'IGNITRON'
-_SHAREX = False
-_BCK = True
-_EXTRA = True
-_INDCH_AUTO = True
+
 
 ###################################################
 ###################################################

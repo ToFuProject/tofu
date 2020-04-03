@@ -280,7 +280,7 @@ setup(
     # The project's main homepage.
     url="https://github.com/ToFuProject/tofu",
     # Author details
-    author="Didier VEZINET",
+    author="Didier VEZINET and Laura MENDOZA",
     author_email="didier.vezinet@gmail.com",
 
     # Choose your license
@@ -382,8 +382,11 @@ setup(
         'console_scripts': [
             'tofuplot=tofu.scripts.tofuplot:main',
             'tofucalc=tofu.scripts.tofucalc:main',
+            'tofu-custom=tofu.scripts.tofucustom:main',
         ],
     },
+
+    py_modules=['_updateversion'],
 
     # Extensions and commands
     ext_modules=extensions,

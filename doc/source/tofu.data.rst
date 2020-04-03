@@ -41,14 +41,6 @@ tofu.data.\_def module
    :undoc-members:
    :show-inheritance:
 
-tofu.data.\_physics module
---------------------------
-
-.. automodule:: tofu.data._physics
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 tofu.data.\_plot module
 -----------------------
 

@@ -27,6 +27,26 @@ if istofugit:
 else:
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
+
+# default parameters
+pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_scripts_def.py')
+if os.path.isfile(pfe):
+    # Make sure we load the user-specific file
+    # sys.path method
+    # sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
+    # import _scripts_def as _defscripts
+    # _ = sys.path.pop(1)
+    # importlib method
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_defscripts", pfe)
+    _defscripts = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_defscripts)
+else:
+    try:
+        import tofu.scripts._def as _defscripts
+    except Exception as err:
+        from . import _def as _defscripts
+
 tforigin = tf.__file__
 tfversion = tf.__version__
 print(tforigin, tfversion)
@@ -44,17 +64,22 @@ if 'imas2tofu' not in dir(tf):
 #       default values
 ###################################################
 
-_RUN = 0
-_USER = 'imas_public'
-_TOKAMAK = 'west'
-_VERSION = '3'
+
+# User-customizable
+_RUN = _defscripts._TFCALC_RUN
+_USER = _defscripts._TFCALC_USER
+_TOKAMAK = _defscripts._TFCALC_TOKAMAK
+_VERSION = _defscripts._TFCALC_VERSION
+_T0 = _defscripts._TFCALC_T0
+_SHAREX = _defscripts._TFCALC_SHAREX
+_BCK = _defscripts._TFCALC_BCK
+_EXTRA = _defscripts._TFCALC_EXTRA
+_INDCH_AUTO = _defscripts._TFCALC_INDCH_AUTO
+
+# Non user-customizable
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
 _LIDS = _LIDS_DIAG
-_T0 = 'IGNITRON'
-_SHAREX = False
-_BCK = True
-_EXTRA = True
-_INDCH_AUTO = True
+
 
 ###################################################
 ###################################################
@@ -79,6 +104,7 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     plot_compare=True, Brightness=None,
                     res=None, interp_t=None,
                     sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
+                    input_file=None, output_file=None,
                     background=_BCK):
 
     if t0.lower() == 'none':
@@ -89,7 +115,8 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_compare=plot_compare, extra=extra,
                       Brightness=Brightness, res=res, interp_t=interp_t,
-                      t0=t0, plot=True, sharex=sharex, bck=background)
+                      input_file=input_file, output_file=output_file,
+                      t0=t0, plot=None, sharex=sharex, bck=background)
 
     plt.show(block=True)
 
@@ -159,6 +186,12 @@ def main():
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
+    parser.add_argument('-if', '--input_file', type=str, required=False,
+                        help='mat file from which to load core_profiles',
+                        default=None)
+    parser.add_argument('-of', '--output_file', type=str, required=False,
+                        help='mat file into which to save synthetic signal',
+                        default=None)
     parser.add_argument('-bck', '--background', type=_str2bool, required=False,
                         help='Plot data enveloppe as grey background ?',
                         default=_BCK, const=True, nargs='?')

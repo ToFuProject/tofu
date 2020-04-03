@@ -9,6 +9,7 @@ import getpass
 import subprocess
 import itertools as itt
 import warnings
+import inspect
 
 # Common
 import scipy.io as scpio
@@ -430,10 +431,11 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     lf = os.listdir(path)
     lf = [ff for ff in lf if all([ss in ff for ss in name])]
     if len(lf) != 1:
-        msg = "No / several matching files found:"
-        msg += "\n  folder: {0}".format(path)
-        msg += "\n  for   : {0}".format('['+', '.join(name)+']')
-        msg += "\n    " + "\n    ".join(lf)
+        msg = ("No / several matching files found:\n"
+               + "  folder:      {}\n".format(path)
+               + "  looking for: {}\n".format('['+', '.join(name)+']')
+               + "  found:\n\t"
+               + "\n\t".join(lf))
         raise Exception(msg)
     nameext = lf[0]
 
@@ -453,8 +455,7 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     return name, mode, pfe
 
 
-
-def load(name, path=None, strip=None, verb=True):
+def load(name, path=None, strip=None, verb=True, allow_pickle=None):
     """     Load a tofu object file
 
     Can load from .npz or .txt files
@@ -483,7 +484,7 @@ def load(name, path=None, strip=None, verb=True):
         obj = _load_from_txt(name, pfe)
     else:
         if mode == 'npz':
-            dd = _load_npz(pfe)
+            dd = _load_npz(pfe, allow_pickle=allow_pickle)
         elif mode == 'mat':
             dd = _load_mat(pfe)
 
@@ -580,13 +581,15 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
     return dout
 
 
-
-def _load_npz(pfe):
+def _load_npz(pfe, allow_pickle=None):
+    if allow_pickle is None:
+        allow_pickle = True
 
     try:
-        out = np.load(pfe, mmap_mode=None)
+        out = np.load(pfe, mmap_mode=None, allow_pickle=allow_pickle)
     except UnicodeError:
-        out = np.load(pfe, mmap_mode=None, encoding='latin1')
+        out = np.load(pfe, mmap_mode=None, allow_pickle=allow_pickle,
+                      encoding='latin1')
     except Exception as err:
         raise err
 
@@ -1039,8 +1042,9 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
-                   Brightness=None, res=None, interp_t=None, extra=True,
-                   plot=True, plot_compare=True, sharex=False,
+                   Brightness=None, res=None, interp_t=None, extra=None,
+                   plot=None, plot_compare=True, sharex=False,
+                   input_file=None, output_file=None,
                    bck=True, indch_auto=True, t=None, init=None):
     # -------------------
     # import imas2tofu
@@ -1049,19 +1053,30 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         import tofu.imas2tofu as imas2tofu
     except Exception as err:
         msg = str(err)
-        msg += "\n\n module imas2tofu does not seem available\n"
-        msg += "  => imas may not be installed ?"
+        msg += ("\n\n module imas2tofu does not seem available\n"
+                + "  => imas may not be installed?")
         raise Exception(msg)
 
     lok = ['Data']
     c0 = out is None or out in lok
     if not c0:
-        msg = "Arg out must be in %s"%str(lok)
+        msg = "Arg out must be in {}".format(lok)
         raise Exception(msg)
+
+    if plot is None:
+        if output_file is not None:
+            plot = False
+        else:
+            plot = True
+    if extra is None:
+        if input_file is not None:
+            extra = False
+        else:
+            extra = True
 
     # -------------------
     # Prepare ids
-    assert ids is None or type(ids) in [list,str]
+    assert ids is None or type(ids) in [list, str]
     if type(ids) is str:
         ids = [ids]
     if type(ids) is list:
@@ -1083,12 +1098,24 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         assert not any([ids_ in ids for ids_ in lidscustom])
 
+    # Check if input_file
+    if input_file is not None:
+        lids_input_file = ['bremsstrahlung_visible']
+        if nids != 1 or ids[0] not in lids_input_file:
+            msg = ("input_file is only available for a single ids in:\n"
+                   + "\t- " + "\n\t- ".join(lids_input_file))
+            raise Exception(msg)
 
     # -------------------
     # Prepare shot
     shot = np.r_[shot].astype(int)
     nshot = shot.size
 
+    # Check if input_file
+    if input_file is not None:
+        if nshot != 1:
+            msg = "input_file not available for multiple shots!"
+            raise Exception(msg)
 
     # -------------------
     # Prepare out
@@ -1107,8 +1134,8 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
                     for ids_ in ids]):
-            msg = "tf.load_from_imas() only handles multipe ids\n"
-            msg += "if all are diagnostics ids !"
+            msg = ("tf.load_from_imas() only handles multipe ids "
+                   + "if all are diagnostics ids!")
             raise Exception(msg)
 
     # -------------------
@@ -1215,29 +1242,84 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     # -------------------
     # load
-    for ss in shot:
-        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+
+    if input_file is None:
+        for ss in shot:
+            multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                             tokamak=tokamak, version=version,
+                                             ids=lids, synthdiag=True)
+
+            # export to instances
+            for ii in range(0, nids):
+                if out[ii] == "Data":
+                    multi.calc_signal(ids=lids[ii],
+                                      tlim=tlim, dsig=dsig,
+                                      config=config, t=t,
+                                      res=res, indch=indch,
+                                      Brightness=Brightness,
+                                      interp_t=interp_t,
+                                      indch_auto=indch_auto,
+                                      t0=t0, dextra=dextra,
+                                      plot=True,
+                                      plot_compare=plot_compare)
+
+    else:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
                                          tokamak=tokamak, version=version,
-                                         ids=lids, synthdiag=True)
+                                         ids=lids, synthdiag=False, get=False)
+        if 'bremsstrahlung_visible' in lids:
+            multi.add_ids('equilibrium', get=True)
+            plasma = multi.to_Plasma2D()
+            lf = ['t', 'rhotn', 'brem']
+            lamb = multi.get_data('bremsstrahlung_visible', sig='lamb')['lamb']
+            dout = imas2tofu.get_data_from_matids(input_file,
+                                                  return_fields=lf,
+                                                  lamb=lamb[0])
+            plasma.add_ref(key='core_profiles.t', data=dout['t'], group='time',
+                           origin='input_file')
+            nrad = dout['rhotn'].shape[1]
+            plasma.add_ref(key='core_profiles.radius', data=np.arange(0, nrad),
+                           group='radius', origin='input_file')
+            plasma.add_quantity(key='core_profiles.1drhotn',
+                                data=dout['rhotn'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file',
+                                quant='rhotn', dim='rho', units='adim.')
+            plasma.add_quantity(key='core_profiles.1dbrem', data=dout['brem'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file')
+            cam = multi.to_Cam(plot=False)
+            sig = cam.calc_signal_from_Plasma2D(plasma,
+                                                quant='core_profiles.1dbrem',
+                                                ref1d='core_profiles.1drhotn',
+                                                ref2d='equilibrium.2drhotn',
+                                                Brightness=True, plot=plot)[0]
+        if output_file is not None:
+            try:
+                # Format output dictionnary to be saved
+                dout = {'shot': shot[0],
+                        't': sig.t,
+                        'data': sig.data,
+                        'units_t': 's',
+                        'units_data': 'ph / (s.m2.sr.m)',
+                        'channels': sig.dchans('names'),
+                        'tofu_version': __version__}
 
-        # export to instances
-        for ii in range(0,nids):
-            if out[ii] == "Data":
-                multi.calc_signal(ids=lids[ii],
-                                  tlim=tlim, dsig=dsig,
-                                  config=config, t=t,
-                                  res=res, indch=indch,
-                                  Brightness=Brightness,
-                                  interp_t=interp_t,
-                                  indch_auto=indch_auto,
-                                  t0=t0, dextra=dextra,
-                                  plot=True,
-                                  plot_compare=plot_compare)
-
-
-
-
-
+                # Save to specified path + filename + extension
+                if output_file[-4:] != '.mat':
+                    assert len(output_file.split('.')) == 1
+                    output_file += '.mat'
+                scpio.savemat(output_file, dout)
+                msg = ("Successfully saved in:\n"
+                       + "\t{}".format(output_file))
+                print(msg)
+            except Exception as err:
+                msg = str(err)
+                msg += "\nCould not save computed synthetic signal to:\n"
+                msg += "scpio.savemat({0}, dout)".format(output_file)
+                warnings.warn(msg)
 
 
 #############################################
@@ -1960,6 +2042,241 @@ class ToFuObject(ToFuObjectBase):
         for ii in range(0,ind1.size):
             indr[ind2[ii],ind1[ii]] = ii
         return ind1, ind2, indr
+
+    @staticmethod
+    def _checkformat_Narray(aa, name='aa', N=3, dim=2,
+                            extramsg=''):
+        if aa is not None:
+            assert N in [2, 3]
+            assert dim in [1, 2, 3]
+            aa = np.atleast_1d(aa)
+            if N not in aa.shape:
+                msg = ("Array {}.shape should containg {}\n".format(name, N)
+                       + "\t- provided shape: {}".format(aa.shape))
+                raise Exception(msg)
+            if aa.ndim == 1 and dim == 2:
+                aa = aa[:, None]
+            elif aa.ndim == 2 and dim == 1:
+                aa = aa.ravel()
+            if aa.shape[0] != N and aa.ndim == 2:
+                aa = aa.T
+            if not (aa.ndim == dim and aa.shape[0] == N):
+                msg = (
+                    "Arg {} must be a ({}, ...) np.ndarray\n".format(name, N)
+                    + "\t- provided: {}\n".format(aa)
+                    + extramsg)
+                raise Exception(msg)
+        return aa
+
+    @staticmethod
+    def _checkformat_scalar(ss, name='ss', extramsg=''):
+        if ss is not None:
+            if type(ss) not in [int, float, np.int_, np.float_]:
+                msg = ("Please provide {} as a float:\n".format(name)
+                       + "\t- provided: {} ({})\n".format(ss, type(ss))
+                       + extramsg)
+                raise Exception(msg)
+        return ss
+
+    @classmethod
+    def _rotate_pts_vectors_around_3daxis(cls, pts=None, vect=None,
+                                          angle=None, axis=None):
+
+        # angle, pts, vect and axis
+        angle = cls._checkformat_scalar(angle, name='angle')
+        pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        vect = cls._checkformat_Narray(vect, name='vect', N=3, dim=2)
+        axis = cls._checkformat_Narray(axis, name='vect', N=2, dim=2)
+        if axis.shape != (2, 3):
+            msg = ("Arg axis must be a tuple of 2 arrays of len()=3\n"
+                   + "\t- axis[0] is the (x,y,z) coords of a point\n"
+                   + "\t- axis[1] is the (x,y,z) coords of a vector")
+            raise Exception(msg)
+        ax_pt = axis[0, :][:, None]
+        ax_ez = axis[1, :] / np.linalg.norm(axis[1, :])
+        if np.abs(ax_ez[2]) > 0.999:
+            ax_ex = np.r_[1, 0, 0]
+        else:
+            ax_ex = np.r_[-ax_ez[1], ax_ez[0], 0.]
+        ax_ex = ax_ex - np.sum(ax_ex*ax_ez)*ax_ez
+        ax_ex = ax_ex / np.linalg.norm(ax_ex)
+        ax_ey = np.cross(ax_ez, ax_ex)
+        ax_ex = ax_ex[:, None]
+        ax_ey = ax_ey[:, None]
+        ax_ez = ax_ez[:, None]
+
+        # Compute pts
+        if pts is not None:
+            ptsv = pts - ax_pt
+            ptsz = np.sum(ptsv*ax_ez, axis=0)
+            ptsr = np.hypot(np.sum(ptsv*ax_ex, axis=0),
+                            np.sum(ptsv*ax_ey, axis=0))
+            ptsang = np.arctan2(np.sum(ptsv*ax_ey, axis=0),
+                                np.sum(ptsv*ax_ex, axis=0))
+            ang2 = ptsang + angle
+            pts2 = (ax_pt + ptsz*ax_ez
+                    + ptsr*(np.cos(ang2)*ax_ex + np.sin(ang2)*ax_ey))
+            if vect is None:
+                return pts2
+
+        # Compute vect
+        if vect is not None:
+            vz = np.sum(vect*ax_ez, axis=0)
+            vr = np.hypot(np.sum(vect*ax_ex, axis=0),
+                          np.sum(vect*ax_ey, axis=0))
+            vang = np.arctan2(np.sum(vect*ax_ey, axis=0),
+                              np.sum(vect*ax_ex, axis=0))
+            ang2 = vang + angle
+            vect2 = (vz*ax_ez
+                     + vr*(np.cos(ang2)*ax_ex + np.sin(ang2)*ax_ey))
+            if pts is None:
+                return vect2
+        return pts2, vect2
+
+    @classmethod
+    def _rotate_pts_vectors_around_torusaxis(cls, pts=None, vect=None,
+                                             angle=None):
+        return cls._rotate_pts_vectors_around_3daxis(pts, vect,
+                                                     angle=angle,
+                                                     axis=([0., 0., 0.],
+                                                           [0., 0., 1.]))
+
+    @classmethod
+    def _rotate_pts_vectors_in_poloidal_plane(cls, pts=None, vect=None,
+                                              angle=None,
+                                              phi=None, axis_rz=None):
+        # phi
+        phi = cls._checkformat_scalar(phi, name='phi')
+        axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
+        ax_pt = np.r_[axis_rz[0]*np.cos(phi),
+                      axis_rz[0]*np.sin(phi), axis_rz[1]]
+        ax_v = np.r_[np.sin(phi), -np.cos(phi), 0.]
+        return cls._rotate_pts_vectors_around_3daxis(pts, vect,
+                                                     angle=angle,
+                                                     axis=(ax_pt, ax_v))
+
+    @classmethod
+    def _rotate_pts_vectors_in_poloidal_plane_2D(cls, pts_rz=None,
+                                                 vect_rz=None,
+                                                 angle=None,
+                                                 axis_rz=None):
+        # Check format input
+        angle = cls._checkformat_scalar(angle, name='angle')
+        pts_rz = cls._checkformat_Narray(pts_rz, name='pts_rz', N=2, dim=2)
+        vect_rz = cls._checkformat_Narray(vect_rz, name='vect_rz', N=2, dim=2)
+        axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
+        if any([axis_rz is None, angle is None]):
+            msg = "Please provide both axis_rz and angle !"
+            raise Exception(msg)
+        if all([pts_rz is None, vect_rz is None]):
+            msg = "Neither pts_rz nor vect_rz was provided, nothing to rotate"
+            raise Exception(msg)
+
+        # Compute
+        if pts_rz is not None:
+            rad = np.hypot(pts_rz[1]-axis_rz[1], pts_rz[0]-axis_rz[0])
+            ang = np.arctan2(pts_rz[1]-axis_rz[1], pts_rz[0]-axis_rz[0])
+            ptsrz2 = np.array([axis_rz[0] + rad*np.cos(ang+angle),
+                               axis_rz[1] + rad*np.sin(ang+angle)])
+            if vect_rz is None:
+                return ptsrz2
+
+        if vect_rz is not None:
+            rad = np.linalg.norm(vect_rz)
+            ang = np.arctan2(vect_rz[1], vect_rz[0])
+            vectrz2 = np.array([rad*np.cos(ang+angle),
+                                rad*np.sin(ang+angle)])
+            if pts_rz is None:
+                return vectrz2
+        return ptsrz2, vectrz2
+
+    @classmethod
+    def _translate_pts_3d(cls, pts=None,
+                          direction=None, distance=None):
+        pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        distance = cls._checkformat_scalar(distance, name='distance')
+        direction = cls._checkformat_Narray(direction,
+                                            name='direction', N=3, dim=1)
+        direction = direction / np.linalg.norm(direction)
+        return pts + distance*direction[:, None]
+
+    @classmethod
+    def _translate_pts_poloidal_plane(cls, pts=None, phi=None,
+                                      direction_rz=None, distance=None):
+        phi = cls._checkformat_scalar(phi, name='phi')
+        direction_rz = cls._checkformat_Narray(direction_rz,
+                                               name='direction', N=2, dim=1)
+        try:
+            pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        except Exception as err:
+            pts = cls._checkformat_Narray(pts, name='pts', N=2, dim=2)
+            if phi is None:
+                msg = "If pts are in (R, Z) coordinates, please provide phi!"
+                raise Exception(msg)
+            pts = np.array([pts[0, :]*np.cos(phi),
+                            pts[0, :]*np.sin(phi), pts[1, :]])
+
+        direction = np.array([direction_rz[0]*np.cos(phi),
+                              direction_rz[0]*np.sin(phi), direction_rz[1]])
+        return cls._translate_pts_3d(pts, direction, distance)
+
+    @classmethod
+    def _translate_pts_poloidal_plane_2D(cls, pts_rz=None,
+                                         direction_rz=None, distance=None):
+        direction_rz = cls._checkformat_Narray(direction_rz,
+                                               name='direction_rz',
+                                               N=2, dim=1)
+        pts_rz = cls._checkformat_Narray(pts_rz,
+                                         name='pts_rz', N=2, dim=2)
+        distance = cls._checkformat_scalar(distance, name='distance')
+        return pts_rz + distance*direction_rz[:, None]
+
+    def _checkformat_set_move(cls, move, param, kwdargs):
+        c0 = (isinstance(move, str)
+              and hasattr(cls, move)
+              and any([ss in move for ss in ['rotate', 'translate']]))
+        if not (c0 or move is None):
+            msg = ("move must be a str matching the name of a valid"
+                   + " movement method (rotate/translate)\n"
+                   + "\t- provided: {}".format(move))
+            raise Exception(msg)
+
+        if move is None:
+            return None, None, None
+
+        func = getattr(cls, move)
+        sig = inspect.signature(func).parameters.keys()
+        if param is None:
+            param = 0.
+        param = cls._checkformat_scalar(param)
+        lc0 = [kk in sig for kk in kwdargs.keys()]
+        lc1 = ['angle' not in kwdargs.keys(), 'distance' not in kwdargs.keys(),
+               'return_copy' not in kwdargs.keys()]
+        if not (all(lc0) and all(lc1)):
+            msg = ("extra keyword arguments cannot include:\n"
+                   + "\t- 'angle'\n"
+                   + "\t- 'distance'\n"
+                   + "\t- 'return_copy'\n"
+                   + "  you provided: {}".format(kwdargs.keys()))
+            raise Exception(msg)
+        kwdargs = {kk: np.asarray(vv) if hasattr(vv, '__iter__') else vv
+                   for kk, vv in kwdargs.items()}
+        return move, param, kwdargs
+
+    def _move(self, param, dictname=''):
+        if getattr(self, dictname).get('move') is None:
+            msg = ("Default movement not defined\n"
+                   + "  => use self.set_move()")
+            raise Exception(msg)
+        lk = ['move', 'move_param', 'move_kwdargs']
+        move, param0, kwdargs = [getattr(self, dictname)[kk] for kk in lk]
+        if kwdargs is None:
+            kwdargs = {}
+
+        func = getattr(self, move)
+        dparam = param - param0
+        func(dparam, return_copy=False, **kwdargs)
+        return param
 
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',
