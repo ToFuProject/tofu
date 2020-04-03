@@ -1,6 +1,6 @@
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
-# cython: initializedcheck=True
+# cython: initializedcheck=False
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
