@@ -150,7 +150,7 @@ def main():
     parser = argparse.ArgumentParser(description = msg)
 
     parser.add_argument('-s', '--shot', type=int,
-                        help='shot number', required=True)
+                        help='shot number', required=True, nargs='+')
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'

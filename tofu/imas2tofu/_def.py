@@ -424,7 +424,7 @@ _didsdiag = {
                       'ref2d': 'equilibrium.2drhotn'},
                             'dsig': {'core_sources': ['t'],
                                      'equilibrium': ['t']},
-                            'Brightness': True}},
+                            'Brightness': False}},
     'soft_x_rays': {'datacls': 'DataCam1D',
                     'geomcls': 'CamLOS1D',
                     'sig': {'t': 't',
