@@ -163,13 +163,14 @@ def main():
     parser.add_argument('-s', '--shot', type=int,
                         help='shot number', required=True)
     msg = 'username of the DB where the datafile is located'
-    parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
+    parser.add_argument('-u', '--user',
+                        help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-tok','--tokamak',help=msg, required=False,
+    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
                         default=_TOKAMAK)
-    parser.add_argument('-r','--run',help='run number',
+    parser.add_argument('-r', '--run',help='run number',
                         required=False, type=int, default=_RUN)
-    parser.add_argument('-v','--version',help='version number',
+    parser.add_argument('-v', '--version', help='version number',
                         required=False, type=str, default=_VERSION)
 
     # Equilibrium idd parameters
@@ -177,12 +178,12 @@ def main():
                         help='shot number for equilibrium, defaults to -s',
                         required=False, default=None)
     msg = 'username for the equilibrium, defaults to -u'
-    parser.add_argument('-u_eq','--user_eq',
+    parser.add_argument('-u_eq', '--user_eq',
                         help=msg, required=False, default=None)
     msg = 'tokamak for the equilibrium, defaults to -tok'
-    parser.add_argument('-tok_eq','--tokamak_eq',
+    parser.add_argument('-tok_eq', '--tokamak_eq',
                         help=msg, required=False, default=None)
-    parser.add_argument('-r_eq','--run_eq',
+    parser.add_argument('-r_eq', '--run_eq',
                         help='run number for the equilibrium, defaults to -r',
                         required=False, type=int, default=None)
 
@@ -191,12 +192,12 @@ def main():
                         help='shot number for profiles, defaults to -s',
                         required=False, default=None)
     msg = 'username for the profiles, defaults to -u'
-    parser.add_argument('-u_prof','--user_prof',
+    parser.add_argument('-u_prof', '--user_prof',
                         help=msg, required=False, default=None)
     msg = 'tokamak for the profiles, defaults to -tok'
-    parser.add_argument('-tok_prof','--tokamak_prof',
+    parser.add_argument('-tok_prof', '--tokamak_prof',
                         help=msg, required=False, default=None)
-    parser.add_argument('-r_prof','--run_prof',
+    parser.add_argument('-r_prof', '--run_prof',
                         help='run number for the profiles, defaults to -r',
                         required=False, type=int, default=None)
 
