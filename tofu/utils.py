@@ -1045,7 +1045,6 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     return dout
 
 
-
 def calc_from_imas(
     shot=None, run=None, user=None, tokamak=None, version=None,
     shot_eq=None, run_eq=None, user_eq=None, tokamak_eq=None,
@@ -1064,7 +1063,6 @@ def calc_from_imas(
     Read the profile from the same / another idd
 
     """
-
 
     # -------------------
     # import imas2tofu

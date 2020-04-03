@@ -168,7 +168,7 @@ def main():
     msg = 'tokamak name of the DB where the datafile is located'
     parser.add_argument('-tok', '--tokamak', help=msg, required=False,
                         default=_TOKAMAK)
-    parser.add_argument('-r', '--run',help='run number',
+    parser.add_argument('-r', '--run', help='run number',
                         required=False, type=int, default=_RUN)
     parser.add_argument('-v', '--version', help='version number',
                         required=False, type=str, default=_VERSION)
