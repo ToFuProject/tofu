@@ -273,6 +273,7 @@ def format_poly(np.ndarray[double,ndim=2] poly, str order='C', Clock=False,
     """
     cdef int ndim = poly.shape[0]
     cdef int npts = poly.shape[1]
+
     if Test:
         assert (ndim == 2 or ndim == 3), \
             ("Arg poly must contain the 2D or 3D coordinates of N points."
@@ -283,18 +284,27 @@ def format_poly(np.ndarray[double,ndim=2] poly, str order='C', Clock=False,
         assert type(Clock) is bool, "Arg Clock must be a bool!"
         assert type(close) is bool, "Arg close must be a bool!"
 
+    # we close the poly if not closed
     if not np.allclose(poly[:,0], poly[:,npts-1], atol=_VSMALL):
         poly = np.concatenate((poly,poly[:,0:1]),axis=1)
+        npts += 1 # we added a point
+
+    # verifying that poly is (counter)clockwise
     if ndim==2 and not Clock is None:
         try:
             if not Clock==Poly_isClockwise(poly):
                 poly = poly[:,::-1]
         except Exception as excp:
             raise excp
+
+    # if we didn't want it close, we take out last point
     if not close:
         poly = poly[:,:npts-1]
+
+    # taking care of continuity
     poly = np.ascontiguousarray(poly) if order.lower()=='c' \
            else np.asfortranarray(poly)
+
     return poly
 
 
