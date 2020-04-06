@@ -4264,6 +4264,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
     cdef np.ndarray[double,ndim=2] Pts, indI
     cdef np.ndarray[double,ndim=1] iii, dV, ind
 
+
+    warn("You are using the old algorithm for meshing a volume."
+         + " This algorithm is slower than the new one.", Warning)
+
     # Get the actual R and Z resolutions and mesh elements
     R0, reso_r0, indR0, NR0 = discretize_line1d(RMinMax, dR, None,
                                              Lim=True, margin=margin)
@@ -4399,6 +4403,9 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] Pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] dV=np.empty((NP,))
+
+    warn("You are using the old algorithm for meshing a volume."
+         + " This algorithm is slower than the new one.", Warning)
 
     # Get the actual R and Z resolutions and mesh elements
     R, reso_r, indR, NR = discretize_line1d(RMinMax, dR, None, Lim=True,
