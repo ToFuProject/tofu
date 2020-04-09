@@ -1862,7 +1862,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     else:
         verbscp = 0
     if npts is None:
-        npts = dinput['deg']*(dinput['knots'].size-1) + 1
+        npts = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
 
     nspect = data.shape[0]
 
