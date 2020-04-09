@@ -1953,6 +1953,9 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     # Minimize
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
+        if verbose > 0:
+            msg = "Iteration {} / {}".format(ii+1, nspect)
+            print(msg)
         t0i = dtm.datetime.now()     # DB
         res = scpopt.least_squares(func_cost, x0_scale[ii, :],
                                    jac=jacob, bounds=bounds_scale,
