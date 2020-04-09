@@ -1120,7 +1120,7 @@ class MultiIDSLoader(object):
             set(ids).intersection(lidssynth).intersection(self._dids.keys()))
         if len(ids) == 0:
             msg = ("The provided ids must be:\n"
-                   + "\t- an is name (str)\n"
+                   + "\t- an ids name (str)\n"
                    + "\t- a list of ids names\n"
                    + "\t- an ids instance\n"
                    + "\t- None\n"
@@ -2014,9 +2014,9 @@ class MultiIDSLoader(object):
                 if crit is None:
                     crit = v0['params'][imasstr]
                 elif crit != v0['params'][imasstr]:
-                    ss = '%s : %s'%(idd,str(v0['params'][imasstr]))
-                    msg = "All idd should refer to the same %s !\n"%imasstr
-                    msg += "    - " + ss
+                    ss = '{} : {}'.format(idd, str(v0['params'][imasstr]))
+                    msg = ("All idd refer to different {}!\n".format(imasstr)
+                           + "\t- {}".format(ss))
                     if err:
                         raise Exception(msg)
                     else:
@@ -2106,8 +2106,9 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok, errshot=True,
-                                                          errExp=True,
+        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok,
+                                                          errshot=False,
+                                                          errExp=False,
                                                           upper=True)
         # ----------------
         #   Trivial case
@@ -2771,7 +2772,8 @@ class MultiIDSLoader(object):
         # ---------------------------
         # Preliminary checks on data source consistency
         _, _, shot, Exp = self._get_lidsidd_shotExp(lids, upper=True,
-                                                    errshot=True, errExp=True)
+                                                    errshot=False,
+                                                    errExp=False)
         # get data
         out0 = self.get_data_all(dsig=dsig)
 
@@ -3083,6 +3085,12 @@ class MultiIDSLoader(object):
             msg = "ids {} has no attribute with '[chan]' index!".format(ids)
             raise Exception(msg)
         nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
+        if nch == 0:
+            msg = ('ids {} has 0 channels:\n'.format(ids)
+                   + '\t- len({}.{}) = 0\n'.format(ids, lch[ind[0]])
+                   + '\t- idd: {}'.format(self._dids[ids]['idd']))
+            raise Exception(msg)
+
 
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
                                                              data=data, X=X,
@@ -3317,7 +3325,8 @@ class MultiIDSLoader(object):
         # ---------------------------
         # Preliminary checks on data source consistency
         _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
-                                                    errshot=True, errExp=True)
+                                                    errshot=False,
+                                                    errExp=False)
         # -------------
         #   Input dicts
 
@@ -3564,7 +3573,8 @@ class MultiIDSLoader(object):
         # ---------------------------
         # Preliminary checks on data source consistency
         _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
-                                                    errshot=True, errExp=True)
+                                                    errshot=False,
+                                                    errExp=False)
         # -------------
         #   Input dicts
 
