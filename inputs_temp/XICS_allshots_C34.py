@@ -93,6 +93,7 @@ _DLINES_ARXVII = {
 
 
 _SHOTS = np.r_[
+    # C3
     54041,
     np.arange(54043, 54055),
     54058, 54059,
@@ -101,13 +102,16 @@ _SHOTS = np.r_[
     np.arange(54077, 54080),
     54081,
     54083, 54084,
-    np.arange(54088, 54109),
+    np.arange(54088, 54108),
     54123,
     np.arange(54126, 54146),
     np.arange(54150, 54156),
     np.arange(54158, 54169),
     np.arange(54170,54176),
     54177, 54178,
+    # C4
+    55076, 55077,
+    55297,
 ]
 
 _NSHOT = _SHOTS.size
@@ -125,20 +129,25 @@ _ANG = np.full((_NSHOT,), np.nan)
 
 _DSHOTS = {
     'ArXVII': {
-        54041: {'ang': 1.1498, 'tlim': [32,36]},
-        54043: {'ang': 1.1498, 'tlim': [35,39]},
-        54044: {'ang': 1.1498, 'tlim': [33,47]},
-        54045: {'ang': 1.28075, 'tlim': [32,46]},
-        54046: {'ang': 1.3124, 'tlim': [32,46]},
-        54047: {'ang': 1.3995, 'tlim': [32,46]},
-        54048: {'ang': 1.51995, 'tlim': [32,46]},
-        54049: {'ang': 1.51995, 'tlim': [32,34]},
-        54050: {'ang': 1.51995, 'tlim': [32,46]},
-        54051: {'ang': 1.51995, 'tlim': [32,40]},
-        54052: {'ang': 1.51995, 'tlim': [32,37]},
-        54053: {'ang': 1.51995, 'tlim': [32,34]},
-        54054: {'ang': 1.51995, 'tlim': [32,37]},
-        54061: {'ang': 1.6240, 'tlim': [32,43]},
+        # C3
+        54041: {'ang': 1.1498, 'tlim': [32, 36]},
+        54043: {'ang': 1.1498, 'tlim': [35, 39]},
+        54044: {'ang': 1.1498, 'tlim': [33, 47]},
+        54045: {'ang': 1.28075, 'tlim': [32, 46]},
+        54046: {'ang': 1.3124, 'tlim': [32, 46]},
+        54047: {'ang': 1.3995, 'tlim': [32, 46]},
+        54048: {'ang': 1.51995, 'tlim': [32, 46]},
+        54049: {'ang': 1.51995, 'tlim': [32, 34]},
+        54050: {'ang': 1.51995, 'tlim': [32, 46]},
+        54051: {'ang': 1.51995, 'tlim': [32, 40]},
+        54052: {'ang': 1.51995, 'tlim': [32, 37]},
+        54053: {'ang': 1.51995, 'tlim': [32, 34]},
+        54054: {'ang': 1.51995, 'tlim': [32, 37]},
+        54061: {'ang': 1.6240, 'tlim': [32, 43]},
+        # C4   1.3115 ?
+        55076: {'ang': 1.3405, 'tlim': [31, 57]}, # 1.3115, [61, 87]
+        55077: {'ang': 1.3405, 'tlim': [34, 85]}, # 1.3115, [64, 85]
+        55297: {'ang': 1.3405, 'tlim': [31, 46]},
     },
 
     'ArXVIII':{
@@ -247,7 +256,7 @@ for cryst, v0 in _DSHOTS.items():
 _DCRYST = {
     'ArXVII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.1-174-g453d6a3.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.3b4-5-g7eec56a7.npz')),
     'ArXVIII': os.path.abspath(os.path.join(
         _HERE,
         'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVIII_sh00000_Vers.npz')),
@@ -257,8 +266,8 @@ _DCRYST = {
 }
 
 _DDET = {'ArXVII':
-         dict(ddist=0.05, di=-0.0053, dj=0.,
-              dtheta=0., dpsi=0.01, tilt=-0.009, tangent_to_rowland=True),
+         dict(ddist=0., di=-0.005, dj=0.,
+              dtheta=0., dpsi=-0.01, tilt=0.008, tangent_to_rowland=True),
          'FeXXV':
          dict(ddist=0., di=0., dj=0.,
               dtheta=0., dpsi=0., tilt=0., tangent_to_rowland=True),
@@ -287,6 +296,7 @@ _DXJ = 0.002
 def main(shots=_SHOTS,
          path=None,
          nt=None,
+         cryst=None,
          dcryst=None,
          lfiles=None,
          maskpath=None,
@@ -299,6 +309,12 @@ def main(shots=_SHOTS,
         path = _PATH
     if dcryst is None:
         dcryst = _DCRYST
+    if cryst is None:
+        cryst = sorted(dcryst.keys())
+    if isinstance(cryst, str):
+        cryst = [cryst]
+    assert all([cc in dcryst.keys() for cc in cryst])
+    cryst = set(dcryst.keys()).intersection(cryst)
     if lfiles is None:
         lfiles = [_PATHC3, _PATHC4]
     if isinstance(lfiles, str):
@@ -323,7 +339,7 @@ def main(shots=_SHOTS,
 
     # ---------
     # Loop on cryst
-    for cc in _DCRYST.keys():
+    for cc in cryst:
 
         ind = (_CRYST == cc).nonzero()[0]
         ns = ind.size
@@ -558,7 +574,7 @@ def _load_data(shot, tlim=None, tmode='mean',
     else:
         t = Dt[1,:]
     indt = _get_indtlim(t, tlim=tlim, out=int)
-    if indt.size==0:
+    if indt.size == 0:
         msg = ("No time steps in the selected time interval:\n"
                + "\ttlim = [{0}, {1}]\n".format(tlim[0], tlim[1])
                + "\tt    = {0}".format(str(t)))
@@ -576,7 +592,7 @@ def _load_data(shot, tlim=None, tmode='mean',
             s = str(im.tag.tagdata[270]).split('#')[1:]
             s = [ss[:ss.index('\\r')] for ss in s if '\\r' in ss]
             ls.append(s)
-            data[ii, :, :] = np.asarray(im, dtype=np.int32)
+            data[ii, :, :] = np.flipud(np.asarray(im, dtype=np.int32))
     finally:
         # Delete temporary files
         if Verb:
@@ -590,7 +606,6 @@ def _load_data(shot, tlim=None, tmode='mean',
               'NExp': NExp, 'nIm': nIm,
               'TExpT': TExpT, 'TExpP': TExpP, 'TDelay':TDelay,
               'nH': geom['pix']['nbH'], 'nV': geom['pix']['nbV']}
-
     return data, t, dbonus
 
 
@@ -691,7 +706,7 @@ def _extract_data(pfe, allow_pickle=None,
 def plot(pfe=None, allow_pickle=True,
          shot=None, maskxi=None,
          cryst=None, det=None,
-         dlines=None,
+         dlines=None, indt=None, indxj=None,
          fs=None, dmargin=None, cmap=None):
 
     # Check input
@@ -715,7 +730,9 @@ def plot(pfe=None, allow_pickle=True,
     # extract data
     spect, spectn, shots, t, ang, xi, xj, thr = _extract_data(pfe,
                                                               allow_pickle,
-                                                              maskxi, shot)
+                                                              maskxi, shot,
+                                                              indt=indt,
+                                                              indxj=indxj)
     nshot, nt, nxj, nxi = spect.shape
     iout = np.any(np.nanmean(spectn**2, axis=-1) > 0.1, axis=-1)
 
@@ -734,13 +751,15 @@ def plot(pfe=None, allow_pickle=True,
         for jj in range(nang):
             ind = (ang == angu[jj]).nonzero()[0]
             # Beware to provide angles in rad !
-            cryst.move(angle=angu[jj]*np.pi/180.)
+            cryst.move(param=angu[jj]*np.pi/180.)
 
             bragg, phii = cryst.calc_phibragg_from_xixj(
                 xif, xjf, n=1,
                 dtheta=None, psi=None, plot=False, det=det)
             phi[ind, ...] = phii[None, ...]
             lamb[ind, ...] = cryst.get_lamb_from_bragg(bragg, n=1)[None, ...]
+
+    isortxj = nxj - 1 - np.argsort(xj)
 
     # -------------
     # Plot 1
@@ -764,10 +783,11 @@ def plot(pfe=None, allow_pickle=True,
 
     shx = None
     for ii in range(nxj):
-        dax['spect'][ii] = fig.add_subplot(gs[ii, 0], sharex=shx)
+        iax = isortxj[ii]
+        dax['spect'][ii] = fig.add_subplot(gs[iax, 0], sharex=shx)
         if ii == 0:
             shx = dax['spect'][0]
-        dax['spectn'][ii] = fig.add_subplot(gs[ii, 1], sharex=shx)
+        dax['spectn'][ii] = fig.add_subplot(gs[iax, 1], sharex=shx)
         dax['spect'][ii].set_ylabel('xj = {}\ndata (a.u.)'.format(xj[ii]))
 
         for jj in range(nang):
@@ -814,11 +834,12 @@ def plot(pfe=None, allow_pickle=True,
 
     shx = None
     for ii in range(nxj):
-        dax2['spect'][ii] = fig.add_subplot(gs[ii, 0],
+        iax = isortxj[ii]
+        dax2['spect'][ii] = fig.add_subplot(gs[iax, 0],
                                             sharex=shx)
         if ii == 0:
             shx, shy = dax2['spect'][0], dax2['spect'][0]
-        dax2['spectn'][ii] = fig.add_subplot(gs[ii, 1],
+        dax2['spectn'][ii] = fig.add_subplot(gs[iax, 1],
                                              sharex=shx)
         dax2['spect'][ii].set_ylabel('data (a.u.)'.format(xj[ii]))
 
@@ -987,13 +1008,13 @@ def fit(pfe=None, allow_pickle=True,
     xjf = np.repeat(xj[:, None], nxi, axis=1)
     for jj in range(nang):
         # Beware to provide angles in rad !
-        cryst.move(angle=angu[jj]*np.pi/180.)
+        cryst.move(param=angu[jj]*np.pi/180.)
 
         bragg, phii = cryst.calc_phibragg_from_xixj(
             xif, xjf, n=1,
             dtheta=None, psi=None, plot=False, det=det)
-        phi[jj, ...] = phii[None, ...]
-        lamb[jj, ...] = cryst.get_lamb_from_bragg(bragg, n=1)[None, ...]
+        phi[jj, ...] = phii
+        lamb[jj, ...] = cryst.get_lamb_from_bragg(bragg, n=1)
 
     # Reorder to sort lamb
     assert np.all(np.argsort(lamb, axis=-1)
@@ -1004,7 +1025,7 @@ def fit(pfe=None, allow_pickle=True,
     spectn = spectn[:, :, :, ::-1]
     lambminpershot = np.min(np.nanmin(lamb, axis=-1), axis=-1)
     lambmaxpershot = np.max(np.nanmax(lamb, axis=-1), axis=-1)
-    dshiftmin = 0.01*(lambmaxpershot - lambminpershot) / lambmaxpershot
+    dshiftmin = 0.02*(lambmaxpershot - lambminpershot) / lambmaxpershot
 
     # -----------
     # Get dinput for 1d fitting
@@ -1057,8 +1078,8 @@ def fit(pfe=None, allow_pickle=True,
                 chinorm[ind[ll], :, ii] = np.sqrt(dfit1d['cost']) / nxi
                 indsig = np.abs(dfit1d['dshift']) >= dshiftmin[jj]
                 indpos = dfit1d['dshift'] > 0.
-                ind098 = indsig & indpos & (dfit1d['dratio'] > 0.98)
-                ind102 = indsig & (~indpos) & (dfit1d['dratio'] < 1.02)
+                ind098 = indsig & indpos & (dfit1d['dratio'] > 0.99)
+                ind102 = indsig & (~indpos) & (dfit1d['dratio'] < 1.01)
                 if np.any(ind098) and warn is True:
                     msg = ("Some to high (> 0.98) dratio with dshift > 0:\n"
                            + "\t- shot: {}\n".format(shots[ind[ll]])
