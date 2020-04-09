@@ -46,8 +46,10 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
 
     # ----------------------
     # Check dax
-    lc = [dax is None, issubclass(dax.__class__, Axes),
-          isinstance(dax, dict), isinstance(dax, list)]
+    lc = [dax is None,
+          issubclass(dax.__class__, Axes),
+          isinstance(dax, dict),
+          isinstance(dax, list)]
     assert any(lc)
     if lc[0]:
         dax = dict.fromkeys(proj)
@@ -70,20 +72,19 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
 
     # Populate with default axes if necessary
     if 'cross' in proj and 'hor' in proj:
-        if 'cross' in proj and 'hor' in proj:
-            if dax['cross'] is None:
-                assert dax['hor'] is None
-                lax = _def.Plot_LOSProj_DefAxes('all', fs=fs,                                                                 wintit=wintit)
-                dax['cross'], dax['hor'] = lax
-        elif 'cross' in proj and dax['cross'] is None:
-            dax['cross'] = _def.Plot_LOSProj_DefAxes('cross', fs=fs,
-                                                     wintit=wintit)
-        elif 'hor' in proj and dax['hor'] is None:
-            dax['hor'] = _def.Plot_LOSProj_DefAxes('hor', fs=fs,
-                                                     wintit=wintit)
-        elif '3d' in proj  and dax['3d'] is None:
-            dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(fs=fs,
-                                                    wintit=wintit)
+        if dax['cross'] is None:
+            assert dax['hor'] is None
+            lax = _def.Plot_LOSProj_DefAxes('all', fs=fs,                                                                 wintit=wintit)
+            dax['cross'], dax['hor'] = lax
+    elif 'cross' in proj and dax['cross'] is None:
+        dax['cross'] = _def.Plot_LOSProj_DefAxes('cross', fs=fs,
+                                                 wintit=wintit)
+    elif 'hor' in proj and dax['hor'] is None:
+        dax['hor'] = _def.Plot_LOSProj_DefAxes('hor', fs=fs,
+                                                 wintit=wintit)
+    elif '3d' in proj  and dax['3d'] is None:
+        dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(fs=fs,
+                                                wintit=wintit)
     for kk in lproj:
         dax[kk] = dax.get(kk, None)
     return dax
@@ -127,7 +128,8 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax,
                                           element=element, color=color,
                                           det_cent=det_cent, det_nout=det_nout,
-                                          det_ei=det_ei, det_ej=det_ej)
+                                          det_ei=det_ei, det_ej=det_ej,
+                                          draw=draw, fs=fs, wintit=wintit)
 
     # recompute the ax.dataLim
     ax0 = None
@@ -136,7 +138,7 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
             continue
         dax[kk].relim()
         dax[kk].autoscale_view()
-        if dleg is not None:
+        if dleg is not False:
             dax[kk].legend(**dleg)
         ax0 = vv
 
@@ -727,6 +729,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                                       lambax=None, phiax=None,
                                       phiminmax=None, dlines=None,
                                       lambmin=None, lambmax=None,
+                                      xjcut=None, lambcut=None,
+                                      phicut=None, spectcut=None,
                                       cmap=None, vmin=None, vmax=None,
                                       fs=None, dmargin=None,
                                       tit=None, wintit=None,
@@ -755,6 +759,8 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
         if phiax is not None:
             phiax = 180*phiax/np.pi
         phiminmax = phiminmax*180./np.pi
+        if phicut is not None:
+            phicut = phicut*180./np.pi
     nspect = spect1d.shape[0]
 
     if dlines is not None:
@@ -828,7 +834,21 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     ax2.scatter(lamb.ravel(), phi.ravel(), c=data.ravel(), s=2,
                 marker='s', edgecolors='None',
                 cmap=cmap, vmin=vmin, vmax=vmax)
-    ax3.plot(vertsum1d, phifit, c='k', ls='-')
+
+    if xjcut is None:
+        ax3.plot(vertsum1d, phifit, c='k', ls='-')
+    else:
+        dphicut = 0.1*(phifit.max() - phifit.min())
+        for ii in range(xjcut.size):
+            ax1.axhline(xjcut[ii],
+                        ls='-', lw=1., c='r')
+            ax2.plot(lambcut[ii, :], phicut[ii, :],
+                     ls='-', lw=1., c='r')
+            ax3.plot(lambcut[ii, :],
+                     (np.nanmean(phicut[ii, :])
+                      + spectcut[ii, :]*dphicut/np.nanmax(spectcut[ii, :])),
+                     ls='-', lw=1., c='r')
+
     if phiax is not None:
         ax2.plot(lambax, phiax, c='r', ls='-', lw=1.)
 
@@ -846,6 +866,9 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
                               color=col, arrowprops=None,
                               horizontalalignment='center',
                               verticalalignment='bottom')
+                if xjcut is not None:
+                    ax3.axvline(x,
+                                c=col, ls='--')
         hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
                 for ii in range(nions)]
         axs2.legend(hand, lions,
@@ -1021,7 +1044,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
             lleg = ['ratio = {:4.2f}'.format(dfit1d['dratio'][ii]),
                     ('shift ' + r'$\approx$'
-                     + ' {:4.2e}'.format(np.nanmean(dfit1d['dshift'][ii, :])))]
+                     + ' {:4.2e}'.format(dfit1d['dshift'][0]))]
             legr = ax.legend(handles=hand,
                              labels=lleg,
                              title='double',
