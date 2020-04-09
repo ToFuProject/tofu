@@ -1698,6 +1698,7 @@ class CrystalBragg(utils.ToFuObject):
                              magaxis=None, npaxis=None,
                              dlines=None, spect1d='mean',
                              lambmin=None, lambmax=None,
+                             xjcut=None, dxj=None,
                              plot=True, fs=None, tit=None, wintit=None,
                              cmap=None, vmin=None, vmax=None,
                              returnas=None):
@@ -1751,6 +1752,22 @@ class CrystalBragg(utils.ToFuObject):
             ind = np.argsort(lambax)
             lambax, phiax = lambax[ind], phiax[ind]
 
+        # Get lamb / phi for xj
+        lambcut, phicut, spectcut = None, None, None
+        if xjcut is not None:
+            if dxj is None:
+                dxj = 0.002
+            xjcut = np.sort(np.atleast_1d(xjcut).ravel())
+            xicutf = np.tile(xi, (xjcut.size, 1))
+            xjcutf = np.repeat(xjcut[:, None], nxi, axis=1)
+            braggcut, phicut = self.calc_phibragg_from_xixj(
+                xicutf, xjcutf, n=1,
+                dtheta=None, psi=None, plot=False, det=det)
+            lambcut = self.get_lamb_from_bragg(braggcut, n=1)
+            indxj = [(np.abs(xj-xjc) <= dxj).nonzero()[0] for xjc in xjcut]
+            spectcut = np.array([np.nanmean(data[ixj, :], axis=0)
+                                 for ixj in indxj])
+
         # plot
         ax = None
         if plot:
@@ -1759,6 +1776,7 @@ class CrystalBragg(utils.ToFuObject):
                 lambfit=lambfit, phifit=phifit, spect1d=spect1d,
                 vertsum1d=vertsum1d, lambax=lambax, phiax=phiax,
                 lambmin=lambmin, lambmax=lambmax, phiminmax=phiminmax,
+                xjcut=xjcut, lambcut=lambcut, phicut=phicut, spectcut=spectcut,
                 cmap=cmap, vmin=vmin, vmax=vmax, dlines=dlines,
                 tit=tit, wintit=wintit, fs=fs)
         if returnas == 'spect':
@@ -1774,7 +1792,7 @@ class CrystalBragg(utils.ToFuObject):
                                dconstraints=None, dx0=None,
                                same_spectrum=None, dlamb=None,
                                double=None, Ti=None, vi=None, ratio=None,
-                               scales=None, x0_scale=None, bounds_scale=None,
+                               dscales=None, x0_scale=None, bounds_scale=None,
                                method=None, max_nfev=None,
                                xtol=None, ftol=None, gtol=None,
                                loss=None, verbose=0, chain=None,
@@ -1848,7 +1866,7 @@ class CrystalBragg(utils.ToFuObject):
             dfit1d = _spectrafit2d.multigausfit1d_from_dlines(
                 spect1d, lambfit, dinput=dinput, dx0=dx0,
                 lambmin=lambmin, lambmax=lambmax,
-                scales=scales, x0_scale=x0_scale, bounds_scale=bounds_scale,
+                dscales=dscales, x0_scale=x0_scale, bounds_scale=bounds_scale,
                 method=method, max_nfev=max_nfev,
                 chain=chain, verbose=verbose,
                 xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
@@ -1972,7 +1990,7 @@ class CrystalBragg(utils.ToFuObject):
         if lambmax is not None:
             indok &= lambflat < lambmax
         if phimin is not None:
-            indok &= phiflat > phimmin
+            indok &= phiflat > phimin
         if phimax is not None:
             indok &= phiflat < phimax
 
