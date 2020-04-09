@@ -27,6 +27,12 @@ _DSOURCES = {
                   + '"Absolute Measurement of the Relativistic Magnetic"'
                   + '" Dipole Transition Energy in Heliumlike Argon", '
                   + 'Physical Review Letters, vol. 109, 043005, 2012'),
+    'Adhoc 200408': ('Wavelength computed from the solid references '
+                     + 'ArXVII_w_Bruhns and ArXVII_z_Amaro and from the '
+                     + 'detector position optimized from them using shots='
+                     +  '[54044, 54045, 54046, 54047, 54049, 54061, 55076], '
+                     + 'indt=[2,4,5,6,8], indxj=None on 08.04.2020, using '
+                     + 'Vainshtein for x, y and Goryaev for k, j, q, r, a')
 }
 
 
@@ -119,10 +125,14 @@ dlines = {
     # Ar
     # --------------------------
 
-    'ArXIV_n>3': {'q': 13, 'ION': 'ArXIV',
-                  'symbol': 'n>3', 'lambda': 3.9495e-10,
-                  'transition': ['unknown', 'unknwown'],
-                  'source': 'adhoc'},
+    'ArXIV_n4_Adhoc200408': {'q': 13, 'ION': 'ArXIV',
+                             'symbol': 'n=4', 'lambda': 3.9530e-10,
+                             'transition': ['unknown', 'unknwown'],
+                             'source': 'Adhoc 200408'},
+    'ArXV_n3_Adhoc200408': {'q': 14, 'ION': 'ArXV',
+                            'symbol': 'n=3', 'lambda': 3.9560e-10,
+                            'transition': ['unknown', 'unknwown'],
+                            'source': 'Adhoc 200408'},
 
     'ArXV_1': {'q': 14, 'ION': 'ArXV',
                'symbol': '1', 'lambda': 4.0096e-10,
@@ -152,11 +162,6 @@ dlines = {
                'symbol': '5', 'lambda': 4.0291e-10,
                'transition': ['1s2s2p^2(^1D_5)', '1s^22s2p(^1P_1)'],
                'source': 'Kallne'},
-    'ArXV_n3': {'q': 14, 'ION': 'ArXV',
-                'symbol': 'n=3', 'lambda': 3.9550e-10,
-                'transition': ['unknown', 'unknwown'],
-                'source': 'adhoc'},
-
 
     'ArXVI_a_Kallne': {'q': 15, 'ION': 'ArXVI',
                        'lambda': 3.9852e-10,
@@ -170,6 +175,10 @@ dlines = {
                         'lambda': 3.9858e-10,
                         'transition': ('Li-like', 'a'),
                         'source': 'Goryaev 17'},
+    'ArXVI_a_Adhoc200408': {'q': 15, 'ION': 'ArXVI',
+                            'lambda': 3.9848e-10,
+                            'transition': ('Li-like', 'a'),
+                            'source': 'Adhoc 200408'},
     'ArXVI_b_Goryaev': {'q': 15, 'ION': 'ArXVI',
                         'lambda': 3.9818e-10,
                         'transition': ('Li-like', 'b'),
@@ -214,6 +223,10 @@ dlines = {
                         'lambda': 3.9939e-10,
                         'transition': ('Li-like', 'j'),
                         'source': 'Goryaev 17'},
+    'ArXVI_j_Adhoc200408': {'q': 15, 'ION': 'ArXVI',
+                            'lambda': 3.9939e-10,
+                            'transition': ('Li-like', 'j'),
+                            'source': 'Adhoc 200408'},
     'ArXVI_k_Kallne': {'q': 15, 'ION': 'ArXVI',
                        'lambda': 3.9892e-10,
                        'transition': ('Li-like', 'k'),
@@ -226,6 +239,10 @@ dlines = {
                         'lambda': 3.9899e-10,
                         'transition': ('Li-like', 'k'),
                         'source': 'Goryaev 17'},
+    'ArXVI_k_Adhoc200408': {'q': 15, 'ION': 'ArXVI',
+                            'lambda': 3.9897e-10,
+                            'transition': ('Li-like', 'k'),
+                            'source': 'Adhoc 200408'},
     'ArXVI_l_Goryaev': {'q': 15, 'ION': 'ArXVI',
                         'lambda': 3.9939e-10,
                         'transition': ('Li-like', 'l'),
@@ -266,6 +283,10 @@ dlines = {
                         'lambda': 3.9815e-10,
                         'transition': ('Li-like', 'q'),
                         'source': 'Goryaev 17'},
+    'ArXVI_q_Adhoc200408': {'q': 15, 'ION': 'ArXVI',
+                            'lambda': 3.9814e-10,
+                            'transition': ('Li-like', 'q'),
+                            'source': 'Adhoc 200408'},
     'ArXVI_r_Kallne': {'q': 15, 'ION': 'ArXVI',
                        'lambda': 3.9827e-10,
                        'transition': ('Li-like', 'r'),
@@ -278,6 +299,10 @@ dlines = {
                         'lambda': 3.9835e-10,
                         'transition': ('Li-like', 'r'),
                         'source': 'Goryaev 17'},
+    'ArXVI_r_Adhoc200408': {'q': 15, 'ION': 'ArXVI',
+                            'lambda': 3.9833e-10,
+                            'transition': ('Li-like', 'r'),
+                            'source': 'Adhoc 200408'},
     'ArXVI_s_Kallne': {'q': 15, 'ION': 'ArXVI',
                        'lambda': 3.9669e-10,
                        'transition': ('Li-like', 's'),
@@ -434,6 +459,10 @@ dlines = {
                             'lambda': 3.9660e-10,
                             'transition': ('He-like', 'x'),
                             'source': 'Vainshtein 85'},
+    'ArXVII_x_Adhoc200408': {'q': 16, 'ION': 'ArXVII',
+                             'lambda': 3.9658e-10,
+                             'transition': ('He-like', 'x'),
+                             'source': 'Adhoc 200408'},
     'ArXVII_y_Kallne': {'q': 16, 'ION': 'ArXVII',
                         'lambda': 3.9683e-10,
                         'transition': ('He-like', 'y'),
@@ -450,6 +479,10 @@ dlines = {
                          'lambda': 3.9696e-10,
                          'transition': ('He-like', 'y'),
                          'source': 'Goryaev 17'},
+    'ArXVII_y_Adhoc200408': {'q': 16, 'ION': 'ArXVII',
+                             'lambda': 3.9692e-10,
+                             'transition': ('He-like', 'y'),
+                             'source': 'Adhoc 200408'},
     'ArXVII_y2_Vainshtein': {'q': 16, 'ION': 'ArXVII',
                              'lambda': 3.9703e-10,
                              'transition': ('He-like', 'y2'),
