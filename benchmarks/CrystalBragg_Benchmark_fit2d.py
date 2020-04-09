@@ -1,5 +1,6 @@
 
 import os
+import sys
 import copy
 
 import numpy as np
@@ -196,6 +197,7 @@ def plot_benchmark(input_file,
                    nsubmin=None, nsubmax=None,
                    tolmin=None, tolmax=None,
                    nbsmin=None, nbsmax=None,
+                   plotnfev=False, tmax=None,
                    fs=None, dmargin=None, cmap=None):
 
     # Check input
@@ -245,8 +247,10 @@ def plot_benchmark(input_file,
     Ti = kTiev*1e-3
 
     vmcost = (np.nanmin(chin), np.nanmax(chin))
-    vmtime = (np.nanmin(time), np.nanmax(time))
+    vmtime = [np.nanmin(time), np.nanmax(time)]
     vmnfev = (np.nanmin(nfev), np.nanmax(nfev))
+    if tmax is not None:
+        vmtime[1] = tmax
 
     extent = (nbs.min()-0.5, nbs.max()+0.5, 0.5, ntol+0.5)
     xt = nbs
@@ -259,13 +263,17 @@ def plot_benchmark(input_file,
 
     # -------------
     # Plot 1
+    nbaxv = 3 if plotnfev is True else 2
+
     fig = plt.figure(figsize=fs)
     fig.suptitle(datapath)
-    gs = gridspec.GridSpec(3, (nnsub+1)*3, **dmargin)
+    gs = gridspec.GridSpec(nbaxv, (nnsub+1)*3, **dmargin)
 
     dax = {'cost': [None for ii in range(nnsub)],
-           'time': [None for ii in range(nnsub)],
-           'nfev': [None for ii in range(nnsub)]}
+           'time': [None for ii in range(nnsub)]}
+    if plotnfev is True:
+        dax['nfev'] = [None for ii in range(nnsub)]
+
     for ii in range(nnsub):
         if np.all(np.isnan(cost[:, ii, :])):
             continue
@@ -277,32 +285,36 @@ def plot_benchmark(input_file,
         dax['time'][ii] = fig.add_subplot(gs[1, ii*3:(ii+1)*3],
                                           sharex=sharex, sharey=sharey,
                                           adjustable='datalim')
-        dax['nfev'][ii] = fig.add_subplot(gs[2, ii*3:(ii+1)*3],
-                                          sharex=sharex, sharey=sharey,
-                                          adjustable='datalim')
+        if plotnfev is True:
+            dax['nfev'][ii] = fig.add_subplot(gs[2, ii*3:(ii+1)*3],
+                                              sharex=sharex, sharey=sharey,
+                                              adjustable='datalim')
 
         dax['cost'][ii].set_title('nsubset = {}'.format(nsub[ii]))
         if ii == 0:
             dax['cost'][ii].set_ylabel(r'$\chi_{norm}$'+'\ntol')
-            dax['time'][ii].set_ylabel('time\ntol')
-            dax['nfev'][ii].set_ylabel('nfev\ntol')
             dax['cost'][ii].set_yticks(yt)
             dax['cost'][ii].set_yticklabels(ytl)
+            dax['time'][ii].set_ylabel('time\ntol')
             dax['time'][ii].set_yticks(yt)
             dax['time'][ii].set_yticklabels(ytl)
-            dax['nfev'][ii].set_yticks(yt)
-            dax['nfev'][ii].set_yticklabels(ytl)
+            if plotnfev is True:
+                dax['nfev'][ii].set_ylabel('nfev\ntol')
+                dax['nfev'][ii].set_yticks(yt)
+                dax['nfev'][ii].set_yticklabels(ytl)
         else:
             plt.setp(dax['cost'][ii].get_yticklabels(), visible=False)
             plt.setp(dax['time'][ii].get_yticklabels(), visible=False)
-            plt.setp(dax['nfev'][ii].get_yticklabels(), visible=False)
+            if plotnfev is True:
+                plt.setp(dax['nfev'][ii].get_yticklabels(), visible=False)
         dax['cost'][ii].set_xticks(xt)
         dax['cost'][ii].set_xticklabels(xtl)
         dax['time'][ii].set_xticks(xt)
         dax['time'][ii].set_xticklabels(xtl)
-        dax['nfev'][ii].set_xticks(xt)
-        dax['nfev'][ii].set_xticklabels(xtl)
-        dax['nfev'][ii].set_xlabel('nbsplines')
+        if plotnfev is True:
+            dax['nfev'][ii].set_xticks(xt)
+            dax['nfev'][ii].set_xticklabels(xtl)
+            dax['nfev'][ii].set_xlabel('nbsplines')
 
         imcost = dax['cost'][ii].imshow(chin[:, ii, :],
                                         extent=extent, aspect='auto',
@@ -314,26 +326,26 @@ def plot_benchmark(input_file,
                                         interpolation='nearest',
                                         origin='lower', cmap=cmap,
                                         vmin=vmtime[0], vmax=vmtime[1])
-        imnfev = dax['nfev'][ii].imshow(nfev[:, ii, :],
-                                        extent=extent, aspect='auto',
-                                        interpolation='nearest',
-                                        origin='lower', cmap=cmap,
-                                        vmin=vmnfev[0], vmax=vmnfev[1])
+        if plotnfev is True:
+            imnfev = dax['nfev'][ii].imshow(nfev[:, ii, :],
+                                            extent=extent, aspect='auto',
+                                            interpolation='nearest',
+                                            origin='lower', cmap=cmap,
+                                            vmin=vmnfev[0], vmax=vmnfev[1])
 
     dax['cost_cb'] = fig.add_subplot(gs[0, -2])
     dax['time_cb'] = fig.add_subplot(gs[1, -2])
-    dax['nfev_cb'] = fig.add_subplot(gs[2, -2])
-
     dax['cost_cb'].set_title(r'$\chi_{norm}$')
     dax['time_cb'].set_title(r'time (min)')
-    dax['nfev_cb'].set_title(r'nfev')
-
     plt.colorbar(imcost, cax=dax['cost_cb'],
                  orientation='vertical')
     plt.colorbar(imtime, cax=dax['time_cb'],
                  orientation='vertical')
-    plt.colorbar(imnfev, cax=dax['nfev_cb'],
-                 orientation='vertical')
+    if plotnfev is True:
+        dax['nfev_cb'] = fig.add_subplot(gs[2, -2])
+        dax['nfev_cb'].set_title(r'nfev')
+        plt.colorbar(imnfev, cax=dax['nfev_cb'],
+                     orientation='vertical')
 
 
     # -------------
