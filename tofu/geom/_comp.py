@@ -419,7 +419,6 @@ def _Ves_get_sampleV(
                     num_threads=num_threads,
                 )
             else:
-                print("~~~~~~CALLING OLD ALGO~~~~~~~")
                 (Pts, dV, ind, dVr[0],
                  dVr[1], dVr[2]) = _GG._Ves_Vmesh_Tor_SubFromD_cython_old(
                     dV[0],
@@ -468,7 +467,6 @@ def _Ves_get_sampleV(
                     num_threads=num_threads,
                 )
             else:
-                print("~~~~~~CALLING OLD ALGO~~~~~~~")
                 Pts, dV, dVr[0], dVr[1], dVr[
                     2
                 ] = _GG._Ves_Vmesh_Tor_SubFromInd_cython_old(
