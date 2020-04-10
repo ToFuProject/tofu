@@ -9,16 +9,22 @@ import time
 
 matplotlib.use("agg")
 # Nose-specific
-_here = os.path.abspath(os.path.dirname(__file__))
 VerbHead = "tofu.geom.tests03_core"
 keyVers = "Vers"
 _Exp = "WEST"
 
 
-def bigger_test():
+def dir_path(string):
+    if os.path.isdir(string):
+        return string
+    else:
+        raise NotADirectoryError(string)
+
+
+def bigger_test(here, resolution=0.02):
     """ exactly like test13_get_sampleV(self) """
 
-    path = os.path.join(_here, "tests03_core_data")
+    path = os.path.join(here, "tests03_core_data")
     lf = os.listdir(path)
     lf = [f for f in lf if all([s in f for s in [_Exp, ".txt"]])]
     lCls = sorted(set([f.split("_")[1] for f in lf]))
@@ -80,7 +86,7 @@ def bigger_test():
                 kwd = dict(  # noqa
                     Name=ln[ii] + tt,
                     Exp=_Exp,
-                    SavePath=_here,
+                    SavePath=here,
                     Poly=Poly,
                     Lim=Lim,
                     Type=tt,
@@ -99,7 +105,7 @@ def bigger_test():
                 box = None  # [[2.,3.], [0.,5.], [0.,np.pi/2.]]
                 try:
                     ii = 0
-                    reso = 0.02
+                    reso = resolution
                     start = time.perf_counter()
                     out = obj.get_sampleV(reso, resMode='abs', DV=box,
                                           Out='(X,Y,Z)')
@@ -236,8 +242,21 @@ if __name__ == "__main__":
     )
     parser.add_argument('--timeit', dest='timeit', action='store_true')
     parser.add_argument('--no-timeit', dest='timeit', action='store_false')
+    parser.add_argument('--path', type=dir_path)
+    parser.add_argument('--reso', type=float)
     parser.set_defaults(timeit=False)
     args = parser.parse_args()
+
+    if args.path:
+        here = args.path
+    else:
+        here = os.path.abspath(os.path.dirname(__file__))
+
+    if args.reso:
+        resolution = args.reso
+    else:
+        resolution = 0.02
+
     print(".-.-.-.-.-.-.-. ", args.mode, " .-.-.-.-.-.-.-.-")
     if args.mode.lower() == "small":
         if args.timeit:
@@ -261,4 +280,4 @@ if __name__ == "__main__":
             )
         else:
             print(".................... ONE CALL ...................")
-            bigger_test()
+            bigger_test(here, resolution)
