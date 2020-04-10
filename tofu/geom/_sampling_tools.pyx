@@ -1610,8 +1610,9 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             sz_phi[ii] = nphi1 + 1 - nphi0
             if max_sz_phi[0] < sz_phi[ii]:
                 max_sz_phi[0] = sz_phi[ii]
-            for jj in range(sz_phi[ii]):
-                indi_mv[ii,jj] = nphi0+jj
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(sz_phi[ii]):
+                    indi_mv[ii,jj] = nphi0 + jj
             NP += sz_z * sz_phi[ii]
     else:
         for ii in range(1, sz_r):
@@ -1646,10 +1647,11 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             sz_phi[ii] = nphi1+1+loc_nc_rphi-nphi0
             if max_sz_phi[0] < sz_phi[ii]:
                 max_sz_phi[0] = sz_phi[ii]
-            for jj in range(loc_nc_rphi-nphi0):
-                indi_mv[ii,jj] = nphi0 + jj
-            for jj in range(loc_nc_rphi - nphi0, sz_phi[ii]):
-                indi_mv[ii,jj] = jj - (loc_nc_rphi - nphi0)
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(loc_nc_rphi - nphi0):
+                    indi_mv[ii, jj] = nphi0 + jj
+                for jj in prange(loc_nc_rphi - nphi0, sz_phi[ii]):
+                    indi_mv[ii, jj] = jj - (loc_nc_rphi - nphi0)
             NP += sz_z * sz_phi[ii]
 
     return NP
@@ -1769,23 +1771,24 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
                                    int num_threads) nogil:
     cdef int ii
     # ...
-    if is_cart:
-        for ii in range(sz_r):
-            # To make sure the indices are in increasing order
-            vmesh_double_loop_cart(ii, sz_z, lindex_z,
-                                   ncells_rphi, tot_nc_plane,
-                                   reso_r_z, step_rphi,
-                                   disc_r, disc_z, lnp, sz_phi,
-                                   indi_mv[ii,first_ind_mv[ii]:],
-                                   dv_mv, reso_phi_mv, pts_mv, ind_mv)
-    else:
-        for ii in range(sz_r):
-            vmesh_double_loop_polr(ii, sz_z, lindex_z,
-                                   ncells_rphi, tot_nc_plane,
-                                   reso_r_z, step_rphi,
-                                   disc_r, disc_z, lnp, sz_phi,
-                                   indi_mv[ii,first_ind_mv[ii]:],
-                                   dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    with nogil, parallel(num_threads=num_threads):
+        if is_cart:
+            for ii in prange(sz_r):
+                # To make sure the indices are in increasing order
+                vmesh_double_loop_cart(ii, sz_z, lindex_z,
+                                       ncells_rphi, tot_nc_plane,
+                                       reso_r_z, step_rphi,
+                                       disc_r, disc_z, lnp, sz_phi,
+                                       indi_mv[ii,first_ind_mv[ii]:],
+                                       dv_mv, reso_phi_mv, pts_mv, ind_mv)
+        else:
+            for ii in prange(sz_r):
+                vmesh_double_loop_polr(ii, sz_z, lindex_z,
+                                       ncells_rphi, tot_nc_plane,
+                                       reso_r_z, step_rphi,
+                                       disc_r, disc_z, lnp, sz_phi,
+                                       indi_mv[ii,first_ind_mv[ii]:],
+                                       dv_mv, reso_phi_mv, pts_mv, ind_mv)
     return
 
 
