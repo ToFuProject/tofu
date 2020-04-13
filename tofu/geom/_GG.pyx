@@ -931,6 +931,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[::1] dv_mv
     cdef double[::1] reso_phi_mv, hypot
     cdef double[:, ::1] poly_mv
+    cdef double[:, ::1] pts_mv
+    cdef long[:,::1] indi_mv
     cdef long[:, :, ::1] lnp
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
@@ -953,7 +955,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=1] res3d
-    cdef double[:, ::1] pts_mv
+    #
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -1032,8 +1034,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
         indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = indI
         for jj in range(sz_phi[0]):
-            indI[0,jj] = nphi0+jj
+            indi_mv[0, jj] = nphi0 + jj
         NP += sz_z * sz_phi[0]
     else:
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
@@ -1065,10 +1068,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
         indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
-        for jj in range(loc_nc_rphi-nphi0):
-            indI[0,jj] = nphi0 + jj
+        indi_mv = indI
+        for jj in range(loc_nc_rphi - nphi0):
+            indi_mv[0, jj] = nphi0 + jj
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
-            indI[0,jj] = jj - (loc_nc_rphi - nphi0)
+            indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * sz_phi[0]
     # ... doing the others
     NP += _st.vmesh_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
@@ -1076,25 +1080,27 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              disc_r, disc_r0, step_rphi,
                              reso_phi_mv, tot_nc_plane,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
-                             min_phi, max_phi, sz_phi, indI,
+                             min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
+    pts_mv = pts
     ind_mv = ind
     dv_mv  = res3d
     reso_r_z = reso_r[0]*reso_z[0]
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
     indI = np.sort(indI, axis=1)
+    indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1)
-    _st.vmesh_double_loop(first_ind_mv, indI,
+    _st.vmesh_double_loop(first_ind_mv, indi_mv,
                           is_cart, sz_r,
                           sz_z, lindex_z,
                           ncells_rphi, tot_nc_plane,
                           reso_r_z, step_rphi,
                           disc_r, disc_z, lnp, sz_phi,
-                          dv_mv, reso_phi_mv, pts, ind_mv,
+                          dv_mv, reso_phi_mv, pts_mv, ind_mv,
                           num_threads)
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
@@ -1116,21 +1122,19 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_lind[0] = NULL
         # .. Calling main function
         # this is now the bottleneck taking over 2/3 of the time....
-        pts_mv = pts[:]
         nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv,
                                                 pts_mv, dv_mv, reso_phi_mv,
                                                 disc_r, ind_mv,
                                                 res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
                                                 &sz_rphi[0], num_threads)
-        if nb_in_poly > 0:
-            pts = np.empty((3,nb_in_poly))
-            ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-            res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
-            pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
-            pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
-            pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-            reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
+        pts = np.empty((3,nb_in_poly))
+        ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
+        res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
+        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
+        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
+        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
+        reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
         # freeing the memory
         free(res_x[0])
         free(res_y[0])
