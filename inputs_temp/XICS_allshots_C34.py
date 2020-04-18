@@ -107,11 +107,13 @@ _SHOTS = np.r_[
     np.arange(54126, 54146),
     np.arange(54150, 54156),
     np.arange(54158, 54169),
-    np.arange(54170,54176),
+    np.arange(54170, 54176),
     54177, 54178,
     # C4
-    55076, 55077,
+    55076, 55077, 55092, 55095,
+    55147, 55160, 55161, 55164, 55165, 55166, 55167,
     55297,
+    55572, 55573, 55607,
 ]
 
 _NSHOT = _SHOTS.size
@@ -147,6 +149,9 @@ _DSHOTS = {
         # C4   1.3115 ?
         55076: {'ang': 1.3405, 'tlim': [32.0, 56.0]},   # ok
         55077: {'ang': 1.3405, 'tlim': [32.5, 54.0]},   # ok
+        55080: {'ang': 1.3405, 'tlim': [32.5, 49.0]},   # ok
+        55092: {'ang': 1.3405, 'tlim': [32.5, 57.5]},   # ok
+        55095: {'ang': 1.3405, 'tlim': [32.5, 47.5]},   # ok
         55147: {'ang': 1.3405, 'tlim': [32.6, 45.6]},   # ICRH, ok, good
         55160: {'ang': 1.3405, 'tlim': [32.4, 44.6]},   # ICRH, ok
         55161: {'ang': 1.3405, 'tlim': [32.6, 42.4]},   # ICRH, ok
@@ -154,6 +159,7 @@ _DSHOTS = {
         55165: {'ang': 1.3405, 'tlim': [32.7, 44.5]},   # ICRH, ok
         55166: {'ang': 1.3405, 'tlim': [32.5, 42.2]},   # ok
         55167: {'ang': 1.3405, 'tlim': [32.5, 42.4]},   # ICRH, ok
+        55292: {'ang': 1.3405, 'tlim': []},   #
         55297: {'ang': 1.3405, 'tlim': [32.5, 46.0]},   # ICRH, ok
         55572: {'ang': 1.3405, 'tlim': [33.0, 45.2]},   # ICRH, ok, good
         55573: {'ang': 1.3405, 'tlim': [30.6, 32.6]},   # ok, good startup
@@ -1894,3 +1900,77 @@ def scan_det_least_square(pfe=None, allow_pickle=True,
             'x': res.x, 'det0': det0, 'det': det,
             'nfev':res.nfev, 'xtol': xtol, 'ftol': ftol, 'gtol': gtol,
             'method': method, 'scales': scales}
+
+
+# #############################################################################
+#                   Treat all shots and save
+# #############################################################################
+
+
+def treat(cryst,
+          path=_HERE):
+
+    from inputs_temp.dlines import dlines
+    dlines0 = {k0: v0 for k0, v0 in dlines.items()
+               if (k0 in ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']
+                   or ('Adhoc200408' in k0))}
+
+    # Leave double ratio / dshift and x/y free, then plot them to get robust
+    # values
+    dconst = {
+        'double': True,
+        'width': {'wxyzkj':
+                  ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro', 'ArXVII_x_Adhoc200408',
+                   'ArXVII_y_Adhoc200408', 'ArXVI_k_Adhoc200408',
+                   'ArXVI_j_Adhoc200408'],
+                  'qra':
+                  ['ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+                   'ArXVI_a_Adhoc200408']},
+        'amp': {'ArXVI_k_Adhoc200408': {'key': 'kj'},
+                'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576}},
+        'shift': {'wxyz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
+                           'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
+                           'ArXV_n3_Adhoc200408', 'ArXIV_n4_Adhoc200408'],
+                  'kj':['ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408'],
+                  'qra': ['ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+                          'ArXVI_a_Adhoc200408']}}
+
+    # Shots
+    dshots = _DSHOTS[cryst]
+    shots = np.unique([kk for kk in dshots.keys()
+                       if len(dshots[kk]['tlim']) == 2])
+
+    # Cryst part
+    det = dict(np.load(os.path.join(_HERE, 'det37_CTVD_incC4.npz')))
+    cryst, det = _get_crystanddet(cryst=cryst, det=det)
+    assert cryst is not False
+
+    ni, nj = 487, 1467
+    xi = (np.arange(0, ni)-(ni-1)/2.)*172e-6
+    xj = (np.arange(0, nj)-(nj-1)/2.)*172e-6
+    mask = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
+
+    for ii in range(shots.size):
+        print('\n\nshot {} ({} / {})'.format(shots[ii], ii+1, shots.size))
+        try:
+            cryst.move(dshots[int(shots[ii])]['ang']*np.pi/180.)
+
+            data, t, dbonus = _load_data(int(shots[ii]),
+                                         tlim=dshots[int(shots[ii])]['tlim'])
+
+            dout = cryst.plot_data_fit2d_dlines(
+                dlines=dlines0, dconstraints=dconst, data=data,
+                xi=xi, xj=xj, det=det,
+                lambmin=3.94e-10, lambmax=4e-10,
+                deg=2, verbose=2, subset=50000,
+                nbsplines=9, mask=mask,
+                ratio={'up': 'ArXVII_w_Bruhns', 'low': 'ArXVII_z_Amaro'},
+                phimin=-0.08, phimax=0.08,
+                chain=True, plot=False,
+                xtol=1e-5, ftol=1e-5, gtol=1e-5)
+
+            pfe = os.path.join(path, 'XICS_fit2d_{}.npz'.format(shots[ii]))
+            np.savez(pfe, **dout)
+
+        except Exception as err:
+            pass

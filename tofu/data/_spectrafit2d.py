@@ -1907,6 +1907,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     time = np.full((nspect,), np.nan)
     cost = np.full((nspect,), np.nan)
     nfev = np.full((nspect,), np.nan)
+    validity = np.zeros((nspect,), dtype=int)
     message = np.array(['' for ss in range(nspect)])
     if dinput['double'] is True:
         dratio = np.full((nspect,), np.nan)
@@ -1956,71 +1957,76 @@ def multigausfit2d_from_dlines(data, lamb, phi,
         if verbose > 0:
             msg = "Iteration {} / {}".format(ii+1, nspect)
             print(msg)
-        t0i = dtm.datetime.now()     # DB
-        res = scpopt.least_squares(func_cost, x0_scale[ii, :],
-                                   jac=jacob, bounds=bounds_scale,
-                                   method=method, ftol=ftol, xtol=xtol,
-                                   gtol=gtol, x_scale=1.0, f_scale=1.0,
-                                   loss=loss, diff_step=None,
-                                   tr_solver=None, tr_options={},
-                                   jac_sparsity=None, max_nfev=max_nfev,
-                                   verbose=verbscp, args=(),
-                                   kwargs={'data': data[ii, :],
-                                           'scales': scales[ii, :]})
-        if chain is True and ii < nspect-1:
-            x0_scale[ii+1, :] = res.x
+        try:
+            t0i = dtm.datetime.now()     # DB
+            res = scpopt.least_squares(func_cost, x0_scale[ii, :],
+                                       jac=jacob, bounds=bounds_scale,
+                                       method=method, ftol=ftol, xtol=xtol,
+                                       gtol=gtol, x_scale=1.0, f_scale=1.0,
+                                       loss=loss, diff_step=None,
+                                       tr_solver=None, tr_options={},
+                                       jac_sparsity=None, max_nfev=max_nfev,
+                                       verbose=verbscp, args=(),
+                                       kwargs={'data': data[ii, :],
+                                               'scales': scales[ii, :]})
+            if chain is True and ii < nspect-1:
+                x0_scale[ii+1, :] = res.x
 
-        # cost, message, time
-        success[ii] = res.success
-        cost[ii] = res.cost
-        nfev[ii] = res.nfev
-        message[ii] = res.message
-        time[ii] = round((dtm.datetime.now()-t0i).total_seconds(), ndigits=3)
-        if verbose > 0:
-            msg = " {}    {}    {}   {}   {}".format(time[ii],
-                                                     round(res.cost),
-                                                     res.nfev, res.njev,
-                                                     res.message)
-            print(msg)
+            # cost, message, time
+            success[ii] = res.success
+            cost[ii] = res.cost
+            nfev[ii] = res.nfev
+            message[ii] = res.message
+            time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
+                             ndigits=3)
+            if verbose > 0:
+                msg = " {}    {}    {}   {}   {}".format(time[ii],
+                                                         round(res.cost),
+                                                         res.nfev, res.njev,
+                                                         res.message)
+                print(msg)
 
-        # Separate and reshape output
-        sol_x[ii, :] = res.x
-        sol_tot[ii, :] = func_cost(res.x, scales=scales[ii, :], data=0.)
+            # Separate and reshape output
+            sol_x[ii, :] = res.x
+            sol_tot[ii, :] = func_cost(res.x, scales=scales[ii, :], data=0.)
 
-        # Get result in physical units: TBC !!!
-        if dinput['double'] is True:
-            dratio[ii] = res.x[dind['dratio']]
-            dshift_norm[ii] = (res.x[dind['dshift']]
-                               * scales[ii, dind['dshift']])
-        if dinput['Ti'] is True:
-            # Get Ti in eV
-            width2 = BSpline(dinput['knots_mult'],
-                             (res.x[dind['width']['x']]
-                              * scales[ii, dind['width']['x']]),
-                             dinput['deg'],
-                             extrapolate=False, axis=0)(pts).T
-            kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
-                              * scpct.c**2)
-        if dinput['vi'] is True:
-            # Get vi in m/s
-            vims[ii, ...] = BSpline(dinput['knots_mult'],
-                                    (res.x[dind['shift']['x']]
-                                     * scales[ii, dind['shift']['x']]),
-                                    dinput['deg'],
-                                    extrapolate=False, axis=0)(pts).T * scpct.c
-        if ratio is not None:
-            # Te can only be obtained as a proxy, units don't matter at this point
-            cup = BSpline(dinput['knots_mult'],
-                          (res.x[dind['amp']['lines']]
-                           * scales[ii, dind['amp']['lines']]),
-                          dinput['deg'],
-                          extrapolate=False, axis=0)(pts)[:, ratio['indup']]
-            clow = BSpline(dinput['knots_mult'],
-                           (res.x[dind['amp']['lines']]
-                            * scales[ii, dind['amp']['lines']]),
-                           dinput['deg'],
-                           extrapolate=False, axis=0)(pts)[:, ratio['indlow']]
-            ratio['value'][ii, ...] = (cup / clow).T
+            # Get result in physical units: TBC !!!
+            if dinput['double'] is True:
+                dratio[ii] = res.x[dind['dratio']]
+                dshift_norm[ii] = (res.x[dind['dshift']]
+                                   * scales[ii, dind['dshift']])
+            if dinput['Ti'] is True:
+                # Get Ti in eV
+                width2 = BSpline(dinput['knots_mult'],
+                                 (res.x[dind['width']['x']]
+                                  * scales[ii, dind['width']['x']]),
+                                 dinput['deg'],
+                                 extrapolate=False, axis=0)(pts).T
+                kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
+                                  * scpct.c**2)
+            if dinput['vi'] is True:
+                # Get vi in m/s
+                vims[ii, ...] = BSpline(dinput['knots_mult'],
+                                        (res.x[dind['shift']['x']]
+                                         * scales[ii, dind['shift']['x']]),
+                                        dinput['deg'],
+                                        extrapolate=False,
+                                        axis=0)(pts).T * scpct.c
+            if ratio is not None:
+                # Te can only be obtained as a proxy, units don't matter
+                cup = BSpline(dinput['knots_mult'],
+                              (res.x[dind['amp']['lines']]
+                               * scales[ii, dind['amp']['lines']]),
+                              dinput['deg'],
+                              extrapolate=False, axis=0)(pts)[:, ratio['indup']]
+                clow = BSpline(dinput['knots_mult'],
+                               (res.x[dind['amp']['lines']]
+                                * scales[ii, dind['amp']['lines']]),
+                               dinput['deg'],
+                               extrapolate=False, axis=0)(pts)[:, ratio['indlow']]
+                ratio['value'][ii, ...] = (cup / clow).T
+        except Exception as err:
+            validity[ii] = -1
 
     if verbose > 0:
         dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
@@ -2031,11 +2037,8 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     # Format output as dict
     dout = {'data': data, 'lamb': lamb, 'phi': phi,
             'sol_x': sol_x, 'sol_tot': sol_tot,
-            'Ti': dinput['Ti'], 'vi': dinput['vi'], 'double': dinput['double'],
-            'pts_phi': pts,
-            'kTiev': kTiev, 'kTiev_keys': dinput['width']['keys'],
-            'vims': vims, 'vims_keys': dinput['shift']['keys'],
-            'ratio': ratio,
-            'time': time, 'success': success,
+            'dinput': dinput, 'dind': dind, 'jac': jac,
+            'pts_phi': pts, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
+            'time': time, 'success': success, 'validity': validity,
             'cost': cost, 'nfev': nfev, 'msg': message}
     return dout

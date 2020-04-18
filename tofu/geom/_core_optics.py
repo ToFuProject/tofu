@@ -1931,6 +1931,26 @@ class CrystalBragg(utils.ToFuObject):
             lambmin=lambmin, lambmax=lambmax,
             phimin=phimin, phimax=phimax)
 
+    @staticmethod
+    def _binning_2d_data(lamb, phi, data, binning=None):
+        # Checkformat input
+        if binning is None:
+            binning = _BINNING
+        lc = [binning is False,
+              binning is True,
+              isinstance(binning, int) or isinstance(binning, float)]
+        if not any(lc):
+            msg = ""
+            raise Exception(msg)
+        if binning is False:
+            return lamb, phi, data
+        if binning is True:
+            pass
+
+        # bin
+
+        return lamb, phi, data
+
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det=None, dtheta=None, psi=None, n=None,
                                lambmin=None, lambmax=None,
@@ -1941,7 +1961,8 @@ class CrystalBragg(utils.ToFuObject):
                                method=None, max_nfev=None, chain=None,
                                xtol=None, ftol=None, gtol=None,
                                loss=None, verbose=0, debug=None,
-                               pos=None, subset=None, npts=None, dax=None,
+                               pos=None, subset=None, binning=None,
+                               npts=None, dax=None,
                                plotmode=None, angunits=None, indspect=None,
                                ratio=None, jac=None, plot=True, fs=None,
                                cmap=None, vmin=None, vmax=None,
@@ -2001,6 +2022,11 @@ class CrystalBragg(utils.ToFuObject):
         dataflat = dataflat[:, indok]
         lambflat = lambflat[indok]
         phiflat = phiflat[indok]
+
+        # Optionnal binning
+        lambflat, phiflat, dataflat = self._binning_2d_data(lambflat, phiflat,
+                                                            dataflat,
+                                                            binning=binning)
 
         if pos is True:
             dataflat[dataflat < 0.] = 0.
