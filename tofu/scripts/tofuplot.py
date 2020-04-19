@@ -13,14 +13,14 @@ plt.ioff()
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
-_HERE = os.path.dirname(os.path.dirname(_HERE))
+_TOFUPATH = os.path.dirname(os.path.dirname(_HERE))
 istofugit = False
-if '.git' in os.listdir(_HERE) and 'tofu' in _HERE:
+if '.git' in os.listdir(_TOFUPATH) and 'tofu' in _TOFUPATH:
     istofugit = True
 
 if istofugit:
     # Make sure we load the corresponding tofu
-    sys.path.insert(1, _HERE)
+    sys.path.insert(1, _TOFUPATH)
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
     _ = sys.path.pop(1)
