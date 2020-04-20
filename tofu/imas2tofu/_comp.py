@@ -379,6 +379,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
 
         if nocc == 1 and flatocc is True:
             out = out[0]
+            isempty = isempty[0]
     return {'data': out, 'units': unit,
             'isempty': isempty, 'errdata': errdata, 'errunits': errunits}
 

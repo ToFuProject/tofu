@@ -43,8 +43,10 @@ else:
         from . import _def as _defimas2tofu
 try:
     import tofu.imas2tofu._comp as _comp
+    import tofu.imas2tofu._comp_toobjects as _comp_toobjects
 except Exception as err:
     from . import _comp as _comp
+    from . import comp_toobjects as _comp_toobjects
 
 # imas
 try:
@@ -1480,10 +1482,6 @@ class MultiIDSLoader(object):
     #---------------------
 
     # DEPRECATED ?
-    def _checkformat_getdata_occ(self, occ, ids):
-        return _comp._checkformat_getdata_occ(occ, ids, dids=self._dids)
-
-    # DEPRECATED ?
     def _checkformat_getdata_indt(self, indt):
         msg = "Arg indt must be a either:\n"
         msg += "    - None: all channels used\n"
@@ -1967,12 +1965,11 @@ class MultiIDSLoader(object):
             return None
 
         # ----------------
-        #   Relevant case
+        #   Get relevant occurence and description_2d
 
-        # Get relevant occ and description_2d
         ids = 'wall'
         # occ = np.ndarray of valid int
-        occ = self._checkformat_getdata_occ(occ, ids)
+        occ = _comp._checkformat_getdata_occ(occ, ids, dids=self._dids)
         assert occ.size == 1, "Please choose one occ only !"
         occ = occ[0]
         indoc = np.nonzero(self._dids[ids]['occ'] == occ)[0][0]
@@ -1983,147 +1980,25 @@ class MultiIDSLoader(object):
             else:
                 description_2d = 0
 
+        # ----------------
+        # Extract all relevant structures
+        import tofu.geom as mod
         wall = self._dids[ids]['ids'][indoc].description_2d[description_2d]
         kwargs = dict(Exp=Exp, Type='Tor')
+        lS = _comp_toobjects.config_extract_lS(ids, occ, wall, description_2d,
+                                               mod, kwargs=kwargs,
+                                               mobile=mobile)
 
-        import tofu.geom as mod
-
-        # Get vessel
-        nlim = len(wall.limiter.unit)
-        nmob = len(wall.mobile.unit)
-        # onelimonly = False
-
-        # ----------------------------------
-        # Relevant only if vessel is filled
-        # try:
-        #    if len(wall.vessel.unit) != 1:
-        #        msg = "There is no / several vessel.unit!"
-        #        raise Exception(msg)
-        #    if len(wall.vessel.unit[0].element) != 1:
-        #        msg = "There is no / several vessel.unit[0].element!"
-        #        raise Exception(msg)
-        #    if len(wall.vessel.unit[0].element[0].outline.r) < 3:
-        #        msg = "wall.vessel polygon has less than 3 points!"
-        #        raise Exception(msg)
-        #    name = wall.vessel.unit[0].element[0].name
-        #    poly = np.array([wall.vessel.unit[0].element[0].outline.r,
-        #                     wall.vessel.unit[0].element[0].outline.z])
-        # except Exception as err:
-        #    # If vessel not in vessel, sometimes stored a a single limiter
-        #    if nlim == 1:
-        #        name = wall.limiter.unit[0].name
-        #        poly = np.array([wall.limiter.unit[0].outline.r,
-        #                         wall.limiter.unit[0].outline.z])
-        #        onelimonly = True
-        #    else:
-        #        msg = ("There does not seem to be any vessel, "
-        #               + "not in wall.vessel nor in wall.limiter!")
-        #        raise Exception(msg)
-        # cls = None
-        # if name == '':
-        #     name = 'ImasVessel'
-        # if '_' in name:
-        #     ln = name.split('_')
-        #     if len(ln) == 2:
-        #         cls, name = ln
-        #     else:
-        #         name = name.replace('_', '')
-        # if cls is None:
-        #     cls = 'Ves'
-        # assert cls in ['Ves', 'PlasmaDomain']
-        # ves = getattr(mod, cls)(Poly=poly, Name=name, **kwargs)
-
-        # Determine if mobile or not
-        lS = []
-        # if onelimonly is False:
-        if mobile is None:
-            if nlim == 0 and nmob > 0:
-                mobile = True
-            elif nmob == 0 and nlim > 0:
-                mobile = False
-            elif nmob > nlim:
-                msgw = 'wall.description_2[{}]'.format(description_2d)
-                msg = ("\nids wall has less limiter than mobile units\n"
-                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
-                       + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
-                       + "  => Choosing mobile by default")
-                warnings.warn(msg)
-                mobile = True
-            elif nmob <= nlim:
-                msgw = 'wall.description_2[{}]'.format(description_2d)
-                msg = ("\nids wall has more limiter than mobile units\n"
-                       + "\t- len({}.limiter.unit) = {}\n".format(msgw, nlim)
-                       + "\t- len({}.mobile.unit) = {}\n".format(msgw, nmob)
-                       + "  => Choosing limiter by default")
-                warnings.warn(msg)
-                mobile = False
-        assert isinstance(mobile, bool)
-
-        # Get PFC
-        if mobile is True:
-            units = wall.mobile.unit
-        else:
-            units = wall.limiter.unit
-        nunits = len(units)
-
-        if nunits == 0:
-            msg = ("There is no unit stored !\n"
-                   + "The required 2d description is empty:\n")
-            ms = "len(idd.{}[occ={}].description_2d".format(ids, occ)
-            msg += "{}[{}].limiter.unit) = 0".format(ms,
-                                                     description_2d)
-            raise Exception(msg)
-
-        lS = [None for _ in units]
-        for ii in range(0, nunits):
-            try:
-                if mobile is True:
-                    outline = units[ii].outline[0]
-                else:
-                    outline = units[ii].outline
-                poly = np.array([outline.r, outline.z])
-
-                if units[ii].phi_extensions.size > 0:
-                    pos, extent = units[ii].phi_extensions.T
-                else:
-                    pos, extent = None, None
-                name = units[ii].name
-                cls, mobi = None, None
-                if name == '':
-                    name = 'unit{:02.0f}'.format(ii)
-                if '_' in name:
-                    ln = name.split('_')
-                    if len(ln) == 2:
-                        cls, name = ln
-                    elif len(ln) == 3:
-                        cls, name, mobi = ln
-                    else:
-                        name = name.replace('_', '')
-                if cls is None:
-                    if ii == nunits - 1:
-                        cls = 'Ves'
-                    else:
-                        cls = 'PFC'
-                # mobi = mobi == 'mobile'
-                lS[ii] = getattr(mod, cls)(Poly=poly, pos=pos,
-                                           extent=extent,
-                                           Name=name,
-                                           **kwargs)
-            except Exception as err:
-                msg = ("PFC unit[{}] named {} ".format(ii, name)
-                       + "could not be loaded!\n"
-                       + str(err))
-                raise Exception(msg)
-
+        # ----------------
+        # Define Config from structures and Name
         if Name is None:
             Name = wall.type.name
             if Name == '':
                 Name = 'imas wall'
-
         config = mod.Config(lStruct=lS, Name=Name, **kwargs)
 
         # Output
-        if plot:
+        if plot is True:
             lax = config.plot()
         return config
 
