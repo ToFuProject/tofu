@@ -41,6 +41,10 @@ else:
         import tofu.imas2tofu._def as _defimas2tofu
     except Exception as err:
         from . import _def as _defimas2tofu
+try:
+    import tofu.imas2tofu._comp as _comp
+except Exception as err:
+    from . import _comp as _comp
 
 # imas
 try:
@@ -1475,25 +1479,10 @@ class MultiIDSLoader(object):
     #---------------------
 
     # DEPRECATED ?
-    def _checkformat_getdata_ids(self, ids):
-        return _comp._checkformat_getdata_ids(ids, dids=self._dids)
-
-    # DEPRECATED ?
-    def _checkformat_getdata_sig(self, sig, ids):
-        return _comp._checkformat_getdata_sig(sig, ids,
-                                              dshort=self._dshort,
-                                              dcomp=self._dcomp,
-                                              dall_except=self._dall_except)
-
-    # DEPRECATED ?
     def _checkformat_getdata_occ(self, occ, ids):
         return _comp._checkformat_getdata_occ(occ, ids, dids=self._dids)
 
     # DEPRECATED ?
-    @staticmethod
-    def _checkformat_getdata_indch(indch, nch):
-        return _comp._checkformat_getdata_indch(indch, nch)
-
     def _checkformat_getdata_indt(self, indt):
         msg = "Arg indt must be a either:\n"
         msg += "    - None: all channels used\n"
@@ -1681,14 +1670,16 @@ class MultiIDSLoader(object):
 
     @classmethod
     def get_units(cls, ids, sig):
-        return _comp.get_units(ids, sig, dshort=cls._dshort):
+        return _comp.get_units(ids, sig, dshort=cls._dshort)
 
     def get_data(self, ids=None, sig=None, occ=None,
                  data=None, units=None,
                  indch=None, indt=None, stack=True,
-                 isclose=None, flatocc=True, nan=True, pos=None, warn=True):
+                 isclose=None, flatocc=True,
+                 nan=True, pos=None, empty=None, warn=True):
         """ Return a dict of the desired signals extracted from specified ids
 
+        For each signal, loads the data and / or units
         If the ids has a field 'channel', indch is used to specify from which
         channel data shall be loaded (all by default)
 
@@ -1707,6 +1698,10 @@ class MultiIDSLoader(object):
             sig can be a single str (shortcut) or a list of such
         occ:        None / int
             occurence from which to load the data
+        data:       None / bool
+            Flag indicating whether to load the data
+        units:      None / bool
+            Flag indicating whether to load the units
         indch:      None / list / np.ndarray
             If the data has channels, this lists / array of int indices can be
             used to specify which channels to load from (all if None)
@@ -1731,6 +1726,9 @@ class MultiIDSLoader(object):
         pos:        None / bool
             Flag indicating whether the data should be positive (negative
             values will be set to nan)
+        empty:      None / bool
+            Check whether the loaded data array ie empty (or full of nans)
+                If so, a flag isempty is set to True
         warn:       bool
             Flag indicating whether to print warning messages for data could
             not be retrieved
@@ -1741,14 +1739,15 @@ class MultiIDSLoader(object):
             Dictionnary containing the loaded data
 
         """
-        return _comp._get_data_units(ids=ids, sig=sig, occ=occ,
-                                     data=data, units=units,
-                                     indch=indch, indt=indt,
-                                     stack=stack, isclose=isclose,
-                                     flatocc=flatocc, nan=nan,
-                                     pos=pos, warn=warn,
-                                     dids=self._dids, dshort=self._dshort,
-                                     dcomp=self._dcomp)[0]
+        return _comp.get_data_units(ids=ids, sig=sig, occ=occ,
+                                    data=data, units=units,
+                                    indch=indch, indt=indt,
+                                    stack=stack, isclose=isclose,
+                                    flatocc=flatocc, nan=nan,
+                                    pos=pos, empty=empty, warn=warn,
+                                    dids=self._dids, dshort=self._dshort,
+                                    dcomp=self._dcomp,
+                                    dall_except=self._dall_except)[0]
 
     def get_data_all(self, dsig=None, stack=True,
                      isclose=None, flatocc=True, nan=True, pos=None):
@@ -1804,7 +1803,7 @@ class MultiIDSLoader(object):
         If verb = True              => print (default)
                   False             => don't print
         If returnas = list          => return as list of tuples (name, time)
-                      np.ndarray    => return as np.ndarray
+                      tuple         => return as tuple of (names, times)
                       False         => don't return (default)
         """
 
@@ -1816,6 +1815,7 @@ class MultiIDSLoader(object):
         assert isinstance(verb, bool)
         assert returnas in [False, list, tuple]
 
+        # Get events and sort
         events = self.get_data('pulse_schedule',
                                sig=['events_names', 'events_times'],
                                occ=occ)
@@ -1823,6 +1823,8 @@ class MultiIDSLoader(object):
         tunits = events['events_times']['units']
         ind = np.argsort(time)
         name, time = name[ind], time[ind]
+
+        # print and / or return as list / tuple
         if verb:
             msg = np.array([range(time.size), name, time], dtype='U').T
             length = np.nanmax(np.char.str_len(msg))

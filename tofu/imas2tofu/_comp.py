@@ -1,6 +1,7 @@
 
 # Built-in
 import os
+import warnings
 
 # Common
 import numpy as np
@@ -91,7 +92,10 @@ def _prepare_sig(sig):
 
 def _checkformat_getdata_ids(ids=None, dids=None):
     """ Check the desired sids is available """
-    assert iinstance(dids, dict)
+    if not isinstance(dids, dict):
+        msg = ("dids must be a dict\n"
+               + "\t- provided: {}".format(type(dids)))
+        raise Exception(msg)
 
     msg = ("Arg ids must be either:\n"
            + "\t- None: if self.dids only has one key\n"
@@ -116,6 +120,14 @@ def _checkformat_getdata_ids(ids=None, dids=None):
 
 def _checkformat_getdata_sig(sig, ids,
                              dshort=None, dcomp=None, dall_except=None):
+    lc = [isinstance(dd, dict) for dd in [dshort, dcomp, dall_except]]
+    if not all(lc):
+        msg = ("dshort, dcomp and dall_except must be dict:\n"
+               + "\t- type(dshort): {}\n".format(type(dshort))
+               + "\t- type(dcomp): {}\n".format(type(dcomp))
+               + "\t- type(dall_except): {}\n".format(type(dall_except)))
+        raise Exception(msg)
+
     msg = ("Arg sig must be a str or a list of str!\n"
            + "  More specifically, a list of valid ids nodes paths")
     lks = list(dshort[ids].keys())
@@ -158,6 +170,10 @@ def _checkformat_getdata_sig(sig, ids,
 
 
 def _checkformat_getdata_occ(occ, ids, dids=None):
+    if not isinstance(dids, dict):
+        msg = ("dids must be a dict\n"
+               + "\t- provided: {}".format(type(dids)))
+        raise Exception(msg)
     msg = ("Arg occ must be a either:\n"
            + "\t- None: all occurences are used\n"
            + "\t- int: occurence (in self.dids[{}]['occ'])\n".format(ids)
@@ -201,6 +217,8 @@ def _checkformat_getdata_indch(indch, nch):
 def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     """ Check the data loaded from imas against several safety checks
 
+    For each occurence
+
     Available checks:
         - only positive values
         - default IMAS values (>1e30)
@@ -225,38 +243,42 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
 
     # If isclose, check data contains a replicated vector (keep vector only)
     if isclose is True:
-        for ii in range(0,len(out)):
-            if type(out[ii]) is np.ndarray and out[ii].ndim == 2:
-                if np.allclose(out[ii], out[ii][0:1,:]):
-                    out[ii] = out[ii][0,:]
-                elif np.allclose(out[ii], out[ii][:,0:1]):
-                    out[ii] = out[ii][:,0]
+        for ii in range(0, len(data)):
+            if isinstance(data[ii], np.ndarray) and data[ii].ndim == 2:
+                if np.allclose(data[ii], data[ii][0:1, :]):
+                    data[ii] = data[ii][0, :]
+                elif np.allclose(data[ii], data[ii][:, 0:1]):
+                    data[ii] = data[ii][:, 0]
 
     # All values larger than 1e30 are default imas values => nan
     if nan is True:
-        for ii in range(0,len(out)):
-            if (isinstance(out[ii], np.ndarray)
-                and out[ii].dtype == np.float):
-                out[ii][np.abs(out[ii]) > 1.e30] = np.nan
+        for ii in range(0, len(data)):
+            if (isinstance(data[ii], np.ndarray)
+                and data[ii].dtype == np.float):
+                data[ii][np.abs(data[ii]) > 1.e30] = np.nan
 
     # data supposed to be positive only (nan otherwise)
     if pos is True:
-        for ii in range(0,len(out)):
-            if type(out[ii]) is np.ndarray:
-                out[ii][out[ii] < 0] = np.nan
+        for ii in range(0, len(data)):
+            if isinstance(data[ii], np.ndarray):
+                data[ii][data[ii] < 0] = np.nan
 
     # data appears to be empty or all nan
-    isempty = None
+    isempty = [None for ii in range(len(data))]
     if empty is True:
-        isempty = (data.size == 0
-                   or 0 in data.shape
-                   or np.all(np.isnan(data)))
-
+        for ii in range(len(data)):
+            isempty[ii] = (len(data[ii]) == 0
+                           or (isinstance(data, np.ndarray)
+                               and (0 in data.shape
+                                    or np.all(np.isnan(data)))))
     return data, isempty
 
 
-def _get_data_units(ids=None, sig=None,
-                    dids=None, dcomp=None,
+def _get_data_units(ids=None, sig=None, occ=None,
+                    comp=None, indt=None, indch=None,
+                    stack=None, isclose=None, flatocc=None,
+                    nan=None, pos=None, empty=None, warn=None,
+                    dids=None, dcomp=None, dshort=None, dall_except=None,
                     data=True, units=True):
     """ Reference method for getting data and units, using shortcuts
 
@@ -311,7 +333,9 @@ def _get_data_units(ids=None, sig=None,
                                           indt=indt, stack=stack,
                                           flatocc=False, nan=nan,
                                           pos=pos, warn=warn,
-                                          dids=dids, dcomp=dcomp)
+                                          dids=dids, dcomp=dcomp,
+                                          dshort=dshort,
+                                          dall_except=dall_except)
                 out = [dcomp[ids][sig]['func'](
                     *[ddata[kk]['data'][nn] for kk in lstr],
                     **kargs)
@@ -348,7 +372,7 @@ def _get_data_units(ids=None, sig=None,
 
     # Check data
     isempty = None
-    if errdata is None:
+    if errdata is None and data is True:
         out, isempty = _check_data(out,
                                    pos=pos, nan=nan,
                                    isclose=isclose, empty=empty)
@@ -363,8 +387,8 @@ def get_data_units(ids=None, sig=None, occ=None,
                    data=None, units=None,
                    indch=None, indt=None, stack=True,
                    isclose=None, flatocc=True,
-                   nan=True, pos=None, warn=True,
-                   dids=None, dshort=None, dcomp=None):
+                   nan=True, pos=None, empty=None, warn=True,
+                   dids=None, dshort=None, dcomp=None, dall_except=None):
     """ Return a dict with the data and units (and empty, errors)
 
     For multiple shorcuts from the same ids
@@ -388,7 +412,7 @@ def get_data_units(ids=None, sig=None, occ=None,
 
     # occ = np.ndarray of valid int
     occ = _checkformat_getdata_occ(occ, ids, dids=dids)
-    indoc = np.where(self._dids[ids]['occ'] == occ)[0]
+    indoc = np.where(dids[ids]['occ'] == occ)[0]
 
     # Check all occ have isget = True
     indok = dids[ids]['isget'][indoc]
@@ -415,13 +439,14 @@ def get_data_units(ids=None, sig=None, occ=None,
         else:
             isclose_ = isclose
         try:
-            dout[sig[ii]] = self.__get_data_units(
+            dout[sig[ii]] = _get_data_units(
                 ids, sig[ii], occ, comp=bool(comp[ii]),
                 indt=indt, indch=indch,
                 stack=stack, isclose=isclose_, flatocc=flatocc,
                 data=data, units=units,
-                nan=nan, pos=pos, warn=warn,
-                dids=dids, dcomp=dcomp)
+                nan=nan, pos=pos, empty=empty, warn=warn,
+                dids=dids, dcomp=dcomp, dshort=dshort,
+                dall_except=dall_except)
             if dout[sig[ii]]['errdata'] is not None:
                 dfail[sig[ii]] = dout[sig[ii]]['errdata']
                 if warn is True:
