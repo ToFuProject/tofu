@@ -68,7 +68,7 @@ def get_units(ids, sig, dshort=None):
     if sig in dshort[ids].keys():
         sig = _prepare_sig_units(dshort[ids][sig]['str'])
     else:
-        sig = cls._prepare_sig_unit(sig)
+        sig = _prepare_sig_units(sig)
     return _DDUNITS.get_units(ids, sig.replace('.', '/'))
 
 

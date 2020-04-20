@@ -655,10 +655,11 @@ class MultiIDSLoader(object):
                     ss = obj._dshort[ids][kk]['str']
                 else:
                     ss = 'f( %s )'%(', '.join(obj._dcomp[ids][kk]['lstr']))
-                short.append((ids, kk, ss))
+                uu = obj.get_units(ids, kk)
+                short.append((ids, kk, uu, ss))
 
         if verb:
-            col = ['ids', 'shortcut', 'long version']
+            col = ['ids', 'shortcut', 'units', 'long version']
             msg = obj._getcharray(short, col, sep=sep, line=line, just=just)
             print(msg)
         if return_:
