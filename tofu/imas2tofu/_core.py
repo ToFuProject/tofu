@@ -1749,9 +1749,16 @@ class MultiIDSLoader(object):
                                     dall_except=self._dall_except)[0]
 
     def get_data_all(self, dsig=None, stack=True,
-                     isclose=None, flatocc=True, nan=True, pos=None):
+                     isclose=None, flatocc=True, nan=True,
+                     pos=None, empty=None):
+        """ Get all data available from all desired ids
 
-        # dsig
+        Return a dict
+
+        """
+
+        # --------------
+        # Prepare dsig
         if dsig is None:
             if self._preset is not None:
                 dsig = self._dpreset[self._preset]
@@ -1768,17 +1775,21 @@ class MultiIDSLoader(object):
             raise Exception(msg)
         assert all([type(v) in [str,list] or v is None for v in dsig.values()])
 
+        # --------------
         # Get data
         dfail = dict.fromkeys(dout.keys())
         anyerror = False
         for ids in dout.keys():
             try:
-                dout[ids], dfail[ids] = self._get_data(ids, sig=dsig[ids],
-                                                       stack=stack,
-                                                       isclose=isclose,
-                                                       flatocc=flatocc,
-                                                       nan=nan,
-                                                       pos=pos, warn=False)
+                dout[ids], dfail[ids] = _comp.get_data_units(
+                    ids=ids, sig=dsig[ids], occ=None,
+                    data=True, units=True,
+                    indch=None, indt=None,
+                    stack=stack, isclose=isclose,
+                    flatocc=flatocc, nan=nan,
+                    pos=pos, empty=empty, warn=False,
+                    dids=self._dids, dshort=self._dshort,
+                    dcomp=self._dcomp, dall_except=self._dall_except)
                 if len(dfail[ids]) > 0:
                     anyerror = True
             except Exception as err:
@@ -1791,8 +1802,10 @@ class MultiIDSLoader(object):
                 if len(v0) == 0:
                     continue
                 msg += "\n\t- {}:".format(ids)
+                nk1max = np.max([len(k1) for k1 in  v0.keys()])
                 for k1, v1 in v0.items():
-                    msg += "\n\t\t{0}  : {1}".format(k1, v1.replace('\n', ' '))
+                    msg += "\n\t\t{0}:  {1}".format(k1.ljust(nk1max),
+                                                    v1.replace('\n', ' '))
             warnings.warn(msg)
         return dout
 
@@ -1842,45 +1855,12 @@ class MultiIDSLoader(object):
     # Methods for exporting to tofu objects
     #---------------------
 
-    @staticmethod
-    def _check_shotExp_consistency(didd, lidd, tofustr='shot', imasstr='shot',
-                                   err=True, fallback=0):
-        crit = None
-        for idd in lidd:
-            v0 = didd[idd]
-            if imasstr in v0['params']:
-                if crit is None:
-                    crit = v0['params'][imasstr]
-                elif crit != v0['params'][imasstr]:
-                    ss = '{} : {}'.format(idd, str(v0['params'][imasstr]))
-                    msg = ("All idd refer to different {}!\n".format(imasstr)
-                           + "\t- {}".format(ss))
-                    if err:
-                        raise Exception(msg)
-                    else:
-                        warnings.warn(msg)
-        if crit is None:
-            crit  = fallback
-        return crit
-
-    def _get_lidsidd_shotExp(self, lidsok,
-                             errshot=True, errExp=True, upper=True):
-        lids = set(lidsok).intersection(self._dids.keys())
-        lidd = set([self._dids[ids]['idd'] for ids in lids])
-
-        # shot (non-identical => error)
-        shot = self._check_shotExp_consistency(self._didd, lidd,
-                                               tofustr='shot', imasstr='shot',
-                                               err=errshot, fallback=0)
-
-        # Exp (non-identical => error)
-        Exp = self._check_shotExp_consistency(self._didd, lidd,
-                                              tofustr='Exp', imasstr='tokamak',
-                                              err=errExp, fallback='Dummy')
-        if upper:
-            Exp = Exp.upper()
-        return lids, lidd, shot, Exp
-
+    def get_lidsidd_shotExp(self, lidsok,
+                            errshot=None, errExp=None, upper=True):
+        return _comp_toobjects.get_lidsidd_shotExp(
+            lidsok,
+            errshot=errshot, errExp=errExp, upper=upper,
+            dids=self._dids, didd=self._didd)
 
     @staticmethod
     def _checkformat_tlim(t, tlim=None):
@@ -1952,10 +1932,11 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok,
-                                                          errshot=False,
-                                                          errExp=False,
-                                                          upper=True)
+        lids, lidd, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
+            lidsok,
+            errshot=False, errExp=False, upper=True,
+            dids=self._dids, didd=self._didd)
+
         # ----------------
         #   Trivial case
         if 'wall' not in lids:
@@ -2001,74 +1982,6 @@ class MultiIDSLoader(object):
         if plot is True:
             lax = config.plot()
         return config
-
-
-    def _checkformat_Plasma2D_dsig(self, dsig=None):
-        lidsok = set(self._lidsplasma).intersection(self._dids.keys())
-
-        lscom = ['t']
-        lsmesh = ['2dmeshNodes', '2dmeshFaces',
-                  '2dmeshR', '2dmeshZ']
-
-        lc = [dsig is None,
-              type(dsig) is str,
-              type(dsig) is list,
-              type(dsig) is dict]
-        assert any(lc)
-
-        # Convert to dict
-        if lc[0]:
-            dsig = {}
-            dsig = {ids: sorted(set(list(self._dshort[ids].keys())
-                                    + list(self._dcomp[ids].keys())))
-                    for ids in lidsok}
-        elif lc[1] or lc[2]:
-            if lc[1]:
-                dsig = [dsig]
-            dsig = {ids: dsig for ids in lidsok}
-
-        # Check content
-        dout = {}
-        for k0, v0 in dsig.items():
-            lkeysok = sorted(set(list(self._dshort[k0].keys())
-                                 + list(self._dcomp[k0].keys())))
-            if k0 not in lidsok:
-                msg = "Only the following ids are relevant to Plasma2D:\n"
-                msg += "    - %s"%str(lidsok)
-                msg += "  => ids %s from dsig is ignored"%str(k0)
-                warnings.warn(msg)
-                continue
-            lc = [v0 is None, type(v0) is str, type(v0) is list]
-            if not any(lc):
-                msg = "Each value in dsig must be either:\n"
-                msg += "    - None\n"
-                msg += "    - str : a valid shortcut\n"
-                msg += "    - list of str: list of valid shortcuts\n"
-                msg += "You provided:\n"
-                msg += str(dsig)
-                raise Exception(msg)
-            if lc[0]:
-                dsig[k0] = lkeysok
-            if lc[1]:
-                dsig[k0] = [dsig[k0]]
-            if not all([ss in lkeysok for ss in dsig[k0]]):
-                msg = "All requested signals must be valid shortcuts !\n"
-                msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
-                raise Exception(msg)
-
-            # Check presence of minimum
-            lc = [ss for ss in lscom if ss not in dsig[k0]]
-            if len(lc) > 0:
-                msg = "dsig[%s] does not have %s\n"%(k0,str(lc))
-                msg += "    - dsig[%s] = %s"%(k0,str(dsig[k0]))
-                raise Exception(msg)
-            if any(['2d' in ss for ss in dsig[k0]]):
-                for ss in lsmesh:
-                    if ss not in dsig[k0]:
-                        dsig[k0].append(ss)
-            dout[k0] = dsig[k0]
-        return dout
-
 
     @staticmethod
     def _checkformat_mesh_NodesFaces(nodes, indfaces, ids=None):
@@ -2255,124 +2168,45 @@ class MultiIDSLoader(object):
         pass
 
     def _get_dextra(self, dextra=None, fordata=False, nan=True, pos=None):
-        lc = [dextra == False, dextra is None,
-              type(dextra) is str, type(dextra) is list, type(dextra) is dict]
-        assert any(lc)
 
-        if dextra is False:
-            if fordata:
-                return None
-            else:
-                return None, None
+        # -------------
+        # Check / format dextra
+        dextra = _comp_toobjects.extra_checkformat(
+            dextra, fordata=fordata,
+            dids=self._dids, didd=self._didd, dshort=self._dshort)
 
-        elif dextra is None:
-            dextra = {}
-            if 'equilibrium' in self._dids.keys():
-                dextra.update({'equilibrium': [('ip','k'), ('BT0','m'),
-                                               ('axR',(0.,0.8,0.)),
-                                               ('axZ',(0.,1.,0.)),
-                                               'ax','sep','t']})
-            if 'core_profiles' in self._dids.keys():
-                dextra.update({'core_profiles': ['ip','vloop','t']})
-            if 'lh_antennas' in self._dids.keys():
-                dextra.update({'lh_antennas': [('power0',(0.8,0.,0.)),
-                                               ('power1',(1.,0.,0.)),'t']})
-            if 'ic_antennas' in self._dids.keys():
-                dextra.update({'ic_antennas': [('power0',(0.,0.,0.8)),
-                                               ('power1',(0.,0.,1.)),
-                                               ('power2',(0.,0.,0.9)),'t']})
-        if type(dextra) is str:
-            dextra = [dextra]
-        if type(dextra) is list:
-            dex = {}
-            for ee in dextra:
-                lids = [ids for ids in self._dids.keys()
-                        if ee in self._dshort[ids].keys()]
-                if len(lids) != 1:
-                    msg = "No / multiple matches:\n"
-                    msg = "extra %s not available from self._dshort"%ee
-                    raise Exception(msg)
-                if lids[0] not in dex.keys():
-                    dex = {lids[0]:[ee]}
-                else:
-                    dex[lids[0]].append(ee)
-            dextra = dex
-
+        # -------------
+        # Trival case
         if len(dextra) == 0:
             if fordata:
                 return None
             else:
                 return None, None
 
-        if fordata:
+        # -------------
+        # Loading data
+        if fordata is True:
             dout = {}
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
                 out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 inds = [ii for ii in range(0, len(vs)) if vs[ii] in out.keys()]
-                for ii in inds:
-                    ss = vs[ii]
-                    if ss == 't':
-                        continue
-                    if out[ss]['data'].size == 0:
-                        continue
-                    if ss in self._dshort[ids].keys():
-                        dd = self._dshort[ids][ss]
-                    else:
-                        dd = self._dcomp[ids][ss]
-                    label = dd.get('quant', 'unknown')
-                    units = out[ss]['units']
-                    key = '%s.%s'%(ids, ss)
-
-                    if 'sep' == ss.split('.')[-1].lower():
-                        out[ss] = np.swapaxes(out[ss]['data'], 1, 2)
-
-                    datastr = 'data'
-                    if any([ss.split('.')[-1].lower() == s0 for s0 in
-                            ['sep','ax','x']]):
-                        datastr = 'data2D'
-
-                    dout[key] = {'t': out['t']['data'],
-                                 datastr: out[ss]['data'],
-                                 'label': label, 'units': units, 'c': vc[ii]}
+                _comp_toobjects.extra_get_fordataTrue(
+                    inds, vs, vc, out, dout,
+                    ids=ids, dshort=self._dshort, dcomp=self._dcomp)
             return dout
-
         else:
             d0d, dt0 = {}, {}
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
                 out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
-                keyt = '{}.t'.format(ids)
                 any_ = False
-                for ss in out.keys():
-                    if ss == 't':
-                        continue
-                    if out[ss]['data'].size == 0:
-                        continue
-                    if ss in self._dshort[ids].keys():
-                        dd = self._dshort[ids][ss]
-                    else:
-                        dd = self._dcomp[ids][ss]
-                    dim = dd.get('dim', 'unknown')
-                    quant = dd.get('quant', 'unknown')
-                    units = out[ss]['units']
-                    key = '%s.%s'%(ids, ss)
-
-                    if 'sep' == ss.split('.')[-1].lower():
-                        out[ss]['data'] = np.swapaxes(out[ss]['data'], 1, 2)
-
-                    d0d[key] = {'data': out[ss]['data'], 'name': ss,
-                                'origin': ids, 'dim': dim, 'quant': quant,
-                                'units': units, 'depend': (keyt,)}
-                    any_ = True
-                if any_:
-                    dt0[keyt] = {'data': out['t']['data'], 'name': 't',
-                                 'origin': ids, 'depend': (keyt,)}
+                _comp_toobjects.extra_get_fordataFalse(
+                    out, d0d, dt0,
+                    ids=ids, dshort=self._dshort, dcomp=self._dcomp)
             return d0d, dt0
-
-
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None, indt0=None,
                     Name=None, occ=None, config=None, out=object,
@@ -2451,54 +2285,32 @@ class MultiIDSLoader(object):
 
         """
 
-        # dsig
-        dsig = self._checkformat_Plasma2D_dsig(dsig)
+        # ---------------------------
+        # Preliminary checks
 
-        # plot arguments
-        if plot is None:
-            plot = not (plot_sig is None and plot_X is None)
+        # check and format dsig
+        dsig = _comp_toobjects.plasma_checkformat_dsig(
+            dsig,
+            lidsplasma=self._lidsplasma, dids=self._dids,
+            dshort=self._dshort, dcomp=self._dcomp)
 
-        if plot == True:
-            if plot_sig is None:
-                lsplot = [ss for ss in list(dsig.values())[0]
-                          if ('1d' in ss and ss != 't'
-                              and all([sub not in ss
-                                       for sub in ['rho','psi','phi']]))]
-                if not (len(dsig) == 1 and len(lsplot) == 1):
-                    msg = "Direct plotting only possible if\n"
-                    msg += "sig_plot is provided, or can be derived from:\n"
-                    msg += "    - unique ids: %s"%str(dsig.keys())
-                    msg += "    - unique non-t, non-radius 1d sig: %s"%str(lsplot)
-                    raise Exception(msg)
-                plot_sig = lsplot
-            if type(plot_sig) is str:
-                plot_sig = [plot_sig]
-            if plot_X is None:
-                lsplot = [ss for ss in list(dsig.values())[0]
-                          if ('1d' in ss and ss != 't'
-                              and any([sub in ss
-                                       for sub in ['rho','psi','phi']]))]
-                if not (len(dsig) == 1 and len(lsplot) == 1):
-                    msg = "Direct plotting only possible if\n"
-                    msg += "X_plot is provided, or can be derived from:\n"
-                    msg += "    - unique ids: %s"%str(dsig.keys())
-                    msg += "    - unique non-t, 1d radius: %s"%str(lsplot)
-                    raise Exception(msg)
-                plot_X = lsplot
-            if type(plot_X) is str:
-                plot_X = [plot_X]
+        # check and format plot arguments
+        plot, plot_X, plot_sig = _comp_toobjects.plasma_plot_args(
+            plot, plot_X, plot_sig,
+            dsig=dsig)
 
         # lids
         lids = sorted(dsig.keys())
         if Name is None:
             Name = 'custom'
 
-        # ---------------------------
-        # Preliminary checks on data source consistency
-        _, _, shot, Exp = self._get_lidsidd_shotExp(lids, upper=True,
-                                                    errshot=False,
-                                                    errExp=False)
-        # get data
+        # data source consistency
+        _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
+            lids, upper=True, errshot=False, errExp=False,
+            dids=self._dids, didd=self._didd)
+
+        # -------------
+        #   get all relevant data
         out0 = self.get_data_all(dsig=dsig)
 
         # -------------
@@ -2511,6 +2323,8 @@ class MultiIDSLoader(object):
 
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
+
+        # UP TO HERE ---  TBF
 
         # dicts
         dtime = {} if dtime0 is None else dtime0
@@ -3056,9 +2870,11 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
-                                                    errshot=False,
-                                                    errExp=False)
+        _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
+            [ids],
+            errshot=False, errExp=False, upper=True,
+            dids=self._dids, didd=self._didd)
+
         # -------------
         #   Input dicts
 
@@ -3304,9 +3120,11 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
-                                                    errshot=False,
-                                                    errExp=False)
+        _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
+            [ids],
+            errshot=False, errExp=False, upper=True,
+            dids=self._dids, didd=self._didd)
+
         # -------------
         #   Input dicts
 

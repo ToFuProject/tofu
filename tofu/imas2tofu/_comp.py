@@ -255,7 +255,11 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
         for ii in range(0, len(data)):
             if (isinstance(data[ii], np.ndarray)
                 and data[ii].dtype == np.float):
-                data[ii][np.abs(data[ii]) > 1.e30] = np.nan
+                # Make sure to test only non-nan to avoid warning
+                ind = (~np.isnan(data[ii])).nonzero()
+                ind2 = np.abs(data[ii][ind]) > 1.e30
+                ind = tuple([ii[ind2] for ii in ind])
+                data[ii][ind] = np.nan
 
     # data supposed to be positive only (nan otherwise)
     if pos is True:
@@ -269,7 +273,8 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
         for ii in range(len(data)):
             isempty[ii] = (len(data[ii]) == 0
                            or (isinstance(data, np.ndarray)
-                               and (0 in data.shape
+                               and (data.size == 0
+                                    or 0 in data.shape
                                     or np.all(np.isnan(data)))))
     return data, isempty
 
@@ -376,8 +381,10 @@ def _get_data_units(ids=None, sig=None, occ=None,
         out, isempty = _check_data(out,
                                    pos=pos, nan=nan,
                                    isclose=isclose, empty=empty)
-
-        if nocc == 1 and flatocc is True:
+        if np.all(isempty):
+            msg = ("empty data in {}.{}".format(ids, sig))
+            errdata = msg
+        elif nocc == 1 and flatocc is True:
             out = out[0]
             isempty = isempty[0]
     return {'data': out, 'units': unit,
