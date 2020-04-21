@@ -185,7 +185,6 @@ def extra_get_fordataFalse(out, d0d, dt0,
                      'origin': ids, 'depend': (keyt,)}
 
 
-
 # #############################################################################
 #                       Config
 # #############################################################################
@@ -435,3 +434,217 @@ def plasma_plot_args(plot, plot_X, plot_sig,
         if type(plot_X) is str:
             plot_X = [plot_X]
     return plot, plot_X, plot_sig
+
+
+# #############################################################################
+#                       Cam
+# #############################################################################
+
+
+def cam_checkformat_geom(ids=None, geomcls=None, indch=None,
+                         lidsdiag=None, dids=None, didsdiag=None):
+
+    # Check ids
+    idsok = set(lidsdiag).intersection(dids.keys())
+    if ids is None and len(idsok) == 1:
+        ids = next(iter(idsok))
+
+    if ids not in dids.keys():
+        msg = ("Provided ids should be available as a self.dids.keys()!\n"
+               + "\t- provided: {}\n".format(str(ids))
+               + "\t- available: {}".format(sorted(dids.keys())))
+        raise Exception(msg)
+
+    if ids not in lidsdiag:
+        msg = ("Requested ids is not pre-tabulated !\n"
+               + "  => Be careful with args (geomcls, indch)")
+        warnings.warn(msg)
+    else:
+        if geomcls is None:
+            geomcls = didsdiag[ids]['geomcls']
+
+    # Check data and geom
+    import tofu.geom as tfg
+
+    lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
+    if geomcls not in [False] + lgeom:
+        msg = "Arg geomcls must be in {}".format([False]+lgeom)
+        raise Exception(msg)
+
+    if geomcls is False:
+        msg = "ids {} does not seem to be a ids with a camera".format(ids)
+        raise Exception(msg)
+
+    return geomcls
+
+
+def cam_compare_indch_indchr(indch, indchr, nch, indch_auto=None):
+    if indch_auto is None:
+        indch_auto = True
+    if indch is None:
+        indch = np.arange(0, nch)
+    if not np.all(np.in1d(indch, indchr)):
+        msg = ("indch has to be changed, some data may be missing\n"
+               + "\t- indch: {}\n".format(indch)
+               + "\t- indch recommended: {}".format(indchr)
+               + "\n\n  => check self.inspect_channels() for details")
+        if indch_auto is True:
+            indch = indchr
+            warnings.warn(msg)
+        else:
+            raise Exception(msg)
+    return indch
+
+
+def inspect_channels(ids=None, occ=None, indch=None, geom=None,
+                     dsig=None, data=None, X=None, datacls=None,
+                     geomcls=None, return_dict=None, return_ind=None,
+                     return_msg=None, verb=None):
+    # ------------------
+    # Preliminary checks
+    if return_dict is None:
+        return_dict = False
+    if return_ind is None:
+        return_ind = False
+    if return_msg is None:
+        return_msg = False
+    if verb is None:
+        verb = True
+    if occ is None:
+        occ = 0
+    if geom is None:
+        geom = True
+    compute_ind = return_ind or return_msg or verb
+
+    # Check ids is relevant
+    idsok = set(self._lidsdiag).intersection(self._dids.keys())
+    if ids is None and len(idsok) == 1:
+        ids = next(iter(idsok))
+
+    # Check ids has channels (channel, gauge, ...)
+    lch = ['channel', 'gauge', 'group', 'antenna',
+           'pipe', 'reciprocating', 'bpol_probe']
+    ind = [ii for ii in range(len(lch))
+           if hasattr(self._dids[ids]['ids'][occ], lch[ii])]
+    if len(ind) == 0:
+        msg = "ids {} has no attribute with '[chan]' index!".format(ids)
+        raise Exception(msg)
+    nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
+    if nch == 0:
+        msg = ('ids {} has 0 channels:\n'.format(ids)
+               + '\t- len({}.{}) = 0\n'.format(ids, lch[ind[0]])
+               + '\t- idd: {}'.format(self._dids[ids]['idd']))
+        raise Exception(msg)
+
+
+    datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
+                                                         data=data, X=X,
+                                                         datacls=datacls,
+                                                         geomcls=geomcls)
+    if geomcls is False:
+        geom = False
+
+    # ------------------
+    # Extract sig and shapes / values
+    if geom == 'only':
+        lsig = []
+    else:
+        lsig = sorted(dsig.values())
+    lsigshape = list(lsig)
+    if geom in ['only', True] and 'LOS' in geomcls:
+        lkok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
+        lsig += [ss for ss in ['los_ptsRZPhi', 'etendue',
+                               'surface', 'names']
+                 if ss in lkok]
+
+    out = self.get_data(ids, sig=lsig,
+                        isclose=False, stack=False, nan=True,
+                        pos=False)
+    dout = {}
+    for k0, v0 in out.items():
+        v0 = v0['data']
+        if len(v0) != nch:
+            if len(v0) != 1:
+                import pdb          # DB
+                pdb.set_trace()     # DB
+            continue
+        if isinstance(v0[0], np.ndarray):
+            dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
+                        'isnan': np.array([np.any(np.isnan(vv))
+                                           for vv in v0])}
+            if k0 == 'los_ptsRZPhi':
+                dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
+                                                          vv[1, ...])
+                                             for vv in v0])
+        elif type(v0[0]) in [int, float, np.int, np.float, str]:
+            dout[k0] = {'value': np.asarray(v0).ravel()}
+        else:
+            typv = type(v0[0])
+            k0str = (self._dshort[ids][k0]['str']
+                     if k0 in self._dshort[ids].keys() else k0)
+            msg = ("\nUnknown data type:\n"
+                   + "\ttype({}) = {}".format(k0str, typv))
+            raise Exception(msg)
+
+    lsig = sorted(set(lsig).intersection(dout.keys()))
+    lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
+
+    # --------------
+    # Get ind, msg
+    ind, msg = None, None
+    if compute_ind:
+        if geom in ['only', True] and 'los_ptsRZPhi' in out.keys():
+            indg = ((np.prod(dout['los_ptsRZPhi']['shapes'], axis=1) == 0)
+                    | dout['los_ptsRZPhi']['isnan']
+                    | dout['los_ptsRZPhi']['equal'])
+            if geom == 'only':
+                indok = ~indg
+                indchout = indok.nonzero()[0]
+        if geom != 'only':
+            shapes0 = np.concatenate([np.prod(dout[k0]['shapes'],
+                                              axis=1, keepdims=True)
+                                      for k0 in lsigshape], axis=1)
+            indok = np.all(shapes0 != 0, axis=1)
+            if geom is True and 'los_ptsRZPhi' in out.keys():
+                indok[indg] = False
+        if not np.any(indok):
+            indchout = np.array([], dtype=int)
+        elif geom != 'only':
+            indchout = (np.arange(0, nch)[indok]
+                        if indch is None else np.r_[indch][indok])
+            lshapes = [dout[k0]['shapes'][indchout, :] for k0 in lsigshape]
+            lshapesu = [np.unique(ss, axis=0) for ss in lshapes]
+            if any([ss.shape[0] > 1 for ss in lshapesu]):
+                for ii in range(len(lshapesu)):
+                    if lshapesu[ii].shape[0] > 1:
+                        _, inv, counts = np.unique(lshapes[ii], axis=0,
+                                                   return_counts=True,
+                                                   return_inverse=True)
+                        indchout = indchout[inv == np.argmax(counts)]
+                        lshapes = [dout[k0]['shapes'][indchout, :]
+                                   for k0 in lsigshape]
+                        lshapesu = [np.unique(ss, axis=0)
+                                    for ss in lshapes]
+
+    if return_msg is True or verb is True:
+        col = ['index'] + [k0 for k0 in dout.keys()]
+        ar = ([np.arange(nch)]
+              + [['{} {}'.format(tuple(v0['shapes'][ii]), 'nan')
+                  if v0['isnan'][ii] else str(tuple(v0['shapes'][ii]))
+                  for ii in range(nch)]
+                 if 'shapes' in v0.keys()
+                 else v0['value'].astype(str) for v0 in dout.values()])
+        msg = self._getcharray(ar, col, msg=True)
+        if verb is True:
+            indstr = ', '.join(map(str, indchout))
+            msg += "\n\n => recommended indch = [{}]".format(indstr)
+            print(msg)
+
+    # ------------------
+    # Return
+    lv = [(dout, return_dict), (indchout, return_ind), (msg, return_msg)]
+    lout = [vv[0] for vv in lv if vv[1] is True]
+    if len(lout) == 1:
+        return lout[0]
+    elif len(lout) > 1:
+        return lout

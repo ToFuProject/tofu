@@ -2092,7 +2092,6 @@ class MultiIDSLoader(object):
                         if ss in plot_X:
                             plot_X[plot_X.index(ss)] = key
 
-            # UP TO HERE ---  TBF
             # -------------
             # d2d and dmesh
             lsig = [k for k in out0[ids].keys() if '2d' in k]
@@ -2242,42 +2241,7 @@ class MultiIDSLoader(object):
                 plasma.plot(plot_sig, X=plot_X, bck=bck)
         return plasma
 
-
-    def _checkformat_Cam_geom(self, ids=None, geomcls=None, indch=None):
-
-        # Check ids
-        idsok = set(self._lidsdiag).intersection(self._dids.keys())
-        if ids is None and len(idsok) == 1:
-            ids = next(iter(idsok))
-
-        if ids not in self._dids.keys():
-            msg = ("Provided ids should be available as a self.dids.keys()!\n"
-                   + "\t- provided: {}\n".format(str(ids))
-                   + "\t- available: {}".format(sorted(self._dids.keys())))
-            raise Exception(msg)
-
-        if ids not in self._lidsdiag:
-            msg = "Requested ids is not pre-tabulated !\n"
-            msg = "  => Be careful with args (geomcls, indch)"
-            warnings.warn(msg)
-        else:
-            if geomcls is None:
-                geomcls = self._didsdiag[ids]['geomcls']
-
-        # Check data and geom
-        import tofu.geom as tfg
-
-        lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
-        if geomcls not in [False] + lgeom:
-            msg = "Arg geomcls must be in {}".format([False]+lgeom)
-            raise Exception(msg)
-
-        if geomcls is False:
-            msg = "ids {} does not seem to be a ids with a camera".format(ids)
-            raise Exception(msg)
-
-        return geomcls
-
+    # TBF (outsourcing) !
     def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
                          dsig=None, data=None, X=None, datacls=None,
                          geomcls=None, return_dict=None, return_ind=None,
@@ -2431,24 +2395,6 @@ class MultiIDSLoader(object):
         elif len(lout) > 1:
             return lout
 
-    @staticmethod
-    def _compare_indch_indchr(indch, indchr, nch, indch_auto=None):
-        if indch_auto is None:
-            indch_auto = True
-        if indch is None:
-            indch = np.arange(0, nch)
-        if not np.all(np.in1d(indch, indchr)):
-            msg = ("indch has to be changed, some data may be missing\n"
-                   + "\t- indch: {}\n".format(indch)
-                   + "\t- indch recommended: {}".format(indchr)
-                   + "\n\n  => check self.inspect_channels() for details")
-            if indch_auto is True:
-                indch = indchr
-                warnings.warn(msg)
-            else:
-                raise Exception(msg)
-        return indch
-
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces, names = None, None, None
         out = self.get_data(ids, sig=list(lk), indch=indch,
@@ -2547,7 +2493,10 @@ class MultiIDSLoader(object):
             ids = next(iter(idsok))
 
         # dsig
-        geom = self._checkformat_Cam_geom(ids)
+        geom = _comp_toobjects.cam_checkformat_geom(
+            ids, geomcls=None, indch=indch,
+            lidsdiag=self._lidsdiag, dids=self._dids, didsdiag=self._didsdiag)
+
         if Name is None:
             Name = 'custom'
 
@@ -2584,8 +2533,9 @@ class MultiIDSLoader(object):
             indchr = self.inspect_channels(ids, indch=indch,
                                            geom='only', return_ind=True,
                                            verb=False)
-            indch = self._compare_indch_indchr(indch, indchr, nchMax,
-                                               indch_auto=indch_auto)
+            indch = _comp_toobjects.cam_compare_indch_indchr(
+                indch, indchr, nchMax,
+                indch_auto=indch_auto)
 
             # Load geometrical data
             lk = ['los_ptsRZPhi', 'etendue', 'surface', 'names']
@@ -2834,8 +2784,9 @@ class MultiIDSLoader(object):
                                        geom=(geomcls is not False),
                                        return_ind=True,
                                        verb=False)
-        indch = self._compare_indch_indchr(indch, indchr, nchMax,
-                                           indch_auto=indch_auto)
+        indch = _comp_toobjects.cam_compare_indch_indchr(
+            indch, indchr, nchMax,
+            indch_auto=indch_auto)
 
         dgeom, names = None, None
         if geomcls is not False:

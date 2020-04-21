@@ -26,6 +26,9 @@ To see the shortcuts available from your running ipython console do:
 Available since tofu 1.4.3
 """
 
+import numpy as np
+
+
 # ############################################################################
 #
 #           shortcuts for imas2tofu interface (MultiIDSLoader class)
@@ -572,16 +575,16 @@ def _rhotn2d(phi):
 def _eqSep(sepR, sepZ, npts=100):
     nt = len(sepR)
     assert len(sepZ) == nt
-    sep = np.full((nt,npts,2), np.nan)
+    sep = np.full((nt, npts, 2), np.nan)
     pts = np.linspace(0,100,npts)
     for ii in range(0,nt):
         ptsii = np.linspace(0,100,sepR[ii].size)
-        sep[ii,:,0] = np.interp(pts, ptsii, sepR[ii])
-        sep[ii,:,1] = np.interp(pts, ptsii, sepZ[ii])
+        sep[ii, :, 0] = np.interp(pts, ptsii, sepR[ii])
+        sep[ii, :, 1] = np.interp(pts, ptsii, sepZ[ii])
     return sep
 def _eqtheta(axR, axZ, nodes, cocos=11):
-    theta = np.arctan2(nodes[:,0][None,:] - axZ[:,None],
-                       nodes[:,1][None,:] - axR[:,None])
+    theta = np.arctan2(nodes[:, 0][None, :] - axZ[:, None],
+                       nodes[:, 1][None, :] - axR[:, None])
     if cocos == 1:
         theta = -theta
     return theta
