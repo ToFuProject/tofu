@@ -157,6 +157,7 @@ def extra_get_fordataTrue(inds, vs, vc, out, dout,
 
 def extra_get_fordataFalse(out, d0d, dt0,
                            ids=None, dshort=None, dcomp=None):
+    any_ = False
     keyt = '{}.t'.format(ids)
     for ss in out.keys():
         if ss == 't':
@@ -179,7 +180,7 @@ def extra_get_fordataFalse(out, d0d, dt0,
                     'origin': ids, 'dim': dim, 'quant': quant,
                     'units': units, 'depend': (keyt,)}
         any_ = True
-    if any_:
+    if any_ is True:
         dt0[keyt] = {'data': out['t']['data'], 'name': 't',
                      'origin': ids, 'depend': (keyt,)}
 

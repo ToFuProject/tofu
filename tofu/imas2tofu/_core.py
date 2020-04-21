@@ -44,9 +44,11 @@ else:
 try:
     import tofu.imas2tofu._comp as _comp
     import tofu.imas2tofu._comp_toobjects as _comp_toobjects
+    import tofu.imas2tofu._comp_mesh as _comp_mesh
 except Exception as err:
     from . import _comp as _comp
-    from . import comp_toobjects as _comp_toobjects
+    from . import _comp_toobjects as _comp_toobjects
+    from . import _comp_mesh as _comp_mesh
 
 # imas
 try:
@@ -1675,7 +1677,7 @@ class MultiIDSLoader(object):
                  data=None, units=None,
                  indch=None, indt=None, stack=True,
                  isclose=None, flatocc=True,
-                 nan=True, pos=None, empty=None, warn=True):
+                 nan=True, pos=None, empty=None, strict=None, warn=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         For each signal, loads the data and / or units
@@ -1742,15 +1744,15 @@ class MultiIDSLoader(object):
                                     data=data, units=units,
                                     indch=indch, indt=indt,
                                     stack=stack, isclose=isclose,
-                                    flatocc=flatocc, nan=nan,
-                                    pos=pos, empty=empty, warn=warn,
+                                    flatocc=flatocc, nan=nan, pos=pos,
+                                    empty=empty, strict=strict, warn=warn,
                                     dids=self._dids, dshort=self._dshort,
                                     dcomp=self._dcomp,
                                     dall_except=self._dall_except)[0]
 
     def get_data_all(self, dsig=None, stack=True,
                      isclose=None, flatocc=True, nan=True,
-                     pos=None, empty=None):
+                     pos=None, empty=None, strict=None):
         """ Get all data available from all desired ids
 
         Return a dict
@@ -1787,7 +1789,7 @@ class MultiIDSLoader(object):
                     indch=None, indt=None,
                     stack=stack, isclose=isclose,
                     flatocc=flatocc, nan=nan,
-                    pos=pos, empty=empty, warn=False,
+                    pos=pos, empty=empty, strict=strict, warn=False,
                     dids=self._dids, dshort=self._dshort,
                     dcomp=self._dcomp, dall_except=self._dall_except)
                 if len(dfail[ids]) > 0:
@@ -1983,186 +1985,6 @@ class MultiIDSLoader(object):
             lax = config.plot()
         return config
 
-    @staticmethod
-    def _checkformat_mesh_NodesFaces(nodes, indfaces, ids=None):
-
-        # Check mesh type
-        if indfaces.shape[1] == 3:
-            mtype = 'tri'
-        elif indfaces.shape[1] == 4:
-            mtype = 'quad'
-        else:
-            msg = "Mesh seems to be neither triangular nor quadrilateral\n"
-            msg += "  => unrecognized mesh type, not implemented yet"
-            raise Exception(msg)
-
-        # Check indexing !!!
-        indmax = int(np.nanmax(indfaces))
-        if indmax == nodes.shape[0]:
-            indfaces = indfaces - 1
-        elif indmax > nodes.shape[0]:
-            msg = "There seems to be an indexing error\n"
-            msg += "    - np.max(indfaces) = %s"%str(indmax)
-            msg += "    - nodes.shape[0] = %s"%str(nodes.shape[0])
-            raise Exception(msg)
-
-        # Check for duplicates
-        nnodes = nodes.shape[0]
-        nfaces = indfaces.shape[0]
-        nodesu, indnodesu = np.unique(nodes, axis=0, return_index=True)
-        facesu, indfacesu = np.unique(indfaces, axis=0, return_index=True)
-        facesuu = np.unique(facesu)
-        lc = [nodesu.shape[0] != nnodes,
-              facesu.shape[0] != nfaces,
-              facesuu.size != nnodes or np.any(facesuu != np.arange(0,nnodes))]
-        if any(lc):
-            msg = "Non-valid mesh in ids %s:\n"%ids
-            if lc[0]:
-                noddup = [ii for ii in range(0,nnodes) if ii not in indnodesu]
-                msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
-                msg += "    - nodes.shape: %s\n"%str(nodes.shape)
-                msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
-                msg += "    - duplicate nodes indices: %s\n"%str(noddup)
-            if lc[1]:
-                dupf = [ii for ii in range(0,nfaces) if ii not in indfacesu]
-                msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
-                msg += "    - faces.shape: %s\n"%str(indfaces.shape)
-                msg += "    - unique faces.shape: %s"%str(facesu.shape)
-                msg += "    - duplicate facess indices: %s\n"%str(dupf)
-            if lc[2]:
-                nfu = facesuu.size
-                nodnotf = [ii for ii in range(0,nnodes) if ii not in facesuu]
-                fnotn = [ii for ii in facesuu if ii < 0 or  ii >= nnodes]
-                msg += "  Non-bijective nodes indices vs faces:\n"
-                msg += "    - nb. nodes: %s\n"%str(nnodes)
-                msg += "    - nb. unique nodes index in faces: %s\n"%str(nfu)
-                msg += "    - nodes not in faces: %s\n"%str(nodnotf)
-                msg += "    - faces ind not in nodes: %s\n"%str(fnotn)
-            raise Exception(msg)
-
-        # Test for unused nodes
-        facesu = np.unique(indfaces)
-        c0 = np.all(facesu>=0) and facesu.size == nnodes
-        if not c0:
-            indnot = [ii for ii in range(0,nnodes)
-                      if ii not in facesu]
-            msg = "Some nodes not used in mesh of ids %s:\n"%ids
-            msg += "    - unused nodes indices: %s"%str(indnot)
-            warnings.warn(msg)
-
-        # Convert to triangular mesh if necessary
-        if mtype == 'quad':
-            # Convert to tri mesh (solution for unstructured meshes)
-            indface = np.empty((indfaces.shape[0]*2,3), dtype=int)
-
-            indface[::2,:] = indfaces[:,:3]
-            indface[1::2,:-1] = indfaces[:,2:]
-            indface[1::2,-1] = indfaces[:,0]
-            indfaces = indface
-            mtype = 'quadtri'
-            ntri = 2
-        else:
-            ntri = 1
-
-
-        # Check orientation
-        x, y = nodes[indfaces,0], nodes[indfaces,1]
-        orient = ((y[:,1]-y[:,0])*(x[:,2]-x[:,1])
-                  - (y[:,2]-y[:,1])*(x[:,1]-x[:,0]))
-
-        indclock = orient > 0.
-        if np.any(indclock):
-            nclock, ntot = indclock.sum(), indfaces.shape[0]
-            msg = "Some triangles not counter-clockwise\n"
-            msg += "  (necessary for matplotlib.tri.Triangulation)\n"
-            msg += "    => %s/%s triangles reshaped"%(str(nclock),str(ntot))
-            warnings.warn(msg)
-            (indfaces[indclock,1],
-             indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
-        return indfaces, mtype, ntri
-
-    def inspect_ggd(self, ids):
-        # TBF
-        if ids not in self._dids.keys():
-            msg = "The ggd of ids %s cannot be inspected:\n"%ids
-            msg += "  => please add ids first (self.add_ids())"
-            raise Exception(msg)
-
-        lids = ['equilibrium', 'core_sources', 'edge_sources']
-        if ids not in lids:
-            msg = "The default structure of ggd in ids %s is not known"%ids
-            raise Exception(msg)
-
-        if ids == 'equilibrium':
-            nt = len(grids_ggd)
-            for ii in range(nt):
-                nggd = len(grids_ggd[ii])
-                for jj in range(0,ngrid):
-                    ggd = grids_ggd[ii].grid[jj]
-                    gtype = ggd.identifier.name
-                    nspace = len(ggd.space)
-                    for ll in range(0,nspace):
-                        npts = ggd.space[ll].objects_per_dimension[0].object[0]
-
-    @staticmethod
-    def _checkformat_mesh_Rect(R, Z, datashape=None,
-                               shapeRZ=None, ids=None):
-        assert R.ndim in [1, 2]
-        assert Z.ndim in [1, 2]
-        shapeu = np.unique(np.r_[R.shape, Z.shape])
-        if shapeRZ is None:
-            shapeRZ = [None, None]
-        if R.ndim == 1:
-            assert np.all(np.diff(R) > 0.)
-        else:
-            lc = [np.all(np.diff(R[0, :])) > 0.,
-                  np.all(np.diff(R[:, 0])) > 0.]
-            assert np.sum(lc) == 1
-            if lc[0]:
-                R = R[0, :]
-                if shapeRZ[1] is None:
-                    shapeRZ[1] = 'R'
-                assert shapeRZ[1] == 'R'
-            else:
-                R = R[:, 0]
-                if shapeRZ[0] is None:
-                    shapeRZ[0] = 'R'
-                assert shapeRZ[0] == 'R'
-        if Z.ndim == 1:
-            assert np.all(np.diff(Z) > 0.)
-        else:
-            lc = [np.all(np.diff(Z[0, :])) > 0.,
-                  np.all(np.diff(Z[:, 0])) > 0.]
-            assert np.sum(lc) == 1
-            if lc[0]:
-                Z = Z[0, :]
-                if shapeRZ[1] is None:
-                    shapeRZ[1] = 'Z'
-                assert shapeRZ[1] == 'Z'
-            else:
-                Z = Z[:, 0]
-                if shapeRZ[0] is None:
-                    shapeRZ[0] = 'Z'
-                assert shapeRZ[0] == 'Z'
-
-        if datashape is not None:
-            if None in shapeRZ:
-                pass
-            shapeRZ = tuple(shapeRZ)
-
-            if shapeRZ == ('R', 'Z'):
-                assert datashape == (R.size, Z.size)
-            elif shapeRZ == ('Z', 'R'):
-                assert datashape == (Z.size, R.size)
-            else:
-                msg = "Inconsistent data shape !"
-                raise Exception(msg)
-
-        if None not in shapeRZ:
-            shapeRZ = tuple(shapeRZ)
-            assert shapeRZ in [('R', 'Z'), ('Z', 'R')]
-        return R, Z, shapeRZ, 0
-
     # TBF
     def get_mesh_from_ggd(path_to_ggd, ggdindex=0):
         pass
@@ -2202,7 +2024,6 @@ class MultiIDSLoader(object):
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
                 out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
-                any_ = False
                 _comp_toobjects.extra_get_fordataFalse(
                     out, d0d, dt0,
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
@@ -2212,7 +2033,9 @@ class MultiIDSLoader(object):
                     Name=None, occ=None, config=None, out=object,
                     description_2d=None,
                     plot=None, plot_sig=None, plot_X=None,
-                    bck=True, dextra=None, nan=True, pos=None, shapeRZ=None):
+                    bck=True, dextra=None, isclose=None, nan=True,
+                    pos=None, empty=None, strict=None,
+                    flatocc=None, shapeRZ=None):
         """ Export the content of some ids as a tofu Plasma2D object
 
         Some ids typically contain plasma 1d (radial) or 2d (mesh) profiles
@@ -2311,7 +2134,9 @@ class MultiIDSLoader(object):
 
         # -------------
         #   get all relevant data
-        out0 = self.get_data_all(dsig=dsig)
+        out0 = self.get_data_all(dsig=dsig,
+                                 nan=nan, pos=pos,
+                                 empty=empty, isclose=isclose, strict=True)
 
         # -------------
         #   Input dicts
@@ -2324,8 +2149,6 @@ class MultiIDSLoader(object):
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
 
-        # UP TO HERE ---  TBF
-
         # dicts
         dtime = {} if dtime0 is None else dtime0
         d1d, dradius = {}, {}
@@ -2334,68 +2157,77 @@ class MultiIDSLoader(object):
             # Hotfix to avoid calling get_data a second time out0 -> out_
             # TBF in next release (ugly, sub-optimal...)
 
+            # -------------
             # dtime
             out_ = {'t': out0[ids].get('t', None)}
             lc = (out_['t'] is not None
-                  and out_['t']['data'] is not None
-                  and out_['t']['data'].size > 0
-                  and 0 not in out_['t']['data'].shape)
+                  and out_['t']['isempty'] is False)
             keyt, nt, indt = None, None, None
             if lc is True:
                 nt = out_['t']['data'].size
                 keyt = '{}.t'.format(ids)
 
                 dtt = self._checkformat_tlim(out_['t']['data'], tlim=tlim)
-                dtime[keyt] = {'data':dtt['t'],
-                               'origin':ids, 'name':'t'}
+                dtime[keyt] = {'data': dtt['t'],
+                               'origin': ids, 'name': 't'}
                 indt = dtt['indt']
             else:
                 nt = None
 
+            # -------------
             # d1d and dradius
-            lsig = [k for k in dsig[ids]
-                    if '1d' in k and k in out0[ids].keys()]
-            out_ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos,
-                                 warn=False)
+            lsig = [k for k in out0[ids].keys() if '1d' in k]
+            out_ = self.get_data(ids, lsig, indt=indt,
+                                 nan=nan, pos=pos,
+                                 isclose=isclose, empty=empty,
+                                 strict=strict, warn=False)
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
-                    assert out_[ss]['data'].ndim in [1,2]
+                    if out_[ss]['data'].ndim not in [1, 2]:
+                        shape = out_[ss]['data'].shape
+                        msg = ("Non-conform {}.{}.ndim\n".format(ids, ss)
+                               + "\t- expected: 1 or 2\n"
+                               + "\t- {}.{}.shape = {}".format(ids, ss, shape))
+                        raise Exception(msg)
                     if out_[ss]['data'].ndim == 1:
                         out_[ss]['data'] = np.atleast_2d(out_[ss]['data'])
                     shape = out_[ss]['data'].shape
-                    if 0 in shape or len(shape) == 0:
-                        continue
+                    # if 0 in shape or len(shape) == 0:
+                        # continue
 
                     if nt is None:
-                        msg = "%s.'t' could not be retrieved\n"%ids
-                        msg += "Assuming 't' is the first dimension of:\n"
-                        msg += "    - %s.%s"%(ids,ss)
+                        msg = ("{}.t could not be retrieved\n".format(ids)
+                               + "=> Assuming 't' is the first dimension of "
+                               + "{}.{}".format(ids, ss))
                         warnings.warn(msg)
                         nt = shape[0]
-                        keyt = '%s.homemade'%ids
-                        dtime[keyt] = {'data':np.arange(0,nt),
-                                       'origin':ids, 'name':'homemade'}
-                    else:
-                        if nt not in shape:
-                            msg = "Inconsistent shape with respect to 't'!\n"
-                            msg += "    - %s.%s.shape = %s"%(ids,ss,str(shape))
-                            msg += "    - One dim should be t.size = %s"%str(nt)
-                            raise Exception(msg)
+                        keyt = '{}.homemade'.format(ids)
+                        dtime[keyt] = {'data': np.arange(0, nt),
+                                       'origin': ids, 'name': 'homemade'}
+                    elif nt not in shape:
+                        msg = ("Inconsistent shape with respect to 't'!\n"
+                               + "\t- {}.{}.shape = {}".format(ids, ss, shape)
+                               + "\t- One dim should be nt = {}".format(nt))
+                        raise Exception(msg)
                     axist = shape.index(nt)
                     nr = shape[1-axist]
                     if axist == 1:
                         out_[ss]['data'] = out_[ss]['data'].T
+                    if out_[ss]['data'].shape != (nt, nr):
+                        msg = ("Wrong shape for {}.{}:\n"
+                               + "\t- expected: {}\n".format((nt, nr))
+                               + "\t- got:  {}".format(out_[ss]['data'].shape))
+                        raise Exception(msg)
 
                     if ss in self._dshort[ids].keys():
                         dim = self._dshort[ids][ss].get('dim', 'unknown')
                         quant = self._dshort[ids][ss].get('quant', 'unknown')
-                        units = self._dshort[ids][ss].get('units', 'a.u.')
                     else:
                         dim = self._dcomp[ids][ss].get('dim', 'unknown')
                         quant = self._dcomp[ids][ss].get('quant', 'unknown')
-                        units = self._dcomp[ids][ss].get('units', 'a.u.')
-                    key = '%s.%s'%(ids,ss)
+                    units = out_[ss]['units']
+                    key = '{}.{}'.format(ids, ss)
 
                     if nref is None:
                         dradius[key] = {'data': out_[ss]['data'], 'name': ss,
@@ -2403,12 +2235,15 @@ class MultiIDSLoader(object):
                                         'quant': quant, 'units': units,
                                         'depend': (keyt, key)}
                         nref, kref = nr, key
+                    elif nr != nref:
+                        msg = ("Inconsistent nr for {}.{}\n".format(ids, ss)
+                               + "\t- nref: {}\n".format(nref)
+                               + "\t- nr:   {}".format(nr))
+                        raise Exception(msg)
                     else:
-                        assert nr == nref
                         d1d[key] = {'data': out_[ss]['data'], 'name': ss,
                                     'origin': ids, 'dim': dim, 'quant': quant,
                                     'units': units, 'depend': (keyt, kref)}
-                        assert out_[ss]['data'].shape == (nt, nr)
 
                     if plot:
                         if ss in plot_sig:
@@ -2416,80 +2251,87 @@ class MultiIDSLoader(object):
                         if ss in plot_X:
                             plot_X[plot_X.index(ss)] = key
 
+            # UP TO HERE ---  TBF
+            # -------------
             # d2d and dmesh
-            lsig = [k for k in dsig[ids]
-                    if '2d' in k and k in out0[ids].keys()]
+            lsig = [k for k in out0[ids].keys() if '2d' in k]
             lsigmesh = [k for k in lsig if 'mesh' in k]
-            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos,
-                                 warn=False)
+            out_ = self.get_data(ids, sig=lsig, indt=indt,
+                                 nan=nan, pos=pos,
+                                 isclose=isclose, empty=empty,
+                                 strict=strict, warn=False)
 
             cmesh = any([ss in out_.keys() for ss in lsigmesh])
             if len(out_) > 0:
                 npts, datashape = None, None
                 keym = '{}.mesh'.format(ids) if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
-                    assert out_[ss]['data'].ndim in [1, 2, 3]
+                    # Check data shape
+                    if out_[ss]['data'].ndim not in [1, 2, 3]:
+                        shape = out_[ss]['data'].shape
+                        msg = ("Non-conform {}.{}.ndim\n".format(ids, ss)
+                               + "\t- expected: 1, 2 or 3\n"
+                               + "\t- {}.{}.shape = {}".format(ids, ss, shape))
+                        raise Exception(msg)
                     if out_[ss]['data'].ndim == 1:
                         out_[ss]['data'] = np.atleast_2d(out_[ss]['data'])
                     shape = out_[ss]['data'].shape
-                    assert len(shape) >= 2
-                    if np.sum(shape) > 0:
-                        if nt not in shape:
-                            assert nt == 1
-                            assert len(shape) == 2
-                            datashape = tuple(shape)
-                            if shapeRZ is None:
-                                msg = ("Please provide shapeRZ"
-                                       + "indexing is ambiguous")
-                                raise Exception(msg)
-                            size = shape[0]*shape[1]
-                            if shapeRZ == ('R', 'Z'):
-                                out_[ss]['data'] = np.reshape(out_[ss]['data'],
-                                                              (nt, size))
-                            elif shapeRZ == ('Z', 'R'):
-                                out_[ss]['data'] = np.reshape(out_[ss]['data'],
-                                                              (nt, size),
-                                                              order='F')
-                            shape = out_[ss]['data'].shape
-                        if len(shape) == 3:
-                            assert nt == shape[0]
-                            datashape = (shape[1], shape[2])
-                            if shapeRZ is None:
-                                msg = ("Please provide shapeRZ,"
-                                       + " indexing is ambiguous")
-                                raise Exception(msg)
-                            size = shape[1]*shape[2]
-                            if shapeRZ == ('R', 'Z'):
-                                out_[ss]['data'] = np.reshape(out_[ss]['data'],
-                                                              (nt, size))
-                            elif shapeRZ == ('Z', 'R'):
-                                out_[ss]['data'] = np.reshape(out_[ss]['data'],
-                                                              (nt, size),
-                                                              order='F')
-                            shape = out_[ss]['data'].shape
+                    assert len(shape) in [2, 3] and np.prod(shape) > 0
+                    if nt not in shape and (nt != 1 or len(shape) != 2):
+                        msg = ("Inconsistent {}.{}.shape:\n".format(ids, ss)
+                               + "nt not in shape => nt=1 and ndim=2\n"
+                               + "\t- nt: {}\n".format(nt)
+                               + "\t- shape: {}".format(shape))
+                        raise Exception(msg)
+                    elif nt not in shape:
+                        out_[ss]['data'] = out_[ss]['data'][None, :, :]
+                        shape = out_[ss]['data'].shape
+                    if shape[0] != nt:
+                        msg = ("Inconsistent {}.{}.shape:\n".format(ids, ss)
+                               + "\t- expected: ({}, ...)\n".format(nt)
+                               + "\t- observed: {}".format(shape))
+                        raise Exception(msg)
+                    if len(shape) == 3:
+                        datashape = (shape[1], shape[2])
+                        size = shape[1]*shape[2]
+                        if shapeRZ is None:
+                            msg = "Please provide shapeRZ (ambiguous indexing)"
+                            raise Exception(msg)
+                        if shapeRZ == ('R', 'Z'):
+                            out_[ss]['data'] = np.reshape(out_[ss]['data'],
+                                                          (nt, size))
+                        elif shapeRZ == ('Z', 'R'):
+                            out_[ss]['data'] = np.reshape(out_[ss]['data'],
+                                                          (nt, size),
+                                                          order='F')
+                    shape = out_[ss]['data'].shape
 
-                        axist = shape.index(nt)
-                        if npts is None:
-                            npts = shape[1-axist]
-                        assert npts == shape[1-axist]
-                        if axist == 1:
-                            out_[ss]['data'] = out_[ss]['data'].T
+                    # extract units, dim, quant
+                    axist = shape.index(nt)
+                    if npts is None:
+                        npts = shape[1-axist]
+                    if npts != shape[1-axist]:
+                        msg = ("Inconsistent {}.{}.shape\n".format(ids, ss)
+                               + "\t- expected: {}\n".format((nt, npts))
+                               + "\t- observed: {}".format(shape))
+                        raise Exception(msg)
+                    if axist == 1:
+                        out_[ss]['data'] = out_[ss]['data'].T
 
-                        if ss in self._dshort[ids].keys():
-                            dim = self._dshort[ids][ss].get('dim', 'unknown')
-                            quant = self._dshort[ids][ss].get('quant', 'unknown')
-                            units = self._dshort[ids][ss].get('units', 'a.u.')
-                        else:
-                            dim = self._dcomp[ids][ss].get('dim', 'unknown')
-                            quant = self._dcomp[ids][ss].get('quant', 'unknown')
-                            units = self._dcomp[ids][ss].get('units', 'a.u.')
-                        key = '%s.%s'%(ids,ss)
+                    if ss in self._dshort[ids].keys():
+                        dim = self._dshort[ids][ss].get('dim', 'unknown')
+                        quant = self._dshort[ids][ss].get('quant', 'unknown')
+                    else:
+                        dim = self._dcomp[ids][ss].get('dim', 'unknown')
+                        quant = self._dcomp[ids][ss].get('quant', 'unknown')
+                    units = out_[ss]['units']
+                    key = '{}.{}'.format(ids, ss)
 
-                        d2d[key] = {'data': out_[ss]['data'], 'name': ss,
-                                    'dim': dim, 'quant': quant, 'units': units,
-                                    'origin': ids, 'depend': (keyt, keym)}
+                    d2d[key] = {'data': out_[ss]['data'], 'name': ss,
+                                'dim': dim, 'quant': quant, 'units': units,
+                                'origin': ids, 'depend': (keyt, keym)}
 
-                if cmesh:
+                if cmesh is True:
                     lc = [all([ss in lsig for ss in ['2dmeshNodes',
                                                      '2dmeshFaces']]),
                           all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']])]
@@ -2503,16 +2345,16 @@ class MultiIDSLoader(object):
                     if lc[0]:
                         nodes = out_['2dmeshNodes']['data']
                         indfaces = out_['2dmeshFaces']['data']
-                        func = self._checkformat_mesh_NodesFaces
+                        func = _comp_mesh.tri_checkformat_NodesFaces
                         indfaces, mtype, ntri = func(nodes, indfaces, ids=ids)
                         nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
                         if npts is not None:
                             nft = int(nfaces/ntri)
                             if npts not in [nnod, nft]:
-                                msg = "Inconsistent indices:\n"
-                                msg += "\t- 2d profile {} npts\n".format(npts)
-                                msg += "\t- mesh {} nodes\n".format(nnod)
-                                msg += "\t       {} faces".format(nft)
+                                msg = ("Inconsistent indices:\n"
+                                       + "\t- 2d prof {} npts\n".format(npts)
+                                       + "\t- mesh {} nodes\n".format(nnod)
+                                       + "\t       {} faces".format(nft))
                                 raise Exception(msg)
                             ftype = 1 if npts == nnod else 0
                         else:
@@ -2528,7 +2370,7 @@ class MultiIDSLoader(object):
                                        'nfaces': nfaces, 'mpltri': mpltri}
                     # R / Z case
                     elif lc[1]:
-                        func = self._checkformat_mesh_Rect
+                        func = _comp_mesh.rect_checkformat
                         R, Z, shapeRZ, ftype = func(out_['2dmeshR']['data'],
                                                     out_['2dmeshZ']['data'],
                                                     datashape=datashape,
@@ -2543,7 +2385,7 @@ class MultiIDSLoader(object):
         if indt0 is None:
             indt0 = 0
         t0 = self._get_t0(t0, ind=indt0)
-        if t0 != False:
+        if t0 is not False:
             for tt in dtime.keys():
                 dtime[tt]['data'] = dtime[tt]['data'] - t0
 
@@ -2552,10 +2394,10 @@ class MultiIDSLoader(object):
                       Exp=Exp, shot=shot, Name=Name, config=config)
 
         # Instanciate Plasma2D
-        if out == object or plot == True:
+        if out is object or plot is True:
             import tofu.data as tfd
             plasma = tfd.Plasma2D( **plasma )
-            if plot == True:
+            if plot is True:
                 plasma.plot(plot_sig, X=plot_X, bck=bck)
         return plasma
 

@@ -41,7 +41,7 @@ _EMPTY = True
 _NAN = True
 _DATA = True
 _UNITS = True
-
+_STRICT = True
 
 # #############################################################################
 #                      Units functions
@@ -272,10 +272,10 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     if empty is True:
         for ii in range(len(data)):
             isempty[ii] = (len(data[ii]) == 0
-                           or (isinstance(data, np.ndarray)
-                               and (data.size == 0
-                                    or 0 in data.shape
-                                    or np.all(np.isnan(data)))))
+                           or (isinstance(data[ii], np.ndarray)
+                               and (data[ii].size == 0
+                                    or 0 in data[ii].shape
+                                    or bool(np.all(np.isnan(data[ii]))))))
     return data, isempty
 
 
@@ -395,7 +395,7 @@ def get_data_units(ids=None, sig=None, occ=None,
                    data=None, units=None,
                    indch=None, indt=None, stack=True,
                    isclose=None, flatocc=True,
-                   nan=True, pos=None, empty=None, warn=True,
+                   nan=True, pos=None, empty=None, strict=None, warn=True,
                    dids=None, dshort=None, dcomp=None, dall_except=None):
     """ Return a dict with the data and units (and empty, errors)
 
@@ -409,6 +409,9 @@ def get_data_units(ids=None, sig=None, occ=None,
 
     # ------------------
     # Check format input
+
+    if strict is None:
+        strict = _STRICT
 
     # ids = valid self.dids.keys()
     ids = _checkformat_getdata_ids(ids, dids=dids)
@@ -466,9 +469,11 @@ def get_data_units(ids=None, sig=None, occ=None,
                     msg = ('\n{}\n\t '.format(dout[sig[ii]]['errunits'])
                            +'fail {0}.{1} units'.format(ids, sig[ii]))
                     warnings.warn(msg)
-            if dout[sig[ii]]['isempty'] is True and warn:
-                msg = "{0}.{1} is empty".format(ids, sig[ii])
-                warnings.warn(msg)
+
+            # Remove if strict
+            if strict is True:
+                if dout[sig[ii]]['errdata'] is not None:
+                    del dout[sig[ii]]
 
         except Exception as err:
             dfail[sig[ii]] = str(err)
