@@ -56,7 +56,8 @@ try:
 except Exception as err:
     raise Exception('imas not available')
 
-__all__ = ['MultiIDSLoader',
+__all__ = ['check_units_IMASvsDSHORT',
+           'MultiIDSLoader',
            'load_Config', 'load_Plasma2D',
            'load_Cam', 'load_Data',
            '_save_to_imas']
@@ -82,6 +83,42 @@ _IMAS_DIDD = {'shot': _IMAS_SHOT, 'run': _IMAS_RUN,
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 _ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
+
+
+#############################################################
+#           Preliminary units check
+#############################################################
+
+
+def check_units_IMASvsDSHORT(dshort=None,
+                             verb=True, returnas=False):
+
+    # Check input
+    if dshort is None:
+        dshort = _defimas2tofu._dshort
+
+    # loop on keys
+    ddiff = {}
+    for k0, v0 in dshort.items():
+        for k1, v1 in v0.items():
+            u0 =  _comp.get_units(k0, k1, dshort=dshort)
+            u1 = v1.get('units', None)
+            if u0 != u1:
+                key = '{}.{}'.format(k0, k1)
+                ddiff[key] = (u0, u1)
+
+    if verb is True:
+        msg = np.array(([('key', 'imas.dd_units', 'dshort')]
+                        + [(kk, vv[0], vv[1]) for kk, vv in ddiff.items()]),
+                       dtype='U')
+        length = np.max(np.char.str_len(msg))
+        msg = np.char.ljust(msg, length)
+        msg = (' '.join([aa for aa in msg[0, :]]) + '\n'
+               + ' '.join(['-'*length for aa in [0, 1, 2]]) + '\n'
+               + '\n'.join([' '.join(aa) for aa in msg[1:, :]]))
+        print(msg)
+    if returnas is dict:
+        return ddiff
 
 
 #############################################################
