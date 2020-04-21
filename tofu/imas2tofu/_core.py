@@ -108,7 +108,7 @@ def check_units_IMASvsDSHORT(dshort=None,
                 ddiff[key] = (u0, u1)
 
     if verb is True:
-        msg = np.array(([('key', 'imas.dd_units', 'dshort')]
+        msg = np.array(([('key', 'imas (dd_units)', 'tofu (dshort)')]
                         + [(kk, vv[0], vv[1]) for kk, vv in ddiff.items()]),
                        dtype='U')
         length = np.max(np.char.str_len(msg))
@@ -156,220 +156,24 @@ class MultiIDSLoader(object):
     # Known short version of signal str
     _dshort = _defimas2tofu._dshort
     _didsdiag = _defimas2tofu._didsdiag
+    _lidsdiag = _defimas2tofu._lidsdiag
+    _lidslos = _defimas2tofu._lidslos
+    _lidssynth = _defimas2tofu._lidssynth
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
 
-    _lidsdiag = sorted([kk for kk,vv in _didsdiag.items() if 'sig' in vv.keys()])
-    _lidssynth = sorted([kk for kk,vv in _didsdiag.items() if 'synth' in vv.keys()])
-    _lidslos = list(_lidsdiag)
-    for ids_ in _lidsdiag:
-        if _didsdiag[ids_]['geomcls'] not in ['CamLOS1D']:
-            _lidslos.remove(ids_)
-
-    for ids_ in _lidssynth:
-        for kk,vv in _didsdiag[ids_]['synth']['dsynth'].items():
-            if type(vv) is str:
-                vv = [vv]
-            for ii in range(0,len(vv)):
-                v0, v1 = vv[ii].split('.')
-                if v0 not in _didsdiag[ids_]['synth']['dsig'].keys():
-                    _didsdiag[ids_]['synth']['dsig'][v0] = [v1]
-                elif v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
-                    _didsdiag[ids_]['synth']['dsig'][v0].append(v1)
-            _didsdiag[ids_]['synth']['dsynth'][kk] = vv
-
-    for ids in _lidslos:
-        dlos = {}
-        strlos = 'line_of_sight'
-        if ids == 'reflectometer_profile':
-            strlos += '_detection'
-        dlos['los_pt1R'] = {'str':'channel[chan].%s.first_point.r'%strlos}
-        dlos['los_pt1Z'] = {'str':'channel[chan].%s.first_point.z'%strlos}
-        dlos['los_pt1Phi'] = {'str':'channel[chan].%s.first_point.phi'%strlos}
-        dlos['los_pt2R'] = {'str':'channel[chan].%s.second_point.r'%strlos}
-        dlos['los_pt2Z'] = {'str':'channel[chan].%s.second_point.z'%strlos}
-        dlos['los_pt2Phi'] = {'str':'channel[chan].%s.second_point.phi'%strlos}
-        _dshort[ids].update( dlos )
-
-    # Computing functions
-
-    def _events(names, t):
-        ustr = 'U{}'.format(np.nanmax(np.char.str_len(np.char.strip(names))))
-        return np.array([(nn, tt)
-                         for nn, tt in zip(*[np.char.strip(names), t])],
-                        dtype=[('name', ustr), ('t', np.float)])
-
-    def _RZ2array(ptsR, ptsZ):
-        return np.array([ptsR, ptsZ]).T
-
-    def _losptsRZP(*pt12RZP):
-        return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
-
-    def _add(a0, a1):
-        return np.abs(a0 + a1)
-
-    def _eqB(BT, BR, BZ):
-        return np.sqrt(BT**2 + BR**2 + BZ**2)
-
-    def _icmod(al, ar, axis=0):
-        return np.sum(al - ar, axis=axis)
-
-    def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
-        return (np.sum(al0 - ar0, axis=axis)
-                + np.sum(al1 - ar1, axis=axis)
-                + np.sum(al2 - ar2, axis=axis))
-
-    def _rhopn1d(psi):
-        return np.sqrt((psi - psi[:, 0:1]) / (psi[:, -1] - psi[:, 0])[:, None])
-
-    def _rhopn2d(psi, psi0, psisep):
-        return np.sqrt(
-            (psi - psi0[:, None]) / (psisep[:, None] - psi0[:, None]))
-
-    def _rhotn2d(phi):
-        return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:, None])
-
-    def _eqSep(sepR, sepZ, npts=100):
-        nt = len(sepR)
-        assert len(sepZ) == nt
-        sep = np.full((nt,npts,2), np.nan)
-        pts = np.linspace(0,100,npts)
-        for ii in range(0,nt):
-            ptsii = np.linspace(0,100,sepR[ii].size)
-            sep[ii,:,0] = np.interp(pts, ptsii, sepR[ii])
-            sep[ii,:,1] = np.interp(pts, ptsii, sepZ[ii])
-        return sep
-    def _eqtheta(axR, axZ, nodes, cocos=11):
-        theta = np.arctan2(nodes[:,0][None,:] - axZ[:,None],
-                           nodes[:,1][None,:] - axR[:,None])
-        if cocos == 1:
-            theta = -theta
-        return theta
-
-    def _rhosign(rho, theta):
-        ind = np.cos(theta) < 0.
-        rho[ind] = -rho[ind]
-        return rho
-
-    def _lamb(lamb_up, lamb_lo):
-        return 0.5*(lamb_up + lamb_lo)
-
-    _dcomp = {
-              'pulse_schedule':
-              {'events': {'lstr': ['events_names', 'events_times'],
-                          'func': _events}},
-
-              'wall':
-              {'wall': {'lstr': ['wallR', 'wallZ'],
-                        'func': _RZ2array}},
-
-              'equilibrium':
-              {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
-               'sep':{'lstr':['sepR','sepZ'],
-                      'func':_eqSep, 'kargs':{'npts':100}},
-               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB,
-                      'dim':'B', 'quant':'B', 'units':'T'},
-               '1drhopn':{'lstr':['1dpsi','psiaxis','psisep'], 'func':_rhopn2d,
-                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
-               '2drhopn':{'lstr':['2dpsi','psiaxis','psisep'], 'func':_rhopn2d,
-                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
-               '2drhotn':{'lstr':['2dphi'], 'func':_rhotn2d,
-                          'dim':'rho', 'quant':'rhotn', 'units':'adim.'},
-               'x0':{'lstr':['x0R','x0Z'], 'func':_RZ2array},
-               'x1':{'lstr':['x1R','x1Z'], 'func':_RZ2array},
-               'strike0':{'lstr':['strike0R','strike0Z'], 'func':_RZ2array},
-               'strike1':{'lstr':['strike1R','strike1Z'], 'func':_RZ2array},
-               '2dtheta':{'lstr':['axR','axZ','2dmeshNodes'],
-                          'func':_eqtheta, 'kargs':{'cocos':11}}},
-
-              'core_profiles':
-             {'1drhopn':{'lstr':['1dpsi'], 'func':_rhopn1d,
-                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'}},
-
-              'core_sources':
-             {'1drhopn':{'lstr':['1dpsi'], 'func':_rhopn1d,
-                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
-              '1dprad':{'lstr':['1dbrem','1dline'], 'func':_add,
-                        'dim':'vol. emis.', 'quant':'prad', 'unit':'W/m3'}},
-
-             'magnetics':
-             {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
-              'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
-
-             'ic_antennas': {
-                'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
-                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
-                'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
-                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
-                'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
-                           'func': _icmod, 'kargs': {'axis': 0}, 'pos': True},
-                'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
-                                   'power1mod_fwd', 'power1mod_reflect',
-                                   'power2mod_fwd', 'power2mod_reflect'],
-                          'func': _icmodadd, 'kargs': {'axis': 0},
-                          'pos': True}},
-
-             'ece':
-             {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
-                            'units':'adim.'}},
-
-             'bremsstrahlung_visible':
-             {'lamb': {'lstr': ['lamb_up', 'lamb_lo'], 'func': _lamb,
-                       'dim': 'distance',
-                       'quantity': 'wavelength',
-                       'units': 'm'}}
-            }
-
-    _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
-             'los_pt2R', 'los_pt2Z', 'los_pt2Phi']
-    for ids in _lidslos:
-        _dcomp[ids] = _dcomp.get(ids, {})
-        _dcomp[ids]['los_ptsRZPhi'] = {'lstr':_lstr, 'func':_losptsRZP}
-
-
-    # Uniformize
-    _lids = set(_dshort.keys()).union(_dcomp.keys())
-    for ids in _lids:
-        _dshort[ids] = _dshort.get(ids, {})
-        _dcomp[ids] = _dcomp.get(ids, {})
+    # Computed signals
+    _dcomp = _defimas2tofu._dcomp
+    _lids = _defimas2tofu._lids
 
     # All except (for when sig not specified in get_data())
-    _dall_except = {}
-    for ids in _lidslos:
-        _dall_except[ids] = _lstr
-    _dall_except['equilibrium'] = ['axR','axZ','sepR','sepZ',
-                                   '2dBT','2dBR','2dBZ',
-                                   'x0R','x0Z','x1R','x1Z',
-                                   'strike0R','strike0Z', 'strike1R','strike1Z']
-    _dall_except['magnetics'] = ['bpol_R', 'bpol_Z', 'floop_R', 'floop_Z']
-    _dall_except['ic_antennas'] = ['power0mod_launched', 'power0mod_reflected',
-                                   'power1mod_launched', 'power1mod_reflected',
-                                   'power2mod_launched', 'power2mod_reflected']
-
+    _dall_except = _defimas2tofu._dall_except
 
     # Preset
+    _dpreset = _defimas2tofu._dpreset
 
-    _dpreset = {
-                'overview':
-                {'wall':None,
-                 'pulse_schedule':None,
-                 'equilibrium':None},
-
-                'plasma2d':
-                {'wall':['domainR','domainZ'],
-                 'equilibrium':['t','ax','sep'],
-                 'core_profiles':['t','1dTe','1dne','1dzeff','1drhotn','1dphi'],
-                 'core_sources':['t','1dprad'],
-                 'edge_profiles':['t'],
-                 'edge_sources':['t']},
-
-                'ece':
-                {'wall':['domainR','domainZ'],
-                 'ece':None,
-                 'core_profiles':['t','Te','ne']}
-               }
-
-    _IDS_BASE = ['wall', 'pulse_schedule']
+    # basis ids
+    _IDS_BASE = _defimas2tofu._IDS_BASE
 
 
     ###################################
