@@ -2241,7 +2241,6 @@ class MultiIDSLoader(object):
                 plasma.plot(plot_sig, X=plot_X, bck=bck)
         return plasma
 
-    # TBF (outsourcing) !
     def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
                          dsig=None, data=None, X=None, datacls=None,
                          geomcls=None, return_dict=None, return_ind=None,
@@ -2282,11 +2281,12 @@ class MultiIDSLoader(object):
                    + '\t- idd: {}'.format(self._dids[ids]['idd']))
             raise Exception(msg)
 
+        datacls, geomcls, dsig = _comp_toobjects.data_checkformat_dsig(
+            ids=ids, dsig=dsig, data=data, X=X,
+            datacls=datacls, geomcls=geomcls,
+            lidsdiag=self._lidsdiag, dids=self._dids, didsdiag=self._didsdiag,
+            dshort=self._dshort, dcomp=self._dcomp)
 
-        datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
-                                                             data=data, X=X,
-                                                             datacls=datacls,
-                                                             geomcls=geomcls)
         if geomcls is False:
             geom = False
 
@@ -2306,72 +2306,17 @@ class MultiIDSLoader(object):
         out = self.get_data(ids, sig=lsig,
                             isclose=False, stack=False, nan=True,
                             pos=False)
-        dout = {}
-        for k0, v0 in out.items():
-            v0 = v0['data']
-            if len(v0) != nch:
-                if len(v0) != 1:
-                    import pdb          # DB
-                    pdb.set_trace()     # DB
-                continue
-            if isinstance(v0[0], np.ndarray):
-                dout[k0] = {'shapes': np.array([vv.shape for vv in v0]),
-                            'isnan': np.array([np.any(np.isnan(vv))
-                                               for vv in v0])}
-                if k0 == 'los_ptsRZPhi':
-                    dout[k0]['equal'] = np.array([np.allclose(vv[0, ...],
-                                                              vv[1, ...])
-                                                 for vv in v0])
-            elif type(v0[0]) in [int, float, np.int, np.float, str]:
-                dout[k0] = {'value': np.asarray(v0).ravel()}
-            else:
-                typv = type(v0[0])
-                k0str = (self._dshort[ids][k0]['str']
-                         if k0 in self._dshort[ids].keys() else k0)
-                msg = ("\nUnknown data type:\n"
-                       + "\ttype({}) = {}".format(k0str, typv))
-                raise Exception(msg)
-
-        lsig = sorted(set(lsig).intersection(dout.keys()))
-        lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
 
         # --------------
-        # Get ind, msg
-        ind, msg = None, None
-        if compute_ind:
-            if geom in ['only', True] and 'los_ptsRZPhi' in out.keys():
-                indg = ((np.prod(dout['los_ptsRZPhi']['shapes'], axis=1) == 0)
-                        | dout['los_ptsRZPhi']['isnan']
-                        | dout['los_ptsRZPhi']['equal'])
-                if geom == 'only':
-                    indok = ~indg
-                    indchout = indok.nonzero()[0]
-            if geom != 'only':
-                shapes0 = np.concatenate([np.prod(dout[k0]['shapes'],
-                                                  axis=1, keepdims=True)
-                                          for k0 in lsigshape], axis=1)
-                indok = np.all(shapes0 != 0, axis=1)
-                if geom is True and 'los_ptsRZPhi' in out.keys():
-                    indok[indg] = False
-            if not np.any(indok):
-                indchout = np.array([], dtype=int)
-            elif geom != 'only':
-                indchout = (np.arange(0, nch)[indok]
-                            if indch is None else np.r_[indch][indok])
-                lshapes = [dout[k0]['shapes'][indchout, :] for k0 in lsigshape]
-                lshapesu = [np.unique(ss, axis=0) for ss in lshapes]
-                if any([ss.shape[0] > 1 for ss in lshapesu]):
-                    for ii in range(len(lshapesu)):
-                        if lshapesu[ii].shape[0] > 1:
-                            _, inv, counts = np.unique(lshapes[ii], axis=0,
-                                                       return_counts=True,
-                                                       return_inverse=True)
-                            indchout = indchout[inv == np.argmax(counts)]
-                            lshapes = [dout[k0]['shapes'][indchout, :]
-                                       for k0 in lsigshape]
-                            lshapesu = [np.unique(ss, axis=0)
-                                        for ss in lshapes]
+        # dout, indchout
+        dout, indchout = _comp_toobjects.inspect_channels_dout(
+            ids=ids, indch=indch, geom=geom,
+            out=out, nch=nch, dshort=self._dshort,
+            lsig=lsig, lsigshape=lsigshape,
+            compute_ind=compute_ind)
 
+        # msg
+        msg = None
         if return_msg is True or verb is True:
             col = ['index'] + [k0 for k0 in dout.keys()]
             ar = ([np.arange(nch)]
@@ -2386,7 +2331,7 @@ class MultiIDSLoader(object):
                 msg += "\n\n => recommended indch = [{}]".format(indstr)
                 print(msg)
 
-        # ------------------
+        # ------
         # Return
         lv = [(dout, return_dict), (indchout, return_ind), (msg, return_msg)]
         lout = [vv[0] for vv in lv if vv[1] is True]
@@ -2395,38 +2340,10 @@ class MultiIDSLoader(object):
         elif len(lout) > 1:
             return lout
 
-    def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
-        Etendues, Surfaces, names = None, None, None
+    def _to_Cam_Du(self, ids, lk, indch):
         out = self.get_data(ids, sig=list(lk), indch=indch,
-                            nan=nan, pos=pos)
-        if ('los_ptsRZPhi' in out.keys()
-            and out['los_ptsRZPhi']['data'].size > 0):
-            oo = out['los_ptsRZPhi']['data']
-            D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
-                          oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
-            u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
-                          oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
-            u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
-            dgeom = (D, u)
-            indnan = np.any(np.isnan(D), axis=0) | np.any(np.isnan(u), axis=0)
-            if np.any(indnan):
-                nunav, ntot = str(indnan.sum()), str(D.shape[1])
-                msg = "Some lines of sight geometry unavailable in ids:\n"
-                msg += "    - unavailable LOS: {0} / {1}\n".format(nunav, ntot)
-                msg += "    - indices: {0}".format(str(indnan.nonzero()[0]))
-                warnings.warn(msg)
-        else:
-            dgeom = None
-
-        if 'etendue' in out.keys() and len(out['etendue']['data']) > 0:
-            Etendues = out['etendue']
-        if 'surface' in out.keys() and len(out['surface']['data']) > 0:
-            Surfaces = out['surface']
-        if 'names' in out.keys() and len(out['names']['data']) > 0:
-            names = out['names']
-        return dgeom, Etendues, Surfaces, names
-
-
+                            nan=True, pos=False, empty=True, strict=True)
+        return _comp_toobjects.cam_to_Cam_Du(out, ids=ids)
 
     def to_Cam(self, ids=None, indch=None, indch_auto=False,
                description_2d=None,
@@ -2542,9 +2459,7 @@ class MultiIDSLoader(object):
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
             lk = list(set(lk).intersection(lkok))
-            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch,
-                                                               nan=nan,
-                                                               pos=pos)
+            dgeom, Etendues, Surfaces, names = self._to_Cam_Du(ids, lk, indch)
 
             if names is not None:
                 dchans['names'] = names
@@ -2559,75 +2474,6 @@ class MultiIDSLoader(object):
         if plot:
             cam.plot_touch(draw=True)
         return cam
-
-
-    def _checkformat_Data_dsig(self, ids=None, dsig=None, data=None, X=None,
-                               datacls=None, geomcls=None):
-
-        # Check ids
-        idsok = set(self._lidsdiag).intersection(self._dids.keys())
-        if ids is None and len(idsok) == 1:
-            ids = next(iter(idsok))
-
-        if ids not in self._dids.keys():
-            msg = "Provided ids should be available as a self.dids.keys() !"
-            raise Exception(msg)
-
-        if ids not in self._lidsdiag:
-            msg = "Requested ids is not pre-tabulated !\n"
-            msg = "  => Be careful with args (dsig, datacls, geomcls)"
-            warnings.warn(msg)
-        else:
-            if datacls is None:
-                datacls = self._didsdiag[ids]['datacls']
-            if geomcls is None:
-                geomcls = self._didsdiag[ids]['geomcls']
-            if dsig is None:
-                dsig = self._didsdiag[ids]['sig']
-        if data is not None:
-            assert type(data) is str
-            dsig['data'] = data
-        if X is not None:
-            assert type(X) is str
-            dsig['X'] = X
-
-        # Check data and geom
-        import tofu.geom as tfg
-        import tofu.data as tfd
-
-        if datacls is None:
-            datacls = 'DataCam1D'
-        ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
-        if not datacls in ldata:
-            msg = "Arg datacls must be in %s"%str(ldata)
-            raise Exception(msg)
-        lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
-        if geomcls not in [False] + lgeom:
-            msg = "Arg geom must be in %s"%str([False]+lgeom)
-            raise Exception(msg)
-
-        # Check signals
-        c0 = type(dsig) is dict
-        c0 = c0 and 'data' in dsig.keys()
-        ls = ['t','X','lamb','data']
-        c0 = c0 and all([ss in ls for ss in dsig.keys()])
-        if not c0:
-            msg = "Arg dsig must be a dict with keys:\n"
-            msg += "    - 'data' : shortcut to the main data to be loaded\n"
-            msg += "    - 't':       (optional) shortcut to time vector\n"
-            msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
-            msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
-            raise Exception(msg)
-
-        dout = {}
-        lok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
-        for k, v in dsig.items():
-            if v in lok:
-                dout[k] = v
-
-        return datacls, geomcls, dout
-
-
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None,
@@ -2744,10 +2590,12 @@ class MultiIDSLoader(object):
             ids = next(iter(idsok))
 
         # dsig
-        datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
-                                                             data=data, X=X,
-                                                             datacls=datacls,
-                                                             geomcls=geomcls)
+        datacls, geomcls, dsig = _comp_toobjects.data_checkformat_dsig(
+            ids, dsig, data=data, X=X,
+            datacls=datacls, geomcls=geomcls,
+            lidsdiag=self._lidsdiag, dids=self._dids, didsdiag=self._didsdiag,
+            dshort=self._dshort, dcomp=self._dcomp)
+
         if Name is None:
             Name = 'custom'
 
@@ -3219,7 +3067,12 @@ class MultiIDSLoader(object):
             sig = -2.*sig
 
         # Safety check regarding Brightness
-        _, _, dsig_exp = self._checkformat_Data_dsig(ids)
+        _, _, dsig = _comp_toobjects.data_checkformat_dsig(
+            ids, dsig=None, data=None, X=None,
+            datacls=None, geomcls=None,
+            lidsdiag=self._lidsdiag, dids=self._dids, didsdiag=self._didsdiag,
+            dshort=self._dshort, dcomp=self._dcomp)
+
         kdata = dsig_exp['data']
         B_exp = self._dshort[ids][kdata].get('Brightness', None)
         err_comp = False

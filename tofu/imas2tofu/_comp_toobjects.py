@@ -134,10 +134,10 @@ def extra_get_fordataTrue(inds, vs, vc, out, dout,
             continue
         if out[ss]['isemtpy'] is True:
             continue
-        if ss in self._dshort[ids].keys():
-            dd = self._dshort[ids][ss]
+        if ss in dshort[ids].keys():
+            dd = dshort[ids][ss]
         else:
-            dd = self._dcomp[ids][ss]
+            dd = dcomp[ids][ss]
         label = dd.get('quant', 'unknown')
         units = out[ss]['units']
         key = '%s.%s'%(ids, ss)
@@ -496,70 +496,10 @@ def cam_compare_indch_indchr(indch, indchr, nch, indch_auto=None):
     return indch
 
 
-def inspect_channels(ids=None, occ=None, indch=None, geom=None,
-                     dsig=None, data=None, X=None, datacls=None,
-                     geomcls=None, return_dict=None, return_ind=None,
-                     return_msg=None, verb=None):
-    # ------------------
-    # Preliminary checks
-    if return_dict is None:
-        return_dict = False
-    if return_ind is None:
-        return_ind = False
-    if return_msg is None:
-        return_msg = False
-    if verb is None:
-        verb = True
-    if occ is None:
-        occ = 0
-    if geom is None:
-        geom = True
-    compute_ind = return_ind or return_msg or verb
-
-    # Check ids is relevant
-    idsok = set(self._lidsdiag).intersection(self._dids.keys())
-    if ids is None and len(idsok) == 1:
-        ids = next(iter(idsok))
-
-    # Check ids has channels (channel, gauge, ...)
-    lch = ['channel', 'gauge', 'group', 'antenna',
-           'pipe', 'reciprocating', 'bpol_probe']
-    ind = [ii for ii in range(len(lch))
-           if hasattr(self._dids[ids]['ids'][occ], lch[ii])]
-    if len(ind) == 0:
-        msg = "ids {} has no attribute with '[chan]' index!".format(ids)
-        raise Exception(msg)
-    nch = len(getattr(self._dids[ids]['ids'][0], lch[ind[0]]))
-    if nch == 0:
-        msg = ('ids {} has 0 channels:\n'.format(ids)
-               + '\t- len({}.{}) = 0\n'.format(ids, lch[ind[0]])
-               + '\t- idd: {}'.format(self._dids[ids]['idd']))
-        raise Exception(msg)
-
-
-    datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
-                                                         data=data, X=X,
-                                                         datacls=datacls,
-                                                         geomcls=geomcls)
-    if geomcls is False:
-        geom = False
-
-    # ------------------
-    # Extract sig and shapes / values
-    if geom == 'only':
-        lsig = []
-    else:
-        lsig = sorted(dsig.values())
-    lsigshape = list(lsig)
-    if geom in ['only', True] and 'LOS' in geomcls:
-        lkok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
-        lsig += [ss for ss in ['los_ptsRZPhi', 'etendue',
-                               'surface', 'names']
-                 if ss in lkok]
-
-    out = self.get_data(ids, sig=lsig,
-                        isclose=False, stack=False, nan=True,
-                        pos=False)
+def inspect_channels_dout(ids=None, indch=None, geom=None,
+                          out=None, nch=None, dshort=None,
+                          lsig=None, lsigshape=None,
+                          compute_ind=None):
     dout = {}
     for k0, v0 in out.items():
         v0 = v0['data']
@@ -580,8 +520,8 @@ def inspect_channels(ids=None, occ=None, indch=None, geom=None,
             dout[k0] = {'value': np.asarray(v0).ravel()}
         else:
             typv = type(v0[0])
-            k0str = (self._dshort[ids][k0]['str']
-                     if k0 in self._dshort[ids].keys() else k0)
+            k0str = (dshort[ids][k0]['str']
+                     if k0 in dshort[ids].keys() else k0)
             msg = ("\nUnknown data type:\n"
                    + "\ttype({}) = {}".format(k0str, typv))
             raise Exception(msg)
@@ -590,8 +530,8 @@ def inspect_channels(ids=None, occ=None, indch=None, geom=None,
     lsigshape = sorted(set(lsigshape).intersection(dout.keys()))
 
     # --------------
-    # Get ind, msg
-    ind, msg = None, None
+    # Get indchout
+    indchout = None
     if compute_ind:
         if geom in ['only', True] and 'los_ptsRZPhi' in out.keys():
             indg = ((np.prod(dout['los_ptsRZPhi']['shapes'], axis=1) == 0)
@@ -623,28 +563,108 @@ def inspect_channels(ids=None, occ=None, indch=None, geom=None,
                         indchout = indchout[inv == np.argmax(counts)]
                         lshapes = [dout[k0]['shapes'][indchout, :]
                                    for k0 in lsigshape]
-                        lshapesu = [np.unique(ss, axis=0)
-                                    for ss in lshapes]
+                        lshapesu = [np.unique(ss, axis=0) for ss in lshapes]
+    return dout, indchout
 
-    if return_msg is True or verb is True:
-        col = ['index'] + [k0 for k0 in dout.keys()]
-        ar = ([np.arange(nch)]
-              + [['{} {}'.format(tuple(v0['shapes'][ii]), 'nan')
-                  if v0['isnan'][ii] else str(tuple(v0['shapes'][ii]))
-                  for ii in range(nch)]
-                 if 'shapes' in v0.keys()
-                 else v0['value'].astype(str) for v0 in dout.values()])
-        msg = self._getcharray(ar, col, msg=True)
-        if verb is True:
-            indstr = ', '.join(map(str, indchout))
-            msg += "\n\n => recommended indch = [{}]".format(indstr)
-            print(msg)
 
-    # ------------------
-    # Return
-    lv = [(dout, return_dict), (indchout, return_ind), (msg, return_msg)]
-    lout = [vv[0] for vv in lv if vv[1] is True]
-    if len(lout) == 1:
-        return lout[0]
-    elif len(lout) > 1:
-        return lout
+def cam_to_Cam_Du(out, ids=None):
+    Etendues, Surfaces, names = None, None, None
+    if 'los_ptsRZPhi' in out.keys():
+        oo = out['los_ptsRZPhi']['data']
+        D = np.array([oo[:, 0, 0]*np.cos(oo[:, 0, 2]),
+                      oo[:, 0, 0]*np.sin(oo[:, 0, 2]), oo[:, 0, 1]])
+        u = np.array([oo[:, 1, 0]*np.cos(oo[:, 1, 2]),
+                      oo[:, 1, 0]*np.sin(oo[:, 1, 2]), oo[:, 1, 1]])
+        u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None, :]
+        dgeom = (D, u)
+        indnan = np.any(np.isnan(D), axis=0) | np.any(np.isnan(u), axis=0)
+        if np.any(indnan):
+            nunav, ntot = str(indnan.sum()), str(D.shape[1])
+            msg = ("Some lines of sight unavailable in {}:\n".format(ids)
+                   + "\t- unavailable LOS: {0} / {1}\n".format(nunav, ntot)
+                   + "\t- indices: {0}".format(str(indnan.nonzero()[0])))
+            warnings.warn(msg)
+    else:
+        dgeom = None
+
+    if 'etendue' in out.keys():
+        Etendues = out['etendue']['data']
+    if 'surface' in out.keys():
+        Surfaces = out['surface']['data']
+    if 'names' in out.keys():
+        names = out['names']['data']
+    return dgeom, Etendues, Surfaces, names
+
+
+# #############################################################################
+#                       Data
+# #############################################################################
+
+
+def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
+                          datacls=None, geomcls=None,
+                          lidsdiag=None, dids=None, didsdiag=None,
+                          dshort=None, dcomp=None):
+
+    # Check ids
+    idsok = set(lidsdiag).intersection(dids.keys())
+    if ids is None and len(idsok) == 1:
+        ids = next(iter(idsok))
+
+    if ids not in dids.keys():
+        msg = "Provided ids should be available as a self.dids.keys() !"
+        raise Exception(msg)
+
+    if ids not in lidsdiag:
+        msg = "Requested ids is not pre-tabulated !\n"
+        msg = "  => Be careful with args (dsig, datacls, geomcls)"
+        warnings.warn(msg)
+    else:
+        if datacls is None:
+            datacls = didsdiag[ids]['datacls']
+        if geomcls is None:
+            geomcls = didsdiag[ids]['geomcls']
+        if dsig is None:
+            dsig = didsdiag[ids]['sig']
+    if data is not None:
+        assert type(data) is str
+        dsig['data'] = data
+    if X is not None:
+        assert type(X) is str
+        dsig['X'] = X
+
+    # Check data and geom
+    import tofu.geom as tfg
+    import tofu.data as tfd
+
+    if datacls is None:
+        datacls = 'DataCam1D'
+    ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
+    if not datacls in ldata:
+        msg = "Arg datacls must be in %s"%str(ldata)
+        raise Exception(msg)
+    lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
+    if geomcls not in [False] + lgeom:
+        msg = "Arg geom must be in %s"%str([False]+lgeom)
+        raise Exception(msg)
+
+    # Check signals
+    c0 = type(dsig) is dict
+    c0 = c0 and 'data' in dsig.keys()
+    ls = ['t','X','lamb','data']
+    c0 = c0 and all([ss in ls for ss in dsig.keys()])
+    if not c0:
+        msg = "Arg dsig must be a dict with keys:\n"
+        msg += "    - 'data' : shortcut to the main data to be loaded\n"
+        msg += "    - 't':       (optional) shortcut to time vector\n"
+        msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
+        msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
+        raise Exception(msg)
+
+    dout = {}
+    lok = set(dshort[ids].keys()).union(dcomp[ids].keys())
+    for k, v in dsig.items():
+        if v in lok:
+            dout[k] = v
+
+    return datacls, geomcls, dout
