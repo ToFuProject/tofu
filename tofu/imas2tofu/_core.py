@@ -103,18 +103,22 @@ def check_units_IMASvsDSHORT(dshort=None,
         for k1, v1 in v0.items():
             u0 =  _comp.get_units(k0, k1, dshort=dshort)
             u1 = v1.get('units', None)
+            longstr = dshort[k0][k1]['str']
             if u0 != u1:
                 key = '{}.{}'.format(k0, k1)
-                ddiff[key] = (u0, u1)
+                ddiff[key] = (u0, u1, longstr)
 
     if verb is True:
-        msg = np.array(([('key', 'imas (dd_units)', 'tofu (dshort)')]
-                        + [(kk, vv[0], vv[1]) for kk, vv in ddiff.items()]),
+        msg = np.array(([('key', 'imas (dd_units)', 'tofu (dshort)',
+                          'long version')]
+                        + [(kk, vv[0], vv[1], vv[2])
+                           for kk, vv in ddiff.items()]),
                        dtype='U')
-        length = np.max(np.char.str_len(msg))
-        msg = np.char.ljust(msg, length)
+        length = np.max(np.char.str_len(msg), axis=0)
+        msg = np.array([np.char.ljust(msg[:, ii], length[ii])
+                        for ii in range(length.size)]).T
         msg = (' '.join([aa for aa in msg[0, :]]) + '\n'
-               + ' '.join(['-'*length for aa in [0, 1, 2]]) + '\n'
+               + ' '.join(['-'*ll for ll in length]) + '\n'
                + '\n'.join([' '.join(aa) for aa in msg[1:, :]]))
         print(msg)
     if returnas is dict:
