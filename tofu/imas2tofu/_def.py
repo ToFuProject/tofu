@@ -127,7 +127,7 @@ _dshort = {
         'ip': {'str': 'global_quantities.ip',
                'dim': 'current', 'quant': 'Ip', 'units': 'A'},
         'vloop': {'str': 'global_quantities.v_loop',
-                  'dim': 'voltage', 'quant': 'Vloop', 'units': 'V.m^-1'},
+                  'dim': 'voltage', 'quant': 'Vloop', 'units': 'V'},
 
         '1dTe': {'str': 'profiles_1d[time].electrons.temperature',
                  'dim': 'temperature',  'quant': 'Te', 'units': 'eV'},

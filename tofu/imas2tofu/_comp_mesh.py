@@ -139,7 +139,7 @@ def _rect_checkRZ(aa, name='R', shapeRZ=None):
             if shapeRZ[0] is None:
                 shapeRZ[0] = name
             assert shapeRZ[0] == name
-    return aa
+    return aa, shapeRZ
 
 def rect_checkformat(R, Z, datashape=None,
                      shapeRZ=None, ids=None):

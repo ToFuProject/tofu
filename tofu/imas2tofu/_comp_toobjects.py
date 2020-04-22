@@ -619,7 +619,7 @@ def data_checkformat_tlim(t, tlim=None,
     lc = [tlim is None,
           tlim is False,
           (isinstance(tlim, list) and len(tlim) == 2
-           and all([(type(tt) in [int, float, np.int, np.float]
+           and all([(type(tt) in [int, float, np.int_, np.float_]
                      or (isinstance(tt, str)
                          and names is not None
                          and tt in names)
@@ -725,3 +725,78 @@ def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
             dout[k] = v
 
     return datacls, geomcls, dout
+
+
+# #############################################################################
+#                       signal
+# #############################################################################
+
+
+def signal_get_synth(ids, dsig=None,
+                     quant=None, ref1d=None, ref2d=None,
+                     q2dR=None, q2dPhi=None, q2dZ=None,
+                     didsdiag=None, lidsplasma=None, dshort=None, dcomp=None):
+
+    # Check quant, ref1d, ref2d
+    dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d,
+          'q2dR':q2dR, 'q2dPhi':q2dPhi, 'q2dZ':q2dZ}
+    for kk,vv in dq.items():
+        lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
+        assert any(lc)
+        if lc[0]:
+            dq[kk] = didsdiag[ids]['synth']['dsynth'].get(kk, None)
+        if type(dq[kk]) is str:
+            dq[kk] = [dq[kk]]
+        if dq[kk] is not None:
+            for ii in range(0,len(dq[kk])):
+                v1 = tuple(dq[kk][ii].split('.'))
+                assert len(v1) == 2
+                assert v1[0] in lidsplasma
+                assert (v1[1] in dshort[v1[0]].keys()
+                        or v1[1] in dcomp[v1[0]].keys())
+                dq[kk][ii] = v1
+
+    # Check dsig
+    if dsig is None:
+        dsig = didsdiag[ids]['synth']['dsig']
+
+    for k0,v0 in dsig.items():
+        if type(v0) is not list:
+            v0 = [v0]
+        c0 = k0 in lidsplasma
+        c0 = c0 and all([type(vv) is str for vv in v0])
+        if not c0:
+            msg = "Arg dsig must be a dict (ids:[shortcut1, shortcut2...])"
+            raise Exception(msg)
+        dsig[k0] = v0
+
+    # Check dsig vs quant/ref1d/ref2d consistency
+    for kk,vv in dq.items():
+        if vv is None:
+            continue
+        for ii in range(0,len(vv)):
+            if vv[ii][0] not in dsig.keys():
+                dsig[vv[ii][0]] = []
+            if vv[ii][1] not in dsig[vv[ii][0]]:
+                dsig[vv[ii][0]].append(vv[ii][1])
+            dq[kk][ii] = '%s.%s'%tuple(vv[ii])
+
+    lq = didsdiag[ids]['synth']['dsynth'].get('fargs', None)
+    if lq is not None:
+        for qq in lq:
+            q01 = qq.split('.')
+            assert len(q01) == 2
+            if q01[0] not in dsig.keys():
+                dsig[q01[0]] = [q01[1]]
+            else:
+                dsig[q01[0]].append(q01[1])
+
+    if dq['quant'] is None and dq['q2dR'] is None and lq is None:
+        msg = "both quant and q2dR are not specified !"
+        raise Exception(msg)
+
+    # Remove unused keys
+    for kk in list(dq.keys()):
+        if dq[kk] is None:
+            del dq[kk]
+    return dsig, dq, lq

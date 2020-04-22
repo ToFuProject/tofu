@@ -2813,78 +2813,13 @@ class MultiIDSLoader(object):
         else:
             return Data
 
-
-    def _get_synth(self, ids, dsig=None,
-                   quant=None, ref1d=None, ref2d=None,
-                   q2dR=None, q2dPhi=None, q2dZ=None):
-
-        # Check quant, ref1d, ref2d
-        dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d,
-              'q2dR':q2dR, 'q2dPhi':q2dPhi, 'q2dZ':q2dZ}
-        for kk,vv in dq.items():
-            lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
-            assert any(lc)
-            if lc[0]:
-                dq[kk] = self._didsdiag[ids]['synth']['dsynth'].get(kk, None)
-            if type(dq[kk]) is str:
-                dq[kk] = [dq[kk]]
-            if dq[kk] is not None:
-                for ii in range(0,len(dq[kk])):
-                    v1 = tuple(dq[kk][ii].split('.'))
-                    assert len(v1) == 2
-                    assert v1[0] in self._lidsplasma
-                    assert (v1[1] in self._dshort[v1[0]].keys()
-                            or v1[1] in self._dcomp[v1[0]].keys())
-                    dq[kk][ii] = v1
-
-        # Check dsig
-        if dsig is None:
-            dsig = self._didsdiag[ids]['synth']['dsig']
-
-        for k0,v0 in dsig.items():
-            if type(v0) is not list:
-                v0 = [v0]
-            c0 = k0 in self._lidsplasma
-            c0 = c0 and all([type(vv) is str for vv in v0])
-            if not c0:
-                msg = "Arg dsig must be a dict (ids:[shortcut1, shortcut2...])"
-                raise Exception(msg)
-            dsig[k0] = v0
-
-        # Check dsig vs quant/ref1d/ref2d consistency
-        for kk,vv in dq.items():
-            if vv is None:
-                continue
-            for ii in range(0,len(vv)):
-                if vv[ii][0] not in dsig.keys():
-                    dsig[vv[ii][0]] = []
-                if vv[ii][1] not in dsig[vv[ii][0]]:
-                    dsig[vv[ii][0]].append(vv[ii][1])
-                dq[kk][ii] = '%s.%s'%tuple(vv[ii])
-
-        lq = self._didsdiag[ids]['synth']['dsynth'].get('fargs', None)
-        if lq is not None:
-            for qq in lq:
-                q01 = qq.split('.')
-                assert len(q01) == 2
-                if q01[0] not in dsig.keys():
-                    dsig[q01[0]] = [q01[1]]
-                else:
-                    dsig[q01[0]].append(q01[1])
-
-        if dq['quant'] is None and dq['q2dR'] is None and lq is None:
-            msg = "both quant and q2dR are not specified !"
-            raise Exception(msg)
-        return dsig, dq, lq
-
-
     def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
                     quant=None, ref1d=None, ref2d=None,
                     q2dR=None, q2dPhi=None, q2dZ=None,
                     Brightness=None, interp_t=None, newcalc=True,
-                    indch=None, indch_auto=False, Name=None,
-                    occ_cam=None, occ_plasma=None,
-                    config=None, description_2d=None,
+                    indch=None, indch_auto=False, Name=None, coefs=None,
+                    occ_cam=None, occ_plasma=None, check_units=None,
+                    config=None, description_2d=None, indevent=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
                     bck=True, fallback_X=None, nan=True, pos=None,
                     plot=True, plot_compare=None, plot_plasma=None):
@@ -2968,6 +2903,8 @@ class MultiIDSLoader(object):
         """
 
         # Check / format inputs
+        if check_units is None:
+            check_units = True
         if plot is None:
             plot = True
 
@@ -2982,7 +2919,8 @@ class MultiIDSLoader(object):
         if plot and plot_compare:
             data, indch = self.to_Data(ids, indch=indch,
                                        indch_auto=indch_auto, t0=t0,
-                                       config=config,
+                                       config=config, tlim=tlim,
+                                       indevent=indevent,
                                        description_2d=description_2d,
                                        return_indch=True, plot=False)
 
@@ -2993,14 +2931,19 @@ class MultiIDSLoader(object):
                           plot=False, nan=True, pos=None)
 
         # Get relevant parameters
-        dsig, dq, lq = self._get_synth(ids, dsig, quant, ref1d, ref2d,
-                                       q2dR, q2dPhi, q2dZ)
+        dsig, dq, lq = _comp_toobjects.signal_get_synth(
+            ids, dsig,
+            quant, ref1d, ref2d, q2dR, q2dPhi, q2dZ,
+            didsdiag=self._didsdiag, lidsplasma=self._lidsplasma,
+            dshort=self._dshort, dcomp=self._dcomp)
 
         # Get relevant plasma
-        plasma = self.to_Plasma2D(tlim=tlim, dsig=dsig, t0=t0,
+        plasma = self.to_Plasma2D(tlim=tlim, indevent=indevent,
+                                  dsig=dsig, t0=t0,
                                   Name=None, occ=occ_plasma,
                                   config=cam.config, out=object,
-                                  plot=False, dextra=dextra, nan=True, pos=None)
+                                  plot=False, dextra=dextra,
+                                  nan=True, pos=None)
 
         # Intermediate computation if necessary
         ani = False
@@ -3075,6 +3018,25 @@ class MultiIDSLoader(object):
             if vv is not None:
                 dq[kk] = vv[0]
 
+        # Check units of integrated field
+        if check_units is True:
+            if 'quant' in dq.keys():
+                units_input = plasma._ddata[dq['quant']]['units']
+            else:
+                units_input = plasma._ddata[dq['q2dR']]['units']
+            if any([ss in units_input for ss in ['W', 'ph', 'photons']]):
+                if 'sr^-1' not in units_input:
+                    dq['coefs'] = 1./(4.*np.pi)
+        if ids == 'interferometer':
+            # For intereferometers, the data corresponds to 2 laser passages
+            dq['coefs'] = 2.
+        if ids == 'polarimeter':
+            # For polarimeter, the vect is along the LOS
+            # it is not the direction of
+            dq['coefs'] = -2.
+        if coefs is not None:
+            dq['coefs'] = dq.get('coefs', 1.)*coefs
+
         # Calculate synthetic signal
         if Brightness is None:
             Brightness = self._didsdiag[ids]['synth'].get('Brightness', None)
@@ -3083,18 +3045,12 @@ class MultiIDSLoader(object):
                                                    Brightness=Brightness,
                                                    newcalc=newcalc,
                                                    plot=False, **dq)
+        # import pdb; pdb.set_trace() # DB
 
         sig._dextra = plasma.get_dextra(dextra)
 
-        if ids == 'interferometer':
-            sig = 2.*sig
-        elif ids == 'polarimeter':
-            # For polarimeter, the vect is along the LOS
-            # it is not the direction of
-            sig = -2.*sig
-
         # Safety check regarding Brightness
-        _, _, dsig = _comp_toobjects.data_checkformat_dsig(
+        _, _, dsig_exp = _comp_toobjects.data_checkformat_dsig(
             ids, dsig=None, data=None, X=None,
             datacls=None, geomcls=None,
             lidsdiag=self._lidsdiag, dids=self._dids, didsdiag=self._didsdiag,
@@ -3127,13 +3083,10 @@ class MultiIDSLoader(object):
                 data.plot_compare(sig)
             else:
                 sig.plot()
-            if plot_plasma and dq['quant'] is not None and '1d' in dq['quant']:
+            if (plot_plasma
+                and dq.get('quant') is not None and '1d' in dq['quant']):
                 plasma.plot(dq['quant'], X=dq['ref1d'])
         return sig
-
-
-
-
 
 
 #############################################################
