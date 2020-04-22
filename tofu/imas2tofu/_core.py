@@ -1705,17 +1705,6 @@ class MultiIDSLoader(object):
             errshot=errshot, errExp=errExp, upper=upper,
             dids=self._dids, didd=self._didd)
 
-    @staticmethod
-    def _checkformat_tlim(t, tlim=None):
-        # Extract time indices and vector
-        indt = np.ones((t.size,), dtype=bool)
-        if tlim is not None:
-            indt[(t<tlim[0]) | (t>tlim[1])] = False
-        t = t[indt]
-        indt = np.nonzero(indt)[0]
-        nt = t.size
-        return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
-
     def _get_t0(self, t0=None, ind=None):
         if ind is None:
             ind = False
@@ -2008,7 +1997,8 @@ class MultiIDSLoader(object):
                 nt = out_['t']['data'].size
                 keyt = '{}.t'.format(ids)
 
-                dtt = self._checkformat_tlim(out_['t']['data'], tlim=tlim)
+                dtt = _comp_toobjects.data_checkformat_tlim(out_['t']['data'],
+                                                            tlim=tlim)
                 dtime[keyt] = {'data': dtt['t'],
                                'origin': ids, 'name': 't'}
                 indt = dtt['indt']
@@ -2471,7 +2461,7 @@ class MultiIDSLoader(object):
                                  dchans=dchans)
         cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
-        if plot:
+        if plot is True:
             cam.plot_touch(draw=True)
         return cam
 
@@ -2479,7 +2469,8 @@ class MultiIDSLoader(object):
                 indch=None, indch_auto=False, Name=None, occ=None,
                 config=None, description_2d=None,
                 dextra=None, t0=None, indt0=None, datacls=None, geomcls=None,
-                plot=True, bck=True, fallback_X=None, nan=True, pos=None,
+                plot=True, bck=True, fallback_X=None,
+                nan=True, pos=None, empty=None, strict=None,
                 return_indch=False):
         """ Export the content of a diagnostic ids as a tofu DataCam1D instance
 
@@ -2649,7 +2640,7 @@ class MultiIDSLoader(object):
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk_geom = list(set(lk_geom).intersection(lkok))
                 dgeom, Etendues, Surfaces, names = self._to_Cam_Du(
-                    ids, lk_geom, indch, nan=nan, pos=pos)
+                    ids, lk_geom, indch)
 
         # ----------
         # Get time
@@ -2666,7 +2657,8 @@ class MultiIDSLoader(object):
         # ----------
         # Get data
         out = self.get_data(ids, sig=dsig['data'],
-                            indch=indch, nan=nan, pos=pos)
+                            indch=indch, nan=nan, pos=pos,
+                            empty=empty, strict=strict)
         if len(out[dsig['data']]['data']) == 0:
             msgstr = self._dshort[ids]['data']['str']
             msg = ("The data array is not available for {}:\n".format(ids)
@@ -2681,7 +2673,7 @@ class MultiIDSLoader(object):
             assert np.all(np.isclose(t, t[0:1, :]))
             t = t[0, :]
         dins['t'] = t
-        indt = self._checkformat_tlim(t, tlim=tlim)['indt']
+        indt = _comp_toobjects.data_checkformat_tlim(t, tlim=tlim)['indt']
 
         # -----------
         # Get data
@@ -2706,8 +2698,8 @@ class MultiIDSLoader(object):
             if out[dsig[kk]]['data'].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
                     if np.allclose(out[dsig[kk]]['data'],
-                                   out[dsig[kk]]['data'][:,0:1]):
-                        dins[kk] = out[dsig[kk]]['data'][:,0]
+                                   out[dsig[kk]]['data'][:, 0:1]):
+                        dins[kk] = out[dsig[kk]]['data'][:, 0]
                     else:
                         dins[kk] = out[dsig[kk]]['data']
                 else:
@@ -2715,7 +2707,7 @@ class MultiIDSLoader(object):
 
             elif out[dsig[kk]]['data'].ndim == 3:
                 assert kk == 'data'
-                dins[kk] = np.swapaxes(out[dsig[kk]]['data'].T, 1,2)
+                dins[kk] = np.swapaxes(out[dsig[kk]]['data'].T, 1, 2)
 
         # --------------------------
         # Format special ids cases
@@ -2742,11 +2734,8 @@ class MultiIDSLoader(object):
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)
         for kk in lk:
-            dins['dlabels'][kk] = {'name':dsig[kk]}
-            if dsig[kk] in self._dshort[ids].keys():
-                dins['dlabels'][kk]['units'] = self._dshort[ids][dsig[kk]].get('units', 'a.u.')
-            else:
-                dins['dlabels'][kk]['units'] = self._dcomp[ids][dsig[kk]].get('units', 'a.u.')
+            dins['dlabels'][kk] = {'name': dsig[kk], 'units':
+                                   out[dsig[kk]]['units']}
 
         # dextra
         dextra = self._get_dextra(dextra, fordata=True)

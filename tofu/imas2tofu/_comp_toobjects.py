@@ -132,7 +132,7 @@ def extra_get_fordataTrue(inds, vs, vc, out, dout,
         ss = vs[ii]
         if ss == 't':
             continue
-        if out[ss]['isemtpy'] is True:
+        if out[ss]['isempty'] is True:
             continue
         if ss in dshort[ids].keys():
             dd = dshort[ids][ss]
@@ -143,7 +143,7 @@ def extra_get_fordataTrue(inds, vs, vc, out, dout,
         key = '%s.%s'%(ids, ss)
 
         if 'sep' == ss.split('.')[-1].lower():
-            out[ss] = np.swapaxes(out[ss]['data'], 1, 2)
+            out[ss]['data'] = np.swapaxes(out[ss]['data'], 1, 2)
 
         datastr = 'data'
         if any([ss.split('.')[-1].lower() == s0 for s0 in
@@ -599,6 +599,17 @@ def cam_to_Cam_Du(out, ids=None):
 # #############################################################################
 #                       Data
 # #############################################################################
+
+
+def data_checkformat_tlim(t, tlim=None):
+    # Extract time indices and vector
+    indt = np.ones((t.size,), dtype=bool)
+    if tlim is not None:
+        indt[(t<tlim[0]) | (t>tlim[1])] = False
+    t = t[indt]
+    indt = np.nonzero(indt)[0]
+    nt = t.size
+    return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
 
 
 def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
