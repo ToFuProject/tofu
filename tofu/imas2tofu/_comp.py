@@ -274,8 +274,9 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
             isempty[ii] = (len(data[ii]) == 0
                            or (isinstance(data[ii], np.ndarray)
                                and (data[ii].size == 0
-                                    or 0 in data[ii].shape
-                                    or bool(np.all(np.isnan(data[ii]))))))
+                                    or 0 in data[ii].shape)))
+            if isinstance(data[ii], np.ndarray) and data[ii].dtype.kind != 'U':
+                isempty[ii] &= bool(np.all(np.isnan(data[ii])))
     return data, isempty
 
 

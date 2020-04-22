@@ -601,15 +601,61 @@ def cam_to_Cam_Du(out, ids=None):
 # #############################################################################
 
 
-def data_checkformat_tlim(t, tlim=None):
-    # Extract time indices and vector
+def data_checkformat_tlim(t, tlim=None,
+                          names=None, times=None, indevent=None,
+                          returnas=bool):
+    # Check inputs
+    if indevent is None:
+        indevent = 0
+    if names is not None:
+        names = np.char.strip(names)
+    if returnas is None:
+        returnas = bool
+    if returnas not in [bool, int]:
+        msg = ("Arg returnas must be in [bool, int]\n"
+               + "\t- provided: {}".format(retrunas))
+        raise Exception(msg)
+    assert returnas in [bool, int]
+    lc = [tlim is None,
+          tlim is False,
+          (isinstance(tlim, list) and len(tlim) == 2
+           and all([(type(tt) in [int, float, np.int, np.float]
+                     or (isinstance(tt, str)
+                         and names is not None
+                         and tt in names)
+                     or tt is None) for tt in tlim]))]
+
+    if not any(lc):
+        msg = ("tlim must be either:\n"
+               + "\t- None:  set to default (False)\n"
+               + "\t- False: no time limit\n"
+               + "\t- list:  a list of 2, lower and upper limits [t0, t1]:\n"
+               + "\t\t- [None, float]: no lower, explicit upper limit\n"
+               + "\t\t- [float, float]: explicit lower and upper limit\n"
+               + "\t\t- [float, str]: explicit lower, event name for upper\n\n"
+               + "  You provided: {}".format(tlim))
+        if names is not None:
+            if any([isinstance(tt, str) and tt not in names for tt in tlim]):
+                msg += '\n\nAvailable events:\n' + str(names)
+        raise Exception(msg)
+    if tlim is None:
+        tlim = False
+
+    # Compute
     indt = np.ones((t.size,), dtype=bool)
-    if tlim is not None:
-        indt[(t<tlim[0]) | (t>tlim[1])] = False
+    if tlim is not False:
+        for ii in range(len(tlim)):
+            if isinstance(tlim[ii], str):
+                ind = (names == tlim[ii]).nonzero()[0][indevent]
+                tlim[ii] = times[ind]
+        if tlim[0] is not None:
+            indt[t < tlim[0]] = False
+        if tlim[1] is not None:
+            indt[t > tlim[1]] = False
     t = t[indt]
-    indt = np.nonzero(indt)[0]
-    nt = t.size
-    return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
+    if returnas is int:
+        indt = np.nonzero(indt)[0]
+    return {'tlim': tlim, 'nt': t.size, 't': t, 'indt': indt}
 
 
 def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,

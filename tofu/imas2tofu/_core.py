@@ -1671,17 +1671,21 @@ class MultiIDSLoader(object):
         assert returnas in [False, list, tuple]
 
         # Get events and sort
-        events = self.get_data('pulse_schedule',
-                               sig=['events_names', 'events_times'],
-                               occ=occ)
-        name, time = [vv['data'] for vv in events.values()]
-        tunits = events['events_times']['units']
-        ind = np.argsort(time)
-        name, time = name[ind], time[ind]
+        names = self.get_data('pulse_schedule', sig='events_names',
+                               occ=occ, nan=False, pos=False, stack=True,
+                               empty=True, strict=True)['events_names']['data']
+        times = self.get_data('pulse_schedule',
+                               sig='events_times',
+                               occ=occ, nan=True, pos=False, stack=True,
+                               empty=True, strict=True)['events_times']
+        tunits = times['units']
+        times = times['data']
+        ind = np.argsort(times)
+        names, times = names[ind], times[ind]
 
         # print and / or return as list / tuple
         if verb:
-            msg = np.array([range(time.size), name, time], dtype='U').T
+            msg = np.array([range(times.size), names, times], dtype='U').T
             length = np.nanmax(np.char.str_len(msg))
             msg = np.char.ljust(msg, length)
             msg = ('index'.ljust(length) + ' name'.ljust(length)
@@ -1690,9 +1694,9 @@ class MultiIDSLoader(object):
                    + '\n'.join([' '.join(aa) for aa in msg]))
             print(msg)
         if returnas is list:
-            return list(zip(name, time))
+            return list(zip(names, times))
         elif returnas is tuple:
-            return name, time
+            return names, times
 
     #---------------------
     # Methods for exporting to tofu objects
@@ -1861,7 +1865,7 @@ class MultiIDSLoader(object):
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None, indt0=None,
                     Name=None, occ=None, config=None, out=object,
-                    description_2d=None,
+                    description_2d=None, indevent=None,
                     plot=None, plot_sig=None, plot_X=None,
                     bck=True, dextra=None, isclose=None, nan=True,
                     pos=None, empty=None, strict=None,
@@ -1997,8 +2001,8 @@ class MultiIDSLoader(object):
                 nt = out_['t']['data'].size
                 keyt = '{}.t'.format(ids)
 
-                dtt = _comp_toobjects.data_checkformat_tlim(out_['t']['data'],
-                                                            tlim=tlim)
+                dtt = self.get_tlim(out_['t']['data'], tlim=tlim,
+                                    indevent=indevent, returnas=int)
                 dtime[keyt] = {'data': dtt['t'],
                                'origin': ids, 'name': 't'}
                 indt = dtt['indt']
@@ -2465,13 +2469,42 @@ class MultiIDSLoader(object):
             cam.plot_touch(draw=True)
         return cam
 
+    def get_tlim(self, t=None, tlim=None, indevent=None, returnas=None):
+        """ Retrun the time indices corresponding to the desired time limts
+
+        Return a dict with:
+            'tlim': the requested time interval as a list of len = 2
+            't':    the resulting time vector
+            'nt':   the rersulting number of time steps
+            'indt': the resulting time index
+
+        The indices 'indt' can be returned as a bool or int array
+
+        tlim can be:
+            - False: no time limit
+            - None: set to default (False)
+            - a list [t0, t1] of len = 2, where t0 and t1 can be:
+                None : no lower / upper limit
+                float: a time value
+                str:    a valid event name from ids pulse_schedule
+
+        """
+        names, times = None, None
+        if isinstance(tlim, list):
+            if any([isinstance(tt, str) for tt in tlim]):
+                names, times = self.get_events(verb=False, returnas=tuple)
+        return _comp_toobjects.data_checkformat_tlim(t, tlim=tlim,
+                                                     names=names, times=times,
+                                                     indevent=indevent,
+                                                     returnas=returnas)
+
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None,
                 config=None, description_2d=None,
                 dextra=None, t0=None, indt0=None, datacls=None, geomcls=None,
                 plot=True, bck=True, fallback_X=None,
                 nan=True, pos=None, empty=None, strict=None,
-                return_indch=False):
+                return_indch=False, indevent=None):
         """ Export the content of a diagnostic ids as a tofu DataCam1D instance
 
         Some ids contain the geometry and data of a diagnostics
@@ -2673,7 +2706,8 @@ class MultiIDSLoader(object):
             assert np.all(np.isclose(t, t[0:1, :]))
             t = t[0, :]
         dins['t'] = t
-        indt = _comp_toobjects.data_checkformat_tlim(t, tlim=tlim)['indt']
+        indt = self.get_tlim(t, tlim=tlim,
+                             indevent=indevent, returnas=int)['indt']
 
         # -----------
         # Get data
