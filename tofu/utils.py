@@ -686,7 +686,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldlines']
+    lidscustom = ['magfieldlines', 'events']
     lidsout = [ids_ for ids_ in ids
                if (ids_ is not None and ids_ not in lidsok+lidscustom)]
     if len(lidsout) > 0:
@@ -836,6 +836,14 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
                                     .format(shot[0], t[0]))
         return dax
+
+    elif ids == ['events']:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids='pulse_schedule', ids_base=False)
+        multi.get_events(verb=True)
+        return
+
 
 
     # -------------------
