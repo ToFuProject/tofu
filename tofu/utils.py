@@ -1054,7 +1054,7 @@ def calc_from_imas(
     dsig=None, data=None, X=None, t0=None, dextra=None,
     Brightness=None, res=None, interp_t=None, extra=None,
     plot=None, plot_compare=True, sharex=False,
-    input_file=None, output_file=None,
+    input_file=None, output_file=None, coefs=None,
     bck=True, indch_auto=True, t=None, init=None
 ):
     """ Calculate syntehtic signal for a diagnostic
@@ -1304,7 +1304,7 @@ def calc_from_imas(
                                       interp_t=interp_t,
                                       indch_auto=indch_auto,
                                       t0=t0, dextra=dextra,
-                                      plot=True,
+                                      coefs=coefs, plot=True,
                                       plot_compare=plot_compare)
 
     else:
@@ -1339,6 +1339,7 @@ def calc_from_imas(
                                                 quant='core_profiles.1dbrem',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
+                                                coefs=coefs,
                                                 Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:

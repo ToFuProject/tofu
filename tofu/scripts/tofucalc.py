@@ -13,7 +13,7 @@ plt.ioff()
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
-_TOFUPATH = os.path.dirname(os.path.dirname(_TOFUPATH))
+_TOFUPATH = os.path.dirname(os.path.dirname(_HERE))
 istofugit = False
 if '.git' in os.listdir(_TOFUPATH) and 'tofu' in _TOFUPATH:
     istofugit = True
@@ -71,10 +71,12 @@ _USER = _defscripts._TFCALC_USER
 _TOKAMAK = _defscripts._TFCALC_TOKAMAK
 _VERSION = _defscripts._TFCALC_VERSION
 _T0 = _defscripts._TFCALC_T0
+_TLIM = None
 _SHAREX = _defscripts._TFCALC_SHAREX
 _BCK = _defscripts._TFCALC_BCK
 _EXTRA = _defscripts._TFCALC_EXTRA
 _INDCH_AUTO = _defscripts._TFCALC_INDCH_AUTO
+_COEFS = None
 
 # Non user-customizable
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
@@ -104,15 +106,21 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                     shot_eq=None, run_eq=None,
                     tokamak_prof=None, user_prof=None,
                     shot_prof=None, run_prof=None,
-                    ids=None, t0=_T0, extra=_EXTRA,
+                    ids=None, t0=_T0, tlim=_TLIM, extra=_EXTRA,
                     plot_compare=True, Brightness=None,
-                    res=None, interp_t=None,
+                    res=None, interp_t=None, coefs=_COEFS,
                     sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
                     input_file=None, output_file=None,
                     background=_BCK):
 
     if t0.lower() == 'none':
         t0 = None
+    if tlim is not None and len(tlim) == 1:
+        tlim = [tlim, None]
+    if tlim is not None and len(tlim) != 2:
+        msg = ("tlim must contain 2 limits:\n"
+               + "\t- provided: {}".format(tlim))
+        raise Exception(msg)
 
     tf.calc_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
@@ -121,7 +129,8 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
                       tokamak_prof=tokamak_prof, user_prof=user_prof,
                       shot_prof=shot_prof, run_prof=run_prof,
                       ids=ids, indch=indch, indch_auto=indch_auto,
-                      plot_compare=plot_compare, extra=extra,
+                      plot_compare=plot_compare, extra=extra, coefs=coefs,
+                      tlim=tlim,
                       Brightness=Brightness, res=res, interp_t=interp_t,
                       input_file=input_file, output_file=output_file,
                       t0=t0, plot=None, sharex=sharex, bck=background)
@@ -135,15 +144,28 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
 #       bash call (main)
 ###################################################
 
+
 def _str2bool(v):
-    if isinstance(v,bool):
+    if isinstance(v, bool):
         return v
-    elif v.lower() in ['yes','true','y','t','1']:
+    elif v.lower() in ['yes', 'true', 'y', 't', '1']:
         return True
-    elif v.lower() in ['no','false','n','f','0']:
+    elif v.lower() in ['no', 'false', 'n', 'f', '0']:
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected !')
+
+
+def _str2tlim(v):
+    c0 = (v.isdigit()
+          or ('.' in v
+              and len(v.split('.')) == 2
+              and all([vv.isdigit() for vv in v.split('.')])))
+    if c0 is True:
+        v = float(v)
+    elif v.lower() == 'none':
+        v = None
+    return v
 
 
 # if __name__ == '__main__':
@@ -212,6 +234,13 @@ def main():
                         default=None)
     parser.add_argument('-t0', '--t0', type=str, required=False,
                         help='Reference time event setting t = 0', default=_T0)
+    parser.add_argument('-tl', '--tlim', type=_str2tlim,
+                        required=False,
+                        help='limits of the time interval',
+                        nargs='+', default=_TLIM)
+    parser.add_argument('-c', '--coefs', type=float, required=False,
+                        help='Corrective coefficient, if any',
+                        default=_COEFS)
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
