@@ -2496,7 +2496,8 @@ class MultiIDSLoader(object):
         """
         names, times = None, None
         c0 = (isinstance(tlim, list)
-              and all([type(tt) in [float, int, np.float_, np.int_]]))
+              and all([type(tt) in [float, int, np.float_, np.int_]
+                       for tt in tlim]))
         if not c0:
             names, times = self.get_events(verb=False, returnas=tuple)
         if 'pulse_schedule' in self._dids.keys():
