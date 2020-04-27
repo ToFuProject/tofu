@@ -31,7 +31,7 @@ def _check_shotExp_consistency(didd, lidd, tofustr='shot', imasstr='shot',
                 else:
                     warnings.warn(msg)
     if crit is None:
-        crit  = fallback
+        crit = fallback
     return crit
 
 
@@ -104,9 +104,9 @@ def extra_checkformat(dextra, fordata=None,
                                            ('power1', (1., 0., 0.)), 't']})
         if 'ic_antennas' in dids.keys():
             dextra.update({'ic_antennas': [
-                ('power0', (0. ,0. ,0.8)),
-                ('power1', (0. ,0. ,1.)),
-                ('power2', (0. ,0. ,0.9)), 't']})
+                ('power0', (0., 0., 0.8)),
+                ('power1', (0., 0., 1.)),
+                ('power2', (0., 0., 0.9)), 't']})
     if type(dextra) is str:
         dextra = [dextra]
     if type(dextra) is list:
@@ -115,11 +115,11 @@ def extra_checkformat(dextra, fordata=None,
             lids = [ids for ids in dids.keys()
                     if ee in dshort[ids].keys()]
             if len(lids) != 1:
-                msg = "No / multiple matches:\n"
-                msg = "extra %s not available from self._dshort"%ee
+                msg = ("No / multiple matches:\n"
+                       + "extra {} not available from self._dshort".format(ee))
                 raise Exception(msg)
             if lids[0] not in dex.keys():
-                dex = {lids[0]:[ee]}
+                dex = {lids[0]: [ee]}
             else:
                 dex[lids[0]].append(ee)
         dextra = dex
@@ -140,14 +140,13 @@ def extra_get_fordataTrue(inds, vs, vc, out, dout,
             dd = dcomp[ids][ss]
         label = dd.get('quant', 'unknown')
         units = out[ss]['units']
-        key = '%s.%s'%(ids, ss)
+        key = '{}.{}'.format(ids, ss)
 
         if 'sep' == ss.split('.')[-1].lower():
             out[ss]['data'] = np.swapaxes(out[ss]['data'], 1, 2)
 
         datastr = 'data'
-        if any([ss.split('.')[-1].lower() == s0 for s0 in
-                ['sep','ax','x']]):
+        if any([ss.split('.')[-1].lower() == s0 for s0 in ['sep', 'ax', 'x']]):
             datastr = 'data2D'
 
         dout[key] = {'t': out['t']['data'],
@@ -171,7 +170,7 @@ def extra_get_fordataFalse(out, d0d, dt0,
         dim = dd.get('dim', 'unknown')
         quant = dd.get('quant', 'unknown')
         units = out[ss]['units']
-        key = '%s.%s'%(ids, ss)
+        key = '{}.{}'.format(ids, ss)
 
         if 'sep' == ss.split('.')[-1].lower():
             out[ss]['data'] = np.swapaxes(out[ss]['data'], 1, 2)
@@ -358,34 +357,33 @@ def plasma_checkformat_dsig(dsig=None,
         lkeysok = sorted(set(list(dshort[k0].keys())
                              + list(dcomp[k0].keys())))
         if k0 not in lidsok:
-            msg = "Only the following ids are relevant to Plasma2D:\n"
-            msg += "    - %s"%str(lidsok)
-            msg += "  => ids %s from dsig is ignored"%str(k0)
+            msg = ("Only the following ids are relevant to Plasma2D:\n"
+                   + "\t- {}\n".format(lidsok)
+                   + "  => ids {} from dsig is ignored".format(k0))
             warnings.warn(msg)
             continue
         lc = [v0 is None, type(v0) is str, type(v0) is list]
         if not any(lc):
-            msg = "Each value in dsig must be either:\n"
-            msg += "    - None\n"
-            msg += "    - str : a valid shortcut\n"
-            msg += "    - list of str: list of valid shortcuts\n"
-            msg += "You provided:\n"
-            msg += str(dsig)
+            msg = ("Each value in dsig must be either:\n"
+                   + "\t- None\n"
+                   + "\t- str : a valid shortcut\n"
+                   + "\t- list of str: list of valid shortcuts\n"
+                   + "You provided:\n{}".format(dsig))
             raise Exception(msg)
         if lc[0]:
             dsig[k0] = lkeysok
         if lc[1]:
             dsig[k0] = [dsig[k0]]
         if not all([ss in lkeysok for ss in dsig[k0]]):
-            msg = "All requested signals must be valid shortcuts !\n"
-            msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
+            msg = ("All requested signals must be valid shortcuts !\n"
+                   + "    - dsig[{}] = {}".format(k0, dsig[k0]))
             raise Exception(msg)
 
         # Check presence of minimum
         lc = [ss for ss in lscom if ss not in dsig[k0]]
         if len(lc) > 0:
-            msg = "dsig[%s] does not have %s\n"%(k0,str(lc))
-            msg += "    - dsig[%s] = %s"%(k0,str(dsig[k0]))
+            msg = ("dsig[{}] does not have {}\n".format(k0, lc)
+                   + "    - dsig[{}] = {}".format(k0, dsig[k0]))
             raise Exception(msg)
         if any(['2d' in ss for ss in dsig[k0]]):
             for ss in lsmesh:
@@ -407,7 +405,7 @@ def plasma_plot_args(plot, plot_X, plot_sig,
             lsplot = [ss for ss in list(dsig.values())[0]
                       if ('1d' in ss and ss != 't'
                           and all([sub not in ss
-                                   for sub in ['rho','psi','phi']]))]
+                                   for sub in ['rho', 'psi', 'phi']]))]
             if not (len(dsig) == 1 and len(lsplot) == 1):
                 msg = ("Direct plotting only possible if\n"
                        + "sig_plot is provided, or can be derived from:\n"
@@ -423,7 +421,7 @@ def plasma_plot_args(plot, plot_X, plot_sig,
             lsplot = [ss for ss in list(dsig.values())[0]
                       if ('1d' in ss and ss != 't'
                           and any([sub in ss
-                                   for sub in ['rho','psi','phi']]))]
+                                   for sub in ['rho', 'psi', 'phi']]))]
             if not (len(dsig) == 1 and len(lsplot) == 1):
                 msg = ("Direct plotting only possible if\n"
                        + "X_plot is provided, or can be derived from:\n"
@@ -698,24 +696,24 @@ def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
         datacls = 'DataCam1D'
     ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
     if not datacls in ldata:
-        msg = "Arg datacls must be in %s"%str(ldata)
+        msg = "Arg datacls must be in {}".format(ldata)
         raise Exception(msg)
     lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
     if geomcls not in [False] + lgeom:
-        msg = "Arg geom must be in %s"%str([False]+lgeom)
+        msg = "Arg geom must be in {}".format([False] + lgeom)
         raise Exception(msg)
 
     # Check signals
     c0 = type(dsig) is dict
     c0 = c0 and 'data' in dsig.keys()
-    ls = ['t','X','lamb','data']
+    ls = ['t', 'X', 'lamb', 'data']
     c0 = c0 and all([ss in ls for ss in dsig.keys()])
     if not c0:
-        msg = "Arg dsig must be a dict with keys:\n"
-        msg += "    - 'data' : shortcut to the main data to be loaded\n"
-        msg += "    - 't':       (optional) shortcut to time vector\n"
-        msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
-        msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
+        msg = ("Arg dsig must be a dict with keys:\n"
+               + "\t- 'data' : shortcut to the main data to be loaded\n"
+               + "\t- 't':       (optional) shortcut to time vector\n"
+               + "\t- 'X':       (optional) shortcut to abscissa vector\n"
+               + "\t- 'lamb':    (optional) shortcut to wavelengths")
         raise Exception(msg)
 
     dout = {}
@@ -738,17 +736,17 @@ def signal_get_synth(ids, dsig=None,
                      didsdiag=None, lidsplasma=None, dshort=None, dcomp=None):
 
     # Check quant, ref1d, ref2d
-    dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d,
-          'q2dR':q2dR, 'q2dPhi':q2dPhi, 'q2dZ':q2dZ}
-    for kk,vv in dq.items():
-        lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
+    dq = {'quant': quant, 'ref1d': ref1d, 'ref2d': ref2d,
+          'q2dR': q2dR, 'q2dPhi': q2dPhi, 'q2dZ': q2dZ}
+    for kk, vv in dq.items():
+        lc = [vv is None, type(vv) is str, type(vv) in [list, tuple]]
         assert any(lc)
         if lc[0]:
             dq[kk] = didsdiag[ids]['synth']['dsynth'].get(kk, None)
         if type(dq[kk]) is str:
             dq[kk] = [dq[kk]]
         if dq[kk] is not None:
-            for ii in range(0,len(dq[kk])):
+            for ii in range(0, len(dq[kk])):
                 v1 = tuple(dq[kk][ii].split('.'))
                 assert len(v1) == 2
                 assert v1[0] in lidsplasma
@@ -760,7 +758,7 @@ def signal_get_synth(ids, dsig=None,
     if dsig is None:
         dsig = didsdiag[ids]['synth']['dsig']
 
-    for k0,v0 in dsig.items():
+    for k0, v0 in dsig.items():
         if type(v0) is not list:
             v0 = [v0]
         c0 = k0 in lidsplasma
@@ -771,15 +769,15 @@ def signal_get_synth(ids, dsig=None,
         dsig[k0] = v0
 
     # Check dsig vs quant/ref1d/ref2d consistency
-    for kk,vv in dq.items():
+    for kk, vv in dq.items():
         if vv is None:
             continue
-        for ii in range(0,len(vv)):
+        for ii in range(0, len(vv)):
             if vv[ii][0] not in dsig.keys():
                 dsig[vv[ii][0]] = []
             if vv[ii][1] not in dsig[vv[ii][0]]:
                 dsig[vv[ii][0]].append(vv[ii][1])
-            dq[kk][ii] = '%s.%s'%tuple(vv[ii])
+            dq[kk][ii] = '{}.{}'.format(tuple(vv[ii]))
 
     lq = didsdiag[ids]['synth']['dsynth'].get('fargs', None)
     if lq is not None:
