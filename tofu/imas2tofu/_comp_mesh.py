@@ -6,8 +6,6 @@ import os
 import numpy as np
 
 
-
-
 # #############################################################################
 #                   Triangular meshes
 # #############################################################################
@@ -43,7 +41,7 @@ def tri_checkformat_NodesFaces(nodes, indfaces, ids=None):
     facesuu = np.unique(facesu)
     lc = [nodesu.shape[0] != nnodes,
           facesu.shape[0] != nfaces,
-          facesuu.size != nnodes or np.any(facesuu != np.arange(0,nnodes))]
+          facesuu.size != nnodes or np.any(facesuu != np.arange(0, nnodes))]
     if any(lc):
         msg = "Non-valid mesh in {}:\n".format(ids)
         if lc[0]:
@@ -60,8 +58,8 @@ def tri_checkformat_NodesFaces(nodes, indfaces, ids=None):
                     + "\t- duplicate facess indices: {}\n".format(dupf))
         if lc[2]:
             nfu = facesuu.size
-            nodnotf = [ii for ii in range(0,nnodes) if ii not in facesuu]
-            fnotn = [ii for ii in facesuu if ii < 0 or  ii >= nnodes]
+            nodnotf = [ii for ii in range(0, nnodes) if ii not in facesuu]
+            fnotn = [ii for ii in facesuu if ii < 0 or ii >= nnodes]
             msg += ("  Non-bijective nodes indices vs faces:\n"
                     + "\t- nb. nodes: {}\n".format(nnodes)
                     + "\t- nb. unique nodes index in faces: {}\n".format(nfu)
@@ -71,7 +69,7 @@ def tri_checkformat_NodesFaces(nodes, indfaces, ids=None):
 
     # Test for unused nodes
     facesu = np.unique(indfaces)
-    c0 = np.all(facesu>=0) and facesu.size == nnodes
+    c0 = np.all(facesu >= 0) and facesu.size == nnodes
     if not c0:
         indnot = [ii for ii in range(0, nnodes) if ii not in facesu]
         msg = ("Some nodes not used in mesh of ids {}:\n".format(ids)
@@ -91,7 +89,6 @@ def tri_checkformat_NodesFaces(nodes, indfaces, ids=None):
         ntri = 2
     else:
         ntri = 1
-
 
     # Check orientation
     x, y = nodes[indfaces, 0], nodes[indfaces, 1]
@@ -140,6 +137,7 @@ def _rect_checkRZ(aa, name='R', shapeRZ=None):
                 shapeRZ[0] = name
             assert shapeRZ[0] == name
     return aa, shapeRZ
+
 
 def rect_checkformat(R, Z, datashape=None,
                      shapeRZ=None, ids=None):
