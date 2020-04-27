@@ -686,7 +686,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldlines', 'events']
+    lidscustom = ['magfieldlines', 'events', 'shortcuts']
     lidsout = [ids_ for ids_ in ids
                if (ids_ is not None and ids_ not in lidsok+lidscustom)]
     if len(lidsout) > 0:
@@ -699,6 +699,11 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         assert not any([ids_ in ids for ids_ in lidscustom])
 
+    # -------------------
+    # print shortcuts if relevant
+    if ids == ['shortcuts']:
+        imas2tofu.MultiIDSLoader.get_shortcutsc(force=True)
+        return
 
     # -------------------
     # Prepare shot
@@ -843,8 +848,6 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                          ids='pulse_schedule', ids_base=False)
         multi.get_events(verb=True)
         return
-
-
 
     # -------------------
     # Prepare returnas
