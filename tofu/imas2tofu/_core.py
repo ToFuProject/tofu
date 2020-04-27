@@ -90,18 +90,20 @@ _ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
 #############################################################
 
 
-def check_units_IMASvsDSHORT(dshort=None,
+def check_units_IMASvsDSHORT(dshort=None, dcomp=None,
                              verb=True, returnas=False):
 
     # Check input
     if dshort is None:
         dshort = _defimas2tofu._dshort
+    if dcomp is None:
+        dcomp = _defimas2tofu._dcomp
 
     # loop on keys
     ddiff = {}
     for k0, v0 in dshort.items():
         for k1, v1 in v0.items():
-            u0 = _comp.get_units(k0, k1, dshort=dshort)
+            u0 = _comp.get_units(k0, k1, dshort=dshort, dcomp=dcomp)
             u1 = v1.get('units', None)
             longstr = dshort[k0][k1]['str']
             if u0 != u1:
@@ -504,7 +506,8 @@ class MultiIDSLoader(object):
                     ss = obj._dshort[ids][kk]['str']
                 else:
                     ss = 'f( %s )'%(', '.join(obj._dcomp[ids][kk]['lstr']))
-                uu = obj.get_units(ids, kk)
+                uu = obj.get_units(ids, kk,
+                                   dshort=obj._dshort, dcomp=obj._dcomp)
                 short.append((ids, kk, uu, ss))
 
         if verb:
@@ -1516,7 +1519,7 @@ class MultiIDSLoader(object):
 
     @classmethod
     def get_units(cls, ids, sig):
-        return _comp.get_units(ids, sig, dshort=cls._dshort)
+        return _comp.get_units(ids, sig, dshort=cls._dshort, dcomp=cls._dcomp)
 
     def get_data(self, ids=None, sig=None, occ=None,
                  data=None, units=None,

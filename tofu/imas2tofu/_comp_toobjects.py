@@ -800,7 +800,7 @@ def signal_get_synth(ids, dsig=None,
                 dsig[vv[ii][0]] = []
             if vv[ii][1] not in dsig[vv[ii][0]]:
                 dsig[vv[ii][0]].append(vv[ii][1])
-            dq[kk][ii] = '{}.{}'.format(tuple(vv[ii]))
+            dq[kk][ii] = '{}.{}'.format(vv[ii][0], vv[ii][1])
 
     lq = didsdiag[ids]['synth']['dsynth'].get('fargs', None)
     if lq is not None:

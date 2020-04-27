@@ -660,7 +660,7 @@ _dcomp = {
           {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
                        'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
            '1dprad': {'lstr': ['1dbrem', '1dline'], 'func': _add,
-                      'dim': 'vol. emis.', 'quant': 'prad', 'unit': 'W.m^-3'}},
+                      'dim': 'vol. emis.', 'quant': 'prad', 'units': 'W.m^-3'}},
 
           'magnetics':
           {'bpol_pos': {'lstr': ['bpol_R', 'bpol_Z'], 'func': _RZ2array},
