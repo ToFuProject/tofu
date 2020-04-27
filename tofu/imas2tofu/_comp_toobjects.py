@@ -705,10 +705,16 @@ def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
         if dsig is None:
             dsig = didsdiag[ids]['sig']
     if data is not None:
-        assert type(data) is str
+        if not isinstance(data, str):
+            msg = ("data was expected as a str\n"
+                   + "\t- provided: {}".format(data))
+            raise Exception(msg)
         dsig['data'] = data
     if X is not None:
-        assert type(X) is str
+        if not isinstance(X, str):
+            msg = ("X was expected as a str\n"
+                   + "\t- provided: {}".format(X))
+            raise Exception(msg)
         dsig['X'] = X
 
     # Check data and geom

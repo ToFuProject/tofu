@@ -62,12 +62,14 @@ def _prepare_sig_units(sig, units=False):
     return sig
 
 
-def get_units(ids, sig, dshort=None, dcomp=None):
+def get_units(ids, sig, dshort=None, dcomp=None, force=None):
     """ Get units from imas.dd_units.DataDictionaryUnits() """
     if dshort is None:
         dshort = _DSHORT
     if dcomp is None:
         dcomp = _DCOMP
+    if force is None:
+        force = True
     if sig in dshort[ids].keys():
         sig = _prepare_sig_units(dshort[ids][sig]['str'])
     else:
@@ -76,6 +78,7 @@ def get_units(ids, sig, dshort=None, dcomp=None):
 
     # Condition in which to use tofu units instead of imas units
     c0 = (units is None
+          and force is True
           and (sig in dshort[ids].keys() or sig in dcomp[ids].keys()))
     if c0 is True:
         if sig in dshort[ids].keys():
