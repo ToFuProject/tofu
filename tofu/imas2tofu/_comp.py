@@ -85,7 +85,7 @@ def _prepare_sig(sig):
             ind1 = ind0 + sig[ind0:].index('[')
             ind2 = ind0 + sig[ind0:].index(']')
             sig = sig.replace(sig[ind1+1:ind2],
-                              sig[ind1+1:ind2].replace('.','/'))
+                              sig[ind1+1:ind2].replace('.', '/'))
             ind0 = ind2 + 1
     return sig
 
@@ -150,8 +150,8 @@ def _checkformat_getdata_sig(sig, ids,
     nsig = len(sig)
 
     # Check each sig is either a key / value[str] to dshort
-    comp = np.zeros((nsig,),dtype=bool)
-    for ii in range(0,nsig):
+    comp = np.zeros((nsig,), dtype=bool)
+    for ii in range(0, nsig):
         lc0 = [sig[ii] in lks,
                [sig[ii] == dshort[ids][kk]['str'] for kk in lks]]
         c1 = sig[ii] in lkc
@@ -159,7 +159,7 @@ def _checkformat_getdata_sig(sig, ids,
             msg = ("Each provided sig must be either:\n"
                    + "\t- a valid shortcut (cf. self.shortcuts()\n"
                    + "\t- a valid long version (cf. self.shortcuts)\n"
-                   + "\n  Provided sig: %s for ids %s"%(str(sig), ids))
+                   + "\n  Provided sig: {} for ids {}".format(sig, ids))
             raise Exception(msg)
         if c1:
             comp[ii] = True
@@ -198,7 +198,7 @@ def _checkformat_getdata_indch(indch, nch):
            + "    - array of bool: channels to use (indices)\n")
     lc = [indch is None,
           isinstance(indch, int),
-          hasattr(indch,'__iter__') and not isinstance(indch, str)]
+          hasattr(indch, '__iter__') and not isinstance(indch, str)]
     if not any(lc):
         raise Exception(msg)
     if lc[0]:
@@ -210,7 +210,7 @@ def _checkformat_getdata_indch(indch, nch):
             raise Exception(msg)
         if lc[1]:
             indch = np.nonzero(indch)[0]
-        assert np.all((indch>=0) & (indch<nch))
+        assert np.all((indch >= 0) & (indch < nch))
     return indch
 
 
@@ -253,8 +253,9 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
     # All values larger than 1e30 are default imas values => nan
     if nan is True:
         for ii in range(0, len(data)):
-            if (isinstance(data[ii], np.ndarray)
-                and data[ii].dtype == np.float):
+            c0 = (isinstance(data[ii], np.ndarray)
+                  and data[ii].dtype in [np.float_, np.int_])
+            if c0 is True:
                 # Make sure to test only non-nan to avoid warning
                 ind = (~np.isnan(data[ii])).nonzero()
                 ind2 = np.abs(data[ii][ind]) > 1.e30
@@ -323,7 +324,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
 
     # get list of results for occ
     occref = dids[ids]['occ']
-    indoc = np.array([np.nonzero(occref==oc)[0][0] for oc in occ])
+    indoc = np.array([np.nonzero(occref == oc)[0][0] for oc in occ])
     nocc = len(indoc)
     out, unit, errdata, errunits = None, None, None, None
 
@@ -463,12 +464,12 @@ def get_data_units(ids=None, sig=None, occ=None,
                 dfail[sig[ii]] = dout[sig[ii]]['errdata']
                 if warn is True:
                     msg = ('\n{}\n\t '.format(dout[sig[ii]]['errdata'])
-                           +'fail {0}.{1} data'.format(ids, sig[ii]))
+                           + 'fail {0}.{1} data'.format(ids, sig[ii]))
                     warnings.warn(msg)
             if dout[sig[ii]]['errunits'] is not None:
                 if warn is True:
                     msg = ('\n{}\n\t '.format(dout[sig[ii]]['errunits'])
-                           +'fail {0}.{1} units'.format(ids, sig[ii]))
+                           + 'fail {0}.{1} units'.format(ids, sig[ii]))
                     warnings.warn(msg)
 
             # Remove if strict
@@ -480,6 +481,6 @@ def get_data_units(ids=None, sig=None, occ=None,
             dfail[sig[ii]] = str(err)
             if warn is True:
                 msg = ('\n{}\n\t '.format(dfail[sig[ii]])
-                       +'signal {0}.{1} not loaded!'.format(ids, sig[ii]))
+                       + 'signal {0}.{1} not loaded!'.format(ids, sig[ii]))
                 warnings.warn(msg)
     return dout, dfail
