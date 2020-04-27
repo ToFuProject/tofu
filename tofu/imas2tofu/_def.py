@@ -664,7 +664,7 @@ _dcomp = {
 
           'magnetics':
           {'bpol_pos': {'lstr': ['bpol_R', 'bpol_Z'], 'func': _RZ2array},
-           'floop_pos' :{'lstr': ['floop_R', 'floop_Z'], 'func': _RZ2array}},
+           'floop_pos': {'lstr': ['floop_R', 'floop_Z'], 'func': _RZ2array}},
 
           'ic_antennas': {
               'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
@@ -698,7 +698,7 @@ _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
          'los_pt2R', 'los_pt2Z', 'los_pt2Phi']
 for ids in _lidslos:
     _dcomp[ids] = _dcomp.get(ids, {})
-    _dcomp[ids]['los_ptsRZPhi'] = {'lstr':_lstr, 'func':_losptsRZP}
+    _dcomp[ids]['los_ptsRZPhi'] = {'lstr': _lstr, 'func': _losptsRZP}
 
 
 # Uniformize
