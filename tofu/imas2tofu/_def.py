@@ -589,9 +589,9 @@ def _eqSep(sepR, sepZ, npts=100):
     nt = len(sepR)
     assert len(sepZ) == nt
     sep = np.full((nt, npts, 2), np.nan)
-    pts = np.linspace(0,100,npts)
-    for ii in range(0,nt):
-        ptsii = np.linspace(0,100,sepR[ii].size)
+    pts = np.linspace(0, 100, npts)
+    for ii in range(0, nt):
+        ptsii = np.linspace(0, 100, sepR[ii].size)
         sep[ii, :, 0] = np.interp(pts, ptsii, sepR[ii])
         sep[ii, :, 1] = np.interp(pts, ptsii, sepZ[ii])
     return sep
@@ -653,45 +653,45 @@ _dcomp = {
                        'units': 'rad'}},
 
           'core_profiles':
-         {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
-                      'dim': 'rho', 'quant': 'rhopn', 'units': '-'}},
+          {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
+                       'dim': 'rho', 'quant': 'rhopn', 'units': '-'}},
 
           'core_sources':
-         {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
-                      'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
-          '1dprad': {'lstr': ['1dbrem', '1dline'], 'func': _add,
-                     'dim': 'vol. emis.', 'quant': 'prad', 'unit': 'W.m^-3'}},
+          {'1drhopn': {'lstr': ['1dpsi'], 'func': _rhopn1d,
+                       'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
+           '1dprad': {'lstr': ['1dbrem', '1dline'], 'func': _add,
+                      'dim': 'vol. emis.', 'quant': 'prad', 'unit': 'W.m^-3'}},
 
-         'magnetics':
-         {'bpol_pos': {'lstr': ['bpol_R', 'bpol_Z'], 'func': _RZ2array},
-          'floop_pos' :{'lstr': ['floop_R', 'floop_Z'], 'func': _RZ2array}},
+          'magnetics':
+          {'bpol_pos': {'lstr': ['bpol_R', 'bpol_Z'], 'func': _RZ2array},
+           'floop_pos' :{'lstr': ['floop_R', 'floop_Z'], 'func': _RZ2array}},
 
-         'ic_antennas': {
-            'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
-                       'func': _icmod, 'kargs': {'axis': 0},
-                       'pos': True, 'units': 'W'},
-            'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
-                       'func': _icmod, 'kargs': {'axis': 0},
-                       'pos': True, 'units': 'W'},
-            'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
-                       'func': _icmod, 'kargs': {'axis': 0},
-                       'pos': True, 'units': 'W'},
-            'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
-                               'power1mod_fwd', 'power1mod_reflect',
-                               'power2mod_fwd', 'power2mod_reflect'],
-                      'func': _icmodadd, 'kargs': {'axis': 0},
-                      'pos': True, 'units': 'W'}},
+          'ic_antennas': {
+              'power0': {'lstr': ['power0mod_fwd', 'power0mod_reflect'],
+                         'func': _icmod, 'kargs': {'axis': 0},
+                         'pos': True, 'units': 'W'},
+              'power1': {'lstr': ['power1mod_fwd', 'power1mod_reflect'],
+                         'func': _icmod, 'kargs': {'axis': 0},
+                         'pos': True, 'units': 'W'},
+              'power2': {'lstr': ['power2mod_fwd', 'power2mod_reflect'],
+                         'func': _icmod, 'kargs': {'axis': 0},
+                         'pos': True, 'units': 'W'},
+              'power': {'lstr': ['power0mod_fwd', 'power0mod_reflect',
+                                 'power1mod_fwd', 'power1mod_reflect',
+                                 'power2mod_fwd', 'power2mod_reflect'],
+                        'func': _icmodadd, 'kargs': {'axis': 0},
+                        'pos': True, 'units': 'W'}},
 
-         'ece':
-         {'rhotn_sign': {'lstr': ['rhotn', 'theta'], 'func': _rhosign,
-                         'units': '-'}},
+          'ece':
+          {'rhotn_sign': {'lstr': ['rhotn', 'theta'], 'func': _rhosign,
+                          'units': '-'}},
 
-         'bremsstrahlung_visible':
-         {'lamb': {'lstr': ['lamb_up', 'lamb_lo'], 'func': _lamb,
-                   'dim': 'distance',
-                   'quantity': 'wavelength',
-                   'units': 'm'}}
-        }
+          'bremsstrahlung_visible':
+          {'lamb': {'lstr': ['lamb_up', 'lamb_lo'], 'func': _lamb,
+                    'dim': 'distance',
+                    'quantity': 'wavelength',
+                    'units': 'm'}}
+          }
 
 # Complete los
 _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -721,10 +721,10 @@ for ids in _lids:
 _dall_except = {}
 for ids in _lidslos:
     _dall_except[ids] = _lstr
-_dall_except['equilibrium'] = ['axR','axZ','sepR','sepZ',
-                               '2dBT','2dBR','2dBZ',
-                               'x0R','x0Z','x1R','x1Z',
-                               'strike0R','strike0Z', 'strike1R','strike1Z']
+_dall_except['equilibrium'] = ['axR', 'axZ', 'sepR', 'sepZ',
+                               '2dBT', '2dBR', '2dBZ',
+                               'x0R', 'x0Z', 'x1R', 'x1Z',
+                               'strike0R', 'strike0Z', 'strike1R', 'strike1Z']
 _dall_except['magnetics'] = ['bpol_R', 'bpol_Z', 'floop_R', 'floop_Z']
 _dall_except['ic_antennas'] = ['power0mod_launched', 'power0mod_reflected',
                                'power1mod_launched', 'power1mod_reflected',
@@ -740,22 +740,23 @@ _dall_except['ic_antennas'] = ['power0mod_launched', 'power0mod_reflected',
 
 _dpreset = {
             'overview':
-            {'wall':None,
-             'pulse_schedule':None,
-             'equilibrium':None},
+            {'wall': None,
+             'pulse_schedule': None,
+             'equilibrium': None},
 
             'plasma2d':
-            {'wall':['domainR','domainZ'],
-             'equilibrium':['t','ax','sep'],
-             'core_profiles':['t','1dTe','1dne','1dzeff','1drhotn','1dphi'],
-             'core_sources':['t','1dprad'],
-             'edge_profiles':['t'],
-             'edge_sources':['t']},
+            {'wall': ['domainR', 'domainZ'],
+             'equilibrium': ['t', 'ax', 'sep'],
+             'core_profiles': ['t', '1dTe', '1dne', '1dzeff',
+                               '1drhotn', '1dphi'],
+             'core_sources': ['t', '1dprad'],
+             'edge_profiles': ['t'],
+             'edge_sources': ['t']},
 
             'ece':
-            {'wall':['domainR','domainZ'],
-             'ece':None,
-             'core_profiles':['t','Te','ne']}
+            {'wall': ['domainR', 'domainZ'],
+             'ece': None,
+             'core_profiles': ['t', 'Te', 'ne']}
            }
 
 
