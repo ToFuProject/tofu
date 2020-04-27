@@ -101,7 +101,7 @@ def check_units_IMASvsDSHORT(dshort=None,
     ddiff = {}
     for k0, v0 in dshort.items():
         for k1, v1 in v0.items():
-            u0 =  _comp.get_units(k0, k1, dshort=dshort)
+            u0 = _comp.get_units(k0, k1, dshort=dshort)
             u1 = v1.get('units', None)
             longstr = dshort[k0][k1]['str']
             if u0 != u1:
@@ -1361,7 +1361,7 @@ class MultiIDSLoader(object):
                     ind1 = ind0 + sig[ind0:].index('[')
                     ind2 = ind0 + sig[ind0:].index(']')
                     sig = sig.replace(sig[ind1+1:ind2],
-                                      sig[ind1+1:ind2].replace('.','/'))
+                                      sig[ind1+1:ind2].replace('.', '/'))
                     ind0 = ind2 + 1
         return sig
 
@@ -1649,7 +1649,7 @@ class MultiIDSLoader(object):
                 if len(v0) == 0:
                     continue
                 msg += "\n\t- {}:".format(ids)
-                nk1max = np.max([len(k1) for k1 in  v0.keys()])
+                nk1max = np.max([len(k1) for k1 in v0.keys()])
                 for k1, v1 in v0.items():
                     msg += "\n\t\t{0}:  {1}".format(k1.ljust(nk1max),
                                                     v1.replace('\n', ' '))
@@ -1676,12 +1676,12 @@ class MultiIDSLoader(object):
 
         # Get events and sort
         names = self.get_data('pulse_schedule', sig='events_names',
-                               occ=occ, nan=False, pos=False, stack=True,
-                               empty=True, strict=True)['events_names']['data']
+                              occ=occ, nan=False, pos=False, stack=True,
+                              empty=True, strict=True)['events_names']['data']
         times = self.get_data('pulse_schedule',
-                               sig='events_times',
-                               occ=occ, nan=True, pos=False, stack=True,
-                               empty=True, strict=True)['events_times']
+                              sig='events_times',
+                              occ=occ, nan=True, pos=False, stack=True,
+                              empty=True, strict=True)['events_times']
         tunits = times['units']
         times = times['data']
         ind = np.argsort(times)
@@ -2033,7 +2033,7 @@ class MultiIDSLoader(object):
                         out_[ss]['data'] = np.atleast_2d(out_[ss]['data'])
                     shape = out_[ss]['data'].shape
                     # if 0 in shape or len(shape) == 0:
-                        # continue
+                    # continue
 
                     if nt is None:
                         msg = ("{}.t could not be retrieved\n".format(ids)
@@ -2723,8 +2723,9 @@ class MultiIDSLoader(object):
                 msg = "BEWARE : non-conform data !"
                 raise Exception(msg)
 
-            if (out[dsig[kk]]['data'].size == 0
-                or out[dsig[kk]]['data'].ndim not in [1, 2, 3]):
+            c0 = (out[dsig[kk]]['data'].size == 0
+                  or out[dsig[kk]]['data'].ndim not in [1, 2, 3])
+            if c0 is True:
                 msg = ("\nSome data seem to have inconsistent shape:\n"
                        + "\t- out[{}].shape = {}".format(
                            dsig[kk], out[dsig[kk]]['data'].shape))
@@ -3083,8 +3084,9 @@ class MultiIDSLoader(object):
                 data.plot_compare(sig)
             else:
                 sig.plot()
-            if (plot_plasma
-                and dq.get('quant') is not None and '1d' in dq['quant']):
+            c0 = (plot_plasma
+                  and dq.get('quant') is not None and '1d' in dq['quant'])
+            if c0 is True:
                 plasma.plot(dq['quant'], X=dq['ref1d'])
         return sig
 
