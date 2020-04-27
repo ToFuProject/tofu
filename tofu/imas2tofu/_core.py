@@ -103,7 +103,9 @@ def check_units_IMASvsDSHORT(dshort=None, dcomp=None,
     ddiff = {}
     for k0, v0 in dshort.items():
         for k1, v1 in v0.items():
-            u0 = _comp.get_units(k0, k1, dshort=dshort, dcomp=dcomp)
+            u0 = _comp.get_units(k0, k1,
+                                 dshort=dshort, dcomp=dcomp,
+                                 force=False)
             u1 = v1.get('units', None)
             longstr = dshort[k0][k1]['str']
             if u0 != u1:
@@ -474,7 +476,7 @@ class MultiIDSLoader(object):
         return out
 
     @staticmethod
-    def _shortcuts(obj, ids=None, return_=False,
+    def _shortcuts(obj, ids=None, return_=False, force=None,
                    verb=True, sep='  ', line='-', just='l'):
         if ids is None:
             if hasattr(obj, '_dids'):
@@ -506,8 +508,7 @@ class MultiIDSLoader(object):
                     ss = obj._dshort[ids][kk]['str']
                 else:
                     ss = 'f( %s )'%(', '.join(obj._dcomp[ids][kk]['lstr']))
-                uu = obj.get_units(ids, kk,
-                                   dshort=obj._dshort, dcomp=obj._dcomp)
+                uu = obj.get_units(ids, kk, force=force)
                 short.append((ids, kk, uu, ss))
 
         if verb:
@@ -518,7 +519,7 @@ class MultiIDSLoader(object):
             return short
 
     @classmethod
-    def get_shortcutsc(cls, ids=None, return_=False,
+    def get_shortcutsc(cls, ids=None, return_=False, force=None,
                        verb=True, sep='  ', line='-', just='l'):
         """ Display and/or return the builtin shortcuts for imas signal names
 
@@ -531,9 +532,9 @@ class MultiIDSLoader(object):
 
         """
         return cls._shortcuts(cls, ids=ids, return_=return_, verb=verb,
-                              sep=sep, line=line, just=just)
+                              sep=sep, line=line, just=just, force=force)
 
-    def get_shortcuts(self, ids=None, return_=False,
+    def get_shortcuts(self, ids=None, return_=False, force=None,
                       verb=True, sep='  ', line='-', just='l'):
         """ Display and/or return the builtin shortcuts for imas signal names
 
@@ -546,7 +547,7 @@ class MultiIDSLoader(object):
 
         """
         return self._shortcuts(self, ids=ids, return_=return_, verb=verb,
-                               sep=sep, line=line, just=just)
+                               sep=sep, line=line, just=just, force=force)
 
     def set_shortcuts(self, dshort=None):
         """ Set the dictionary of shortcuts
@@ -1518,8 +1519,10 @@ class MultiIDSLoader(object):
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     @classmethod
-    def get_units(cls, ids, sig):
-        return _comp.get_units(ids, sig, dshort=cls._dshort, dcomp=cls._dcomp)
+    def get_units(cls, ids, sig, force=None):
+        return _comp.get_units(ids, sig,
+                               dshort=cls._dshort, dcomp=cls._dcomp,
+                               force=force)
 
     def get_data(self, ids=None, sig=None, occ=None,
                  data=None, units=None,
@@ -2404,7 +2407,6 @@ class MultiIDSLoader(object):
             CamLOS1D instance
 
         """
-
         # Check ids
         idsok = set(self._lidslos).intersection(self._dids.keys())
         if ids is None and len(idsok) == 1:
@@ -2719,7 +2721,11 @@ class MultiIDSLoader(object):
             dchans['names'] = names
 
         if t.ndim == 2:
-            assert np.all(np.isclose(t, t[0:1, :]))
+            if not np.all(np.isclose(t, t[0:1, :])):
+                msg = ("Non-identical time vectors!\n"
+                       "  => double-check indch\n"
+                       + str(t))
+                raise Exception(msg)
             t = t[0, :]
         dins['t'] = t
         indt = self.get_tlim(t, tlim=tlim,
@@ -2757,7 +2763,13 @@ class MultiIDSLoader(object):
                     dins[kk] = out[dsig[kk]]['data'].T
 
             elif out[dsig[kk]]['data'].ndim == 3:
-                assert kk == 'data'
+                if kk != 'data':
+                    msg = ("field {} has dimension 3!\n".format(kk)
+                           + "  => Only data should have dimension 3!")
+                    raise Exception(msg)
+                # Temporary fix until clean-uo and upgrading of _set_fsig()
+                if kk == 'data' and int is not None:
+                    out[dsig[kk]]['data'] = out[dsig[kk]]['data'][:, :, indt]
                 dins[kk] = np.swapaxes(out[dsig[kk]]['data'].T, 1, 2)
 
         # --------------------------
@@ -2814,6 +2826,7 @@ class MultiIDSLoader(object):
 
         import tofu.data as tfd
         conf = None if cam is not None else config
+        import pdb; pdb.set_trace()     # DB
         Data = getattr(tfd, datacls)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                      lCam=cam, config=conf, dextra=dextra,
                                      dchans=dchans, **dins)
