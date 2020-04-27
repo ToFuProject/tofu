@@ -98,14 +98,16 @@ _dshort = {
         '1dpe': {'str': 'time_slice[time].profiles_1d.pressure',
                  'dim': 'pressure', 'quant': 'pe', 'units': 'Pa'},
         '1djT': {'str': 'time_slice[time].profiles_1d.j_tor',
-                 'dim': 'vol. current dens.', 'quant': 'jT', 'units': 'A.m^-2'},
+                 'dim': 'vol. current dens.', 'quant': 'jT',
+                 'units': 'A.m^-2'},
 
         '2dphi': {'str': 'time_slice[time].ggd[0].phi[0].values',
                   'dim': 'B flux', 'quant': 'phi', 'units': 'Wb'},
         '2dpsi': {'str': 'time_slice[time].ggd[0].psi[0].values',
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '2djT': {'str': 'time_slice[time].ggd[0].j_tor[0].values',
-                 'dim': 'vol. current dens.', 'quant': 'jT', 'units': 'A.m^-2'},
+                 'dim': 'vol. current dens.', 'quant': 'jT',
+                 'units': 'A.m^-2'},
         '2dBR': {'str': 'time_slice[time].ggd[0].b_field_r[0].values',
                  'dim': 'B', 'quant': 'BR', 'units': 'T'},
         '2dBT': {'str': 'time_slice[time].ggd[0].b_field_tor[0].values',
@@ -480,7 +482,7 @@ _didsdiag = {
 # ############################################################################
 
 
-_lidsdiag = sorted([kk for kk,vv in _didsdiag.items() if 'sig' in vv.keys()])
+_lidsdiag = sorted([kk for kk, vv in _didsdiag.items() if 'sig' in vv.keys()])
 _lidslos = list(_lidsdiag)
 for ids_ in _lidsdiag:
     if _didsdiag[ids_]['geomcls'] not in ['CamLOS1D']:
@@ -509,10 +511,11 @@ for ids in _lidslos:
     dlos['los_pt2Phi'] = {
         'str': 'channel[chan].{}.second_point.phi'.format(strlos),
         'units': 'rad'}
-    _dshort[ids].update( dlos )
+    _dshort[ids].update(dlos)
 
 
-_lidssynth = sorted([kk for kk,vv in _didsdiag.items() if 'synth' in vv.keys()])
+_lidssynth = sorted([kk for kk, vv in _didsdiag.items()
+                     if 'synth' in vv.keys()])
 for ids_ in _lidssynth:
     for kk, vv in _didsdiag[ids_]['synth']['dsynth'].items():
         if type(vv) is str:
@@ -542,35 +545,45 @@ def _events(names, t):
                      for nn, tt in zip(*[np.char.strip(names), t])],
                     dtype=[('name', ustr), ('t', np.float)])
 
+
 def _RZ2array(ptsR, ptsZ):
     return np.array([ptsR, ptsZ]).T
+
 
 def _losptsRZP(*pt12RZP):
     return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
 
+
 def _add(a0, a1):
     return np.abs(a0 + a1)
+
 
 def _eqB(BT, BR, BZ):
     return np.sqrt(BT**2 + BR**2 + BZ**2)
 
+
 def _icmod(al, ar, axis=0):
     return np.sum(al - ar, axis=axis)
+
 
 def _icmodadd(al0, ar0, al1, ar1, al2, ar2, axis=0):
     return (np.sum(al0 - ar0, axis=axis)
             + np.sum(al1 - ar1, axis=axis)
             + np.sum(al2 - ar2, axis=axis))
 
+
 def _rhopn1d(psi):
     return np.sqrt((psi - psi[:, 0:1]) / (psi[:, -1] - psi[:, 0])[:, None])
+
 
 def _rhopn2d(psi, psi0, psisep):
     return np.sqrt(
         (psi - psi0[:, None]) / (psisep[:, None] - psi0[:, None]))
 
+
 def _rhotn2d(phi):
     return np.sqrt(np.abs(phi) / np.nanmax(np.abs(phi), axis=1)[:, None])
+
 
 def _eqSep(sepR, sepZ, npts=100):
     nt = len(sepR)
@@ -582,6 +595,8 @@ def _eqSep(sepR, sepZ, npts=100):
         sep[ii, :, 0] = np.interp(pts, ptsii, sepR[ii])
         sep[ii, :, 1] = np.interp(pts, ptsii, sepZ[ii])
     return sep
+
+
 def _eqtheta(axR, axZ, nodes, cocos=11):
     theta = np.arctan2(nodes[:, 0][None, :] - axZ[:, None],
                        nodes[:, 1][None, :] - axR[:, None])
@@ -589,10 +604,12 @@ def _eqtheta(axR, axZ, nodes, cocos=11):
         theta = -theta
     return theta
 
+
 def _rhosign(rho, theta):
     ind = np.cos(theta) < 0.
     rho[ind] = -rho[ind]
     return rho
+
 
 def _lamb(lamb_up, lamb_lo):
     return 0.5*(lamb_up + lamb_lo)

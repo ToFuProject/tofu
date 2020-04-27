@@ -695,7 +695,7 @@ def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
     if datacls is None:
         datacls = 'DataCam1D'
     ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
-    if not datacls in ldata:
+    if datacls not in ldata:
         msg = "Arg datacls must be in {}".format(ldata)
         raise Exception(msg)
     lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
