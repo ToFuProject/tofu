@@ -2826,7 +2826,6 @@ class MultiIDSLoader(object):
 
         import tofu.data as tfd
         conf = None if cam is not None else config
-        import pdb; pdb.set_trace()     # DB
         Data = getattr(tfd, datacls)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                      lCam=cam, config=conf, dextra=dextra,
                                      dchans=dchans, **dins)
