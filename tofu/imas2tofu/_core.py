@@ -2473,7 +2473,8 @@ class MultiIDSLoader(object):
             cam.plot_touch(draw=True)
         return cam
 
-    def get_tlim(self, t=None, tlim=None, indevent=None, returnas=None):
+    def get_tlim(self, t=None, tlim=None,
+                 indevent=None, returnas=None):
         """ Retrun the time indices corresponding to the desired time limts
 
         Return a dict with:
@@ -2494,13 +2495,20 @@ class MultiIDSLoader(object):
 
         """
         names, times = None, None
-        if isinstance(tlim, list):
-            if any([isinstance(tt, str) for tt in tlim]):
-                names, times = self.get_events(verb=False, returnas=tuple)
+        c0 = (isinstance(tlim, list)
+              and all([type(tt) in [float, int, np.float_, np.int_]]))
+        if not c0:
+            names, times = self.get_events(verb=False, returnas=tuple)
+        if 'pulse_schedule' in self._dids.keys():
+            idd = self._dids['pulse_schedule']['idd']
+            Exp = self._didd[idd]['params']['tokamak']
+        else:
+            Exp = None
         return _comp_toobjects.data_checkformat_tlim(t, tlim=tlim,
                                                      names=names, times=times,
                                                      indevent=indevent,
-                                                     returnas=returnas)
+                                                     returnas=returnas,
+                                                     Exp=Exp)
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None,

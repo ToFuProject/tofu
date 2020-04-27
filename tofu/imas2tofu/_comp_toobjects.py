@@ -5,8 +5,30 @@ import warnings
 import numpy as np
 
 
+# tofu
+pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
+if os.path.isfile(pfe):
+    # Make sure we load the user-specific file
+    # sys.path method
+    # sys.path.insert(1, os.path.join(os.path.expanduser('~'), '.tofu'))
+    # import _scripts_def as _defscripts
+    # _ = sys.path.pop(1)
+    # importlib method
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_defimas2tofu", pfe)
+    _defimas2tofu = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_defimas2tofu)
+else:
+    try:
+        import tofu.imas2tofu._def as _defimas2tofu
+    except Exception as err:
+        from . import _def as _defimas2tofu
+
 _ERRSHOT = False
 _ERREXP = False
+
+_DTLIM = _defimas2tofu._DTLIM
+_INDEVENT = _defimas2tofu._INDEVENT
 
 
 # #############################################################################
@@ -601,10 +623,12 @@ def cam_to_Cam_Du(out, ids=None):
 
 def data_checkformat_tlim(t, tlim=None,
                           names=None, times=None, indevent=None,
-                          returnas=bool):
+                          returnas=bool, Exp=None):
     # Check inputs
+    if tlim is None:
+        tlim = _DTLIM.get(Exp, False)
     if indevent is None:
-        indevent = 0
+        indevent = _INDEVENT
     if names is not None:
         names = np.char.strip(names)
     if returnas is None:
@@ -632,9 +656,8 @@ def data_checkformat_tlim(t, tlim=None,
                + "\t\t- [float, float]: explicit lower and upper limit\n"
                + "\t\t- [float, str]: explicit lower, event name for upper\n\n"
                + "  You provided: {}".format(tlim))
-        if names is not None:
-            if any([isinstance(tt, str) and tt not in names for tt in tlim]):
-                msg += '\n\nAvailable events:\n' + str(names)
+        if any([isinstance(tt, str) for tt in tlim]):
+            msg += '\n\nAvailable events:\n' + str(names)
         raise Exception(msg)
     if tlim is None:
         tlim = False

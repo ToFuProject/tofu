@@ -768,3 +768,13 @@ _dpreset = {
 
 
 _IDS_BASE = ['wall', 'pulse_schedule']
+
+
+# ############################################################################
+#
+#       Default parameters for exporting to tofu objects (_comp_toobjects.py)
+#
+# ############################################################################
+
+_INDEVENT = 0
+_DTLIM = {'west': ['IGNITRON', 'PLUSDIP']}
