@@ -1879,6 +1879,7 @@ class CrystalBragg(utils.ToFuObject):
             ax = _plot_optics.CrystalBragg_plot_data_fit1d(
                 dfit1d, dinput=dinput, showonly=showonly,
                 lambmin=lambmin, lambmax=lambmax,
+                same_spectrum=same_spectrum,
                 fs=fs, dmargin=dmargin,
                 tit=tit, wintit=wintit)
         if returnas == 'dict':
@@ -1930,26 +1931,6 @@ class CrystalBragg(utils.ToFuObject):
             deg=deg, knots=knots, nbsplines=nbsplines,
             lambmin=lambmin, lambmax=lambmax,
             phimin=phimin, phimax=phimax)
-
-    @staticmethod
-    def _binning_2d_data(lamb, phi, data, binning=None):
-        # Checkformat input
-        if binning is None:
-            binning = _BINNING
-        lc = [binning is False,
-              binning is True,
-              isinstance(binning, int) or isinstance(binning, float)]
-        if not any(lc):
-            msg = ""
-            raise Exception(msg)
-        if binning is False:
-            return lamb, phi, data
-        if binning is True:
-            pass
-
-        # bin
-
-        return lamb, phi, data
 
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det=None, dtheta=None, psi=None, n=None,
@@ -2024,9 +2005,15 @@ class CrystalBragg(utils.ToFuObject):
         phiflat = phiflat[indok]
 
         # Optionnal binning
-        lambflat, phiflat, dataflat = self._binning_2d_data(lambflat, phiflat,
-                                                            dataflat,
-                                                            binning=binning)
+        lambflat, phiflat, dataflat, dbin = _comp_optics._binning_2d_data(
+            lambflat, phiflat, dataflat,
+            binning=binning)
+
+        if dbin is not None:
+            c0 = dbin['phi'].size >= nbsplines * deg
+            if not c0:
+                msg = ""
+                raise Exception(msg)
 
         if pos is True:
             dataflat[dataflat < 0.] = 0.
@@ -2073,7 +2060,7 @@ class CrystalBragg(utils.ToFuObject):
 
             dax = _plot_optics.CrystalBragg_plot_data_fit2d(
                 xi=xi, xj=xj, data=data, lamb=lamb, phi=phi, indspect=indspect,
-                indok=indok, dfit2d=dfit2d, dinput=dinput,
+                indok=indok, dfit2d=dfit2d,
                 dax=dax, plotmode=plotmode, angunits=angunits,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 spect1d=spect1d, fit1d=fit1d,

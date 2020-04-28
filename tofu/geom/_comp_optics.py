@@ -465,6 +465,33 @@ def _calc_spect1d_from_data2d(ldata, lamb, phi,
     return spect1d_out, lambfit, phifit, vertsum1d, phiminmax
 
 
+def binning(lamb, phi, data, binning=None):
+
+    # ------------------
+    # Checkformat input
+    if binning is None:
+        binning = _BINNING
+    lc = [binning is False,
+          binning is True,
+          isinstance(lc, dict),
+          isinstance(binning, int) or isinstance(binning, float)]
+    if not any(lc):
+        msg = ""
+        raise Exception(msg)
+    if binning is False:
+        return lambflat, phiflat, dataflat, None
+    if binning is True:
+        binning = {'phi': None,
+                   'lamb': None}
+    elif isinstance(binning, int) or isinstance(binning, float):
+        binning = {'phi': binning,
+                   'lamb': binning}
+
+    # Check dict
+
+    return lamb, phi, data, dbin
+
+
 # ###############################################
 #           From plasma pts
 # ###############################################
