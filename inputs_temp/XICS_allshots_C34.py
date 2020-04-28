@@ -303,10 +303,11 @@ _MASKPATH = os.path.abspath(os.path.join(
 ))
 _DETPATH = os.path.abspath(os.path.join(
     _HERE,
-    'det37.npz'
+    'det37_CTVD_incC4.npz'
 ))
+_MASK = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
 _DLINES = None
-_XJ = np.r_[-0.08, -0.05, 0., 0.05, 0.1]
+_XJJ = np.r_[-0.08, -0.05, 0., 0.05, 0.1]
 _DXJ = 0.002
 
 def main(shots=_SHOTS,
@@ -338,7 +339,7 @@ def main(shots=_SHOTS,
     if nt is None:
         nt = _NT
     if xj is None:
-        xj = _XJ
+        xj = _XJJ
     if dxj is None:
         dxj = _DXJ
     if maskpath is None:
@@ -629,6 +630,10 @@ def _load_data(shot, tlim=None, tmode='mean',
 #                   Function to plot results
 # #############################################################################
 
+
+_NI, _NJ = 487, 1467
+_XI = (np.arange(0, _NI)-(_NI-1)/2.)*172e-6
+_XJ = (np.arange(0, _NJ)-(_NJ-1)/2.)*172e-6
 _MASKXI = np.ones((487,), dtype=bool)
 _MASKXI[436:] = False
 
@@ -673,9 +678,11 @@ def _get_crystanddet(cryst=None, det=None):
 def _extract_data(pfe, allow_pickle=None,
                   maskxi=None, shot=None, indt=None, indxj=None):
     # Prepare data
-    out = np.load(pfe, allow_pickle=allow_pickle)
-    t, xi, xj, ang = [out[kk] for kk in ['t', 'xi', 'xj', 'ang']]
+    out = dict(np.load(pfe, allow_pickle=allow_pickle))
+    t, ang = [out[kk] for kk in ['t', 'ang']]
     spect, shots, thr = [out[kk] for kk in ['spect', 'shots', 'thr']]
+    xi = out.get('xi', _XI)
+    xj = out.get('xj', _XJ)
 
     if maskxi is not False:
         xi = xi[maskxi]
@@ -973,11 +980,14 @@ def fit(pfe=None, allow_pickle=True,
 
     # input data file
     lc = [pfe is not None,
-          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj]])]
+          all([aa is not None for aa in [spectn, shots, t, ang, xi, xj]]),
+          (shot is not None
+           and all([aa is None for aa in [pfe, spectn, shots, t, ang]]))]
     if np.sum(lc) != 1:
         msg = ("Please provide eithe (xor):\n"
                + "\t- pfe\n"
-               + "\t- spectn, shots, t, ang, xi, xj")
+               + "\t- spectn, shots, t, ang, xi, xj\n"
+               + "\t- shot, xi, xj (loaded from ARCADE)")
         raise Exception(msg)
     if lc[0]:
         if not os.path.isfile(pfe):
@@ -1000,6 +1010,13 @@ def fit(pfe=None, allow_pickle=True,
                                                            allow_pickle,
                                                            maskxi, shot,
                                                            indt, indxj)[1:]
+    elif lc[2]:
+        data, t, dbonus = _load_data(int(shot),
+                                     tlim=_DSHOT[shot]['tlim'],
+                                     tmode='mean',
+                                     path=None, Brightness=None,
+                                     mask=True, Verb=False)
+        pass
 
     # Cryst part
     cryst, det = _get_crystanddet(cryst=cryst, det=det)
@@ -1907,7 +1924,8 @@ def scan_det_least_square(pfe=None, allow_pickle=True,
 # #############################################################################
 
 
-def treat(cryst,
+def treat(cryst, shot=None, linesgroup=None,
+          xi=_XI, xj=_XJ,
           path=_HERE):
 
     from inputs_temp.dlines import dlines
@@ -1939,15 +1957,17 @@ def treat(cryst,
     dshots = _DSHOTS[cryst]
     shots = np.unique([kk for kk in dshots.keys()
                        if len(dshots[kk]['tlim']) == 2])
+    if shot is not None:
+        if not hasattr(shot, '__iter__'):
+            shot = [shot]
+        ind = np.array([shots == ss for ss in shot])
+        shots = shots[ind]
 
     # Cryst part
     det = dict(np.load(os.path.join(_HERE, 'det37_CTVD_incC4.npz')))
     cryst, det = _get_crystanddet(cryst=cryst, det=det)
     assert cryst is not False
 
-    ni, nj = 487, 1467
-    xi = (np.arange(0, ni)-(ni-1)/2.)*172e-6
-    xj = (np.arange(0, nj)-(nj-1)/2.)*172e-6
     mask = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
 
     for ii in range(shots.size):

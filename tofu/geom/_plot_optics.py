@@ -899,6 +899,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
                                  lambmin=None, lambmax=None,
+                                 same_spectrum=None,
                                  fs=None, dmargin=None,
                                  tit=None, wintit=None):
 
@@ -915,9 +916,19 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
 
     # pre-compute
     # ------------
-    nlines = dinput['nlines']
-    width_u = dinput['width']['keys']
-    shift_u = dinput['shift']['keys']
+    if same_spectrum is True:
+        nlines = int(dinput['nlines'] / dinput['same_spectrum_nspect'])
+        dinput['lines'] = dinput['lines'][:nlines]
+        dinput['ion'] = dinput['ion'][:nlines]
+        dinput['symb'] = dinput['symb'][:nlines]
+        nwidth = int(dinput['width']['keys'].size
+                     / dinput['same_spectrum_nspect'])
+        dinput['width']['keys'] = dinput['width']['keys'][:nwidth]
+        dinput['width']['ind'] = dinput['width']['ind'][:, :nlines]
+        dinput['width']['ind'] = dinput['width']['ind'][:nwidth, :]
+        dinput['shift']['ind'] = dinput['shift']['ind'][:, :nlines]
+
+    nlines = dinput['lines'].size
     ions_u = sorted(set(dinput['ion'].tolist()))
     nions = len(ions_u)
 
@@ -925,6 +936,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
     indshift = np.argmax(dinput['shift']['ind'], axis=0)
 
     x = dinput['lines'][None, :] + dfit1d['shift']
+
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
     if dfit1d['Ti'] is True:
@@ -938,6 +950,8 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
         lhatch = [None]
     nhatch = len(lhatch)
     nspect = dfit1d['data'].shape[0]
+
+    # import pdb; pdb.set_trace()     # DB
 
     # Plot
     # ------------
@@ -1060,7 +1074,7 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
 
 
 def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
-                                 dfit2d=None, dinput=None,
+                                 dfit2d=None,
                                  dax=None, indspect=None,
                                  spect1d=None, fit1d=None,
                                  lambfit=None, phiminmax=None,
@@ -1111,18 +1125,17 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
 
     # Prepare figure if dax not provided
     # ------------
-
     if dax is None:
         fig = plt.figure(figsize=fs)
         naxh = (3*3
-                + 2*(dfit2d['Ti'] + dfit2d['vi']
+                + 2*(dfit2d['dinput']['Ti'] + dfit2d['dinput']['vi']
                      + (dfit2d['ratio'] is not None)))
         naxv = 1
         gs = gridspec.GridSpec((3+naxv)*3, naxh, **dmargin)
         if plotmode == 'transform':
             ax0 = fig.add_subplot(gs[:9, :3])
-            ax0.set_xlim(dinput['lambminmax'])
-            ax0.set_ylim(dinput['phiminmax'])
+            ax0.set_xlim(dfit2d['dinput']['lambminmax'])
+            ax0.set_ylim(dfit2d['dinput']['phiminmax'])
         else:
             ax0 = fig.add_subplot(gs[:9, :3], aspect='equal')
         ax0c = fig.add_subplot(gs[10, :3])
@@ -1155,12 +1168,12 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
             dax['err1d'].set_xlabel(xlab)
 
         nn = 1
-        if dfit2d['Ti'] is True:
+        if dfit2d['dinput']['Ti'] is True:
             dax['Ti'] = fig.add_subplot(gs[:9, 9+2*(nn-1):9+2*nn], sharey=ax1)
             dax['Ti'].set_title(r'Width')
             dax['Ti'].set_xlabel(r'$\hat{T_i}$' + r' (keV)')
             nn += 1
-        if dfit2d['vi'] is True:
+        if dfit2d['dinput']['vi'] is True:
             dax['vi'] = fig.add_subplot(gs[:9, 9+2*(nn-1):9+2*nn], sharey=ax1)
             dax['vi'].set_title(r'Shift')
             dax['vi'].set_xlabel(r'$\hat{v_i}$' + r' (km/s)')
@@ -1213,22 +1226,22 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
 
     # Plot profiles
     # ------------
-    if dax.get('Ti') is not None and dfit2d['Ti'] is True:
+    if dax.get('Ti') is not None and dfit2d['dinput']['Ti'] is True:
         for ii in range(dfit2d['kTiev'].shape[1]):
             dax['Ti'].plot(dfit2d['kTiev'][indspect, ii, :]*1.e-3,
                            dfit2d['pts_phi'],
                            ls='-', marker='.', ms=4,
-                           label=dinput['width']['keys'][ii])
+                           label=dfit2d['dinput']['width']['keys'][ii])
         dax['Ti'].set_xlim(left=0.)
         dax['Ti'].legend(frameon=True,
                          loc='upper left', bbox_to_anchor=(0., -0.1))
 
-    if dax.get('vi') is not None and dfit2d['vi'] is True:
+    if dax.get('vi') is not None and dfit2d['dinput']['vi'] is True:
         for ii in range(dfit2d['vims'].shape[1]):
             dax['vi'].plot(dfit2d['vims'][indspect, ii, :]*1.e-3,
                            dfit2d['pts_phi'],
                            ls='-', marker='.', ms=4,
-                           label=dinput['shift']['keys'][ii])
+                           label=dfit2d['dinput']['shift']['keys'][ii])
         dax['vi'].legend(frameon=True,
                          loc='upper left', bbox_to_anchor=(0., -0.1))
 
