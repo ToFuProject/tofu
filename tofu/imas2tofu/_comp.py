@@ -1,6 +1,7 @@
 
 # Built-in
 import os
+import functools as ftools
 import warnings
 
 # Common
