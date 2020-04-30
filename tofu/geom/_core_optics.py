@@ -1995,25 +1995,23 @@ class CrystalBragg(utils.ToFuObject):
             indok &= phiflat > phimin
         if phimax is not None:
             indok &= phiflat < phimax
-
-        # Optionally fit only on subset
-        # randomly pick subset indices (replace=False => no duplicates)i
-        indok = indok.nonzero()[0]
-        indok = indok[utils._get_subset_indices(subset, indok.size)]
         dataflat = dataflat[:, indok]
         lambflat = lambflat[indok]
         phiflat = phiflat[indok]
 
         # Optionnal binning
-        lambflat, phiflat, dataflat, dbin = _comp_optics._binning_2d_data(
+        lambflat, phiflat, dataflat, dbin = _comp_optics.binning_2d_data(
             lambflat, phiflat, dataflat,
-            binning=binning)
+            binning=binning, lambmin=lambmin, lambmax=lambmax,
+            phimin=phimin, phimax=phimax, nbsplines=nbsplines)
 
-        if dbin is not None:
-            c0 = dbin['phi'].size >= nbsplines * deg
-            if not c0:
-                msg = ""
-                raise Exception(msg)
+        # Optionally fit only on subset
+        # randomly pick subset indices (replace=False => no duplicates)i
+        indok = np.all(~np.isnan(dataflat), axis=0).nonzero()[0]
+        indok = indok[utils._get_subset_indices(subset, indok.size)]
+        dataflat = dataflat[:, indok]
+        lambflat = lambflat[indok]
+        phiflat = phiflat[indok]
 
         if pos is True:
             dataflat[dataflat < 0.] = 0.

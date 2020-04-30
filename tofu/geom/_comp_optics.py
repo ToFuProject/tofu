@@ -1,6 +1,11 @@
 
 import numpy as np
 import scipy.interpolate as scpinterp
+import scipy.stats as scpstats
+import matplotlib.pyplot as plt
+
+
+_BINNING = False
 
 # ###############################################
 # ###############################################
@@ -465,31 +470,151 @@ def _calc_spect1d_from_data2d(ldata, lamb, phi,
     return spect1d_out, lambfit, phifit, vertsum1d, phiminmax
 
 
-def binning(lamb, phi, data, binning=None):
+def _binning_check(binning, nlamb=None, nphi=None,
+                   lambmin=None, lambmax=None,
+                   phimin=None, phimax=None, nbsplines=None, deg=None):
+    msg = ("binning must be dict of the form:\n"
+           + "\t- provide number of bins:\n"
+           + "\t  \t{'phi':  int,\n"
+           + "\t  \t 'lamb': int}\n"
+           + "\t- provide bin edges vectors:\n"
+           + "\t  \t{'phi':  1d np.ndarray (increasing),\n"
+           + "\t  \t 'lamb': 1d np.ndarray (increasing)}")
+
+    # Check input
+    if lambmin is None:
+        lambmin = np.nanmin(lamb)
+    if lambmax is None:
+        lambmax = np.nanmax(lamb)
+    if phimin is None:
+        phimin = np.nanmin(phi)
+    if phimax is None:
+        phimax = np.nanmax(phi)
+    dlim = {'lamb': (lambmin, lambmax), 'phi': (phimin, phimax)}
+    if binning is None:
+        binning = _BINNING
+    if nbsplines is not None:
+        c0 = isinstance(nbsplines, int) and nbsplines > 0
+        if not c0:
+            msg2 = ("Both nbsplines and deg must be positive int!\n"
+                    + "\t- nbsplines: {}\n".format(nbsplines))
+            raise Exception(msg2)
+
+    # Check which format was passed and return None or dict
+    ltypes0 = [int, float, np.int_, np.float_]
+    ltypes1 = [tuple, list, np.ndarray]
+    lc = [binning is False,
+          (isinstance(binning, dict)
+           and all([kk in ['phi', 'lamb'] for kk in binning.keys()])),
+          type(binning) in ltypes0,
+          type(binning) in ltypes1]
+    if not any(lc):
+        raise Exception(msg)
+    if binning is False:
+        return binning
+    elif type(binning) in ltypes0:
+        binning = {'phi': {'nbins': int(binning)},
+                   'lamb': {'nbins': int(binning)}}
+    elif type(binning) in ltypes1:
+        binning = np.atleast_1d(binning).ravel()
+        binning = {'phi': {'edges': binning},
+                   'lamb': {'edges': binning}}
+    for kk in binning.keys():
+        if type(binning[kk]) in ltypes0:
+            binning[kk] = {'nbins': int(binning[kk])}
+        elif type(binning[kk]) in ltypes1:
+            binning[kk] = {'edges': np.atleast_1d(binning[kk]).ravel()}
+
+    c0 = all([all([k1 in ['edges', 'nbins'] for k1 in binning[k0].keys()])
+              for k0 in binning.keys()])
+    c0 = (c0 and
+          all([((binning[k0].get('nbins') is None
+                 or type(binning[k0].get('nbins')) in ltypes0)
+                and (binning[k0].get('edges') is None
+                 or type(binning[k0].get('nbins')) in ltypes1))
+              for k0 in binning.keys()]))
+    if not c0:
+        raise Exception(msg)
+
+    # Check dict
+    for kk in binning.keys():
+        c0 = all([kk in ['nbins', 'edges'] for kk in binning[kk].keys()])
+        if not c0:
+            raise Exception(msg)
+        if binning[kk].get('nbins') is not None:
+            binning[kk]['nbins'] = int(binning[kk]['nbins'])
+            if binning[kk].get('edges') is None:
+                binning[kk]['edges'] = np.linspace(
+                    dlim[kk][0], dlim[kk][1],
+                    binning[kk]['nbins'] + 1, endpoint=True)
+            else:
+                binning[kk]['edges'] = np.atleast_1d(
+                    binning[kk]['edges']).ravel()
+                if binning[kk]['nbins'] != binning[kk]['edges'].size - 1:
+                    raise Exception(msg)
+        elif binning[kk].get('bin_edges') is not None:
+            binning[kk]['edges'] = np.atleast_1d(binning[kk]['edges']).ravel()
+            binning[kk]['nbins'] = binning[kk]['edges'].size - 1
+        else:
+            raise Exception(msg)
+
+    if not np.allclose(binning[kk]['edges'], np.unique(binning[kk]['edges'])):
+        raise Exception(msg)
+
+    # Optional check vs nbsplines and deg
+    if nbsplines is not None:
+        if binning['phi']['nbins'] <= nbsplines:
+            msg = ("The number of bins")
+            raise Exception(msg)
+    return binning
+
+
+def binning_2d_data(lamb, phi, data,
+                    lambmin=None, lambmax=None,
+                    phimin=None, phimax=None,
+                    binning=None, nbsplines=None):
 
     # ------------------
     # Checkformat input
-    if binning is None:
-        binning = _BINNING
-    lc = [binning is False,
-          binning is True,
-          isinstance(lc, dict),
-          isinstance(binning, int) or isinstance(binning, float)]
-    if not any(lc):
-        msg = ""
-        raise Exception(msg)
+    binning = _binning_check(binning,
+                             lambmin=lambmin, lambmax=lambmax,
+                             phimin=phimin, phimax=phimax, nbsplines=nbsplines)
     if binning is False:
-        return lambflat, phiflat, dataflat, None
-    if binning is True:
-        binning = {'phi': None,
-                   'lamb': None}
-    elif isinstance(binning, int) or isinstance(binning, float):
-        binning = {'phi': binning,
-                   'lamb': binning}
+        return lamb, phi, data, binning
 
-    # Check dict
+    nphi = binning['phi']['nbins']
+    nlamb = binning['lamb']['nbins']
+    bins = (binning['lamb']['edges'], binning['phi']['edges'])
+    nspect = data.shape[0]
+    npts = nlamb*nphi
 
-    return lamb, phi, data, dbin
+    # ------------------
+    # Compute
+
+    # method 1
+    # nperbin = np.histogram2d(lamb, phi, bins=bins,
+                             # density=False, weights=None)[0].ravel()
+    # indok = nperbin > 0
+    # databis = np.full((nspect, nperbin.size), np.nan)
+    # for ii in range(nspect):
+        # databis[ii, indok] = np.histogram2d(
+            # lamb, phi, bins=bins,
+            # density=False,
+            # weights=data[ii, ...])[0].ravel()[indok] / nperbin[indok]
+
+    # method 2
+    databis = scpstats.binned_statistic_2d(
+        lamb, phi, data,
+        statistic='mean', bins=bins,
+        range=None, expand_binnumbers=True)[0].reshape((nspect, npts))
+
+    lambbis = 0.5*(binning['lamb']['edges'][1:]
+                   + binning['lamb']['edges'][:-1])
+    phibis = 0.5*(binning['phi']['edges'][1:]
+                  + binning['phi']['edges'][:-1])
+    lambbis = np.repeat(lambbis, nphi)
+    phibis = np.tile(phibis, nlamb)
+    return lambbis, phibis, databis, binning
 
 
 # ###############################################
