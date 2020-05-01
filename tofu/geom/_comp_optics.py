@@ -479,7 +479,8 @@ def _binning_check(binning, nlamb=None, nphi=None,
            + "\t  \t 'lamb': int}\n"
            + "\t- provide bin edges vectors:\n"
            + "\t  \t{'phi':  1d np.ndarray (increasing),\n"
-           + "\t  \t 'lamb': 1d np.ndarray (increasing)}")
+           + "\t  \t 'lamb': 1d np.ndarray (increasing)}\n"
+           + "  provided:\n{}".format(binning))
 
     # Check input
     if lambmin is None:
@@ -531,7 +532,7 @@ def _binning_check(binning, nlamb=None, nphi=None,
           all([((binning[k0].get('nbins') is None
                  or type(binning[k0].get('nbins')) in ltypes0)
                 and (binning[k0].get('edges') is None
-                 or type(binning[k0].get('nbins')) in ltypes1))
+                 or type(binning[k0].get('edges')) in ltypes1))
               for k0 in binning.keys()]))
     if not c0:
         raise Exception(msg)
@@ -591,18 +592,6 @@ def binning_2d_data(lamb, phi, data,
     # ------------------
     # Compute
 
-    # method 1
-    # nperbin = np.histogram2d(lamb, phi, bins=bins,
-                             # density=False, weights=None)[0].ravel()
-    # indok = nperbin > 0
-    # databis = np.full((nspect, nperbin.size), np.nan)
-    # for ii in range(nspect):
-        # databis[ii, indok] = np.histogram2d(
-            # lamb, phi, bins=bins,
-            # density=False,
-            # weights=data[ii, ...])[0].ravel()[indok] / nperbin[indok]
-
-    # method 2
     databis = scpstats.binned_statistic_2d(
         lamb, phi, data,
         statistic='mean', bins=bins,

@@ -14,6 +14,7 @@ import copy
 # Common
 import numpy as np
 import scipy.interpolate as scpinterp
+import scipy.stats as scpstats
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -1919,7 +1920,8 @@ class CrystalBragg(utils.ToFuObject):
     def get_dinput_for_fit2d(dlines=None, dconstraints=None,
                              deg=None, knots=None, nbsplines=None,
                              lambmin=None, lambmax=None,
-                             phimin=None, phimax=None):
+                             phimin=None, phimax=None,
+                             spectvert1d=None, phi1d=None, fraction=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _spectrafit2d.multigausfit1d_from_dlines()
@@ -1930,7 +1932,8 @@ class CrystalBragg(utils.ToFuObject):
             dlines=dlines, dconstraints=dconstraints,
             deg=deg, knots=knots, nbsplines=nbsplines,
             lambmin=lambmin, lambmax=lambmax,
-            phimin=phimin, phimax=phimax)
+            phimin=phimin, phimax=phimax,
+            spectvert1d=spectvert1d, phi1d=phi1d, fraction=fraction)
 
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det=None, dtheta=None, psi=None, n=None,
@@ -1998,6 +2001,8 @@ class CrystalBragg(utils.ToFuObject):
         dataflat = dataflat[:, indok]
         lambflat = lambflat[indok]
         phiflat = phiflat[indok]
+        lambmin, lambmax = np.nanmin(lambflat), np.nanmax(lambflat)
+        phimin, phimax = np.nanmin(phiflat), np.nanmax(phiflat)
 
         # Optionnal binning
         lambflat, phiflat, dataflat, dbin = _comp_optics.binning_2d_data(
@@ -2016,14 +2021,24 @@ class CrystalBragg(utils.ToFuObject):
         if pos is True:
             dataflat[dataflat < 0.] = 0.
 
+        # If symmetry, compute 1d vert spectrum
+        spectvert1d, phi1d = None, None
+        if dconstraints.get('symmetry') is True:
+            if dbin is not False:
+                phibins = dbin['phi']['edges']
+            else:
+                phibins = np.linspace(phimin, phimax, nxj)
+            phi1d = 0.5*(phibins[1:] + phibins[:-1])
+            spectvert1d =  scpstats.binned_statistic(
+                phiflat, dataflat,
+                bins=phibins, statistic='mean')[0][0, :]
+
         # Get dinput for 1d fitting
-        dinput = self.get_dinput_for_fit2d(dlines=dlines,
-                                           dconstraints=dconstraints,
-                                           deg=deg, knots=knots,
-                                           nbsplines=nbsplines,
-                                           lambmin=lambmin, lambmax=lambmax,
-                                           phimin=phiflat.min(),
-                                           phimax=phiflat.max())
+        dinput = self.get_dinput_for_fit2d(
+            dlines=dlines, dconstraints=dconstraints,
+            deg=deg, knots=knots, nbsplines=nbsplines,
+            lambmin=lambmin, lambmax=lambmax, phimin=phimin, phimax=phimax,
+            spectvert1d=spectvert1d, phi1d=phi1d, fraction=None)
 
         # Perform 1d fit to be used as initial guess for 2d fitting
         import tofu.data._spectrafit2d as _spectrafit2d
