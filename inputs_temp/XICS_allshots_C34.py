@@ -159,7 +159,7 @@ _DSHOTS = {
         55165: {'ang': 1.3405, 'tlim': [32.7, 44.5]},   # ICRH, ok
         55166: {'ang': 1.3405, 'tlim': [32.5, 42.2]},   # ok
         55167: {'ang': 1.3405, 'tlim': [32.5, 42.4]},   # ICRH, ok
-        55292: {'ang': 1.3405, 'tlim': []},   #
+        55292: {'ang': 1.3405, 'tlim': [32.5, 46.2]},   # ok
         55297: {'ang': 1.3405, 'tlim': [32.5, 46.0]},   # ICRH, ok
         55572: {'ang': 1.3405, 'tlim': [33.0, 45.2]},   # ICRH, ok, good
         55573: {'ang': 1.3405, 'tlim': [30.6, 32.6]},   # ok, good startup
@@ -1405,6 +1405,22 @@ def scan_det(pfe=None, allow_pickle=True,
     if not (hasattr(drot, '__iter__') and len(drot) == 3):
         drot = [drot, drot, drot]
 
+    if dconstraints is None:
+        dconstraints = {
+            'double': True,
+            'symmetry': False,
+            'width': {'wxyzkj':
+                      ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
+                       'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
+                       'ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408',
+                       'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+                       'ArXVI_a_Adhoc200408'],
+            'amp': {'ArXVI_k_Adhoc200408': {'key': 'kj'},
+                    'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576}},
+            'shift': {'wz':
+                      ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']}}}
+
+
     # input data file
     lc = [pfe is not None,
           all([aa is not None for aa in [spectn, shots, t, ang, xi, xj]])]
@@ -1924,34 +1940,55 @@ def scan_det_least_square(pfe=None, allow_pickle=True,
 # #############################################################################
 
 
-def treat(cryst, shot=None, linesgroup=None,
+def treat(cryst, shot=None,
+          dlines=None,
+          dconst=None,
+          nbsplines=None,
+          ratio=None,
+          binning=None,
+          tol=None,
+          plasma=True,
+          nameextra=None,
           xi=_XI, xj=_XJ,
           path=_HERE):
 
-    from inputs_temp.dlines import dlines
-    dlines0 = {k0: v0 for k0, v0 in dlines.items()
-               if (k0 in ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']
-                   or ('Adhoc200408' in k0))}
+    if nbsplines is None:
+        nbsplines = 15
+    if ratio is None:
+        ratio = {'up': ['ArXVII_w_Bruhns', 'ArXVII_y_Adhoc200408'],
+                 'low': ['ArXVII_z_Amaro', 'ArXVII_x_Adhoc200408']}
+    if binning is None:
+        binning = {'lamb': 487, 'phi': 200}
+    if tol is None:
+        tol = 1.e-5
+    if nameextra is None:
+        nameextra = ''
+    if nameextra != '' and nameextra[0] != '_':
+        nameextra = '_' + nameextra
+    if dlines is None:
+        from inputs_temp.dlines import dlines
+        dlines = {k0: v0 for k0, v0 in dlines.items()
+                  if (k0 in ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']
+                      or ('Adhoc200408' in k0))}
 
     # Leave double ratio / dshift and x/y free, then plot them to get robust
     # values
-    dconst = {
-        'double': True,
-        'width': {'wxyzkj':
-                  ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro', 'ArXVII_x_Adhoc200408',
-                   'ArXVII_y_Adhoc200408', 'ArXVI_k_Adhoc200408',
-                   'ArXVI_j_Adhoc200408'],
-                  'qra':
-                  ['ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
-                   'ArXVI_a_Adhoc200408']},
-        'amp': {'ArXVI_k_Adhoc200408': {'key': 'kj'},
-                'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576}},
-        'shift': {'wxyz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
-                           'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
-                           'ArXV_n3_Adhoc200408', 'ArXIV_n4_Adhoc200408'],
-                  'kj':['ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408'],
-                  'qra': ['ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
-                          'ArXVI_a_Adhoc200408']}}
+    if dconst is None:
+        dconst = {
+            'double': True,
+            'symmetry': False,
+            'width': {'wxyzkj':
+                      ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
+                       'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
+                       'ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408',
+                       'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+                       'ArXVI_a_Adhoc200408']},
+            'amp': {'ArXVI_k_Adhoc200408': {'key': 'kj'},
+                    'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576}},
+            'shift': {'wz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro'],
+                      'qra': ['ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+                              'ArXVI_a_Adhoc200408'],
+                      'xy': ['ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408']}}
 
     # Shots
     dshots = _DSHOTS[cryst]
@@ -1971,6 +2008,8 @@ def treat(cryst, shot=None, linesgroup=None,
     mask = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
 
     for ii in range(shots.size):
+        if len(dshots[int(shots[ii])]['tlim']) != 2:
+            continue
         print('\n\nshot {} ({} / {})'.format(shots[ii], ii+1, shots.size))
         try:
             cryst.move(dshots[int(shots[ii])]['ang']*np.pi/180.)
@@ -1979,17 +2018,41 @@ def treat(cryst, shot=None, linesgroup=None,
                                          tlim=dshots[int(shots[ii])]['tlim'])
 
             dout = cryst.plot_data_fit2d_dlines(
-                dlines=dlines0, dconstraints=dconst, data=data,
+                dlines=dlines, dconstraints=dconst, data=data,
                 xi=xi, xj=xj, det=det,
-                lambmin=3.94e-10, lambmax=4e-10,
-                deg=2, verbose=2, subset=50000,
-                nbsplines=9, mask=mask,
-                ratio={'up': 'ArXVII_w_Bruhns', 'low': 'ArXVII_z_Amaro'},
-                phimin=-0.08, phimax=0.08,
+                lambmin=3.945e-10, lambmax=4e-10,
+                deg=2, verbose=2, subset=None, binning=binning,
+                nbsplines=nbsplines, mask=mask, ratio=ratio,
+                phimin=None, phimax=None,
                 chain=True, plot=False,
-                xtol=1e-5, ftol=1e-5, gtol=1e-5)
+                xtol=tol, ftol=tol, gtol=tol)
+            dout['t'] = t
+            dout.update(dbonus)
 
-            pfe = os.path.join(path, 'XICS_fit2d_{}.npz'.format(shots[ii]))
+            # Include info on shot ?
+            if plasma is True and shots[ii] > 54178:
+                try:
+                    multi = tf.imas2tofu.MultiIDSLoader(
+                        ids=['ic_antennas', 'lh_antennas', 'ece'],
+                        shot=int(shots[ii]), ids_base=False)
+                    out = multi.get_data('ece', ['t', 'Te0'])
+                    dout['ece_Te0'] = out['Te0']
+                    dout['ece_t'] = out['t']
+                    out = multi.get_data('ic_antennas', ['t', 'power'])
+                    dout['ic_power'] = out['power']
+                    dout['ic_t'] = out['t']
+                    out = multi.get_data('lh_antennas', ['t', 'power'])
+                    dout['lh_power'] = out['power']
+                    dout['lh_t'] = out['t']
+                except Exception as err:
+                    pass
+
+            name = 'XICS_fit2d_{}_nbs{}_tol{}_bin{}{}{}.npz'.format(
+                shots[ii], nbsplines, int(-np.log10(tol)),
+                binning['phi']['nbins'],
+                '_Plasma' if plasma is True else '',
+                nameextra)
+            pfe = os.path.join(path, name)
             np.savez(pfe, **dout)
 
         except Exception as err:
