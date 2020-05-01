@@ -1946,7 +1946,7 @@ class CrystalBragg(utils.ToFuObject):
                                xtol=None, ftol=None, gtol=None,
                                loss=None, verbose=0, debug=None,
                                pos=None, subset=None, binning=None,
-                               npts=None, dax=None,
+                               fit1dbinning=None, npts=None, dax=None,
                                plotmode=None, angunits=None, indspect=None,
                                ratio=None, jac=None, plot=True, fs=None,
                                cmap=None, vmin=None, vmax=None,
@@ -1955,6 +1955,8 @@ class CrystalBragg(utils.ToFuObject):
                                returnas=None):
         # Check / format inputs
         assert data is not None
+        if fit1dbinning is None:
+            fit1dbinning = False
         if pos is None:
             pos = False
         if returnas is None:
@@ -2010,6 +2012,12 @@ class CrystalBragg(utils.ToFuObject):
             binning=binning, lambmin=lambmin, lambmax=lambmax,
             phimin=phimin, phimax=phimax, nbsplines=nbsplines)
 
+        if fit1dbinning is True and dbin is False:
+            msg = "fit1dbinning is not possible if binning is not specified!"
+            raise Exception(msg)
+        if fit1dbinning is True:
+            pass
+
         # Optionally fit only on subset
         # randomly pick subset indices (replace=False => no duplicates)i
         indok = np.all(~np.isnan(dataflat), axis=0).nonzero()[0]
@@ -2033,7 +2041,7 @@ class CrystalBragg(utils.ToFuObject):
                 phiflat, dataflat,
                 bins=phibins, statistic='mean')[0][0, :]
 
-        # Get dinput for 1d fitting
+        # Get dinput for 2d fitting
         dinput = self.get_dinput_for_fit2d(
             dlines=dlines, dconstraints=dconstraints,
             deg=deg, knots=knots, nbsplines=nbsplines,
