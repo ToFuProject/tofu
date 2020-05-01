@@ -24,12 +24,15 @@ _NPEAKMAX = 12
 _DCONSTRAINTS = {'amp': False,
                  'width': False,
                  'shift': False,
-                 'double': False}
+                 'double': False,
+                 'symmetry': False}
 _SAME_SPECTRUM = False
-_DEG = 3
+_DEG = 2
 _NBSPLINES = 6
 _TOL1D = {'x': 1e-12, 'f': 1.e-12, 'g': 1.e-12}
 _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
+_SYMMETRY_CENTRAL_FRACTION = 0.3
+
 
 ###########################################################
 ###########################################################
@@ -40,13 +43,7 @@ _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 ###########################################################
 ###########################################################
 
-
-def remove_bck(x, y):
-    # opt = np.polyfit(x, y, deg=0)
-    opt = [np.nanmin(y)]
-    return y-opt[0], opt[0]
-
-
+# DEPRECATED
 def get_peaks(x, y, nmax=None):
 
     if nmax is None:
@@ -114,286 +111,36 @@ def get_peaks(x, y, nmax=None):
         nn += 1
     return A, x0, sigma
 
-def get_p0bounds_all(x, y, nmax=None, lamb0=None):
 
-    yflat, bck = remove_bck(x, y)
-    amp, x0, sigma = get_peaks(x, yflat, nmax=nmax)
-    lamb0 = x0
-    nmax = lamb0.size
+def get_symmetry_axis_1dprofile(phi, data, fraction=None):
+    if fraction is None:
+        fraction  = _SYMMETRY_CENTRAL_FRACTION
 
-    p0 = amp.tolist() + [0 for ii in range(nmax)] + sigma.tolist() + [bck]
+    # Find the phi in the central fraction
+    phimin = np.nanmin(phi)
+    phimax = np.nanmax(phi)
+    phic = 0.5*(phimax + phimin)
+    dphi = (phimax - phimin)*fraction
+    indphi = np.abs(phi-phic) <= dphi/2.
+    phiok = phi[indphi]
 
-    lx = [np.nanmin(x), np.nanmax(x)]
-    Dx = np.diff(lx)
-    dx = np.nanmin(np.diff(x))
-
-    bamp = (np.zeros(nmax,), np.full((nmax,),3.*np.nanmax(y)))
-    bdlamb = (np.full((nmax,), -Dx/2.), np.full((nmax,), Dx/2.))
-    bsigma = (np.full((nmax,), dx/2.), np.full((nmax,), Dx/2.))
-    bbck0 = (0., np.nanmax(y))
-
-    bounds = (np.r_[bamp[0], bdlamb[0], bsigma[0], bbck0[0]],
-              np.r_[bamp[1], bdlamb[1], bsigma[1], bbck0[1]])
-    if not np.all(bounds[0]<bounds[1]):
-        msg = "Lower bounds must be < upper bounds !\n"
-        msg += "    lower :  %s\n"+str(bounds[0])
-        msg += "    upper :  %s\n"+str(bounds[1])
-        raise Exception(msg)
-    return p0, bounds, lamb0
-
-def get_p0bounds_lambfix(x, y, nmax=None, lamb0=None):
-
-    nmax = lamb0.size
-    # get typical x units
-    Dx = x.nanmax()-x.nanmin()
-    dx = np.nanmin(np.diff(x))
-
-    # Get background and background-subtracted y
-    yflat, bck = remove_bck(x, y)
-
-    # get initial guesses
-    amp = [yflat[np.nanargmin(np.abs(x-lamb))] for lamb in lamb0]
-    sigma = [Dx/nmax for ii in range(nmax)]
-    p0 = A + sigma + [bck]
-
-    # Get bounding boxes
-    bamp = (np.zeros(nmax,), np.full((nmax,),3.*np.nanmax(y)))
-    bsigma = (np.full((nmax,), dx/2.), np.full((nmax,), Dx/2.))
-    bbck0 = (0., np.nanmax(y))
-
-    bounds = (np.r_[bamp[0], bsigma[0], bbck0[0]],
-              np.r_[bamp[1], bsigma[1], bbck0[1]])
-    if not np.all(bounds[0]<bounds[1]):
-        msg = "Lower bounds must be < upper bounds !\n"
-        msg += "    lower :  %s\n"+str(bounds[0])
-        msg += "    upper :  %s\n"+str(bounds[1])
-        raise Exception(msg)
-    return p0, bounds, lamb0
-
-
-def get_func1d_all(n=5, lamb0=None):
-    if lamb0 is None:
-        lamb0 = np.zeros((n,), dtype=float)
-    assert lamb0.size == n
-
-    def func_vect(x, amp, dlamp, sigma, bck0, lamb0=lamb0, n=n):
-        y = np.full((n+1, x.size), np.nan)
-        y[:-1, :] = amp[:, None]*np.exp(-(x[None, :]-(lamb0+dlamb)[:, None])**2
-                                        /sigma[:, None]**2)
-        y[-1, :] = bck0
-        return y
-
-    def func_sca(x, *args, lamb0=lamb0, n=n):
-        amp = np.r_[args[0:n]][:, None]
-        dlamb = np.r_[args[n:2*n]][:, None]
-        sigma = np.r_[args[2*n:3*n]][:, None]
-        bck0 = np.r_[args[3*n]]
-        gaus = amp * np.exp(-(x[None, :]-(lamb0[:, None] + dlamb))**2/sigma**2)
-        back = bck0
-        return np.sum(gaus, axis=0) + back
-
-    def func_sca_jac(x, *args, lamb0=lamb0, n=n):
-        amp = np.r_[args[0:n]][None, :]
-        dlamb = np.r_[args[n:2*n]][None, :]
-        sigma = np.r_[args[2*n:3*n]][None, :]
-        bck0 = np.r_[args[3*n]]
-        lamb0 = lamb0[None, :]
-        x = x[:, None]
-        jac = np.full((x.size, 3*n+1,), np.nan)
-        jac[:, :n] = np.exp(-(x - (lamb0+dlamb))**2/sigma**2)
-        jac[:, n:2*n] = amp*2*((x - (lamb0+dlamb))/(sigma**2)
-                               * np.exp(-(x - (lamb0+dlamb))**2/sigma**2))
-        jac[:, 2*n:3*n] = amp*2*((x - (lamb0+dlamb))**2/sigma**3
-                                 * np.exp(-(x - (lamb0+dlamb))**2/sigma**2))
-        jac[:, -1] = 1.
-        return jac
-
-    return func_vect, func_sca, func_sca_jac
-
-
-def get_func1d_lamb0fix(n=5, lamb0=None):
-    if lamb0 is None:
-        lamb0 = np.zeros((n,), dtype=float)
-    assert lamb0.size == n
-
-    def func_vect(x, amp, sigma, bck0, lamb0=lamb0, n=n):
-        y = np.full((n+1, x.size), np.nan)
-        for ii in range(n):
-            y[ii, :] = amp[ii]*np.exp(-(x-lamb0[ii])**2/sigma[ii]**2)
-        y[-1, :] = bck0
-        return y
-
-    def func_sca(x, *args, lamb0=lamb0, n=n):
-        amp = np.r_[args[0:n]][:, None]
-        sigma = np.r_[args[2*n:3*n]][:, None]
-        bck0 = np.r_[args[3*n]]
-        gaus = amp * np.exp(-(x[None, :]-lamb0[:, None])**2/sigma**2)
-        back = bck0
-        return np.sum(gaus, axis=0) + back
-
-    def func_sca_jac(x, *args, lamb0=lamb0, n=n):
-        amp = np.r_[args[0:n]][None, :]
-        sigma = np.r_[args[2*n:3*n]][None, :]
-        bck0 = np.r_[args[3*n]]
-        lamb0 = lamb0[None, :]
-        x = x[:, None]
-        jac = np.full((x.size, 2*n+1,), np.nan)
-        jac[:, :n] = np.exp(-(x - lamb0)**2/sigma**2)
-        jac[:, n:2*n] = amp*2*((x - lamb0)**2/sigma**3
-                                 * np.exp(-(x-lamb0)**2/sigma**2))
-        jac[:, -1] = 1.
-        return jac
-
-    return func_vect, func_sca, func_sca_jac
-
-
-def multiplegaussianfit1d(x, spectra, nmax=None,
-                          lamb0=None, forcelamb=None,
-                          p0=None, bounds=None,
-                          max_nfev=None, xtol=None, verbose=0,
-                          percent=None, plot_debug=False):
-    # Check inputs
-    if xtol is None:
-        xtol = 1.e-8
-    if percent is None:
-        percent = 20
-
-
-    # Prepare
-    if spectra.ndim == 1:
-        spectra = spectra.reshape((1,spectra.size))
-    nt = spectra.shape[0]
-
-    # Prepare info
-    if verbose is not None:
-        print("----- Fitting spectra with {0} gaussians -----".format(nmax))
-    nspect = spectra.shape[0]
-    nstr = max(nspect//max(int(100/percent), 1), 1)
-
-    # get initial guess function
-    if forcelamb is True:
-        get_p0bounds = get_p0bounds_lambfix
-    else:
-        get_p0bounds = get_p0bounds_all
-
-    # lamb0
-    if p0 is None or bounds is None or lamb0 is None:
-        p00, bounds0, lamb00 = get_p0bounds_all(x, spectra[0,:],
-                                              nmax=nmax, lamb0=lamb0)
-        if lamb0 is None:
-            lamb0 = lamb00
-        assert lamb0 is not None
-        if forcelamb is True:
-            p00 = p00[:nmax] + p00[2*nmax:]
-            bounds0 = bounds0[:nmax] + bounds0[2*nmax:]
-        if p0 is None:
-            p0 = p00
-        if bounds is None:
-            bounds = bounds0
-    if nmax is None:
-        nmax = lamb0.size
-    assert nmax == lamb0.size
-
-    # Get fit vector, scalar and jacobian functions
-    if forcelamb is True:
-        func_vect, func_sca, func_sca_jac = get_func1d_lambfix(n=nmax,
-                                                               lamb0=lamb0)
-    else:
-        func_vect, func_sca, func_sca_jac = get_func1d_all(n=nmax,
-                                                           lamb0=lamb0)
-
-    # Prepare index for splitting p0
-    if forcelamb is True:
-        indsplit = nmax*np.r_[1, 2]
-    else:
-        indsplit = nmax*np.r_[1, 2, 3]
-
-    # Prepare output
-    fit = np.full(spectra.shape, np.nan)
-    amp = np.full((nt, nmax), np.nan)
-    sigma = np.full((nt, nmax), np.nan)
-    bck = np.full((nt,), np.nan)
-    ampstd = np.full((nt, nmax), np.nan)
-    sigmastd = np.full((nt, nmax), np.nan)
-    bckstd = np.full((nt,), np.nan)
-    if not forcelamb is True:
-        dlamb = np.full((nt, nmax), np.nan)
-        dlambstd = np.full((nt, nmax), np.nan)
-    else:
-        dlamb, dlambstd = None, None
-
-    # Loop on spectra
-    lch = []
-    for ii in range(0, nspect):
-
-        if verbose is not None and ii%nstr==0:
-            print("=> spectrum {0} / {1}".format(ii+1, nspect))
-
-        try:
-            popt, pcov = scpopt.curve_fit(func_sca, x, spectra[ii,:],
-                                          jac=func_sca_jac,
-                                          p0=p0, bounds=bounds,
-                                          max_nfev=max_nfev, xtol=xtol,
-                                          x_scale='jac',
-                                          verbose=verbose)
-        except Exception as err:
-            msg = "    Convergence issue for {0} / {1}\n".format(ii+1, nspect)
-            msg += "    => %s\n"%str(err)
-            msg += "    => Resetting initial guess and bounds..."
-            print(msg)
-            try:
-                p0, bounds, _ = get_p0bounds(x, spectra[ii,:],
-                                             nmax=nmax, lamb0=lamb0)
-                popt, pcov = scpopt.curve_fit(func_sca, x, spectra[ii,:],
-                                              jac=func_sca_jac,
-                                              p0=p0, bounds=bounds,
-                                              max_nfev=max_nfev, xtol=xtol,
-                                              x_scale='jac',
-                                              verbose=verbose)
-                p0 = popt
-                popt, pcov = scpopt.curve_fit(func_sca, x, spectra[ii,:],
-                                              jac=func_sca_jac,
-                                              p0=p0, bounds=bounds,
-                                              max_nfev=max_nfev, xtol=xtol,
-                                              x_scale='jac',
-                                              verbose=verbose)
-                lch.append(ii)
-            except Exception as err:
-                print(str(err))
-                import ipdb
-                ipdb.set_trace()
-                raise err
-
-        out = np.split(popt, indsplit)
-        outstd = np.split(np.sqrt(np.diag(pcov)), indsplit)
-        if forcelamb is True:
-            amp[ii, :], sigma[ii, :], bck[ii] = out
-            ampstd[ii, :], sigmastd[ii, :], bckstd[ii] = outstd
-        else:
-            amp[ii, :], dlamb[ii, :], sigma[ii, :], bck[ii] = out
-            ampstd[ii,:], dlambstd[ii,:], sigmastd[ii,:], bckstd[ii] = outstd
-        fit[ii, :] = func_sca(x, *popt)
-        p0[:] = popt[:]
-
-        if plot_debug and ii in [0,1]:
-            fit = func_vect(x, amp[ii,:], x0[ii,:], sigma[ii,:], bck0[ii])
-
-            plt.figure()
-            ax0 = plt.subplot(2,1,1)
-            ax1 = plt.subplot(2,1,2, sharex=ax0, sharey=ax0)
-            ax0.plot(x,spectra[ii,:], '.k',
-                     x, np.sum(fit, axis=0), '-r')
-            ax1.plot(x, fit.T)
-
-    std = np.sqrt(np.sum((spectra-fit)**2, axis=1))
-
-    dout = {'fit': fit, 'lamb0': lamb0, 'std': std, 'lch': lch,
-            'amp': amp, 'ampstd': ampstd,
-            'sigma': sigma, 'sigmastd': sigmastd,
-            'bck': bck, 'bckstd': bckstd,
-            'dlamb': dlamb, 'dlambstd': dlambstd}
-
-    return dout
+    # Compute new phi and associated costs
+    phi2 = phi[:, None] - phiok[None, :]
+    phi2min = np.min([np.nanmax(np.abs(phi2 * (phi2<0)), axis=0),
+                      np.nanmax(np.abs(phi2 * (phi2>0)), axis=0)], axis=0)
+    indout = np.abs(phi2) > phi2min[None, :]
+    phi2p = np.abs(phi2)
+    phi2n = np.abs(phi2)
+    phi2p[(phi2<0) | indout] = np.nan
+    phi2n[(phi2>0) | indout] = np.nan
+    nok = np.min([np.sum((~np.isnan(phi2p)), axis=0),
+                  np.sum((~np.isnan(phi2n)), axis=0)], axis=0)
+    cost = np.full((phiok.size,), np.nan)
+    for ii in range(phiok.size):
+        indp = np.argsort(np.abs(phi2p[:, ii]))
+        indn = np.argsort(np.abs(phi2n[:, ii]))
+        cost[ii] = np.nansum((data[indp] - data[indn])[:nok[ii]]**2)
+    return phiok[np.nanargmin(cost)]
 
 
 ###########################################################
@@ -403,6 +150,27 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 #
 ###########################################################
 ###########################################################
+
+
+def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
+    dinput['double'] = dconstraints.get('double', defconst['double'])
+    c0 = (isinstance(dinput['double'], bool)
+          or (isinstance(dinput['double'], dict)
+              and all([(kk in ['dratio', 'dshift']
+                        and type(vv) in ltypes)
+                       for kk, vv in dinput['double'].items()])))
+    if c0 is False:
+        msg = ("dconstraints['double'] must be either:\n"
+               + "\t- False: no line doubling\n"
+               + "\t- True:  line doublin with unknown ratio and shift\n"
+               + "\t- {'dratio': float}: line doubling with:\n"
+               + "\t  \t explicit ratio, unknown shift\n"
+               + "\t- {'dshift': float}: line doubling with:\n"
+               + "\t  \t unknown ratio, explicit shift\n"
+               + "\t- {'dratio': floati, 'dshift': float}: line doubling with:\n"
+               + "\t  \t explicit ratio, explicit shift")
+        raise Exception(msg)
+
 
 def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
 
@@ -570,13 +338,13 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
     # ------------------------
     # Check / format double
     # ------------------------
-    dinput['double'] = dconstraints.get('double', defconst['double'])
-    if type(dinput['double']) is not bool:
-        raise Exception(msg)
+    print(0)        # DB
+    _dconstraints_double(dinput, dconstraints, defconst=defconst)
 
     # ------------------------
     # Check / format width, shift, amp (groups with posssible ratio)
     # ------------------------
+    print(1)        # DB
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]),
                                       keys=keys, nlines=nlines, dlines=dlines)
@@ -584,6 +352,7 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
     # ------------------------
     # mz, symb, ion
     # ------------------------
+    print(2)        # DB
     mz = np.array([dlines[k0].get('m', np.nan) for k0 in keys])
     symb = np.array([dlines[k0].get('symbol', k0) for k0 in keys])
     ion = np.array([dlines[k0].get('ION', '?') for k0 in keys])
@@ -647,6 +416,7 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
 
     # Add boundaries
     dinput['lambminmax'] = (lambmin, lambmax)
+    print(4)        # DB
     return dinput
 
 
@@ -1274,8 +1044,23 @@ def multigausfit1d_from_dlines(data, lamb,
 ###########################################################
 
 
+def _dconstraints_symmetry(dinput, symmetry=None, spectvert1d=None, phi1d=None,
+                           fraction=None, defconst=_DCONSTRAINTS):
+    if symmetry is None:
+        symmetry = defconst['symmetry']
+    dinput['symmetry'] = symmetry
+    if not isinstance(dinput['symmetry'], bool):
+        msg = "dconstraints['symmetry'] must be a bool"
+        raise Exception(msg)
+
+    if dinput['symmetry'] is True:
+        dinput['symmetry_axis'] = get_symmetry_axis_1dprofile(
+            phi1d, spectvert1d, fraction=fraction)
+
+
 def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
-                                         phimin=None, phimax=None):
+                                         phimin=None, phimax=None,
+                                         dinput=None, symmetryaxis=None):
     # Check / format input
     if deg is None:
         deg = _DEG
@@ -1293,7 +1078,11 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
         if phimin is None or phimax is None:
             msg = "Please provide phimin and phimax if knots is not provided!"
             raise Exception(msg)
-        knots = np.linspace(phimin, phimax, nbsplines+1-deg)
+        if symmetryaxis is None:
+            knots = np.linspace(phimin, phimax, nbsplines + 1 - deg)
+        else:
+            phi2max = np.max(np.abs(np.r_[phimin, phimax] - symmetryaxis))
+            knots = np.linspace(0, phi2max, nbsplines + 1 - deg)
 
     if not np.allclose(knots, np.unique(knots)):
         msg = "knots must be a vector of unique values!"
@@ -1301,8 +1090,7 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
 
     # Get knots for scipy (i.e.: with multiplicity)
     if deg > 0:
-        knots_mult = np.r_[[knots[0]]*deg, knots,
-                      [knots[-1]]*deg]
+        knots_mult = np.r_[[knots[0]]*deg, knots, [knots[-1]]*deg]
     else:
         knots_mult = knots
     nknotsperbs = 2 + deg
@@ -1341,7 +1129,8 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
                                       deg=None, nbsplines=None, knots=None,
                                       lambmin=None, lambmax=None,
                                       phimin=None, phimax=None,
-                                      defconst=_DCONSTRAINTS):
+                                      spectvert1d=None, phi1d=None,
+                                      fraction=None, defconst=_DCONSTRAINTS):
 
     # ------------------------
     # Check / format basics
@@ -1360,10 +1149,12 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
     keys, lamb = keys[inds], lamb[inds]
     nlines = lamb.size
 
+    # Error message for constraints
+    msg = "dconstraints must be a dict of constraints for spectrum fitting"
+
     # Check constraints
     if dconstraints is None:
         dconstraints =  defconst
-
 
     # ------------------------
     # Check keys
@@ -1378,16 +1169,20 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
 
     # copy to avoid modifying reference
     dconstraints = copy.deepcopy(dconstraints)
-
+    ltypes = [int, float, np.int_, np.float_]
     dinput = {}
+
+    # ------------------------
+    # Check / format symmetry
+    # ------------------------
+    _dconstraints_symmetry(dinput, symmetry=dconstraints.get('symmetry'),
+                           spectvert1d=spectvert1d, phi1d=phi1d,
+                           fraction=fraction, defconst=defconst)
 
     # ------------------------
     # Check / format double
     # ------------------------
-
-    dinput['double'] = dconstraints.get('double', defconst['double'])
-    if type(dinput['double']) is not bool:
-        raise Exception(msg)
+    _dconstraints_double(dinput, dconstraints, defconst=defconst)
 
     # ------------------------
     # Check / format width, shift, amp (groups with posssible ratio)
@@ -1411,11 +1206,11 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
     dinput['vi'] = dinput['shift']['ind'].shape[0] < nlines
 
     # Get dict of bsplines
-    dinput.update(multigausfit2d_from_dlines_dbsplines(knots=knots,
-                                                       deg=deg,
-                                                       nbsplines=nbsplines,
-                                                       phimin=phimin,
-                                                       phimax=phimax))
+    dinput.update(multigausfit2d_from_dlines_dbsplines(
+        knots=knots, deg=deg, nbsplines=nbsplines,
+        phimin=phimin, phimax=phimax,
+        symmetryaxis=dinput.get('symmetry_axis')))
+
     # Add boundaries
     dinput['phiminmax'] = (phimin, phimax)
     dinput['lambminmax'] = (lambmin, lambmax)
@@ -1459,6 +1254,13 @@ def multigausfit2d_from_dlines_ind(dinput=None):
         dind['dshift'] = -2
         dind['dratio'] = -1
         sizex += 2
+    elif isinstance(dinput['double'], dict):
+        if dinput['double'].get('dshift') is None:
+            dind['dshift'] = -1
+            sizex += 1
+        elif dinput['double'].get('dratio') is None:
+            dind['dratio'] = -1
+            sizex += 1
 
     dind['sizex'] = sizex
     dind['nbck'] = 1
@@ -1489,7 +1291,7 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
         nbs, nlines = dinput['nbs'], dinput['nlines']
         na = dinput['amp']['ind'].shape[0]
         for ii in range(nbs):
-            ind = np.abs(phi-dinput['ptsx0'][ii]) < Dphi/20.
+            ind = np.abs(phi-dinput['ptsx0'][ii]) < Dphi/10.
             for jj in range(nspect):
                 indbck = data[jj, ind] < np.nanmean(data[jj, ind])
                 scales[jj, ibckx[ii]] = np.nanmean(data[jj, ind][indbck])
@@ -1874,7 +1676,11 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     dind = multigausfit2d_from_dlines_ind(dinput)
 
     # Get scaling
-    scales = multigausfit2d_from_dlines_scale(data, lamb, phi,
+    if dinput['symmetry'] is True:
+        phi2 = np.abs(phi - dinput['symmetry_axis'])
+    else:
+        phi2 = phi
+    scales = multigausfit2d_from_dlines_scale(data, lamb, phi2,
                                               dinput=dinput,
                                               dind=dind,
                                               scales=scales, nspect=nspect)
@@ -1892,7 +1698,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
 
     # Get function, cost function and jacobian
     (func_detail,
-     func_cost, jacob) = multigausfit2d_from_dlines_funccostjac(lamb, phi,
+     func_cost, jacob) = multigausfit2d_from_dlines_funccostjac(lamb, phi2,
                                                                 dinput=dinput,
                                                                 dind=dind,
                                                                 jac=jac)
@@ -1914,8 +1720,14 @@ def multigausfit2d_from_dlines(data, lamb, phi,
         dshift_norm = np.full((nspect,), np.nan)
     else:
         dratio, dshift_norm = None, None
+    if dinput['symmetry'] is True:
+        npts = 2*npts
     pts = np.linspace(dinput['phiminmax'][0],
                       dinput['phiminmax'][1], npts, endpoint=True)
+    if dinput['symmetry'] is True:
+        pts2 = np.abs(pts - dinput['symmetry_axis'])
+    else:
+        pts2 = pts
     kTiev, vims = None, None
     if dinput['Ti'] is True:
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
@@ -2001,7 +1813,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
                                  (res.x[dind['width']['x']]
                                   * scales[ii, dind['width']['x']]),
                                  dinput['deg'],
-                                 extrapolate=False, axis=0)(pts).T
+                                 extrapolate=False, axis=0)(pts2).T
                 kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
                                   * scpct.c**2)
             if dinput['vi'] is True:
@@ -2011,32 +1823,48 @@ def multigausfit2d_from_dlines(data, lamb, phi,
                                          * scales[ii, dind['shift']['x']]),
                                         dinput['deg'],
                                         extrapolate=False,
-                                        axis=0)(pts).T * scpct.c
+                                        axis=0)(pts2).T * scpct.c
             if ratio is not None:
                 # Te can only be obtained as a proxy, units don't matter
                 cup = BSpline(dinput['knots_mult'],
                               (res.x[dind['amp']['lines']]
                                * scales[ii, dind['amp']['lines']]),
                               dinput['deg'],
-                              extrapolate=False, axis=0)(pts)[:, ratio['indup']]
+                              extrapolate=False, axis=0)(pts2)[:, ratio['indup']]
                 clow = BSpline(dinput['knots_mult'],
                                (res.x[dind['amp']['lines']]
                                 * scales[ii, dind['amp']['lines']]),
                                dinput['deg'],
-                               extrapolate=False, axis=0)(pts)[:, ratio['indlow']]
+                               extrapolate=False, axis=0)(pts2)[:, ratio['indlow']]
                 ratio['value'][ii, ...] = (cup / clow).T
         except Exception as err:
             validity[ii] = -1
+
+    # Isolate dratio and dshift
+    dratio, dshift = None, None
+    if dinput['double'] is not False:
+        if dinput['double'] is True:
+            dratio = sol_x[:, dind['dratio']]*scales[:, dind['dratio']]
+            dshift = sol_x[:, dind['dshift']]*scales[:, dind['dshift']]
+        else:
+            if dinput['double'].get('dratio') is None:
+                dratio = sol_x[:, dind['dratio']]*scales[:, dind['dratio']]
+            else:
+                dratio = np.full((nspect,), dinput['double']['ratio'])
+            if dinput['double'].get('dshift') is None:
+                dshift = sol_x[:, dind['dshift']]*scales[:, dind['dshift']]
+            else:
+                dratio = np.full((nspect,), dinput['double']['shift'])
 
     if verbose > 0:
         dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
         msg = "Total computation time: {}".format(dt)
 
-
     # ---------------------------
     # Format output as dict
     dout = {'data': data, 'lamb': lamb, 'phi': phi,
             'sol_x': sol_x, 'sol_tot': sol_tot,
+            'dratio': dratio, 'dshift': dshift,
             'dinput': dinput, 'dind': dind, 'jac': jac,
             'pts_phi': pts, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
             'time': time, 'success': success, 'validity': validity,
