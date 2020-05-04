@@ -451,9 +451,9 @@ def _calc_spect1d_from_data2d(ldata, lamb, phi,
             indphi = np.abs(phi - phicent) < spect1d[ii][1]*dphi
             for jj in np.unique(ind):
                 indj = indphi & (ind == jj)
-                for ij in range(len(ldata)):
-                    spect1d_out[ij][ii, jj] = np.nanmean(
-                    ldata[ij][indj])
+                if np.any(indj):
+                    for ij in range(len(ldata)):
+                        spect1d_out[ij][ii, jj] = np.nanmean(ldata[ij][indj])
             phiminmax[ii, :] = (np.nanmin(phi[indphi]),
                                 np.nanmax(phi[indphi]))
 

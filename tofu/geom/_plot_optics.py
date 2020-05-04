@@ -1140,7 +1140,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         fig = plt.figure(figsize=fs)
         naxh = (3*3
                 + 2*(dfit2d['dinput']['Ti'] + dfit2d['dinput']['vi']
-                     + (dfit2d['ratio'] is not None)))
+                     + (dfit2d['ratio'] not in [None, False])))
         naxv = 1
         gs = gridspec.GridSpec((3+naxv)*3, naxh, **dmargin)
         if plotmode == 'transform':
@@ -1190,7 +1190,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
             dax['vi'].set_xlabel(r'$\hat{v_i}$' + r' (km/s)')
             dax['vi'].axvline(0, ls='-', lw=1., c='k')
             nn += 1
-        if dfit2d['ratio'] is not None:
+        if dfit2d['ratio'] not in [None, False]:
             dax['ratio'] = fig.add_subplot(gs[:9, 9+2*(nn-1):], sharey=ax1)
             dax['ratio'].set_title(r'Intensity Ratio')
             dax['ratio'].set_xlabel(r'ratio (a.u)')
@@ -1259,7 +1259,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         dax['vi'].legend(frameon=True,
                          loc='upper left', bbox_to_anchor=(0., -0.1))
 
-    if dax.get('ratio') is not None and dfit2d['ratio'] is not None:
+    if dax.get('ratio') not in [None, False]:
         for ii in range(dfit2d['ratio']['value'].shape[1]):
             dax['ratio'].plot(dfit2d['ratio']['value'][indspect, ii, :],
                               pts_phi,
@@ -1286,9 +1286,25 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     # double legend
     if dfit2d['dinput']['double'] is not False:
         hand = [mlines.Line2D([], [], c='k', ls='None')]*2
-        lleg = ['dratio = {:4.2f}'.format(dfit2d['dratio'][indspect]),
-                ('dshift = {:4.2e} * '.format(dfit2d['dshift'][indspect])
-                 + r'$\lambda$')]
+        c0 = (dfit2d['dinput']['double'] is True
+              or dfit2d['dinput']['double'].get('dratio') is None)
+        if c0:
+            dratio = dfit2d['dratio'][indspect]
+            dratiostr = ''
+        else:
+            dratio = dfit2d['dinput']['double']['dratio']
+            dratiostr = '  (fixed)'
+        c0 = (dfit2d['dinput']['double'] is True
+              or dfit2d['dinput']['double'].get('dshift') is None)
+        if c0:
+            dshift = dfit2d['dshift'][indspect]
+            dshiftstr = ''
+        else:
+            dshift = dfit2d['dinput']['double']['dshift']
+            dshiftstr = '  (fixed)'
+        lleg = ['dratio = {:4.2f}{}'.format(dratio, dratiostr),
+                ('dshift = {:4.2e} * '.format(dshift)
+                 + r'$\lambda${}'.format(dshiftstr))]
         legr = dax['err1d'].legend(handles=hand, labels=lleg, title='double',
                                    bbox_to_anchor=(1.01, 0.),
                                    loc='center left')

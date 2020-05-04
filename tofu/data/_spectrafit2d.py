@@ -154,6 +154,7 @@ def get_symmetry_axis_1dprofile(phi, data, fraction=None):
 
 def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
     dinput['double'] = dconstraints.get('double', defconst['double'])
+    ltypes = [int, float, np.int_, np.float_]
     c0 = (isinstance(dinput['double'], bool)
           or (isinstance(dinput['double'], dict)
               and all([(kk in ['dratio', 'dshift']
@@ -1297,7 +1298,8 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
                 scales[jj, ibckx[ii]] = np.nanmean(data[jj, ind][indbck])
             for jj in range(na):
                 indl = dind['amp_x0'][jj]
-                indj = ind & (np.abs(lamb-dinput['lines'][indl])<Dlamb/20.)
+                indlamb = np.abs(lamb-dinput['lines'][indl])<Dlamb/20.
+                indj = ind & indlamb
                 if not np.any(indj):
                     lamb0 = dinput['lines'][indl]
                     msg = ("All nan in region scanned for scale:\n"
@@ -1305,13 +1307,26 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
                            + "\t- bspline[{}]\n".format(ii)
                            + "\t- phi approx {}\n".format(dinput['ptsx0'][ii])
                            + "\t- lamb approx {}".format(lamb0))
+                    plt.figure()
+                    plt.scatter(lamb, phi, s=6, c='k', marker='.')
+                    plt.scatter(lamb[ind], phi[ind], s=6, c='r', marker='.')
+                    plt.scatter(lamb[indlamb], phi[indlamb],
+                                s=6, c='b', marker='.');
+                    plt.gca().set_xlim(dinput['lambminmax'])
+                    plt.gca().set_ylim(dinput['phiminmax'])
                     raise Exception(msg)
                 scales[:, iax[ii, jj]] = np.nanmax(data[:, indj], axis=1)
         scales[:, iwx] = (Dlamb/(20*lambm))**2
         scales[:, isx] = Dlamb/(50*lambm)
-        if dinput['double'] is True:
-            scales[:, dind['dratio']] = 1.
-            scales[:, dind['dshift']] = Dlamb/(50*lambm)
+        if dinput['double'] is not False:
+            if dinput['double'] is True:
+                scales[:, dind['dratio']] = 1.
+                scales[:, dind['dshift']] = Dlamb/(50*lambm)
+            else:
+                if dinput['double'].get('dratio') is None:
+                    scales[:, dind['dratio']] = 1.
+                if dinput['double'].get('dshift') is None:
+                    scales[:, dind['dshift']] = Dlamb/(50*lambm)
     assert scales.ndim in [1, 2]
     if scales.ndim == 1:
         scales = np.tile(scales, (nspect, scales.size))
@@ -1332,9 +1347,15 @@ def multigausfit2d_from_dlines_x0(dind=None, nbs=None,
     x0_scale[:, dind['bck']['x']] = 1.
     x0_scale[:, dind['width']['x']] = 0.4
     x0_scale[:, dind['shift']['x']] = 0.
-    if double is True:
-        x0_scale[:, dind['dratio']] = 0.7
-        x0_scale[:, dind['dshift']] = 0.7
+    if double is not False:
+        if double is True:
+            x0_scale[:, dind['dratio']] = 0.7
+            x0_scale[:, dind['dshift']] = 0.7
+        else:
+            if double.get('dratio') is None:
+                x0_scale[:, dind['dratio']] = 0.7
+            if double.get('dshift') is None:
+                x0_scale[:, dind['dshift']] = 0.7
     return x0_scale
 
 
@@ -1350,11 +1371,19 @@ def multigausfit2d_from_dlines_bounds(sizex=None, dind=None, double=None):
     xlo[dind['width']['x']] = 0.01
     xup[dind['shift']['x']] = 1.
     xlo[dind['shift']['x']] = -1.
-    if double is True:
-        xup[dind['dratio']] = 1.6
-        xlo[dind['dratio']] = 0.4
-        xup[dind['dshift']] = 10.
-        xlo[dind['dshift']] = -10.
+    if double is not False:
+        if double is True:
+            xup[dind['dratio']] = 1.6
+            xlo[dind['dratio']] = 0.4
+            xup[dind['dshift']] = 10.
+            xlo[dind['dshift']] = -10.
+        else:
+            if double.get('dratio') is None:
+                xup[dind['dratio']] = 1.6
+                xlo[dind['dratio']] = 0.4
+            if double.get('dshift') is None:
+                xup[dind['dshift']] = 10.
+                xlo[dind['dshift']] = -10.
     bounds_scale = (xlo, xup)
     return bounds_scale
 
@@ -1411,10 +1440,21 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
         wi2 = BSpline(km, xscale[iwl] * coefswl, deg,
                       extrapolate=False, axis=0)(phi)
         exp = np.exp(-(lamb/lines - (1 + shift))**2 / (2*wi2))
-        if double is True:
+        if double is not False:
             # coefssl are line-specific, they do not affect dshift
-            shiftd = shift + x[idshx]*scales[idshx]  # *coefssl
-            expd = np.exp(-(lamb/lines - (1 + shiftd))**2 / (2*wi2))
+            if double is True:
+                dratio = xscale[idratiox]
+                dshift = shift + xscale[idshx]  # *coefssl
+            else:
+                if double.get('dratio') is None:
+                    dratio = xscale[idratiox]
+                else:
+                    dratio = double.get('dratio')
+                if double.get('dshift') is None:
+                    dshift = shift + xscale[idshx]
+                else:
+                    dshift = double.get('dshift')
+            expd = np.exp(-(lamb/lines - (1 + dshift))**2 / (2*wi2))
 
         # Loop on individual bsplines for amp
         for ii in range(nbs):
@@ -1426,9 +1466,8 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
             for jj in range(nlines):
                 amp = bs * xscale[ial[ii, jj]] * coefsal[0, jj]
                 y[indok, nbck+jj, ii] = amp * exp[indok, jj]
-                if double is True:
-                    y[indok, nbck+jj, ii] += (amp * x[idratiox]
-                                              * expd[indok, jj])
+                if double is not False:
+                    y[indok, nbck+jj, ii] += (amp * dratio * expd[indok, jj])
         return y
 
     def cost(x, phi=phi, lamb=lamb[:, None],
@@ -1468,9 +1507,22 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                                                   axis=0)(phi)))**2
                                  / (2*wi2))),
                        axis=1)
-        if double is True:
-            csh = csh + x[idshx]*scales[ishl]*coefssl
-            y += np.nansum((amp * x[idratiox]
+        if double is not False:
+            if double is True:
+                dratio = xscale[idratiox]
+                # scales[ishl] or scales[idshx] ? coefssl ? +> no
+                csh = csh + xscale[idshx]
+            else:
+                if double.get('dratio') is None:
+                    dratio = xscale[idratiox]
+                else:
+                    dratio = double.get('dratio')
+                if double.get('dshift') is None:
+                    csh = csh + xscale[idshx]
+                else:
+                    csh = csh + double.get('dshift')
+
+            y += np.nansum((amp * dratio
                             * np.exp(-(lamb/lines
                                        - (1 + BSpline(km, csh, deg,
                                                       extrapolate=False,
@@ -1556,10 +1608,24 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                         axis=1)
 
                 # double
+                if double is False:
+                    return jac
+
                 if double is True:
-                    ampd = amp*x[idratiox]
+                    dratio = xscale[idratiox]
                     # coefssl are line-specific, they do not affect dshift
-                    shiftd = shift + x[idshx]*scales[idshx]  # *coefssl
+                    shiftd = shift + xscale[idshx]
+                else:
+                    if double.get('dratio') is None:
+                        dratio = xscale[idratiox]
+                    else:
+                        dratio = double.get('dratio')
+                    if double.get('dshift') is None:
+                        shiftd = shift + xscale[idshx]
+                    else:
+                        shiftd = shift + double.get('dshift')
+
+                    ampd = amp*dratio
                     betad = (lamb[indok]/lines - (1 + shiftd)) / (2*wi2)
                     alphad = -betad**2 * (2*wi2)
                     expd = np.exp(alphad)
@@ -1567,7 +1633,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                     # amp
                     for jj in range(len(iaj)):
                         ix = iax[ii, jj]
-                        jac[indok, ix] += x[idratiox]*np.nansum(
+                        jac[indok, ix] += dratio*np.nansum(
                             (bs * scales[ix] * coefsal[0:1, iaj[jj]]
                              * expd[:, iaj[jj]]),
                             axis=1)
@@ -1594,11 +1660,14 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                             axis=1)
 
                     # dratio
-                    jac[indok, idratiox] = np.nansum(amp*expd, axis=1)
+                    if double is True or double.get('dratio') is None:
+                        jac[indok, idratiox] = (scales[idratiox]
+                                                *np.nansum(amp*expd, axis=1))
 
                     # dshift
-                    jac[indok, idshx] = np.nansum(
-                        ampd * 2.*betad*scales[idshx] * expd, axis=1)
+                    if double is True or double.get('dshift') is None:
+                        jac[indok, idshx] = np.nansum(
+                            ampd * 2.*betad*scales[idshx] * expd, axis=1)
             return jac
     else:
         if jac not in ['2-point', '3-point']:
@@ -1714,12 +1783,8 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     cost = np.full((nspect,), np.nan)
     nfev = np.full((nspect,), np.nan)
     validity = np.zeros((nspect,), dtype=int)
-    message = np.array(['' for ss in range(nspect)])
-    if dinput['double'] is True:
-        dratio = np.full((nspect,), np.nan)
-        dshift_norm = np.full((nspect,), np.nan)
-    else:
-        dratio, dshift_norm = None, None
+    message = ['' for ss in range(nspect)]
+    errmsg = ['' for ss in range(nspect)]
     if dinput['symmetry'] is True:
         npts = 2*npts
     pts = np.linspace(dinput['phiminmax'][0],
@@ -1738,7 +1803,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
         # indvi = np.array([iit[0] for iit in dind['shift']['jac']])
         vims = np.full((nspect, dinput['shift']['ind'].shape[0], npts),
                        np.nan)
-    if ratio is not None:
+    if ratio is not False:
         # Te can only be obtained as a proxy, units don't matter at this point
         if isinstance(ratio['up'], str):
             ratio['up'] = [ratio['up']]
@@ -1769,76 +1834,72 @@ def multigausfit2d_from_dlines(data, lamb, phi,
         if verbose > 0:
             msg = "Iteration {} / {}".format(ii+1, nspect)
             print(msg)
-        try:
-            t0i = dtm.datetime.now()     # DB
-            res = scpopt.least_squares(func_cost, x0_scale[ii, :],
-                                       jac=jacob, bounds=bounds_scale,
-                                       method=method, ftol=ftol, xtol=xtol,
-                                       gtol=gtol, x_scale=1.0, f_scale=1.0,
-                                       loss=loss, diff_step=None,
-                                       tr_solver=None, tr_options={},
-                                       jac_sparsity=None, max_nfev=max_nfev,
-                                       verbose=verbscp, args=(),
-                                       kwargs={'data': data[ii, :],
-                                               'scales': scales[ii, :]})
-            if chain is True and ii < nspect-1:
-                x0_scale[ii+1, :] = res.x
+        # try:
+        t0i = dtm.datetime.now()     # DB
+        res = scpopt.least_squares(func_cost, x0_scale[ii, :],
+                                   jac=jacob, bounds=bounds_scale,
+                                   method=method, ftol=ftol, xtol=xtol,
+                                   gtol=gtol, x_scale=1.0, f_scale=1.0,
+                                   loss=loss, diff_step=None,
+                                   tr_solver=None, tr_options={},
+                                   jac_sparsity=None, max_nfev=max_nfev,
+                                   verbose=verbscp, args=(),
+                                   kwargs={'data': data[ii, :],
+                                           'scales': scales[ii, :]})
+        if chain is True and ii < nspect-1:
+            x0_scale[ii+1, :] = res.x
 
-            # cost, message, time
-            success[ii] = res.success
-            cost[ii] = res.cost
-            nfev[ii] = res.nfev
-            message[ii] = res.message
-            time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
-                             ndigits=3)
-            if verbose > 0:
-                msg = " {}    {}    {}   {}   {}".format(time[ii],
-                                                         round(res.cost),
-                                                         res.nfev, res.njev,
-                                                         res.message)
-                print(msg)
+        # cost, message, time
+        success[ii] = res.success
+        cost[ii] = res.cost
+        nfev[ii] = res.nfev
+        message[ii] = res.message
+        time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
+                         ndigits=3)
+        if verbose > 0:
+            msg = " {}    {}    {}   {}   {}".format(time[ii],
+                                                     round(res.cost),
+                                                     res.nfev, res.njev,
+                                                     res.message)
+            print(msg)
 
-            # Separate and reshape output
-            sol_x[ii, :] = res.x
-            sol_tot[ii, :] = func_cost(res.x, scales=scales[ii, :], data=0.)
+        # Separate and reshape output
+        sol_x[ii, :] = res.x
+        sol_tot[ii, :] = func_cost(res.x, scales=scales[ii, :], data=0.)
 
-            # Get result in physical units: TBC !!!
-            if dinput['double'] is True:
-                dratio[ii] = res.x[dind['dratio']]
-                dshift_norm[ii] = (res.x[dind['dshift']]
-                                   * scales[ii, dind['dshift']])
-            if dinput['Ti'] is True:
-                # Get Ti in eV
-                width2 = BSpline(dinput['knots_mult'],
-                                 (res.x[dind['width']['x']]
-                                  * scales[ii, dind['width']['x']]),
-                                 dinput['deg'],
-                                 extrapolate=False, axis=0)(pts2).T
-                kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
-                                  * scpct.c**2)
-            if dinput['vi'] is True:
-                # Get vi in m/s
-                vims[ii, ...] = BSpline(dinput['knots_mult'],
-                                        (res.x[dind['shift']['x']]
-                                         * scales[ii, dind['shift']['x']]),
-                                        dinput['deg'],
-                                        extrapolate=False,
-                                        axis=0)(pts2).T * scpct.c
-            if ratio is not None:
-                # Te can only be obtained as a proxy, units don't matter
-                cup = BSpline(dinput['knots_mult'],
-                              (res.x[dind['amp']['lines']]
-                               * scales[ii, dind['amp']['lines']]),
-                              dinput['deg'],
-                              extrapolate=False, axis=0)(pts2)[:, ratio['indup']]
-                clow = BSpline(dinput['knots_mult'],
-                               (res.x[dind['amp']['lines']]
-                                * scales[ii, dind['amp']['lines']]),
-                               dinput['deg'],
-                               extrapolate=False, axis=0)(pts2)[:, ratio['indlow']]
-                ratio['value'][ii, ...] = (cup / clow).T
-        except Exception as err:
-            validity[ii] = -1
+        if dinput['Ti'] is True:
+            # Get Ti in eV
+            width2 = BSpline(dinput['knots_mult'],
+                             (res.x[dind['width']['x']]
+                              * scales[ii, dind['width']['x']]),
+                             dinput['deg'],
+                             extrapolate=False, axis=0)(pts2).T
+            kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
+                              * scpct.c**2)
+        if dinput['vi'] is True:
+            # Get vi in m/s
+            vims[ii, ...] = BSpline(dinput['knots_mult'],
+                                    (res.x[dind['shift']['x']]
+                                     * scales[ii, dind['shift']['x']]),
+                                    dinput['deg'],
+                                    extrapolate=False,
+                                    axis=0)(pts2).T * scpct.c
+        if ratio is not False:
+            # Te can only be obtained as a proxy, units don't matter
+            cup = BSpline(dinput['knots_mult'],
+                          (res.x[dind['amp']['lines']]
+                           * scales[ii, dind['amp']['lines']]),
+                          dinput['deg'],
+                          extrapolate=False, axis=0)(pts2)[:, ratio['indup']]
+            clow = BSpline(dinput['knots_mult'],
+                           (res.x[dind['amp']['lines']]
+                            * scales[ii, dind['amp']['lines']]),
+                           dinput['deg'],
+                           extrapolate=False, axis=0)(pts2)[:, ratio['indlow']]
+            ratio['value'][ii, ...] = (cup / clow).T
+        # except Exception as err:
+            # errmsg[ii] = str(err)
+            # validity[ii] = -1
 
     # Isolate dratio and dshift
     dratio, dshift = None, None
@@ -1850,11 +1911,11 @@ def multigausfit2d_from_dlines(data, lamb, phi,
             if dinput['double'].get('dratio') is None:
                 dratio = sol_x[:, dind['dratio']]*scales[:, dind['dratio']]
             else:
-                dratio = np.full((nspect,), dinput['double']['ratio'])
+                dratio = np.full((nspect,), dinput['double']['dratio'])
             if dinput['double'].get('dshift') is None:
                 dshift = sol_x[:, dind['dshift']]*scales[:, dind['dshift']]
             else:
-                dratio = np.full((nspect,), dinput['double']['shift'])
+                dratio = np.full((nspect,), dinput['double']['dshift'])
 
     if verbose > 0:
         dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
@@ -1867,6 +1928,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
             'dratio': dratio, 'dshift': dshift,
             'dinput': dinput, 'dind': dind, 'jac': jac,
             'pts_phi': pts, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
-            'time': time, 'success': success, 'validity': validity,
-            'cost': cost, 'nfev': nfev, 'msg': message}
+            'time': time, 'success': success,
+            'validity': validity, 'errmsg': np.array(errmsg),
+            'cost': cost, 'nfev': nfev, 'msg': np.array(message)}
     return dout
