@@ -10,6 +10,7 @@ import scipy.optimize as scpopt
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.lines as mlines
+import matplotlib.colors as mcolors
 
 _HERE = os.path.dirname(__file__)
 _TOFUPATH = os.path.abspath(os.path.join(_HERE, os.pardir))
@@ -132,7 +133,7 @@ _ANG = np.full((_NSHOT,), np.nan)
 _DSHOTS = {
     'ArXVII': {
         # C3
-        54041: {'ang': 1.1498, 'tlim': [32, 36]},
+        # 54041: {'ang': 1.1498, 'tlim': [32, 36]}, # Almost no signal
         54043: {'ang': 1.1498, 'tlim': [35, 39]},
         54044: {'ang': 1.1498, 'tlim': [33, 47]},
         54045: {'ang': 1.28075, 'tlim': [32, 46]},
@@ -1949,6 +1950,7 @@ def treat(cryst, shot=None,
           tol=None,
           plasma=True,
           nameextra=None,
+          lambmin=3.945e-10, lambmax=4e-10,
           xi=_XI, xj=_XJ,
           path=_HERE):
 
@@ -2016,11 +2018,10 @@ def treat(cryst, shot=None,
 
             data, t, dbonus = _load_data(int(shots[ii]),
                                          tlim=dshots[int(shots[ii])]['tlim'])
-
             dout = cryst.plot_data_fit2d_dlines(
                 dlines=dlines, dconstraints=dconst, data=data,
                 xi=xi, xj=xj, det=det,
-                lambmin=3.945e-10, lambmax=4e-10,
+                lambmin=lambmin, lambmax=lambmax,
                 deg=2, verbose=2, subset=None, binning=binning,
                 nbsplines=nbsplines, mask=mask, ratio=ratio,
                 phimin=None, phimax=None,
@@ -2044,6 +2045,7 @@ def treat(cryst, shot=None,
                     out = multi.get_data('lh_antennas', ['t', 'power'])
                     dout['lh_power'] = out['power']
                     dout['lh_t'] = out['t']
+
                 except Exception as err:
                     pass
 
@@ -2057,3 +2059,100 @@ def treat(cryst, shot=None,
 
         except Exception as err:
             pass
+
+def treat_plot_double(path=None,
+                      cmap=None, color=None, alpha=None,
+                      vmin=None, vmax=None, size=None,
+                      fs=None, dmargin=None):
+
+    # ---------
+    # Prepare
+    if path is None:
+        path = _HERE
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if color is None:
+        color = 'shot'
+    assert isinstance(color, str)
+    if alpha is None:
+        alpha = 'sumsig'
+    if size is None:
+        size = 30
+
+    lf = [ff for ff in os.listdir(path)
+          if (all([ss in ff for ss in ['XICS', 'fit2d', 'nbs', '.npz']])
+              and all([ss not in ff for ss in ['Free']]))]
+    nf = len(lf)
+    din = {}
+    ls = ['dratio', 'dshift', 't', 'cost',
+          'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
+    lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
+    dall = {kk: [] for kk in ls + lsextra}
+    indshot = len('XICS_fit2d_')
+    for ff in lf:
+        din = {}
+        try:
+            shot = int(ff[indshot:indshot+5])
+            out = np.load(os.path.join(path, ff), allow_pickle=True)
+            nt = out['t'].size
+            for kk in ls:
+                din[kk] = out.get(kk, np.full((nt,), np.nan))
+            lambmean = np.mean(out['dinput'].tolist()['lambminmax'])
+            din['shot'] = np.full((nt,), shot)
+            din['sumsig'] = np.nansum(out['data'], axis=1)
+            din['lambmean'] = np.full((nt,), lambmean)
+            din['ff'] = np.full((nt,), ff, dtype='U')
+
+        except Exception as err:
+            continue
+        for kk in din.keys():
+            dall[kk] = np.append(dall[kk], din[kk])
+    if len(dall.keys()) == 0:
+        warnings.warn("No data in dall!")
+
+    # Prepare color, alpha and size
+    if isinstance(size, str):
+        size = dall[size]
+    color = cmap(mcolors.Normalize(vmin=vmin, vmax=vmax)(dall[color]))
+    if isinstance(alpha, str):
+        alpha = mcolors.Normalize()(dall[alpha])
+    else:
+        alpha = 1.
+    color[:, -1] = alpha
+
+    # ---------
+    # plot
+    if fs is None:
+        fs = (12, 6)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left':0.06, 'right':0.96,
+                   'bottom':0.08, 'top':0.93,
+                   'wspace':0.4, 'hspace':0.2}
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(2, 16, **dmargin)
+
+    shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
+    dax = {'dratio': None,
+           'dshift': None}
+    dax['dratio'] = fig.add_subplot(gs[0, :-1])
+    dax['dshift'] = fig.add_subplot(gs[1, :-1], sharex=dax['dratio'])
+    dax['dratio_c'] = fig.add_subplot(gs[0, -1])
+    dax['dshift_c'] = fig.add_subplot(gs[1, -1])
+    dax['dratio'].set_ylabel('double ratio (a.u.)')
+    dax['dshift'].set_ylabel('double shift (a.u.)')
+    dax['dshift'].set_xlabel(r'$\lambda$' + ' (m)')
+
+    dr = dax['dratio'].scatter(dall['lambmean'], dall['dratio'],
+                               c=color, s=size, marker='o', edgecolors='None')
+    dax['dshift'].scatter(dall['lambmean'], dall['dshift'],
+                          c=color, s=size, marker='o', edgecolors='None')
+
+    # dax['dratio'].set_ylim(0, 2)
+    dax['dratio'].set_xlim(3.94e-10, 4e-10)
+
+    plt.colorbar(dr, cax=dax['dratio_c'])
+    # plt.colorbar(dr, cax=dax['dshift_c'])
+    return dall, dax
