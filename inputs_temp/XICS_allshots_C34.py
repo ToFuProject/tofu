@@ -2060,33 +2060,15 @@ def treat(cryst, shot=None,
         except Exception as err:
             pass
 
-def treat_plot_double(path=None,
-                      cmap=None, color=None, alpha=None,
-                      vmin=None, vmax=None, size=None,
-                      fs=None, dmargin=None):
 
-    # ---------
-    # Prepare
-    if path is None:
-        path = _HERE
-    if cmap is None:
-        cmap = plt.cm.viridis
-    if color is None:
-        color = 'shot'
-    assert isinstance(color, str)
-    if alpha is None:
-        alpha = 'sumsig'
-    if size is None:
-        size = 30
-
+def _get_files(path, nameextra, nameexclude)
     lf = [ff for ff in os.listdir(path)
-          if (all([ss in ff for ss in ['XICS', 'fit2d', 'nbs', '.npz']])
-              and all([ss not in ff for ss in ['Free']]))]
-    nf = len(lf)
-    din = {}
-    ls = ['dratio', 'dshift', 't', 'cost',
-          'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
-    lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
+          if (all([ss in ff
+                   for ss in ['XICS', 'fit2d', 'nbs', nameextra, '.npz']])
+              and all([ss not in ff for ss in ['Free', nameexclude]]))]
+    return lf
+
+def _get_dall_from_lf(lf, ls, lsextra, path):
     dall = {kk: [] for kk in ls + lsextra}
     indshot = len('XICS_fit2d_')
     for ff in lf:
@@ -2107,6 +2089,38 @@ def treat_plot_double(path=None,
             continue
         for kk in din.keys():
             dall[kk] = np.append(dall[kk], din[kk])
+    return dall
+
+
+def treat_plot_double(path=None, nameextra=None, nameexclude=None,
+                      cmap=None, color=None, alpha=None,
+                      vmin=None, vmax=None, size=None,
+                      fs=None, dmargin=None):
+
+    # ---------
+    # Prepare
+    if path is None:
+        path = _HERE
+    if nameextra is None:
+        nameextra = ''
+    if nameexclude is None:
+        nameexclude = '---------'
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if color is None:
+        color = 'shot'
+    assert isinstance(color, str)
+    if alpha is None:
+        alpha = 'sumsig'
+    if size is None:
+        size = 30
+
+    lf = _get_files(path, nameextra, nameexclude)
+    nf = len(lf)
+    ls = ['dratio', 'dshift', 't', 'cost',
+          'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
+    lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
+    dall = _get_files(path, nameextra, nameexclude)
     if len(dall.keys()) == 0:
         warnings.warn("No data in dall!")
 
@@ -2127,7 +2141,7 @@ def treat_plot_double(path=None,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.06, 'right':0.96,
+        dmargin = {'left':0.08, 'right':0.96,
                    'bottom':0.08, 'top':0.93,
                    'wspace':0.4, 'hspace':0.2}
 
@@ -2152,6 +2166,90 @@ def treat_plot_double(path=None,
 
     # dax['dratio'].set_ylim(0, 2)
     dax['dratio'].set_xlim(3.94e-10, 4e-10)
+    dax['dratio'].set_ylim(0, 1.)
+    dax['dshift'].set_ylim(0, 6e-4)
+
+    plt.colorbar(dr, cax=dax['dratio_c'])
+    # plt.colorbar(dr, cax=dax['dshift_c'])
+    return dall, dax
+
+
+def treat_plot_lineratio(path=None, nameextra=None, nameexclude=None,
+                         cmap=None, color=None, alpha=None,
+                         vmin=None, vmax=None, size=None,
+                         fs=None, dmargin=None):
+
+    # ---------
+    # Prepare
+    if path is None:
+        path = _HERE
+    if nameextra is None:
+        nameextra = ''
+    if nameexclude is None:
+        nameexclude = '---------'
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if color is None:
+        color = 'shot'
+    assert isinstance(color, str)
+    if alpha is None:
+        alpha = 'sumsig'
+    if size is None:
+        size = 30
+
+    lf = _get_files(path, nameextra, nameexclude)
+    nf = len(lf)
+    ls = ['dratio', 'dshift', 't', 'cost',
+          'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
+    lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
+    dall = _get_files(path, nameextra, nameexclude)
+    if len(dall.keys()) == 0:
+        warnings.warn("No data in dall!")
+
+    # Prepare color, alpha and size
+    if isinstance(size, str):
+        size = dall[size]
+    color = cmap(mcolors.Normalize(vmin=vmin, vmax=vmax)(dall[color]))
+    if isinstance(alpha, str):
+        alpha = mcolors.Normalize()(dall[alpha])
+    else:
+        alpha = 1.
+    color[:, -1] = alpha
+
+    # ---------
+    # plot
+    if fs is None:
+        fs = (12, 6)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left':0.08, 'right':0.96,
+                   'bottom':0.08, 'top':0.93,
+                   'wspace':0.4, 'hspace':0.2}
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(2, 16, **dmargin)
+
+    shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
+    dax = {'dratio': None,
+           'dshift': None}
+    dax['dratio'] = fig.add_subplot(gs[0, :-1])
+    dax['dshift'] = fig.add_subplot(gs[1, :-1], sharex=dax['dratio'])
+    dax['dratio_c'] = fig.add_subplot(gs[0, -1])
+    dax['dshift_c'] = fig.add_subplot(gs[1, -1])
+    dax['dratio'].set_ylabel('double ratio (a.u.)')
+    dax['dshift'].set_ylabel('double shift (a.u.)')
+    dax['dshift'].set_xlabel(r'$\lambda$' + ' (m)')
+
+    dr = dax['dratio'].scatter(dall['lambmean'], dall['dratio'],
+                               c=color, s=size, marker='o', edgecolors='None')
+    dax['dshift'].scatter(dall['lambmean'], dall['dshift'],
+                          c=color, s=size, marker='o', edgecolors='None')
+
+    # dax['dratio'].set_ylim(0, 2)
+    dax['dratio'].set_xlim(3.94e-10, 4e-10)
+    dax['dratio'].set_ylim(0, 1.)
+    dax['dshift'].set_ylim(0, 6e-4)
 
     plt.colorbar(dr, cax=dax['dratio_c'])
     # plt.colorbar(dr, cax=dax['dshift_c'])
