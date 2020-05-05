@@ -1453,7 +1453,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                 if double.get('dshift') is None:
                     dshift = shift + xscale[idshx]
                 else:
-                    dshift = double.get('dshift')
+                    dshift = shift + double.get('dshift')
             expd = np.exp(-(lamb/lines - (1 + dshift))**2 / (2*wi2))
 
         # Loop on individual bsplines for amp
@@ -1625,49 +1625,49 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                     else:
                         shiftd = shift + double.get('dshift')
 
-                    ampd = amp*dratio
-                    betad = (lamb[indok]/lines - (1 + shiftd)) / (2*wi2)
-                    alphad = -betad**2 * (2*wi2)
-                    expd = np.exp(alphad)
+                ampd = amp*dratio
+                betad = (lamb[indok]/lines - (1 + shiftd)) / (2*wi2)
+                alphad = -betad**2 * (2*wi2)
+                expd = np.exp(alphad)
 
-                    # amp
-                    for jj in range(len(iaj)):
-                        ix = iax[ii, jj]
-                        jac[indok, ix] += dratio*np.nansum(
-                            (bs * scales[ix] * coefsal[0:1, iaj[jj]]
-                             * expd[:, iaj[jj]]),
-                            axis=1)
+                # amp
+                for jj in range(len(iaj)):
+                    ix = iax[ii, jj]
+                    jac[indok, ix] += dratio*np.nansum(
+                        (bs * scales[ix] * coefsal[0:1, iaj[jj]]
+                         * expd[:, iaj[jj]]),
+                        axis=1)
 
-                    # width2
-                    for jj in range(len(iwj)):
-                        ix = iwx[ii, jj]
-                        jac[indok, ix] += np.nansum(
-                            (ampd[:, iwj[jj]]
-                             * (-alphad[:, iwj[jj]]
-                                * bs * scales[ix] * coefswl[0:1, iwj[jj]]
-                             / wi2[:, iwj[jj]])
-                             * expd[:, iwj[jj]]),
-                            axis=1)
+                # width2
+                for jj in range(len(iwj)):
+                    ix = iwx[ii, jj]
+                    jac[indok, ix] += np.nansum(
+                        (ampd[:, iwj[jj]]
+                         * (-alphad[:, iwj[jj]]
+                            * bs * scales[ix] * coefswl[0:1, iwj[jj]]
+                         / wi2[:, iwj[jj]])
+                         * expd[:, iwj[jj]]),
+                        axis=1)
 
-                    # shift
-                    for jj in range(len(ishj)):
-                        ix = ishx[ii, jj]
-                        jac[indok, ix] += np.nansum(
-                            (ampd[:, ishj[jj]]
-                             * 2.*betad[:, ishj[jj]]
-                             * bs * scales[ix] * coefssl[0:1, ishj[jj]]
-                             * expd[:, ishj[jj]]),
-                            axis=1)
+                # shift
+                for jj in range(len(ishj)):
+                    ix = ishx[ii, jj]
+                    jac[indok, ix] += np.nansum(
+                        (ampd[:, ishj[jj]]
+                         * 2.*betad[:, ishj[jj]]
+                         * bs * scales[ix] * coefssl[0:1, ishj[jj]]
+                         * expd[:, ishj[jj]]),
+                        axis=1)
 
-                    # dratio
-                    if double is True or double.get('dratio') is None:
-                        jac[indok, idratiox] = (scales[idratiox]
-                                                *np.nansum(amp*expd, axis=1))
+                # dratio
+                if double is True or double.get('dratio') is None:
+                    jac[indok, idratiox] = (scales[idratiox]
+                                            *np.nansum(amp*expd, axis=1))
 
-                    # dshift
-                    if double is True or double.get('dshift') is None:
-                        jac[indok, idshx] = np.nansum(
-                            ampd * 2.*betad*scales[idshx] * expd, axis=1)
+                # dshift
+                if double is True or double.get('dshift') is None:
+                    jac[indok, idshx] = np.nansum(
+                        ampd * 2.*betad*scales[idshx] * expd, axis=1)
             return jac
     else:
         if jac not in ['2-point', '3-point']:
