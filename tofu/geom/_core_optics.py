@@ -1918,6 +1918,7 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def get_dinput_for_fit2d(dlines=None, dconstraints=None,
+                             Ti=None, vi=None,
                              deg=None, knots=None, nbsplines=None,
                              lambmin=None, lambmax=None,
                              phimin=None, phimax=None,
@@ -1929,7 +1930,7 @@ class CrystalBragg(utils.ToFuObject):
         """
         import tofu.data._spectrafit2d as _spectrafit2d
         return _spectrafit2d.multigausfit2d_from_dlines_dinput(
-            dlines=dlines, dconstraints=dconstraints,
+            dlines=dlines, dconstraints=dconstraints, Ti=Ti, vi=vi,
             deg=deg, knots=knots, nbsplines=nbsplines,
             lambmin=lambmin, lambmax=lambmax,
             phimin=phimin, phimax=phimax,
@@ -1937,6 +1938,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det=None, dtheta=None, psi=None, n=None,
+                               Ti=None, vi=None,
                                lambmin=None, lambmax=None,
                                phimin=None, phimax=None,
                                dlines=None, dconstraints=None, dx0=None,
@@ -2044,6 +2046,7 @@ class CrystalBragg(utils.ToFuObject):
         # Get dinput for 2d fitting
         dinput = self.get_dinput_for_fit2d(
             dlines=dlines, dconstraints=dconstraints,
+            Ti=Ti, vi=vi,
             deg=deg, knots=knots, nbsplines=nbsplines,
             lambmin=lambmin, lambmax=lambmax, phimin=phimin, phimax=phimax,
             spectvert1d=spectvert1d, phi1d=phi1d, fraction=None)

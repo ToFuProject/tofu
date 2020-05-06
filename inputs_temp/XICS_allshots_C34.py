@@ -7,6 +7,7 @@ import datetime as dtm
 
 import numpy as np
 import scipy.optimize as scpopt
+import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.lines as mlines
@@ -148,6 +149,11 @@ _DSHOTS = {
         54054: {'ang': 1.51995, 'tlim': [32, 37]},
         54061: {'ang': 1.6240, 'tlim': [32, 43]},
         # C4   1.3115 ?
+        # 54762: {'ang': None, 'tlim': [34.0, 44.5]},   # TBC
+        # 54765: {'ang': None, 'tlim': [33.0, 44.5]},   # TBC
+        # 54766: {'ang': None, 'tlim': [33.0, 41.0]},   # TBC
+        # 55045: {'ang': None, 'tlim': [32.5, 38.5]},   # TBC
+        # 55049: {'ang': None, 'tlim': [32.5, 44.5]},   # TBC
         55076: {'ang': 1.3405, 'tlim': [32.0, 56.0]},   # ok
         55077: {'ang': 1.3405, 'tlim': [32.5, 54.0]},   # ok
         55080: {'ang': 1.3405, 'tlim': [32.5, 49.0]},   # ok
@@ -1972,6 +1978,12 @@ def treat(cryst, shot=None,
         dlines = {k0: v0 for k0, v0 in dlines.items()
                   if (k0 in ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']
                       or ('Adhoc200408' in k0))}
+    if plasma is True:
+        dsig = {
+            'ece': {'t': 't', 'data': 'Te0'},
+            'interferometer': {'t': 't', 'data': 'ne_integ'},
+            'ic_antennas': {'t': 't', 'data': 'power'},
+            'lh_antennas': {'t': 't', 'data': 'power'}}
 
     # Leave double ratio / dshift and x/y free, then plot them to get robust
     # values
@@ -2032,19 +2044,34 @@ def treat(cryst, shot=None,
 
             # Include info on shot ?
             if plasma is True and shots[ii] > 54178:
+                dt = np.nanmean(np.diff(t))
+                tbins = np.r_[t[0]-dt/2, 0.5*(t[1:] + t[:-1]), t[-1]+dt/2]
                 try:
                     multi = tf.imas2tofu.MultiIDSLoader(
-                        ids=['ic_antennas', 'lh_antennas', 'ece'],
+                        ids=list(dsig.keys()),
                         shot=int(shots[ii]), ids_base=False)
-                    out = multi.get_data('ece', ['t', 'Te0'])
-                    dout['ece_Te0'] = out['Te0']
-                    dout['ece_t'] = out['t']
-                    out = multi.get_data('ic_antennas', ['t', 'power'])
-                    dout['ic_power'] = out['power']
-                    dout['ic_t'] = out['t']
-                    out = multi.get_data('lh_antennas', ['t', 'power'])
-                    dout['lh_power'] = out['power']
-                    dout['lh_t'] = out['t']
+                    for k0, v0 in dsig.items():
+                        try:
+                            if k0 == 'interferometer':
+                                indch = [2, 3, 4, 5, 6, 7, 8, 9]
+                                out = multi.get_data(k0, list(v0.values()),
+                                                     indch=indch)
+                                out[v0['data']] = out[v0['data']][7, :]
+                            else:
+                                out = multi.get_data(k0, list(v0.values()))
+                            if k0 == 'lh_power':
+                                out['power'] = np.nansum(out['power'], axis=0)
+                            key = '{}_{}'.format(k0, v0['data'])
+                            indout = (np.isnan(out[v0['data']])
+                                      | (out[v0['data']] < 0.))
+                            out[v0['data']] = out[v0['data']][~indout]
+                            out[v0['t']] = out[v0['t']][~indout]
+                            dout[key] = scpstats.binned_statistic(
+                                out[v0['t']], out[v0['data']],
+                                statistic='mean', bins=tbins,
+                                range=None)[0]
+                        except Exception as err:
+                            pass
 
                 except Exception as err:
                     pass
@@ -2061,14 +2088,18 @@ def treat(cryst, shot=None,
             pass
 
 
-def _get_files(path, nameextra, nameexclude)
+def _get_files(path, nameextra, nameexclude):
+    if nameextra is None:
+        nameextra = ''
+    if isinstance(nameextra, str):
+        nameextra = [nameextra]
     lf = [ff for ff in os.listdir(path)
           if (all([ss in ff
-                   for ss in ['XICS', 'fit2d', 'nbs', nameextra, '.npz']])
+                   for ss in ['XICS', 'fit2d', 'nbs', '.npz'] + nameextra])
               and all([ss not in ff for ss in ['Free', nameexclude]]))]
     return lf
 
-def _get_dall_from_lf(lf, ls, lsextra, path):
+def _get_dall_from_lf(lf, ls, lsextra, path, ratio=None):
     dall = {kk: [] for kk in ls + lsextra}
     indshot = len('XICS_fit2d_')
     for ff in lf:
@@ -2078,7 +2109,17 @@ def _get_dall_from_lf(lf, ls, lsextra, path):
             out = np.load(os.path.join(path, ff), allow_pickle=True)
             nt = out['t'].size
             for kk in ls:
-                din[kk] = out.get(kk, np.full((nt,), np.nan))
+                if kk == 'ratio':
+                    ind = out['ratio'].tolist()['str'].index(ratio)
+                    din[kk] = out['ratio'].tolist()['value'][:, ind, :]
+                elif kk == 'lh_power' and out[kk].ndim == 2:
+                    din[kk] = np.nansum(out.get(kk, np.full((nt,), np.nan)),
+                                        axis=0)
+                elif kk == 'vims':
+                    din['vims_keys'] = out['dinput'].tolist()['shift']['keys']
+                    din[kk] = out.get(kk, np.full((nt,), np.nan))
+                else:
+                    din[kk] = out.get(kk, np.full((nt,), np.nan))
             lambmean = np.mean(out['dinput'].tolist()['lambminmax'])
             din['shot'] = np.full((nt,), shot)
             din['sumsig'] = np.nansum(out['data'], axis=1)
@@ -2088,7 +2129,15 @@ def _get_dall_from_lf(lf, ls, lsextra, path):
         except Exception as err:
             continue
         for kk in din.keys():
-            dall[kk] = np.append(dall[kk], din[kk])
+            if kk == 'pts_phi':
+                dall[kk] = din[kk]
+            elif din[kk].ndim == 2:
+                if dall[kk] == []:
+                    dall[kk] = din[kk]
+                else:
+                    dall[kk] = np.concatenate((dall[kk], din[kk]), axis=0)
+            else:
+                dall[kk] = np.append(dall[kk], din[kk])
     return dall
 
 
@@ -2101,8 +2150,6 @@ def treat_plot_double(path=None, nameextra=None, nameexclude=None,
     # Prepare
     if path is None:
         path = _HERE
-    if nameextra is None:
-        nameextra = ''
     if nameexclude is None:
         nameexclude = '---------'
     if cmap is None:
@@ -2120,7 +2167,7 @@ def treat_plot_double(path=None, nameextra=None, nameexclude=None,
     ls = ['dratio', 'dshift', 't', 'cost',
           'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
     lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
-    dall = _get_files(path, nameextra, nameexclude)
+    dall = _get_dall_from_lf(lf, ls, lsextra, path)
     if len(dall.keys()) == 0:
         warnings.warn("No data in dall!")
 
@@ -2174,7 +2221,8 @@ def treat_plot_double(path=None, nameextra=None, nameexclude=None,
     return dall, dax
 
 
-def treat_plot_lineratio(path=None, nameextra=None, nameexclude=None,
+def treat_plot_lineratio(ratio=None, path=None,
+                         nameextra=None, nameexclude=None,
                          cmap=None, color=None, alpha=None,
                          vmin=None, vmax=None, size=None,
                          fs=None, dmargin=None):
@@ -2183,8 +2231,6 @@ def treat_plot_lineratio(path=None, nameextra=None, nameexclude=None,
     # Prepare
     if path is None:
         path = _HERE
-    if nameextra is None:
-        nameextra = ''
     if nameexclude is None:
         nameexclude = '---------'
     if cmap is None:
@@ -2199,17 +2245,27 @@ def treat_plot_lineratio(path=None, nameextra=None, nameexclude=None,
 
     lf = _get_files(path, nameextra, nameexclude)
     nf = len(lf)
-    ls = ['dratio', 'dshift', 't', 'cost',
+    ls = ['ratio', 'pts_phi', 't', 'cost',
           'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
     lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
-    dall = _get_files(path, nameextra, nameexclude)
+    dall = _get_dall_from_lf(lf, ls, lsextra, path, ratio=ratio)
     if len(dall.keys()) == 0:
         warnings.warn("No data in dall!")
+
+    shotsu = np.unique(dall['shot'])
 
     # Prepare color, alpha and size
     if isinstance(size, str):
         size = dall[size]
-    color = cmap(mcolors.Normalize(vmin=vmin, vmax=vmax)(dall[color]))
+    if isinstance(color, str):
+        if color == 'shot_index':
+            shotu = np.unique(dall['shot'])
+            color = dall['shot'].astype(int)
+            for ii in range(0, shotu.size):
+                color[dall['shot'] == shotu[ii]] = ii
+        else:
+            color = dall[color]
+        color = cmap(mcolors.Normalize(vmin=vmin, vmax=vmax)(color))
     if isinstance(alpha, str):
         alpha = mcolors.Normalize()(dall[alpha])
     else:
@@ -2231,26 +2287,115 @@ def treat_plot_lineratio(path=None, nameextra=None, nameexclude=None,
     gs = gridspec.GridSpec(2, 16, **dmargin)
 
     shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
-    dax = {'dratio': None,
+    dax = {'ratio': None,
            'dshift': None}
-    dax['dratio'] = fig.add_subplot(gs[0, :-1])
-    dax['dshift'] = fig.add_subplot(gs[1, :-1], sharex=dax['dratio'])
-    dax['dratio_c'] = fig.add_subplot(gs[0, -1])
+    dax['ratio'] = fig.add_subplot(gs[0, :-1])
+    dax['dshift'] = fig.add_subplot(gs[1, :-1], sharex=dax['ratio'])
+    dax['ratio_c'] = fig.add_subplot(gs[0, -1])
     dax['dshift_c'] = fig.add_subplot(gs[1, -1])
-    dax['dratio'].set_ylabel('double ratio (a.u.)')
+    dax['ratio'].set_ylabel('line ratio (a.u.)')
     dax['dshift'].set_ylabel('double shift (a.u.)')
     dax['dshift'].set_xlabel(r'$\lambda$' + ' (m)')
 
-    dr = dax['dratio'].scatter(dall['lambmean'], dall['dratio'],
-                               c=color, s=size, marker='o', edgecolors='None')
-    dax['dshift'].scatter(dall['lambmean'], dall['dshift'],
-                          c=color, s=size, marker='o', edgecolors='None')
+    for ii in range(dall['ratio'].shape[0]):
+        dax['ratio'].plot(dall['pts_phi'], dall['ratio'][ii, :],
+                          color=color[ii, :], ls='-', lw=1.)
 
     # dax['dratio'].set_ylim(0, 2)
-    dax['dratio'].set_xlim(3.94e-10, 4e-10)
-    dax['dratio'].set_ylim(0, 1.)
+    # dax['ratio'].set_xlim(3.94e-10, 4e-10)
+    dax['ratio'].set_ylim(0, 2.)
     dax['dshift'].set_ylim(0, 6e-4)
 
-    plt.colorbar(dr, cax=dax['dratio_c'])
+    # plt.colorbar(dr, cax=dax['dratio_c'])
+    # plt.colorbar(dr, cax=dax['dshift_c'])
+    return dall, dax
+
+
+def treat_plot_lineshift(path=None,
+                         nameextra=None, nameexclude=None,
+                         cmap=None, color=None, alpha=None,
+                         vmin=None, vmax=None, size=None,
+                         fs=None, dmargin=None):
+
+    # ---------
+    # Prepare
+    if path is None:
+        path = _HERE
+    if nameexclude is None:
+        nameexclude = '---------'
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if color is None:
+        color = 'shot'
+    assert isinstance(color, str)
+    if alpha is None:
+        alpha = 'sumsig'
+    if size is None:
+        size = 30
+
+    lf = _get_files(path, nameextra, nameexclude)
+    nf = len(lf)
+    ls = ['vims', 'pts_phi', 't', 'cost',
+          'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
+    lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
+    dall = _get_dall_from_lf(lf, ls, lsextra, path)
+    if len(dall.keys()) == 0:
+        warnings.warn("No data in dall!")
+
+    shotsu = np.unique(dall['shot'])
+
+    # Prepare color, alpha and size
+    if isinstance(size, str):
+        size = dall[size]
+    if isinstance(color, str):
+        if color == 'shot_index':
+            shotu = np.unique(dall['shot'])
+            color = dall['shot'].astype(int)
+            for ii in range(0, shotu.size):
+                color[dall['shot'] == shotu[ii]] = ii
+        else:
+            color = dall[color]
+        color = cmap(mcolors.Normalize(vmin=vmin, vmax=vmax)(color))
+    if isinstance(alpha, str):
+        alpha = mcolors.Normalize()(dall[alpha])
+    else:
+        alpha = 1.
+    color[:, -1] = alpha
+
+    # ---------
+    # plot
+    if fs is None:
+        fs = (12, 6)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left':0.08, 'right':0.96,
+                   'bottom':0.08, 'top':0.93,
+                   'wspace':0.4, 'hspace':0.2}
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(2, 16, **dmargin)
+
+    shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
+    dax = {'ratio': None,
+           'dshift': None}
+    dax['ratio'] = fig.add_subplot(gs[0, :-1])
+    dax['dshift'] = fig.add_subplot(gs[1, :-1], sharex=dax['ratio'])
+    dax['ratio_c'] = fig.add_subplot(gs[0, -1])
+    dax['dshift_c'] = fig.add_subplot(gs[1, -1])
+    dax['ratio'].set_ylabel('line ratio (a.u.)')
+    dax['dshift'].set_ylabel('double shift (a.u.)')
+    dax['dshift'].set_xlabel(r'$\lambda$' + ' (m)')
+
+    for ii in range(dall['ratio'].shape[0]):
+        dax['ratio'].plot(dall['pts_phi'], dall['ratio'][ii, :],
+                          color=color[ii, :], ls='-', lw=1.)
+
+    # dax['dratio'].set_ylim(0, 2)
+    # dax['ratio'].set_xlim(3.94e-10, 4e-10)
+    dax['ratio'].set_ylim(0, 2.)
+    dax['dshift'].set_ylim(0, 6e-4)
+
+    # plt.colorbar(dr, cax=dax['dratio_c'])
     # plt.colorbar(dr, cax=dax['dshift_c'])
     return dall, dax

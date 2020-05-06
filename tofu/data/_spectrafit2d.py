@@ -1127,6 +1127,7 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
 
 def multigausfit2d_from_dlines_dinput(dlines=None,
                                       dconstraints=None,
+                                      Ti=None, vi=None,
                                       deg=None, nbsplines=None, knots=None,
                                       lambmin=None, lambmax=None,
                                       phimin=None, phimax=None,
@@ -1203,8 +1204,23 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
     dinput['lines'] = lamb
     dinput['nlines'] = nlines
 
-    dinput['Ti'] = dinput['width']['ind'].shape[0] < nlines
-    dinput['vi'] = dinput['shift']['ind'].shape[0] < nlines
+    # Set Ti and vi flags
+    if Ti is None:
+        dinput['Ti'] = dinput['width']['ind'].shape[0] < nlines
+    elif isinstance(Ti, bool):
+        dinput['Ti'] = Ti
+    else:
+        msg = ("Arg Ti must be None, True or False!\n"
+               + "\t- provided: {}".format(Ti))
+        raise Exception(msg)
+    if vi is None:
+        dinput['vi'] = dinput['shift']['ind'].shape[0] < nlines
+    elif isinstance(vi, bool):
+        dinput['vi'] = vi
+    else:
+        msg = ("Arg vi must be None, True or False!\n"
+               + "\t- provided: {}".format(vi))
+        raise Exception(msg)
 
     # Get dict of bsplines
     dinput.update(multigausfit2d_from_dlines_dbsplines(
@@ -1709,6 +1725,8 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     """
 
     # Check format
+    if ratio is None:
+        ratio = False
     if chain is None:
         chain = True
     if jac is None:
@@ -1915,7 +1933,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
             if dinput['double'].get('dshift') is None:
                 dshift = sol_x[:, dind['dshift']]*scales[:, dind['dshift']]
             else:
-                dratio = np.full((nspect,), dinput['double']['dshift'])
+                dshift = np.full((nspect,), dinput['double']['dshift'])
 
     if verbose > 0:
         dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
@@ -1924,7 +1942,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     # ---------------------------
     # Format output as dict
     dout = {'data': data, 'lamb': lamb, 'phi': phi,
-            'sol_x': sol_x, 'sol_tot': sol_tot,
+            'sol_x': sol_x, 'sol_tot': sol_tot, 'scales': scales,
             'dratio': dratio, 'dshift': dshift,
             'dinput': dinput, 'dind': dind, 'jac': jac,
             'pts_phi': pts, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
