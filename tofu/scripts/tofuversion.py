@@ -88,7 +88,7 @@ def get_version(verb=None, envvar=None,
         print(version)
     if envvar is not False:
         c0 = ((envvar in os.environ.keys() and dbool['force'] is True)
-               or envvar not in os.environ.keys())
+              or envvar not in os.environ.keys())
         if c0 is True:
             os.environ[envvar] = version
 
