@@ -12,6 +12,7 @@
 # serve to show the default.
 import os
 import sys
+import time
 import tofu as tf
 import sphinx_bootstrap_theme
 from sphinx_gallery.sorting import FileNameSortKey
@@ -63,7 +64,6 @@ master_doc = "index"
 
 # General information about the project.
 project = u"tofu"
-import time
 copyright = u'2016-{}, Tofu contributors'.format(time.strftime("%Y"))
 
 # The version info for the project you're documenting, acts as replacement for
