@@ -126,7 +126,7 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
 ###################################################
 
 def _str2bool(v):
-    if isinstance(v,bool):
+    if isinstance(v, bool):
         return v
     elif v.lower() in ['yes','true','y','t','1']:
         return True
