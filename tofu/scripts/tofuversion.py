@@ -91,8 +91,6 @@ def get_version(verb=None, envvar=None,
                or envvar not in os.environ.keys())
         if c0 is True:
             os.environ[envvar] = version
-            import pdb; pdb.set_trace()     # DB
-            pass
 
 
 ###################################################
@@ -104,28 +102,28 @@ def get_version(verb=None, envvar=None,
 def _str2bool(v):
     if isinstance(v, bool):
         return v
-    elif v.lower() in ['yes','true','y','t','1']:
+    elif v.lower() in ['yes', 'true', 'y', 't', '1']:
         return True
-    elif v.lower() in ['no','false','n','f','0']:
+    elif v.lower() in ['no', 'false', 'n', 'f', '0']:
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected !')
+        raise argparse.ArgumentTypeError('Boolean value expected!')
 
 
 def _str2boolstr(v):
     if isinstance(v, bool):
         return v
     elif isinstance(v, str):
-        if v.lower() in ['yes','true','y','t','1']:
+        if v.lower() in ['yes', 'true', 'y', 't', '1']:
             return True
-        elif v.lower() in ['no','false','n','f','0']:
+        elif v.lower() in ['no', 'false', 'n', 'f', '0']:
             return False
         elif v.lower() == 'none':
             return None
         else:
             return v
     else:
-        raise argparse.ArgumentTypeError('Boolean or str expected !')
+        raise argparse.ArgumentTypeError('Boolean or str expected!')
 
 
 def main():
