@@ -18,7 +18,7 @@ _SOURCE = os.path.join(os.path.abspath(os.path.join(
 _USER = getpass.getuser()
 _USER_HOME = os.path.expanduser('~')
 _TARGET = os.path.join(_USER_HOME, '.tofu')
-_LF = ['_imas2tofu_def.py', '_scripts_def.py']
+_LF = ['_imas2tofu_def.py', '_entrypoints_def.py']
 _LD = ['openadas2tofu']
 
 
