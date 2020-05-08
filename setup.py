@@ -377,13 +377,10 @@ setup(
 
     # executable scripts can be declared here
     # They can be python or non-python scripts
-   scripts=[
-       'scripts/tofucustom.py',
-   ],
+    # scripts=[
+    # ],
 
     # entry_points point to functions in the package
-    # They require importing the package itself (that's why tofucustom and
-    # tofuversion are declared as scripts and not entry points)
     # Theye are generally preferable over scripts because they provide
     # cross-platform support and allow pip to create the appropriate form
     # of executable for the target platform.
@@ -392,6 +389,7 @@ setup(
             'tofuplot=tofu.entry_points.tofuplot:main',
             'tofucalc=tofu.entry_points.tofucalc:main',
             'tofu-version=scripts.tofuversion:main',
+            'tofu-custom=scripts.tofucustom:main',
         ],
     },
 
