@@ -383,6 +383,7 @@ setup(
             'tofuplot=tofu.scripts.tofuplot:main',
             'tofucalc=tofu.scripts.tofucalc:main',
             'tofu-custom=tofu.scripts.tofucustom:main',
+            'tofu-version=tofu.scripts.tofuversion:main',
         ],
     },
 
