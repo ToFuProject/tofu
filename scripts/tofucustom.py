@@ -13,7 +13,7 @@ import argparse
 ###################################################
 
 
-_SOURCE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+_SOURCE = os.path.join(os.path.join(os.path.dirname(__file__), '..'), 'tofu')
 _USER = getpass.getuser()
 _USER_HOME = os.path.expanduser('~')
 _TARGET = os.path.join(_USER_HOME, '.tofu')
