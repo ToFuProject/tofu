@@ -378,8 +378,8 @@ setup(
     # executable scripts can be declared here
     # They can be python or non-python scripts
    scripts=[
-       'tofu-custom=scripts/tofucustom',
-       'tofu-version=scripts/tofuversion',
+       'scripts/tofucustom',
+       'scripts/tofuversion',
    ],
 
     # entry_points point to functions in the package
