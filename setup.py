@@ -379,7 +379,6 @@ setup(
     # They can be python or non-python scripts
    scripts=[
        'scripts/tofucustom.py',
-       'scripts/tofuversion.py',
    ],
 
     # entry_points point to functions in the package
@@ -392,6 +391,7 @@ setup(
         'console_scripts': [
             'tofuplot=tofu.entry_points.tofuplot:main',
             'tofucalc=tofu.entry_points.tofucalc:main',
+            'tofu-version=scripts.tofuversion:main',
         ],
     },
 

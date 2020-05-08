@@ -70,7 +70,7 @@ install:
 script:
 - cd $HOME
 - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
-- tofuversion
+- tofu-version
 - tofucustom
 
 after_success:
