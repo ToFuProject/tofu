@@ -308,7 +308,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dreflect():
-        largs = ["Types", "coefs"]
+        largs = ["Types", "coefs_reflect"]
         return largs
 
     @staticmethod
@@ -499,7 +499,7 @@ class Struct(utils.ToFuObject):
             lSymbols = np.asarray(lSymbols, dtype=str)
         return lSymbols
 
-    def _checkformat_inputs_dreflect(self, Types=None, coefs=None):
+    def _checkformat_inputs_dreflect(self, Types=None, coefs_reflect=None):
         if Types is None:
             Types = self._ddef["dreflect"]["Type"]
 
@@ -517,8 +517,8 @@ class Struct(utils.ToFuObject):
                            for vv in self._DREFLECT_DTYPES.values()])
             assert np.all(np.any(lc, axis=0))
 
-        assert coefs is None
-        return Types, coefs
+        assert coefs_reflect is None
+        return Types, coefs_reflect
 
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
@@ -574,7 +574,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dreflect():
-        lk = ["Types", "coefs"]
+        lk = ["Types", "coefs_reflect"]
         return lk
 
     @staticmethod
@@ -669,12 +669,12 @@ class Struct(utils.ToFuObject):
         lSymbols = self._checkformat_inputs_dphys(lSymbols)
         self._dphys["lSymbols"] = lSymbols
 
-    def set_dreflect(self, Types=None, coefs=None):
-        Types, coefs = self._checkformat_inputs_dreflect(
-            Types=Types, coefs=coefs
+    def set_dreflect(self, Types=None, coefs_reflect=None):
+        Types, coefs_reflect = self._checkformat_inputs_dreflect(
+            Types=Types, coefs_reflect=coefs_reflect
         )
         self._dreflect["Types"] = Types
-        self._dreflect["coefs"] = coefs
+        self._dreflect["coefs_reflect"] = coefs_reflect
 
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
@@ -703,7 +703,7 @@ class Struct(utils.ToFuObject):
     def _strip_dphys(self, lkeep=["lSymbols"]):
         utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
 
-    def _strip_dreflect(self, lkeep=["Types", "coefs"]):
+    def _strip_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         utils.ToFuObject._strip_dict(self._dreflect, lkeep=lkeep)
 
     def _strip_dmisc(self, lkeep=["color"]):
@@ -747,14 +747,15 @@ class Struct(utils.ToFuObject):
             )
             self.set_dphys(lSymbols=self.dphys["lSymbols"])
 
-    def _rebuild_dreflect(self, lkeep=["Types", "coefs"]):
+    def _rebuild_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         reset = utils.ToFuObject._test_Rebuild(self._dreflect, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(
                 self._dreflect, lkeep=lkeep, dname="dreflect"
             )
             self.set_dreflect(
-                Types=self.dreflect["Types"], coefs=self.dreflect["coefs"]
+                Types=self.dreflect["Types"],
+                coefs_reflect=self.dreflect["coefs_reflect"]
             )
 
     def _rebuild_dmisc(self, lkeep=["color"]):
@@ -6382,6 +6383,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6478,8 +6480,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6487,7 +6489,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    s += coefs * _GG.LOS_calc_signal(
+                    s += coefs_reflect * _GG.LOS_calc_signal(
                         func,
                         Dsi,
                         usi,
@@ -6541,6 +6543,15 @@ class Rays(utils.ToFuObject):
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
 
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
+
         # Format output
         return self._calc_signal_postformat(
             sig,
@@ -6583,6 +6594,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6678,8 +6690,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6687,7 +6699,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    sig += coefs * _GG.LOS_calc_signal(
+                    sig += coefs_reflect * _GG.LOS_calc_signal(
                         funcbis,
                         Dsi,
                         usi,
@@ -6746,6 +6758,15 @@ class Rays(utils.ToFuObject):
             # (cf. https://stackoverflow.com/questions/59079141)
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
+
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
 
         # Format output
         # this is the secod slowest step (~0.75 s)

@@ -13,14 +13,14 @@ plt.ioff()
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
-_HERE = os.path.dirname(os.path.dirname(_HERE))
+_TOFUPATH = os.path.dirname(os.path.dirname(_HERE))
 istofugit = False
-if '.git' in os.listdir(_HERE) and 'tofu' in _HERE:
+if '.git' in os.listdir(_TOFUPATH) and 'tofu' in _TOFUPATH:
     istofugit = True
 
 if istofugit:
     # Make sure we load the corresponding tofu
-    sys.path.insert(1, _HERE)
+    sys.path.insert(1, _TOFUPATH)
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
     _ = sys.path.pop(1)
@@ -71,6 +71,7 @@ _USER = _defscripts._TFPLOT_USER
 _TOKAMAK = _defscripts._TFPLOT_TOKAMAK
 _VERSION = _defscripts._TFPLOT_VERSION
 _T0 = _defscripts._TFPLOT_T0
+_TLIM = None
 _SHAREX = _defscripts._TFPLOT_SHAREX
 _BCK = _defscripts._TFPLOT_BCK
 _EXTRA = _defscripts._TFPLOT_EXTRA
@@ -79,7 +80,7 @@ _INDCH_AUTO = _defscripts._TFPLOT_INDCH_AUTO
 # Not user-customizable
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
 _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
-_LIDS = _LIDS_DIAG + _LIDS_PLASMA + ['magfieldlines']
+_LIDS = _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
 
 
 ###################################################
@@ -101,20 +102,26 @@ def _get_exception(q, ids, qtype='quantity'):
 
 def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION, extra=_EXTRA,
-                    ids=None, quantity=None, X=None, t0=_T0,
+                    ids=None, quantity=None, X=None, t0=_T0, tlim=_TLIM,
                     sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
                     background=_BCK, t=None, dR_sep=None, init=None):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
     if t0.lower() == 'none':
         t0 = None
+    if tlim is not None and len(tlim) == 1:
+        tlim = [tlim, None]
+    if tlim is not None and len(tlim) != 2:
+        msg = ("tlim must contain 2 limits:\n"
+               + "\t- provided: {}".format(tlim))
+        raise Exception(msg)
 
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, indch_auto=indch_auto,
                       plot_sig=quantity, plot_X=X, extra=extra,
                       t0=t0, plot=True, sharex=sharex, bck=background,
-                      t=t, dR_sep=dR_sep, init=init)
+                      t=t, tlim=tlim, dR_sep=dR_sep, init=init)
 
     plt.show(block=True)
 
@@ -136,6 +143,18 @@ def _str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected !')
 
 
+def _str2tlim(v):
+    c0 = (v.isdigit()
+          or ('.' in v
+              and len(v.split('.')) == 2
+              and all([vv.isdigit() for vv in v.split('.')])))
+    if c0 is True:
+        v = float(v)
+    elif v.lower() == 'none':
+        v = None
+    return v
+
+
 # if __name__ == '__main__':
 def main():
     # Parse input arguments
@@ -150,7 +169,7 @@ def main():
     parser = argparse.ArgumentParser(description = msg)
 
     parser.add_argument('-s', '--shot', type=int,
-                        help='shot number', required=True, nargs='+')
+                        help='shot number', required=False, nargs='+')
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u','--user',help=msg, required=False, default=_USER)
     msg = 'tokamak name of the DB where the datafile is located'
@@ -174,6 +193,10 @@ def main():
                         help='Reference time event setting t = 0', default=_T0)
     parser.add_argument('-t', '--t', type=float, required=False,
                         help='Input time when needed')
+    parser.add_argument('-tl', '--tlim', type=_str2tlim,
+                        required=False,
+                        help='limits of the time interval',
+                        nargs='+', default=_TLIM)
     parser.add_argument('-dR_sep', '--dR_sep', type=float, required=False,
                         help='Distance to separatrix from r_ext to plot'
                         + ' 10 magnetic field lines')
