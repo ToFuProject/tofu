@@ -29,6 +29,8 @@ _dict_lexcept_key = []
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
 
+_LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts']
+
 
 ###############################################
 #           File searching
@@ -713,9 +715,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldlines']
+    lidscustom = _LIDS_CUSTOM
     lidsout = [ids_ for ids_ in ids
-               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+               if (ids_ is not None and ids_ not in lidsok + lidscustom)]
     if len(lidsout) > 0:
         msg = "ids %s matched no known imas ids !\n"%str(lidsout)
         msg += "  => Available imas ids are:\n"
@@ -726,6 +728,11 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         assert not any([ids_ in ids for ids_ in lidscustom])
 
+    # -------------------
+    # print shortcuts if relevant
+    if ids == ['shortcuts']:
+        imas2tofu.MultiIDSLoader.get_shortcutsc(force=True)
+        return
 
     # -------------------
     # Prepare shot
@@ -864,6 +871,12 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                     .format(shot[0], t[0]))
         return dax
 
+    elif ids == ['events']:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids='pulse_schedule', ids_base=False)
+        multi.get_events(verb=True)
+        return
 
     # -------------------
     # Prepare returnas
@@ -1081,7 +1094,7 @@ def calc_from_imas(
     dsig=None, data=None, X=None, t0=None, dextra=None,
     Brightness=None, res=None, interp_t=None, extra=None,
     plot=None, plot_compare=True, sharex=False,
-    input_file=None, output_file=None,
+    input_file=None, output_file=None, coefs=None,
     bck=True, indch_auto=True, t=None, init=None
 ):
     """ Calculate syntehtic signal for a diagnostic
@@ -1331,7 +1344,7 @@ def calc_from_imas(
                                       interp_t=interp_t,
                                       indch_auto=indch_auto,
                                       t0=t0, dextra=dextra,
-                                      plot=True,
+                                      coefs=coefs, plot=True,
                                       plot_compare=plot_compare)
 
     else:
@@ -1366,6 +1379,7 @@ def calc_from_imas(
                                                 quant='core_profiles.1dbrem',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
+                                                coefs=coefs,
                                                 Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:
