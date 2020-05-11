@@ -375,15 +375,21 @@ setup(
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     # data_files=[('my_data', ['data/data_file'])],
 
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    entry_points={
+    # executable scripts can be declared here
+    # They can be python or non-python scripts
+    # scripts=[
+    # ],
+
+    # entry_points point to functions in the package
+    # Theye are generally preferable over scripts because they provide
+    # cross-platform support and allow pip to create the appropriate form
+    # of executable for the target platform.
+   entry_points={
         'console_scripts': [
-            'tofuplot=tofu.scripts.tofuplot:main',
-            'tofucalc=tofu.scripts.tofucalc:main',
-            'tofu-custom=tofu.scripts.tofucustom:main',
-            'tofu-version=tofu.scripts.tofuversion:main',
+            'tofuplot=tofu.entry_points.tofuplot:main',
+            'tofucalc=tofu.entry_points.tofucalc:main',
+            'tofu-version=scripts.tofuversion:main',
+            'tofu-custom=scripts.tofucustom:main',
         ],
     },
 

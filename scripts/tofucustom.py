@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! python
 
 # Built-in
 import os
@@ -13,11 +13,12 @@ import argparse
 ###################################################
 
 
-_SOURCE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+_SOURCE = os.path.join(os.path.abspath(os.path.join(
+    os.path.dirname(__file__), '..')), 'tofu')
 _USER = getpass.getuser()
 _USER_HOME = os.path.expanduser('~')
 _TARGET = os.path.join(_USER_HOME, '.tofu')
-_LF = ['_imas2tofu_def.py', '_scripts_def.py']
+_LF = ['_imas2tofu_def.py', '_entrypoints_def.py']
 _LD = ['openadas2tofu']
 
 
