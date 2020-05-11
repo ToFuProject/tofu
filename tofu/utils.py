@@ -29,6 +29,8 @@ _dict_lexcept_key = []
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
 
+_LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts']
+
 
 ###############################################
 #           File searching
@@ -686,9 +688,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldlines', 'events', 'shortcuts']
+    lidscustom = _LIDS_CUSTOM
     lidsout = [ids_ for ids_ in ids
-               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+               if (ids_ is not None and ids_ not in lidsok + lidscustom)]
     if len(lidsout) > 0:
         msg = "ids %s matched no known imas ids !\n"%str(lidsout)
         msg += "  => Available imas ids are:\n"

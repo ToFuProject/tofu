@@ -80,7 +80,7 @@ _INDCH_AUTO = _defscripts._TFPLOT_INDCH_AUTO
 # Not user-customizable
 _LIDS_DIAG = MultiIDSLoader._lidsdiag
 _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
-_LIDS = _LIDS_DIAG + _LIDS_PLASMA + ['magfieldlines', 'events', 'shortcuts']
+_LIDS = _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
 
 
 ###################################################
