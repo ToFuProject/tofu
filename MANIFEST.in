@@ -1,6 +1,7 @@
 # all files to be included
 
 include MANIFEST.in
+include LICENSE.txt
 include pyproject.toml
 include _updateversion.py
 recursive-include tofu/geom *.pxd
