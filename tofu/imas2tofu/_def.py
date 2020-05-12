@@ -158,7 +158,7 @@ _dshort = {
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1drhotn': {'str': ('source[identifier.name=lineradiation]'
                             + '.profiles_1d[time].grid.rho_tor_norm'),
-                    'dim': 'rho', 'quant': 'rhotn', 'units': 'Wb'},
+                    'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
         '1dbrem': {'str': ('source[identifier.name=bremsstrahlung]'
                            + '.profiles_1d[time].electrons.energy'),
                    'dim': 'vol.emis.', 'quant': 'brem.', 'units': 'W.m^-3'},
