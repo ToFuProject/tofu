@@ -226,9 +226,9 @@ def get_fsig(sig):
                             if (ftools.reduce(
                                 getattr,
                                 [sig[jj][ll]] + dcond[ii]['cond'][0]).strip()
-                                   == dcond[ii]['cond'][1].strip())]
+                                 == dcond[ii]['cond'][1].strip())]
                     else:
-                        ind = [ll for ll in range(0,nb)
+                        ind = [ll for ll in range(0, nb)
                                if (ftools.reduce(
                                    getattr,
                                    [sig[jj][ll]]+dcond[ii]['cond'][0])
@@ -244,9 +244,9 @@ def get_fsig(sig):
                     sig[jj] = sig[jj][ind[0]]
 
         # Conditions for stacking / sqeezing sig
-        lc = [(stack and nsig>1 and isinstance(sig[0], np.ndarray)
+        lc = [(stack and nsig > 1 and isinstance(sig[0], np.ndarray)
                and all([ss.shape == sig[0].shape for ss in sig[1:]])),
-              stack and nsig>1 and type(sig[0]) in [int, float, np.int,
+              stack and nsig > 1 and type(sig[0]) in [int, float, np.int,
                                                     np.float, str],
               (stack and nsig == 1 and type(sig) in
                [np.ndarray, list, tuple])]
