@@ -48,11 +48,18 @@ __all__ = [
 _arrayorder = "C"
 _Clock = False
 _Type = "Tor"
+
+# rotate / translate instance
+_UPDATE_EXTENT = True
+_RETURN_COPY = False
+
+# Parallelization
 _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
 _DREFLECT = {"specular": 0, "diffusive": 1, "ccube": 2}
+
 
 """
 ###############################################################################
@@ -202,7 +209,7 @@ class Struct(utils.ToFuObject):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
     def __init__(self, Poly=None, Type=None,
-                 Lim=None, pos=None, extent=None, mobile=False,
+                 Lim=None, pos=None, extent=None,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
@@ -281,7 +288,6 @@ class Struct(utils.ToFuObject):
             "Lim",
             "pos",
             "extent",
-            "mobile",
             "Clock",
             "arrayorder",
         ]
@@ -302,7 +308,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dreflect():
-        largs = ["Types", "coefs"]
+        largs = ["Types", "coefs_reflect"]
         return largs
 
     @staticmethod
@@ -406,7 +412,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Type=None,
         Clock=False,
         arrayorder=None,
@@ -424,7 +429,6 @@ class Struct(utils.ToFuObject):
                 "inshape": 2,
             },
             "Clock": {"var": Clock, "cls": bool},
-            "mobile": {"var": mobile, "cls": bool},
             "arrayorder": {"var": arrayorder, "in": ["C", "F"]},
             "Type": {"var": Type, "in": ["Tor", "Lin"]},
         }
@@ -495,7 +499,7 @@ class Struct(utils.ToFuObject):
             lSymbols = np.asarray(lSymbols, dtype=str)
         return lSymbols
 
-    def _checkformat_inputs_dreflect(self, Types=None, coefs=None):
+    def _checkformat_inputs_dreflect(self, Types=None, coefs_reflect=None):
         if Types is None:
             Types = self._ddef["dreflect"]["Type"]
 
@@ -513,15 +517,15 @@ class Struct(utils.ToFuObject):
                            for vv in self._DREFLECT_DTYPES.values()])
             assert np.all(np.any(lc, axis=0))
 
-        assert coefs is None
-        return Types, coefs
+        assert coefs_reflect is None
+        return Types, coefs_reflect
 
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
             color = mpl.colors.to_rgba(cls._ddef["dmisc"]["color"])
         assert mpl.colors.is_color_like(color)
-        return tuple(mpl.colors.to_rgba(color))
+        return tuple(np.array(mpl.colors.to_rgba(color), dtype=float))
 
     ###########
     # Get keys of dictionnaries
@@ -548,11 +552,13 @@ class Struct(utils.ToFuObject):
             "VolAng",
             "Vect",
             "VIn",
-            "mobile",
             "circ-C",
             "circ-r",
             "Clock",
             "arrayorder",
+            "move",
+            "move_param",
+            "move_kwdargs",
         ]
         return lk
 
@@ -568,7 +574,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dreflect():
-        lk = ["Types", "coefs"]
+        lk = ["Types", "coefs_reflect"]
         return lk
 
     @staticmethod
@@ -587,7 +593,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Clock=_Clock,
         arrayorder=_arrayorder,
         sino_RefPt=None,
@@ -620,7 +625,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Clock=False,
         arrayorder="C",
         sino_RefPt=None,
@@ -632,7 +636,6 @@ class Struct(utils.ToFuObject):
             Lim=Lim,
             pos=pos,
             extent=extent,
-            mobile=mobile,
             Type=self.Id.Type,
             Clock=Clock,
         )
@@ -646,8 +649,7 @@ class Struct(utils.ToFuObject):
             Clock=Clock,
         )
         dgeom["arrayorder"] = arrayorder
-        dgeom["mobile"] = mobile
-        self._dgeom = dgeom
+        self._dgeom.update(dgeom)
         if sino:
             self.set_dsino(sino_RefPt, nP=sino_nP)
 
@@ -667,12 +669,12 @@ class Struct(utils.ToFuObject):
         lSymbols = self._checkformat_inputs_dphys(lSymbols)
         self._dphys["lSymbols"] = lSymbols
 
-    def set_dreflect(self, Types=None, coefs=None):
-        Types, coefs = self._checkformat_inputs_dreflect(
-            Types=Types, coefs=coefs
+    def set_dreflect(self, Types=None, coefs_reflect=None):
+        Types, coefs_reflect = self._checkformat_inputs_dreflect(
+            Types=Types, coefs_reflect=coefs_reflect
         )
         self._dreflect["Types"] = Types
-        self._dreflect["coefs"] = coefs
+        self._dreflect["coefs_reflect"] = coefs_reflect
 
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
@@ -689,7 +691,9 @@ class Struct(utils.ToFuObject):
     ###########
 
     def _strip_dgeom(
-        self, lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder"]
+        self,
+        lkeep=["Poly", "pos", "extent", "Clock", "arrayorder",
+               "move", "move_param", "move_kwdargs"]
     ):
         utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -699,7 +703,7 @@ class Struct(utils.ToFuObject):
     def _strip_dphys(self, lkeep=["lSymbols"]):
         utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
 
-    def _strip_dreflect(self, lkeep=["Types", "coefs"]):
+    def _strip_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         utils.ToFuObject._strip_dict(self._dreflect, lkeep=lkeep)
 
     def _strip_dmisc(self, lkeep=["color"]):
@@ -710,7 +714,8 @@ class Struct(utils.ToFuObject):
     ###########
 
     def _rebuild_dgeom(
-        self, lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder"]
+        self,
+        lkeep=["Poly", "pos", "extent", "Clock", "arrayorder"]
     ):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
@@ -742,14 +747,15 @@ class Struct(utils.ToFuObject):
             )
             self.set_dphys(lSymbols=self.dphys["lSymbols"])
 
-    def _rebuild_dreflect(self, lkeep=["Types", "coefs"]):
+    def _rebuild_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         reset = utils.ToFuObject._test_Rebuild(self._dreflect, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(
                 self._dreflect, lkeep=lkeep, dname="dreflect"
             )
             self.set_dreflect(
-                Types=self.dreflect["Types"], coefs=self.dreflect["coefs"]
+                Types=self.dreflect["Types"],
+                coefs_reflect=self.dreflect["coefs_reflect"]
             )
 
     def _rebuild_dmisc(self, lkeep=["color"]):
@@ -908,8 +914,6 @@ class Struct(utils.ToFuObject):
             "SaveName",
             "nP",
             "noccur",
-            "mobile",
-            "color",
         ]
         ar0 = [
             self._Id.Cls,
@@ -917,8 +921,17 @@ class Struct(utils.ToFuObject):
             self._Id.SaveName,
             str(self._dgeom["nP"]),
             str(self._dgeom["noccur"]),
-            str(self._dgeom["mobile"]),
-            str(self._dmisc["color"])]
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
 
         return self._get_summary(
             [ar0],
@@ -931,7 +944,124 @@ class Struct(utils.ToFuObject):
         )
 
     ###########
-    # public methods
+    # public methods for movement
+    ###########
+
+    def _update_or_copy(self, poly,
+                        pos=None,
+                        update_extent=None,
+                        return_copy=None, name=None):
+        if update_extent is None:
+            update_extent = _UPDATE_EXTENT
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        extent = self.extent
+        if update_extent is True:
+            if extent is not None:
+                ratio = np.nanmin(poly[0, :]) / np.nanmin(self.Poly[0, :])
+                extent = extent*ratio
+        if pos is None:
+            pos = self.pos
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            return self.__class__(Poly=poly,
+                                  extent=extent, pos=pos,
+                                  sino_RefPt=self._dsino['RefPt'],
+                                  sino_nP=self._dsino['nP'],
+                                  color=self._dmisc['color'],
+                                  Exp=self.Id.Exp,
+                                  Name=name,
+                                  shot=self.Id.shot,
+                                  SavePath=self.Id.SavePath,
+                                  Type=self.Id.Type)
+        else:
+            self._set_dgeom(poly, pos=pos, extent=extent,
+                            sino_RefPt=self._dsino['RefPt'],
+                            sino_nP=self._dsino['nP'])
+
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   update_extent=None,
+                                   return_copy=None, name=None):
+        """ Translate the structure in the poloidal plane """
+        poly = self._translate_pts_poloidal_plane_2D(
+            pts_rz=self.Poly,
+            direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(poly, update_extent=update_extent,
+                                    return_copy=return_copy, name=name)
+
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                update_extent=True,
+                                return_copy=None, name=None):
+        """ Rotate the structure in the poloidal plane """
+        poly = self._rotate_pts_vectors_in_poloidal_plane_2D(
+            pts_rz=self.Poly,
+            axis_rz=axis_rz, angle=angle)
+        return self._update_or_copy(poly, update_extent=update_extent,
+                                    return_copy=return_copy, name=name)
+
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None, name=None):
+        """ Rotate the structure in the poloidal plane """
+        if self.Id.Type != 'Tor':
+            msg = "Movement only available for Tor configurations!"
+            raise Exception(msg)
+        pos = self.pos
+        if pos is not None:
+            pos = pos + angle
+        return self._update_or_copy(self.Poly, pos=pos,
+                                    update_extent=False,
+                                    return_copy=return_copy, name=name)
+
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
+
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
+
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
+        """
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
+
+    ###########
+    # Other public methods
     ###########
 
     def set_color(self, col):
@@ -939,27 +1069,6 @@ class Struct(utils.ToFuObject):
 
     def get_color(self):
         return self._dmisc["color"]
-
-    def move(self):
-        """ To be overriden at object-level after instance creation
-
-        To do so:
-            1/ create the instance:
-                >> S = tfg.Struct('test', poly, Exp='Test')
-            2/ Define a moving function f taking the instance as first argument
-                >> def f(self, Delta=1.):
-                       Polynew = self.Poly
-                       Polynew[0,:] = Polynew[0,:] + Delta
-                       self._set_geom(Polynew, Lim=self.Lim)
-            3/ Bound your custom function to the self.move() method
-               using types.MethodType() found in the types module
-                >> import types
-                >> S.move = types.MethodType(f, S)
-
-            See the following page for info and details on method-patching:
-            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
-        """
-        print(self.move.__doc__)
 
     def isInside(self, pts, In="(X,Y,Z)"):
         """ Return an array of booleans indicating whether each point lies
@@ -1682,7 +1791,6 @@ class Struct(utils.ToFuObject):
         Name=None,
         shot=None,
         Type=None,
-        mobile=False,
         color=None,
         SavePath=os.path.abspath("./"),
     ):
@@ -1769,7 +1877,6 @@ class Struct(utils.ToFuObject):
                 Exp=Exp,
                 shot=shot,
                 Type=Type,
-                mobile=mobile,
                 Poly=poly,
                 pos=pos,
                 extent=extent,
@@ -1870,7 +1977,6 @@ class StructIn(Struct):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Type=None,
         Clock=False,
         arrayorder=None,
@@ -1927,7 +2033,7 @@ class CoilPF(StructOut):
     def __init__(self, nturns=None, superconducting=None, active=None,
                  **kwdargs):
         # super()
-        super(CoilPF, self).__init__(mobile=False, **kwdargs)
+        super(CoilPF, self).__init__(**kwdargs)
 
     def _reset(self):
         # super()
@@ -2801,7 +2907,6 @@ class Config(utils.ToFuObject):
         Cls=None,
         Name=None,
         Poly=None,
-        mobile=False,
         shot=None,
         Lim=None,
         Type=None,
@@ -2847,7 +2952,6 @@ class Config(utils.ToFuObject):
                 Name=Name,
                 Lim=Lim,
                 Type=Type,
-                mobile=mobile,
                 shot=shot,
                 Exp=self.Id.Exp,
             )
@@ -2988,7 +3092,7 @@ class Config(utils.ToFuObject):
             "SaveName",
             "nP",
             "noccur",
-            "mobile",
+            "move",
             "color",
         ] + self._dextraprop["lprop"]
         d = self._dStruct["dObj"]
@@ -2996,15 +3100,18 @@ class Config(utils.ToFuObject):
         for k in self._ddef["dStruct"]["order"]:
             if k not in d.keys():
                 continue
+            otemp = self._dStruct["dObj"][k]
             for kk in d[k].keys():
                 lu = [
                     k,
-                    self._dStruct["dObj"][k][kk]._Id._dall["Name"],
-                    self._dStruct["dObj"][k][kk]._Id._dall["SaveName"],
-                    str(self._dStruct["dObj"][k][kk]._dgeom["nP"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["noccur"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["mobile"]),
-                    str(self._dStruct["dObj"][k][kk]._dmisc["color"]),
+                    otemp[kk]._Id._dall["Name"],
+                    otemp[kk]._Id._dall["SaveName"],
+                    str(otemp[kk]._dgeom["nP"]),
+                    str(otemp[kk]._dgeom["noccur"]),
+                    str(otemp[kk]._dgeom["move"]),
+                    ('(' + ', '.join(['{:4.2}'.format(cc)
+                                      for cc in otemp[kk]._dmisc["color"]])
+                     + ')'),
                 ]
                 for pp in self._dextraprop["lprop"]:
                     lu.append(self._dextraprop["d" + pp][k][kk])
@@ -3981,6 +4088,9 @@ class Rays(utils.ToFuObject):
             "Surfaces",
             "dX12",
             "dreflect",
+            "move",
+            "move_param",
+            "move_kwdargs",
         ]
         return lk
 
@@ -4878,6 +4988,9 @@ class Rays(utils.ToFuObject):
                     "isImage",
                     "dX12",
                     "dreflect",
+                    "move",
+                    "move_param",
+                    "move_kwdargs",
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip["strip"] <= 1 and strip >= 2:
@@ -4896,6 +5009,9 @@ class Rays(utils.ToFuObject):
                     "isImage",
                     "dX12",
                     "dreflect",
+                    "move",
+                    "move_param",
+                    "move_kwdargs",
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -5039,9 +5155,24 @@ class Rays(utils.ToFuObject):
         return self._dsino
 
     @property
+    def lOptics(self):
+        return [self._dOptics['dobj'][k0][k1]
+                for (k0, k1) in map(lambda x: str.split(x, '_'),
+                                    self._dOptics['lorder'])]
+
+    @property
     def isPinhole(self):
         c0 = "pinhole" in self._dgeom.keys()
         return c0 and self._dgeom["pinhole"] is not None
+
+    @property
+    def isInPoloidalPlane(self):
+        phiD = np.arctan2(self.D[1, :], self.D[0, :])
+        if self.nRays > 1 and not np.allclose(phiD[0], phiD[1:]):
+            return False
+        phiD = phiD[0]
+        ephi = np.array([-np.sin(phiD), np.cos(phiD), 0.])[:, None]
+        return np.allclose(np.sum(self.u*ephi, axis=0), 0.)
 
     @property
     def nRays(self):
@@ -5143,6 +5274,202 @@ class Rays(utils.ToFuObject):
     def _isLOS(cls):
         c0 = "los" in cls.__name__.lower()
         return c0
+
+    ###########
+    # Movement methods
+    ###########
+
+    def _update_or_copy(self, D, u, pinhole=None,
+                        return_copy=None,
+                        name=None, diag=None, dchans=None):
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        if self.isPinhole is True:
+            dgeom = {'pinhole': pinhole,
+                     'D': D}
+        else:
+            dgeom = (D, u)
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            if diag is None:
+                diag = self.Id.Diag
+            if dchans is None:
+                dchans = self.dchans
+            return self.__class__(dgeom=dgeom,
+                                  lOptics=self.lOptics,
+                                  Etendues=self.Etendues,
+                                  Surfaces=self.Surfaces,
+                                  config=self.config,
+                                  sino_RefPt=self._dsino['RefPt'],
+                                  color=self._dmisc['color'],
+                                  dchans=dchans,
+                                  Exp=self.Id.Exp,
+                                  Diag=diag,
+                                  Name=name,
+                                  shot=self.Id.shot,
+                                  SavePath=self.Id.SavePath)
+        else:
+            dgeom0 = ((self.D, self.pinhole)
+                      if self.isPinhole is True else (self.D, self.u))
+            try:
+                self._set_dgeom(dgeom=dgeom,
+                                Etendues=self.Etendues,
+                                Surfaces=self.Surfaces,
+                                sino_RefPt=self._dsino['RefPt'],
+                                extra=True,
+                                sino=True)
+            except Exception as err:
+                # Make sure instance does not move
+                self._set_dgeom(dgeom=dgeom0,
+                                Etendues=self.Etendues,
+                                Surfaces=self.Surfaces,
+                                sino_RefPt=self._dsino['RefPt'],
+                                extra=True,
+                                sino=True)
+                msg = (str(err)
+                       + "\nAn exception occured during updating\n"
+                       + "  => instance unmoved")
+                raise Exception(msg)
+
+    def _rotate_DPinholeu(self, func, **kwdargs):
+        pinhole, u = None, None
+        if self.isPinhole is True:
+            D = np.concatenate((self.D, self._dgeom['pinhole'][:, None]),
+                               axis=1)
+            D = func(pts=D, **kwdargs)
+            D, pinhole = D[:, :-1], D[:, -1]
+        elif 'rotate' in func.__name__:
+            D, u = func(pts=self.D, vect=self.u, **kwdargs)
+        else:
+            D = func(pts=self.D, **kwdargs)
+            u = self.u
+        return D, pinhole, u
+
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   phi=None,
+                                   return_copy=None,
+                                   diag=None, name=None, dchans=None):
+        """ Translate the instance in the cross-section """
+        if phi is None:
+            if self.isInPoloidalPlane:
+                phi = np.arctan2(*self.D[1::-1, 0])
+            elif self.isPinhole:
+                phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
+            else:
+                msg = ("Instance not associated to a specific poloidal plane\n"
+                       + "\tPlease specify which poloidal plane (phi) to use")
+                raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._translate_pts_poloidal_plane,
+            phi=phi, direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def translate_3d(selfi, distance=None, direction=None,
+                     return_copy=None,
+                     diag=None, name=None, dchans=None):
+        """ Translate the instance in provided direction """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._translate_pts_3d,
+            direction=direction, distance=distance)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                phi=None,
+                                return_copy=None,
+                                diag=None, name=None, dchans=None):
+        """ Rotate the instance in the cross-section """
+        if phi is None:
+            if self.isInPoloidalPlane:
+                phi = np.arctan2(*self.D[1::-1, 0])
+            elif self.isPinhole:
+                phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
+            else:
+                msg = ("Camera not associated to a specific poloidal plane\n"
+                       + "\tPlease specify which poloidal plane (phi) to use")
+                raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_in_poloidal_plane,
+            axis_rz=axis_rz, angle=angle, phi=phi)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None,
+                                diag=None, name=None, dchans=None):
+        """ Rotate the instance around the torus axis """
+        if self.config is not None and self.config.Id.Type != 'Tor':
+            msg = "Movement only available for Tor configurations!"
+            raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_around_torusaxis,
+            angle=angle)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_around_3daxis(self, angle=None, axis=None,
+                             return_copy=None,
+                             diag=None, name=None, dchans=None):
+        """ Rotate the instance around the provided 3d axis """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_around_3daxis,
+            axis=axis, angle=angle)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
+
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
+
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
+        """
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
 
     ###########
     # public methods
@@ -6063,6 +6390,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6159,8 +6487,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6168,7 +6496,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    s += coefs * _GG.LOS_calc_signal(
+                    s += coefs_reflect * _GG.LOS_calc_signal(
                         func,
                         Dsi,
                         usi,
@@ -6222,6 +6550,15 @@ class Rays(utils.ToFuObject):
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
 
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
+
         # Format output
         return self._calc_signal_postformat(
             sig,
@@ -6264,6 +6601,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6359,8 +6697,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6368,7 +6706,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    sig += coefs * _GG.LOS_calc_signal(
+                    sig += coefs_reflect * _GG.LOS_calc_signal(
                         funcbis,
                         Dsi,
                         usi,
@@ -6427,6 +6765,15 @@ class Rays(utils.ToFuObject):
             # (cf. https://stackoverflow.com/questions/59079141)
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
+
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
 
         # Format output
         # this is the secod slowest step (~0.75 s)
@@ -6814,6 +7161,10 @@ class CamLOS1D(Rays):
             "{:.2f}".format(np.nanmin(angles)),
             "{:.2f}".format(np.nanmax(angles)),
         ]
+        if self._dgeom['move'] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom['move'],
+                    str(round(self._dgeom['move_param'], ndigits=4))]
 
         # ar1
         col1 = ["los index", "length", "touch", "angle (rad)"]
@@ -6946,6 +7297,10 @@ class CamLOS2D(Rays):
             "{:.2f}".format(np.nanmin(angles)),
             "{:.2f}".format(np.nanmax(angles)),
         ]
+        if self._dgeom['move'] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom['move'],
+                    str(round(self._dgeom['move_param'], ndigits=4))]
 
         # call base method
         return self._get_summary(

@@ -9,6 +9,7 @@ import getpass
 import subprocess
 import itertools as itt
 import warnings
+import inspect
 
 # Common
 import scipy.io as scpio
@@ -27,6 +28,8 @@ _dict_lexcept_key = []
 
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
+
+_LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts']
 
 
 ###############################################
@@ -430,10 +433,11 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     lf = os.listdir(path)
     lf = [ff for ff in lf if all([ss in ff for ss in name])]
     if len(lf) != 1:
-        msg = "No / several matching files found:"
-        msg += "\n  folder: {0}".format(path)
-        msg += "\n  for   : {0}".format('['+', '.join(name)+']')
-        msg += "\n    " + "\n    ".join(lf)
+        msg = ("No / several matching files found:\n"
+               + "  folder:      {}\n".format(path)
+               + "  looking for: {}\n".format('['+', '.join(name)+']')
+               + "  found:\n\t"
+               + "\n\t".join(lf))
         raise Exception(msg)
     nameext = lf[0]
 
@@ -684,9 +688,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldlines']
+    lidscustom = _LIDS_CUSTOM
     lidsout = [ids_ for ids_ in ids
-               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+               if (ids_ is not None and ids_ not in lidsok + lidscustom)]
     if len(lidsout) > 0:
         msg = "ids %s matched no known imas ids !\n"%str(lidsout)
         msg += "  => Available imas ids are:\n"
@@ -697,6 +701,11 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         assert not any([ids_ in ids for ids_ in lidscustom])
 
+    # -------------------
+    # print shortcuts if relevant
+    if ids == ['shortcuts']:
+        imas2tofu.MultiIDSLoader.get_shortcutsc(force=True)
+        return
 
     # -------------------
     # Prepare shot
@@ -835,6 +844,12 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                     .format(shot[0], t[0]))
         return dax
 
+    elif ids == ['events']:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids='pulse_schedule', ids_base=False)
+        multi.get_events(verb=True)
+        return
 
     # -------------------
     # Prepare returnas
@@ -971,30 +986,35 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                          ids=lids)
 
         # export to instances
-        for ii in range(0,nids):
-            if returnas[ii] == 'Config':
-                dout[ss]['Config'].append(multi.to_Config(
-                    Name=Name, occ=occ,
-                    description_2d=description_2d, plot=False))
+        for ii in range(0, nids):
+            try:
+                if returnas[ii] == 'Config':
+                    dout[ss][returnas[ii]].append(multi.to_Config(
+                        Name=Name, occ=occ,
+                        description_2d=description_2d, plot=False))
 
-            elif returnas[ii] == 'Plasma2D':
-                dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
-                                                              tlim=tlim, dsig=dsig, t0=t0,
-                                                              plot=False, plot_sig=plot_sig,
-                                                              dextra=dextra, plot_X=plot_X,
-                                                              config=config,
-                                                              bck=bck))
-            elif returnas[ii] == 'Cam':
-                dout[ss]['Cam'].append(multi.to_Cam(Name=Name, occ=occ,
-                                                    ids=lids[ii], indch=indch, config=config,
-                                                    plot=False))
-            elif returnas[ii] == "Data":
-                dout[ss]['Data'].append(multi.to_Data(Name=Name, occ=occ,
-                                                      ids=lids[ii], tlim=tlim, dsig=dsig,
-                                                      config=config, data=data, X=X, indch=indch,
-                                                      indch_auto=indch_auto, t0=t0,
-                                                      dextra=dextra,
-                                                      plot=False, bck=bck))
+                elif returnas[ii] == 'Plasma2D':
+                    dout[ss][returnas[ii]].append(multi.to_Plasma2D(
+                        Name=Name, occ=occ,
+                        tlim=tlim, dsig=dsig, t0=t0,
+                        plot=False, plot_sig=plot_sig,
+                        dextra=dextra, plot_X=plot_X,
+                        config=config, bck=bck))
+                elif returnas[ii] == 'Cam':
+                    dout[ss][returnas[ii]].append(multi.to_Cam(
+                        Name=Name, occ=occ,
+                        ids=lids[ii], indch=indch, config=config,
+                        plot=False))
+                elif returnas[ii] == "Data":
+                    dout[ss][returnas[ii]].append(multi.to_Data(
+                        Name=Name, occ=occ,
+                        ids=lids[ii], tlim=tlim, dsig=dsig,
+                        config=config, data=data, X=X, indch=indch,
+                        indch_auto=indch_auto, t0=t0,
+                        dextra=dextra, plot=False, bck=bck))
+            except Exception as err:
+                warnings.warn('{}: {}'.format(lids[ii], str(err)))
+                dout[ss][returnas[ii]].append(None)
 
     # -------------------
     # plot if relevant
@@ -1004,28 +1024,43 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         for ss in shot:
             for k0 in set(['Config', 'Cam']).intersection(returnas):
                 for ii in range(0, len(dout[ss][k0])):
-                    dout[ss][k0][ii].plot()
+                    if dout[ss][k0][ii] is not None:
+                        dout[ss][k0][ii].plot()
 
         # Plasma2D
         if nshot == 1 and nPla == 1:
-            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
+            if dout[shot[0]]['Plasma2D'][0] is not None:
+                dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
         elif nshot > 1 and nPla == 1:
             ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                    plot=False)
-                  for ss in shot[1:]]
-            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
-                                                       plot=False)
-            d0.plot_compare(ld, bck=bck)
+                  for ss in shot if dout[ss]['Plasma2D'][0] is not None]
+            if len(ld) == 1:
+                ld[0].plot(bck=bck)
+            elif len(ld) > 1:
+                ld[0].plot_compare(ld[1:], bck=bck)
 
         # Data
         elif nshot == 1 and nDat == 1:
-            dout[shot[0]]['Data'][0].plot(bck=bck)
+            if dout[shot[0]]['Data'][0] is not None:
+                dout[shot[0]]['Data'][0].plot(bck=bck)
         elif nshot > 1 and nDat == 1:
-            ld = [dout[ss]['Data'][0] for ss in shot[1:]]
-            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck)
+            ld = [dout[ss]['Data'][0] for ss in shot
+                  if dout[ss]['Data'][0] is not None]
+            if len(ld) > 0:
+                tit = "{} - {}".format(ld[0].Id.Exp, ld[0].Id.Diag)
+                if len(ld) == 1:
+                    ld[0].plot(bck=bck, tit=tit)
+                else:
+                    ld[0].plot_compare(ld[1:], bck=bck, tit=tit)
         elif nshot == 1 and nDat > 1:
-            ld = dout[shot[0]]['Data'][1:]
-            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex, bck=bck)
+            ld = [dd for dd in dout[shot[0]]['Data'] if dd is not None]
+            if len(ld) > 0:
+                tit = multi._dids[ld[0].Id.Diag]['idd']
+                if len(ld) == 1:
+                    ld[0].plot(bck=bck, tit=tit)
+                else:
+                    ld[0].plot_combine(ld[1:], sharex=sharex, bck=bck, tit=tit)
 
     # return
     if nshot == 1 and nDat == 1:
@@ -1035,15 +1070,26 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     return dout
 
 
+def calc_from_imas(
+    shot=None, run=None, user=None, tokamak=None, version=None,
+    shot_eq=None, run_eq=None, user_eq=None, tokamak_eq=None,
+    shot_prof=None, run_prof=None, user_prof=None, tokamak_prof=None,
+    ids=None, Name=None, out=None, tlim=None, config=None,
+    occ=None, indch=None, description_2d=None, equilibrium=None,
+    dsig=None, data=None, X=None, t0=None, dextra=None,
+    Brightness=None, res=None, interp_t=None, extra=None,
+    plot=None, plot_compare=True, sharex=False,
+    input_file=None, output_file=None, coefs=None,
+    bck=True, indch_auto=True, t=None, init=None
+):
+    """ Calculate syntehtic signal for a diagnostic
 
-def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, out=None, tlim=None, config=None,
-                   occ=None, indch=None, description_2d=None, equilibrium=None,
-                   dsig=None, data=None, X=None, t0=None, dextra=None,
-                   Brightness=None, res=None, interp_t=None, extra=None,
-                   plot=None, plot_compare=True, sharex=False,
-                   input_file=None, output_file=None,
-                   bck=True, indch_auto=True, t=None, init=None):
+    Read the geometry from an idd (tokamak, user, shot, run)
+    Read the equilibrium from the same / another idd
+    Read the profile from the same / another idd
+
+    """
+
     # -------------------
     # import imas2tofu
     try:
@@ -1072,6 +1118,26 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         else:
             extra = True
 
+    # Equilibrium idd
+    if tokamak_eq is None:
+        tokamak_eq = tokamak
+    if user_eq is None:
+        user_eq = user
+    if shot_eq is None:
+        shot_eq = shot
+    if run_eq is None:
+        run_eq = run
+
+    # prof idd
+    if tokamak_prof is None:
+        tokamak_prof = tokamak
+    if user_prof is None:
+        user_prof = user
+    if shot_prof is None:
+        shot_prof = shot
+    if run_prof is None:
+        run_prof = run
+
     # -------------------
     # Prepare ids
     assert ids is None or type(ids) in [list, str]
@@ -1087,7 +1153,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     lidsout = [ids_ for ids_ in ids
                if (ids_ is not None and ids_ not in lidsok+lidscustom)]
     if len(lidsout) > 0:
-        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg = "ids {} matched no known imas ids !\n".format(lidsout)
         msg += "  => Available imas ids are:\n"
         msg += repr(lidsok)
         raise Exception(msg)
@@ -1187,7 +1253,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if 'wall' not in lids:
             lids.append('wall')
         if (nDat > 0 or nPla > 0) and extra is True:
-            if 'equilibrium' not in lids:
+            if nPla > 0 and 'equilibrium' not in lids:
                 lids.append('equilibrium')
             if 'lh_antennas' not in lids:
                 lids.append('lh_antennas')
@@ -1196,18 +1262,6 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if t0 not in [None, False] and (nDat > 0 or nPla > 0):
             if 'pulse_schedule' not in lids:
                 lids.append('pulse_schedule')
-
-    # Complement ids in diag-specific way
-    # for ids in lids:
-        # if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
-            # dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
-            # if dd.get('synth') is not None:
-                # for v0 in dd['synth']['dsynth'].values():
-                    # for v1 in v0:
-                        # if '.' in v1:
-                            # v20, v21 = v1.split('.')
-                            # if v20 not in lids:
-                                # lids.append(v20)
 
     # -------------------
     # If plot and plasma, default dsig, plot_sig, plot_X
@@ -1237,15 +1291,32 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             if qq not in lk:
                 _get_exception(qq, lids[0], qtype='X')
 
-
     # -------------------
     # load
 
+    lidsdiag = [kk for kk in lids
+                if kk in imas2tofu.MultiIDSLoader._lidsdiag]
     if input_file is None:
         for ss in shot:
             multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
                                              tokamak=tokamak, version=version,
-                                             ids=lids, synthdiag=True)
+                                             ids=lids, synthdiag=False,
+                                             get=False)
+
+            lids_synth = multi.get_inputs_for_synthsignal(lidsdiag,
+                                                          returnas=list,
+                                                          verb=False)
+            if 'equilibrium' in lids_synth:
+                multi.add_ids('equilibrium', tokamak=tokamak_eq,
+                              user=user_eq, shot=shot_eq, run=run_eq,
+                              get=False)
+                lids_synth.remove('equilibrium')
+
+            if len(lids_synth) > 0:
+                multi.add_ids(lids_synth, tokamak=tokamak_prof,
+                              user=user_prof, shot=shot_prof, run=run_prof,
+                              get=False)
+            multi.open_get_close()
 
             # export to instances
             for ii in range(0, nids):
@@ -1258,7 +1329,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                       interp_t=interp_t,
                                       indch_auto=indch_auto,
                                       t0=t0, dextra=dextra,
-                                      plot=True,
+                                      coefs=coefs, plot=True,
                                       plot_compare=plot_compare)
 
     else:
@@ -1293,6 +1364,7 @@ def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                                 quant='core_profiles.1dbrem',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
+                                                coefs=coefs,
                                                 Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:
@@ -2040,6 +2112,241 @@ class ToFuObject(ToFuObjectBase):
         for ii in range(0,ind1.size):
             indr[ind2[ii],ind1[ii]] = ii
         return ind1, ind2, indr
+
+    @staticmethod
+    def _checkformat_Narray(aa, name='aa', N=3, dim=2,
+                            extramsg=''):
+        if aa is not None:
+            assert N in [2, 3]
+            assert dim in [1, 2, 3]
+            aa = np.atleast_1d(aa)
+            if N not in aa.shape:
+                msg = ("Array {}.shape should containg {}\n".format(name, N)
+                       + "\t- provided shape: {}".format(aa.shape))
+                raise Exception(msg)
+            if aa.ndim == 1 and dim == 2:
+                aa = aa[:, None]
+            elif aa.ndim == 2 and dim == 1:
+                aa = aa.ravel()
+            if aa.shape[0] != N and aa.ndim == 2:
+                aa = aa.T
+            if not (aa.ndim == dim and aa.shape[0] == N):
+                msg = (
+                    "Arg {} must be a ({}, ...) np.ndarray\n".format(name, N)
+                    + "\t- provided: {}\n".format(aa)
+                    + extramsg)
+                raise Exception(msg)
+        return aa
+
+    @staticmethod
+    def _checkformat_scalar(ss, name='ss', extramsg=''):
+        if ss is not None:
+            if type(ss) not in [int, float, np.int_, np.float_]:
+                msg = ("Please provide {} as a float:\n".format(name)
+                       + "\t- provided: {} ({})\n".format(ss, type(ss))
+                       + extramsg)
+                raise Exception(msg)
+        return ss
+
+    @classmethod
+    def _rotate_pts_vectors_around_3daxis(cls, pts=None, vect=None,
+                                          angle=None, axis=None):
+
+        # angle, pts, vect and axis
+        angle = cls._checkformat_scalar(angle, name='angle')
+        pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        vect = cls._checkformat_Narray(vect, name='vect', N=3, dim=2)
+        axis = cls._checkformat_Narray(axis, name='vect', N=2, dim=2)
+        if axis.shape != (2, 3):
+            msg = ("Arg axis must be a tuple of 2 arrays of len()=3\n"
+                   + "\t- axis[0] is the (x,y,z) coords of a point\n"
+                   + "\t- axis[1] is the (x,y,z) coords of a vector")
+            raise Exception(msg)
+        ax_pt = axis[0, :][:, None]
+        ax_ez = axis[1, :] / np.linalg.norm(axis[1, :])
+        if np.abs(ax_ez[2]) > 0.999:
+            ax_ex = np.r_[1, 0, 0]
+        else:
+            ax_ex = np.r_[-ax_ez[1], ax_ez[0], 0.]
+        ax_ex = ax_ex - np.sum(ax_ex*ax_ez)*ax_ez
+        ax_ex = ax_ex / np.linalg.norm(ax_ex)
+        ax_ey = np.cross(ax_ez, ax_ex)
+        ax_ex = ax_ex[:, None]
+        ax_ey = ax_ey[:, None]
+        ax_ez = ax_ez[:, None]
+
+        # Compute pts
+        if pts is not None:
+            ptsv = pts - ax_pt
+            ptsz = np.sum(ptsv*ax_ez, axis=0)
+            ptsr = np.hypot(np.sum(ptsv*ax_ex, axis=0),
+                            np.sum(ptsv*ax_ey, axis=0))
+            ptsang = np.arctan2(np.sum(ptsv*ax_ey, axis=0),
+                                np.sum(ptsv*ax_ex, axis=0))
+            ang2 = ptsang + angle
+            pts2 = (ax_pt + ptsz*ax_ez
+                    + ptsr*(np.cos(ang2)*ax_ex + np.sin(ang2)*ax_ey))
+            if vect is None:
+                return pts2
+
+        # Compute vect
+        if vect is not None:
+            vz = np.sum(vect*ax_ez, axis=0)
+            vr = np.hypot(np.sum(vect*ax_ex, axis=0),
+                          np.sum(vect*ax_ey, axis=0))
+            vang = np.arctan2(np.sum(vect*ax_ey, axis=0),
+                              np.sum(vect*ax_ex, axis=0))
+            ang2 = vang + angle
+            vect2 = (vz*ax_ez
+                     + vr*(np.cos(ang2)*ax_ex + np.sin(ang2)*ax_ey))
+            if pts is None:
+                return vect2
+        return pts2, vect2
+
+    @classmethod
+    def _rotate_pts_vectors_around_torusaxis(cls, pts=None, vect=None,
+                                             angle=None):
+        return cls._rotate_pts_vectors_around_3daxis(pts, vect,
+                                                     angle=angle,
+                                                     axis=([0., 0., 0.],
+                                                           [0., 0., 1.]))
+
+    @classmethod
+    def _rotate_pts_vectors_in_poloidal_plane(cls, pts=None, vect=None,
+                                              angle=None,
+                                              phi=None, axis_rz=None):
+        # phi
+        phi = cls._checkformat_scalar(phi, name='phi')
+        axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
+        ax_pt = np.r_[axis_rz[0]*np.cos(phi),
+                      axis_rz[0]*np.sin(phi), axis_rz[1]]
+        ax_v = np.r_[np.sin(phi), -np.cos(phi), 0.]
+        return cls._rotate_pts_vectors_around_3daxis(pts, vect,
+                                                     angle=angle,
+                                                     axis=(ax_pt, ax_v))
+
+    @classmethod
+    def _rotate_pts_vectors_in_poloidal_plane_2D(cls, pts_rz=None,
+                                                 vect_rz=None,
+                                                 angle=None,
+                                                 axis_rz=None):
+        # Check format input
+        angle = cls._checkformat_scalar(angle, name='angle')
+        pts_rz = cls._checkformat_Narray(pts_rz, name='pts_rz', N=2, dim=2)
+        vect_rz = cls._checkformat_Narray(vect_rz, name='vect_rz', N=2, dim=2)
+        axis_rz = cls._checkformat_Narray(axis_rz, name='axis_rz', N=2, dim=1)
+        if any([axis_rz is None, angle is None]):
+            msg = "Please provide both axis_rz and angle !"
+            raise Exception(msg)
+        if all([pts_rz is None, vect_rz is None]):
+            msg = "Neither pts_rz nor vect_rz was provided, nothing to rotate"
+            raise Exception(msg)
+
+        # Compute
+        if pts_rz is not None:
+            rad = np.hypot(pts_rz[1]-axis_rz[1], pts_rz[0]-axis_rz[0])
+            ang = np.arctan2(pts_rz[1]-axis_rz[1], pts_rz[0]-axis_rz[0])
+            ptsrz2 = np.array([axis_rz[0] + rad*np.cos(ang+angle),
+                               axis_rz[1] + rad*np.sin(ang+angle)])
+            if vect_rz is None:
+                return ptsrz2
+
+        if vect_rz is not None:
+            rad = np.linalg.norm(vect_rz)
+            ang = np.arctan2(vect_rz[1], vect_rz[0])
+            vectrz2 = np.array([rad*np.cos(ang+angle),
+                                rad*np.sin(ang+angle)])
+            if pts_rz is None:
+                return vectrz2
+        return ptsrz2, vectrz2
+
+    @classmethod
+    def _translate_pts_3d(cls, pts=None,
+                          direction=None, distance=None):
+        pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        distance = cls._checkformat_scalar(distance, name='distance')
+        direction = cls._checkformat_Narray(direction,
+                                            name='direction', N=3, dim=1)
+        direction = direction / np.linalg.norm(direction)
+        return pts + distance*direction[:, None]
+
+    @classmethod
+    def _translate_pts_poloidal_plane(cls, pts=None, phi=None,
+                                      direction_rz=None, distance=None):
+        phi = cls._checkformat_scalar(phi, name='phi')
+        direction_rz = cls._checkformat_Narray(direction_rz,
+                                               name='direction', N=2, dim=1)
+        try:
+            pts = cls._checkformat_Narray(pts, name='pts', N=3, dim=2)
+        except Exception as err:
+            pts = cls._checkformat_Narray(pts, name='pts', N=2, dim=2)
+            if phi is None:
+                msg = "If pts are in (R, Z) coordinates, please provide phi!"
+                raise Exception(msg)
+            pts = np.array([pts[0, :]*np.cos(phi),
+                            pts[0, :]*np.sin(phi), pts[1, :]])
+
+        direction = np.array([direction_rz[0]*np.cos(phi),
+                              direction_rz[0]*np.sin(phi), direction_rz[1]])
+        return cls._translate_pts_3d(pts, direction, distance)
+
+    @classmethod
+    def _translate_pts_poloidal_plane_2D(cls, pts_rz=None,
+                                         direction_rz=None, distance=None):
+        direction_rz = cls._checkformat_Narray(direction_rz,
+                                               name='direction_rz',
+                                               N=2, dim=1)
+        pts_rz = cls._checkformat_Narray(pts_rz,
+                                         name='pts_rz', N=2, dim=2)
+        distance = cls._checkformat_scalar(distance, name='distance')
+        return pts_rz + distance*direction_rz[:, None]
+
+    def _checkformat_set_move(cls, move, param, kwdargs):
+        c0 = (isinstance(move, str)
+              and hasattr(cls, move)
+              and any([ss in move for ss in ['rotate', 'translate']]))
+        if not (c0 or move is None):
+            msg = ("move must be a str matching the name of a valid"
+                   + " movement method (rotate/translate)\n"
+                   + "\t- provided: {}".format(move))
+            raise Exception(msg)
+
+        if move is None:
+            return None, None, None
+
+        func = getattr(cls, move)
+        sig = inspect.signature(func).parameters.keys()
+        if param is None:
+            param = 0.
+        param = cls._checkformat_scalar(param)
+        lc0 = [kk in sig for kk in kwdargs.keys()]
+        lc1 = ['angle' not in kwdargs.keys(), 'distance' not in kwdargs.keys(),
+               'return_copy' not in kwdargs.keys()]
+        if not (all(lc0) and all(lc1)):
+            msg = ("extra keyword arguments cannot include:\n"
+                   + "\t- 'angle'\n"
+                   + "\t- 'distance'\n"
+                   + "\t- 'return_copy'\n"
+                   + "  you provided: {}".format(kwdargs.keys()))
+            raise Exception(msg)
+        kwdargs = {kk: np.asarray(vv) if hasattr(vv, '__iter__') else vv
+                   for kk, vv in kwdargs.items()}
+        return move, param, kwdargs
+
+    def _move(self, param, dictname=''):
+        if getattr(self, dictname).get('move') is None:
+            msg = ("Default movement not defined\n"
+                   + "  => use self.set_move()")
+            raise Exception(msg)
+        lk = ['move', 'move_param', 'move_kwdargs']
+        move, param0, kwdargs = [getattr(self, dictname)[kk] for kk in lk]
+        if kwdargs is None:
+            kwdargs = {}
+
+        func = getattr(self, move)
+        dparam = param - param0
+        func(dparam, return_copy=False, **kwdargs)
+        return param
 
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',

@@ -99,7 +99,6 @@ class CrystalBragg(utils.ToFuObject):
                      'dBv':{'color':'g','ls':'--'},
                      'Nstep':50},
               '3d':{}}
-    _DEFLMOVEOK = ['rotate']
     _DEFLAMB = 3.971561e-10
     _DEFNPEAKS = 12
     # _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
@@ -266,21 +265,6 @@ class CrystalBragg(utils.ToFuObject):
                 assert np.abs(np.sum(dgeom['e2']*dgeom['nin'])) < 1.e-12
                 assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
                                       + dgeom['nin']) < 1.e-12
-        if dgeom['rotateaxis'] is not None:
-            rotax = np.asarray(dgeom['rotateaxis'], dtype=float)
-            assert rotax.shape == (2, 3)
-            rotax[1,:] = rotax[1,:] / np.linalg.norm(rotax[1,:])
-            dgeom['rotateaxis'] = rotax
-        if dgeom['rotateangle'] is not None:
-            dgeom['rotateangle'] = float(dgeom['rotateangle'])
-        if dgeom['mobile'] is None:
-            if dgeom['rotateaxis'] is not None:
-                dgeom['mobile'] = 'rotate'
-            else:
-                dgeom['mobile'] = False
-        else:
-            assert isinstance(dgeom['mobile'], str)
-            assert dgeom['mobile'] in cls._DEFLMOVEOK
         return dgeom
 
     @classmethod
@@ -394,7 +378,7 @@ class CrystalBragg(utils.ToFuObject):
         lk = ['Type', 'Typeoutline',
               'summit', 'center', 'extenthalf', 'surface',
               'nin', 'nout', 'e1', 'e2', 'rcurve',
-              'mobile', 'rotateaxis', 'rotateangle']
+              'move', 'move_param', 'move_kwdargs']
         return lk
 
     @staticmethod
@@ -446,9 +430,15 @@ class CrystalBragg(utils.ToFuObject):
             if dgeom['nin'] is None:
                 dgeom['nin'] = -dgeom['nout']
             if dgeom['center'] is None:
-                dgeom['center'] = dgeom['summit'] + dgeom['nin']*dgeom['rcurve']
+                dgeom['center'] = (dgeom['summit']
+                                   + dgeom['nin']*dgeom['rcurve'])
             if dgeom['summit'] is None:
-                dgeom['summit'] = dgeom['center'] + dgeom['nout']*dgeom['rcurve']
+                dgeom['summit'] = (dgeom['center']
+                                   + dgeom['nout']*dgeom['rcurve'])
+        elif dgeom['center'] is not None and dgeom['summit'] is not None:
+            if dgeom['nout'] is None:
+                nout = (dgeom['summit'] - dgeom['center'])
+                dgeom['nout'] = nout / np.linalg.norm(nout)
 
         if dgeom['extenthalf'] is not None:
             if dgeom['Type'] == 'sph' and dgeom['Typeoutline'] == 'rect':
@@ -457,6 +447,9 @@ class CrystalBragg(utils.ToFuObject):
                 sindtheta = np.sin(dgeom['extenthalf'][ind-1])
                 dgeom['surface'] = 4.*dgeom['rcurve']**2*dphi*sindtheta
         self._dgeom = dgeom
+        if dgeom['move'] is not None:
+            self.set_move(move=dgeom['move'], param=dgeom['move_param'],
+                          **dgeom['move_kwdargs'])
 
     def set_dmat(self, dmat=None):
         dmat = self._checkformat_dmat(dmat)
@@ -670,8 +663,8 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------------------
         # Build geometry
-        col1 = ['Type', 'Type outline', 'surface (cm^2)', 'rcurve',
-                'half-extent', 'summit', 'center', 'nin', 'e1', 'e2']
+        col1 = ['Type', 'outline', 'surface (cm^2)', 'rcurve',
+                'half-extent', 'summit', 'center', 'nin', 'e1']
         ar1 = [self._dgeom['Type'], self._dgeom['Typeoutline'],
                '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
                '{0:5.2f}'.format(self._dgeom['rcurve']),
@@ -679,8 +672,11 @@ class CrystalBragg(utils.ToFuObject):
                str(np.round(self._dgeom['summit'], decimals=2)),
                str(np.round(self._dgeom['center'], decimals=2)),
                str(np.round(self._dgeom['nin'], decimals=2)),
-               str(np.round(self._dgeom['e1'], decimals=2)),
-               str(np.round(self._dgeom['e2'], decimals=2))]
+               str(np.round(self._dgeom['e1'], decimals=2))]
+        if self._dgeom.get('move') not in [None, False]:
+            col1 += ['move', 'param']
+            ar1 += [self._dgeom['move'],
+                    str(np.round(self._dgeom['move_param'], decimals=5))]
 
         if self._dmisc.get('color') is not None:
             col1.append('color')
@@ -688,18 +684,6 @@ class CrystalBragg(utils.ToFuObject):
 
         lcol = [col0, col1]
         lar = [ar0, ar1]
-
-        # -----------------------
-        # Build mobile
-        if self._dgeom['mobile'] != False:
-            if self._dgeom['mobile'] == 'rotate':
-                col2 = ['Mov. type', 'axis pt.', 'axis vector', 'pos. (deg)']
-                ar2 = [self._dgeom['mobile'],
-                       str(np.round(self._dgeom['rotateaxis'][0], decimals=2)),
-                       str(np.round(self._dgeom['rotateaxis'][1], decimals=2)),
-                       '{0:7.3f}'.format(self._dgeom['rotateangle']*180./np.pi)]
-            lcol.append(col2)
-            lar.append(ar2)
         return self._get_summary(lar, lcol,
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
@@ -707,61 +691,169 @@ class CrystalBragg(utils.ToFuObject):
     # methods for moving
     # -----------------
 
-    @staticmethod
-    def _rotate_vector(vect, dangle, u, u1, u2):
-        c1 = np.sum(vect*u1)
-        c2 = np.sum(vect*u2)
-        return (np.sum(vect*u)*u
-                + (c1*np.cos(dangle) - c2*np.sin(dangle))*u1
-                + (c2*np.cos(dangle) + c1*np.sin(dangle))*u2)
+    def _update_or_copy(self, dgeom, pinhole=None,
+                        return_copy=None,
+                        name=None, diag=None, shot=None):
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        for kk, vv in self._dgeom.items():
+            if kk not in dgeom.keys():
+                dgeom[kk] = vv
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            if diag is None:
+                diag = self.Id.Diag
+            if shot is None:
+                diag = self.Id.shot
+            return self.__class__(dgeom=dgeom,
+                                  dbragg=self._dbragg,
+                                  dmat=self._dmat,
+                                  color=self._dmisc['color'],
+                                  Exp=self.Id.Exp,
+                                  Diag=diag,
+                                  Name=name,
+                                  shot=shot,
+                                  SavePath=self.Id.SavePath)
+        else:
+            dgeom0 = self.dgeom
+            try:
+                self.set_dgeom(dgeom=dgeom)
+            except Exception as err:
+                # Make sure instance does not move
+                self.set_dgeom(dgeom=dgeom0)
+                msg = (str(err)
+                       + "\nAn exception occured during updating\n"
+                       + "  => instance unmoved")
+                raise Exception(msg)
 
+    def _rotate_or_translate(self, func, **kwdargs):
+        pts = np.array([self._dgeom['summit'], self._dgeom['center']]).T
+        if 'rotate' in func.__name__:
+            vect = np.array([self._dgeom['nout'],
+                             self._dgeom['e1'], self._dgeom['e2']]).T
+            pts, vect = func(pts=pts, vect=vect, **kwdargs)
+            return {'summit': pts[:, 0], 'center': pts[:, 1],
+                    'nout': vect[:, 0], 'nin': -vect[:, 0],
+                    'e1': vect[:, 1], 'e2': vect[:, 2]}
+        else:
+            pts = func(pts=pts, **kwdargs)
+            return {'summit': pts[:, 0], 'center': pts[:, 1]}
 
-    def _rotate(self, angle=None, dangle=None):
-        assert 'rotateaxis' in self._dgeom.keys()
-        lc = [angle is not None, dangle is not None]
-        assert np.sum(lc) == 1
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   phi=None,
+                                   return_copy=None,
+                                   diag=None, name=None, shot=None):
+        """ Translate the instance in the cross-section """
+        if phi is None:
+            phi = np.arctan2(*self.summit[1::-1])
+            msg = ("Poloidal plane was not explicitely specified\n"
+                   + "  => phi set to self.summit's phi ({})".format(phi))
+            warnings.warn(msg)
+        dgeom = self._rotate_or_translate(
+            self._translate_pts_poloidal_plane,
+            phi=phi, direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(dgeom,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, shot=shot)
 
-        if lc[0]:
-            assert 'rotateangle' in self._dgeom.keys()
-            dangle = (angle - self._dgeom['rotateangle'])%(2*np.pi)
-        dangle = np.arctan2(np.sin(dangle), np.cos(dangle))
-        angle = (self._dgeom['rotateangle'] + dangle)%(2.*np.pi)
-        angle = np.arctan2(np.sin(angle), np.cos(angle))
+    def translate_3d(selfi, distance=None, direction=None,
+                     return_copy=None,
+                     diag=None, name=None, shot=None):
+        """ Translate the instance in provided direction """
+        dgeom = self._rotate_or_translate(
+            self._translate_pts_3d,
+            direction=direction, distance=distance)
+        return self._update_or_copy(dgeom,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, shot=shot)
 
-        # Define local frame (u, u1, u2)
-        OS = self._dgeom['summit'] - self._dgeom['rotateaxis'][0]
-        u = self._dgeom['rotateaxis'][1]
-        u = u / np.linalg.norm(u)
-        Z = np.sum(OS*u)
-        u1 = OS - Z*u
-        u1 = u1 / np.linalg.norm(u1)
-        u2 = np.cross(u, u1)
-        assert np.abs(np.linalg.norm(u2) - 1.) < 1.e-9
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                phi=None,
+                                return_copy=None,
+                                diag=None, name=None, shot=None):
+        """ Rotate the instance in the cross-section """
+        if phi is None:
+            phi = np.arctan2(*self.summit[1::-1])
+            msg = ("Poloidal plane was not explicitely specified\n"
+                   + "  => phi set to self.summit's phi ({})".format(phi))
+            warnings.warn(msg)
+        dgeom = self._rotate_or_translate(
+            self._rotate_pts_vectors_in_poloidal_plane,
+            axis_rz=axis_rz, angle=angle, phi=phi)
+        return self._update_or_copy(dgeom,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, shot=shot)
 
-        # Deduce constant distance from axis
-        dist = np.sum(OS*u1)
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None,
+                                diag=None, name=None, shot=None):
+        """ Rotate the instance around the torus axis """
+        dgeom = self._rotate_or_translate(
+            self._rotate_pts_vectors_around_torusaxis,
+            angle=angle)
+        return self._update_or_copy(dgeom,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, shot=shot)
 
-        summit = (self._dgeom['rotateaxis'][0]
-                  + dist*(np.cos(dangle)*u1 + np.sin(dangle)*u2) + Z*u)
-        nout = self._rotate_vector(self._dgeom['nout'], dangle, u, u1, u2)
-        e1 = self._rotate_vector(self._dgeom['e1'], dangle, u, u1, u2)
-        e2 = self._rotate_vector(self._dgeom['e2'], dangle, u, u1, u2)
-        center = summit - self._dgeom['rcurve']*nout
-        assert np.abs(np.sum(nout*e1)) < 1.e-12
-        assert np.abs(np.sum(nout*e2)) < 1.e-12
-        assert np.abs(np.sum(e1*e2)) < 1.e-12
-        self._dgeom.update({'summit': summit, 'center':center,
-                            'nin': -nout, 'nout':nout, 'e1': e1, 'e2': e2,
-                            'rotateangle': angle})
+    def rotate_around_3daxis(self, angle=None, axis=None,
+                             return_copy=None,
+                             diag=None, name=None, shot=None):
+        """ Rotate the instance around the provided 3d axis """
+        dgeom = self._rotate_or_translate(
+            self._rotate_pts_vectors_around_3daxis,
+            axis=axis, angle=angle)
+        return self._update_or_copy(dgeom,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, shot=shot)
 
-    def move(self, kind=None, **kwdargs):
-        if self._dgeom['mobile'] == False:
-            return
-        if kind is None:
-            kind = self._dgeom['mobile']
-        assert kind in self._DEFLMOVEOK
-        if kind == 'rotate':
-            self._rotate(**kwdargs)
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
+
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
+
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
+        """
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
+
 
     # -----------------
     # methods for rocking curve

@@ -1309,8 +1309,10 @@ def _DataCam12D_plot_spectral(lData, key=None,
     c0 = lData[0]._dgeom['config'] is not None
     c1 = c0 and lData[0]._dgeom['lCam'] is not None
     if c0:
-        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
+        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0],
+                                                  dax['hor'][0]],
+                                             element='P', dLeg=None,
+                                             tit=False, draw=False)
         dax['cross'][0], dax['hor'][0] = out
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
@@ -1329,12 +1331,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
                     dax['cross'][0].plot(crossbck[0,:], crossbck[1,:],
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
-                                         c=cbck, ls='-', lw=1.)
+                                       c=cbck, ls='-', lw=1.)
                 elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
-                                  dLeg=None, draw=False)
+                                  dLeg=None, tit=False, draw=False)
                     dax['cross'][0], dax['hor'][0] = out
 
             lHor = np.stack(lHor)
@@ -2001,8 +2003,10 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # conf
     c0 = lData[0]._dgeom['config'] is not None
     if c0:
-        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0], proj='hor',
-                                                       element='P', dLeg=None, draw=False)
+        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0],
+                                                       proj='hor', element='P',
+                                                       tit=False, dLeg=None,
+                                                       draw=False)
 
     # dextra
     if lData[0].dextra is not None:
@@ -2035,7 +2039,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if c0:
             dax['cross'][ii] = lData[ii].config.plot(lax=dax['cross'][ii],
                                                      element='P', dLeg=None,
-                                                     proj='cross', draw=False)
+                                                     proj='cross', tit=False,
+                                                     draw=False)
 
         # los
         c1 = lData[ii]._dgeom['lCam'] is not None
