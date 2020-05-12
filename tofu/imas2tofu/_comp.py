@@ -226,7 +226,7 @@ def get_fsig(sig):
                             if (ftools.reduce(
                                 getattr,
                                 [sig[jj][ll]] + dcond[ii]['cond'][0]).strip()
-                                 == dcond[ii]['cond'][1].strip())]
+                                == dcond[ii]['cond'][1].strip())]
                     else:
                         ind = [ll for ll in range(0, nb)
                                if (ftools.reduce(
