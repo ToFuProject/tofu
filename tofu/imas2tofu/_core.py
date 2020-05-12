@@ -1349,174 +1349,10 @@ class MultiIDSLoader(object):
             assert np.all(indt>=0)
         return indt
 
-    @staticmethod
-    def _prepare_sig(sig, units=False):
-        if '[' in sig:
-            # Get nb and ind
-            ind0 = 0
-            if units is True:
-                while '[' in sig[ind0:]:
-                    ind1 = ind0 + sig[ind0:].index('[')
-                    ind2 = ind0 + sig[ind0:].index(']')
-                    sig = sig[:ind1] + sig[ind2+1:]
-                    ind0 = ind2 + 1
-            else:
-                while '[' in sig[ind0:]:
-                    ind1 = ind0 + sig[ind0:].index('[')
-                    ind2 = ind0 + sig[ind0:].index(']')
-                    sig = sig.replace(sig[ind1+1:ind2],
-                                      sig[ind1+1:ind2].replace('.', '/'))
-                    ind0 = ind2 + 1
-        return sig
-
-    @staticmethod
-    def _get_condfromstr(sid, sig=None):
-        lid0, id1 = sid.split('=')
-        lid0 = lid0.split('.')
-
-        if '.' in id1 and id1.replace('.','').isdecimal():
-            id1 = float(id1)
-        elif id1.isdecimal():
-            id1 = int(id1)
-        elif '.' in id1:
-            msg = "Not clear how to interpret the following condition:\n"
-            msg += "    - sig: %s\n"%sig
-            msg += "    - condition: %s"%sid
-            raise Exception(msg)
-        return lid0, id1
-
-    @classmethod
-    def _get_fsig(cls, sig):
-
-        # break sig in list of elementary nodes
-        sig = cls._prepare_sig(sig)
-        ls0 = sig.split('.')
-        sig = sig.replace('/','.')
-        ls0 = [ss.replace('/','.') for ss in ls0]
-        ns = len(ls0)
-
-        # For each node, identify type (i.e. [])
-        lc = [all([si in ss for si in ['[',']']]) for ss in ls0]
-        dcond, seq, nseq, jj = {}, [], 0, 0
-        for ii in range(0,ns):
-            nseq = len(seq)
-            if lc[ii]:
-                # there is []
-                if nseq > 0:
-                    dcond[jj] = {'type':0, 'lstr': seq}
-                    seq = []
-                    jj += 1
-
-                # Isolate [strin]
-                ss = ls0[ii]
-                strin = ss[ss.index('[')+1:-1]
-
-                # typ 0 => no dependency
-                # typ 1 => dependency ([],[time],[chan],[int])
-                # typ 2 => selection ([...=...])
-                cond, ind, typ = None, None, 1
-                if '=' in strin:
-                    typ = 2
-                    cond = cls._get_condfromstr(strin, sig=sig)
-                elif strin in ['time','chan']:
-                    ind = strin
-                elif strin.isnumeric():
-                    ind = [int(strin)]
-                dcond[jj] = {'str':ss[:ss.index('[')], 'type':typ,
-                             'ind':ind, 'cond':cond}
-                jj += 1
-            else:
-                seq.append(ls0[ii])
-                if ii == ns-1:
-                    dcond[jj] = {'type':0, 'lstr': seq}
-
-        c0 = [v['type'] == 1 and (v['ind'] is None or len(v['ind'])>1)
-             for v in dcond.values()]
-        if np.sum(c0) > 1:
-            msg = "Cannot handle mutiple iterative levels yet !\n"
-            msg += "    - sig: %s"%sig
-            raise Exception(msg)
-
-        # Create function for getting signal
-        def fsig(obj, indt=None, indch=None, stack=True, dcond=dcond):
-            sig = [obj]
-            nsig = 1
-            for ii in dcond.keys():
-
-                # Standard case (no [])
-                if dcond[ii]['type'] == 0:
-                    sig = [ftools.reduce(getattr, [sig[jj]]+dcond[ii]['lstr'])
-                            for jj in range(0,nsig)]
-
-                # dependency
-                elif dcond[ii]['type'] == 1:
-                    for jj in range(0,nsig):
-                        sig[jj] = getattr(sig[jj],dcond[ii]['str'])
-                        nb = len(sig[jj])
-                        if dcond[ii]['ind'] == 'time':
-                            ind = indt
-                        elif dcond[ii]['ind'] == 'chan':
-                            ind = indch
-                        else:
-                            ind = dcond[ii]['ind']
-
-                        if ind is None:
-                            ind = range(0,nb)
-                        if nsig > 1:
-                            assert type(ind) is not str and len(ind) == 1
-
-                        if len(ind) == 1:
-                            sig[jj] = sig[jj][ind[0]]
-                        else:
-                            assert nsig == 1
-                            sig = [sig[0][ll] for ll in ind]
-                            nsig = len(sig)
-
-                # one index to be found
-                else:
-                    for jj in range(0,nsig):
-                        sig[jj] = getattr(sig[jj], dcond[ii]['str'])
-                        nb = len(sig[jj])
-                        typ = type(ftools.reduce(getattr,
-                                                 [sig[jj][0]]+dcond[ii]['cond'][0]))
-                        if typ == str:
-                            ind = [ll for ll in range(0,nb)
-                                   if (ftools.reduce(getattr,
-                                                     [sig[jj][ll]]+dcond[ii]['cond'][0]).strip()
-                                       == dcond[ii]['cond'][1].strip())]
-                        else:
-                            ind = [ll for ll in range(0,nb)
-                                   if (ftools.reduce(getattr,
-                                                     [sig[jj][ll]]+dcond[ii]['cond'][0])
-                                       == dcond[ii]['cond'][1])]
-                        if len(ind) != 1:
-                            msg = "No / several matching signals for:\n"
-                            msg += "    - %s[]%s = %s\n"%(dcond[ii]['str'],
-                                                          dcond[ii]['cond'][0],
-                                                          dcond[ii]['cond'][1])
-                            msg += "    - nb.of matches: %s"%str(len(ind))
-                            raise Exception(msg)
-                        sig[jj] = sig[jj][ind[0]]
-
-            # Conditions for stacking / sqeezing sig
-            lc = [(stack and nsig>1 and isinstance(sig[0],np.ndarray)
-                   and all([ss.shape == sig[0].shape for ss in sig[1:]])),
-                  stack and nsig>1 and type(sig[0]) in [int, float, np.int,
-                                                        np.float, str],
-                  (stack and nsig == 1 and type(sig) in
-                   [np.ndarray,list,tuple])]
-
-            if lc[0]:
-                sig = np.atleast_1d(np.squeeze(np.stack(sig)))
-            elif lc[1] or lc[2]:
-                sig = np.atleast_1d(np.squeeze(sig))
-            return sig
-        return fsig
-
     def _set_fsig(self):
         for ids in self._dshort.keys():
             for k, v in self._dshort[ids].items():
-                self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
+                self._dshort[ids][k]['fsig'] = _comp.get_fsig(v['str'])
 
     @classmethod
     def get_units(cls, ids, sig, force=None):
@@ -1526,7 +1362,7 @@ class MultiIDSLoader(object):
 
     def get_data(self, ids=None, sig=None, occ=None,
                  data=None, units=None,
-                 indch=None, indt=None, stack=True,
+                 indch=None, indt=None, stack=None,
                  isclose=None, flatocc=True,
                  nan=True, pos=None, empty=None, strict=None, warn=True):
         """ Return a dict of the desired signals extracted from specified ids
@@ -1601,7 +1437,7 @@ class MultiIDSLoader(object):
                                     dcomp=self._dcomp,
                                     dall_except=self._dall_except)[0]
 
-    def get_data_all(self, dsig=None, stack=True,
+    def get_data_all(self, dsig=None, stack=None,
                      isclose=None, flatocc=True, nan=True,
                      pos=None, empty=None, strict=None):
         """ Get all data available from all desired ids
@@ -1609,6 +1445,9 @@ class MultiIDSLoader(object):
         Return a dict
 
         """
+
+        if stack is None:
+            stack = True
 
         # --------------
         # Prepare dsig
@@ -1833,7 +1672,11 @@ class MultiIDSLoader(object):
     def get_mesh_from_ggd(path_to_ggd, ggdindex=0):
         pass
 
-    def _get_dextra(self, dextra=None, fordata=False, nan=True, pos=None):
+    def _get_dextra(self, dextra=None, fordata=False,
+                    nan=True, pos=None, stack=None):
+
+        if stack is None:
+            stack = True
 
         # -------------
         # Check / format dextra
@@ -1856,7 +1699,8 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
+                out = self.get_data(ids=ids, sig=vs, nan=nan,
+                                    pos=pos, stack=stack)
                 inds = [ii for ii in range(0, len(vs)) if vs[ii] in out.keys()]
                 _comp_toobjects.extra_get_fordataTrue(
                     inds, vs, vc, out, dout,
@@ -1867,7 +1711,8 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
+                out = self.get_data(ids=ids, sig=vs, nan=nan,
+                                    pos=pos, stack=stack)
                 _comp_toobjects.extra_get_fordataFalse(
                     out, d0d, dt0,
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
@@ -1875,7 +1720,7 @@ class MultiIDSLoader(object):
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None, indt0=None,
                     Name=None, occ=None, config=None, out=object,
-                    description_2d=None, indevent=None,
+                    description_2d=None, indevent=None, stack=None,
                     plot=None, plot_sig=None, plot_X=None,
                     bck=True, dextra=None, isclose=None, nan=True,
                     pos=None, empty=None, strict=None,
@@ -2023,7 +1868,7 @@ class MultiIDSLoader(object):
             # d1d and dradius
             lsig = [k for k in out0[ids].keys() if '1d' in k]
             out_ = self.get_data(ids, lsig, indt=indt,
-                                 nan=nan, pos=pos,
+                                 nan=nan, pos=pos, stack=stack,
                                  isclose=isclose, empty=empty,
                                  strict=strict, warn=False)
             if len(out_) > 0:
@@ -2101,7 +1946,7 @@ class MultiIDSLoader(object):
             lsig = [k for k in out0[ids].keys() if '2d' in k]
             lsigmesh = [k for k in lsig if 'mesh' in k]
             out_ = self.get_data(ids, sig=lsig, indt=indt,
-                                 nan=nan, pos=pos,
+                                 nan=nan, pos=pos, stack=stack,
                                  isclose=isclose, empty=empty,
                                  strict=strict, warn=False)
 
@@ -2246,8 +2091,9 @@ class MultiIDSLoader(object):
         return plasma
 
     def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
-                         dsig=None, data=None, X=None, datacls=None,
-                         geomcls=None, return_dict=None, return_ind=None,
+                         dsig=None, data=None, X=None, stack=None,
+                         datacls=None, geomcls=None,
+                         return_dict=None, return_ind=None,
                          return_msg=None, verb=None):
         # ------------------
         # Preliminary checks
@@ -2307,9 +2153,12 @@ class MultiIDSLoader(object):
                                    'surface', 'names']
                      if ss in lkok]
 
+        # STcak has to be False for inspect_channels...
+        # if stack is None:
+            # stack = self._didsdiag[ids].get('stack', False)
         out = self.get_data(ids, sig=lsig,
-                            isclose=False, stack=False, nan=True,
-                            pos=False)
+                            isclose=False, stack=False,
+                            nan=True, pos=False)
 
         # --------------
         # dout, indchout
@@ -2346,11 +2195,12 @@ class MultiIDSLoader(object):
 
     def _to_Cam_Du(self, ids, lk, indch):
         out = self.get_data(ids, sig=list(lk), indch=indch,
-                            nan=True, pos=False, empty=True, strict=True)
+                            nan=True, pos=False, stack=True,
+                            empty=True, strict=True)
         return _comp_toobjects.cam_to_Cam_Du(out, ids=ids)
 
     def to_Cam(self, ids=None, indch=None, indch_auto=False,
-               description_2d=None,
+               description_2d=None, stack=None,
                Name=None, occ=None, config=None,
                plot=True, nan=True, pos=None):
         """ Export the content of a diagnostic ids as a tofu CamLos1D instance
@@ -2419,6 +2269,8 @@ class MultiIDSLoader(object):
 
         if Name is None:
             Name = 'custom'
+        if stack is None:
+            stack = self._didsdiag[ids].get('stack', True)
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -2518,7 +2370,7 @@ class MultiIDSLoader(object):
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None,
-                config=None, description_2d=None,
+                config=None, description_2d=None, stack=None,
                 dextra=None, t0=None, indt0=None, datacls=None, geomcls=None,
                 plot=True, bck=True, fallback_X=None,
                 nan=True, pos=None, empty=None, strict=None,
@@ -2640,6 +2492,8 @@ class MultiIDSLoader(object):
 
         if Name is None:
             Name = 'custom'
+        if stack is None:
+            stack = self._didsdiag[ids].get('stack', True)
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -2698,7 +2552,7 @@ class MultiIDSLoader(object):
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
         t = self.get_data(ids, sig=dsig.get('t', 't'),
-                          indch=indch)['t']['data']
+                          indch=indch, stack=stack)['t']['data']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
@@ -2709,7 +2563,7 @@ class MultiIDSLoader(object):
         # Get data
         out = self.get_data(ids, sig=dsig['data'],
                             indch=indch, nan=nan, pos=pos,
-                            empty=empty, strict=strict)
+                            empty=empty, strict=strict, stack=stack)
         if len(out[dsig['data']]['data']) == 0:
             msgstr = self._dshort[ids]['data']['str']
             msg = ("The data array is not available for {}:\n".format(ids)
@@ -2734,7 +2588,8 @@ class MultiIDSLoader(object):
         # -----------
         # Get data
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                            indt=indt, indch=indch, nan=nan, pos=pos)
+                            indt=indt, indch=indch, nan=nan, pos=pos,
+                            stack=stack)
         for kk in set(lk).difference('t'):
             # Arrange depending on shape and field
             if type(out[dsig[kk]]['data']) is not np.ndarray:
@@ -2781,7 +2636,7 @@ class MultiIDSLoader(object):
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
                                  indt=indt, indch=indch,
-                                 nan=nan,
+                                 nan=nan, stack=stack,
                                  pos=pos)['validity_timed']['data'].T < 0.
             dins['data'][inan] = np.nan
         if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
@@ -2974,7 +2829,8 @@ class MultiIDSLoader(object):
         ani = False
         if ids == 'bremsstrahlung_visible':
             try:
-                lamb = self.get_data(ids, sig='lamb')['lamb']['data']
+                lamb = self.get_data(ids, sig='lamb',
+                                     stack=True)['lamb']['data']
             except Exception as err:
                 lamb = 5238.e-10
                 msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
@@ -2993,7 +2849,8 @@ class MultiIDSLoader(object):
             dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
-            lamb = self.get_data(ids, sig='lamb')['lamb']['data'][0]
+            lamb = self.get_data(ids, sig='lamb',
+                                 stack=True)['lamb']['data'][0]
 
             # Get time reference
             doutt, dtut, tref = plasma.get_time_common(lq)
@@ -3070,7 +2927,6 @@ class MultiIDSLoader(object):
                                                    Brightness=Brightness,
                                                    newcalc=newcalc,
                                                    plot=False, **dq)
-        # import pdb; pdb.set_trace() # DB
 
         sig._dextra = plasma.get_dextra(dextra)
 
