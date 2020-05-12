@@ -525,7 +525,7 @@ class Struct(utils.ToFuObject):
         if color is None:
             color = mpl.colors.to_rgba(cls._ddef["dmisc"]["color"])
         assert mpl.colors.is_color_like(color)
-        return tuple(mpl.colors.to_rgba(color))
+        return tuple(np.array(mpl.colors.to_rgba(color), dtype=float))
 
     ###########
     # Get keys of dictionnaries
@@ -678,7 +678,6 @@ class Struct(utils.ToFuObject):
 
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
-        color = tuple(np.array(color, dtype=float))
         self._dmisc["color"] = color
         self._dplot["cross"]["dP"]["color"] = color
         self._dplot["hor"]["dP"]["color"] = color
