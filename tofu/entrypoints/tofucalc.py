@@ -43,7 +43,7 @@ if os.path.isfile(pfe):
     spec.loader.exec_module(_defscripts)
 else:
     try:
-        import tofu.scripts._def as _defscripts
+        import tofu.entrypoints._def as _defscripts
     except Exception as err:
         from . import _def as _defscripts
 

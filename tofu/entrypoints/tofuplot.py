@@ -43,7 +43,7 @@ if os.path.isfile(pfe):
     spec.loader.exec_module(_defscripts)
 else:
     try:
-        import tofu.scripts._def as _defscripts
+        import tofu.entrypoints._def as _defscripts
     except Exception as err:
         from . import _def as _defscripts
 
@@ -52,9 +52,9 @@ tfversion = tf.__version__
 print(tforigin, tfversion)
 
 if 'imas2tofu' not in dir(tf):
-    msg = "imas does not seem to be available\n"
-    msg += "  => tf.imas2tofu not available\n"
-    msg += "  => tofuplot not available"
+    msg = ("imas does not seem to be available\n"
+           + "  => tf.imas2tofu not available\n"
+           + "  => tofuplot not available")
     raise Exception(msg)
 
 
