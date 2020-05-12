@@ -246,10 +246,10 @@ def get_fsig(sig):
         # Conditions for stacking / sqeezing sig
         lc = [(stack and nsig > 1 and isinstance(sig[0], np.ndarray)
                and all([ss.shape == sig[0].shape for ss in sig[1:]])),
-              stack and nsig > 1 and type(sig[0]) in [int, float, np.int,
-                                                    np.float, str],
-              (stack and nsig == 1 and type(sig) in
-               [np.ndarray, list, tuple])]
+              (stack and nsig > 1
+               and type(sig[0]) in [int, float, np.int_, np.float_, str],
+              (stack and nsig == 1
+               and type(sig) in [np.ndarray, list, tuple])]
 
         if lc[0]:
             sig = np.atleast_1d(np.squeeze(np.stack(sig)))
