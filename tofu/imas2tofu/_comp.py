@@ -2,6 +2,7 @@
 # Built-in
 import os
 import warnings
+import functools as ftools
 
 # Common
 import numpy as np
@@ -43,6 +44,7 @@ _NAN = True
 _DATA = True
 _UNITS = True
 _STRICT = True
+_STACK = True
 
 # #############################################################################
 #                      Units functions
@@ -91,7 +93,7 @@ def get_units(ids, sig, dshort=None, dcomp=None, force=None):
 
 
 # #############################################################################
-#                      Data functions
+#                      Data retrieveing function
 # #############################################################################
 
 
@@ -106,6 +108,160 @@ def _prepare_sig(sig):
                               sig[ind1+1:ind2].replace('.', '/'))
             ind0 = ind2 + 1
     return sig
+
+
+def _get_condfromstr(sid, sig=None):
+    lid0, id1 = sid.split('=')
+    lid0 = lid0.split('.')
+
+    if '.' in id1 and id1.replace('.', '').isdecimal():
+        id1 = float(id1)
+    elif id1.isdecimal():
+        id1 = int(id1)
+    elif '.' in id1:
+        msg = ("Not clear how to interpret the following condition:\n"
+               + "\t- sig: {}\n".format(sig)
+               + "\t- condition: {}".format(sid))
+        raise Exception(msg)
+    return lid0, id1
+
+
+def get_fsig(sig):
+    # break sig in list of elementary nodes
+    sig = _prepare_sig(sig)
+    ls0 = sig.split('.')
+    sig = sig.replace('/', '.')
+    ls0 = [ss.replace('/', '.') for ss in ls0]
+    ns = len(ls0)
+
+    # For each node, identify type (i.e. [])
+    lc = [all([si in ss for si in ['[', ']']]) for ss in ls0]
+    dcond, seq, nseq, jj = {}, [], 0, 0
+    for ii in range(0, ns):
+        nseq = len(seq)
+        if lc[ii]:
+            # there is []
+            if nseq > 0:
+                dcond[jj] = {'type': 0, 'lstr': seq}
+                seq = []
+                jj += 1
+
+            # Isolate [strin]
+            ss = ls0[ii]
+            strin = ss[ss.index('[')+1:-1]
+
+            # typ 0 => no dependency
+            # typ 1 => dependency ([],[time],[chan],[int])
+            # typ 2 => selection ([...=...])
+            cond, ind, typ = None, None, 1
+            if '=' in strin:
+                typ = 2
+                cond = _get_condfromstr(strin, sig=sig)
+            elif strin in ['time', 'chan']:
+                ind = strin
+            elif strin.isnumeric():
+                ind = [int(strin)]
+            dcond[jj] = {'str': ss[:ss.index('[')], 'type': typ,
+                         'ind': ind, 'cond': cond}
+            jj += 1
+        else:
+            seq.append(ls0[ii])
+            if ii == ns-1:
+                dcond[jj] = {'type': 0, 'lstr': seq}
+
+    c0 = [v['type'] == 1 and (v['ind'] is None or len(v['ind']) > 1)
+          for v in dcond.values()]
+    if np.sum(c0) > 1:
+        msg = ("Cannot handle mutiple iterative levels yet !\n"
+               + "\t- sig: {}".format(sig))
+        raise Exception(msg)
+
+    # Create function for getting signal
+    def fsig(obj, indt=None, indch=None, stack=None, dcond=dcond):
+        if stack is None:
+            stack = _STACK
+        sig = [obj]
+        nsig = 1
+        for ii in dcond.keys():
+
+            # Standard case (no [])
+            if dcond[ii]['type'] == 0:
+                sig = [ftools.reduce(getattr, [sig[jj]]+dcond[ii]['lstr'])
+                       for jj in range(0, nsig)]
+
+            # dependency
+            elif dcond[ii]['type'] == 1:
+                for jj in range(0, nsig):
+                    sig[jj] = getattr(sig[jj], dcond[ii]['str'])
+                    nb = len(sig[jj])
+                    if dcond[ii]['ind'] == 'time':
+                        ind = indt
+                    elif dcond[ii]['ind'] == 'chan':
+                        ind = indch
+                    else:
+                        ind = dcond[ii]['ind']
+
+                    if ind is None:
+                        ind = range(0, nb)
+                    if nsig > 1:
+                        assert type(ind) is not str and len(ind) == 1
+
+                    if len(ind) == 1:
+                        sig[jj] = sig[jj][ind[0]]
+                    else:
+                        assert nsig == 1
+                        sig = [sig[0][ll] for ll in ind]
+                        nsig = len(sig)
+
+            # one index to be found
+            else:
+                for jj in range(0, nsig):
+                    sig[jj] = getattr(sig[jj], dcond[ii]['str'])
+                    nb = len(sig[jj])
+                    typ = type(ftools.reduce(
+                        getattr, [sig[jj][0]] + dcond[ii]['cond'][0]))
+                    if typ == str:
+                        ind = [
+                            ll for ll in range(0, nb)
+                            if (ftools.reduce(
+                                getattr,
+                                [sig[jj][ll]] + dcond[ii]['cond'][0]).strip()
+                                == dcond[ii]['cond'][1].strip())]
+                    else:
+                        ind = [ll for ll in range(0, nb)
+                               if (ftools.reduce(
+                                   getattr,
+                                   [sig[jj][ll]]+dcond[ii]['cond'][0])
+                                   == dcond[ii]['cond'][1])]
+                    if len(ind) != 1:
+                        msg = ("No / several matching signals for:\n"
+                               + "\t- {}[]{} = {}\n".format(
+                                   dcond[ii]['str'],
+                                   dcond[ii]['cond'][0],
+                                   dcond[ii]['cond'][1])
+                               + "\t- nb.of matches: {}".format(len(ind)))
+                        raise Exception(msg)
+                    sig[jj] = sig[jj][ind[0]]
+
+        # Conditions for stacking / sqeezing sig
+        lc = [(stack and nsig > 1 and isinstance(sig[0], np.ndarray)
+               and all([ss.shape == sig[0].shape for ss in sig[1:]])),
+              (stack and nsig > 1
+               and type(sig[0]) in [int, float, np.int_, np.float_, str]),
+              (stack and nsig == 1
+               and type(sig) in [np.ndarray, list, tuple])]
+
+        if lc[0]:
+            sig = np.atleast_1d(np.squeeze(np.stack(sig)))
+        elif lc[1] or lc[2]:
+            sig = np.atleast_1d(np.squeeze(sig))
+        return sig
+    return fsig
+
+
+# #############################################################################
+#                      Data functions
+# #############################################################################
 
 
 def _checkformat_getdata_ids(ids=None, dids=None):
@@ -349,18 +505,17 @@ def _get_data_units(ids=None, sig=None, occ=None,
     # Data has te be computed
     if comp is True:
         if data is True:
+            if stack is None:
+                stack = True
             try:
                 lstr = dcomp[ids][sig]['lstr']
                 kargs = dcomp[ids][sig].get('kargs', {})
-                ddata, _ = get_data_units(ids=ids, sig=lstr,
-                                          occ=occ, indch=indch,
-                                          data=True, units=False,
-                                          indt=indt, stack=stack,
-                                          flatocc=False, nan=nan,
-                                          pos=pos, warn=warn,
-                                          dids=dids, dcomp=dcomp,
-                                          dshort=dshort,
-                                          dall_except=dall_except)
+                ddata = get_data_units(
+                    ids=ids, sig=lstr, occ=occ, indch=indch,
+                    data=True, units=False, indt=indt, stack=stack,
+                    flatocc=False, nan=nan, pos=pos, warn=warn,
+                    dids=dids, dcomp=dcomp, dshort=dshort,
+                    dall_except=dall_except)[0]
                 out = [dcomp[ids][sig]['func'](
                     *[ddata[kk]['data'][nn] for kk in lstr],
                     **kargs)
@@ -413,7 +568,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
 
 def get_data_units(ids=None, sig=None, occ=None,
                    data=None, units=None,
-                   indch=None, indt=None, stack=True,
+                   indch=None, indt=None, stack=None,
                    isclose=None, flatocc=True,
                    nan=True, pos=None, empty=None, strict=None, warn=True,
                    dids=None, dshort=None, dcomp=None, dall_except=None):

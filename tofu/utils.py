@@ -1016,24 +1016,24 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         for ii in range(0, nids):
             try:
                 if returnas[ii] == 'Config':
-                    dout[ss]['Config'].append(multi.to_Config(
+                    dout[ss][returnas[ii]].append(multi.to_Config(
                         Name=Name, occ=occ,
                         description_2d=description_2d, plot=False))
 
                 elif returnas[ii] == 'Plasma2D':
-                    dout[ss]['Plasma2D'].append(multi.to_Plasma2D(
+                    dout[ss][returnas[ii]].append(multi.to_Plasma2D(
                         Name=Name, occ=occ,
                         tlim=tlim, dsig=dsig, t0=t0,
                         plot=False, plot_sig=plot_sig,
                         dextra=dextra, plot_X=plot_X,
                         config=config, bck=bck))
                 elif returnas[ii] == 'Cam':
-                    dout[ss]['Cam'].append(multi.to_Cam(
+                    dout[ss][returnas[ii]].append(multi.to_Cam(
                         Name=Name, occ=occ,
                         ids=lids[ii], indch=indch, config=config,
                         plot=False))
                 elif returnas[ii] == "Data":
-                    dout[ss]['Data'].append(multi.to_Data(
+                    dout[ss][returnas[ii]].append(multi.to_Data(
                         Name=Name, occ=occ,
                         ids=lids[ii], tlim=tlim, dsig=dsig,
                         config=config, data=data, X=X, indch=indch,
@@ -1041,6 +1041,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                         dextra=dextra, plot=False, bck=bck))
             except Exception as err:
                 warnings.warn('{}: {}'.format(lids[ii], str(err)))
+                dout[ss][returnas[ii]].append(None)
 
     # -------------------
     # plot if relevant
@@ -1050,32 +1051,43 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         for ss in shot:
             for k0 in set(['Config', 'Cam']).intersection(returnas):
                 for ii in range(0, len(dout[ss][k0])):
-                    dout[ss][k0][ii].plot()
+                    if dout[ss][k0][ii] is not None:
+                        dout[ss][k0][ii].plot()
 
         # Plasma2D
         if nshot == 1 and nPla == 1:
-            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
+            if dout[shot[0]]['Plasma2D'][0] is not None:
+                dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
         elif nshot > 1 and nPla == 1:
             ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                    plot=False)
-                  for ss in shot[1:]]
-            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
-                                                       plot=False)
-            d0.plot_compare(ld, bck=bck)
+                  for ss in shot if dout[ss]['Plasma2D'][0] is not None]
+            if len(ld) == 1:
+                ld[0].plot(bck=bck)
+            elif len(ld) > 1:
+                ld[0].plot_compare(ld[1:], bck=bck)
 
         # Data
         elif nshot == 1 and nDat == 1:
-            dout[shot[0]]['Data'][0].plot(bck=bck)
+            if dout[shot[0]]['Data'][0] is not None:
+                dout[shot[0]]['Data'][0].plot(bck=bck)
         elif nshot > 1 and nDat == 1:
-            tit = "{} - {}".format(dout[shot[0]]['Data'][0].Id.Exp,
-                                   dout[shot[0]]['Data'][0].Id.Diag)
-            ld = [dout[ss]['Data'][0] for ss in shot[1:]]
-            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck, tit=tit)
+            ld = [dout[ss]['Data'][0] for ss in shot
+                  if dout[ss]['Data'][0] is not None]
+            if len(ld) > 0:
+                tit = "{} - {}".format(ld[0].Id.Exp, ld[0].Id.Diag)
+                if len(ld) == 1:
+                    ld[0].plot(bck=bck, tit=tit)
+                else:
+                    ld[0].plot_compare(ld[1:], bck=bck, tit=tit)
         elif nshot == 1 and nDat > 1:
-            tit = multi._dids[dout[shot[0]]['Data'][0].Id.Diag]['idd']
-            ld = dout[shot[0]]['Data'][1:]
-            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex,
-                                                  bck=bck, tit=tit)
+            ld = [dd for dd in dout[shot[0]]['Data'] if dd is not None]
+            if len(ld) > 0:
+                tit = multi._dids[ld[0].Id.Diag]['idd']
+                if len(ld) == 1:
+                    ld[0].plot(bck=bck, tit=tit)
+                else:
+                    ld[0].plot_combine(ld[1:], sharex=sharex, bck=bck, tit=tit)
 
     # return
     if nshot == 1 and nDat == 1:

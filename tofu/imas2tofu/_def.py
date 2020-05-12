@@ -403,7 +403,8 @@ _didsdiag = {
             'geomcls': False,
             'sig': {'t': 't',
                     'X': 'rhotn_sign',
-                    'data': 'Te'}},
+                    'data': 'Te'},
+            'stack': True},
     'neutron_diagnostic': {'datacls': 'DataCam1D',
                            'geomcls': False,
                            'sig': {'t': 't',
@@ -423,7 +424,8 @@ _didsdiag = {
                            'ref2d': 'equilibrium.2drhotn'},
                                'dsig': {'core_profiles': ['t'],
                                         'equilibrium': ['t']},
-                               'Brightness': True}},
+                               'Brightness': True},
+                       'stack': True},
     'polarimeter': {'datacls': 'DataCam1D',
                     'geomcls': 'CamLOS1D',
                     'sig': {'t': 't',
@@ -437,7 +439,8 @@ _didsdiag = {
                                   'equilibrium.2drhotn']},
                               'dsig': {'core_profiles': ['t'],
                                        'equilibrium': ['t']},
-                              'Brightness': True}},
+                              'Brightness': True},
+                    'stack': True},
     'bolometer': {'datacls': 'DataCam1D',
                   'geomcls': 'CamLOS1D',
                   'sig': {'t': 't',
@@ -448,11 +451,13 @@ _didsdiag = {
                       'ref2d': 'equilibrium.2drhotn'},
                             'dsig': {'core_sources': ['t'],
                                      'equilibrium': ['t']},
-                            'Brightness': False}},
+                            'Brightness': False},
+                  'stack': True},
     'soft_x_rays': {'datacls': 'DataCam1D',
                     'geomcls': 'CamLOS1D',
                     'sig': {'t': 't',
-                            'data': 'power'}},
+                            'data': 'power'},
+                    'stack': True},
     'spectrometer_visible': {'datacls': 'DataCam1DSpectral',
                              'geomcls': 'CamLOS1D',
                              'sig': {'data': 'spectra',
@@ -472,7 +477,9 @@ _didsdiag = {
                 'ref2d': 'equilibrium.2drhotn'},
             'dsig': {'core_profiles': ['t'],
                      'equilibrium': ['t']},
-            'Brightness': True}}}
+            'Brightness': True},
+        'stack': True}
+    }
 
 
 # ############################################################################
@@ -606,9 +613,16 @@ def _eqtheta(axR, axZ, nodes, cocos=11):
 
 
 def _rhosign(rho, theta):
-    ind = np.cos(theta) < 0.
-    rho[ind] = -rho[ind]
-    return rho
+    if isinstance(theta, np.ndarray):
+        rhotns = np.array(rho)
+        ind = ~np.isnan(theta)
+        ind[ind] &= np.cos(theta[ind]) < 0.
+        rhotns[ind] = -rho[ind]
+    else:
+        rhotns = [None for ii in range(len(theta))]
+        for ii in range(len(theta)):
+            rhotns[ii] = _rhosign(rho[ii], theta[ii])
+    return rhotns
 
 
 def _lamb(lamb_up, lamb_lo):
