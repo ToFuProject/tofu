@@ -3110,7 +3110,7 @@ class Config(utils.ToFuObject):
                     str(otemp[kk]._dgeom["noccur"]),
                     str(otemp[kk]._dgeom["move"]),
                     ('(' + ', '.join(['{:4.2}'.format(cc)
-                                  for cc in otemp[kk]._dmisc["color"]])
+                                      for cc in otemp[kk]._dmisc["color"]])
                      + ')'),
                 ]
                 for pp in self._dextraprop["lprop"]:
