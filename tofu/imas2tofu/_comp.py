@@ -114,14 +114,14 @@ def _get_condfromstr(sid, sig=None):
     lid0, id1 = sid.split('=')
     lid0 = lid0.split('.')
 
-    if '.' in id1 and id1.replace('.','').isdecimal():
+    if '.' in id1 and id1.replace('.', '').isdecimal():
         id1 = float(id1)
     elif id1.isdecimal():
         id1 = int(id1)
     elif '.' in id1:
-        msg = "Not clear how to interpret the following condition:\n"
-        msg += "    - sig: %s\n"%sig
-        msg += "    - condition: %s"%sid
+        msg = ("Not clear how to interpret the following condition:\n"
+               + "\t- sig: {}\n".format(sig)
+               + "\t- condition: {}".format(sid))
         raise Exception(msg)
     return lid0, id1
 
@@ -130,19 +130,19 @@ def get_fsig(sig):
     # break sig in list of elementary nodes
     sig = _prepare_sig(sig)
     ls0 = sig.split('.')
-    sig = sig.replace('/','.')
-    ls0 = [ss.replace('/','.') for ss in ls0]
+    sig = sig.replace('/', '.')
+    ls0 = [ss.replace('/', '.') for ss in ls0]
     ns = len(ls0)
 
     # For each node, identify type (i.e. [])
-    lc = [all([si in ss for si in ['[',']']]) for ss in ls0]
+    lc = [all([si in ss for si in ['[', ']']]) for ss in ls0]
     dcond, seq, nseq, jj = {}, [], 0, 0
-    for ii in range(0,ns):
+    for ii in range(0, ns):
         nseq = len(seq)
         if lc[ii]:
             # there is []
             if nseq > 0:
-                dcond[jj] = {'type':0, 'lstr': seq}
+                dcond[jj] = {'type': 0, 'lstr': seq}
                 seq = []
                 jj += 1
 
@@ -157,23 +157,23 @@ def get_fsig(sig):
             if '=' in strin:
                 typ = 2
                 cond = _get_condfromstr(strin, sig=sig)
-            elif strin in ['time','chan']:
+            elif strin in ['time', 'chan']:
                 ind = strin
             elif strin.isnumeric():
                 ind = [int(strin)]
-            dcond[jj] = {'str':ss[:ss.index('[')], 'type':typ,
-                         'ind':ind, 'cond':cond}
+            dcond[jj] = {'str': ss[:ss.index('[')], 'type': typ,
+                         'ind': ind, 'cond': cond}
             jj += 1
         else:
             seq.append(ls0[ii])
             if ii == ns-1:
-                dcond[jj] = {'type':0, 'lstr': seq}
+                dcond[jj] = {'type': 0, 'lstr': seq}
 
-    c0 = [v['type'] == 1 and (v['ind'] is None or len(v['ind'])>1)
-         for v in dcond.values()]
+    c0 = [v['type'] == 1 and (v['ind'] is None or len(v['ind']) > 1)
+          for v in dcond.values()]
     if np.sum(c0) > 1:
-        msg = "Cannot handle mutiple iterative levels yet !\n"
-        msg += "    - sig: %s"%sig
+        msg = ("Cannot handle mutiple iterative levels yet !\n"
+               + "\t- sig: {}".format(sig))
         raise Exception(msg)
 
     # Create function for getting signal
@@ -187,12 +187,12 @@ def get_fsig(sig):
             # Standard case (no [])
             if dcond[ii]['type'] == 0:
                 sig = [ftools.reduce(getattr, [sig[jj]]+dcond[ii]['lstr'])
-                        for jj in range(0,nsig)]
+                       for jj in range(0, nsig)]
 
             # dependency
             elif dcond[ii]['type'] == 1:
-                for jj in range(0,nsig):
-                    sig[jj] = getattr(sig[jj],dcond[ii]['str'])
+                for jj in range(0, nsig):
+                    sig[jj] = getattr(sig[jj], dcond[ii]['str'])
                     nb = len(sig[jj])
                     if dcond[ii]['ind'] == 'time':
                         ind = indt
@@ -202,7 +202,7 @@ def get_fsig(sig):
                         ind = dcond[ii]['ind']
 
                     if ind is None:
-                        ind = range(0,nb)
+                        ind = range(0, nb)
                     if nsig > 1:
                         assert type(ind) is not str and len(ind) == 1
 
@@ -215,37 +215,41 @@ def get_fsig(sig):
 
             # one index to be found
             else:
-                for jj in range(0,nsig):
+                for jj in range(0, nsig):
                     sig[jj] = getattr(sig[jj], dcond[ii]['str'])
                     nb = len(sig[jj])
-                    typ = type(ftools.reduce(getattr,
-                                             [sig[jj][0]]+dcond[ii]['cond'][0]))
+                    typ = type(ftools.reduce(
+                        getattr, [sig[jj][0]] + dcond[ii]['cond'][0]))
                     if typ == str:
-                        ind = [ll for ll in range(0,nb)
-                               if (ftools.reduce(getattr,
-                                                 [sig[jj][ll]]+dcond[ii]['cond'][0]).strip()
+                        ind = [
+                            ll for ll in range(0, nb)
+                            if (ftools.reduce(
+                                getattr,
+                                [sig[jj][ll]] + dcond[ii]['cond'][0]).strip()
                                    == dcond[ii]['cond'][1].strip())]
                     else:
                         ind = [ll for ll in range(0,nb)
-                               if (ftools.reduce(getattr,
-                                                 [sig[jj][ll]]+dcond[ii]['cond'][0])
+                               if (ftools.reduce(
+                                   getattr,
+                                   [sig[jj][ll]]+dcond[ii]['cond'][0])
                                    == dcond[ii]['cond'][1])]
                     if len(ind) != 1:
-                        msg = "No / several matching signals for:\n"
-                        msg += "    - %s[]%s = %s\n"%(dcond[ii]['str'],
-                                                      dcond[ii]['cond'][0],
-                                                      dcond[ii]['cond'][1])
-                        msg += "    - nb.of matches: %s"%str(len(ind))
+                        msg = ("No / several matching signals for:\n"
+                               + "\t- {}[]{} = {}\n".format(
+                                   dcond[ii]['str'],
+                                   dcond[ii]['cond'][0],
+                                   dcond[ii]['cond'][1])
+                               + "\t- nb.of matches: {}".format(len(ind)))
                         raise Exception(msg)
                     sig[jj] = sig[jj][ind[0]]
 
         # Conditions for stacking / sqeezing sig
-        lc = [(stack and nsig>1 and isinstance(sig[0],np.ndarray)
+        lc = [(stack and nsig>1 and isinstance(sig[0], np.ndarray)
                and all([ss.shape == sig[0].shape for ss in sig[1:]])),
               stack and nsig>1 and type(sig[0]) in [int, float, np.int,
                                                     np.float, str],
               (stack and nsig == 1 and type(sig) in
-               [np.ndarray,list,tuple])]
+               [np.ndarray, list, tuple])]
 
         if lc[0]:
             sig = np.atleast_1d(np.squeeze(np.stack(sig)))
