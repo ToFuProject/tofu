@@ -247,7 +247,7 @@ def get_fsig(sig):
         lc = [(stack and nsig > 1 and isinstance(sig[0], np.ndarray)
                and all([ss.shape == sig[0].shape for ss in sig[1:]])),
               (stack and nsig > 1
-               and type(sig[0]) in [int, float, np.int_, np.float_, str],
+               and type(sig[0]) in [int, float, np.int_, np.float_, str]),
               (stack and nsig == 1
                and type(sig) in [np.ndarray, list, tuple])]
 
