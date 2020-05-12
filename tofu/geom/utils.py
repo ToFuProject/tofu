@@ -644,6 +644,8 @@ _ExpJET = 'JET'
 _ExpITER = 'ITER'
 _ExpAUG = 'AUG'
 _ExpNSTX = 'NSTX'
+_ExpDEMO = 'DEMO'
+_ExpTOMAS = 'TOMAS'
 # Default config
 _DEFCONFIG = 'ITER'
 
@@ -696,7 +698,15 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                'TPLT4', 'TPLT5', 'TPRT2', 'TPRT3', 'TPRT4',
                                'TPRT5']},
             'NSTX-V0': {'Exp': _ExpNSTX,
-                        'Ves': ['V0']}
+                        'Ves': ['V0']},
+            'DEMO-2019': {'Exp': _ExpDEMO,
+                          'Ves': ['V0'],
+                          'PFC': ['LimiterUpperV0', 'LimiterEquatV0',
+                                  'BlanketInnerV0', 'BlanketOuterV0',
+                                  'DivertorV0']},
+            'TOMAS-V0': {'Exp': _ExpTOMAS,
+                         'Ves': ['V0'],
+                         'PFC': ['LimiterV0', 'AntennaV0']},
             }
 
 # Each config can be called by various names / shortcuts (for benchmark and
@@ -713,7 +723,9 @@ _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
                       'B3': 'WEST-V4',
                       'B4': 'ITER-V2',
                       'AUG': 'AUG-V1',
-                      'NSTX': 'NSTX-V0'}
+                      'NSTX': 'NSTX-V0',
+                      'DEMO': 'DEMO-2019',
+                      'TOMAS': 'TOMAS-V0'}
 
 
 def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,

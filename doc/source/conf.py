@@ -12,6 +12,7 @@
 # serve to show the default.
 import os
 import sys
+import time
 import tofu as tf
 import sphinx_bootstrap_theme
 from sphinx_gallery.sorting import FileNameSortKey
@@ -63,14 +64,14 @@ master_doc = "index"
 
 # General information about the project.
 project = u"tofu"
-copyright = u"2016-2019, Tofu contributors"
+copyright = u'2016-{}, Tofu contributors'.format(time.strftime("%Y"))
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = tf_version
+version = tf_release
 # The full version, including alpha/beta/rc tags.
 release = tf_release
 
@@ -142,7 +143,7 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "tofu v" + tf_version
+html_title = "Tofu " + tf_release
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 # html_short_title = None
@@ -178,7 +179,7 @@ html_theme_options = {
 }
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-# html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
