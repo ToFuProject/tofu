@@ -135,12 +135,14 @@ def get_symmetry_axis_1dprofile(phi, data, fraction=None):
     phi2n[(phi2>0) | indout] = np.nan
     nok = np.min([np.sum((~np.isnan(phi2p)), axis=0),
                   np.sum((~np.isnan(phi2n)), axis=0)], axis=0)
-    cost = np.full((phiok.size,), np.nan)
+    cost = np.full((data.shape[0], phiok.size), np.nan)
     for ii in range(phiok.size):
         indp = np.argsort(np.abs(phi2p[:, ii]))
         indn = np.argsort(np.abs(phi2n[:, ii]))
-        cost[ii] = np.nansum((data[indp] - data[indn])[:nok[ii]]**2)
-    return phiok[np.nanargmin(cost)]
+        cost[:, ii] = np.nansum(
+            (data[:, indp] - data[:, indn])[:, :nok[ii]]**2,
+            axis=1)
+    return phiok[np.nanargmin(cost, axis=1)]
 
 
 ###########################################################
@@ -1082,7 +1084,8 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
         if symmetryaxis is None:
             knots = np.linspace(phimin, phimax, nbsplines + 1 - deg)
         else:
-            phi2max = np.max(np.abs(np.r_[phimin, phimax] - symmetryaxis))
+            symax = np.nanmean(symmetryaxis)
+            phi2max = np.max(np.abs(np.r_[phimin, phimax] - symax))
             knots = np.linspace(0, phi2max, nbsplines + 1 - deg)
 
     if not np.allclose(knots, np.unique(knots)):
@@ -1180,6 +1183,8 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
     _dconstraints_symmetry(dinput, symmetry=dconstraints.get('symmetry'),
                            spectvert1d=spectvert1d, phi1d=phi1d,
                            fraction=fraction, defconst=defconst)
+    dinput['spectvert1d'] = spectvert1d
+    dinput['phi1d'] = phi1d
 
     # ------------------------
     # Check / format double
@@ -1764,7 +1769,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
 
     # Get scaling
     if dinput['symmetry'] is True:
-        phi2 = np.abs(phi - dinput['symmetry_axis'])
+        phi2 = np.abs(phi - np.nanmean(dinput['symmetry_axis']))
     else:
         phi2 = phi
     scales = multigausfit2d_from_dlines_scale(data, lamb, phi2,
@@ -1808,7 +1813,7 @@ def multigausfit2d_from_dlines(data, lamb, phi,
     pts = np.linspace(dinput['phiminmax'][0],
                       dinput['phiminmax'][1], npts, endpoint=True)
     if dinput['symmetry'] is True:
-        pts2 = np.abs(pts - dinput['symmetry_axis'])
+        pts2 = np.abs(pts - np.nanmean(dinput['symmetry_axis']))
     else:
         pts2 = pts
     kTiev, vims = None, None

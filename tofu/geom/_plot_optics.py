@@ -1099,7 +1099,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         if tit is None:
             tit = '2D fitting of X-Ray Crystal Bragg spectrometer'
     if dfit2d['dinput']['symmetry'] is True:
-        symaxis = dfit2d['dinput']['symmetry_axis']
+        symaxis = dfit2d['dinput']['symmetry_axis'][indspect]
     if angunits is None:
         angunits = 'deg'
     assert angunits in ['deg', 'rad']

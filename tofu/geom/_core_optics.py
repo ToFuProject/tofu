@@ -1892,7 +1892,7 @@ class CrystalBragg(utils.ToFuObject):
     def _checkformat_data_fit2d_dlines(data, lamb, phi, mask=None):
         msg = ""
         if not (data.ndim in [2, 3] and lamb.shape == phi.shape):
-            raise Exdeption(msg)
+            raise Exception(msg)
         if mask is not None:
             assert mask.shape == lamb.shape, msg
         if data.ndim == 2:
@@ -2008,12 +2008,21 @@ class CrystalBragg(utils.ToFuObject):
         lambmin, lambmax = np.nanmin(lambflat), np.nanmax(lambflat)
         phimin, phimax = np.nanmin(phiflat), np.nanmax(phiflat)
 
+        # Get vertical profile of S/N ratio (also useful for symmetry)
+        indok = np.all(~np.isnan(dataflat), axis=0).nonzero()[0]
+        phi1d_bins = np.linspace(phimin, phimax, nxj)
+        phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
+        spectvert1d =  scpstats.binned_statistic(
+            phiflat[indok], dataflat[:, indok],
+            bins=phi1d_bins, statistic='mean')[0]
+
         # Optionnal binning
         lambflat, phiflat, dataflat, dbin = _comp_optics.binning_2d_data(
             lambflat, phiflat, dataflat,
             binning=binning, lambmin=lambmin, lambmax=lambmax,
             phimin=phimin, phimax=phimax, nbsplines=nbsplines)
 
+        # Fit performed by successive 1d fits of spectra
         if fit1dbinning is True and dbin is False:
             msg = "fit1dbinning is not possible if binning is not specified!"
             raise Exception(msg)
@@ -2031,18 +2040,6 @@ class CrystalBragg(utils.ToFuObject):
         if pos is True:
             dataflat[dataflat < 0.] = 0.
 
-        # If symmetry, compute 1d vert spectrum
-        spectvert1d, phi1d = None, None
-        if dconstraints.get('symmetry') is True:
-            if dbin is not False:
-                phibins = dbin['phi']['edges']
-            else:
-                phibins = np.linspace(phimin, phimax, nxj)
-            phi1d = 0.5*(phibins[1:] + phibins[:-1])
-            spectvert1d =  scpstats.binned_statistic(
-                phiflat, dataflat,
-                bins=phibins, statistic='mean')[0][0, :]
-
         # Get dinput for 2d fitting
         dinput = self.get_dinput_for_fit2d(
             dlines=dlines, dconstraints=dconstraints,
@@ -2051,7 +2048,7 @@ class CrystalBragg(utils.ToFuObject):
             lambmin=lambmin, lambmax=lambmax, phimin=phimin, phimax=phimax,
             spectvert1d=spectvert1d, phi1d=phi1d, fraction=None)
 
-        # Perform 1d fit to be used as initial guess for 2d fitting
+        # Perform 2d fitting
         import tofu.data._spectrafit2d as _spectrafit2d
 
         dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
