@@ -525,7 +525,7 @@ class Struct(utils.ToFuObject):
         if color is None:
             color = mpl.colors.to_rgba(cls._ddef["dmisc"]["color"])
         assert mpl.colors.is_color_like(color)
-        return tuple(mpl.colors.to_rgba(color))
+        return tuple(np.array(mpl.colors.to_rgba(color), dtype=float))
 
     ###########
     # Get keys of dictionnaries
@@ -927,7 +927,11 @@ class Struct(utils.ToFuObject):
             ar0 += [self._dgeom["move"],
                     str(round(self._dgeom["move_param"], ndigits=4))]
         col0.append('color')
-        ar0.append(str(self._dmisc["color"]))
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
 
         return self._get_summary(
             [ar0],
@@ -3096,15 +3100,18 @@ class Config(utils.ToFuObject):
         for k in self._ddef["dStruct"]["order"]:
             if k not in d.keys():
                 continue
+            otemp = self._dStruct["dObj"][k]
             for kk in d[k].keys():
                 lu = [
                     k,
-                    self._dStruct["dObj"][k][kk]._Id._dall["Name"],
-                    self._dStruct["dObj"][k][kk]._Id._dall["SaveName"],
-                    str(self._dStruct["dObj"][k][kk]._dgeom["nP"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["noccur"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["move"]),
-                    str(self._dStruct["dObj"][k][kk]._dmisc["color"]),
+                    otemp[kk]._Id._dall["Name"],
+                    otemp[kk]._Id._dall["SaveName"],
+                    str(otemp[kk]._dgeom["nP"]),
+                    str(otemp[kk]._dgeom["noccur"]),
+                    str(otemp[kk]._dgeom["move"]),
+                    ('(' + ', '.join(['{:4.2}'.format(cc)
+                                      for cc in otemp[kk]._dmisc["color"]])
+                     + ')'),
                 ]
                 for pp in self._dextraprop["lprop"]:
                     lu.append(self._dextraprop["d" + pp][k][kk])
