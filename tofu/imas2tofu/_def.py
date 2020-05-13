@@ -137,15 +137,13 @@ _dshort = {
                  'dim': 'density', 'quant': 'ne', 'units': 'm^-3'},
         '1dzeff': {'str': 'profiles_1d[time].zeff',
                    'dim': 'charge', 'quant': 'zeff', 'units': '-'},
-        '1dphi': {'str': 'profiles_1d[time].grid.phi',
-                  'dim': 'B flux', 'quant': 'phi', 'units': 'Wb'},
         '1dpsi': {'str': 'profiles_1d[time].grid.psi',
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1drhotn': {'str': 'profiles_1d[time].grid.rho_tor_norm',
                     'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
         '1drhopn': {'str': 'profiles_1d[time].grid.rho_pol_norm',
                     'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
-        '1dnW': {'str': 'profiles_1d[time].ions[identifier.label=W].density',
+        '1dnW': {'str': 'profiles_1d[time].ion[identifier.label=W].density',
                  'dim': 'density', 'quant': 'nI', 'units': 'm^-3'}},
 
     'edge_profiles': {
@@ -158,7 +156,7 @@ _dshort = {
                   'dim': 'B flux', 'quant': 'psi', 'units': 'Wb'},
         '1drhotn': {'str': ('source[identifier.name=lineradiation]'
                             + '.profiles_1d[time].grid.rho_tor_norm'),
-                    'dim': 'rho', 'quant': 'rhotn', 'units': 'Wb'},
+                    'dim': 'rho', 'quant': 'rhotn', 'units': '-'},
         '1dbrem': {'str': ('source[identifier.name=bremsstrahlung]'
                            + '.profiles_1d[time].electrons.energy'),
                    'dim': 'vol.emis.', 'quant': 'brem.', 'units': 'W.m^-3'},

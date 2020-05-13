@@ -386,8 +386,8 @@ setup(
     # of executable for the target platform.
    entry_points={
         'console_scripts': [
-            'tofuplot=tofu.entry_points.tofuplot:main',
-            'tofucalc=tofu.entry_points.tofucalc:main',
+            'tofuplot=tofu.entrypoints.tofuplot:main',
+            'tofucalc=tofu.entrypoints.tofucalc:main',
             'tofu-version=scripts.tofuversion:main',
             'tofu-custom=scripts.tofucustom:main',
         ],
