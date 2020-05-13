@@ -2118,37 +2118,38 @@ def _get_dall_from_lf(lf, ls, lsextra, path, ratio=None):
     indshot = len('XICS_fit2d_')
     for ff in lf:
         din = {}
-        # try:
-        cryst = 'ArXVII'
-        shot = int(ff[indshot:indshot+5])
-        out = np.load(os.path.join(path, ff), allow_pickle=True)
-        nt = out['t'].size
-        for kk in ls:
-            if kk == 'angle':
-                din[kk] = np.full((nt,), _DSHOTS[cryst][shot]['ang'])
-            if kk not in out.keys():
-                continue
-            if kk == 'ratio':
-                ind = out['ratio'].tolist()['str'].index(ratio)
-                din[kk] = out['ratio'].tolist()['value'][:, ind, :]
-            elif kk == 'vims':
-                din['vims_keys'] = out['dinput'].tolist()['shift']['keys']
-                din[kk] = out.get(kk, np.full((nt,), np.nan))
-                import pdb; pdb.set_trace()     # DB
-            else:
-                din[kk] = out.get(kk, np.full((nt,), np.nan))
-        lambmean = np.mean(out['dinput'].tolist()['lambminmax'])
-        din['shot'] = np.full((nt,), shot)
-        din['sumsig'] = np.nansum(out['data'], axis=1)
-        din['lambmean'] = np.full((nt,), lambmean)
-        din['ff'] = np.full((nt,), ff, dtype='U')
+        try:
+            cryst = 'ArXVII'
+            shot = int(ff[indshot:indshot+5])
+            out = np.load(os.path.join(path, ff), allow_pickle=True)
+            nt = out['t'].size
+            for kk in ls:
+                if kk == 'angle':
+                    din[kk] = np.full((nt,), _DSHOTS[cryst][shot]['ang'])
+                if kk not in out.keys():
+                    continue
+                if kk == 'ratio':
+                    ind = out['ratio'].tolist()['str'].index(ratio)
+                    din[kk] = out['ratio'].tolist()['value'][:, ind, :]
+                elif kk == 'vims':
+                    din['vims_keys'] = out['dinput'].tolist()['shift']['keys']
+                    din[kk] = out.get(kk, np.full((nt,), np.nan))
+                else:
+                    din[kk] = out.get(kk, np.full((nt,), np.nan))
+            lambmean = np.mean(out['dinput'].tolist()['lambminmax'])
+            din['shot'] = np.full((nt,), shot)
+            din['sumsig'] = np.nansum(out['data'], axis=1)
+            din['lambmean'] = np.full((nt,), lambmean)
+            din['ff'] = np.full((nt,), ff, dtype='U')
 
-        # except Exception as err:
-            # continue
+        except Exception as err:
+            continue
         for kk in din.keys():
             if kk == 'pts_phi':
                 dall[kk] = din[kk]
-            elif din[kk].ndim == 2:
+            elif kk == 'vims_keys':
+                dall[kk] = din[kk]
+            elif din[kk].ndim in [2, 3]:
                 if dall[kk] == []:
                     dall[kk] = din[kk]
                 else:
@@ -2365,7 +2366,7 @@ def treat_plot_lineratio(ratio=None, path=None,
     dax['dshift_c'] = fig.add_subplot(gs[1, -1])
     dax['ratio'].set_ylabel('line ratio (a.u.)')
     dax['dshift'].set_ylabel('double shift (a.u.)')
-    dax['dshift'].set_xlabel(r'$\lambda$' + ' (m)')
+    dax['dshift'].set_xlabel('channel (rad)')
 
     for ii in range(dall['ratio'].shape[0]):
         dax['ratio'].plot(dall['pts_phi'], dall['ratio'][ii, :],
@@ -2381,7 +2382,7 @@ def treat_plot_lineratio(ratio=None, path=None,
     return dall, dax
 
 
-def treat_plot_lineshift(path=None,
+def treat_plot_lineshift(path=None, diff=None,
                          nameextra=None, nameexclude=None,
                          cmap=None, color=None, alpha=None,
                          vmin=None, vmax=None, size=None,
@@ -2394,7 +2395,7 @@ def treat_plot_lineshift(path=None,
     if cmap is None:
         cmap = plt.cm.viridis
     if color is None:
-        color = 'shot'
+        color = 'line'
     assert isinstance(color, str)
     if alpha is None:
         alpha = 'sumsig'
@@ -2404,7 +2405,7 @@ def treat_plot_lineshift(path=None,
     lf = _get_files(path, nameextra, nameexclude)
     nf = len(lf)
     ls = ['vims', 'pts_phi', 't', 'cost',
-          'ic_t', 'ic_power', 'lh_t', 'lh_power', 'ece_Te0', 'ece_t']
+          'ic_power', 'lh_power', 'ece_Te0']
     lsextra = ['shot', 'sumsig', 'lambmean', 'ff']
     dall = _get_dall_from_lf(lf, ls, lsextra, path)
     if len(dall.keys()) == 0:
@@ -2416,19 +2417,28 @@ def treat_plot_lineshift(path=None,
     if isinstance(size, str):
         size = dall[size]
     if isinstance(color, str):
-        if color == 'shot_index':
-            shotu = np.unique(dall['shot'])
-            color = dall['shot'].astype(int)
-            for ii in range(0, shotu.size):
-                color[dall['shot'] == shotu[ii]] = ii
-        else:
-            color = dall[color]
-        color = cmap(mcolors.Normalize(vmin=vmin, vmax=vmax)(color))
+        if color == 'line':
+            color = ['r', 'b', 'g']
     if isinstance(alpha, str):
-        alpha = mcolors.Normalize()(dall[alpha])
+        alpha = np.array(mcolors.Normalize()(dall[alpha]))
     else:
         alpha = 1.
-    color[:, -1] = alpha
+
+    dall['vims'] = dall['vims']*1.e-3
+    if diff is None:
+        diff = dall['vims'].shape[1] in [2, 3]
+    if diff is True:
+        if dall['vims'].shape[1] == 2:
+            dvims = np.diff(dall['vims'], axis=1)
+            labd = [dall['vims_keys'][1] + '-' + dall['vims_keys'][0]]
+        elif dall['vims'].shape[1] == 3:
+            dvims = np.concatenate(
+                (np.diff(dall['vims'], axis=1),
+                 dall['vims'][:, 0:1, :] - dall['vims'][:, 2:3, :]), axis=1)
+            labd = [dall['vims_keys'][1] + ' - ' + dall['vims_keys'][0],
+                    dall['vims_keys'][2] + ' - ' + dall['vims_keys'][1],
+                    dall['vims_keys'][0] + ' - ' + dall['vims_keys'][2]]
+        colord = ['k', 'y', 'c']
 
     # ---------
     # plot
@@ -2447,24 +2457,40 @@ def treat_plot_lineshift(path=None,
     shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
     dax = {'ratio': None,
            'dshift': None}
-    dax['ratio'] = fig.add_subplot(gs[0, :-1])
-    dax['dshift'] = fig.add_subplot(gs[1, :-1], sharex=dax['ratio'])
-    dax['ratio_c'] = fig.add_subplot(gs[0, -1])
-    dax['dshift_c'] = fig.add_subplot(gs[1, -1])
-    dax['ratio'].set_ylabel('line ratio (a.u.)')
-    dax['dshift'].set_ylabel('double shift (a.u.)')
-    dax['dshift'].set_xlabel(r'$\lambda$' + ' (m)')
+    dax['vims'] = fig.add_subplot(gs[0, :-1])
+    dax['dvims'] = fig.add_subplot(gs[1, :-1], sharex=dax['ratio'])
+    # dax['vims_c'] = fig.add_subplot(gs[0, -1])
+    dax['vims'].set_ylabel(r'$v_i$' + '  (km.s^-1)')
+    dax['dvims'].set_ylabel(r'$\Delta v_i$' + '  (km.s^-1)')
+    dax['dvims'].set_xlabel('channel (rad)')
 
-    import pdb; pdb.set_trace()     # DB
-    for ii in range(dall['ratio'].shape[0]):
-        dax['ratio'].plot(dall['pts_phi'], dall['ratio'][ii, :],
-                          color=color[ii, :], ls='-', lw=1.)
+    for ii in range(dall['vims'].shape[0]):
+        for jj in range(dall['vims'].shape[1]):
+            dax['vims'].plot(dall['pts_phi'], dall['vims'][ii, jj, :],
+                             color=color[jj], alpha=alpha[ii], ls='-', lw=1.)
 
-    # dax['dratio'].set_ylim(0, 2)
-    # dax['ratio'].set_xlim(3.94e-10, 4e-10)
-    dax['ratio'].set_ylim(0, 2.)
-    dax['dshift'].set_ylim(0, 6e-4)
+    if diff is True:
+        for jj in range(dvims.shape[1]):
+            for ii in range(dall['vims'].shape[0]):
+                dax['dvims'].plot(dall['pts_phi'], dvims[ii, jj, :],
+                                  color=colord[jj], alpha=alpha[ii])
+            dvmean = (np.nansum(dvims[:, jj, :]*dall['sumsig'][:, None])
+                      / (dvims.shape[2]*np.nansum(dall['sumsig'])))
+            dax['dvims'].axhline(dvmean, c=colord[jj], ls='--', lw=1.)
+            dax['dvims'].annotate('{:5.3e}'.format(dvmean),
+                                  xy=(1., dvmean),
+                                 xycoords=('axes fraction', 'data'),
+                                 color=colord[jj], size=10)
 
-    # plt.colorbar(dr, cax=dax['dratio_c'])
-    # plt.colorbar(dr, cax=dax['dshift_c'])
+    dax['vims'].axhline(0., c='k', ls='--', lw=1.)
+    dax['dvims'].axhline(0., c='k', ls='--', lw=1.)
+    hand = [mlines.Line2D([], [], c=color[jj], lw=1., ls='-')
+            for jj in range(dall['vims'].shape[1])]
+    lab = dall['vims_keys'].tolist()
+    dax['vims'].legend(hand, lab)
+    if diff is True:
+        hand = [mlines.Line2D([], [], c=colord[jj], lw=1., ls='-')
+                for jj in range(dvims.shape[1])]
+        dax['dvims'].legend(hand, labd)
+
     return dall, dax
