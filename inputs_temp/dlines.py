@@ -32,7 +32,10 @@ _DSOURCES = {
                      + 'detector position optimized from them using shots='
                      +  '[54044, 54045, 54046, 54047, 54049, 54061, 55076], '
                      + 'indt=[2,4,5,6,8], indxj=None on 08.04.2020, using '
-                     + 'Vainshtein for x, y and Goryaev for k, j, q, r, a')
+                     + 'Vainshtein for x, y and Goryaev for k, j, q, r, a'),
+    'Adhoc 200513': ('Same as Adhoc 200408 but n3, n4 and y corrected by'
+                     + ' individual vims computed from C3, C4 campaigns, '
+                     + 'as presented in CTVD on 14.05.2020')
 }
 
 
@@ -129,10 +132,18 @@ dlines = {
                              'symbol': 'n=4', 'lambda': 3.9530e-10,
                              'transition': ['unknown', 'unknwown'],
                              'source': 'Adhoc 200408'},
+    'ArXIV_n4_Adhoc200513': {'q': 13, 'ION': 'ArXIV',
+                             'symbol': 'n=4', 'lambda': 3.9528e-10,
+                             'transition': ['unknown', 'unknwown'],
+                             'source': 'Adhoc 200513'},
     'ArXV_n3_Adhoc200408': {'q': 14, 'ION': 'ArXV',
                             'symbol': 'n=3', 'lambda': 3.9560e-10,
                             'transition': ['unknown', 'unknwown'],
                             'source': 'Adhoc 200408'},
+    'ArXV_n3_Adhoc200513': {'q': 14, 'ION': 'ArXV',
+                            'symbol': 'n=3', 'lambda': 3.9562e-10,
+                            'transition': ['unknown', 'unknwown'],
+                            'source': 'Adhoc 200513'},
 
     'ArXV_1': {'q': 14, 'ION': 'ArXV',
                'symbol': '1', 'lambda': 4.0096e-10,
@@ -483,6 +494,10 @@ dlines = {
                              'lambda': 3.9692e-10,
                              'transition': ('He-like', 'y'),
                              'source': 'Adhoc 200408'},
+    'ArXVII_y_Adhoc200513': {'q': 16, 'ION': 'ArXVII',
+                             'lambda': 3.96923e-10,
+                             'transition': ('He-like', 'y'),
+                             'source': 'Adhoc 200513'},
     'ArXVII_y2_Vainshtein': {'q': 16, 'ION': 'ArXVII',
                              'lambda': 3.9703e-10,
                              'transition': ('He-like', 'y2'),
@@ -601,6 +616,10 @@ dlines = {
     # W
     # --------------------------
 
+    'W_adhoc_Adhoc200513': {'q': 43, 'ION': 'WXLIV',
+                            'symbol':'adhoc', 'lambda': 3.97499e-10,
+                            'transition': ['?', '?'],
+                            'source': 'Adhoc 200513'},
     'WXLIV_0_NIST': {'q': 43, 'ION': 'WXLIV',
                      'symbol':'0', 'lambda': 3.9635e-10,
                      'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
