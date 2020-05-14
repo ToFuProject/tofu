@@ -1957,7 +1957,7 @@ def treat(cryst, shot=None,
           tol=None,
           plasma=True,
           nameextra=None,
-          lambmin=3.945e-10, lambmax=4e-10,
+          domain=None,
           xi=_XI, xj=_XJ,
           path=_HERE):
 
@@ -2034,10 +2034,9 @@ def treat(cryst, shot=None,
             dout = cryst.plot_data_fit2d_dlines(
                 dlines=dlines, dconstraints=dconst, data=data,
                 xi=xi, xj=xj, det=det,
-                lambmin=lambmin, lambmax=lambmax,
                 deg=2, verbose=2, subset=None, binning=binning,
                 nbsplines=nbsplines, mask=mask, ratio=ratio,
-                phimin=None, phimax=None,
+                domain=domain,
                 Ti=True, vi=True,
                 chain=True, plot=False,
                 xtol=tol, ftol=tol, gtol=tol)
