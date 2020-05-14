@@ -1938,9 +1938,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det=None, dtheta=None, psi=None, n=None,
-                               Ti=None, vi=None,
-                               lambmin=None, lambmax=None,
-                               phimin=None, phimax=None,
+                               Ti=None, vi=None, domain=None,
                                dlines=None, dconstraints=None, dx0=None,
                                x0_scale=None, bounds_scale=None,
                                deg=None, knots=None, nbsplines=None,
@@ -1991,17 +1989,10 @@ class CrystalBragg(utils.ToFuObject):
         assert dataflat.ndim == 2 and dataflat.shape[1] == lambflat.size
 
         # Use valid data only and optionally restrict lamb / phi
-        indok = np.ones(lambflat.shape, dtype=bool)
+        indok, domain = _comp_optics.apply_domain(lambflat, phiflat,
+                                                  domain=domain)
         if maskflat is not None:
             indok &= maskflat
-        if lambmin is not None:
-            indok &= lambflat > lambmin
-        if lambmax is not None:
-            indok &= lambflat < lambmax
-        if phimin is not None:
-            indok &= phiflat > phimin
-        if phimax is not None:
-            indok &= phiflat < phimax
         dataflat = dataflat[:, indok]
         lambflat = lambflat[indok]
         phiflat = phiflat[indok]
@@ -2058,6 +2049,7 @@ class CrystalBragg(utils.ToFuObject):
             chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
             ratio=ratio, jac=jac, npts=npts)
+        dfit2d['domain'] = domain
 
         # Plot
         if plot is True:

@@ -684,3 +684,72 @@ def calc_dthetapsiphi_from_lambpts(pts, center, rcurve,
     psi[indnan] = np.nan
     dtheta[indnan] = np.nan
     return dtheta, psi, indnan, indout
+
+
+# ###############################################
+#           Domain
+# ###############################################
+
+def _checkformat_domain(domain=None):
+
+    if domain is None:
+        domain = {'lamb': [np.inf*np.r_[-1., 1.]],
+                  'phi': [np.inf*np.r_[-1., 1.]]}
+        return domain
+
+    lk = ['lamb', 'phi']
+    c0 = (isinstance(domain, dict)
+          and all([k0 in lk for k0 in domain.keys()]))
+    if not c0:
+        msg = ("Arg domain must be a dict with keys {}\n".format(ls)
+               + "\t- provided: {}".format(domain))
+        raise Exception(msg)
+
+    for k0 in lk:
+        domain[k0] = domain.get(k0, [np.inf*np.r_[-1., 1.]])
+
+    ltypesin = [list, np.ndarray]
+    ltypesout = [tuple]
+    for k0, v0 in domain.items():
+        c0 = (type(v0) in ltypesin + ltypesout
+              and (all([(type(v1) in ltypesin + ltypesout
+                         and len(v1) == 2
+                         and v1[1] > v1[0]) for v1 in v0])
+                   or (len(v0) == 2 and v0[1] > v0[0])))
+        if not c0:
+            msg = ("domain[{}] must be either a:\n".format(k0)
+                   + "\t- np.ndarray or list of 2 increasing values: "
+                    + "inclusive interval\n"
+                   + "\t- tuple of 2 increasing values: exclusive interval\n"
+                   + "\t- a list of combinations of the above\n"
+                   + "  provided: {}".format(v0))
+            raise Exception(msg)
+
+        if type(v0) in ltypesout:
+            domain[k0] = [v0]
+        else:
+            c0 = all([(type(v1) in ltypesin + ltypesout
+                       and len(v1) == 2
+                       and v1[1] > v1[0]) for v1 in v0])
+            if c0:
+                domain[k0] = v0
+            else:
+                domain[k0] = [v0]
+    return domain
+
+
+def apply_domain(lambflat, phiflat, domain=None):
+
+    domain = _checkformat_domain(domain=domain)
+    ind = np.ones(lambflat.shape, dtype=bool)
+    for v1 in domain['lamb']:
+        indi = (lambflat >= v1[0]) & (lambflat <= v1[1])
+        if isinstance(v1, tuple):
+            indi = ~indi
+        ind &= indi
+    for v1 in domain['phi']:
+        indi = (phiflat >= v1[0]) & (phiflat <= v1[1])
+        if isinstance(v1, tuple):
+            indi = ~indi
+        ind &= indi
+    return ind, domain
