@@ -1128,12 +1128,18 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
     return dbsplines
 
 
+def valid_indices_phi(sig1d, phi1d, threshold=None):
+    ind = sig1d < threshold
+    return ind
+
+
 def multigausfit2d_from_dlines_dinput(dlines=None,
                                       dconstraints=None,
                                       Ti=None, vi=None,
                                       deg=None, nbsplines=None, knots=None,
                                       lambmin=None, lambmax=None,
                                       phimin=None, phimax=None,
+                                      domain=None,
                                       spectvert1d=None, phi1d=None,
                                       fraction=None, defconst=_DCONSTRAINTS):
 
@@ -1233,9 +1239,19 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
         phimin=phimin, phimax=phimax,
         symmetryaxis=dinput.get('symmetry_axis')))
 
+    # S/N threshold indices
+    dinput['valid_indphi'] = _valid_indices(spectvect1d, phi1d,
+                                            threshold=threshold)
+    dinput['phi1d'] = phi1d
+    dinput['spectvect1d'] = spectvect1d
+    dinput['threshold'] = threshold
+
+    # Domain
+    dinput['domain'] = domain
+
     # Add boundaries
-    dinput['phiminmax'] = (phimin, phimax)
-    dinput['lambminmax'] = (lambmin, lambmax)
+    # dinput['phiminmax'] = (phimin, phimax)
+    # dinput['lambminmax'] = (lambmin, lambmax)
     return dinput
 
 

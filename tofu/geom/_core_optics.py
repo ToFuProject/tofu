@@ -1936,6 +1936,12 @@ class CrystalBragg(utils.ToFuObject):
             phimin=phimin, phimax=phimax,
             spectvert1d=spectvert1d, phi1d=phi1d, fraction=fraction)
 
+
+    def plot_test_nbs_on_data_domain(self, data=None, mask=None, indspect=None,
+                                     xi=None, xj=None, domain=None):
+        pass
+
+
     def plot_data_fit2d_dlines(self, xi=None, xj=None, data=None, mask=None,
                                det=None, dtheta=None, psi=None, n=None,
                                Ti=None, vi=None, domain=None,
@@ -2041,6 +2047,8 @@ class CrystalBragg(utils.ToFuObject):
 
         # Perform 2d fitting
         import tofu.data._spectrafit2d as _spectrafit2d
+
+        import pdb; pdb.set_trace()     # DB
 
         dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
             dataflat, lambflat, phiflat, dinput=dinput, dx0=dx0,
