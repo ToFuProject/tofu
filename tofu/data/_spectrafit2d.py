@@ -12,6 +12,7 @@ import scipy.optimize as scpopt
 import scipy.constants as scpct
 import scipy.sparse as sparse
 from scipy.interpolate import BSpline
+import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 
 
@@ -1059,6 +1060,292 @@ def _dconstraints_symmetry(dinput, symmetry=None, spectvert1d=None, phi1d=None,
     if dinput['symmetry'] is True:
         dinput['symmetry_axis'] = get_symmetry_axis_1dprofile(
             phi1d, spectvert1d, fraction=fraction)
+
+
+def _checkformat_data_fit2d_dlines(data, lamb, phi, mask=None):
+    msg = ("Args data, lamb, phi and mask must be:\n"
+           + "\t- data: (nt, n1, n2) or (n1, n2) np.ndarray\n"
+           + "\t- lamb, phi: (n1,) and (n2,) or both (n1, n2) np.ndarray\n"
+           + "\t- mask: None or (n1, n2)")
+    if not isinstance(data, np.ndarray):
+        raise Exception(msg)
+    c0 = (data.ndim in [2, 3]
+          and lamb.ndim == phi.ndim == 2
+          and lamb.shape == phi.shape)
+    if not c0:
+        raise Exception(msg)
+    if data.ndim == 2:
+        data = data[None, :, :]
+    c0 = data.shape[-2:] == lamb.shape
+    if not c0:
+        raise Exception(msg)
+    if mask is not None:
+        if mask.shape != lamb.shape:
+            raise Exception(msg)
+    return data
+
+
+# ############################
+#           Domain limitation
+# ############################
+
+
+def _checkformat_domain(domain=None):
+
+    if domain is None:
+        domain = {'lamb': [np.inf*np.r_[-1., 1.]],
+                  'phi': [np.inf*np.r_[-1., 1.]]}
+        return domain
+
+    lk = ['lamb', 'phi']
+    c0 = (isinstance(domain, dict)
+          and all([k0 in lk for k0 in domain.keys()]))
+    if not c0:
+        msg = ("Arg domain must be a dict with keys {}\n".format(ls)
+               + "\t- provided: {}".format(domain))
+        raise Exception(msg)
+
+    domain2 = {k0: v0 for k0, v0 in domain.items()}
+    for k0 in lk:
+        domain2[k0] = domain2.get(k0, [np.inf*np.r_[-1., 1.]])
+
+    ltypesin = [list, np.ndarray]
+    ltypesout = [tuple]
+    for k0, v0 in domain2.items():
+        c0 = (type(v0) in ltypesin + ltypesout
+              and (all([(type(v1) in ltypesin + ltypesout
+                         and len(v1) == 2
+                         and v1[1] > v1[0]) for v1 in v0])
+                   or (len(v0) == 2 and v0[1] > v0[0])))
+        if not c0:
+            msg = ("domain[{}] must be either a:\n".format(k0)
+                   + "\t- np.ndarray or list of 2 increasing values: "
+                    + "inclusive interval\n"
+                   + "\t- tuple of 2 increasing values: exclusive interval\n"
+                   + "\t- a list of combinations of the above\n"
+                   + "  provided: {}".format(v0))
+            raise Exception(msg)
+
+        if type(v0) in ltypesout:
+            v0 = [v0]
+        else:
+            c0 = all([(type(v1) in ltypesin + ltypesout
+                       and len(v1) == 2
+                       and v1[1] > v1[0]) for v1 in v0])
+            if not c0:
+                v0 = [v0]
+        domain2[k0] = {'spec': v0}
+    return domain2
+
+
+def apply_domain(lamb, phi, domain=None):
+
+    domain = _checkformat_domain(domain=domain)
+    ind = np.ones(lamb.shape, dtype=bool)
+    for v1 in domain['lamb']['spec']:
+        indi = (lamb >= v1[0]) & (lamb <= v1[1])
+        if isinstance(v1, tuple):
+            indi = ~indi
+        ind &= indi
+    for v1 in domain['phi']['spec']:
+        indi = (phi >= v1[0]) & (phi <= v1[1])
+        if isinstance(v1, tuple):
+            indi = ~indi
+        ind &= indi
+    return ind, domain
+
+
+# ############################
+#           Domain limitation
+# ############################
+
+
+def _binning_check(binning, nlamb=None, nphi=None,
+                   domain=None, nbsplines=None, deg=None):
+    msg = ("binning must be dict of the form:\n"
+           + "\t- provide number of bins:\n"
+           + "\t  \t{'phi':  int,\n"
+           + "\t  \t 'lamb': int}\n"
+           + "\t- provide bin edges vectors:\n"
+           + "\t  \t{'phi':  1d np.ndarray (increasing),\n"
+           + "\t  \t 'lamb': 1d np.ndarray (increasing)}\n"
+           + "  provided:\n{}".format(binning))
+
+    # Check input
+    if binning is None:
+        binning = _BINNING
+    if nbsplines is not None:
+        c0 = isinstance(nbsplines, int) and nbsplines > 0
+        if not c0:
+            msg2 = ("Both nbsplines and deg must be positive int!\n"
+                    + "\t- nbsplines: {}\n".format(nbsplines))
+            raise Exception(msg2)
+
+    # Check which format was passed and return None or dict
+    ltypes0 = [int, float, np.int_, np.float_]
+    ltypes1 = [tuple, list, np.ndarray]
+    lc = [binning is False,
+          (isinstance(binning, dict)
+           and all([kk in ['phi', 'lamb'] for kk in binning.keys()])),
+          type(binning) in ltypes0,
+          type(binning) in ltypes1]
+    if not any(lc):
+        raise Exception(msg)
+    if binning is False:
+        return binning
+    elif type(binning) in ltypes0:
+        binning = {'phi': {'nbins': int(binning)},
+                   'lamb': {'nbins': int(binning)}}
+    elif type(binning) in ltypes1:
+        binning = np.atleast_1d(binning).ravel()
+        binning = {'phi': {'edges': binning},
+                   'lamb': {'edges': binning}}
+    for kk in binning.keys():
+        if type(binning[kk]) in ltypes0:
+            binning[kk] = {'nbins': int(binning[kk])}
+        elif type(binning[kk]) in ltypes1:
+            binning[kk] = {'edges': np.atleast_1d(binning[kk]).ravel()}
+
+    c0 = all([all([k1 in ['edges', 'nbins'] for k1 in binning[k0].keys()])
+              for k0 in binning.keys()])
+    c0 = (c0 and
+          all([((binning[k0].get('nbins') is None
+                 or type(binning[k0].get('nbins')) in ltypes0)
+                and (binning[k0].get('edges') is None
+                 or type(binning[k0].get('edges')) in ltypes1))
+              for k0 in binning.keys()]))
+    if not c0:
+        raise Exception(msg)
+
+    # Check dict
+    for k0 in binning.keys():
+        c0 = all([k1 in ['nbins', 'edges'] for k1 in binning[k0].keys()])
+        if not c0:
+            raise Exception(msg)
+        if binning[k0].get('nbins') is not None:
+            binning[k0]['nbins'] = int(binning[k0]['nbins'])
+            if binning[k0].get('edges') is None:
+                binning[k0]['edges'] = np.linspace(
+                    domain[k0]['minmax'][0], domain[k0]['minmax'][1],
+                    binning[k0]['nbins'] + 1, endpoint=True)
+            else:
+                binning[k0]['edges'] = np.atleast_1d(
+                    binning[k0]['edges']).ravel()
+                if binning[k0]['nbins'] != binning[k0]['edges'].size - 1:
+                    raise Exception(msg)
+        elif binning[k0].get('bin_edges') is not None:
+            binning[k0]['edges'] = np.atleast_1d(binning[k0]['edges']).ravel()
+            binning[k0]['nbins'] = binning[k0]['edges'].size - 1
+        else:
+            raise Exception(msg)
+
+        if not np.allclose(binning[k0]['edges'],
+                           np.unique(binning[k0]['edges'])):
+            raise Exception(msg)
+
+    # Optional check vs nbsplines and deg
+    if nbsplines is not None:
+        if binning['phi']['nbins'] <= nbsplines:
+            msg = ("The number of bins")
+            raise Exception(msg)
+    return binning
+
+
+def binning_2d_data(lamb, phi, data, indok=None,
+                    domain=None, binning=None, nbsplines=None):
+
+    # ------------------
+    # Checkformat input
+    binning = _binning_check(binning, domain=domain, nbsplines=nbsplines)
+    if binning is False:
+        return lamb, phi, data, binning
+
+    nphi = binning['phi']['nbins']
+    nlamb = binning['lamb']['nbins']
+    bins = (binning['lamb']['edges'], binning['phi']['edges'])
+    nspect = data.shape[0]
+    npts = nlamb*nphi
+
+    # ------------------
+    # Compute
+
+    databin = scpstats.binned_statistic_2d(
+        lamb[indok], phi[indok], data[:, indok],
+        statistic='mean', bins=bins,
+        range=None, expand_binnumbers=True)[0]
+
+    lambbin = 0.5*(binning['lamb']['edges'][1:]
+                   + binning['lamb']['edges'][:-1])
+    phibin = 0.5*(binning['phi']['edges'][1:]
+                  + binning['phi']['edges'][:-1])
+    lambbin = np.repeat(lambbin, nphi)
+    phibin = np.tile(phibin, nlamb)
+    return lambbin, phibin, databin, binning
+
+
+# ############################
+#           Prepare data
+# ############################
+
+
+def multigausfit2d_from_dlines_prepare(data, lamb, phi,
+                                       mask=None, domain=None,
+                                       pos=None, binning=None,
+                                       nbsplines=None, subset=None):
+
+    # Check input
+    if pos is None:
+        pos = False
+    if binning is None:
+        binning = _BINNING_FIT2D
+    if subset is None:
+        if binning in [None, False]:
+            subset = _SUBSET
+        else:
+            subset = False
+
+    # Check shape of data (multiple time slices possible)
+    data = _checkformat_data_fit2d_dlines(data, lamb, phi, mask=mask)
+    if pos is True:
+        data[data < 0.] = 0.
+
+    # Use valid data only and optionally restrict lamb / phi
+    indok, domain = apply_domain(lamb, phi, domain=domain)
+    if mask is not None:
+        indok &= mask
+    indok &= np.any(~np.isnan(data), axis=0)
+    domain['lamb']['minmax'] = [np.nanmin(lamb[indok]), np.nanmax(lamb[indok])]
+    domain['phi']['minmax'] = [np.nanmin(phi[indok]), np.nanmax(phi[indok])]
+
+    # Optionnal 2d binning
+    lamb, phi, data, dbin = binning_2d_data(
+        lamb, phi, data, indok=indok,
+        binning=binning, domain=domain, nbsplines=nbsplines)
+
+    # Debug ---- VF
+    if binning is False:
+        nphi1d = binning['phi']['nbins']
+
+    import pdb; pdb.set_trace()     # DB
+    # Get vertical profile of S/N ratio (also useful for symmetry)
+    # indok = np.all(~np.isnan(data), axis=0).nonzero()[0]
+    phi1d_bins = np.linspace(domain['phi']['minmax'][0],
+                             domain['phi']['minmax'][1], nxj)
+    phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
+    dataphi1d =  scpstats.binned_statistic(
+        phi[indok], data[:, indok],
+        bins=phi1d_bins, statistic='mean')[0]
+
+    # Optionally fit only on subset
+    # randomly pick subset indices (replace=False => no duplicates)
+    indok = np.all(~np.isnan(dataflat), axis=0).nonzero()[0]
+    indok = indok[utils._get_subset_indices(subset, indok.size)]
+
+    dprepare = {'data': data, 'lamb': lamb, 'phi': phi,
+                'domain': domain, 'binning': binning, 'indok': indok,
+                'phi1d': phi1d, 'dataphi1d': dataphi1d,
+                'pos': pos, 'subset': subset}
+    return dprepare
 
 
 def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
