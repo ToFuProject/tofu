@@ -485,18 +485,18 @@ def _utils_get_Pix2D(D1=0., D2=0., center=False, geom=_GEOM):
 
 def _get_indtlim(t, tlim=None, shot=None, out=bool):
     C0 = tlim is None
-    C1 = type(tlim) in [list,tuple,np.ndarray]
+    C1 = type(tlim) in [list, tuple, np.ndarray]
     assert C0 or C1
     assert type(t) is np.ndarray
 
     if C0:
-        tlim = [-np.inf,np.inf]
+        tlim = [-np.inf, np.inf]
     else:
-        assert len(tlim)==2
-        ls = [str,int,float,np.int64,np.float64]
+        assert len(tlim) == 2
+        ls = [str, int, float, np.int64, np.float64]
         assert all([tt is None or type(tt) in ls for tt in tlim])
         tlim = list(tlim)
-        for (ii,sgn) in [(0,-1.),(1,1.)]:
+        for (ii, sgn) in [(0, -1.), (1, 1.)]:
             if tlim[ii] is None:
                 tlim[ii] = sgn*np.inf
             elif type(tlim[ii]) is str and 'ign' in tlim[ii].lower():
@@ -2493,3 +2493,79 @@ def treat_plot_lineshift(path=None, diff=None,
         dax['dvims'].legend(hand, labd)
 
     return dall, dax
+
+
+# #############################################################################
+#                   Noise estimates
+# #############################################################################
+
+
+def noise(cryst, shot=None,
+          dlines=None,
+          dconst=None,
+          nbsplines=None,
+          ratio=None,
+          binning=None,
+          tol=None,
+          plasma=True,
+          nameextra=None,
+          domain=None,
+          xi=_XI, xj=_XJ,
+          path=_HERE):
+
+    if nbsplines is None:
+        nbsplines = 15
+    if binning is None:
+        binning = {'lamb': 487, 'phi': 200}
+    if tol is None:
+        tol = 1.e-5
+    if nameextra is None:
+        nameextra = ''
+    if nameextra != '' and nameextra[0] != '_':
+        nameextra = '_' + nameextra
+
+    # Shots
+    dshots = _DSHOTS[cryst]
+    shots = np.unique([kk for kk in dshots.keys()
+                       if len(dshots[kk]['tlim']) == 2])
+    if shot is not None:
+        if not hasattr(shot, '__iter__'):
+            shot = [shot]
+        ind = np.array([shots == ss for ss in shot])
+        shots = shots[ind]
+
+    # Cryst part
+    det = dict(np.load(os.path.join(_HERE, 'det37_CTVD_incC4.npz')))
+    cryst, det = _get_crystanddet(cryst=cryst, det=det)
+    assert cryst is not False
+
+    mask = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
+
+    for ii in range(shots.size):
+        if len(dshots[int(shots[ii])]['tlim']) != 2:
+            continue
+        print('\n\nshot {} ({} / {})'.format(shots[ii], ii+1, shots.size))
+        try:
+            cryst.move(dshots[int(shots[ii])]['ang']*np.pi/180.)
+            tlim = [None, dshots[int(shots[ii])]['tlim'][1]]
+            data, t, dbonus = _load_data(int(shots[ii]), tlim=tlim)
+            dout = cryst.fit2d_prepare(
+                data=data, xi=xi, xj=xj, det=det,
+                subset=None, binning=binning,
+                nbsplines=nbsplines, mask=mask, domain=domain)
+            dout['t'] = t
+            dout.update(dbonus)
+
+            name = 'XICS_fit2d_prepare_{}_nbs{}_bin{}{}.npz'.format(
+                shots[ii], nbsplines, dout['binning']['phi']['nbins'],
+                nameextra)
+            pfe = os.path.join(path, name)
+            np.savez(pfe, **dout)
+            msg = ('shot {}: saved in {}'.format(shots[ii], pfe))
+            print(msg)
+
+        except Exception as err:
+            if 'All nan in region scanned for scale' in str(err):
+                plt.close('all')
+            msg = ("shot {}: {}".format(shots[ii], str(err)))
+            warnings.warn(msg)
