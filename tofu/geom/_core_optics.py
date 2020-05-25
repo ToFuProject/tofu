@@ -1888,17 +1888,33 @@ class CrystalBragg(utils.ToFuObject):
         else:
             return ax
 
-    @staticmethod
-    def fit2d_prepare(data, lamb, phi,
+    def fit2d_prepare(self, data=None, xi=None, xj=None, n=None,
+                      det=None, dtheta=None, psi=None,
                       mask=None, domain=None,
                       pos=None, binning=None,
                       nbsplines=None, subset=None):
+        # ----------------------
+        # Geometrical transform
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_phibragg_from_xixj(xii, xjj, n=n,
+                                                  det=det, dtheta=dtheta,
+                                                  psi=psi, plot=False)
+        assert bragg.shape == phi.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        # ----------------------
+        # Prepare input data (domain, binning, subset, noise...)
         import tofu.data._spectrafit2d as _spectrafit2d
         return _spectrafit2d.multigausfit2d_from_dlines_prepare(
             data, lamb, phi,
             mask=mask, domain=domain,
             pos=pos, binning=binning,
-            nbsplines=nbsplines, subset=subset)
+            nbsplines=nbsplines, subset=subset,
+            nxi=nxi, nxj=nxj)
 
     @staticmethod
     def fit2d_dinput(dlines=None, dconstraints=None,
@@ -1923,6 +1939,7 @@ class CrystalBragg(utils.ToFuObject):
     def fit2d(self, xi=None, xj=None, data=None, mask=None,
               det=None, dtheta=None, psi=None, n=None,
               Ti=None, vi=None, domain=None,
+              dprepare=None, dinput=None,
               dlines=None, dconstraints=None, dx0=None,
               x0_scale=None, bounds_scale=None,
               deg=None, knots=None, nbsplines=None,
@@ -1934,9 +1951,20 @@ class CrystalBragg(utils.ToFuObject):
               plotmode=None, angunits=None, indspect=None,
               ratio=None, jac=None, plot=True, fs=None,
               cmap=None, vmin=None, vmax=None,
-              spect1d=None, nlambfit=None,
+              spect1d=None, nlambfit=None, sparse=None,
               dmargin=None, tit=None, wintit=None,
               returnas=None, save=None, path=None, name=None):
+        """ Perform 2d fitting of a 2d apectromtere image
+
+        Fit the spectrum by a sum of gaussians
+        Modulate each gaussian parameters by bsplines in the spatial direction
+
+        data must be provided in shape (nt, nxi, nxj), where:
+            - nt is the number of time steps
+            - nxi is the nb. of pixels in the horizontal / spectral direction
+            - nxj is the nb. of pixels in the vertical / spacial direction
+
+        """
 
         # Check / format inputs
         if returnas is None:
@@ -1949,47 +1977,36 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         # ----------------------
-        # Geometrical transform
-        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
-        nxi = xi.size if xi is not None else np.unique(xii).size
-        nxj = xj.size if xj is not None else np.unique(xjj).size
-
-        # Compute lamb / phi
-        bragg, phi = self.calc_phibragg_from_xixj(xii, xjj, n=n,
-                                                  det=det, dtheta=dtheta,
-                                                  psi=psi, plot=False)
-        assert bragg.shape == phi.shape
-        lamb = self.get_lamb_from_bragg(bragg, n=n)
-
-        # ----------------------
         # Prepare input data
-        dprepare = self.fit2d_prepare(
-            data, lamb, phi,
-            mask=mask, domain=domain,
-            pos=pos, binning=binning,
-            nbsplines=nbsplines, subset=subset)
+        # (geometrical transform, domain, binning, subset, noise...)
+        import tofu.data._spectrafit2d as _spectrafit2d
+        if dprepare is None:
+            dprepare = self.fit2d_prepare(
+                data=data, xi=xi, xj=xj, n=n,
+                det=det, dtheta=dtheta, psi=psi,
+                mask=mask, domain=domain,
+                pos=pos, binning=binning,
+                nbsplines=nbsplines, subset=subset)
 
         # ----------------------
-        # Get dinput for 2d fitting
-        dinput = self.get_dinput_for_fit2d(
-            dlines=dlines, dconstraints=dconstraints,
-            Ti=Ti, vi=vi,
-            deg=deg, knots=knots, nbsplines=nbsplines,
-            lambmin=lambmin, lambmax=lambmax, phimin=phimin, phimax=phimax,
-            spectvert1d=spectvert1d, phi1d=phi1d, fraction=None)
+        # Get dinput for 2d fitting from dlines, and dconstraints
+        if dinput is None:
+            dinput = self.get_dinput_for_fit2d(
+                dlines=dlines, dconstraints=dconstraints,
+                Ti=Ti, vi=vi,
+                deg=deg, knots=knots, nbsplines=nbsplines,
+                lambmin=lambmin, lambmax=lambmax, phimin=phimin, phimax=phimax,
+                spectphi1d=dprepare['spectphi1d'], phi1d=dprepare['phi1d'])
 
         # ----------------------
         # Perform 2d fitting
-        import tofu.data._spectrafit2d as _spectrafit2d
-
         dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
-            dataflat, lambflat, phiflat, dinput=dinput, dx0=dx0,
+            dprepare=dprepare, dinput=dinput, dx0=dx0,
             x0_scale=x0_scale, bounds_scale=bounds_scale,
-            method=method, max_nfev=max_nfev,
+            method=method, max_nfev=max_nfev, sparse=sparse,
             chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
             ratio=ratio, jac=jac, npts=npts)
-        dfit2d['domain'] = domain
 
         # ----------------------
         # Optional plotting

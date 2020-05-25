@@ -16,9 +16,8 @@ import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 
 
-#                   --------------
-#       TO BE MOVED TO tofu.data WHEN FINISHED !!!!
-#                   --------------
+# ToFu-specific
+import tofu.utils as utils
 
 
 _NPEAKMAX = 12
@@ -33,6 +32,8 @@ _NBSPLINES = 6
 _TOL1D = {'x': 1e-12, 'f': 1.e-12, 'g': 1.e-12}
 _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 _SYMMETRY_CENTRAL_FRACTION = 0.3
+_BINNING = False
+_SUBSET = False
 
 
 ###########################################################
@@ -1062,27 +1063,33 @@ def _dconstraints_symmetry(dinput, symmetry=None, spectvert1d=None, phi1d=None,
             phi1d, spectvert1d, fraction=fraction)
 
 
-def _checkformat_data_fit2d_dlines(data, lamb, phi, mask=None):
+def _checkformat_data_fit2d_dlines(data, lamb, phi,
+                                   nxi=None, nxj=None, mask=None):
     msg = ("Args data, lamb, phi and mask must be:\n"
            + "\t- data: (nt, n1, n2) or (n1, n2) np.ndarray\n"
-           + "\t- lamb, phi: (n1,) and (n2,) or both (n1, n2) np.ndarray\n"
+           + "\t- lamb, phi: both (n1, n2) np.ndarray\n"
            + "\t- mask: None or (n1, n2)")
     if not isinstance(data, np.ndarray):
         raise Exception(msg)
     c0 = (data.ndim in [2, 3]
           and lamb.ndim == phi.ndim == 2
-          and lamb.shape == phi.shape)
+          and lamb.shape == phi.shape == lamb.shape[-2:]
+          and lamb.shape in [(nxi, nxj), (nxj, nxi)])
     if not c0:
         raise Exception(msg)
     if data.ndim == 2:
         data = data[None, :, :]
-    c0 = data.shape[-2:] == lamb.shape
-    if not c0:
-        raise Exception(msg)
+    if lamb.shape == (nxj, nxi):
+        lamb = lamb.T
+        phi = phi.T
+        data = np.swapaxes(data, 1, 2)
     if mask is not None:
         if mask.shape != lamb.shape:
-            raise Exception(msg)
-    return data
+            if mask.T.shape == lamb.shape:
+                mask = mask.T
+            else:
+                raise Exception(msg)
+    return lamb, phi, data, mask
 
 
 # ############################
@@ -1093,8 +1100,8 @@ def _checkformat_data_fit2d_dlines(data, lamb, phi, mask=None):
 def _checkformat_domain(domain=None):
 
     if domain is None:
-        domain = {'lamb': [np.inf*np.r_[-1., 1.]],
-                  'phi': [np.inf*np.r_[-1., 1.]]}
+        domain = {'lamb': {'spec': [np.inf*np.r_[-1., 1.]]},
+                  'phi': {'spec': [np.inf*np.r_[-1., 1.]]}}
         return domain
 
     lk = ['lamb', 'phi']
@@ -1278,9 +1285,10 @@ def binning_2d_data(lamb, phi, data, indok=None,
                    + binning['lamb']['edges'][:-1])
     phibin = 0.5*(binning['phi']['edges'][1:]
                   + binning['phi']['edges'][:-1])
-    lambbin = np.repeat(lambbin, nphi)
-    phibin = np.tile(phibin, nlamb)
-    return lambbin, phibin, databin, binning
+    lambbin = np.repeat(lambbin[:, None], nphi, axis=1)
+    phibin = np.repeat(phibin[None, :], nlamb, axis=0)
+    indok = np.any(~np.isnan(data), axis=0)
+    return lambbin, phibin, databin, indok, binning
 
 
 # ############################
@@ -1288,24 +1296,58 @@ def binning_2d_data(lamb, phi, data, indok=None,
 # ############################
 
 
+def _get_subset_indices(subset, indlogical):
+    if subset is None:
+        subset = _SUBSET
+    if subset is False:
+        return indlogical
+
+    msg = ("subset must be either:\n"
+           + "\t- an array of bool of shape: {}\n".format(indlogical.shape)
+           + "\t- a positive int (nb. of indices to be kept from indlogical)\n"
+           + "You provided: {}".format(subset))
+    c0 = ((isinstance(subset, np.ndarray)
+           and subset.shape == indlogical.shape
+           and 'bool' in subset.dtype.name)
+          or (type(subset) in [int, float, np.int_, np.float_]
+              and subset >= 0))
+    if not c0:
+        raise Exception(msg)
+
+    if isinstance(subset, np.ndarray):
+        indlogical = subset & indlogical
+    else:
+        subset = np.random.default_rng().choice(
+            indlogical.sum(), size=int(indlogical.sum() - subset),
+            replace=False, shuffle=False)
+        ind = indlogical.nonzero()
+        indlogical[ind[0][subset], ind[1][subset]] = False
+    return indlogical
+
+
 def multigausfit2d_from_dlines_prepare(data, lamb, phi,
                                        mask=None, domain=None,
                                        pos=None, binning=None,
-                                       nbsplines=None, subset=None):
+                                       nbsplines=None, subset=None,
+                                       noise_ind=None,
+                                       nxi=None, nxj=None):
 
     # Check input
     if pos is None:
         pos = False
-    if binning is None:
-        binning = _BINNING_FIT2D
     if subset is None:
         if binning in [None, False]:
             subset = _SUBSET
         else:
             subset = False
+    if noise_ind is None:
+        noise_ind = False
 
     # Check shape of data (multiple time slices possible)
-    data = _checkformat_data_fit2d_dlines(data, lamb, phi, mask=mask)
+    lamb, phi, data, mask = _checkformat_data_fit2d_dlines(
+        data, lamb, phi,
+        nxi=nxi, nxj=nxj, mask=mask)
+
     if pos is True:
         data[data < 0.] = 0.
 
@@ -1318,33 +1360,31 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
     domain['phi']['minmax'] = [np.nanmin(phi[indok]), np.nanmax(phi[indok])]
 
     # Optionnal 2d binning
-    lamb, phi, data, dbin = binning_2d_data(
+    lambbin, phibin, databin, indok, binning = binning_2d_data(
         lamb, phi, data, indok=indok,
         binning=binning, domain=domain, nbsplines=nbsplines)
 
-    # Debug ---- VF
+    # Get vertical profile of mean data
     if binning is False:
-        nphi1d = binning['phi']['nbins']
-
-    import pdb; pdb.set_trace()     # DB
-    # Get vertical profile of S/N ratio (also useful for symmetry)
-    # indok = np.all(~np.isnan(data), axis=0).nonzero()[0]
-    phi1d_bins = np.linspace(domain['phi']['minmax'][0],
-                             domain['phi']['minmax'][1], nxj)
-    phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
-    dataphi1d =  scpstats.binned_statistic(
-        phi[indok], data[:, indok],
-        bins=phi1d_bins, statistic='mean')[0]
+        nphid = nxj
+        phi1d_bins = np.linspace(domain['phi']['minmax'][0],
+                                 domain['phi']['minmax'][1], nxj)
+        phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
+        dataphi1d =  scpstats.binned_statistic(
+            phi[indok], data[:, indok],
+            bins=phi1d_bins, statistic='mean')[0]
+    else:
+        phi1d = (binning['phi']['edges'][1:] + binning['phi']['edges'][:-1])/2.
+        dataphi1d = np.nanmean(databin, axis=1)
 
     # Optionally fit only on subset
     # randomly pick subset indices (replace=False => no duplicates)
-    indok = np.all(~np.isnan(dataflat), axis=0).nonzero()[0]
-    indok = indok[utils._get_subset_indices(subset, indok.size)]
+    indok = _get_subset_indices(subset, indok)
 
-    dprepare = {'data': data, 'lamb': lamb, 'phi': phi,
+    dprepare = {'data': databin, 'lamb': lambbin, 'phi': phibin,
                 'domain': domain, 'binning': binning, 'indok': indok,
                 'phi1d': phi1d, 'dataphi1d': dataphi1d,
-                'pos': pos, 'subset': subset}
+                'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj}
     return dprepare
 
 
@@ -2005,7 +2045,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
 def multigausfit2d_from_dlines(data, lamb, phi,
                                dinput=None, dx0=None, ratio=None,
                                scales=None, x0_scale=None, bounds_scale=None,
-                               method=None, max_nfev=None,
+                               method=None, max_nfev=None, sparse=None,
                                xtol=None, ftol=None, gtol=None,
                                chain=None, verbose=None,
                                loss=None, jac=None, npts=None):

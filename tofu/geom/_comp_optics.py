@@ -5,8 +5,6 @@ import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 
 
-_BINNING = False
-
 # ###############################################
 # ###############################################
 #           CrystalBragg
