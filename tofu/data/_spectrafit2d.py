@@ -1390,13 +1390,15 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
 
 def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
                                          phimin=None, phimax=None,
-                                         dinput=None, symmetryaxis=None):
+                                         symmetryaxis=None):
     # Check / format input
     if deg is None:
         deg = _DEG
     if not (isinstance(deg, int) and deg <= 3):
         msg = "deg must be a int <= 3 (the degree of the bsplines to be used!)"
         raise Exception(msg)
+    if symmetryaxis is None:
+        symmetryaxis = False
 
     if nbsplines is None:
         nbsplines = _NBSPLINES
@@ -1408,7 +1410,7 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
         if phimin is None or phimax is None:
             msg = "Please provide phimin and phimax if knots is not provided!"
             raise Exception(msg)
-        if symmetryaxis is None:
+        if symmetryaxis is False:
             knots = np.linspace(phimin, phimax, nbsplines + 1 - deg)
         else:
             symax = np.nanmean(symmetryaxis)
