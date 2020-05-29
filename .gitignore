@@ -82,4 +82,4 @@ pip-wheel-metadata/
 
 # no temporary data files
 inputs_temp/*.txt
-inputs_temp/*.npz
+#inputs_temp/*.npz
