@@ -1919,10 +1919,8 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def fit2d_dinput(dlines=None, dconstraints=None,
                      Ti=None, vi=None,
-                     deg=None, knots=None, nbsplines=None,
-                     lambmin=None, lambmax=None,
-                     phimin=None, phimax=None,
-                     spectvert1d=None, phi1d=None, fraction=None):
+                     deg=None, knots=None, nbsplines=None, domain=None,
+                     dataphi1d=None, phi1d=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _spectrafit2d.multigausfit1d_from_dlines()
@@ -1931,10 +1929,8 @@ class CrystalBragg(utils.ToFuObject):
         import tofu.data._spectrafit2d as _spectrafit2d
         return _spectrafit2d.multigausfit2d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints, Ti=Ti, vi=vi,
-            deg=deg, knots=knots, nbsplines=nbsplines,
-            lambmin=lambmin, lambmax=lambmax,
-            phimin=phimin, phimax=phimax,
-            spectvert1d=spectvert1d, phi1d=phi1d, fraction=fraction)
+            deg=deg, knots=knots, nbsplines=nbsplines, domain=domain,
+            dataphi1d=dataphi1d, phi1d=phi1d, fraction=None)
 
     def fit2d(self, xi=None, xj=None, data=None, mask=None,
               det=None, dtheta=None, psi=None, n=None,
@@ -1943,7 +1939,8 @@ class CrystalBragg(utils.ToFuObject):
               dlines=None, dconstraints=None, dx0=None,
               x0_scale=None, bounds_scale=None,
               deg=None, knots=None, nbsplines=None,
-              method=None, max_nfev=None, chain=None,
+              method=None, tr_solver=None, tr_options=None,
+              predeclare=None, max_nfev=None, chain=None,
               xtol=None, ftol=None, gtol=None,
               loss=None, verbose=0, debug=None,
               pos=None, subset=None, binning=None,
@@ -1951,7 +1948,7 @@ class CrystalBragg(utils.ToFuObject):
               plotmode=None, angunits=None, indspect=None,
               ratio=None, jac=None, plot=True, fs=None,
               cmap=None, vmin=None, vmax=None,
-              spect1d=None, nlambfit=None, sparse=None,
+              spect1d=None, nlambfit=None,
               dmargin=None, tit=None, wintit=None,
               returnas=None, save=None, path=None, name=None):
         """ Perform 2d fitting of a 2d apectromtere image
@@ -1979,7 +1976,6 @@ class CrystalBragg(utils.ToFuObject):
         # ----------------------
         # Prepare input data
         # (geometrical transform, domain, binning, subset, noise...)
-        import tofu.data._spectrafit2d as _spectrafit2d
         if dprepare is None:
             dprepare = self.fit2d_prepare(
                 data=data, xi=xi, xj=xj, n=n,
@@ -1991,20 +1987,22 @@ class CrystalBragg(utils.ToFuObject):
         # ----------------------
         # Get dinput for 2d fitting from dlines, and dconstraints
         if dinput is None:
-            dinput = self.get_dinput_for_fit2d(
+            dinput = self.fit2d_dinput(
                 dlines=dlines, dconstraints=dconstraints,
                 Ti=Ti, vi=vi,
                 deg=deg, knots=knots, nbsplines=nbsplines,
-                lambmin=lambmin, lambmax=lambmax, phimin=phimin, phimax=phimax,
-                spectphi1d=dprepare['spectphi1d'], phi1d=dprepare['phi1d'])
+                domain=dprepare['domain'],
+                dataphi1d=dprepare['dataphi1d'], phi1d=dprepare['phi1d'])
 
         # ----------------------
         # Perform 2d fitting
+        import tofu.data._spectrafit2d as _spectrafit2d
         dfit2d = _spectrafit2d.multigausfit2d_from_dlines(
             dprepare=dprepare, dinput=dinput, dx0=dx0,
             x0_scale=x0_scale, bounds_scale=bounds_scale,
-            method=method, max_nfev=max_nfev, sparse=sparse,
-            chain=chain, verbose=verbose,
+            method=method, max_nfev=max_nfev,
+            tr_solver=tr_solver, tr_options=tr_options,
+            predeclare=predeclare, chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
             ratio=ratio, jac=jac, npts=npts)
 
@@ -2030,7 +2028,8 @@ class CrystalBragg(utils.ToFuObject):
                 fit1d, lambfit, phiminmax = None, None, None
 
             dax = _plot_optics.CrystalBragg_plot_data_fit2d(
-                xi=xi, xj=xj, data=data, lamb=lamb, phi=phi, indspect=indspect,
+                xi=xi, xj=xj, data=dfit2d['data'],
+                lamb=dfit2d['lamb'], phi=dfit2d['phi'], indspect=indspect,
                 indok=indok, dfit2d=dfit2d,
                 dax=dax, plotmode=plotmode, angunits=angunits,
                 cmap=cmap, vmin=vmin, vmax=vmax,

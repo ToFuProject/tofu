@@ -2614,7 +2614,7 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
 def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                nbsplines=None, symmetryaxis=None, lnbsplines=None,
                sparse=None, method=None, xtol=None, ftol=None, gtol=None,
-               loss=None, max_nfev=None, alpha=None, verb=None, timeit=None,
+               loss=None, max_nfev=None, tr_solver=None, alpha=None, verb=None, timeit=None,
                plot=None, fs=None, cmap=None, dmargin=None):
 
     # ---------------
@@ -2642,7 +2642,7 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
         tnoise = 30.
     if method is None:
         method = 'trf'
-    assert method in ['trf', 'dogbox'], method
+    assert method in ['trf', 'dogbox', 'lm'], method
     _TOL = 1.e-14
     if xtol is None:
         xtol = _TOL
@@ -2727,7 +2727,7 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                 cost, x0, jac=jac,
                 method=method, ftol=ftol, xtol=xtol, gtol=gtol,
                 x_scale=1.0, f_scale=1.0, loss=loss, diff_step=None,
-                tr_solver=None, tr_options={}, jac_sparsity=None,
+                tr_solver=tr_solver, tr_options={}, jac_sparsity=None,
                 max_nfev=max_nfev, verbose=0, args=(),
                 kwargs={'data': dataphi1dnorm[indj[jj], :]})
 

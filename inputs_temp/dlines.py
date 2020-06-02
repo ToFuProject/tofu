@@ -477,7 +477,7 @@ dlines = {
     'ArXVII_x_Adhoc200513': {'q': 16, 'ION': 'ArXVII',
                              'lambda': 3.9659e-10,
                              'transition': ('He-like', 'x'),
-                             'source': 'Adhoc 200408'},
+                             'source': 'Adhoc 200513'},
     'ArXVII_y_Kallne': {'q': 16, 'ION': 'ArXVII',
                         'lambda': 3.9683e-10,
                         'transition': ('He-like', 'y'),
