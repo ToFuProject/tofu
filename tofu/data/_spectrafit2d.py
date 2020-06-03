@@ -35,6 +35,7 @@ _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 _SYMMETRY_CENTRAL_FRACTION = 0.3
 _BINNING = False
 _SUBSET = False
+_D3 = 'lines'
 
 
 ###########################################################
@@ -1742,13 +1743,17 @@ def multigausfit2d_from_dlines_bounds(sizex=None, dind=None, double=None):
     return bounds_scale
 
 
-def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None, ratio=None,
+# ############################
+#           Perform 2d fit
+# ############################
+
+
+def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
                                scales=None, x0_scale=None, bounds_scale=None,
                                method=None, tr_solver=None, tr_options=None,
-                               max_nfev=None, predeclare=None,
                                xtol=None, ftol=None, gtol=None,
-                               chain=None, verbose=None,
-                               loss=None, jac=None, npts=None):
+                               max_nfev=None, chain=None, verbose=None,
+                               loss=None, jac=None):
     """ Solve multi_gaussian fit in 1d from dlines
 
     If Ti is True, all lines from the same ion have the same width
@@ -1773,8 +1778,6 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None, ratio=None,
     """
 
     # Check format
-    if ratio is None:
-        ratio = False
     if chain is None:
         chain = True
     if jac is None:
@@ -1802,8 +1805,6 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None, ratio=None,
         verbscp = 2
     else:
         verbscp = 0
-    if npts is None:
-        npts = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
 
     nspect = dprepare['data'].shape[0]
 
@@ -1863,41 +1864,7 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None, ratio=None,
             indok_var = [dprepare['indok_var'].ravel()]*nspect
     else:
         indok_var = [False]*nspect
-
-    if dinput['symmetry'] is True:
-        npts = 2*npts
-    pts = np.linspace(dprepare['domain']['phi']['minmax'][0],
-                      dprepare['domain']['phi']['minmax'][1],
-                      npts, endpoint=True)
-    if dinput['symmetry'] is True:
-        pts2 = np.abs(pts - np.nanmean(dinput['symmetry_axis']))
-    else:
-        pts2 = pts
-    kTiev, vims = None, None
-    if dinput['Ti'] is True:
-        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        indTi = np.array([iit[0] for iit in dind['width']['jac']])
-        kTiev = np.full((nspect, dinput['width']['ind'].shape[0], npts),
-                        np.nan)
-    if dinput['vi'] is True:
-        # indvi = np.array([iit[0] for iit in dind['shift']['jac']])
-        vims = np.full((nspect, dinput['shift']['ind'].shape[0], npts),
-                       np.nan)
-    if ratio is not False:
-        # Te can only be obtained as a proxy, units don't matter at this point
-        if isinstance(ratio['up'], str):
-            ratio['up'] = [ratio['up']]
-        if isinstance(ratio['low'], str):
-            ratio['low'] = [ratio['low']]
-        assert len(ratio['up']) == len(ratio['low'])
-        ratio['indup'] = np.array([(dinput['keys'] == uu).nonzero()[0][0]
-                                   for uu in ratio['up']])
-        ratio['indlow'] = np.array([(dinput['keys'] == ll).nonzero()[0][0]
-                                    for ll in ratio['low']])
-        ratio['str'] = ["{}/{}".format(dinput['symb'][ratio['indup'][ii]],
-                                       dinput['symb'][ratio['indlow'][ii]])
-                        for ii in range(len(ratio['up']))]
-        ratio['value'] = np.full((nspect, len(ratio['up']), npts), np.nan)
+    dprepare['indok_var'] = indok_var
 
     # Prepare msg
     if verbose > 0:
@@ -1913,81 +1880,42 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None, ratio=None,
         if verbose > 0:
             msg = "Iteration {} / {}".format(ii+1, nspect)
             print(msg)
-        # try:
-        t0i = dtm.datetime.now()     # DB
-        res = scpopt.least_squares(func_cost, x0_scale[ii, :],
-                                   jac=jacob, bounds=bounds_scale,
-                                   method=method, ftol=ftol, xtol=xtol,
-                                   gtol=gtol, x_scale=1.0, f_scale=1.0,
-                                   loss=loss, diff_step=None,
-                                   tr_solver=tr_solver, tr_options=tr_options,
-                                   jac_sparsity=None, max_nfev=max_nfev,
-                                   verbose=verbscp, args=(),
-                                   kwargs={'data': datacost[ii, :],
-                                           'scales': scales[ii, :],
-                                           'indok_var': indok_var[ii]})
-        if chain is True and ii < nspect-1:
-            x0_scale[ii+1, :] = res.x
+        try:
+            t0i = dtm.datetime.now()     # DB
+            res = scpopt.least_squares(
+                func_cost, x0_scale[ii, :],
+                jac=jacob, bounds=bounds_scale,
+                method=method, ftol=ftol, xtol=xtol,
+                gtol=gtol, x_scale=1.0, f_scale=1.0,
+                loss=loss, diff_step=None,
+                tr_solver=tr_solver, tr_options=tr_options,
+                jac_sparsity=None, max_nfev=max_nfev,
+                verbose=verbscp, args=(),
+                kwargs={'data': datacost[ii, :],
+                        'scales': scales[ii, :],
+                        'indok_var': indok_var[ii]})
 
-        # cost, message, time
-        success[ii] = res.success
-        cost[ii] = res.cost
-        nfev[ii] = res.nfev
-        message[ii] = res.message
-        time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
-                         ndigits=3)
-        if verbose > 0:
-            msg = " {}    {}    {}   {}   {}".format(time[ii],
-                                                     round(res.cost),
-                                                     res.nfev, res.njev,
-                                                     res.message)
-            print(msg)
+            if chain is True and ii < nspect-1:
+                x0_scale[ii+1, :] = res.x
 
-        # Separate and reshape output
-        sol_x[ii, :] = res.x
-        fd = func_detail(res.x,
-                         scales=scales[ii, :],
-                         indok=dprepare['indok'],
-                         indok_var=indok_var[ii])
-        sol_tot[ii, ...] = np.nansum(np.nansum(
-            fd, axis=-1), axis=-1)
+            # cost, message, time
+            success[ii] = res.success
+            cost[ii] = res.cost
+            nfev[ii] = res.nfev
+            message[ii] = res.message
+            time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
+                             ndigits=3)
+            if verbose > 0:
+                msg = " {}    {}    {}   {}   {}".format(time[ii],
+                                                         round(res.cost),
+                                                         res.nfev, res.njev,
+                                                         res.message)
+                print(msg)
+            sol_x[ii, :] = res.x
 
-        if dinput['Ti'] is True:
-            # Get Ti in eV
-            width2 = BSpline(dinput['knots_mult'],
-                             (res.x[dind['width']['x']]
-                              * scales[ii, dind['width']['x']]),
-                             dinput['deg'],
-                             extrapolate=False, axis=0)(pts2).T
-            kTiev[ii, ...] = (conv * width2 * dinput['mz'][indTi][:, None]
-                              * scpct.c**2)
-        if dinput['vi'] is True:
-            # Get vi in m/s
-            vims[ii, ...] = BSpline(dinput['knots_mult'],
-                                    (res.x[dind['shift']['x']]
-                                     * scales[ii, dind['shift']['x']]),
-                                    dinput['deg'],
-                                    extrapolate=False,
-                                    axis=0)(pts2).T * scpct.c
-        if ratio is not False:
-            # Te can only be obtained as a proxy, units don't matter
-            cup = BSpline(dinput['knots_mult'],
-                          (res.x[dind['amp']['lines']]
-                           * scales[ii, dind['amp']['lines']]),
-                          dinput['deg'],
-                          extrapolate=False, axis=0)(pts2)[:, ratio['indup']]
-            clow = BSpline(dinput['knots_mult'],
-                           (res.x[dind['amp']['lines']]
-                            * scales[ii, dind['amp']['lines']]),
-                           dinput['deg'],
-                           extrapolate=False, axis=0)(pts2)[:, ratio['indlow']]
-            ratio['value'][ii, ...] = (cup / clow).T
-
-        # except Exception as err:
-            # errmsg[ii] = str(err)
-            # validity[ii] = -1
-
-    # sol_tot[:, dprepare['indok']] = np.nan
+        except Exception as err:
+            errmsg[ii] = str(err)
+            validity[ii] = -1
 
     # Isolate dratio and dshift
     dratio, dshift = None, None
@@ -2006,19 +1934,263 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None, ratio=None,
                 dshift = np.full((nspect,), dinput['double']['dshift'])
 
     if verbose > 0:
-        dt = round((dtm.datetime.now()-t0).total_seconds(), ndigits=3)
-        msg = "Total computation time: {}".format(dt)
+        dt = (dtm.datetime.now()-t0).total_seconds()
+        msg = ("Total computation time:"
+               + "\t{} s for {} steps ({} s per step)".format(
+                   round(dt, ndigits=3), nspect,
+                   round(dt/nspect, ndigits=3)))
+        print(msg)
 
     # ---------------------------
     # Format output as dict
-    dout = {'data': dprepare['data'],
-            'lamb': dprepare['lamb'],
-            'phi': dprepare['phi'],
-            'sol_x': sol_x, 'sol_tot': sol_tot, 'scales': scales,
+    dout = {'dprepare': dprepare, 'dinput': dinput, 'dind': dind,
+            'scales': scales, 'x0_scale': x0_scale,
+            'bounds_scale': bounds_scale, 'phi2': phi2,
+            'jac': jac, 'sol_x': sol_x,
             'dratio': dratio, 'dshift': dshift,
-            'dinput': dinput, 'dind': dind, 'jac': jac,
-            'pts_phi': pts, 'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
             'time': time, 'success': success,
             'validity': validity, 'errmsg': np.array(errmsg),
             'cost': cost, 'nfev': nfev, 'msg': np.array(message)}
+    return dout
+
+
+# ############################
+#       Extract data from result         
+# ############################
+
+
+def fit2d_get_data_checkformat(dfit2d=None,
+                               pts_phi=None, npts_phi=None,
+                               amp=None, Ti=None, vi=None,
+                               pts_lamb_phi_total=None,
+                               pts_lamb_phi_detail=None,
+                               dprepare=None, dinput=None):
+    # dfit2d
+    lk = ['dprepare', 'dinput', 'dind', 'sol_x', 'jac', 'phi2', 'scales']
+    c0 = (isinstance(dfit2d, dict)
+          and all([ss in dfit2d.keys() for ss in lk]))
+    if not isinstance(dfit2d, dict):
+        msg = ("dfit2d must be a dict with at least the following keys:\n"
+               + "\t- {}\n".format(lk)
+               + "\t- provided: {}".format(dfit2d))
+        raise Exception(msg)
+
+    d3 = {'amp': [amp, 'amp'],
+          'Ti': [Ti, 'width'],
+          'vi': [vi, 'shift']}
+    # amp, Ti, vi
+    for k0 in d3.keys():
+        if d3[k0][0] is None:
+            d3[k0][0] = True
+        if d3[k0][0] is True:
+            d3[k0][0] = _D3
+        if d3[k0][0] is False:
+            continue
+        lc = [d3[k0][0] in ['lines', 'x'],
+              isinstance(d3[k0][0], str),
+              (isinstance(d3[k0][0], list)
+               and all([isinstance(isinstance(ss, str) for ss in d3[k0][0])]))]
+        if not any(lc):
+            msg = ("Arg {} must be either:\n".format(k0)
+                   + "\t- 'x': return all unique {}\n".format(k0)
+                   + "\t- 'lines': return {} for all lines (inc. duplicates)\n"
+                   + "\t- str: a key in:\n"
+                   + "\t\t{}\n".format(dinput['keys'])
+                   + "\t\t{}\n".format(dinput[d3[k0][1]]['keys'])
+                   + "\t- list: a list of keys (see above)\n"
+                   + "Provided: {}".format(d3[k0][0]))
+            raise Exception(msg)
+        if lc[0]:
+            if d3[k0][0] == 'lines':
+                d3[k0][0] = {'type': d3[k0][0],
+                             'ind': np.arange(0, dinput['nlines'])}
+            else:
+                d3[k0][0] = {'type': d3[k0][0],
+                             'ind': np.arange(0,
+                                              dinput[d3[k0][1]]['keys'].size)}
+        elif lc[1]:
+            d3[k0][0] = [d3[k0][0]]
+
+        if isinstance(d3[k0][0], list):
+            lc = [all([ss in dinput['keys'] for ss in d3[k0][0]]),
+                  all([ss in dinput[d3[k0][1]]['keys'] for ss in d3[k0][0]])]
+            if not any(lc):
+                msg = ("Arg must contain either keys from:\n"
+                       + "\t- lines keys: {}\n".format(dinput['keys'])
+                       + "\t- {} keys: {}".format(k0,
+                                                  dinput[d3[k0][1]]['keys']))
+                raise Exception(msg)
+            if lc[0]:
+                d3[k0][0] = {'type': 'lines',
+                             'ind': np.array([
+                                 (dinput['keys']==ss).nonzero()[0][0]
+                                 for ss in d3[k0][0]], dtype=int)}
+            else:
+                d3[k0][0] = {'type': 'x',
+                             'ind': np.array([
+                                 (dinput[d3[k0][1]]['keys']==ss).nonzero()[0][0]
+                                 for ss in d3[k0][0]], dtype=int)}
+        d3[k0][0]['field'] = d3[k0][1]
+        d3[k0] = d3[k0][0]
+
+    # pts_phi, npts_phi
+    c0 = any([v0 is not False for v0 in d3.values()])
+    c1 = [pts_phi is not None, npts_phi is not None]
+    if all(c1):
+        msg = "Arg pts_phi and npts_phi cannot be both provided!"
+        raise Exception(msg)
+    if not any(c1):
+        npts_phi = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
+    if npts_phi is not None:
+        npts_phi = int(npts_phi)
+        pts_phi = np.linspace(dprepare['domain']['phi']['minmax'][0],
+                              dprepare['domain']['phi']['minmax'][1],
+                              npts_phi)
+    else:
+        pts_phi = np.array(pts_phi).ravel()
+
+    # pts_lamb_phi_total, pts_lamb_phi_detail
+    if pts_lamb_phi_total is None:
+        if dprepare is None:
+            pts_lamb_phi_total = False
+        else:
+            pts_lamb_phi_total = np.array([dprepare['lamb'],
+                                           dprepare['phi']])
+    if pts_lamb_phi_detail is None:
+        pts_lamb_phi_detail = False
+    if pts_lamb_phi_total is not False:
+        pts_lamb_phi_total = np.array(pts_lamb_phi_total)
+    if pts_lamb_phi_detail is not False:
+        pts_lamb_phi_detail = np.array(pts_lamb_phi_detail)
+
+    return d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail
+
+
+def _get_phi_profile(key,
+                     nspect=None, dinput=None,
+                     dind=None, sol_x=None, scales=None,
+                     typ=None, ind=None, pts_phi=None):
+    ncoefs = ind.size
+    val = np.full((nspect, pts_phi.size, ncoefs), np.nan)
+    BS = BSpline(dinput['knots_mult'],
+                 np.ones((dinput['nbs'], ncoefs), dtype=float),
+                 dinput['deg'],
+                 extrapolate=False, axis=0)
+    if typ == 'lines':
+        keys = dinput['keys'][ind]
+    else:
+        keys = dinput[key]['keys'][ind]
+    indbis = dind[key][typ][:, ind]
+    for ii in range(nspect):
+        BS.c = sol_x[ii, indbis] * scales[ii, indbis]
+        val[ii, :, :] = BS(pts_phi)
+    return keys, val
+
+
+def fit2d_extract_data(dfit2d=None,
+                       pts_phi=None, npts_phi=None,
+                       amp=None, Ti=None, vi=None,
+                       pts_lamb_phi_total=None, pts_lamb_phi_detail=None):
+
+    # Check format input
+    out = fit2d_get_data_checkformat(
+        dfit2d=dfit2d,
+        amp=amp, Ti=Ti, vi=vi,
+        pts_phi=pts_phi, npts_phi=npts_phi,
+        pts_lamb_phi_total=pts_lamb_phi_total,
+        pts_lamb_phi_detail=pts_lamb_phi_detail,
+        dprepare=dfit2d['dprepare'], dinput=dfit2d['dinput'])
+
+    d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
+    nspect = dfit2d['dprepare']['data'].shape[0]
+
+    # Prepare output
+    shape = tuple(np.r_[nspect, pts_lamb_phi_total.shape])
+    sol_tot = np.full(shape, np.nan)
+    if any([v0 is not False for v0 in d3.values()]):
+        nbs = dfit2d['dinput']['nbs']
+
+    dout = {}
+    # amp
+    if d3['amp'] is not False:
+        keys, val = _get_phi_profile(
+            d3['amp']['field'], nspect=nspect,
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
+            scales=dfit2d['scales'], pts_phi=pts_phi,
+            typ=d3['amp']['type'], ind=d3['amp']['ind'])
+        dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
+    # Ti
+    if d3['Ti'] is not False:
+        keys, val = _get_phi_profile(
+            d3['Ti']['field'], nspect=nspect,
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
+            scales=dfit2d['scales'], pts_phi=pts_phi,
+            typ=d3['Ti']['type'], ind=d3['Ti']['ind'])
+        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
+        if d3['Ti']['type'] == 'lines':
+            indTi = np.arange(0, dfit2d['dinput']['nlines'])
+        else:
+            indTi = np.array([iit[0]
+                              for iit in dfit2d['dind']['width']['jac']])
+        indTi = indTi[d3['Ti']['ind']]
+        val = (conv * val
+               * dfit2d['dinput']['mz'][indTi][None, None, :]
+               * scpct.c**2)
+        dout['Ti'] = {'keys': keys, 'values': val, 'units': 'eV'}
+
+    # vi
+    if d3['vi'] is not False:
+        keys, val = _get_phi_profile(
+            d3['vi']['field'], nspect=nspect,
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
+            scales=dfit2d['scales'], pts_phi=pts_phi,
+            typ=d3['vi']['type'], ind=d3['vi']['ind'])
+        val = val * scpct.c
+        dout['vi'] = {'keys': keys, 'values': val, 'units': 'm.s^-1'}
+
+    # sol_detail and sol_tot
+    sold, solt = False, False
+    if pts_lamb_phi_detail is not False or pts_lamb_phi_total is not False:
+
+        func_detail = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+            dfit2d['dprepare']['lamb'], dfit2d['phi2'],
+            indok=dfit2d['dprepare']['indok'],
+            binning=dfit2d['dprepare']['binning'],
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], jac=dfit2d['jac'])[0]
+
+        if pts_lamb_phi_detail is not False:
+            shape = tuple(np.r_[nspect, pts_lamb_phi_detail.shape,
+                                dfit2d['dinput']['nlines']+1,
+                                dfit2d['dinput']['nbs']])
+            sold = np.full(shape, np.nan)
+        if pts_lamb_phi_total is not False:
+            shape = tuple(np.r_[nspect, pts_lamb_phi_total.shape])
+            solt = np.full(shape, np.nan)
+
+        for ii in range(nspect):
+
+            # Separate and reshape output
+            fd = func_detail(dfit2d['sol_x'][ii, :],
+                             scales=dfit2d['scales'][ii, :],
+                             indok_var=dfit2d['dprepare']['indok_var'][ii])
+
+            if pts_lamb_phi_detail is not False:
+                sold[ii, ...] = fd
+            if pts_lamb_phi_total is not False:
+                solt[ii, ...] = np.nansum(np.nansum(fd, axis=-1), axis=-1)
+
+    dout['sol_detail'] = sold
+    dout['sol_tot'] = solt
+    dout['units'] = 'a.u.'
+
+    # Add input args
+    dout['d3'] = d3
+    dout['pts_phi'] = pts_phi
+    dout['pts_lamb_phi_detail'] = pts_lamb_phi_detail
+    dout['pts_lamb_phi_total'] = pts_lamb_phi_total
     return dout

@@ -2002,9 +2002,8 @@ class CrystalBragg(utils.ToFuObject):
             x0_scale=x0_scale, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev,
             tr_solver=tr_solver, tr_options=tr_options,
-            predeclare=predeclare, chain=chain, verbose=verbose,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            ratio=ratio, jac=jac, npts=npts)
+            chain=chain, verbose=verbose, jac=jac)
 
         # ----------------------
         # Optional plotting
@@ -2035,16 +2034,23 @@ class CrystalBragg(utils.ToFuObject):
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 spect1d=spect1d, fit1d=fit1d,
                 lambfit=lambfit, phiminmax=phiminmax,
-                fs=fs, dmargin=dmargin,
-                tit=tit, wintit=wintit)
+                dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
 
         # ----------------------
         # Optional saving
         if save is True:
-            pfe = os.path.join()
-            np.save(pfe, dinput=dinput, dfit2d=dfit2d)
+            namebase = 'TFSOL_{}_Exp{}_Dg{}_{}_'.format(
+                self.__class__, self.Id.Exp, self.Id.Diag, self.Id.Name)
+            name = namebase + name
+            if name[-4:] != '.npz':
+                name = name + '.npz'
+            if path is None:
+                path = './'
+            pfe = os.path.join(os.path.abspath(path), name)
+            np.savez(pfe, **dfit2d)
             msg = ("Saved in:\n"
                    + "\t{}".format(pfe))
+            print(msg)
 
         # ----------------------
         # return
@@ -2052,3 +2058,32 @@ class CrystalBragg(utils.ToFuObject):
             return dfit2d
         else:
             return dax
+
+    @staticmethod
+    def fit2d_extract_data(dfit2d=None,
+                           amp=None, Ti=None, vi=None,
+                           pts_phi=None, npts_phi=None,
+                           pts_lamb_phi_total=None,
+                           pts_lamb_phi_detail=None):
+        import tofu.data._spectrafit2d as _spectrafit2d
+        return _spectrafit2d.fit2d_extract_data(
+            dfit2d=dfit2d,
+            amp=amp, Ti=Ti, vi=vi,
+            pts_phi=pts_phi, npts_phi=npts_phi,
+            pts_lamb_phi_total=pts_lamb_phi_total,
+            pts_lamb_phi_detail=pts_lamb_phi_detail)
+
+    def fit2d_plot(self, dfit2d=None, ratio=None,
+                   dax=None, plotmode=None, angunits=None,
+                   cmap=None, vmin=None, vmax=None,
+                   dmargin=None, tit=None, wintit=None, fs=None):
+        dout = self.fit2d_extract_data(
+            dfit2d,
+            amp=amp, Ti=Ti, vi=vi,
+            pts_lamb_phi_total=pts_lamb_phi_total,
+            pts_lamb_phi_detail=pts_lamb_phi_detail)
+        return _plot_optics.CrystalBragg_plot_data_fit2d(
+            dfit2d=dfit2d, dout=dout, ratio=ratio,
+            dax=dax, plotmode=plotmode, angunits=angunits,
+            cmap=cmap, vmin=vmin, vmax=vmax,
+            dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
