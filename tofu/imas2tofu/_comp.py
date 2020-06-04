@@ -54,13 +54,8 @@ _STACK = True
 def _prepare_sig_units(sig, units=False):
     """ Remove brackest from shortcut, if any """
     if '[' in sig:
-        # Get nb and ind
-        ind0 = 0
-        while '[' in sig[ind0:]:
-            ind1 = ind0 + sig[ind0:].index('[')
-            ind2 = ind0 + sig[ind0:].index(']')
-            sig = sig[:ind1] + sig[ind2+1:]
-            ind0 = ind2 + 1
+        while '[' in sig:
+            sig = sig[:sig.index('[')] + sig[sig.index(']')+1:]
     return sig
 
 
