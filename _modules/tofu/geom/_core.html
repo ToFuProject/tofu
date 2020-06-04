@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.geom._core &#8212; tofu v1.4</title>
+    <title>tofu.geom._core &#8212; Tofu 1.4.6</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -131,7 +131,7 @@
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="c1"># ToFu-specific</span>
-<span class="kn">from</span> <span class="nn">tofu</span> <span class="kn">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">tofu</span> <span class="k">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">__version__</span>
 <span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
 <span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">utils</span>
 
@@ -142,10 +142,10 @@
     <span class="kn">import</span> <span class="nn">tofu.geom._comp</span> <span class="k">as</span> <span class="nn">_comp</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._plot</span> <span class="k">as</span> <span class="nn">_plot</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;PlasmaDomain&quot;</span><span class="p">,</span>
@@ -163,11 +163,18 @@
 <span class="n">_arrayorder</span> <span class="o">=</span> <span class="s2">&quot;C&quot;</span>
 <span class="n">_Clock</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">_Type</span> <span class="o">=</span> <span class="s2">&quot;Tor&quot;</span>
+
+<span class="c1"># rotate / translate instance</span>
+<span class="n">_UPDATE_EXTENT</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_RETURN_COPY</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># Parallelization</span>
 <span class="n">_NUM_THREADS</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">_PHITHETAPROJ_NPHI</span> <span class="o">=</span> <span class="mi">2000</span>
 <span class="n">_PHITHETAPROJ_NTHETA</span> <span class="o">=</span> <span class="mi">1000</span>
 <span class="n">_RES</span> <span class="o">=</span> <span class="mf">0.005</span>
 <span class="n">_DREFLECT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;specular&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;diffusive&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;ccube&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">###############################################################################</span>
@@ -316,8 +323,8 @@
     <span class="k">def</span> <span class="nf">_set_color_ddef</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s1">&#39;dmisc&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Poly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Poly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">sino_RefPt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sino_nP</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorNP</span><span class="p">,</span>
                  <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -396,7 +403,6 @@
             <span class="s2">&quot;Lim&quot;</span><span class="p">,</span>
             <span class="s2">&quot;pos&quot;</span><span class="p">,</span>
             <span class="s2">&quot;extent&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;mobile&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Clock&quot;</span><span class="p">,</span>
             <span class="s2">&quot;arrayorder&quot;</span><span class="p">,</span>
         <span class="p">]</span>
@@ -417,7 +423,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dreflect</span><span class="p">():</span>
-        <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs&quot;</span><span class="p">]</span>
+        <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs_reflect&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">largs</span>
 
     <span class="nd">@staticmethod</span>
@@ -521,7 +527,6 @@
         <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">arrayorder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -539,7 +544,6 @@
                 <span class="s2">&quot;inshape&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="s2">&quot;Clock&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span> <span class="n">Clock</span><span class="p">,</span> <span class="s2">&quot;cls&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">},</span>
-            <span class="s2">&quot;mobile&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span> <span class="n">mobile</span><span class="p">,</span> <span class="s2">&quot;cls&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">},</span>
             <span class="s2">&quot;arrayorder&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span> <span class="n">arrayorder</span><span class="p">,</span> <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;F&quot;</span><span class="p">]},</span>
             <span class="s2">&quot;Type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span> <span class="n">Type</span><span class="p">,</span> <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Tor&quot;</span><span class="p">,</span> <span class="s2">&quot;Lin&quot;</span><span class="p">]},</span>
         <span class="p">}</span>
@@ -610,7 +614,7 @@
             <span class="n">lSymbols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lSymbols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">lSymbols</span>
 
-    <span class="k">def</span> <span class="nf">_checkformat_inputs_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coefs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_checkformat_inputs_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coefs_reflect</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">Types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">Types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;Type&quot;</span><span class="p">]</span>
 
@@ -628,15 +632,15 @@
                            <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DREFLECT_DTYPES</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
             <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">lc</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
 
-        <span class="k">assert</span> <span class="n">coefs</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="n">Types</span><span class="p">,</span> <span class="n">coefs</span>
+        <span class="k">assert</span> <span class="n">coefs_reflect</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">Types</span><span class="p">,</span> <span class="n">coefs_reflect</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_inputs_dmisc</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">color</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s2">&quot;dmisc&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">])</span>
         <span class="k">assert</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">is_color_like</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
 
     <span class="c1">###########</span>
     <span class="c1"># Get keys of dictionnaries</span>
@@ -663,11 +667,13 @@
             <span class="s2">&quot;VolAng&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Vect&quot;</span><span class="p">,</span>
             <span class="s2">&quot;VIn&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;mobile&quot;</span><span class="p">,</span>
             <span class="s2">&quot;circ-C&quot;</span><span class="p">,</span>
             <span class="s2">&quot;circ-r&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Clock&quot;</span><span class="p">,</span>
             <span class="s2">&quot;arrayorder&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move_param&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move_kwdargs&quot;</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">lk</span>
 
@@ -683,7 +689,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dreflect</span><span class="p">():</span>
-        <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs&quot;</span><span class="p">]</span>
+        <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs_reflect&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">lk</span>
 
     <span class="nd">@staticmethod</span>
@@ -702,7 +708,6 @@
         <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">Clock</span><span class="o">=</span><span class="n">_Clock</span><span class="p">,</span>
         <span class="n">arrayorder</span><span class="o">=</span><span class="n">_arrayorder</span><span class="p">,</span>
         <span class="n">sino_RefPt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -735,7 +740,6 @@
         <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">arrayorder</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span>
         <span class="n">sino_RefPt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -747,7 +751,6 @@
             <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span>
             <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span>
             <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span>
-            <span class="n">mobile</span><span class="o">=</span><span class="n">mobile</span><span class="p">,</span>
             <span class="n">Type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span><span class="p">,</span>
             <span class="n">Clock</span><span class="o">=</span><span class="n">Clock</span><span class="p">,</span>
         <span class="p">)</span>
@@ -761,8 +764,7 @@
             <span class="n">Clock</span><span class="o">=</span><span class="n">Clock</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;arrayorder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">arrayorder</span>
-        <span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;mobile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mobile</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span> <span class="o">=</span> <span class="n">dgeom</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dgeom</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sino</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_dsino</span><span class="p">(</span><span class="n">sino_RefPt</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="n">sino_nP</span><span class="p">)</span>
 
@@ -782,12 +784,12 @@
         <span class="n">lSymbols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_inputs_dphys</span><span class="p">(</span><span class="n">lSymbols</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dphys</span><span class="p">[</span><span class="s2">&quot;lSymbols&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lSymbols</span>
 
-    <span class="k">def</span> <span class="nf">set_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coefs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">Types</span><span class="p">,</span> <span class="n">coefs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_inputs_dreflect</span><span class="p">(</span>
-            <span class="n">Types</span><span class="o">=</span><span class="n">Types</span><span class="p">,</span> <span class="n">coefs</span><span class="o">=</span><span class="n">coefs</span>
+    <span class="k">def</span> <span class="nf">set_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coefs_reflect</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">Types</span><span class="p">,</span> <span class="n">coefs_reflect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_inputs_dreflect</span><span class="p">(</span>
+            <span class="n">Types</span><span class="o">=</span><span class="n">Types</span><span class="p">,</span> <span class="n">coefs_reflect</span><span class="o">=</span><span class="n">coefs_reflect</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dreflect</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Types</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dreflect</span><span class="p">[</span><span class="s2">&quot;coefs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coefs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dreflect</span><span class="p">[</span><span class="s2">&quot;coefs_reflect&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coefs_reflect</span>
 
     <span class="k">def</span> <span class="nf">_set_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_inputs_dmisc</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
@@ -804,7 +806,9 @@
     <span class="c1">###########</span>
 
     <span class="k">def</span> <span class="nf">_strip_dgeom</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Poly&quot;</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="s2">&quot;extent&quot;</span><span class="p">,</span> <span class="s2">&quot;mobile&quot;</span><span class="p">,</span> <span class="s2">&quot;Clock&quot;</span><span class="p">,</span> <span class="s2">&quot;arrayorder&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Poly&quot;</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="s2">&quot;extent&quot;</span><span class="p">,</span> <span class="s2">&quot;Clock&quot;</span><span class="p">,</span> <span class="s2">&quot;arrayorder&quot;</span><span class="p">,</span>
+               <span class="s2">&quot;move&quot;</span><span class="p">,</span> <span class="s2">&quot;move_param&quot;</span><span class="p">,</span> <span class="s2">&quot;move_kwdargs&quot;</span><span class="p">]</span>
     <span class="p">):</span>
         <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
 
@@ -814,7 +818,7 @@
     <span class="k">def</span> <span class="nf">_strip_dphys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lSymbols&quot;</span><span class="p">]):</span>
         <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dphys</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_strip_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs&quot;</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">_strip_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs_reflect&quot;</span><span class="p">]):</span>
         <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dreflect</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_strip_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]):</span>
@@ -825,7 +829,8 @@
     <span class="c1">###########</span>
 
     <span class="k">def</span> <span class="nf">_rebuild_dgeom</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Poly&quot;</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="s2">&quot;extent&quot;</span><span class="p">,</span> <span class="s2">&quot;mobile&quot;</span><span class="p">,</span> <span class="s2">&quot;Clock&quot;</span><span class="p">,</span> <span class="s2">&quot;arrayorder&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Poly&quot;</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="s2">&quot;extent&quot;</span><span class="p">,</span> <span class="s2">&quot;Clock&quot;</span><span class="p">,</span> <span class="s2">&quot;arrayorder&quot;</span><span class="p">]</span>
     <span class="p">):</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_test_Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
@@ -857,14 +862,15 @@
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_dphys</span><span class="p">(</span><span class="n">lSymbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dphys</span><span class="p">[</span><span class="s2">&quot;lSymbols&quot;</span><span class="p">])</span>
 
-    <span class="k">def</span> <span class="nf">_rebuild_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs&quot;</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">_rebuild_dreflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">,</span> <span class="s2">&quot;coefs_reflect&quot;</span><span class="p">]):</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_test_Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dreflect</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_check_Fields4Rebuild</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_dreflect</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">,</span> <span class="n">dname</span><span class="o">=</span><span class="s2">&quot;dreflect&quot;</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_dreflect</span><span class="p">(</span>
-                <span class="n">Types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dreflect</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">],</span> <span class="n">coefs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dreflect</span><span class="p">[</span><span class="s2">&quot;coefs&quot;</span><span class="p">]</span>
+                <span class="n">Types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dreflect</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">],</span>
+                <span class="n">coefs_reflect</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dreflect</span><span class="p">[</span><span class="s2">&quot;coefs_reflect&quot;</span><span class="p">]</span>
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_rebuild_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]):</span>
@@ -1023,8 +1029,6 @@
             <span class="s2">&quot;SaveName&quot;</span><span class="p">,</span>
             <span class="s2">&quot;nP&quot;</span><span class="p">,</span>
             <span class="s2">&quot;noccur&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;mobile&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;color&quot;</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="n">ar0</span> <span class="o">=</span> <span class="p">[</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">Cls</span><span class="p">,</span>
@@ -1032,8 +1036,17 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">SaveName</span><span class="p">,</span>
             <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;nP&quot;</span><span class="p">]),</span>
             <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;noccur&quot;</span><span class="p">]),</span>
-            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;mobile&quot;</span><span class="p">]),</span>
-            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">])]</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;move&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">col0</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">,</span> <span class="s1">&#39;param&#39;</span><span class="p">]</span>
+            <span class="n">ar0</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;move&quot;</span><span class="p">],</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;move_param&quot;</span><span class="p">],</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">4</span><span class="p">))]</span>
+        <span class="n">col0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;color&#39;</span><span class="p">)</span>
+        <span class="n">cstr</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;(&#39;</span>
+                <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">{:4.2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
+                             <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]])</span>
+                <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+        <span class="n">ar0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cstr</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary</span><span class="p">(</span>
             <span class="p">[</span><span class="n">ar0</span><span class="p">],</span>
@@ -1046,7 +1059,124 @@
         <span class="p">)</span>
 
     <span class="c1">###########</span>
-    <span class="c1"># public methods</span>
+    <span class="c1"># public methods for movement</span>
+    <span class="c1">###########</span>
+
+    <span class="k">def</span> <span class="nf">_update_or_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poly</span><span class="p">,</span>
+                        <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">update_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">update_extent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">update_extent</span> <span class="o">=</span> <span class="n">_UPDATE_EXTENT</span>
+        <span class="k">if</span> <span class="n">return_copy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">return_copy</span> <span class="o">=</span> <span class="n">_RETURN_COPY</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span>
+        <span class="k">if</span> <span class="n">update_extent</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">poly</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+                <span class="n">extent</span> <span class="o">=</span> <span class="n">extent</span><span class="o">*</span><span class="n">ratio</span>
+        <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
+        <span class="k">if</span> <span class="n">return_copy</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span> <span class="o">+</span> <span class="s1">&#39;copy&#39;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">Poly</span><span class="o">=</span><span class="n">poly</span><span class="p">,</span>
+                                  <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span>
+                                  <span class="n">sino_RefPt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;RefPt&#39;</span><span class="p">],</span>
+                                  <span class="n">sino_nP</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;nP&#39;</span><span class="p">],</span>
+                                  <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">],</span>
+                                  <span class="n">Exp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">,</span>
+                                  <span class="n">Name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                                  <span class="n">shot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">shot</span><span class="p">,</span>
+                                  <span class="n">SavePath</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SavePath</span><span class="p">,</span>
+                                  <span class="n">Type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_dgeom</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span>
+                            <span class="n">sino_RefPt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;RefPt&#39;</span><span class="p">],</span>
+                            <span class="n">sino_nP</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;nP&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">translate_in_cross_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">update_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Translate the structure in the poloidal plane &quot;&quot;&quot;</span>
+        <span class="n">poly</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_translate_pts_poloidal_plane_2D</span><span class="p">(</span>
+            <span class="n">pts_rz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span>
+            <span class="n">direction_rz</span><span class="o">=</span><span class="n">direction_rz</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">update_extent</span><span class="o">=</span><span class="n">update_extent</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rotate_in_cross_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">update_extent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Rotate the structure in the poloidal plane &quot;&quot;&quot;</span>
+        <span class="n">poly</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_pts_vectors_in_poloidal_plane_2D</span><span class="p">(</span>
+            <span class="n">pts_rz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span>
+            <span class="n">axis_rz</span><span class="o">=</span><span class="n">axis_rz</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">update_extent</span><span class="o">=</span><span class="n">update_extent</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rotate_around_torusaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Rotate the structure in the poloidal plane &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span> <span class="o">!=</span> <span class="s1">&#39;Tor&#39;</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Movement only available for Tor configurations!&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span>
+        <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span> <span class="o">+</span> <span class="n">angle</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span>
+                                    <span class="n">update_extent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">move</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set the default movement parameters</span>
+
+<span class="sd">        A default movement can be set for the instance, it can be any of the</span>
+<span class="sd">        pre-implemented movement (rotations or translations)</span>
+<span class="sd">        This default movement is the one that will be called when using</span>
+<span class="sd">        self.move()</span>
+
+<span class="sd">        Specify the type of movement via the name of the method (passed as a</span>
+<span class="sd">        str to move)</span>
+
+<span class="sd">        Specify, for the geometry of the instance at the time of defining this</span>
+<span class="sd">        default movement, the current value of the associated movement</span>
+<span class="sd">        parameter (angle / distance). This is used to set an arbitrary</span>
+<span class="sd">        difference for user who want to use absolute position values</span>
+<span class="sd">        The desired incremental movement to be performed when calling self.move</span>
+<span class="sd">        will be deduced by substracting the stored param value to the provided</span>
+<span class="sd">        param value. Just set the current param value to 0 if you don&#39;t care</span>
+<span class="sd">        about a custom absolute reference.</span>
+
+<span class="sd">        kwdargs must be a parameters relevant to the chosen method (axis,</span>
+<span class="sd">        direction...)</span>
+
+<span class="sd">        e.g.:</span>
+<span class="sd">            self.set_move(move=&#39;rotate_around_3daxis&#39;,</span>
+<span class="sd">                          param=0.,</span>
+<span class="sd">                          axis=([0.,0.,0.], [1.,0.,0.]))</span>
+<span class="sd">            self.set_move(move=&#39;translate_3d&#39;,</span>
+<span class="sd">                          param=0.,</span>
+<span class="sd">                          direction=[0.,1.,0.])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_set_move</span><span class="p">(</span><span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">move</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">kwdargs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_kwdargs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwdargs</span>
+
+    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set new position to desired param according to default movement</span>
+
+<span class="sd">        Can only be used if default movement was set before</span>
+<span class="sd">        See self.set_move()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_move</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">dictname</span><span class="o">=</span><span class="s1">&#39;_dgeom&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span>
+
+    <span class="c1">###########</span>
+    <span class="c1"># Other public methods</span>
     <span class="c1">###########</span>
 
     <span class="k">def</span> <span class="nf">set_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
@@ -1054,27 +1184,6 @@
 
     <span class="k">def</span> <span class="nf">get_color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; To be overriden at object-level after instance creation</span>
-
-<span class="sd">        To do so:</span>
-<span class="sd">            1/ create the instance:</span>
-<span class="sd">                &gt;&gt; S = tfg.Struct(&#39;test&#39;, poly, Exp=&#39;Test&#39;)</span>
-<span class="sd">            2/ Define a moving function f taking the instance as first argument</span>
-<span class="sd">                &gt;&gt; def f(self, Delta=1.):</span>
-<span class="sd">                       Polynew = self.Poly</span>
-<span class="sd">                       Polynew[0,:] = Polynew[0,:] + Delta</span>
-<span class="sd">                       self._set_geom(Polynew, Lim=self.Lim)</span>
-<span class="sd">            3/ Bound your custom function to the self.move() method</span>
-<span class="sd">               using types.MethodType() found in the types module</span>
-<span class="sd">                &gt;&gt; import types</span>
-<span class="sd">                &gt;&gt; S.move = types.MethodType(f, S)</span>
-
-<span class="sd">            See the following page for info and details on method-patching:</span>
-<span class="sd">            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">move</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">isInside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">In</span><span class="o">=</span><span class="s2">&quot;(X,Y,Z)&quot;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Return an array of booleans indicating whether each point lies</span>
@@ -1797,7 +1906,6 @@
         <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">SavePath</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;./&quot;</span><span class="p">),</span>
     <span class="p">):</span>
@@ -1884,7 +1992,6 @@
                 <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span>
                 <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span>
                 <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span>
-                <span class="n">mobile</span><span class="o">=</span><span class="n">mobile</span><span class="p">,</span>
                 <span class="n">Poly</span><span class="o">=</span><span class="n">poly</span><span class="p">,</span>
                 <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span>
                 <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span>
@@ -1985,7 +2092,6 @@
         <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">arrayorder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2039,10 +2145,10 @@
 <div class="viewcode-block" id="CoilPF"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.CoilPF">[docs]</a><span class="k">class</span> <span class="nc">CoilPF</span><span class="p">(</span><span class="n">StructOut</span><span class="p">):</span>
     <span class="n">_color</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nturns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">superconducting</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nturns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">superconducting</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="c1"># super()</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">CoilPF</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CoilPF</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># super()</span>
@@ -2232,7 +2338,7 @@
                          <span class="s1">&#39;dextraprop&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;visible&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
     <span class="n">_lclsstr</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PlasmaDomain&#39;</span><span class="p">,</span> <span class="s1">&#39;Ves&#39;</span><span class="p">,</span> <span class="s1">&#39;PFC&#39;</span><span class="p">,</span> <span class="s1">&#39;CoilPF&#39;</span><span class="p">,</span> <span class="s1">&#39;CoilCS&#39;</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lStruct</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dextraprop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lStruct</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dextraprop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">SavePath</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;./&#39;</span><span class="p">),</span>
                  <span class="n">SavePath_Include</span><span class="o">=</span><span class="n">tfpf</span><span class="o">.</span><span class="n">defInclude</span><span class="p">,</span>
@@ -2916,7 +3022,6 @@
         <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Poly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">mobile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2962,7 +3067,6 @@
                 <span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span>
                 <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span>
                 <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span>
-                <span class="n">mobile</span><span class="o">=</span><span class="n">mobile</span><span class="p">,</span>
                 <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span>
                 <span class="n">Exp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">,</span>
             <span class="p">)</span>
@@ -3103,7 +3207,7 @@
             <span class="s2">&quot;SaveName&quot;</span><span class="p">,</span>
             <span class="s2">&quot;nP&quot;</span><span class="p">,</span>
             <span class="s2">&quot;noccur&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;mobile&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move&quot;</span><span class="p">,</span>
             <span class="s2">&quot;color&quot;</span><span class="p">,</span>
         <span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="p">[</span><span class="s2">&quot;lprop&quot;</span><span class="p">]</span>
         <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">]</span>
@@ -3111,15 +3215,18 @@
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s2">&quot;dStruct&quot;</span><span class="p">][</span><span class="s2">&quot;order&quot;</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="k">continue</span>
+            <span class="n">otemp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="n">lu</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">k</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">_dall</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">],</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">_dall</span><span class="p">[</span><span class="s2">&quot;SaveName&quot;</span><span class="p">],</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;nP&quot;</span><span class="p">]),</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;noccur&quot;</span><span class="p">]),</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;mobile&quot;</span><span class="p">]),</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]),</span>
+                    <span class="n">otemp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">_dall</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">],</span>
+                    <span class="n">otemp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">_dall</span><span class="p">[</span><span class="s2">&quot;SaveName&quot;</span><span class="p">],</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">otemp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;nP&quot;</span><span class="p">]),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">otemp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;noccur&quot;</span><span class="p">]),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">otemp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;move&quot;</span><span class="p">]),</span>
+                    <span class="p">(</span><span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">{:4.2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
+                                      <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">otemp</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]])</span>
+                     <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">),</span>
                 <span class="p">]</span>
                 <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="p">[</span><span class="s2">&quot;lprop&quot;</span><span class="p">]:</span>
                     <span class="n">lu</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="p">[</span><span class="s2">&quot;d&quot;</span> <span class="o">+</span> <span class="n">pp</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">kk</span><span class="p">])</span>
@@ -3705,7 +3812,7 @@
     <span class="k">def</span> <span class="nf">_set_color_ddef</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s1">&#39;dmisc&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lOptics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lOptics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dX12</span><span class="o">=</span><span class="s1">&#39;geom&#39;</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">sino_RefPt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;optimized&#39;</span><span class="p">,</span>
@@ -4096,6 +4203,9 @@
             <span class="s2">&quot;Surfaces&quot;</span><span class="p">,</span>
             <span class="s2">&quot;dX12&quot;</span><span class="p">,</span>
             <span class="s2">&quot;dreflect&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move_param&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;move_kwdargs&quot;</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">lk</span>
 
@@ -4702,7 +4812,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">tofu.geom.utils</span> <span class="k">as</span> <span class="nn">geom_utils</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">geom_utils</span>
+            <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">geom_utils</span>
 
         <span class="n">nIn</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">e2</span> <span class="o">=</span> <span class="n">geom_utils</span><span class="o">.</span><span class="n">get_nIne1e2</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span> <span class="n">e1</span><span class="o">=</span><span class="n">e1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nIn</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.0e-12</span><span class="p">:</span>
@@ -4993,6 +5103,9 @@
                     <span class="s2">&quot;isImage&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;dX12&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;dreflect&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;move&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;move_param&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;move_kwdargs&quot;</span><span class="p">,</span>
                 <span class="p">]</span>
                 <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s2">&quot;strip&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">strip</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
@@ -5011,6 +5124,9 @@
                     <span class="s2">&quot;isImage&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;dX12&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;dreflect&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;move&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;move_param&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;move_kwdargs&quot;</span><span class="p">,</span>
                 <span class="p">]</span>
                 <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
 
@@ -5154,9 +5270,24 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lOptics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dOptics</span><span class="p">[</span><span class="s1">&#39;dobj&#39;</span><span class="p">][</span><span class="n">k0</span><span class="p">][</span><span class="n">k1</span><span class="p">]</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">k1</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">),</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_dOptics</span><span class="p">[</span><span class="s1">&#39;lorder&#39;</span><span class="p">])]</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">isPinhole</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">c0</span> <span class="o">=</span> <span class="s2">&quot;pinhole&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">c0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;pinhole&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">isInPoloidalPlane</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">phiD</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nRays</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">phiD</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phiD</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">phiD</span> <span class="o">=</span> <span class="n">phiD</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ephi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phiD</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phiD</span><span class="p">),</span> <span class="mf">0.</span><span class="p">])[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="o">*</span><span class="n">ephi</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mf">0.</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nRays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -5258,6 +5389,202 @@
     <span class="k">def</span> <span class="nf">_isLOS</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="n">c0</span> <span class="o">=</span> <span class="s2">&quot;los&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">c0</span>
+
+    <span class="c1">###########</span>
+    <span class="c1"># Movement methods</span>
+    <span class="c1">###########</span>
+
+    <span class="k">def</span> <span class="nf">_update_or_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pinhole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">return_copy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">return_copy</span> <span class="o">=</span> <span class="n">_RETURN_COPY</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">dgeom</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pinhole&#39;</span><span class="p">:</span> <span class="n">pinhole</span><span class="p">,</span>
+                     <span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="n">D</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dgeom</span> <span class="o">=</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_copy</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span> <span class="o">+</span> <span class="s1">&#39;copy&#39;</span>
+            <span class="k">if</span> <span class="n">diag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">diag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Diag</span>
+            <span class="k">if</span> <span class="n">dchans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dchans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dchans</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">dgeom</span><span class="o">=</span><span class="n">dgeom</span><span class="p">,</span>
+                                  <span class="n">lOptics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lOptics</span><span class="p">,</span>
+                                  <span class="n">Etendues</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Etendues</span><span class="p">,</span>
+                                  <span class="n">Surfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Surfaces</span><span class="p">,</span>
+                                  <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                                  <span class="n">sino_RefPt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;RefPt&#39;</span><span class="p">],</span>
+                                  <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">],</span>
+                                  <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">,</span>
+                                  <span class="n">Exp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">,</span>
+                                  <span class="n">Diag</span><span class="o">=</span><span class="n">diag</span><span class="p">,</span>
+                                  <span class="n">Name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                                  <span class="n">shot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">shot</span><span class="p">,</span>
+                                  <span class="n">SavePath</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SavePath</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dgeom0</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pinhole</span><span class="p">)</span>
+                      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_dgeom</span><span class="p">(</span><span class="n">dgeom</span><span class="o">=</span><span class="n">dgeom</span><span class="p">,</span>
+                                <span class="n">Etendues</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Etendues</span><span class="p">,</span>
+                                <span class="n">Surfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Surfaces</span><span class="p">,</span>
+                                <span class="n">sino_RefPt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;RefPt&#39;</span><span class="p">],</span>
+                                <span class="n">extra</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">sino</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="c1"># Make sure instance does not move</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_dgeom</span><span class="p">(</span><span class="n">dgeom</span><span class="o">=</span><span class="n">dgeom0</span><span class="p">,</span>
+                                <span class="n">Etendues</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Etendues</span><span class="p">,</span>
+                                <span class="n">Surfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Surfaces</span><span class="p">,</span>
+                                <span class="n">sino_RefPt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="p">[</span><span class="s1">&#39;RefPt&#39;</span><span class="p">],</span>
+                                <span class="n">extra</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">sino</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">An exception occured during updating</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;  =&gt; instance unmoved&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_rotate_DPinholeu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+        <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">]),</span>
+                               <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">D</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pts</span><span class="o">=</span><span class="n">D</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+            <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span> <span class="o">=</span> <span class="n">D</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">D</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="s1">&#39;rotate&#39;</span> <span class="ow">in</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
+            <span class="n">D</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">D</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span>
+        <span class="k">return</span> <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span>
+
+<div class="viewcode-block" id="Rays.translate_in_cross_section"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.translate_in_cross_section">[docs]</a>    <span class="k">def</span> <span class="nf">translate_in_cross_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Translate the instance in the cross-section &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">phi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isInPoloidalPlane</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Instance not associated to a specific poloidal plane</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Please specify which poloidal plane (phi) to use&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_DPinholeu</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_translate_pts_poloidal_plane</span><span class="p">,</span>
+            <span class="n">phi</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span> <span class="n">direction_rz</span><span class="o">=</span><span class="n">direction_rz</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span>
+                                    <span class="n">diag</span><span class="o">=</span><span class="n">diag</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Rays.translate_3d"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.translate_3d">[docs]</a>    <span class="k">def</span> <span class="nf">translate_3d</span><span class="p">(</span><span class="n">selfi</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Translate the instance in provided direction &quot;&quot;&quot;</span>
+        <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_DPinholeu</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_translate_pts_3d</span><span class="p">,</span>
+            <span class="n">direction</span><span class="o">=</span><span class="n">direction</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span>
+                                    <span class="n">diag</span><span class="o">=</span><span class="n">diag</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Rays.rotate_in_cross_section"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.rotate_in_cross_section">[docs]</a>    <span class="k">def</span> <span class="nf">rotate_in_cross_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Rotate the instance in the cross-section &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">phi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isInPoloidalPlane</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">isPinhole</span><span class="p">:</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Camera not associated to a specific poloidal plane</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Please specify which poloidal plane (phi) to use&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_DPinholeu</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_pts_vectors_in_poloidal_plane</span><span class="p">,</span>
+            <span class="n">axis_rz</span><span class="o">=</span><span class="n">axis_rz</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="n">phi</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span>
+                                    <span class="n">diag</span><span class="o">=</span><span class="n">diag</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Rays.rotate_around_torusaxis"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.rotate_around_torusaxis">[docs]</a>    <span class="k">def</span> <span class="nf">rotate_around_torusaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Rotate the instance around the torus axis &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span> <span class="o">!=</span> <span class="s1">&#39;Tor&#39;</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Movement only available for Tor configurations!&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_DPinholeu</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_pts_vectors_around_torusaxis</span><span class="p">,</span>
+            <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span>
+                                    <span class="n">diag</span><span class="o">=</span><span class="n">diag</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Rays.rotate_around_3daxis"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.rotate_around_3daxis">[docs]</a>    <span class="k">def</span> <span class="nf">rotate_around_3daxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Rotate the instance around the provided 3d axis &quot;&quot;&quot;</span>
+        <span class="n">D</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_DPinholeu</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rotate_pts_vectors_around_3daxis</span><span class="p">,</span>
+            <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_or_copy</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span>
+                                    <span class="n">return_copy</span><span class="o">=</span><span class="n">return_copy</span><span class="p">,</span>
+                                    <span class="n">diag</span><span class="o">=</span><span class="n">diag</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Rays.set_move"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.set_move">[docs]</a>    <span class="k">def</span> <span class="nf">set_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">move</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set the default movement parameters</span>
+
+<span class="sd">        A default movement can be set for the instance, it can be any of the</span>
+<span class="sd">        pre-implemented movement (rotations or translations)</span>
+<span class="sd">        This default movement is the one that will be called when using</span>
+<span class="sd">        self.move()</span>
+
+<span class="sd">        Specify the type of movement via the name of the method (passed as a</span>
+<span class="sd">        str to move)</span>
+
+<span class="sd">        Specify, for the geometry of the instance at the time of defining this</span>
+<span class="sd">        default movement, the current value of the associated movement</span>
+<span class="sd">        parameter (angle / distance). This is used to set an arbitrary</span>
+<span class="sd">        difference for user who want to use absolute position values</span>
+<span class="sd">        The desired incremental movement to be performed when calling self.move</span>
+<span class="sd">        will be deduced by substracting the stored param value to the provided</span>
+<span class="sd">        param value. Just set the current param value to 0 if you don&#39;t care</span>
+<span class="sd">        about a custom absolute reference.</span>
+
+<span class="sd">        kwdargs must be a parameters relevant to the chosen method (axis,</span>
+<span class="sd">        direction...)</span>
+
+<span class="sd">        e.g.:</span>
+<span class="sd">            self.set_move(move=&#39;rotate_around_3daxis&#39;,</span>
+<span class="sd">                          param=0.,</span>
+<span class="sd">                          axis=([0.,0.,0.], [1.,0.,0.]))</span>
+<span class="sd">            self.set_move(move=&#39;translate_3d&#39;,</span>
+<span class="sd">                          param=0.,</span>
+<span class="sd">                          direction=[0.,1.,0.])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_set_move</span><span class="p">(</span><span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">move</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">kwdargs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_kwdargs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwdargs</span></div>
+
+<div class="viewcode-block" id="Rays.move"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Rays.move">[docs]</a>    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set new position to desired param according to default movement</span>
+
+<span class="sd">        Can only be used if default movement was set before</span>
+<span class="sd">        See self.set_move()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_move</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">dictname</span><span class="o">=</span><span class="s1">&#39;_dgeom&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># public methods</span>
@@ -6178,6 +6505,7 @@
         <span class="n">num_threads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
         <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">coefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">coefs_reflect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">returnas</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
         <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -6274,8 +6602,8 @@
                 <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nb&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">c0</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">coefs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">coefs</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="k">if</span> <span class="n">coefs_reflect</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">coefs_reflect</span> <span class="o">=</span> <span class="mf">1.0</span>
                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;nb&quot;</span><span class="p">]):</span>
                     <span class="n">Dsi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;Ds&quot;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">ii</span><span class="p">]</span>
@@ -6283,7 +6611,7 @@
                     <span class="n">usi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;us&quot;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">ii</span><span class="p">]</span>
                     <span class="p">)</span>
-                    <span class="n">s</span> <span class="o">+=</span> <span class="n">coefs</span> <span class="o">*</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_calc_signal</span><span class="p">(</span>
+                    <span class="n">s</span> <span class="o">+=</span> <span class="n">coefs_reflect</span> <span class="o">*</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_calc_signal</span><span class="p">(</span>
                         <span class="n">func</span><span class="p">,</span>
                         <span class="n">Dsi</span><span class="p">,</span>
                         <span class="n">usi</span><span class="p">,</span>
@@ -6337,6 +6665,15 @@
             <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indpts</span><span class="p">],</span>
                                   <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">reseff</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
+        <span class="c1"># Apply user-provided coefs</span>
+        <span class="k">if</span> <span class="n">coefs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">coefs</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">):</span>
+                <span class="n">coefs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">coefs</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="k">assert</span> <span class="n">coefs</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span>
+                <span class="k">if</span> <span class="n">sig</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">coefs</span> <span class="o">=</span> <span class="n">coefs</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">sig</span> <span class="o">*=</span> <span class="n">coefs</span>
+
         <span class="c1"># Format output</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_signal_postformat</span><span class="p">(</span>
             <span class="n">sig</span><span class="p">,</span>
@@ -6379,6 +6716,7 @@
         <span class="n">num_threads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
         <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">coefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">coefs_reflect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">returnas</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
         <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -6474,8 +6812,8 @@
                 <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nb&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">c0</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">coefs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">coefs</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="k">if</span> <span class="n">coefs_reflect</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">coefs_reflect</span> <span class="o">=</span> <span class="mf">1.0</span>
                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;nb&quot;</span><span class="p">]):</span>
                     <span class="n">Dsi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;Ds&quot;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">ii</span><span class="p">]</span>
@@ -6483,7 +6821,7 @@
                     <span class="n">usi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s2">&quot;dreflect&quot;</span><span class="p">][</span><span class="s2">&quot;us&quot;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">ii</span><span class="p">]</span>
                     <span class="p">)</span>
-                    <span class="n">sig</span> <span class="o">+=</span> <span class="n">coefs</span> <span class="o">*</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_calc_signal</span><span class="p">(</span>
+                    <span class="n">sig</span> <span class="o">+=</span> <span class="n">coefs_reflect</span> <span class="o">*</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_calc_signal</span><span class="p">(</span>
                         <span class="n">funcbis</span><span class="p">,</span>
                         <span class="n">Dsi</span><span class="p">,</span>
                         <span class="n">usi</span><span class="p">,</span>
@@ -6542,6 +6880,15 @@
             <span class="c1"># (cf. https://stackoverflow.com/questions/59079141)</span>
             <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indpts</span><span class="p">],</span>
                                   <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">reseff</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># Apply user-provided coefs</span>
+        <span class="k">if</span> <span class="n">coefs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">coefs</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">):</span>
+                <span class="n">coefs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">coefs</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                <span class="k">assert</span> <span class="n">coefs</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span>
+                <span class="k">if</span> <span class="n">sig</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">coefs</span> <span class="o">=</span> <span class="n">coefs</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">sig</span> <span class="o">*=</span> <span class="n">coefs</span>
 
         <span class="c1"># Format output</span>
         <span class="c1"># this is the secod slowest step (~0.75 s)</span>
@@ -6929,6 +7276,10 @@
             <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
             <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
         <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">col0</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">,</span> <span class="s1">&#39;param&#39;</span><span class="p">]</span>
+            <span class="n">ar0</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">],</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_param&#39;</span><span class="p">],</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">4</span><span class="p">))]</span>
 
         <span class="c1"># ar1</span>
         <span class="n">col1</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;los index&quot;</span><span class="p">,</span> <span class="s2">&quot;length&quot;</span><span class="p">,</span> <span class="s2">&quot;touch&quot;</span><span class="p">,</span> <span class="s2">&quot;angle (rad)&quot;</span><span class="p">]</span>
@@ -6957,7 +7308,7 @@
             <span class="n">return_</span><span class="o">=</span><span class="n">return_</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Operator defined only for same-class operations !&quot;</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -6983,7 +7334,7 @@
             <span class="n">Exp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CamLOS1D.save_to_imas"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.CamLOS1D.save_to_imas">[docs]</a>    <span class="k">def</span> <span class="nf">save_to_imas</span><span class="p">(</span>
@@ -7061,6 +7412,10 @@
             <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
             <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">angles</span><span class="p">)),</span>
         <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">col0</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">,</span> <span class="s1">&#39;param&#39;</span><span class="p">]</span>
+            <span class="n">ar0</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move&#39;</span><span class="p">],</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;move_param&#39;</span><span class="p">],</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">4</span><span class="p">))]</span>
 
         <span class="c1"># call base method</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary</span><span class="p">(</span>
@@ -7258,8 +7613,9 @@
       
     </p>
     <p>
-        &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+        &copy; Copyright 2016-2020, Tofu contributors.<br/>
+      Last updated on Jun 04, 2020.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>
 </footer>

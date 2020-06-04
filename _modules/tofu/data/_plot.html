@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.data._plot &#8212; tofu v1.4</title>
+    <title>tofu.data._plot &#8212; Tofu 1.4.6</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -123,19 +123,19 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.integrate</span> <span class="k">as</span> <span class="nn">scpinteg</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">gridspec</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">gridspec</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
-<span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1</span> <span class="k">import</span> <span class="n">make_axes_locatable</span>
 
 <span class="c1"># tofu</span>
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="kn">import</span> <span class="n">__version__</span>
+    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="k">import</span> <span class="n">__version__</span>
     <span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">utils</span>
     <span class="kn">import</span> <span class="nn">tofu.data._def</span> <span class="k">as</span> <span class="nn">_def</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="kn">import</span> <span class="n">__version__</span>
-    <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">utils</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">tofu.version</span> <span class="k">import</span> <span class="n">__version__</span>
+    <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">utils</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
 
 
 
@@ -1077,7 +1077,7 @@
 
     <span class="k">if</span> <span class="n">laxp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s1">&#39;datalim&#39;</span><span class="p">)</span>
-        <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1.axes_divider</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>
+        <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1.axes_divider</span> <span class="k">import</span> <span class="n">make_axes_locatable</span>
         <span class="n">ax_divider</span> <span class="o">=</span> <span class="n">make_axes_locatable</span><span class="p">(</span><span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">laxcb</span> <span class="o">=</span> <span class="p">[</span><span class="n">ax_divider</span><span class="o">.</span><span class="n">append_axes</span><span class="p">(</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;5%&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="s2">&quot;5%&quot;</span><span class="p">)]</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1424,8 +1424,10 @@
     <span class="n">c0</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">c1</span> <span class="o">=</span> <span class="n">c0</span> <span class="ow">and</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">c0</span><span class="p">:</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="p">[</span><span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]],</span>
-                                             <span class="n">element</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="p">[</span><span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                                                  <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]],</span>
+                                             <span class="n">element</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">tit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
         <span class="k">if</span> <span class="n">c1</span> <span class="ow">and</span> <span class="s1">&#39;LOS&#39;</span> <span class="ow">in</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Cls</span><span class="p">:</span>
             <span class="n">lCross</span><span class="p">,</span> <span class="n">lHor</span><span class="p">,</span> <span class="n">llab</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
@@ -1444,12 +1446,12 @@
                     <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">crossbck</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="n">crossbck</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span>
                                          <span class="n">c</span><span class="o">=</span><span class="n">cbck</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
                     <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">horbck</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="n">horbck</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span>
-                                         <span class="n">c</span><span class="o">=</span><span class="n">cbck</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
+                                       <span class="n">c</span><span class="o">=</span><span class="n">cbck</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">bck</span><span class="p">:</span>
                     <span class="n">out</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="p">[</span><span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]],</span>
                                   <span class="n">element</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">Lplot</span><span class="o">=</span><span class="n">Lplot</span><span class="p">,</span>
                                   <span class="n">dL</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:(</span><span class="mf">0.4</span><span class="p">,</span><span class="mf">0.4</span><span class="p">,</span><span class="mf">0.4</span><span class="p">,</span><span class="mf">0.4</span><span class="p">),</span><span class="s1">&#39;lw&#39;</span><span class="p">:</span><span class="mf">0.5</span><span class="p">},</span>
-                                  <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                                  <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
                     <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
 
             <span class="n">lHor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">lHor</span><span class="p">)</span>
@@ -2116,8 +2118,10 @@
     <span class="c1"># conf</span>
     <span class="n">c0</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">c0</span><span class="p">:</span>
-        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;hor&#39;</span><span class="p">,</span>
-                                                       <span class="n">element</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                                                       <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;hor&#39;</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span>
+                                                       <span class="n">tit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                       <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="c1"># dextra</span>
     <span class="k">if</span> <span class="n">lData</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dextra</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2150,7 +2154,8 @@
         <span class="k">if</span> <span class="n">c0</span><span class="p">:</span>
             <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">],</span>
                                                      <span class="n">element</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">dLeg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                                     <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;cross&#39;</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                                                     <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;cross&#39;</span><span class="p">,</span> <span class="n">tit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                     <span class="n">draw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="c1"># los</span>
         <span class="n">c1</span> <span class="o">=</span> <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2536,7 +2541,7 @@
         <span class="n">laxp</span> <span class="o">+=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
                  <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">4</span><span class="p">:,</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1.axes_divider</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>
+        <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1.axes_divider</span> <span class="k">import</span> <span class="n">make_axes_locatable</span>
         <span class="n">laxp</span> <span class="o">=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[:</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)]</span>
         <span class="n">laxp</span> <span class="o">+=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span>
                                  <span class="n">sharex</span><span class="o">=</span><span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sharey</span><span class="o">=</span><span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
@@ -3195,7 +3200,7 @@
             <span class="n">laxp</span> <span class="o">+=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span>
                                      <span class="n">sharex</span><span class="o">=</span><span class="n">laxp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sharey</span><span class="o">=</span><span class="n">laxp</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1.axes_divider</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>
+        <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1.axes_divider</span> <span class="k">import</span> <span class="n">make_axes_locatable</span>
         <span class="n">laxp</span> <span class="o">=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)]</span>
         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span><span class="p">):</span>
             <span class="n">laxp</span> <span class="o">+=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs1</span><span class="p">[</span><span class="mi">1</span><span class="o">+</span><span class="n">ii</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="o">+</span><span class="n">ii</span><span class="o">%</span><span class="mi">2</span><span class="p">],</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span>
@@ -3734,8 +3739,9 @@
       
     </p>
     <p>
-        &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+        &copy; Copyright 2016-2020, Tofu contributors.<br/>
+      Last updated on Jun 04, 2020.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>
 </footer>

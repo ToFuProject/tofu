@@ -12,7 +12,7 @@ This directory contains examples and tutorials for **tofu**.
 
 .. raw:: html
 
-    <div class="sphx-glr-clear"></div>
+    <div style='clear:both'></div>
 
 
 
@@ -25,13 +25,13 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s structure. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that aims to get a new user a little familiar with tofu&#x27;s structure.">
 
 .. only:: html
 
- .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_basic_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_basic_thumb.png
 
-     :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_basic.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_basic.py`
 
 .. raw:: html
 
@@ -45,13 +45,13 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to create a simple geometry. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to create a simple geometry.">
 
 .. only:: html
 
- .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_create_geometry_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_create_geometry_thumb.png
 
-     :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py`
 
 .. raw:: html
 
@@ -69,9 +69,9 @@ This directory contains tutorial examples for `tofu`.
 
 .. only:: html
 
- .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_custom_emissivity_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_custom_emissivity_thumb.png
 
-     :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py`
 
 .. raw:: html
 
@@ -85,13 +85,13 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial functions as a gallery of fusion machines that can easily be loaded with tofu. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial functions as a gallery of fusion machines that can easily be loaded with tofu.">
 
 .. only:: html
 
- .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_gallery_fusion_machines_thumb.png
+    .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_gallery_fusion_machines_thumb.png
 
-     :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py`
+        :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py`
 
 .. raw:: html
 
@@ -104,7 +104,7 @@ This directory contains tutorial examples for `tofu`.
    /auto_examples/tutorials/tuto_plot_gallery_fusion_machines
 .. raw:: html
 
-    <div class="sphx-glr-clear"></div>
+    <div style='clear:both'></div>
 
 
 
@@ -116,13 +116,13 @@ This directory contains tutorial examples for `tofu`.
 
   .. container:: sphx-glr-download
 
-    :download:`Download all examples in Python source code: auto_examples_python.zip <//Users/mendoza/tofu/doc/source/auto_examples/auto_examples_python.zip>`
+    :download:`Download all examples in Python source code: auto_examples_python.zip <//home/lasofivec/tofu/doc/source/auto_examples/auto_examples_python.zip>`
 
 
 
   .. container:: sphx-glr-download
 
-    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip <//Users/mendoza/tofu/doc/source/auto_examples/auto_examples_jupyter.zip>`
+    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip <//home/lasofivec/tofu/doc/source/auto_examples/auto_examples_jupyter.zip>`
 
 
 .. only:: html

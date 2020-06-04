@@ -27,7 +27,6 @@ This is a tutorial that shows you how to create a simple geometry.
 
 
 
-
 Creating an empty Vessel
 ------------------------
 
@@ -70,15 +69,6 @@ shape at the bottom:
     :class: sphx-glr-single-img
 
 
-.. rst-class:: sphx-glr-script-out
-
- Out:
-
- .. code-block:: none
-
-
-    (0.900292944643613, 3.099707055356387, -1.3099829327148826, 1.1096415870125362)
-
 
 
 Notice that the polygon does not have to be closed, ToFu will anyway check
@@ -103,7 +93,6 @@ geometry in time).
         Exp="Misc",
         shot=0
     )
-
 
 
 
@@ -140,8 +129,7 @@ object, it is advised not to modify it.
 
  .. code-block:: none
 
-    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b4-92-gf832ab7e
-
+    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.6-2-g7a0d42d4
 
 
 
@@ -164,7 +152,6 @@ polygon):
 
 .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_002.png
     :class: sphx-glr-single-img
-
 
 
 
@@ -192,8 +179,7 @@ it so that it can be used by other ToFu objects when necessary.
  .. code-block:: none
 
     Saved in :
-        /Users/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.2b4-92-gf832ab7e.npz
-
+        /home/lasofivec/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.6-2-g7a0d42d4.npz
 
 
 
@@ -272,20 +258,19 @@ otherwise the type must be specified.
 
  .. code-block:: none
 
-    /Users/mendoza/tofu/tofu/geom/_core.py:452: UserWarning: PFC instance: double identical points in Poly
+    /home/lasofivec/tofu/tofu/geom/_core.py:456: UserWarning: PFC instance: double identical points in Poly
       => 1 points removed
       => Poly goes from 100 to 99 points
       warnings.warn(msg)
     Saved in :
-        /Users/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.2b4-92-gf832ab7e.npz
-
+        /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.6-2-g7a0d42d4.npz
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.852 seconds)
+   **Total running time of the script:** ( 0 minutes  0.732 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry.py:

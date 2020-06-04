@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.geom.utils &#8212; tofu v1.4</title>
+    <title>tofu.geom.utils &#8212; Tofu 1.4.6</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -127,7 +127,7 @@
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._core</span> <span class="k">as</span> <span class="nn">_core</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_core</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_core</span>
 
 
 
@@ -167,7 +167,7 @@
     <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;The cocos (COordinates COnvetionS) are descibed in:</span><span class="se">\n</span><span class="s2">&quot;</span>
     <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    [1] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">_cocosref</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
 
         <span class="c1"># Call the base class constructor with the parameters it</span>
         <span class="c1"># needs</span>
@@ -759,6 +759,8 @@
 <span class="n">_ExpITER</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
 <span class="n">_ExpAUG</span> <span class="o">=</span> <span class="s1">&#39;AUG&#39;</span>
 <span class="n">_ExpNSTX</span> <span class="o">=</span> <span class="s1">&#39;NSTX&#39;</span>
+<span class="n">_ExpDEMO</span> <span class="o">=</span> <span class="s1">&#39;DEMO&#39;</span>
+<span class="n">_ExpTOMAS</span> <span class="o">=</span> <span class="s1">&#39;TOMAS&#39;</span>
 <span class="c1"># Default config</span>
 <span class="n">_DEFCONFIG</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
 
@@ -811,7 +813,15 @@
                                <span class="s1">&#39;TPLT4&#39;</span><span class="p">,</span> <span class="s1">&#39;TPLT5&#39;</span><span class="p">,</span> <span class="s1">&#39;TPRT2&#39;</span><span class="p">,</span> <span class="s1">&#39;TPRT3&#39;</span><span class="p">,</span> <span class="s1">&#39;TPRT4&#39;</span><span class="p">,</span>
                                <span class="s1">&#39;TPRT5&#39;</span><span class="p">]},</span>
             <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpNSTX</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]}</span>
+                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;DEMO-2019&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpDEMO</span><span class="p">,</span>
+                          <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">],</span>
+                          <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;LimiterUpperV0&#39;</span><span class="p">,</span> <span class="s1">&#39;LimiterEquatV0&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;BlanketInnerV0&#39;</span><span class="p">,</span> <span class="s1">&#39;BlanketOuterV0&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;DivertorV0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpTOMAS</span><span class="p">,</span>
+                         <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">],</span>
+                         <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;LimiterV0&#39;</span><span class="p">,</span> <span class="s1">&#39;AntennaV0&#39;</span><span class="p">]},</span>
             <span class="p">}</span>
 
 <span class="c1"># Each config can be called by various names / shortcuts (for benchmark and</span>
@@ -828,7 +838,9 @@
                       <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;AUG&#39;</span><span class="p">:</span> <span class="s1">&#39;AUG-V1&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;NSTX&#39;</span><span class="p">:</span> <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">}</span>
+                      <span class="s1">&#39;NSTX&#39;</span><span class="p">:</span> <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;DEMO&#39;</span><span class="p">:</span> <span class="s1">&#39;DEMO-2019&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;TOMAS&#39;</span><span class="p">:</span> <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">}</span>
 
 
 <span class="k">def</span> <span class="nf">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">,</span>
@@ -1229,8 +1241,9 @@
       
     </p>
     <p>
-        &copy; Copyright 2016-2019, Tofu contributors.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+        &copy; Copyright 2016-2020, Tofu contributors.<br/>
+      Last updated on Jun 04, 2020.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>
 </footer>
