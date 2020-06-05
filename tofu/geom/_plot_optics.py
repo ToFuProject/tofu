@@ -1103,6 +1103,10 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     if angunits is None:
         angunits = 'deg'
     assert angunits in ['deg', 'rad']
+
+
+
+
     phiflat = dfit2d['phi']
     pts_phi = dfit2d['pts_phi']
     ylim = np.r_[dfit2d['dinput']['phiminmax']]

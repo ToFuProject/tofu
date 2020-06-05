@@ -2577,7 +2577,7 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
                       phiminmax=None, symmetryaxis=None, sparse=None):
 
     if sparse is None:
-        sparse = True
+        sparse = False
 
     dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
         knots=None, deg=deg, nbsplines=nbsplines,
@@ -2585,9 +2585,8 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
         symmetryaxis=symmetryaxis)
 
     def cost(x, km=dbsplines['knots_mult'], data=None, phi=phi):
-        y = scpinterp.BSpline(km, x, deg,
-                              extrapolate=False, axis=0)(phi)
-        return y - data
+        return scpinterp.BSpline(km, x, deg,
+                                 extrapolate=False, axis=0)(phi) - data
 
     jac = np.zeros((phi.size, dbsplines['nbs']), dtype=float)
     km = dbsplines['knots_mult']
@@ -2612,9 +2611,10 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
 
 
 def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
-               nbsplines=None, symmetryaxis=None, lnbsplines=None,
+               nbsplines=None, symmetryaxis=None, lnbsplines=None, nbins=None,
                sparse=None, method=None, xtol=None, ftol=None, gtol=None,
-               loss=None, max_nfev=None, tr_solver=None, alpha=None, verb=None, timeit=None,
+               loss=None, max_nfev=None, tr_solver=None,
+               alpha=None, verb=None, timeit=None,
                plot=None, fs=None, cmap=None, dmargin=None):
 
     # ---------------
@@ -2622,9 +2622,9 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     if deg is None:
         deg = 2
     if nbsplines is None:
-        nbsplines = 15
+        nbsplines = 13
     if lnbsplines is None:
-        lnbsplines = np.arange(5, 25)
+        lnbsplines = np.arange(5, 20)
     lnbsplines = np.array(lnbsplines)
     if symmetryaxis is None:
         symmetryaxis = False
@@ -2643,6 +2643,8 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     if method is None:
         method = 'trf'
     assert method in ['trf', 'dogbox', 'lm'], method
+    if tr_solver is None:
+        tr_solver = 'exact'
     _TOL = 1.e-14
     if xtol is None:
         xtol = _TOL
@@ -2660,6 +2662,8 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
         verb = True
     if timeit is None:
         timeit = not verb
+    if nbins is None:
+        nbins = 15
 
     # ---------------
     # Get data
@@ -2675,8 +2679,8 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
         'dataphi1d': np.concatenate([dout[ff]['dataphi1d'] for ff in lf],
                                     axis=0),
         'data': np.concatenate([dout[ff]['data'] for ff in lf],
-                               axis=0),
-    }
+                               axis=0)}
+
     nlamb = dout[lf[0]]['binning'].tolist()['lamb']['nbins']
     coeflamb = nlamb / (nlamb - 1)
     dataphidmean = np.nanmean(dall['dataphi1d'], axis=1)
@@ -2704,10 +2708,14 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     else:
         alpha = np.full((dall['dataphi1d'].shape[0],), alpha)
     knots = None
-    dataphi1dnorm = dall['dataphi1d'] / np.nanmax(dall['dataphi1d'],
-                                                  axis=1)[:, None]
+    datamax = np.nanmax(dall['dataphi1d'], axis=1)
+    dataphi1dnorm = dall['dataphi1d'] / datamax[:, None]
     indj = (~dall['indnosignal']).nonzero()[0]
+    dataphi1dok = dall['dataphi1d'][indj, :]
     lchi2 = np.full((dall['dataphi1d'].shape[0], lnbsplines.size), np.nan)
+    shape = tuple(np.r_[dall['dataphi1d'].shape, lnbsplines.size])
+    err = np.full(shape, np.nan)
+    sol_x = np.full((dall['dataphi1d'].shape[0], nbsplines), np.nan)
     if timeit is True:
         t0 = dtm.datetime.now()
     for ii in range(lnbsplines.size):
@@ -2726,13 +2734,32 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
             res = scpopt.least_squares(
                 cost, x0, jac=jac,
                 method=method, ftol=ftol, xtol=xtol, gtol=gtol,
-                x_scale=1.0, f_scale=1.0, loss=loss, diff_step=None,
+                x_scale='jac', f_scale=1.0, loss=loss, diff_step=None,
                 tr_solver=tr_solver, tr_options={}, jac_sparsity=None,
                 max_nfev=max_nfev, verbose=0, args=(),
                 kwargs={'data': dataphi1dnorm[indj[jj], :]})
 
             lchi2[indj[jj], ii] = np.nansum(
                 cost(x=res.x, data=dataphi1dnorm[indj[jj], :])**2)
+            err[indj[jj], :, ii] = (cost(res.x, data=0.) * datamax[indj[jj]]
+                                    - dall['dataphi1d'][indj[jj], :])
+            if lnbsplines[ii] == nbsplines:
+                sol_x[indj[jj], :] = res.x
+    dall['err'] = err
+
+    # Mean and var of err
+    errok = err[indj, :]
+    dataphi1dbin = np.linspace(0., np.nanmax(dataphi1dok), nbins)
+    indbin = np.searchsorted(dataphi1dbin, dataphi1dok)
+    errbin_mean = np.full((dataphi1dbin.size, lnbsplines.size), np.nan)
+    errbin_var = np.full((dataphi1dbin.size, lnbsplines.size), np.nan)
+    alpha_err = np.full((lnbsplines.size,), np.nan)
+    for ii in range(dataphi1dbin.size):
+        nok = (~np.isnan(errok[indbin==ii])).sum()
+        errbin_mean[ii, :] = np.nanmean(errok[indbin==ii], axis=0)
+        errbin_var[ii, :] = (np.nanstd(errok[indbin==ii], axis=0)**2
+                             * (nok-1)/nok)
+
     if timeit is True:
         dall['timeit'] = (dtm.datetime.now()-t0).total_seconds()
     lchi2 = lchi2 / np.nanmax(lchi2, axis=1)[:, None]
@@ -2741,11 +2768,59 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
         knots=None, deg=deg, nbsplines=nbsplines,
         phimin=phiminmax[0], phimax=phiminmax[1],
         symmetryaxis=symmetryaxis)
-    dall['fitphi1d'] = np.array([scpinterp.LSQUnivariateSpline(
-        dall['phi1d'], dataphi1dnorm[ii, :], dbsplines['knots'][1:-1],
-        w=None, bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
-        k=deg, ext=0, check_finite=False)(dall['phi1d'])
-        for ii in range(dall['dataphi1d'].shape[0])])
+    dall['fitphi1d'] = np.full(dall['dataphi1d'].shape, np.nan)
+    for ii in indj:
+        dall['fitphi1d'][ii, :] = scpinterp.BSpline(
+            dbsplines['knots_mult'],
+            sol_x[ii, :], dbsplines['deg'],
+            extrapolate=False, axis=0)(dall['phi1d'])
+
+    dall['dataphi1dbin'] = dataphi1dbin
+    dall['errbin_mean'] = errbin_mean
+    dall['errbin_var'] = errbin_var
+    dall['indbin'] = indbin
+
+    # ---------
+    # Debug
+    # ijk = np.any(dall['dataphi1d'] > 1100, axis=1)
+    # ijk = np.nonzero(ijk)[0]
+    # plt.figure(figsize=(18, 6))
+    # for ii in range(len(ijk)):
+        # plt.subplot(1, len(ijk), ii+1)
+        # tit = "{} - t = {} s".format(dall['shot'][ijk[ii]],
+                                     # dall['t'][ijk[ii]])
+        # plt.gca().set_title(tit)
+        # plt.plot(dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
+                 # c='k', marker='.', ls='None')
+        # plt.plot(dall['phi1d'], dall['fitphi1d'][ijk[ii], :]*datamax[ijk[ii]],
+                 # c='r', marker='None', ls='-')
+        # dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
+            # knots=None, deg=deg, nbsplines=nbsplines-1,
+            # phimin=phiminmax[0], phimax=phiminmax[1],
+            # symmetryaxis=symmetryaxis)
+        # fitphi1dtemp = scpinterp.LSQUnivariateSpline(
+            # dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
+            # dbsplines['knots'][1:-1], w=None,
+            # bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
+            # k=deg, ext=0, check_finite=False)(dall['phi1d'])
+        # plt.plot(dall['phi1d'], fitphi1dtemp,
+                 # c='g', marker='None', ls='-')
+        # dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
+            # knots=None, deg=deg, nbsplines=nbsplines+1,
+            # phimin=phiminmax[0], phimax=phiminmax[1],
+            # symmetryaxis=symmetryaxis)
+        # fitphi1dtemp = scpinterp.LSQUnivariateSpline(
+            # dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
+            # dbsplines['knots'][1:-1], w=None,
+            # bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
+            # k=deg, ext=0, check_finite=False)(dall['phi1d'])
+        # plt.plot(dall['phi1d'], fitphi1dtemp,
+                 # c='b', marker='None', ls='-')
+
+    # import pdb; pdb.set_trace()     # DB
+    # End debug
+    # --------------
+
 
     if plot is False:
         return dall
@@ -2764,16 +2839,10 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     tstr1 = '(t > {} s)'.format(tnoise)
 
     fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(2, 4, **dmargin)
+    gs = gridspec.GridSpec(3, 4, **dmargin)
 
     shx0, shy0, shx1, shy1, shx2, shy2 = None, None, None, None, None, None
-    dax = {'nosignal_mean2d': None,
-           'nosignal_var2d': None,
-           'nosignal_mean': None,
-           'nosignal_var': None,
-           'signal_mean': None,
-           'signal_var': None,
-           'signal_conv': None}
+    dax = {}
     dax['nosignal_mean2d'] = fig.add_subplot(gs[0, 0])
     dax['nosignal_var2d'] = fig.add_subplot(gs[1, 0],
                                             sharex=dax['nosignal_mean2d'],
@@ -2785,22 +2854,38 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                                           sharey=dax['nosignal_mean2d'])
     dax['signal_fit'] = fig.add_subplot(gs[0, 2],
                                         sharey=dax['nosignal_mean2d'])
-    dax['signal_err'] = fig.add_subplot(gs[1, 2],
-                                        sharey=dax['nosignal_mean2d'])
+    dax['signal_chi2'] = fig.add_subplot(gs[1, 2],
+                                         sharey=dax['nosignal_mean2d'])
     dax['signal_conv'] = fig.add_subplot(gs[0, 3])
+    dax['signal_err'] = fig.add_subplot(gs[1, 3])
+    dax['signal_err_hist'] = fig.add_subplot(gs[2, 0])
+    dax['signal_err_mean'] = fig.add_subplot(gs[2, 1])
+    dax['signal_err_var'] = fig.add_subplot(gs[2, 2])
     dax['nosignal_mean2d'].set_title('mean of noise\nno signal ' + tstr0)
     dax['nosignal_var2d'].set_title('variance of noise\nno signal ' + tstr0)
     dax['nosignal_mean'].set_title('mean of noise\nno signal ' + tstr0)
     dax['nosignal_var'].set_title('variance of noise\nno signal ' + tstr0)
     dax['signal_fit'].set_title('fit of mean signal' + tstr1)
-    dax['signal_err'].set_title('fit error' + tstr1)
+    dax['signal_chi2'].set_title('fit chi2' + tstr1)
     dax['signal_conv'].set_title('Convergence')
+    dax['signal_err'].set_title('Error')
+    dax['signal_err_hist'].set_title('Error histogram')
+    dax['signal_err_mean'].set_title('Error mean')
+    dax['signal_err_var'].set_title('Error var')
 
     dax['nosignal_mean2d'].set_ylabel('phi (rad)')
     dax['nosignal_var2d'].set_ylabel('phi (rad)')
     dax['nosignal_var2d'].set_xlabel('lamb (m)')
     dax['signal_conv'].set_xlabel('nbsplines')
     dax['signal_conv'].set_ylabel(r'$\chi^2$')
+    dax['signal_err'].set_xlabel('data')
+    dax['signal_err'].set_ylabel('error')
+    dax['signal_err_hist'].set_xlabel('error')
+    dax['signal_err_hist'].set_ylabel('occurences')
+    dax['signal_err_mean'].set_xlabel('data')
+    dax['signal_err_mean'].set_ylabel('error mean')
+    dax['signal_err_var'].set_xlabel('data')
+    dax['signal_err_var'].set_ylabel('error var')
 
     # Plot data
     dax['nosignal_mean2d'].imshow(dall['nosignal_mean'].T,
@@ -2813,6 +2898,7 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                                  vmin=0, vmax=5)
 
     col = None
+    dataph1dflat = dall['dataphi1d'].ravel()
     for ii in range(shotu.size):
         # No signal
         ind = (dall['indnosignal'] & (dall['shot'] == shotu[ii])).nonzero()[0]
@@ -2845,7 +2931,7 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                                    dall['phi1d'],
                                    ls='-', marker='None', lw=1., c=col,
                                    alpha=alpha[ind[jj]])
-            dax['signal_err'].plot((dall['fitphi1d'][ind[jj], :]
+            dax['signal_chi2'].plot((dall['fitphi1d'][ind[jj], :]
                                     - dataphi1dnorm[ind[jj], :]),
                                    dall['phi1d'],
                                    ls='-', marker='None', lw=1., c=col,
@@ -2856,6 +2942,54 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                                     ls='-', marker='.', lw=1., c=col,
                                     alpha=alpha[ind[jj]])
 
+    # Error
+    lnbsplinesok = np.r_[10, 11, 12, 13, 14, 15, 16]
+    dista = np.abs(lnbsplinesok - nbsplines)
+    alpha_err = (1. - dista/np.max(dista))
+    for jj in range(lnbsplinesok.size):
+        indjj = (lnbsplines == lnbsplinesok[jj]).nonzero()[0]
+        if indjj.size == 0:
+            continue
+        indjj = indjj[0]
+        lab = '{} bsplines'.format(lnbsplinesok[jj])
+        l, = dax['signal_err'].plot(dataph1dflat,
+                                    dall['err'][:, :, indjj].ravel(),
+                                    ls='None', marker='.', alpha=alpha_err[jj])
+        col = l.get_color()
+        if lnbsplinesok[jj] == nbsplines:
+            for ii in range(nbins):
+                if np.any(indbin==ii):
+                    dax['signal_err_hist'].hist(errok[indbin==ii, jj],
+                                                bins=10, density=True)
+        dax['signal_err_mean'].plot(dataphi1dbin,
+                                    errbin_mean[:, indjj],
+                                    ls='None', marker='.', c=col,
+                                    alpha=alpha_err[jj])
+        dax['signal_err_var'].plot(dataphi1dbin,
+                                   errbin_var[:, indjj],
+                                   ls='None', marker='.', c=col,
+                                   alpha=alpha_err[jj],
+                                   label=lab)
+
+    if nbsplines in lnbsplines:
+        indjbs = (lnbsplines == nbsplines).nonzero()[0][0]
+        dax['signal_err_mean'].axhline(0., c='k', ls='--')
+        indok = ~np.isnan(errbin_var[:, indjbs])
+        pf = np.polyfit(dataphi1dbin[indok],
+                        np.sqrt(errbin_var[indok, indjbs]), 1)
+        dax['signal_err_var'].plot(dataphi1dbin,
+                                   np.polyval(pf, dataphi1dbin)**2,
+                                   c='k', ls='--')
+
+        txt = '({:5.3e}x + {:5.3e})^2'.format(pf[0], pf[1])
+        dax['signal_err_var'].annotate(txt,
+                                       xy=(500, 200),
+                                       xycoords='data',
+                                       horizontalalignment='center',
+                                       verticalalignment='center',
+                                       rotation=np.arctan(np.sqrt(pf[0])),
+                                       size=8)
+
     dax['nosignal_mean'].plot(dall['nosignal_1dmean'],  dall['phi1d'],
                               ls='-', marker='None', lw=2., c='k')
     dax['nosignal_var'].plot(dall['nosignal_1dvar'], dall['phi1d'],
@@ -2864,5 +2998,6 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     dax['nosignal_mean2d'].set_xlim(lambminmax)
     dax['nosignal_mean2d'].set_ylim(phiminmax)
     #dax['nosignal_mean'].set_ylim(phiminmax)
-
+    dax['signal_err_var'].legend(loc='center left',
+                                 bbox_to_anchor=(1., 0.5))
     return dall, dax
