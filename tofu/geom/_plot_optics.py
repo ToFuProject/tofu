@@ -97,9 +97,10 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
 # #################################################################
 # #################################################################
 
-def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
+def CrystalBragg_plot(cryst=None, dax=None, proj=None, res=None, element=None,
                       color=None, dP=None,
                       det_cent=None, det_nout=None, det_ei=None, det_ej=None,
+                      pts0=None, pts1=None, rays_color=None, rays_npts=None,
                       dI=None, dBs=None, dBv=None,
                       dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                       dleg=None, indices=False,
@@ -111,7 +112,7 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
     if Test:
         msg = "Arg proj must be in ['cross','hor','all','3d'] !"
         assert type(draw) is bool, "Arg draw must be a bool !"
-        assert cryst.__class__.__name__ == 'CrystalBragg'
+        assert cryst is None or cryst.__class__.__name__ == 'CrystalBragg'
     if wintit is None:
         wintit = _WINTIT
     if dleg is None:
@@ -125,11 +126,11 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
         # Temporary matplotlib issue
         dleg = None
     else:
-        dax = _CrystalBragg_plot_crosshor(cryst, proj=proj, res=res, dax=lax,
-                                          element=element, color=color,
-                                          det_cent=det_cent, det_nout=det_nout,
-                                          det_ei=det_ei, det_ej=det_ej,
-                                          draw=draw, fs=fs, wintit=wintit)
+        dax = _CrystalBragg_plot_crosshor(
+            cryst=cryst, proj=proj, res=res, dax=dax, element=element,
+            color=color, det_cent=det_cent, det_nout=det_nout,
+            pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
+            det_ei=det_ei, det_ej=det_ej, draw=draw, fs=fs, wintit=wintit)
 
     # recompute the ax.dataLim
     ax0 = None
@@ -150,15 +151,18 @@ def CrystalBragg_plot(cryst, lax=None, proj=None, res=None, element=None,
     return dax
 
 
-def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
+def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
                                 element=None, res=None,
                                 det_cent=None, det_nout=None,
                                 det_ei=None, det_ej=None,
-                                Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
-                                Bvdict=_def.TorBvd, Vdict=_def.TorVind,
-                                color=None, ms=None, quiver_cmap=None,
-                                LegDict=_def.TorLegd, indices=False,
-                                draw=True, fs=None, wintit=None, Test=True):
+                                pts0=None, pts1=None,
+                                rays_color=None, rays_npts=None,
+                                Pdict=_def.TorPd, Idict=_def.TorId,
+                                Bsdict=_def.TorBsd, Bvdict=_def.TorBvd,
+                                Vdict=_def.TorVind, color=None, ms=None,
+                                quiver_cmap=None,  LegDict=_def.TorLegd,
+                                indices=False, draw=True,
+                                fs=None, wintit=None, Test=True):
     if Test:
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, "Arg Idict should be a dictionary !"
@@ -170,18 +174,43 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
     # ---------------------
     # Check / format inputs
 
+    lelement = ['s', 'c', 'r', 'o', 'v']
     if element is None:
         element = 'oscvr'
     element = element.lower()
     if 'v' in element and quiver_cmap is None:
         quiver_cmap = _QUIVERCOLOR
     if color is None:
-        if cryst._dmisc.get('color') is not None:
+        if cryst is not None and cryst._dmisc.get('color') is not None:
             color = cryst._dmisc['color']
         else:
             color = 'k'
     if ms is None:
         ms = 6
+
+    lc = [ss in element for ss in lelement]
+    if any(lc) and cryst is None:
+        msg = ("cryst cannot be None if element contains any of:\n"
+               + "\t- {}".format(lelement))
+        raise Exception(msg)
+
+    lc = [pts0 is None, pts1 is None]
+    c0 = (np.sum(lc) == 1
+          or (not any(lc)
+              and (pts0.shape != pts1.shape or pts0.shape[0] != 3)))
+    if c0:
+        msg = ("pts0 and pts1 must be:\n"
+               + "\t- both None\n"
+               + "\t- both np.ndarray of same shape, with shape[0] == 3\n"
+               + "  You provided:\n"
+               + "\t- pts0: {}\n".format(pts0)
+               + "\t- pts1: {}".format(pts1))
+        raise Exception(msg)
+    if pts0 is not None:
+        if rays_color is None:
+            rays_color = 'k'
+        if rays_npts is None:
+            rays_npts = 10
 
     # ---------------------
     # Prepare axe and data
@@ -260,6 +289,7 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
                               angles='xy', scale_units='xy',
                               label=cryst.Id.NameLTX+" unit vect", **Vdict)
 
+    # -------------
     # Detector
     sc = None
     if det_cent is not None:
@@ -289,6 +319,28 @@ def _CrystalBragg_plot_crosshor(cryst, proj=None, dax=None,
                               np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                               angles='xy', scale_units='xy',
                               label="det unit vect", **Vdict)
+
+    # -------------
+    # pts0 and pts1
+    if pts0 is not None:
+        if pts0.ndim == 3:
+            pts0 = np.reshape(pts0, (3, pts0.shape[1]*pts0.shape[2]))
+            pts1 = np.reshape(pts1, (3, pts1.shape[1]*pts1.shape[2]))
+        if dax['cross'] is not None:
+            k = np.r_[np.linspace(0, 1, rays_npts), np.nan]
+            pts01 = np.reshape((pts0[:, :, None]
+                                + k[None, None, :]*(pts1-pts0)[:, :, None]),
+                               (3, pts0.shape[1]*(rays_npts+1)))
+            linesr = np.hypot(pts01[0, :], pts01[1, :])
+            dax['cross'].plot(linesr, pts01[2, :],
+                              color=rays_color, lw=1., ls='-')
+        if dax['hor'] is not None:
+            k = np.r_[0, 1, np.nan]
+            pts01 = np.reshape((pts0[:2, :, None]
+                                + k[None, None, :]*(pts1-pts0)[:2, :, None]),
+                               (2, pts0.shape[1]*3))
+            dax['hor'].plot(pts01[0, :], pts01[1, :],
+                            color=rays_color, lw=1., ls='-')
 
     return dax
 

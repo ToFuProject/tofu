@@ -1021,6 +1021,29 @@ class CrystalBragg(utils.ToFuObject):
             return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
                             Exp=self.Id.Exp, shot=self.Id.shot, config=config)
 
+    def get_Rays_from_summit_to_det(self, phi=None, bragg=None,
+                                    lamb=None, n=None,
+                                    returnas=object, det=None):
+
+        # Check input 
+        det = self._checkformat_det(det)
+        if det is False:
+            msg = "det is required in get_Rays_from_summit_to_det()!"
+            raise Exception(msg)
+
+        # Get starting point and vectors
+        D, us = self.get_Rays_from_summit(phi=phi, bragg=bragg,
+                                          lamb=lamb, n=n,
+                                          returnas=tuple)
+
+        # Compute pts on det surface
+        k = (np.sum((det['cent']-D)*det['nout'], axis=0)
+             / np.sum(us*det['nout'][:, None, None], axis=0))
+        pts = D[:, None, None] + k[None, :, :]*us
+
+        # Format output
+        return (D, pts)
+
     def get_Rays_envelop(self,
                          phi=None, bragg=None, lamb=None, n=None,
                          returnas=object, config=None, name=None):
@@ -1052,7 +1075,7 @@ class CrystalBragg(utils.ToFuObject):
     # methods for general plotting
     # -----------------
 
-    def plot(self, lax=None, proj=None, res=None, element=None,
+    def plot(self, dax=None, proj=None, res=None, element=None,
              color=None, det=None,
              dP=None, dI=None, dBs=None, dBv=None,
              dVect=None, dIHor=None, dBsHor=None,
@@ -1062,10 +1085,51 @@ class CrystalBragg(utils.ToFuObject):
         lout = ['self']
         for k in lout:
             del kwdargs[k]
-        if det is not None:
+        if det is None:
+            det = False
+        det = self._checkformat_det(det)
+        if det is not False:
             kwdargs.update({'det_'+kk: vv for kk, vv in det.items()})
         del kwdargs['det']
         return _plot_optics.CrystalBragg_plot(self, **kwdargs)
+
+    def plot_rays_from_summit(self, phi=None, bragg=None, lamb=None,
+                              n=None, config=None, det=None,
+                              color=None, npts=None, proj=None,
+                              dax=None, fs=None, wintit=None, dleg=None):
+        """ plot rays from the crystal summit to the tokamak amd/or to det
+
+        phi is understood as the angle towards the tokamak
+        phi+np.pi is the angle towards the detector
+
+        """
+
+        if config is not None:
+            cam = self.get_Rays_from_summit(
+                phi=phi, lamb=lamb, bragg=bragg,
+                n=n, config=config, returnas=object)
+            pts0 = cam.D
+            pts1 = cam.D + cam.kOut[None, :] * cam.u
+            dax = _plot_optics.CrystalBragg_plot(
+                cryst=None, element='', pts0=pts0, pts1=pts1,
+                rays_color=color, rays_npts=npts,
+                proj=proj, dax=dax, fs=fs, wintit=wintit, dleg=dleg)
+
+        if det is None:
+            det = False
+        if det is not False:
+            (D, pts_det) = self.get_Rays_from_summit_to_det(
+                phi=phi + np.pi, lamb=lamb, bragg=bragg,
+                n=n, det=det, returnas=tuple)
+            pts0 = np.array([np.full(pts_det.shape[1:], D[0]),
+                             np.full(pts_det.shape[1:], D[1]),
+                             np.full(pts_det.shape[1:], D[2])])
+            pts1 = pts_det
+            dax = _plot_optics.CrystalBragg_plot(
+                cryst=None, element='', pts0=pts0, pts1=pts1,
+                proj=proj, dax=dax, rays_color=color,
+                fs=fs, wintit=wintit, dleg=dleg)
+        return dax
 
     # -----------------
     # methods for generic first-approx
@@ -1081,8 +1145,6 @@ class CrystalBragg(utils.ToFuObject):
         # Compute phi
 
         return phi
-
-
 
     def get_bragg_from_lamb(self, lamb=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
@@ -1213,6 +1275,40 @@ class CrystalBragg(utils.ToFuObject):
         return {'cent': det_cent, 'nout': det_nout,
                 'ei': det_ei, 'ej': det_ej}
 
+    def _checkformat_det(self, det=None):
+        lc = [det is None, det is False, isinstance(det, dict)]
+        msg = ("det must be:\n"
+               + "\t- False: not det provided\n"
+               + "\t- None:  use default approx det from:\n"
+               + "\t           self.get_detector_approx(lamb=self._DEFLAMB)\n"
+               + "\t- dict:  a dictionary of 3d (x,y,z) coordinates of a point"
+               + " (local frame center) and 3 unit vectors forming a direct "
+               + "orthonormal basis attached to the detector's frame\n"
+               + "\t\t\t\t- 'cent': detector center\n"
+               + "\t\t\t\t- 'nout': unit vector perpendicular to surface, "
+               + "in direction of the crystal\n"
+               + "\t\t\t\t- 'ei': unit vector, first coordinate on surface\n"
+               + "\t\t\t\t- 'ej': unit vector, second coordinate on surfacei\n"
+               + "  You provided: {}".format(det))
+        if not any(lc):
+            raise Exception(msg)
+        if lc[0]:
+            det = self.get_detector_approx(lamb=self._DEFLAMB)
+        elif lc[2]:
+            lk = ['cent', 'nout', 'ei', 'ej']
+            c0 = (isinstance(det, dict)
+                  and all([(k0 in lk
+                            and hasattr(v0, '__iter__')
+                            and np.atleast_1d(v0).size == 3
+                            and not np.any(np.isnan(v0)))
+                           for k0, v0 in det.items()]))
+            if not c0:
+                raise Exception(msg)
+            for k0 in det.keys():
+                det[k0] = np.atleast_1d(det[k0]).ravel()
+        return det
+
+
     def get_local_noute1e2(self, dtheta, psi):
         """ Return (nout, e1, e2) associated to pts on the crystal's surface
 
@@ -1312,9 +1408,7 @@ class CrystalBragg(utils.ToFuObject):
                 raise Exception(msg)
 
         # Check / get det
-        assert all(lc) or not any(lc)
-        if det is None:
-            det = self.get_detector_approx(lamb=self._DEFLAMB)
+        det = self._checkformat_det(det)
 
         # Get local summit nout, e1, e2 if non-centered
         if dtheta is None:
@@ -1377,9 +1471,7 @@ class CrystalBragg(utils.ToFuObject):
 
         # Check / format inputs
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
-
-        if det is None:
-            det = self.get_detector_approx(lamb=self._DEFLAMB)
+        det = self._checkformat_det(det)
 
         # Get local summit nout, e1, e2 if non-centered
         if dtheta is None:
@@ -1538,8 +1630,7 @@ class CrystalBragg(utils.ToFuObject):
 
         # Check / format pts
         pts = self._checkformat_pts(pts)
-        if det is None:
-            det = self.get_detector_approx(lamb=self._DEFLAMB)
+        det = self._checkformat_det(det)
 
         # Get local summit nout, e1, e2 if non-centered
         dtheta, psi = self._checkformat_dthetapsi(psi=psi, dtheta=dtheta)
@@ -1562,8 +1653,7 @@ class CrystalBragg(utils.ToFuObject):
         pts = self._checkformat_pts(pts)
         npts = pts.shape[1]
 
-        if det is None:
-            det = self.get_detector_approx(lamb=self._DEFLAMB)
+        det = self._checkformat_det(det)
 
         if lamb is None:
             lamb = self._DEFLAMB
@@ -1632,8 +1722,7 @@ class CrystalBragg(utils.ToFuObject):
         # assert dtheta.shape == (nlamb, npts, ndtheta)
 
         # Check / get det
-        if det is None:
-            det = self.get_detector_approx(lamb=self._DEFLAMB)
+        det = self._checkformat_det(det)
 
         # Compute xi, xj of refelxion (phi -> phi + np.pi)
         xi, xj = self.calc_xixj_from_braggphi(
