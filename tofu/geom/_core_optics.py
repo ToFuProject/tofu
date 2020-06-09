@@ -911,7 +911,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot_rockingcurve(self, lamb=None, n=None, sigma=None,
                           npts=None, color=None, ang_units=None,
-                          fs=None, ax=None, legend=None):
+                          dmargin=None, fs=None, ax=None, legend=None):
         drock = self.rockingcurve
         func, lamb, bragg = self.get_rockingcurve_func(lamb=lamb, n=n)
         axtit = 'Rocking curve for ' + self.Id.Name
@@ -1080,7 +1080,7 @@ class CrystalBragg(utils.ToFuObject):
              dP=None, dI=None, dBs=None, dBv=None,
              dVect=None, dIHor=None, dBsHor=None,
              dBvHor=None, dleg=None,
-             draw=True, fs=None, wintit=None, Test=True):
+             draw=True, dmargin=None, fs=None, wintit=None, Test=True):
         kwdargs = locals()
         lout = ['self']
         for k in lout:
@@ -1297,14 +1297,14 @@ class CrystalBragg(utils.ToFuObject):
         elif lc[2]:
             lk = ['cent', 'nout', 'ei', 'ej']
             c0 = (isinstance(det, dict)
-                  and all([(k0 in lk
-                            and hasattr(v0, '__iter__')
-                            and np.atleast_1d(v0).size == 3
-                            and not np.any(np.isnan(v0)))
-                           for k0, v0 in det.items()]))
+                  and all([(kk in det.keys()
+                            and hasattr(det[kk], '__iter__')
+                            and np.atleast_1d(det[kk]).size == 3
+                            and not np.any(np.isnan(det[kk])))
+                           for kk in lk]))
             if not c0:
                 raise Exception(msg)
-            for k0 in det.keys():
+            for k0 in lk:
                 det[k0] = np.atleast_1d(det[k0]).ravel()
         return det
 
@@ -1374,7 +1374,7 @@ class CrystalBragg(utils.ToFuObject):
                                 bragg=None, lamb=None, n=None,
                                 dtheta=None, psi=None,
                                 det=None, data=None,
-                                plot=True, ax=None):
+                                plot=True, dax=None):
         """ Assuming crystal's summit as frame origin
 
         According to [1], this assumes a local frame centered on the crystal
@@ -1424,8 +1424,8 @@ class CrystalBragg(utils.ToFuObject):
                                                       nout, e1, e2,
                                                       bragg, phi)
         if plot:
-            func = _plot_optics.CrystalBragg_plot_approx_detector_params
-            ax = func(bragg, xi, xj, data, ax)
+            dax = _plot_optics.CrystalBragg_plot_approx_detector_params(
+                bragg, xi, xj, data, dax)
         return xi, xj
 
     @staticmethod
@@ -1465,9 +1465,10 @@ class CrystalBragg(utils.ToFuObject):
         return dtheta, psi
 
 
-    def calc_phibragg_from_xixj(self, xi, xj, n=None,
+    def calc_braggphi_from_xixj(self, xi, xj, n=None,
                                 det=None, dtheta=None, psi=None,
-                                plot=True, ax=None, **kwdargs):
+                                plot=True, ax=None,
+                                fs=None, **kwdargs):
 
         # Check / format inputs
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -1484,15 +1485,16 @@ class CrystalBragg(utils.ToFuObject):
         bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
             det['cent'], det['ei'], det['ej'],
             summit, -nout, e1, e2,
-            xi=xi, xj=xj)
+            xi=xii, xj=xjj)
 
-        if plot != False:
-            lax = _plot_optics.CrystalBragg_plot_braggangle_from_xixj(
+        if plot is not False:
+            ax = _plot_optics.CrystalBragg_plot_braggangle_from_xixj(
                 xi=xii, xj=xjj,
                 ax=ax, plot=plot,
                 bragg=bragg * 180./np.pi,
                 angle=phi * 180./np.pi,
-                braggunits='deg', angunits='deg', **kwdargs)
+                braggunits='deg', angunits='deg',
+                fs=fs, **kwdargs)
         return bragg, phi
 
     def plot_line_on_det_tracing(self, lamb=None, n=None,
@@ -1515,7 +1517,7 @@ class CrystalBragg(utils.ToFuObject):
                           xj_bounds[1], xj_bounds[0]]])
 
         # Compute lamb / phi
-        _, phi = self.calc_phibragg_from_xixj(detb[0, :], detb[1, :], n=n,
+        _, phi = self.calc_braggphi_from_xixj(detb[0, :], detb[1, :], n=n,
                                               det=det, dtheta=None,
                                               psi=None, plot=False)
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
@@ -1597,7 +1599,7 @@ class CrystalBragg(utils.ToFuObject):
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        bragg, phi = self.calc_phibragg_from_xixj(
+        bragg, phi = self.calc_braggphi_from_xixj(
             xii, xjj, n=n,
             det=det, dtheta=None, psi=None, plot=False)
         assert bragg.shape == phi.shape
@@ -1613,7 +1615,7 @@ class CrystalBragg(utils.ToFuObject):
         assert npsi == ldtheta.size
         lamberr = np.full(tuple(np.r_[npsi, lamb.shape]), np.nan)
         phierr = np.full(lamberr.shape, np.nan)
-        braggerr, phierr = self.calc_phibragg_from_xixj(
+        braggerr, phierr = self.calc_braggphi_from_xixj(
             xii, xjj, n=n,
             det=det, dtheta=ldtheta, psi=lpsi, plot=False)
         lamberr = self.get_lamb_from_bragg(braggerr, n=n)
@@ -1808,7 +1810,7 @@ class CrystalBragg(utils.ToFuObject):
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        bragg, phi = self.calc_phibragg_from_xixj(
+        bragg, phi = self.calc_braggphi_from_xixj(
             xii, xjj, n=n, det=det,
             dtheta=dtheta, psi=psi, plot=False)
         assert bragg.shape == phi.shape == data.shape
@@ -1850,7 +1852,7 @@ class CrystalBragg(utils.ToFuObject):
             xjcut = np.sort(np.atleast_1d(xjcut).ravel())
             xicutf = np.tile(xi, (xjcut.size, 1))
             xjcutf = np.repeat(xjcut[:, None], nxi, axis=1)
-            braggcut, phicut = self.calc_phibragg_from_xixj(
+            braggcut, phicut = self.calc_braggphi_from_xixj(
                 xicutf, xjcutf, n=1,
                 dtheta=None, psi=None, plot=False, det=det)
             lambcut = self.get_lamb_from_bragg(braggcut, n=1)
@@ -1907,7 +1909,7 @@ class CrystalBragg(utils.ToFuObject):
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        bragg, phi = self.calc_phibragg_from_xixj(
+        bragg, phi = self.calc_braggphi_from_xixj(
             xii, xjj, n=n, det=det,
             dtheta=dtheta, psi=psi, plot=False)
         assert bragg.shape == phi.shape == data.shape
@@ -1989,7 +1991,7 @@ class CrystalBragg(utils.ToFuObject):
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
-        bragg, phi = self.calc_phibragg_from_xixj(xii, xjj, n=n,
+        bragg, phi = self.calc_braggphi_from_xixj(xii, xjj, n=n,
                                                   det=det, dtheta=dtheta,
                                                   psi=psi, plot=False)
         assert bragg.shape == phi.shape
