@@ -111,7 +111,8 @@ Structdict['dP'] = StructPd_Tor
 # -------------- Figures ------------------------
 
 
-def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
+def Plot_LOSProj_DefAxes(Mode, Type='Tor',
+                         dmargin=None, fs=None, wintit='tofu'):
     assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
     assert Mode.lower() in ['cross','hor','all'], "Arg should be 'Cross' or 'Hor' or 'All' !"
     assert Type in ['Tor','Lin'], "Arg Type must be in ['Tor','Lin'] !"
@@ -124,10 +125,13 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
         f.canvas.set_window_title(wintit)
-    if Mode.lower()=='all':
-        axPosP, axPosT = [0.07, 0.1, 0.3, 0.8], [0.55, 0.1, 0.3, 0.8]
-        axP = f.add_axes(axPosP,frameon=True,facecolor=axCol)
-        axT = f.add_axes(axPosT,frameon=True,facecolor=axCol)
+    if Mode.lower() == 'all':
+        if dmargin is None:
+            dmargin = {'left': 0.07, 'right': 0.85, 'bottom': 0.1, 'top': 0.8,
+                       'wspace': 0.1, 'hspace': 0.1}
+        gs = gridspec.GridSpec(1, 2, **dmargin)
+        axP = f.add_subplot(gs[0, 0], frameon=True,facecolor=axCol)
+        axT = f.add_subplot(gs[0, 1], frameon=True,facecolor=axCol)
         if Type=='Tor':
             axP.set_xlabel(r"R (m)"),   axP.set_ylabel(r"Z (m)")
         else:
@@ -135,12 +139,14 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
         axT.set_xlabel(r"X (m)"),   axT.set_ylabel(r"Y (m)")
         axP.set_aspect(aspect="equal", adjustable='datalim')
         axT.set_aspect(aspect="equal", adjustable='datalim')
-        ax = [axP,axT]
+        ax = [axP, axT]
     else:
-        axPos = [0.15, 0.15, 0.6, 0.7]
-        ax = f.add_axes(axPos,frameon=True,facecolor=axCol)
+        if dmargin is None:
+            dmargin = {'left': 0.15, 'right': 0.7, 'bottom': 0.15, 'top': 0.7}
+        gs = gridspec.GridSpec(1, 1, **dmargin)
+        ax = f.add_subplot(gs[0, 0], frameon=True,facecolor=axCol)
         if Mode == 'Cross':
-            if Type=='Tor':
+            if Type == 'Tor':
                 ax.set_xlabel(r"R (m)"),    ax.set_ylabel(r"Z (m)")
             else:
                 ax.set_xlabel(r"Y (m)"),    ax.set_ylabel(r"Z (m)")
@@ -149,18 +155,20 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
         ax.set_aspect(aspect="equal", adjustable='datalim')
     return ax
 
-def Plot_3D_plt_Tor_DefAxes(fs=None, wintit='tofu'):
+def Plot_3D_plt_Tor_DefAxes(dmargin=None, fs=None, wintit='tofu'):
     assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
     axCol, fdpi = 'w', 80
     if fs is None:
-        fs = (14,10)
+        fs = (14, 10)
     elif type(fs) is str and fs=='a4':
-        fs = (11.69,8.27)
+        fs = (11.69, 8.27)
+    if dmargin is None:
+        dmargin = {'left': 0.05, 'right': 0.75, 'bottom': 0.05, 'top': 0.85}
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
         f.canvas.set_window_title(wintit)
-    axPos = [0.05, 0.05, 0.75, 0.85]
-    ax = f.add_axes(axPos,facecolor=axCol,projection='3d')
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+    ax = f.add_subplot(gs[0, 0], facecolor=axCol, projection='3d')
     ax.set_xlabel(r"X (m)")
     ax.set_ylabel(r"Y (m)")
     ax.set_zlabel(r"Z (m)")
