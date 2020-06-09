@@ -29,10 +29,11 @@ _QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
 
 
 # Generic
-def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
+def _check_projdax_mpl(dax=None, proj=None,
+                       dmargin=None, fs=None, wintit=None):
 
     # ----------------------
-    # Check proj
+    # Check inputs
     if proj is None:
         proj = 'all'
     assert isinstance(proj, str)
@@ -74,17 +75,22 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
     if 'cross' in proj and 'hor' in proj:
         if dax['cross'] is None:
             assert dax['hor'] is None
-            lax = _def.Plot_LOSProj_DefAxes('all', fs=fs,                                                                 wintit=wintit)
+            lax = _def.Plot_LOSProj_DefAxes('all', fs=fs,
+                                            dmargin=dmargin,
+                                            wintit=wintit)
             dax['cross'], dax['hor'] = lax
     elif 'cross' in proj and dax['cross'] is None:
         dax['cross'] = _def.Plot_LOSProj_DefAxes('cross', fs=fs,
+                                                 dmargin=dmargin,
                                                  wintit=wintit)
     elif 'hor' in proj and dax['hor'] is None:
         dax['hor'] = _def.Plot_LOSProj_DefAxes('hor', fs=fs,
-                                                 wintit=wintit)
+                                               dmargin=dmargin,
+                                               wintit=wintit)
     elif '3d' in proj  and dax['3d'] is None:
         dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(fs=fs,
-                                                wintit=wintit)
+                                                 dmargin=dmargin,
+                                                 wintit=wintit)
     for kk in lproj:
         dax[kk] = dax.get(kk, None)
     return dax
@@ -99,12 +105,14 @@ def _check_projdax_mpl(dax=None, proj=None, fs=None, wintit=None):
 
 def CrystalBragg_plot(cryst=None, dax=None, proj=None, res=None, element=None,
                       color=None, dP=None,
-                      det_cent=None, det_nout=None, det_ei=None, det_ej=None,
+                      det_cent=None, det_nout=None,
+                      det_ei=None, det_ej=None, det_cont=None,
                       pts0=None, pts1=None, rays_color=None, rays_npts=None,
                       dI=None, dBs=None, dBv=None,
                       dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                       dleg=None, indices=False,
-                      draw=True, fs=None, wintit=None, tit=None, Test=True):
+                      draw=True, fs=None, dmargin=None,
+                      wintit=None, tit=None, Test=True):
 
     # ---------------------
     # Check / format inputs
@@ -124,13 +132,21 @@ def CrystalBragg_plot(cryst=None, dax=None, proj=None, res=None, element=None,
     kwa = dict(fs=fs, wintit=wintit, Test=Test)
     if proj == '3d':
         # Temporary matplotlib issue
-        dleg = None
+        dax = _CrystalBragg_plot_3d(
+            cryst=cryst, proj=proj, res=res, dax=dax, element=element,
+            color=color, det_cent=det_cent,
+            det_nout=det_nout, det_cont=det_cont,
+            pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
+            det_ei=det_ei, det_ej=det_ej, draw=draw,
+            dmargin=dmargin, fs=fs, wintit=wintit)
     else:
         dax = _CrystalBragg_plot_crosshor(
             cryst=cryst, proj=proj, res=res, dax=dax, element=element,
-            color=color, det_cent=det_cent, det_nout=det_nout,
+            color=color, det_cent=det_cent,
+            det_nout=det_nout, det_cont=det_cont,
             pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
-            det_ei=det_ei, det_ej=det_ej, draw=draw, fs=fs, wintit=wintit)
+            det_ei=det_ei, det_ej=det_ej, draw=draw,
+            dmargin=dmargin, fs=fs, wintit=wintit)
 
     # recompute the ax.dataLim
     ax0 = None
@@ -154,7 +170,7 @@ def CrystalBragg_plot(cryst=None, dax=None, proj=None, res=None, element=None,
 def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
                                 element=None, res=None,
                                 det_cent=None, det_nout=None,
-                                det_ei=None, det_ej=None,
+                                det_ei=None, det_ej=None, det_cont=None,
                                 pts0=None, pts1=None,
                                 rays_color=None, rays_npts=None,
                                 Pdict=_def.TorPd, Idict=_def.TorId,
@@ -162,14 +178,15 @@ def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
                                 Vdict=_def.TorVind, color=None, ms=None,
                                 quiver_cmap=None,  LegDict=_def.TorLegd,
                                 indices=False, draw=True,
-                                fs=None, wintit=None, Test=True):
+                                dmargin=None, fs=None, wintit=None, Test=True):
     if Test:
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, "Arg Idict should be a dictionary !"
         assert type(Bsdict) is dict, "Arg Bsdict should be a dictionary !"
         assert type(Bvdict) is dict, "Arg Bvdict should be a dictionary !"
         assert type(Vdict) is dict, "Arg Vdict should be a dictionary !"
-        assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
+        msg = 'Arg LegDict should be a dictionary !'
+        assert type(LegDict) is dict or LegDict is None, msg
 
     # ---------------------
     # Check / format inputs
@@ -215,7 +232,8 @@ def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
     # ---------------------
     # Prepare axe and data
 
-    dax = _check_projdax_mpl(dax=dax, proj=proj, fs=fs, wintit=wintit)
+    dax = _check_projdax_mpl(dax=dax, proj=proj,
+                             dmargin=dmargin, fs=fs, wintit=wintit)
 
     if 's' in element or 'v' in element:
         summ = cryst._dgeom['summit']
@@ -292,7 +310,7 @@ def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
     # -------------
     # Detector
     sc = None
-    if det_cent is not None:
+    if det_cent is not None and 'c' in element:
         if dax['cross'] is not None:
             dax['cross'].plot(np.hypot(det_cent[0], det_cent[1]), det_cent[2],
                               marker='x', ms=ms, c=color, label="det_cent")
@@ -300,7 +318,7 @@ def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
             dax['hor'].plot(det_cent[0], det_cent[1],
                             marker='x', ms=ms, c=color, label="det_cent")
 
-    if det_nout is not None:
+    if det_nout is not None and 'v' in element:
         assert det_ei is not None and det_ej is not None
         p0 = np.repeat(det_cent[:, None], 3, axis=1)
         v = np.concatenate((det_nout[:, None], det_ei[:, None],
@@ -319,6 +337,20 @@ def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
                               np.r_[0., 0.5, 1.], cmap=quiver_cmap,
                               angles='xy', scale_units='xy',
                               label="det unit vect", **Vdict)
+
+    if det_cont is not None and 'c' in element:
+        det_cont = (det_cont[0:1, :]*det_ei[:, None]
+                    + det_cont[1:2, :]*det_ej[:, None]) + det_cent[:, None]
+        if dax['cross'] is not None:
+            dax['cross'].plot(np.hypot(det_cont[0, :], det_cont[1, :]),
+                              det_cont[2, :],
+                              ls='-', c=color, marker='None',
+                              label='det contour')
+        if dax['hor'] is not None:
+            dax['hor'].plot(det_cont[0, :],
+                            det_cont[1, :],
+                            ls='-', c=color, marker='None',
+                            label='det contour')
 
     # -------------
     # pts0 and pts1
@@ -341,7 +373,169 @@ def _CrystalBragg_plot_crosshor(cryst=None, proj=None, dax=None,
                                (2, pts0.shape[1]*3))
             dax['hor'].plot(pts01[0, :], pts01[1, :],
                             color=rays_color, lw=1., ls='-')
+    return dax
 
+
+def _CrystalBragg_plot_3d(cryst=None, proj=None, dax=None,
+                          element=None, res=None,
+                          det_cent=None, det_nout=None,
+                          det_ei=None, det_ej=None, det_cont=None,
+                          pts0=None, pts1=None,
+                          rays_color=None, rays_npts=None,
+                          Pdict=_def.TorPd, Idict=_def.TorId,
+                          Bsdict=_def.TorBsd, Bvdict=_def.TorBvd,
+                          Vdict=_def.TorVind, color=None, ms=None,
+                          quiver_cmap=None,  LegDict=_def.TorLegd,
+                          indices=False, draw=True,
+                          dmargin=None, fs=None, wintit=None, Test=True):
+    if Test:
+        assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
+        assert type(Idict) is dict, "Arg Idict should be a dictionary !"
+        assert type(Bsdict) is dict, "Arg Bsdict should be a dictionary !"
+        assert type(Bvdict) is dict, "Arg Bvdict should be a dictionary !"
+        assert type(Vdict) is dict, "Arg Vdict should be a dictionary !"
+        msg = 'Arg LegDict should be a dictionary !'
+        assert type(LegDict) is dict or LegDict is None, msg
+
+    # ---------------------
+    # Check / format inputs
+
+    lelement = ['s', 'c', 'r', 'o', 'v']
+    if element is None:
+        element = 'oscvr'
+    element = element.lower()
+    if 'v' in element and quiver_cmap is None:
+        quiver_cmap = _QUIVERCOLOR
+    if color is None:
+        if cryst is not None and cryst._dmisc.get('color') is not None:
+            color = cryst._dmisc['color']
+        else:
+            color = 'k'
+    if ms is None:
+        ms = 6
+
+    lc = [ss in element for ss in lelement]
+    if any(lc) and cryst is None:
+        msg = ("cryst cannot be None if element contains any of:\n"
+               + "\t- {}".format(lelement))
+        raise Exception(msg)
+
+    lc = [pts0 is None, pts1 is None]
+    c0 = (np.sum(lc) == 1
+          or (not any(lc)
+              and (pts0.shape != pts1.shape or pts0.shape[0] != 3)))
+    if c0:
+        msg = ("pts0 and pts1 must be:\n"
+               + "\t- both None\n"
+               + "\t- both np.ndarray of same shape, with shape[0] == 3\n"
+               + "  You provided:\n"
+               + "\t- pts0: {}\n".format(pts0)
+               + "\t- pts1: {}".format(pts1))
+        raise Exception(msg)
+    if pts0 is not None:
+        if rays_color is None:
+            rays_color = 'k'
+        if rays_npts is None:
+            rays_npts = 10
+
+    # ---------------------
+    # Prepare axe and data
+
+    dax = _check_projdax_mpl(dax=dax, proj=proj,
+                             dmargin=dmargin, fs=fs, wintit=wintit)
+
+    if 's' in element or 'v' in element:
+        summ = cryst._dgeom['summit']
+    if 'c' in element:
+        cent = cryst._dgeom['center']
+    if 'r' in element:
+        ang = np.linspace(0, 2.*np.pi, 200)
+        rr = 0.5*cryst._dgeom['rcurve']
+        row = cryst._dgeom['center'] + rr*cryst._dgeom['nout']
+        row = (row[:, None]
+               + rr*(np.cos(ang)[None, :]*cryst._dgeom['nout'][:, None]
+                     + np.sin(ang)[None, :]*cryst._dgeom['e1'][:, None]))
+
+    # ---------------------
+    # plot
+
+    if 'o' in element:
+        cont = cryst.sample_outline_plot(res=res)
+        if dax['3d'] is not None:
+            dax['3d'].plot(cont[0, :], cont[1, :], cont[2, :],
+                           ls='-', c=color, marker='None',
+                           label=cryst.Id.NameLTX+' contour')
+    if 's' in element:
+        if dax['3d'] is not None:
+            dax['3d'].plot(summ[0:1], summ[1:2], summ[2:3],
+                           marker='^', ms=ms, c=color,
+                           label=cryst.Id.NameLTX+" summit")
+    if 'c' in element:
+        if dax['3d'] is not None:
+            dax['3d'].plot(cent[0:1], cent[1:2], cent[2:3],
+                           marker='o', ms=ms, c=color,
+                           label=cryst.Id.NameLTX+" center")
+    if 'r' in element:
+        if dax['3d'] is not None:
+            dax['3d'].plot(row[0, :], row[1, :], row[2, :],
+                           ls='--', color=color, marker='None',
+                           label=cryst.Id.NameLTX+' rowland')
+    if 'v' in element:
+        nin = cryst._dgeom['nin']
+        e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
+        p0 = np.repeat(summ[:, None], 3, axis=1)
+        v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
+        if dax['3d'] is not None:
+            dax['3d'].quiver(p0[0, :], p0[1, :], p0[2, :],
+                             v[0, :], v[1, :], v[2, :],
+                             np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                             label=cryst.Id.NameLTX+" unit vect", color='r')
+            #, **Vdict)
+            # angles='xy', scale_units='xy',
+
+    # -------------
+    # Detector
+    sc = None
+    if det_cent is not None and 'c' in element:
+        if dax['3d'] is not None:
+            dax['3d'].plot(det_cent[0:1], det_cent[1:2], det_cent[2:3],
+                           marker='x', ms=ms, c=color, label="det_cent")
+
+    if det_nout is not None and 'v' in element:
+        assert det_ei is not None and det_ej is not None
+        p0 = np.repeat(det_cent[:, None], 3, axis=1)
+        v = np.concatenate((det_nout[:, None], det_ei[:, None],
+                            det_ej[:, None]), axis=1)
+        if dax['3d'] is not None:
+            dax['3d'].quiver(p0[0, :], p0[1, :], p0[2, :],
+                             v[0, :], v[1, :], v[2, :],
+                             np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                             label="det unit vect", color='r')
+            #, **Vdict)
+            # angles='xy', scale_units='xy',
+    if det_cont is not None and 'o' in element:
+        det_cont = (det_cont[0:1, :]*det_ei[:, None]
+                    + det_cont[1:2, :]*det_ej[:, None]) + det_cent[:, None]
+        if dax['3d'] is not None:
+            dax['3d'].plot(det_cont[0, :],
+                           det_cont[1, :],
+                           det_cont[2, :],
+                           ls='-', c=color, marker='None',
+                           label='det contour')
+
+    # -------------
+    # pts0 and pts1
+    if pts0 is not None:
+        if pts0.ndim == 3:
+            pts0 = np.reshape(pts0, (3, pts0.shape[1]*pts0.shape[2]))
+            pts1 = np.reshape(pts1, (3, pts1.shape[1]*pts1.shape[2]))
+        if dax['3d'] is not None:
+            k = np.r_[0, 1, np.nan]
+            pts01 = np.reshape((pts0[:, :, None]
+                                + k[None, None, :]*(pts1-pts0)[:, :, None]),
+                               (3, pts0.shape[1]*3))
+            dax['3d'].plot(pts01[0, :], pts01[1, :], pts01[2, :],
+                           color=rays_color, lw=1., ls='-')
     return dax
 
 
@@ -449,42 +643,65 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
                                            bragg=None, angle=None,
                                            ax=None, plot=None,
                                            braggunits='rad', angunits='rad',
+                                           uniqueplot=None, fs=None,
                                            **kwdargs):
 
+    # Check inputs
     if isinstance(plot, bool):
         plot = 'contour'
+    if fs is None:
+        fs = (6, 6)
+    if uniqueplot is None:
+        uniqueplot = True
 
+    # Prepare axes
     if ax is None:
-        fig = plt.figure()
-        ax0 = fig.add_axes([0.1, 0.1, 0.35, 0.8], aspect='equal')
-        ax1 = fig.add_axes([0.55, 0.1, 0.35, 0.8], aspect='equal')
-        ax = [ax0, ax1]
+        fig = plt.figure(figsize=fs)
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8],
+                          aspect='equal', adjustable='box')
+    dobj = {'phi': {'ax': ax}, 'bragg': {'ax': ax}}
+    dobj['bragg']['kwdargs'] = dict(kwdargs)
+    dobj['phi']['kwdargs'] = dict(kwdargs)
+    dobj['phi']['kwdargs']['cmap'] = plt.cm.seismic
+
+    # Plot
     if plot == 'contour':
         if 'levels' in kwdargs.keys():
             lvls = kwdargs['levels']
             del kwdargs['levels']
-            obj0 = ax[0].contour(xi, xj, bragg, lvls, **kwdargs)
-            obj1 = ax[1].contour(xi, xj, angle, lvls, **kwdargs)
+            obj0 = dobj['bragg']['ax'].contour(xi, xj, bragg, lvls,
+                                               **dobj['bragg']['kwdargs'])
+            obj1 = dobj['phi']['ax'].contour(xi, xj, angle, lvls,
+                                             **dobj['phi']['kwdargs'])
         else:
-            obj0 = ax[0].contour(xi, xj, bragg, **kwdargs)
-            obj1 = ax[1].contour(xi, xj, angle, **kwdargs)
+            obj0 = dobj['bragg']['ax'].contour(xi, xj, bragg,
+                                               **dobj['bragg']['kwdargs'])
+            obj1 = dobj['phi']['ax'].contour(xi, xj, angle,
+                                             **dobj['phi']['kwdargs'])
     elif plot == 'imshow':
         extent = (xi.min(), xi.max(), xj.min(), xj.max())
-        obj0 = ax[0].imshow(bragg, extent=extent, aspect='equal',
-                            adjustable='datalim', **kwdargs)
-        obj1 = ax[1].imshow(angle, extent=extent, aspect='equal',
-                            adjustable='datalim', **kwdargs)
+        obj0 = dobj['bragg']['ax'].imshow(bragg, extent=extent, aspect='equal',
+                                          adjustable='datalim',
+                                          **dobj['bragg']['kwdargs'])
+        obj1 = dobj['phi']['ax'].imshow(angle, extent=extent, aspect='equal',
+                                        adjustable='datalim',
+                                        **dobj['phi']['kwdargs'])
     elif plot == 'pcolor':
-        obj0 = ax[0].pcolor(xi, xj, bragg, **kwdargs)
-        obj1 = ax[1].pcolor(xi, xj, angle, **kwdargs)
-    ax[0].set_xlabel(r'xi')
-    ax[1].set_xlabel(r'xi')
-    ax[0].set_ylabel(r'yi')
-    ax[1].set_ylabel(r'yi')
-    cax0 = plt.colorbar(obj0, ax=ax[0])
-    cax1 = plt.colorbar(obj1, ax=ax[1])
-    cax0.ax.set_ylabel(r'$\theta_{bragg}$ (%s)'%braggunits)
-    cax1.ax.set_ylabel(r'$ang$ (%s)'%angunits)
+        obj0 = dobj['bragg']['ax'].pcolor(xi, xj, bragg,
+                                          **dobj['bragg']['kwdargs'])
+        obj1 = dobj['phi']['ax'].pcolor(xi, xj, angle,
+                                        **dobj['phi']['kwdargs'])
+    dobj['bragg']['obj'] = obj0
+    dobj['phi']['obj'] = obj1
+
+    # Post polish
+    for k0 in set(dobj.keys()):
+        dobj[k0]['ax'].set_xlabel(r'xi (m)')
+        dobj[k0]['ax'].set_ylabel(r'xj (m)')
+    cax0 = plt.colorbar(dobj['bragg']['obj'], ax=dobj['bragg']['ax'])
+    cax1 = plt.colorbar(dobj['phi']['obj'], ax=dobj['phi']['ax'])
+    cax0.ax.set_title(r'$\theta_{bragg}$' + '\n' + r'($%s$)'%braggunits)
+    cax1.ax.set_title(r'$ang$' + '\n' + r'($%s$)'%angunits)
     return ax
 
 
