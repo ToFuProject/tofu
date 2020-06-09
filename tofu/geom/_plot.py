@@ -500,7 +500,7 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
                 Y = np.dot(V.Poly_closed[0:1,:].T,np.ones((1,Nstep)))
                 Z = np.dot(V.Poly_closed[1:2,:].T,np.ones((1,Nstep)))
             ax.plot_surface(X,Y,Z, label=V.Id.NameLTX, **Pdict)
-        proxy = plt.Rectangle((0,0),1,1, fc=Pdict['color'])
+        proxy = plt.Rectangle((0, 0), 1, 1, fc=Pdict['color'])
         handles.append(proxy)
         labels.append(V.Id.NameLTX)
     return ax
