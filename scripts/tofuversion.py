@@ -6,17 +6,8 @@ import argparse
 import warnings
 
 
-###################################################
-###################################################
-#       default values
-###################################################
-
-
-# _TOFUPATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-_TOFUPATH = os.path.join(os.path.join(os.path.dirname(__file__), '..'), 'tofu')
-_DBOOL = {'verb': True, 'warn': True, 'force': False}
-_ENVVAR = False
-_NAME = 'TOFU_VERSION'
+# import parser dict
+from _dparser import _DPARSER
 
 
 ###################################################
@@ -26,36 +17,40 @@ _NAME = 'TOFU_VERSION'
 
 
 def get_version(verb=None, envvar=None,
-                path=_TOFUPATH, warn=None, force=None):
+                path=None, warn=None, force=None, ddef=None):
     """ Print tofu version and / or store in environment variable """
 
     # --------------
     # Check inputs
+    kwd = locals()
+    for k0 in set(ddef.keys()).intersection(kwd.keys()):
+        if kwd[k0] is None:
+            kwd[k0] = ddef[k0]
+    verb, envvar, path = kwd['verb'], kwd['envvar'], kwd['path']
+    warn, force = kwd['warn'], kwd['force']
 
     # verb, warn, force
     dbool = {'verb': verb, 'warn': warn, 'force': force}
     for k0, v0 in dbool.items():
         if v0 is None:
-            dbool[k0] = _DBOOL[k0]
+            dbool[k0] = ddef[k0]
         if not isinstance(dbool[k0], bool):
             msg = ("Arg {} must be a bool\n".format(k0)
                    + "\t- provided: {}".format(dbool[k0]))
             raise Exception(msg)
 
     # envvar
-    if envvar is None:
-        envvar = _ENVVAR
     if isinstance(envvar, bool):
         if envvar is True:
-            envvar = _NAME
+            envvar = ddef['name']
     elif isinstance(envvar, str):
         envvar = envvar.upper()
     else:
         msg = ("Arg envvar must be either:\n"
-               + "\t- None:   set to default ({})\n".format(_ENVVAR)
-               + "\t- False:  no setting of environment variable\n"
-               + "\t- True:   set default env. variable ({})\n".format(_NAME)
-               + "\t- str:    set provided env. variable\n\n"
+               + "\t- None:  set to default ({})\n".format(ddef['envvar'])
+               + "\t- False: no setting of environment variable\n"
+               + "\t- True:  set default env. var. ({})\n".format(ddef['name'])
+               + "\t- str:   set provided env. variable\n\n"
                + " you provided: {}".format(envvar))
         raise Exception(msg)
 
@@ -100,81 +95,17 @@ def get_version(verb=None, envvar=None,
 ###################################################
 
 
-def _str2bool(v):
-    if isinstance(v, bool):
-        return v
-    elif v.lower() in ['yes', 'true', 'y', 't', '1']:
-        return True
-    elif v.lower() in ['no', 'false', 'n', 'f', '0']:
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected!')
-
-
-def _str2boolstr(v):
-    if isinstance(v, bool):
-        return v
-    elif isinstance(v, str):
-        if v.lower() in ['yes', 'true', 'y', 't', '1']:
-            return True
-        elif v.lower() in ['no', 'false', 'n', 'f', '0']:
-            return False
-        elif v.lower() == 'none':
-            return None
-        else:
-            return v
-    else:
-        raise argparse.ArgumentTypeError('Boolean or str expected!')
-
-
 def main():
     # Parse input arguments
-    msg = """ Get tofu version from bash optionally set an enviroment variable
 
-    If run from a git repo containing tofu, simply returns git describe
-    Otherwise reads the tofu version stored in tofu/version.py
-
-    """
-
-    # Instanciate parser
-    parser = argparse.ArgumentParser(description=msg)
-
-    # Define input arguments
-    parser.add_argument('-p', '--path',
-                        type=str,
-                        help='tofu source directory where version.py is found',
-                        required=False,
-                        default=_TOFUPATH)
-    parser.add_argument('-v', '--verb',
-                        type=_str2bool,
-                        help='flag indicating whether to print the version',
-                        required=False,
-                        default=_DBOOL['verb'])
-    parser.add_argument('-ev', '--envvar',
-                        type=_str2boolstr,
-                        help='name of the environment variable to set, if any',
-                        required=False,
-                        default=_ENVVAR)
-    parser.add_argument('-w', '--warn',
-                        type=_str2bool,
-                        help=('flag indicating whether to print a warning when'
-                              + ' the desired environment variable (envvar) '
-                              + 'already exists'),
-                        required=False,
-                        default=_DBOOL['warn'])
-    parser.add_argument('-f', '--force',
-                        type=_str2bool,
-                        help=('flag indicating whether to force the update of '
-                              + ' the desired environment variable (envvar) '
-                              + 'even if it already exists'),
-                        required=False,
-                        default=_DBOOL['force'])
+    # Parse arguments
+    ddef, parser = _DPARSER['version']()
 
     # Parse arguments
     args = parser.parse_args()
 
     # Call function
-    get_version(**dict(args._get_kwargs()))
+    get_version(ddef=ddef, **dict(args._get_kwargs()))
 
 
 if __name__ == '__main__':

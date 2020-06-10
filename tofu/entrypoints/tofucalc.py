@@ -28,6 +28,12 @@ else:
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
 
+# import parser dict
+sys.path.insert(1, _TOFUPATH)
+from scripts._dparser import _DPARSER
+_ = sys.path.pop(1)
+
+
 # default parameters
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_scripts_def.py')
 if os.path.isfile(pfe):
@@ -65,22 +71,29 @@ if 'imas2tofu' not in dir(tf):
 ###################################################
 
 
-# User-customizable
-_RUN = _defscripts._TFCALC_RUN
-_USER = _defscripts._TFCALC_USER
-_TOKAMAK = _defscripts._TFCALC_TOKAMAK
-_VERSION = _defscripts._TFCALC_VERSION
-_T0 = _defscripts._TFCALC_T0
-_TLIM = None
-_SHAREX = _defscripts._TFCALC_SHAREX
-_BCK = _defscripts._TFCALC_BCK
-_EXTRA = _defscripts._TFCALC_EXTRA
-_INDCH_AUTO = _defscripts._TFCALC_INDCH_AUTO
-_COEFS = None
+# _DDEF = {
+    # # User-customizable
+    # 'run': _defscripts._TFCALC_RUN,
+    # 'user': _defscripts._TFCALC_USER,
+    # 'tokamak': _defscripts._TFCALC_TOKAMAK,
+    # 'version': _defscripts._TFCALC_VERSION,
+    # 't0': _defscripts._TFCALC_T0,
+    # 'tlim': None,
+    # 'sharex': _defscripts._TFCALC_SHAREX,
+    # 'bck': _defscripts._TFCALC_BCK,
+    # 'extra': _defscripts._TFCALC_EXTRA,
+    # 'indch_auto': _defscripts._TFCALC_INDCH_AUTO,
+    # 'coefs': None,
 
-# Non user-customizable
-_LIDS_DIAG = MultiIDSLoader._lidsdiag
-_LIDS = _LIDS_DIAG
+    # # Non user-customizable
+    # 'lids_diag': MultiIDSLoader._lidsdiag,
+    # 'lids': MultiIDSLoader._lidsdiag,
+# }
+
+
+_DCONVERT = {
+    'background': 'bck'
+}
 
 
 ###################################################
@@ -100,41 +113,41 @@ def _get_exception(q, ids, qtype='quantity'):
     raise Exception(msg)
 
 
-def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
-                    tokamak=_TOKAMAK, version=_VERSION,
+def call_tfcalcimas(shot=None, run=None, user=None,
+                    tokamak=None, version=None,
                     tokamak_eq=None, user_eq=None,
                     shot_eq=None, run_eq=None,
                     tokamak_prof=None, user_prof=None,
                     shot_prof=None, run_prof=None,
-                    ids=None, t0=_T0, tlim=_TLIM, extra=_EXTRA,
+                    ids=None, t0=None, tlim=None, extra=None,
                     plot_compare=True, Brightness=None,
-                    res=None, interp_t=None, coefs=_COEFS,
-                    sharex=_SHAREX, indch=None, indch_auto=_INDCH_AUTO,
+                    res=None, interp_t=None, coefs=None,
+                    sharex=None, indch=None, indch_auto=None,
                     input_file=None, output_file=None,
-                    background=_BCK):
+                    background=None):
 
-    if t0.lower() == 'none':
-        t0 = None
-    if tlim is not None and len(tlim) == 1:
-        tlim = [tlim, None]
-    if tlim is not None and len(tlim) != 2:
+    # --------------
+    # Check inputs
+    kwd = locals()
+    for k0 in set(_DDEF.keys()).intersection(kwd.keys()):
+        if kwd[k0] is None:
+            kwd[k0] = _DDEF[k0]
+    for k0 in set(_DCONVERT.keys()).intersection(kwd.keys()):
+        kwd[_DCONVERT[k0]] = kwd[k0]
+        del kwd[k0]
+
+    if isinstance(kwd['t0'], str) and kwd['t0'].lower() == 'none':
+        kwd['t0'] = None
+    if kwd['tlim'] is not None and len(kwd['tlim']) == 1:
+        kwd['tlim'] = [kwd['tlim'], None]
+    if kwd['tlim'] is not None and len(kwd['tlim']) != 2:
         msg = ("tlim must contain 2 limits:\n"
-               + "\t- provided: {}".format(tlim))
+               + "\t- provided: {}".format(kwd['tlim']))
         raise Exception(msg)
 
-    tf.calc_from_imas(shot=shot, run=run, user=user,
-                      tokamak=tokamak, version=version,
-                      tokamak_eq=tokamak_eq, user_eq=user_eq,
-                      shot_eq=shot_eq, run_eq=run_eq,
-                      tokamak_prof=tokamak_prof, user_prof=user_prof,
-                      shot_prof=shot_prof, run_prof=run_prof,
-                      ids=ids, indch=indch, indch_auto=indch_auto,
-                      plot_compare=plot_compare, extra=extra, coefs=coefs,
-                      tlim=tlim,
-                      Brightness=Brightness, res=res, interp_t=interp_t,
-                      input_file=input_file, output_file=output_file,
-                      t0=t0, plot=None, sharex=sharex, bck=background)
-
+    # --------------
+    # run
+    tf.calc_from_imas(plot=None, **kwd)
     plt.show(block=True)
 
 
@@ -143,29 +156,6 @@ def call_tfcalcimas(shot=None, run=_RUN, user=_USER,
 ###################################################
 #       bash call (main)
 ###################################################
-
-
-def _str2bool(v):
-    if isinstance(v, bool):
-        return v
-    elif v.lower() in ['yes', 'true', 'y', 't', '1']:
-        return True
-    elif v.lower() in ['no', 'false', 'n', 'f', '0']:
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected !')
-
-
-def _str2tlim(v):
-    c0 = (v.isdigit()
-          or ('.' in v
-              and len(v.split('.')) == 2
-              and all([vv.isdigit() for vv in v.split('.')])))
-    if c0 is True:
-        v = float(v)
-    elif v.lower() == 'none':
-        v = None
-    return v
 
 
 # if __name__ == '__main__':
@@ -178,91 +168,9 @@ def main():
     It calculates synthetic signal (from imas) and displays it from the following
     ids:
         %s
-    """%repr(_LIDS)
-    parser = argparse.ArgumentParser(description = msg)
+    """%repr(_DDEF['lids'])
 
-    # Main idd parameters
-    parser.add_argument('-s', '--shot', type=int,
-                        help='shot number', required=True)
-    msg = 'username of the DB where the datafile is located'
-    parser.add_argument('-u', '--user',
-                        help=msg, required=False, default=_USER)
-    msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
-                        default=_TOKAMAK)
-    parser.add_argument('-r', '--run', help='run number',
-                        required=False, type=int, default=_RUN)
-    parser.add_argument('-v', '--version', help='version number',
-                        required=False, type=str, default=_VERSION)
-
-    # Equilibrium idd parameters
-    parser.add_argument('-s_eq', '--shot_eq', type=int,
-                        help='shot number for equilibrium, defaults to -s',
-                        required=False, default=None)
-    msg = 'username for the equilibrium, defaults to -u'
-    parser.add_argument('-u_eq', '--user_eq',
-                        help=msg, required=False, default=None)
-    msg = 'tokamak for the equilibrium, defaults to -tok'
-    parser.add_argument('-tok_eq', '--tokamak_eq',
-                        help=msg, required=False, default=None)
-    parser.add_argument('-r_eq', '--run_eq',
-                        help='run number for the equilibrium, defaults to -r',
-                        required=False, type=int, default=None)
-
-    # Profile idd parameters
-    parser.add_argument('-s_prof', '--shot_prof', type=int,
-                        help='shot number for profiles, defaults to -s',
-                        required=False, default=None)
-    msg = 'username for the profiles, defaults to -u'
-    parser.add_argument('-u_prof', '--user_prof',
-                        help=msg, required=False, default=None)
-    msg = 'tokamak for the profiles, defaults to -tok'
-    parser.add_argument('-tok_prof', '--tokamak_prof',
-                        help=msg, required=False, default=None)
-    parser.add_argument('-r_prof', '--run_prof',
-                        help='run number for the profiles, defaults to -r',
-                        required=False, type=int, default=None)
-
-    msg = "ids from which to load diagnostics data, can be:\n%s"%repr(_LIDS)
-    parser.add_argument('-i', '--ids', type=str, required=True,
-                        help=msg, nargs='+', choices=_LIDS)
-    parser.add_argument('-B', '--Brightness', type=bool, required=False,
-                        help='Whether to express result as brightness',
-                        default=None)
-    parser.add_argument('-res', '--res', type=float, required=False,
-                        help='Space resolution for the LOS-discretization',
-                        default=None)
-    parser.add_argument('-t0', '--t0', type=str, required=False,
-                        help='Reference time event setting t = 0', default=_T0)
-    parser.add_argument('-tl', '--tlim', type=_str2tlim,
-                        required=False,
-                        help='limits of the time interval',
-                        nargs='+', default=_TLIM)
-    parser.add_argument('-c', '--coefs', type=float, required=False,
-                        help='Corrective coefficient, if any',
-                        default=_COEFS)
-    parser.add_argument('-ich', '--indch', type=int, required=False,
-                        help='indices of channels to be loaded',
-                        nargs='+', default=None)
-    parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
-                        help='automatically determine indices of channels to be loaded',
-                        default=_INDCH_AUTO)
-    parser.add_argument('-e', '--extra', type=_str2bool, required=False,
-                        help='If True loads separatrix and heating power',
-                        default=_EXTRA)
-    parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
-                        help='Should X axis be shared between diagnostics ids ?',
-                        default=_SHAREX, const=True, nargs='?')
-    parser.add_argument('-if', '--input_file', type=str, required=False,
-                        help='mat file from which to load core_profiles',
-                        default=None)
-    parser.add_argument('-of', '--output_file', type=str, required=False,
-                        help='mat file into which to save synthetic signal',
-                        default=None)
-    parser.add_argument('-bck', '--background', type=_str2bool, required=False,
-                        help='Plot data enveloppe as grey background ?',
-                        default=_BCK, const=True, nargs='?')
-
+    parser = _DPARSER['calc'](_DDEF, msg)
     args = parser.parse_args()
 
     # Call wrapper function

@@ -7,19 +7,8 @@ from shutil import copyfile
 import argparse
 
 
-###################################################
-###################################################
-#       default values
-###################################################
-
-
-_SOURCE = os.path.join(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '..')), 'tofu')
-_USER = getpass.getuser()
-_USER_HOME = os.path.expanduser('~')
-_TARGET = os.path.join(_USER_HOME, '.tofu')
-_LF = ['_imas2tofu_def.py', '_entrypoints_def.py']
-_LD = ['openadas2tofu']
+# import parser dict
+from _dparser import _DPARSER
 
 
 ###################################################
@@ -28,19 +17,30 @@ _LD = ['openadas2tofu']
 ###################################################
 
 
-def custom(target=_TARGET, source=_SOURCE,
-           files=_LF, directories=_LD):
+def custom(target=None, source=None,
+           files=None, directories=None, ddef=None):
+
+    # --------------
+    # Check inputs
+    kwd = locals()
+    for k0 in set(ddef.keys()).intersection(kwd.keys()):
+        if kwd[k0] is None:
+            kwd[k0] = ddef[k0]
+    target, source = kwd['target'], kwd['source']
+    files, directories = kwd['files'], kwd['directories']
 
     # Caveat (up to now only relevant for _TARGET)
-    if target != _TARGET:
+    if target != ddef['target']:
         msg = ""
         raise Exception(msg)
 
     # Check files
     if isinstance(files, str):
         files = [files]
-    if not isinstance(files, list) or any([ff not in _LF for ff in files]):
-        msg = "All files should be in {}".format(_LF)
+    c0 = (not isinstance(files, list)
+          or any([ff not in ddef['files'] for ff in files]))
+    if c0 is True:
+        msg = "All files should be in {}".format(ddef['files'])
         raise Exception(msg)
 
     # Try creating directory and copying modules
@@ -82,43 +82,14 @@ def custom(target=_TARGET, source=_SOURCE,
 
 def main():
     # Parse input arguments
-    msg = """ Create a local copy of tofu default parameters
-
-    This creates a local copy, in your home, of tofu default parameters
-    A directory .tofu is created in your home directory
-    In this directory, modules containing default parameters are copied
-    You can then customize them without impacting other users
-
-    """
-
     # Instanciate parser
-    parser = argparse.ArgumentParser(description=msg)
-
-    # Define input arguments
-    parser.add_argument('-s', '--source',
-                        type=str,
-                        help='tofu source directory',
-                        required=False,
-                        default=_SOURCE)
-    parser.add_argument('-t', '--target',
-                        type=str,
-                        help=('directory where .tofu/ should be created'
-                              + ' (default: {})'.format(_TARGET)),
-                        required=False,
-                        default=_TARGET)
-    parser.add_argument('-f', '--files',
-                        type=str,
-                        help='list of files to be copied',
-                        required=False,
-                        nargs='+',
-                        default=_LF,
-                        choices=_LF)
+    ddef, parser = _DPARSER['custom']()
 
     # Parse arguments
     args = parser.parse_args()
 
     # Call function
-    custom(**dict(args._get_kwargs()))
+    custom(ddef=ddef, **dict(args._get_kwargs()))
 
 
 if __name__ == '__main__':
