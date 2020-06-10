@@ -623,6 +623,10 @@ class CrystalBragg(utils.ToFuObject):
         return self._dgeom['center']
 
     @property
+    def ismobile(self):
+        return self._dgeom['move'] not in [None, False]
+
+    @property
     def rockingcurve(self):
         if self._dbragg.get('rockingcurve') is not None:
             if self._dbragg['rockingcurve'].get('type') is not None:
@@ -1467,8 +1471,8 @@ class CrystalBragg(utils.ToFuObject):
 
     def calc_braggphi_from_xixj(self, xi, xj, n=None,
                                 det=None, dtheta=None, psi=None,
-                                plot=True, ax=None,
-                                fs=None, **kwdargs):
+                                plot=True, ax=None, leg=None, colorbar=None,
+                                fs=None, wintit=None, tit=None, **kwdargs):
 
         # Check / format inputs
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -1488,13 +1492,22 @@ class CrystalBragg(utils.ToFuObject):
             xi=xii, xj=xjj)
 
         if plot is not False:
+            if tit is None:
+                crstr = 'cryst {}'.format(self.Id.Name)
+                if self.ismobile is True:
+                    crstr += ' at {:6.3e}'.format(self._dgeom['move_param'])
+                    with np.printoptions(precision=3, suppress=True):
+                        detlstr = ['det_{}: {}'.format(k0, det[k0])
+                                   for k0 in ['cent', 'nout', 'ei', 'ej']]
+                tit = '\n'.join([crstr] + detlstr)
             ax = _plot_optics.CrystalBragg_plot_braggangle_from_xixj(
                 xi=xii, xj=xjj,
                 ax=ax, plot=plot,
                 bragg=bragg * 180./np.pi,
                 angle=phi * 180./np.pi,
                 braggunits='deg', angunits='deg',
-                fs=fs, **kwdargs)
+                leg=leg, colorbar=colorbar,
+                fs=fs, wintit=wintit, tit=tit, **kwdargs)
         return bragg, phi
 
     def plot_line_on_det_tracing(self, lamb=None, n=None,

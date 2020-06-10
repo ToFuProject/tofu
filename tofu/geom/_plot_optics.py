@@ -643,16 +643,26 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
                                            bragg=None, angle=None,
                                            ax=None, plot=None,
                                            braggunits='rad', angunits='rad',
-                                           uniqueplot=None, fs=None,
-                                           **kwdargs):
+                                           leg=None, colorbar=None,
+                                           fs=None, wintit=None,
+                                           tit=None, **kwdargs):
 
     # Check inputs
     if isinstance(plot, bool):
         plot = 'contour'
     if fs is None:
         fs = (6, 6)
-    if uniqueplot is None:
-        uniqueplot = True
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = False
+    if colorbar is None:
+        colorbar = True
+    if leg is None:
+        leg = False
+    if leg is True:
+        leg = {}
+
 
     # Prepare axes
     if ax is None:
@@ -663,6 +673,13 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     dobj['bragg']['kwdargs'] = dict(kwdargs)
     dobj['phi']['kwdargs'] = dict(kwdargs)
     dobj['phi']['kwdargs']['cmap'] = plt.cm.seismic
+
+    # Clear cmap if colors provided
+    if 'colors' in kwdargs.keys():
+        if 'cmap' in dobj['bragg']['kwdargs'].keys():
+            del dobj['bragg']['kwdargs']['cmap']
+        if 'cmap' in dobj['phi']['kwdargs'].keys():
+            del dobj['phi']['kwdargs']['cmap']
 
     # Plot
     if plot == 'contour':
@@ -698,10 +715,19 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     for k0 in set(dobj.keys()):
         dobj[k0]['ax'].set_xlabel(r'xi (m)')
         dobj[k0]['ax'].set_ylabel(r'xj (m)')
-    cax0 = plt.colorbar(dobj['bragg']['obj'], ax=dobj['bragg']['ax'])
-    cax1 = plt.colorbar(dobj['phi']['obj'], ax=dobj['phi']['ax'])
-    cax0.ax.set_title(r'$\theta_{bragg}$' + '\n' + r'($%s$)'%braggunits)
-    cax1.ax.set_title(r'$ang$' + '\n' + r'($%s$)'%angunits)
+
+    if colorbar is True:
+        cax0 = plt.colorbar(dobj['bragg']['obj'], ax=dobj['bragg']['ax'])
+        cax1 = plt.colorbar(dobj['phi']['obj'], ax=dobj['phi']['ax'])
+        cax0.ax.set_title(r'$\theta_{bragg}$' + '\n' + r'($%s$)'%braggunits)
+        cax1.ax.set_title(r'$ang$' + '\n' + r'($%s$)'%angunits)
+
+    if leg is not False:
+        ax.legend(**leg)
+    if wintit is not False:
+        ax.figure.canvas.set_window_title(wintit)
+    if tit is not False:
+        ax.figure.suptitle(tit, size=14, weight='bold')
     return ax
 
 
