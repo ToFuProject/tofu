@@ -1329,7 +1329,7 @@ def calc_from_imas(
                                       interp_t=interp_t,
                                       indch_auto=indch_auto,
                                       t0=t0, dextra=dextra,
-                                      coefs=coefs, plot=True,
+                                      coefs=coefs, plot=True, bck=bck,
                                       plot_compare=plot_compare)
 
     else:
@@ -1364,7 +1364,7 @@ def calc_from_imas(
                                                 quant='core_profiles.1dbrem',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
-                                                coefs=coefs,
+                                                coefs=coefs, bck=bck,
                                                 Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:
