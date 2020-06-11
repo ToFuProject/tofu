@@ -7,6 +7,7 @@ import argparse
 
 
 # import parser dict
+print(sys.path[:3])
 from _dparser import _DPARSER
 
 
