@@ -48,11 +48,15 @@ def tofu_bash(option=None, ddef=None, **kwdargs):
     # --------------
     # call corresponding bash command
     if option == 'version':
+        sys.path.insert(1, _HERE)
         import tofuversion
+        _ = sys.path.pop(1)
         tofuversion.get_version(ddef=ddef, **kwdargs)
 
     elif option == 'custom':
+        sys.path.insert(1, _HERE)
         import tofucustom
+        _ = sys.path.pop(1)
         tofucustom.custom(ddef=ddef, **kwdargs)
 
     elif option == 'plot':
