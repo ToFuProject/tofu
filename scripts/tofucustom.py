@@ -2,9 +2,7 @@
 
 # Built-in
 import os
-import getpass
 from shutil import copyfile
-import argparse
 
 
 # import parser dict
@@ -79,6 +77,7 @@ def custom(target=None, source=None,
 ###################################################
 #       bash call (main)
 ###################################################
+
 
 def main():
     # Parse input arguments

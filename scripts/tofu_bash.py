@@ -4,7 +4,6 @@
 import sys
 import os
 import argparse
-import warnings
 
 
 # import parser dict
@@ -61,8 +60,10 @@ def tofu_bash(option=None, ddef=None, **kwdargs):
         tofuplot.call_tfloadimas(ddef=ddef, **kwdargs)
 
     elif option == 'calc':
-        import pdb; pdb.set_trace()     # DB
-        pass
+        sys.path.insert(1, _ENTRYPOINTS_PATH)
+        import tofucalc
+        _ = sys.path.pop(1)
+        tofucalc.call_tfcalcimas(ddef=ddef, **kwdargs)
 
 
 ###################################################

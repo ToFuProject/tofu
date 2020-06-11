@@ -205,6 +205,7 @@ def parser_plot():
     _LIDS_DIAG = MultiIDSLoader._lidsdiag
     _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
     _LIDS = _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
+
     msg = """Fast interactive visualization tool for diagnostics data in
     imas
 
@@ -300,6 +301,42 @@ def parser_plot():
 
 def parser_calc():
 
+    tf, MultiIDSLoader, _defscripts = get_mods()
+
+    _LIDS_DIAG = MultiIDSLoader._lidsdiag
+    _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
+    _LIDS = _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
+
+    # Parse input arguments
+    msg = """Fast interactive visualization tool for diagnostics data in
+    imas
+
+    This is merely a wrapper around the function tofu.calc_from_imas()
+    It calculates synthetic signal (from imas) and displays it from the following
+    ids:
+        %s
+    """%repr(_LIDS)
+
+    ddef = {
+        # User-customizable
+        'run': _defscripts._TFCALC_RUN,
+        'user': _defscripts._TFCALC_USER,
+        'tokamak': _defscripts._TFCALC_TOKAMAK,
+        'version': _defscripts._TFCALC_VERSION,
+        't0': _defscripts._TFCALC_T0,
+        'tlim': None,
+        'sharex': _defscripts._TFCALC_SHAREX,
+        'bck': _defscripts._TFCALC_BCK,
+        'extra': _defscripts._TFCALC_EXTRA,
+        'indch_auto': _defscripts._TFCALC_INDCH_AUTO,
+        'coefs': None,
+
+        # Non user-customizable
+        'lids_plasma': _LIDS_PLASMA,
+        'lids_diag': _LIDS_DIAG,
+        'lids': _LIDS,
+    }
+
     parser = argparse.ArgumentParser(description = msg)
 
     # Main idd parameters
@@ -386,7 +423,7 @@ def parser_calc():
     parser.add_argument('-bck', '--background', type=_str2bool, required=False,
                         help='Plot data enveloppe as grey background ?',
                         default=ddef['bck'], const=True, nargs='?')
-    return parser
+    return ddef, parser
 
 
 # #############################################################################
