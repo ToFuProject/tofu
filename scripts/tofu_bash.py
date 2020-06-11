@@ -6,12 +6,14 @@ import os
 import argparse
 
 
-# import parser dict
-print(sys.path[:3])
-from _dparser import _DPARSER
-
-
 _HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+# import parser dict
+sys.path.insert(1, _HERE)
+from _dparser import _DPARSER
+_ = sys.path.pop(1)
+
 _TOFUPATH = os.path.dirname(_HERE)
 _ENTRYPOINTS_PATH = os.path.join(_TOFUPATH, 'tofu', 'entrypoints')
 
