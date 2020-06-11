@@ -25,7 +25,6 @@ def get_mods():
         import tofu as tf
         from tofu.imas2tofu import MultiIDSLoader
 
-
     # default parameters
     pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_scripts_def.py')
     if os.path.isfile(pfe):
@@ -212,8 +211,8 @@ def parser_plot():
     This is merely a wrapper around the function tofu.load_from_imas()
     It loads (from imas) and displays diagnostics data from the following
     ids:
-        %s
-    """%repr(_LIDS)
+        {}
+    """.format(_LIDS)
 
     ddef = {
         # User-customizable
@@ -234,12 +233,12 @@ def parser_plot():
         'lids': _LIDS,
     }
 
-    parser = argparse.ArgumentParser(description = msg)
+    parser = argparse.ArgumentParser(description=msg)
 
     parser.add_argument('-s', '--shot', type=int,
                         help='shot number', required=False, nargs='+')
     msg = 'username of the DB where the datafile is located'
-    parser.add_argument('-u','--user',help=msg, required=False,
+    parser.add_argument('-u', '--user', help=msg, required=False,
                         default=ddef['user'])
     msg = 'tokamak name of the DB where the datafile is located'
     parser.add_argument('-tok', '--tokamak', help=msg, required=False,
@@ -252,14 +251,14 @@ def parser_plot():
                         default=ddef['version'])
 
     msg = ("ids from which to load diagnostics data,"
-           + " can be:\n%s"%repr(ddef['lids']))
+           + " can be:\n{}".format(ddef['lids']))
     parser.add_argument('-i', '--ids', type=str, required=True,
                         help=msg, nargs='+', choices=ddef['lids'])
     parser.add_argument('-q', '--quantity', type=str, required=False,
                         help='Desired quantity from the plasma ids',
                         nargs='+', default=None)
     parser.add_argument('-X', '--X', type=str, required=False,
-                        help='Quantity from the plasma ids to use for abscissa',
+                        help='Quantity from the plasma ids for abscissa',
                         nargs='+', default=None)
     parser.add_argument('-t0', '--t0', type=str, required=False,
                         help='Reference time event setting t = 0',
@@ -295,9 +294,11 @@ def parser_plot():
                         default=ddef['bck'], const=True, nargs='?')
     return ddef, parser
 
+
 # #############################################################################
 #       Parser for tofu calc
 # #############################################################################
+
 
 def parser_calc():
 
@@ -312,10 +313,10 @@ def parser_calc():
     imas
 
     This is merely a wrapper around the function tofu.calc_from_imas()
-    It calculates synthetic signal (from imas) and displays it from the following
+    It calculates and dsplays synthetic signal (from imas) from the following
     ids:
-        %s
-    """%repr(_LIDS)
+        {}
+    """.format(_LIDS)
 
     ddef = {
         # User-customizable
@@ -337,7 +338,7 @@ def parser_calc():
         'lids': _LIDS,
     }
 
-    parser = argparse.ArgumentParser(description = msg)
+    parser = argparse.ArgumentParser(description=msg)
 
     # Main idd parameters
     parser.add_argument('-s', '--shot', type=int,
@@ -382,7 +383,7 @@ def parser_calc():
                         required=False, type=int, default=None)
 
     msg = ("ids from which to load diagnostics data,"
-           + " can be:\n%s"%repr(ddef['lids']))
+           + " can be:\n{}".format(ddef['lids']))
     parser.add_argument('-i', '--ids', type=str, required=True,
                         help=msg, nargs='+', choices=ddef['lids'])
     parser.add_argument('-B', '--Brightness', type=bool, required=False,

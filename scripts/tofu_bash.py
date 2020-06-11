@@ -34,7 +34,6 @@ _LOPSTRIP = [ss.strip('--') for ss in _LOPTIONS]
 def tofu_bash(option=None, ddef=None, **kwdargs):
     """ Print tofu version and / or store in environment variable """
 
-
     # --------------
     # Check inputs
     if option not in _LOPSTRIP:

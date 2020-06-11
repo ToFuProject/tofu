@@ -11,6 +11,12 @@ plt.switch_backend('Qt5Agg')
 plt.ioff()
 
 
+# import parser dict
+sys.path.insert(1, _TOFUPATH)
+from scripts._dparser import _DPARSER
+_ = sys.path.pop(1)
+
+
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
@@ -26,12 +32,6 @@ if istofugit:
     _ = sys.path.pop(1)
 else:
     import tofu as tf
-
-
-# import parser dict
-sys.path.insert(1, _TOFUPATH)
-from scripts._dparser import _DPARSER
-_ = sys.path.pop(1)
 
 
 # tforigin = tf.__file__
