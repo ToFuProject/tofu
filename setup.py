@@ -390,6 +390,7 @@ setup(
             'tofucalc=tofu.entrypoints.tofucalc:main',
             'tofu-version=scripts.tofuversion:main',
             'tofu-custom=scripts.tofucustom:main',
+            'tofu=scripts.tofu_bash:main',
         ],
     },
 
