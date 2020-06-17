@@ -1889,21 +1889,22 @@ class CrystalBragg(utils.ToFuObject):
         elif returnas == 'ax':
             return ax
 
-    def plot_data_fit1d_dlines(self, xi=None, xj=None, data=None, mask=None,
-                               det=None, dtheta=None, psi=None, n=None,
-                               nlambfit=None, nphifit=None,
-                               lambmin=None, lambmax=None,
-                               dlines=None, spect1d=None,
-                               dconstraints=None, dx0=None,
-                               same_spectrum=None, dlamb=None,
-                               double=None, Ti=None, vi=None, ratio=None,
-                               dscales=None, x0_scale=None, bounds_scale=None,
-                               method=None, max_nfev=None,
-                               xtol=None, ftol=None, gtol=None,
-                               loss=None, verbose=0, chain=None,
-                               jac=None, showonly=None,
-                               plot=True, fs=None, dmargin=None,
-                               tit=None, wintit=None, returnas=None):
+
+    def fit1d(self, xi=None, xj=None, data=None, mask=None,
+              det=None, dtheta=None, psi=None, n=None,
+              nlambfit=None, nphifit=None,
+              lambmin=None, lambmax=None,
+              dlines=None, spect1d=None,
+              dconstraints=None, dx0=None,
+              same_spectrum=None, dlamb=None,
+              double=None, Ti=None, vi=None, ratio=None,
+              dscales=None, x0_scale=None, bounds_scale=None,
+              method=None, max_nfev=None,
+              xtol=None, ftol=None, gtol=None,
+              loss=None, verbose=0, chain=None,
+              jac=None, showonly=None,
+              plot=True, fs=None, dmargin=None,
+              tit=None, wintit=None, returnas=None):
         # Check / format inputs
         assert data is not None
         if showonly is None:
@@ -1996,7 +1997,8 @@ class CrystalBragg(utils.ToFuObject):
                       det=None, dtheta=None, psi=None,
                       mask=None, domain=None,
                       pos=None, binning=None,
-                      nbsplines=None, subset=None):
+                      nbsplines=None, subset=None,
+                      lphi=None, lphi_tol=None):
         # ----------------------
         # Geometrical transform
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -2018,7 +2020,7 @@ class CrystalBragg(utils.ToFuObject):
             mask=mask, domain=domain,
             pos=pos, binning=binning,
             nbsplines=nbsplines, subset=subset,
-            nxi=nxi, nxj=nxj)
+            nxi=nxi, nxj=nxj, lphi=lphi, lphi_tol=lphi_tol)
 
     @staticmethod
     def fit2d_dinput(dlines=None, dconstraints=None,
@@ -2048,7 +2050,7 @@ class CrystalBragg(utils.ToFuObject):
               xtol=None, ftol=None, gtol=None,
               loss=None, verbose=0, debug=None,
               pos=None, subset=None, binning=None,
-              fit1dbinning=None, npts=None, dax=None,
+              npts=None, dax=None,
               plotmode=None, angunits=None, indspect=None,
               ratio=None, jac=None, plot=True, fs=None,
               cmap=None, vmin=None, vmax=None,
@@ -2191,3 +2193,78 @@ class CrystalBragg(utils.ToFuObject):
             dax=dax, plotmode=plotmode, angunits=angunits,
             cmap=cmap, vmin=vmin, vmax=vmax,
             dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
+
+    def fit1d_from2d_costfunc(self, xi=None, xj=None, data=None, mask=None,
+                              det=None, dtheta=None, psi=None, n=None,
+                              domain=None, dprepare=None, dinput=None,
+                              dlines=None, dconstraints=None, dx0=None,
+                              x0_scale=None, bounds_scale=None,
+                              deg=None, knots=None, nbsplines=None,
+                              method=None, tr_solver=None, tr_options=None,
+                              predeclare=None, max_nfev=None, chain=None,
+                              xtol=None, ftol=None, gtol=None,
+                              loss=None, verbose=0, debug=None,
+                              pos=None, subset=None, binning=None,
+                              lphi=None, lphi_tol=None, npts=None, dax=None,
+                              plotmode=None, angunits=None, indspect=None,
+                              ratio=None, jac=None, plot=True, fs=None,
+                              cmap=None, vmin=None, vmax=None,
+                              spect1d=None, nlambfit=None,
+                              dmargin=None, tit=None, wintit=None,
+                              returnas=None, save=None, path=None, name=None):
+        """ Useful for optimizing detector or crystal position
+
+        Given a set of 2d images on a detector
+        Transform the 2d (xi, xj) image into (lamb, phi)
+        Slice nphi 1d spectra
+        Fit them using a dict of reference lines (dlines)
+        Optionally provide constraints for the fitting
+        Return the vertical profiles of the wavelength shitf of each line
+        To be used as input for an cost function and optimization
+
+        1d fitting is used instead of 2d because:
+            - faster (for optimization)
+            - does not require a choice of nbsplines
+            - easier to understand and decide for user
+
+        """
+
+        # Check / format inputs
+        if returnas is None:
+            returnas = 'dict'
+        lreturn = ['ax', 'dict']
+        if not returnas in lreturn:
+            msg = ("Arg returnas must be in {}\n:".format(lreturn)
+                   + "\t- 'dict': return dict of fitted spectrum\n"
+                   + "\t- 'ax'  : return a list of axes instances")
+            raise Exception(msg)
+
+        # ----------------------
+        # Prepare input data
+        # (geometrical transform, domain, binning, subset, noise...)
+        if dprepare is None:
+            dprepare = self.fit2d_prepare(
+                data=data, xi=xi, xj=xj, n=n,
+                det=det, dtheta=dtheta, psi=psi,
+                mask=mask, domain=domain,
+                pos=pos, binning=binning,
+                nbsplines=False, subset=False,
+                lphi=lphi, lphi_tol=lphi_tol)
+
+        # ----------------------
+        # Get dinput for 2d fitting from dlines, and dconstraints
+        if dinput is None:
+            dinput = self.fit2d_dinput(
+                dlines=dlines, dconstraints=dconstraints,
+                Ti=True, vi=True,
+                deg=None, knots=None, nbsplines=False,
+                domain=dprepare['domain'],
+                dataphi1d=dprepare['dataphi1d'], phi1d=dprepare['phi1d'])
+
+        # ----------------------
+        # Perform 2d fitting
+        import tofu.data._spectrafit2d as _spectrafit2d
+
+
+
+

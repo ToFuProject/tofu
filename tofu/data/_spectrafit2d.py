@@ -1183,7 +1183,9 @@ def _binning_check(binning, nlamb=None, nphi=None,
     # Check input
     if binning is None:
         binning = _BINNING
-    if nbsplines is not None:
+    if nbsplines is None:
+        nbsplines = False
+    if nbsplines is not False:
         c0 = isinstance(nbsplines, int) and nbsplines > 0
         if not c0:
             msg2 = ("Both nbsplines and deg must be positive int!\n"
@@ -1253,9 +1255,11 @@ def _binning_check(binning, nlamb=None, nphi=None,
             raise Exception(msg)
 
     # Optional check vs nbsplines and deg
-    if nbsplines is not None:
+    if nbsplines is not False:
         if binning['phi']['nbins'] <= nbsplines:
-            msg = ("The number of bins")
+            msg = ("The number of bins is too high:\n"
+                   + "\t- nbins =     {}\n".format(binning['phi']['nbins'])
+                   + "\t- nbsplines = {}".format(nbsplines))
             raise Exception(msg)
     return binning
 
@@ -1327,13 +1331,75 @@ def _get_subset_indices(subset, indlogical):
     return indlogical
 
 
+def _extract_lphi_spectra(data, phi, lamb,
+                          lphi, lphi_tol,
+                          databin=None, binning=None, nlamb=None):
+
+    # --------------
+    # Check input
+    if lphi is None:
+        lphi = False
+    if lphi is False:
+        lphi_tol = False
+    if lphi is not False:
+        lphi = np.atleast_1d(lphi).astype(float).ravel()
+        lphi_tol = float(lphi_tol)
+
+    if lphi is False:
+        return False, False
+    nphi = len(lphi)
+
+
+    # --------------
+    # Compute non-trivial cases
+
+    # Investigate use of scipy.binned_statistics !!!
+
+    if binning is False:
+        if nlamb is None:
+            nlamb = lamb.shape[0]
+        lphi_lamb = np.linspace(lamb.min(), lamb.max(), nlamb)
+        lphi_spectra = np.full((data.shape[0], lphi_lamb.size, nphi), np.nan)
+        ilamb = np.searchsorted(lphi_lamb, lamb)
+        for ii in range(nphi):
+            indphi = (phi > lphi[ii]-lphi_tol) & (phi < lphi[ii]+lphi_tol)
+            datai = data[:, indphi]
+            ilambi = ilamb[indphi]
+            import pdb; pdb.set_trace()     # DB
+            iok = np.any(~np.isnan(datai), axis=2)
+            for jj in range(datai.shape[0]):
+                if np.any(iok[jj, :]):
+                    lphi_spectra[jj, iok[jj, :], ii] = np.nanmean(
+                        datai[jj, ilambi == None], axis=1)
+
+    else:
+        lphi_lamb = 0.5*(binning['lamb']['edges'][1:]
+                         + binning['lamb']['edges'][:-1])
+        lphi_phi = 0.5*(binning['phi']['edges'][1:]
+                        + binning['phi']['edges'][:-1])
+        lphi_spectra = np.full((data.shape[0], lphi_lamb.size, nphi), np.nan)
+        for ii in range(nphi):
+            datai = databin[:, :, ((lphi_phi > lphi[ii]-lphi_tol)
+                                   & (lphi_phi < lphi[ii]+lphi_tol))]
+            iok = np.any(~np.isnan(datai), axis=2)
+            for jj in range(datai.shape[0]):
+                if np.any(iok[jj, :]):
+                    lphi_spectra[jj, iok[jj, :], ii] = np.nanmean(
+                        datai[jj, iok[jj, :], :], axis=1)
+
+    import pdb; pdb.set_trace()     # DB
+    return lphi_spectra, lphi_lamb
+
+
 def multigausfit2d_from_dlines_prepare(data, lamb, phi,
                                        mask=None, domain=None,
                                        pos=None, binning=None,
                                        nbsplines=None, subset=None,
                                        noise_ind=None,
-                                       nxi=None, nxj=None):
+                                       nxi=None, nxj=None,
+                                       lphi=None, lphi_tol=None):
 
+    # --------------
     # Check input
     if pos is None:
         pos = False
@@ -1353,6 +1419,7 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
     if pos is True:
         data[data < 0.] = 0.
 
+    # --------------
     # Use valid data only and optionally restrict lamb / phi
     indok, domain = apply_domain(lamb, phi, domain=domain)
     if mask is not None:
@@ -1361,11 +1428,13 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
     domain['lamb']['minmax'] = [np.nanmin(lamb[indok]), np.nanmax(lamb[indok])]
     domain['phi']['minmax'] = [np.nanmin(phi[indok]), np.nanmax(phi[indok])]
 
+    # --------------
     # Optionnal 2d binning
     lambbin, phibin, databin, indok, binning = binning_2d_data(
         lamb, phi, data, indok=indok,
         binning=binning, domain=domain, nbsplines=nbsplines)
 
+    # --------------
     # Get vertical profile of mean data
     if binning is False:
         nphid = nxj
@@ -1379,14 +1448,27 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
         phi1d = (binning['phi']['edges'][1:] + binning['phi']['edges'][:-1])/2.
         dataphi1d = np.nanmean(databin, axis=1)
 
+    # --------------
     # Optionally fit only on subset
     # randomly pick subset indices (replace=False => no duplicates)
     indok = _get_subset_indices(subset, indok)
 
+
+    # --------------
+    # Optionally extract 1d spectra at lphi
+    lphi_spectra, lphi_lamb = _extract_lphi_spectra(data, phi, lamb,
+                                                    lphi, lphi_tol,
+                                                    databin=databin,
+                                                    binning=binning)
+
+    # --------------
+    # Return
     dprepare = {'data': databin, 'lamb': lambbin, 'phi': phibin,
                 'domain': domain, 'binning': binning, 'indok': indok,
                 'phi1d': phi1d, 'dataphi1d': dataphi1d,
-                'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj}
+                'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
+                'lphi': lphi, 'lphi_tol': lphi_tol,
+                'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb}
     return dprepare
 
 
@@ -1394,6 +1476,17 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
                                          phimin=None, phimax=None,
                                          symmetryaxis=None):
     # Check / format input
+    if nbsplines is None:
+        nbsplines = _NBSPLINES
+    c0 = [nbsplines is False, isinstance(nbsplines, int)]
+    if not any(c0):
+        msg = "nbsplines must be a int (the degree of the bsplines to be used!)"
+        raise Exception(msg)
+
+    if nbsplines is False:
+        lk = ['knots', 'knots_mult', 'nknotsperbs', 'ptsx0', 'nbs', 'deg']
+        return dict.fromkeys(lk, False)
+
     if deg is None:
         deg = _DEG
     if not (isinstance(deg, int) and deg <= 3):
@@ -1401,12 +1494,6 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
         raise Exception(msg)
     if symmetryaxis is None:
         symmetryaxis = False
-
-    if nbsplines is None:
-        nbsplines = _NBSPLINES
-    if not isinstance(nbsplines, int):
-        msg = "nbsplines must be a int (the degree of the bsplines to be used!)"
-        raise Exception(msg)
 
     if knots is None:
         if phimin is None or phimax is None:
