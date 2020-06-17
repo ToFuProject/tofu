@@ -2961,13 +2961,13 @@ class MultiIDSLoader(object):
                 if err_comp:
                     raise Exception(msg)
                 sig._dlabels = data.dlabels
-                data.plot_compare(sig)
+                data.plot_compare(sig, bck=bck)
             else:
-                sig.plot()
+                sig.plot(bck=bck)
             c0 = (plot_plasma
                   and dq.get('quant') is not None and '1d' in dq['quant'])
             if c0 is True:
-                plasma.plot(dq['quant'], X=dq['ref1d'])
+                plasma.plot(dq['quant'], X=dq['ref1d'], bck=bck)
         return sig
 
 
