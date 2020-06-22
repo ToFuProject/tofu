@@ -1913,13 +1913,14 @@ class CrystalBragg(utils.ToFuObject):
             fraction=None)
 
     def fit1d(self, data=None, lamb=None, mask=None,
-              domain=None, subset=None,
-              dlines=None,
+              domain=None, subset=None, pos=None,
+              dlines=None, dprepare=None, dinput=None,
               dconstraints=None, dx0=None,
               same_spectrum=None, dlamb=None,
               double=None, Ti=None, vi=None, ratio=None,
               dscales=None, x0_scale=None, bounds_scale=None,
-              method=None, max_nfev=None,
+              method=None, tr_solver=None, tr_options=None,
+              max_nfev=None,
               xtol=None, ftol=None, gtol=None,
               loss=None, verbose=0, chain=None,
               jac=None, showonly=None,
@@ -1950,9 +1951,7 @@ class CrystalBragg(utils.ToFuObject):
             dinput = self.fit1d_dinput(
                 dlines=dlines, dconstraints=dconstraints,
                 Ti=Ti, vi=vi,
-                deg=deg, knots=knots, nbsplines=nbsplines,
-                domain=dprepare['domain'],
-                dataphi1d=dprepare['dataphi1d'], phi1d=dprepare['phi1d'])
+                domain=dprepare['domain'])
 
         # ----------------------
         # Perform 1d fitting

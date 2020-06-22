@@ -36,7 +36,6 @@ _SYMMETRY_CENTRAL_FRACTION = 0.3
 _BINNING = False
 _SUBSET = False
 _CHAIN = True
-_JAC = 'call'
 _METHOD = 'trf'
 _LOSS = 'linear'
 _D3 = 'lines'
@@ -286,159 +285,6 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
         assert outdict['offset'].shape == (nlines,)
     return outdict
 
-def multigausfit1d_from_dlines_funccostjac(lamb,
-                                           dinput=None,
-                                           dind=None,
-                                           scales=None,
-                                           jac=None):
-    ibckx = dind['bck']['x']
-    iax = dind['amp']['x']
-    iwx = dind['width']['x']
-    ishx = dind['shift']['x']
-    idratiox = dind['dratio']
-    idshx = dind['dshift']
-
-    ial = dind['amp']['lines']
-    iwl = dind['width']['lines']
-    ishl = dind['shift']['lines']
-
-    iaj = dind['amp']['jac']
-    iwj = dind['width']['jac']
-    ishj = dind['shift']['jac']
-
-    coefsal = dinput['amp']['coefs']
-    coefswl = dinput['width']['coefs']
-    coefssl = dinput['shift']['coefs']
-
-    offsetal = dinput['amp']['offset']
-    offsetwl = dinput['width']['offset']
-    offsetsl = dinput['shift']['offset']
-
-    shape = (lamb.size, dind['shapey1'])
-
-    def func_detail(x, lamb=lamb[:, None],
-                    lines=dinput['lines'][None, :],
-                    double=dinput['double'],
-                    shape=shape,
-                    ibckx=ibckx, ial=ial, iwl=iwl, ishl=ishl,
-                    idratiox=idratiox, idshx=idshx,
-                    coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
-                    offsetal=offsetal, offsetwl=offsetwl, offsetsl=offsetsl,
-                    scales=scales):
-        y = np.full(shape, np.nan)
-        xscale = x*scales
-        y[:, ibckx] = xscale[ibckx]
-
-        # lines
-        amp = (xscale[ial]*coefsal + offsetal)[None, :]
-        wi2 = (xscale[iwl]*coefswl + offsetwl)[None, :]
-        shifti = (xscale[ishl]*coefssl + offsetsl)[None, :]
-        y[:, 1:] = amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2))
-
-        if double is True:
-            ampd = amp*x[idratiox]
-            shiftid = shifti + scales[ishl]*x[idshx]
-            y[:, 1:] += (ampd
-                         * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2)))
-        return y
-
-    def cost(x, lamb=lamb[:, None],
-             lines=dinput['lines'][None, :],
-             double=dinput['double'],
-             shape=shape,
-             ibckx=ibckx, ial=ial, iwl=iwl, ishl=ishl,
-             idratiox=idratiox, idshx=idshx,
-             coefsal=coefsal, coefswl=coefswl, coefssl=coefssl,
-             offsetal=offsetal, offsetwl=offsetwl, offsetsl=offsetsl,
-             scales=scales, data=None):
-        xscale = x*scales
-
-        # lines & bck
-        amp = (xscale[ial]*coefsal + offsetal)[None, :]
-        wi2 = (xscale[iwl]*coefswl + offsetwl)[None, :]
-        shifti = (xscale[ishl]*coefssl + offsetsl)[None, :]
-        y = np.sum(amp * np.exp(-(lamb/lines - (1 + shifti))**2 / (2*wi2)),
-                   axis=1) + xscale[ibckx]
-
-        if double is True:
-            shiftid = shifti + scales[ishl]*x[idshx]
-            y += np.sum((amp*x[idratiox]
-                         * np.exp(-(lamb/lines - (1 + shiftid))**2 / (2*wi2))),
-                        axis=1)
-        # ravel in case of multiple times same_spectrum
-        return y - data
-
-    if jac == 'call':
-        # Define a callable jac returning (nlamb, sizex) matrix of partial
-        # derivatives of np.sum(func_details(scaled), axis=0)
-        def jac(x,
-                lamb=lamb[:, None],
-                lines=dinput['lines'][None, :],
-                ibckx=ibckx,
-                iax=iax, iaj=iaj, ial=ial,
-                iwx=iwx, iwj=iwj, iwl=iwl,
-                ishx=ishx, ishj=ishj, ishl=ishl,
-                idratiox=idratiox, idshx=idshx,
-                coefsal=coefsal[None, :],
-                coefswl=coefswl[None, :],
-                coefssl=coefssl[None, :],
-                offsetal=offsetal[None, :],
-                offsetwl=offsetwl[None, :],
-                offsetsl=offsetsl[None, :],
-                scales=None, double=dinput['double'], data=None):
-            xscale = x*scales
-            jac = np.full((lamb.size, x.size), np.nan)
-            jac[:, ibckx] = scales[ibckx]
-
-            # Assuming Ti = False and vi = False
-            amp = (xscale[ial]*coefsal + offsetal)
-            wi2 = (xscale[iwl]*coefswl + offsetwl)
-            shifti = (xscale[ishl]*coefssl + offsetsl)
-            beta = (lamb/lines - (1 + shifti)) / (2*wi2)
-            alpha = -beta**2 * (2*wi2)
-            exp = np.exp(alpha)
-
-            quant = scales[ial] * coefsal * exp
-            for ii in range(iax.size):
-                jac[:, iax[ii]] = np.sum(quant[:, iaj[ii]], axis=1)
-            quant = amp * (-alpha) * (scales[iwl]*coefswl / wi2) * exp
-            for ii in range(iwx.size):
-                jac[:, iwx[ii]] = np.sum(quant[:, iwj[ii]], axis=1)
-            quant = amp * 2.*beta*scales[ishl]*coefssl * exp
-            for ii in range(ishx.size):
-                jac[:, ishx[ii]] = np.sum(quant[:, ishj[ii]], axis=1)
-            if double is True:
-                # Assuming Ti = False and vi = False
-                ampd = amp*x[idratiox]*scales[idratiox]
-                shiftid = shifti + scales[idshx]*x[idshx]
-                betad = (lamb/lines - (1 + shiftid)) / (2*wi2)
-                alphad = -betad**2 * (2*wi2)
-                expd = np.exp(alphad)
-
-                quant = scales[ial] * coefsal * expd
-                for ii in range(iax.size):
-                    jac[:, iax[ii]] += np.sum(quant[:, iaj[ii]], axis=1)
-                quant = ampd * (-alphad) * (scales[iwl]*coefswl / wi2) * expd
-                for ii in range(iwx.size):
-                    jac[:, iwx[ii]] += np.sum(quant[:, iwj[ii]], axis=1)
-                quant = ampd * 2.*betad*scales[ishl]*coefssl * expd
-                for ii in range(ishx.size):
-                    jac[:, ishx[ii]] += np.sum(quant[:, ishj[ii]], axis=1)
-
-                jac[:, idratiox] = np.sum(amp * scales[idratiox] * expd,
-                                          axis=1)
-                # * coefssl => NO, line-specific
-                jac[:, idshx] = np.sum(ampd * 2.*betad*scales[idshx] * expd,
-                                       axis=1)
-            return jac
-    else:
-        if jac not in ['2-point', '3-point']:
-            msg = "jac should be in ['call', '2-point', '3-point']"
-            raise Exception(msg)
-        jac = jac
-
-    return func_detail, cost, jac
-
 
 ###########################################################
 ###########################################################
@@ -473,10 +319,18 @@ def _dconstraints_symmetry(dinput, symmetry=None, dataphi1d=None, phi1d=None,
 
 
 def _checkformat_data_fit1d_dlines(data, lamb, mask=None):
+    datash = data.shape if isinstance(data, np.ndarray) else type(data)
+    lambsh = lamb.shape if isinstance(lamb, np.ndarray) else type(lamb)
+    masksh = mask.shape if isinstance(mask, np.ndarray) else type(mask)
     msg = ("Args data, lamb and mask must be:\n"
            + "\t- data: (nt, n1) or (n1,) np.ndarray\n"
            + "\t- lamb: (n1,) np.ndarray\n"
-           + "\t- mask: None or (n1,)")
+           + "\t- mask: None or (n1,)\n\n"
+           + "  You provided:\n"
+           + "\t - data: {}\n".format(datash)
+           + "\t - lamb: {}\n".format(lambsh)
+           + "\t - mask: {}\n".format(masksh)
+          )
     if not isinstance(data, np.ndarray):
         raise Exception(msg)
     c0 = (data.ndim in [1, 2]
@@ -595,7 +449,7 @@ def apply_domain(lamb=None, phi=None, domain=None):
 
     domain = _checkformat_domain(domain=domain, keys=din.keys())
     ind = np.ones(lamb.shape, dtype=bool)
-    for k0, v0 in dins.items():
+    for k0, v0 in din.items():
         for v1 in domain[k0]['spec']:
             indi = (v0 >= v1[0]) & (v0 <= v1[1])
             if isinstance(v1, tuple):
@@ -842,12 +696,7 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     if pos is None:
         pos = False
     if subset is None:
-        if binning in [None, False]:
-            subset = _SUBSET
-        else:
-            subset = False
-    if noise_ind is None:
-        noise_ind = False
+        subset = False
 
     # Check shape of data (multiple time slices possible)
     lamb, data, mask = _checkformat_data_fit1d_dlines(data, lamb, mask=mask)
@@ -1048,6 +897,8 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
                                       dconstraints=None,
                                       Ti=None, vi=None,
                                       domain=None,
+                                      same_spectrum=None,
+                                      nspect=None, dlamb=None,
                                       fraction=None, defconst=_DCONSTRAINTS):
 
     # ------------------------
@@ -1065,7 +916,7 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
                + "\t{'line0': {'lambda': float},\n"
                + "\t 'line1': {'lambda': float},\n"
                + "\t  ...\n"
-               + "\t 'lineN': {'lambda': float}}"
+               + "\t 'lineN': {'lambda': float}}\n"
                + "  You provided: {}".format(dlines))
         raise Exception(msg)
 
@@ -1099,9 +950,8 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
             msg = "Please provide nspect if same_spectrum = True"
             raise Exception(msg)
         if dlamb is None:
-            dlamb = [np.nanmin(lamb) if lambmin is None else lambmin,
-                     np.nanmax(lamb) if lambmax is None else lambmax]
-            dlamb = min(2*np.diff(dlamb), np.nanmin(lamb))
+            dlamb = min(2*np.diff(domain['lamb']['minmax']),
+                        domain['lamb']['minmax'][0])
 
     # ------------------------
     # Check keys
@@ -1189,8 +1039,12 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
     dinput['ion'] = ion
 
     dinput['same_spectrum'] = same_spectrum
-    dinput['same_spectrum_nspect'] = nspect
-    dinput['same_spectrum_dlamb'] = dlamb
+    if same_spectrum is True:
+        dinput['same_spectrum_nspect'] = nspect
+        dinput['same_spectrum_dlamb'] = dlamb
+    else:
+        dinput['same_spectrum_nspect'] = False
+        dinput['same_spectrum_dlamb'] = False
 
     # Set Ti and vi flags
     if Ti is None:
@@ -1489,7 +1343,7 @@ def multigausfit1d_from_dlines_scale(data, lamb,
 
         # bck
         indbck = data < np.nanmean(data, axis=1)[:, None]
-        scales[:, ibckx[0]] = np.nanmean(data[indbck], axis=1)
+        scales[:, ibckx[0]] = np.ma.masked_where(indbck, data).mean(axis=1)
 
         # amp
         for ii, ij in enumerate(dind['amp_x0']):
@@ -1780,8 +1634,6 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
     # Check format
     if chain is None:
         chain = _CHAIN
-    if jac is None:
-        jac = _JAC
     if method is None:
         method = _METHOD
     assert method in ['trf', 'dogbox'], method
@@ -1810,7 +1662,7 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
 
     # ---------------------------
     # Get indices dict
-    dind = multigausfit2d_from_dlines_ind(dinput)
+    dind = multigausfit1d_from_dlines_ind(dinput)
 
     # ---------------------------
     # If same spectrum => consider a single data set
@@ -1845,10 +1697,6 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
      func_cost, func_jac) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
          lamb, indok=dprepare['indok'],
          dinput=dinput, dind=dind, jac=jac)
-
-
-
-
 
 
 
@@ -2054,8 +1902,6 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
     # Check format
     if chain is None:
         chain = _CHAIN
-    if jac is None:
-        jac = _JAC
     if method is None:
         method = _METHOD
     assert method in ['trf', 'dogbox', 'lm'], method
