@@ -832,13 +832,13 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                              equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0'][
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0']['data'][
                              equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike0'][
+                             multi.get_data('equilibrium')['strike0']['data'][
                              equi_ind_t][1], '+', color='k', markersize=10)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1'][
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1']['data'][
                              equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike1'][
+                             multi.get_data('equilibrium')['strike1']['data'][
                              equi_ind_t][1], '+', color='k', markersize=10)
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
                                     .format(shot[0], t[0]))
