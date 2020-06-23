@@ -11,12 +11,6 @@ plt.switch_backend('Qt5Agg')
 plt.ioff()
 
 
-# import parser dict
-sys.path.insert(1, _TOFUPATH)
-from scripts._dparser import _DPARSER
-_ = sys.path.pop(1)
-
-
 # tofu
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
@@ -32,6 +26,12 @@ if istofugit:
     _ = sys.path.pop(1)
 else:
     import tofu as tf
+
+
+# import parser dict
+sys.path.insert(1, _TOFUPATH)
+from scripts._dparser import _DPARSER
+_ = sys.path.pop(1)
 
 
 # tforigin = tf.__file__
@@ -69,8 +69,8 @@ def call_tfloadimas(shot=None, run=None, user=None,
                     tokamak=None, version=None, extra=None,
                     ids=None, quantity=None, X=None, t0=None, tlim=None,
                     sharex=None, indch=None, indch_auto=None,
-                    background=None, t=None, dR_sep=None, init=None,
-                    ddef=None):
+                    background=None, t=None, ddef=None,
+                    mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
 
     # --------------
     # Check inputs
