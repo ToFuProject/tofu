@@ -21,6 +21,10 @@ import tofu.utils as utils
 from . import _spectrafit2d_funccostjac as _funccostjac
 
 
+__all__ = ['fit1d', 'fit1d_from_2d', 'fit2d',
+           'fit1d_extract', 'fit2d_extract']
+
+
 _NPEAKMAX = 12
 _DCONSTRAINTS = {'amp': False,
                  'width': False,
@@ -38,7 +42,8 @@ _SUBSET = False
 _CHAIN = True
 _METHOD = 'trf'
 _LOSS = 'linear'
-_D3 = 'lines'
+_D3 = 'x'
+_ALLOW_PICKLE = True
 
 
 ###########################################################
@@ -893,13 +898,20 @@ def valid_indices_phi(sig1d, phi1d, threshold=None):
 ###########################################################
 
 
-def multigausfit1d_from_dlines_dinput(dlines=None,
-                                      dconstraints=None,
-                                      Ti=None, vi=None,
-                                      domain=None,
-                                      same_spectrum=None,
-                                      nspect=None, dlamb=None,
-                                      fraction=None, defconst=_DCONSTRAINTS):
+def multigausfit1d_from_dlines_dinput(
+    dlines=None, dconstraints=None, dprepare=None,
+    data=None, lamb=None, mask=None, domain=None, pos=None, subset=None,
+    same_spectrum=None, nspect=None, dlamb=None,
+    fraction=None, defconst=_DCONSTRAINTS):
+
+    # ------------------------
+    # Check / format dprepare
+    # ------------------------
+    if dprepare is None:
+        dprepare = multigausfit1d_from_dlines_prepare(
+            data=data, lamb=lamb,
+            mask=mask, domain=domain,
+            pos=pos, subset=subset)
 
     # ------------------------
     # Check / format basics
@@ -1046,24 +1058,6 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
         dinput['same_spectrum_nspect'] = False
         dinput['same_spectrum_dlamb'] = False
 
-    # Set Ti and vi flags
-    if Ti is None:
-        dinput['Ti'] = dinput['width']['ind'].shape[0] < nlines
-    elif isinstance(Ti, bool):
-        dinput['Ti'] = Ti
-    else:
-        msg = ("Arg Ti must be None, True or False!\n"
-               + "\t- provided: {}".format(Ti))
-        raise Exception(msg)
-    if vi is None:
-        dinput['vi'] = dinput['shift']['ind'].shape[0] < nlines
-    elif isinstance(vi, bool):
-        dinput['vi'] = vi
-    else:
-        msg = ("Arg vi must be None, True or False!\n"
-               + "\t- provided: {}".format(vi))
-        raise Exception(msg)
-
     # S/N threshold indices
     # dinput['valid_indphi'] = _valid_indices(spectvect1d, phi1d,
                                             # threshold=threshold)
@@ -1071,13 +1065,26 @@ def multigausfit1d_from_dlines_dinput(dlines=None,
     return dinput
 
 
-def multigausfit2d_from_dlines_dinput(dlines=None,
-                                      dconstraints=None,
-                                      Ti=None, vi=None,
-                                      deg=None, nbsplines=None, knots=None,
-                                      domain=None,
-                                      dataphi1d=None, phi1d=None,
-                                      fraction=None, defconst=_DCONSTRAINTS):
+def multigausfit2d_from_dlines_dinput(
+    dlines=None, dconstraints=None, dprepare=None,
+    deg=None, nbsplines=None, knots=None,
+    data=None, lamb=None, phi=None,
+    mask=None, domain=None, pos=None, binning=None, subset=None,
+    noise_ind=None, nxi=None, nxj=None,
+    lphi=None, lphi_tol=None
+    dataphi1d=None, phi1d=None,
+    fraction=None, defconst=_DCONSTRAINTS):
+
+    # ------------------------
+    # Check / format dprepare
+    # ------------------------
+    if dprepare is None:
+        dprepare = multigausfit2d_from_dlines_prepare(
+            data, lamb, phi,
+            mask=mask, domain=domain,
+            pos=pos, binning=binning,
+            nbsplines=nbsplines, subset=subset,
+            nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None)
 
     # ------------------------
     # Check / format basics
@@ -1098,15 +1105,15 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
                + "  You provided: {}".format(dlines))
         raise Exception(msg)
 
-    if domain is None:
-          domain = False
+    if dprepare['domain'] is None:
+        dprepare['domain'] = False
 
     # Select relevant lines (keys, lamb)
     keys = np.array([k0 for k0 in dlines.keys()])
     lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
-    if domain is not False:
-        ind = ((lamb >= domain['lamb']['minmax'][0])
-               & (lamb <= domain['lamb']['minmax'][1]))
+    if dprepare['domain'] is not False:
+        ind = ((lamb >= dprepare['domain']['lamb']['minmax'][0])
+               & (lamb <= dprepare['domain']['lamb']['minmax'][1]))
         keys = keys[ind]
         lamb = lamb[ind]
     inds = np.argsort(lamb)
@@ -1166,35 +1173,24 @@ def multigausfit2d_from_dlines_dinput(dlines=None,
     dinput['lines'] = lamb
     dinput['nlines'] = nlines
 
-    # Set Ti and vi flags
-    if Ti is None:
-        dinput['Ti'] = dinput['width']['ind'].shape[0] < nlines
-    elif isinstance(Ti, bool):
-        dinput['Ti'] = Ti
-    else:
-        msg = ("Arg Ti must be None, True or False!\n"
-               + "\t- provided: {}".format(Ti))
-        raise Exception(msg)
-    if vi is None:
-        dinput['vi'] = dinput['shift']['ind'].shape[0] < nlines
-    elif isinstance(vi, bool):
-        dinput['vi'] = vi
-    else:
-        msg = ("Arg vi must be None, True or False!\n"
-               + "\t- provided: {}".format(vi))
-        raise Exception(msg)
-
     # Get dict of bsplines
     dinput.update(multigausfit2d_from_dlines_dbsplines(
         knots=knots, deg=deg, nbsplines=nbsplines,
-        phimin=domain['phi']['minmax'][0],
-        phimax=domain['phi']['minmax'][1],
+        phimin=dprepare['domain']['phi']['minmax'][0],
+        phimax=dprepare['domain']['phi']['minmax'][1],
         symmetryaxis=dinput.get('symmetry_axis')))
 
     # S/N threshold indices
     # dinput['valid_indphi'] = _valid_indices(spectvect1d, phi1d,
                                             # threshold=threshold)
     # dinput['threshold'] = threshold
+
+    # Update with dprepare
+    dinput['dprepare'] = dict(dprepare)
+
+    # Add dind
+    dinput['dind'] = multigausfit2d_from_dlines_ind(dinput)
+
     return dinput
 
 
@@ -1595,13 +1591,47 @@ def multigausfit12d_from_dlines_bounds(sizex=None, dind=None, double=None):
 ###########################################################
 ###########################################################
 #
-#           Main fitting functions
+#           Load dinput
 #
 ###########################################################
 ###########################################################
 
 
-def multigausfit1d_from_dlines(dprepare=None, dinput=None,
+def _rebuild_dict(dd):
+    for k0, v0 in dd.items():
+        if isinstance(v0, np.ndarray) and v0.shape == ():
+            dd[k0] = v0.tolist()
+        if isinstance(dd[k0], dict):
+            _rebuild_dict(dd[k0])
+
+
+def _checkformat_dinput(dinput):
+    if isinstance(dinput, str):
+        if not os.path.isfile(dinput) or dinput[-4:] != '.npz':
+            msg = ("Arg dinput must be aither a dict or "
+                   + "the absolute path to a .npz\n"
+                   + "  You provided: {}".format(dinput))
+            raise Exception(msg)
+        dinput = dict(np.load(dinput, allow_pickle=True))
+
+    if not isinstance(dinput, dict):
+        msg = ("dinput must be a dict!\n"
+               + "  You provided: {}".format(type(dinput)))
+
+    _rebuild_dict(dinput)
+    return dinput
+
+
+###########################################################
+###########################################################
+#
+#           Main fitting sub-routines
+#
+###########################################################
+###########################################################
+
+
+def multigausfit1d_from_dlines(dinput=None,
                                dx0=None, scales=None, dscales=None,
                                x0_scale=None, bounds_scale=None,
                                method=None, tr_solver=None, tr_options=None,
@@ -1610,8 +1640,6 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
                                loss=None, jac=None):
     """ Solve multi_gaussian fit in 1d from dlines
 
-    If Ti is True, all lines from the same ion have the same width
-    If vi is True, all lines from the same ion have the same normalised shift
     If double is True, all lines are double with common shift and ratio
 
     Unknowns are:
@@ -1658,11 +1686,12 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
     else:
         verbscp = 0
 
-    nspect = dprepare['data'].shape[0]
-
     # ---------------------------
-    # Get indices dict
-    dind = multigausfit1d_from_dlines_ind(dinput)
+    # Load dinput if necessary
+    dinput = _checkformat_dinput(dinput)
+    dprepare, dind = dinput['dprepare'], dinput['dind']
+
+    nspect = dprepare['data'].shape[0]
 
     # ---------------------------
     # If same spectrum => consider a single data set
@@ -1698,99 +1727,69 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
          lamb, indok=dprepare['indok'],
          dinput=dinput, dind=dind, jac=jac)
 
-
-
-
-
-
-
-
-
     # ---------------------------
-    # Optimize
-
-    # Initialize
-    nlines = dinput['nlines']
-    sol_detail = np.full((nspect, dind['shapey1'], lamb.size), np.nan)
-    amp = np.full((nspect, nlines), np.nan)
-    width2 = np.full((nspect, nlines), np.nan)
-    shift = np.full((nspect, nlines), np.nan)
-    coefs = np.full((nspect, nlines), np.nan)
-    if dinput['double'] is True:
-        dratio = np.full((nspect,), np.nan)
-        dshift = np.full((nspect,), np.nan)
-    else:
-        dratio, dshift = None, None
-    kTiev, vims = None, None
-    if dinput['Ti'] is True:
-        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        kTiev = np.full((nspect, dinput['width']['ind'].shape[0]), np.nan)
-    if dinput['vi'] is True:
-        indvi = np.array([iit[0] for iit in dind['shift']['jac']])
-        vims = np.full((nspect, dinput['shift']['ind'].shape[0]), np.nan)
+    # Prepare output
+    datacost = dprepare['data'][:, dprepare['indok']]
+    sol_x = np.full((nspect, dind['sizex']), np.nan)
+    success = np.full((nspect,), np.nan)
+    time = np.full((nspect,), np.nan)
+    cost = np.full((nspect,), np.nan)
+    nfev = np.full((nspect,), np.nan)
+    validity = np.zeros((nspect,), dtype=int)
+    message = ['' for ss in range(nspect)]
+    errmsg = ['' for ss in range(nspect)]
 
     # Prepare msg
     if verbose > 0:
         msg = ("Loop in {} spectra with jac = {}\n".format(nspect, jac)
-               + "time (s)    chin   nfev   njev   term"
+               + "time (s)    cost   nfev   njev   term"
                + "-"*20)
         print(msg)
 
+    # ---------------------------
     # Minimize
-    time = np.full((nspect,), np.nan)
-    cost = np.full((nspect,), np.nan)
-    nfev = np.full((nspect,), np.nan)
-    x = np.full((nspect, dind['sizex']), np.nan)
+    t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
-        t0 = dtm.datetime.now()     # DB
-        res = scpopt.least_squares(func_cost, x0_scale[ii, :],
-                                   jac=jacob, bounds=bounds_scale,
-                                   method=method, ftol=ftol, xtol=xtol,
-                                   gtol=gtol, x_scale='jac', f_scale=1.0,
-                                   loss=loss, diff_step=None,
-                                   tr_solver=None, tr_options={},
-                                   jac_sparsity=None, max_nfev=max_nfev,
-                                   verbose=verbscp, args=(),
-                                   kwargs={'data': data[ii, :],
-                                           'scales': scales[ii, :]})
-        time[ii] = (dtm.datetime.now()-t0).total_seconds()
-        cost[ii] = res.cost
-        nfev[ii] = res.nfev
-
-        if chain is True and ii < nspect-1:
-            x0_scale[ii+1, :] = res.x
         if verbose > 0:
-            dt = round(time[ii], ndigits=3)
-            msg = " {}    {:4.2e}    {}   {}   {}".format(
-                dt, np.sqrt(res.cost)/lamb.size, res.nfev,
-                res.njev, res.message)
+            msg = "Iteration {} / {}".format(ii+1, nspect)
             print(msg)
+        try:
+            t0i = dtm.datetime.now()     # DB
+            res = scpopt.least_squares(
+                func_cost, x0_scale[ii, :],
+                jac=jacob, bounds=bounds_scale,
+                method=method, ftol=ftol, xtol=xtol,
+                gtol=gtol, x_scale=1.0, f_scale=1.0,
+                loss=loss, diff_step=None,
+                tr_solver=tr_solver, tr_options=tr_options,
+                jac_sparsity=None, max_nfev=max_nfev,
+                verbose=verbscp, args=(),
+                kwargs={'data': datacost[ii, :],
+                        'scales': scales[ii, :]})
 
-        # Separate and reshape output
-        x[ii, :] = res.x
-        sol_detail[ii, ...] = func_detail(res.x, scales=scales[ii, :]).T
+            if chain is True and ii < nspect-1:
+                x0_scale[ii+1, :] = res.x
 
-        # Get result in physical units: TBC !!!
-        xscales = res.x*scales[ii, :]
-        amp[ii, :] = xscales[dind['amp']['lines']] * dinput['amp']['coefs']
-        width2[ii, :] = (xscales[dind['width']['lines']]
-                         * dinput['width']['coefs'])
-        shift[ii, :] = (xscales[dind['shift']['lines']]
-                        * dinput['shift']['coefs']
-                        * dinput['lines'])
-        if dinput['double'] is True:
-            dratio[ii] = res.x[dind['dratio']]
-            dshift[ii] = xscales[dind['dshift']] # * lines
-        if dinput['vi'] is True:
-            vims[ii, :] = xscales[dind['shift']['lines'][indvi]] * scpct.c
+            # cost, message, time
+            success[ii] = res.success
+            cost[ii] = res.cost
+            nfev[ii] = res.nfev
+            message[ii] = res.message
+            time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
+                             ndigits=3)
+            if verbose > 0:
+                msg = " {}    {}    {}   {}   {}".format(time[ii],
+                                                         round(res.cost),
+                                                         res.nfev, res.njev,
+                                                         res.message)
+                print(msg)
+            sol_x[ii, :] = res.x
 
-    coefs = amp*dinput['lines']*np.sqrt(2*np.pi*width2)
-    if dinput['Ti'] is True:
-        # Get Ti in eV and vi in m/s
-        ind = np.array([iit[0] for iit in dind['width']['jac']])
-        kTiev = conv * width2[:, ind] * dinput['mz'][ind] * scpct.c**2
+        except Exception as err:
+            errmsg[ii] = str(err)
+            validity[ii] = -1
 
-    # import pdb; pdb.set_trace()     # DB
+    # ---------------------------
     # Reshape in case of same_spectrum
     if dinput['same_spectrum'] is True:
         nspect0 = dinput['same_spectrum_nspect']
@@ -1799,77 +1798,74 @@ def multigausfit1d_from_dlines(dprepare=None, dinput=None,
         nlamb = int(lamb.size / nspect0)
         nlines = int((sol_detail.shape[1]-1)/nspect0)
         lamb = lamb[:nlamb]
-        (data, amp, width2,
-         coefs, shift) = [reshape_custom(aa)
-                          for aa in [data, amp, width2, coefs, shift]]
-        if dinput['double'] is True:
-            dshift = np.full((nspect0,), dshift[0])
-            dratio = np.full((nspect0,), dratio[0])
-        if dinput['vi'] is True:
-            vims = np.tile(vims, (nspect0, 1))
-        if dinput['Ti'] is True:
-            kTiev = reshape_custom(kTiev)
 
         nxbis = int(dind['bck']['x'].size
                     + (dind['amp']['x'].size + dind['width']['x'].size)/nspect0
                     + dind['shift']['x'].size)
-        if dinput['double'] is True:
-            nxbis += 2
+        if dinput['double'] is not False:
+            if dinput['double'] is True:
+                nxbis += 2
+            else:
+                nxbis += (dinput['double'].get('dratio') is not None
+                          + dinput['double'].get('dshift') is not None)
         nb = dind['bck']['x'].size
         na = int(dind['amp']['x'].size/nspect0)
         nw = int(dind['width']['x'].size/nspect0)
         ns = dind['shift']['x'].size
         x2 = np.full((nspect0, nxbis), np.nan)
-        x2[:, :nb] = x[0, dind['bck']['x']][None, :]
-        x2[:, nb:nb+na] = reshape_custom(x[0, dind['amp']['x']])
-        x2[:, nb+na:nb+na+nw] = reshape_custom(x[0, dind['width']['x']])
-        x2[:, nb+na+nw:nb+na+nw+ns] = x[:, dind['shift']['x']]
+        x2[:, :nb] = sol_x[0, dind['bck']['x']][None, :]
+        x2[:, nb:nb+na] = reshape_custom(sol_x[0, dind['amp']['x']])
+        x2[:, nb+na:nb+na+nw] = reshape_custom(sol_x[0, dind['width']['x']])
+        x2[:, nb+na+nw:nb+na+nw+ns] = sol_x[:, dind['shift']['x']]
         if dinput['double'] is True:
-            x2[:, dind['dratio']] = x[:, dind['dratio']]
-            x2[:, dind['dshift']] = x[:, dind['dshift']]
-        x = x2
-        sol_detail2 = np.full((nspect0, 1+nlines, nlamb), np.nan)
-        # sol_detail.split(np.arange(1, nspect0)*nlamb, axis=-1)
-        sol_detail2[:, 0, :] = sol_detail[0, 0, :nlamb]
-        for ii in range(nspect0):
-            ili0, ili1 = 1 + ii*nlines, 1 + (ii+1)*nlines
-            ila0, ila1 = ii*nlamb, (ii+1)*nlamb
-            sol_detail2[ii, 1:, :] = sol_detail[0, ili0:ili1, ila0:ila1]
-        sol_detail = sol_detail2
+            x2[:, dind['dratio']['x']] = sol_x[:, dind['dratio']['x']]
+            x2[:, dind['dshift']['x']] = sol_x[:, dind['dshift']['x']]
+        import pdb; pdb.set_trace()     # DB
+        sol_x = x2
 
-    # Extract ratio of lines
-    if ratio is not None:
-        # Te can only be obtained as a proxy, units don't matter at this point
-        if isinstance(ratio['up'], str):
-            ratio['up'] = [ratio['up']]
-        if isinstance(ratio['low'], str):
-            ratio['low'] = [ratio['low']]
-        assert len(ratio['up']) == len(ratio['low'])
-        indup = np.array([(dinput['keys'] == uu).nonzero()[0][0]
-                          for uu in ratio['up']])
-        indlow = np.array([(dinput['keys'] == ll).nonzero()[0][0]
-                           for ll in ratio['low']])
-        ratio['value'] = coefs[:, indup] / coefs[:, indlow]
-        ratio['str'] = ["{}/{}".format(dinput['symb'][indup[ii]],
-                                       dinput['symb'][indlow[ii]])
-                        for ii in range(len(ratio['up']))]
+    # Isolate dratio and dshift
+    dratio, dshift = None, None
+    if dinput['double'] is not False:
+        if dinput['double'] is True:
+            dratio = (sol_x[:, dind['dratio']['x']]
+                      * scales[:, dind['dratio']['x']])
+            dshift = (sol_x[:, dind['dshift']['x']]
+                      * scales[:, dind['dshift']['x']])
+        else:
+            if dinput['double'].get('dratio') is None:
+                dratio = (sol_x[:, dind['dratio']['x']]
+                          * scales[:, dind['dratio']['x']])
+            else:
+                dratio = np.full((nspect,), dinput['double']['dratio'])
+            if dinput['double'].get('dshift') is None:
+                dshift = (sol_x[:, dind['dshift']['x']]
+                          * scales[:, dind['dshift']['x']])
+            else:
+                dshift = np.full((nspect,), dinput['double']['dshift'])
 
-    # Create output dict
-    dout = {'data': data, 'lamb': lamb,
-            'x': x,
-            'sol_detail': sol_detail,
-            'sol': np.sum(sol_detail, axis=1),
-            'Ti': dinput['Ti'], 'vi': dinput['vi'], 'double': dinput['double'],
-            'width2': width2, 'shift': shift, 'amp': amp,
-            'dratio': dratio, 'dshift': dshift, 'coefs': coefs,
-            'kTiev': kTiev, 'vims': vims, 'ratio': ratio,
-            'cost': cost, 'fun': res.fun, 'active_mask': res.active_mask,
-            'time': time, 'nfev': nfev, 'njev': res.njev, 'status': res.status,
-            'msg': res.message, 'success': res.success}
+    if verbose > 0:
+        dt = (dtm.datetime.now()-t0).total_seconds()
+        msg = ("Total computation time:"
+               + "\t{} s for {} steps ({} s per step)".format(
+                   round(dt, ndigits=3), nspect,
+                   round(dt/nspect, ndigits=3)))
+        print(msg)
+
+    import pdb; pdb.set_trace()     # DB
+    # ---------------------------
+    # Format output as dict
+    dout = {'dinput': dinput,
+            'scales': scales, 'x0_scale': x0_scale,
+            'bounds_scale': bounds_scale,
+            'jac': jac, 'sol_x': sol_x,
+            'dratio': dratio, 'dshift': dshift,
+            'time': time, 'success': success,
+            'validity': validity, 'errmsg': np.array(errmsg),
+            'cost': cost, 'nfev': nfev, 'msg': np.array(message)}
     return dout
 
 
-def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
+def multigausfit2d_from_dlines(dinput=None, dx0=None,
                                scales=None, dscales=None,
                                x0_scale=None, bounds_scale=None,
                                method=None, tr_solver=None, tr_options=None,
@@ -1878,8 +1874,6 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
                                loss=None, jac=None):
     """ Solve multi_gaussian fit in 1d from dlines
 
-    If Ti is True, all lines from the same ion have the same width
-    If vi is True, all lines from the same ion have the same normalised shift
     If double is True, all lines are double with common shift and ratio
 
     Unknowns are:
@@ -1926,17 +1920,18 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
     else:
         verbscp = 0
 
+    # ---------------------------
+    # Load dinput if necessary
+    dinput = _checkformat_dinput(dinput)
+    dprepare, dind = dinput['dprepare'], dinput['dind']
+
     nspect = dprepare['data'].shape[0]
 
     # ---------------------------
-    # Get indices dict
-    dind = multigausfit2d_from_dlines_ind(dinput)
-
     # Get scaling
+    phi2 = dprepare['phi']
     if dinput['symmetry'] is True:
-        phi2 = np.abs(dprepare['phi'] - np.nanmean(dinput['symmetry_axis']))
-    else:
-        phi2 = dprepare['phi']
+        phi2 = np.abs(phi2 - np.nanmean(dinput['symmetry_axis']))
 
     scales = multigausfit12d_from_dlines_scale(
         dprepare['data'], dprepare['lamb'], phi2,
@@ -1963,10 +1958,10 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
 
     # ---------------------------
     # Prepare output
-    datacost = np.reshape(dprepare['data'][:, dprepare['indok']],
-                          (nspect, dprepare['indok'].sum()))
+    datacost = np.reshape(
+        dprepare['data'][:, dprepare['indok']],
+        (nspect, dprepare['indok'].sum()))
     sol_x = np.full((nspect, dind['sizex']), np.nan)
-    sol_tot = np.full(dprepare['data'].shape, np.nan)
     success = np.full((nspect,), np.nan)
     time = np.full((nspect,), np.nan)
     cost = np.full((nspect,), np.nan)
@@ -1979,8 +1974,8 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
         msg = ('indok_var not implemented yet!')
         raise Exception(msg)
         if dprepare['indok_var'].ndim == 3:
-            indok_var = dprepare['indok_var'].reshape((nspect,
-                                                       dprepare['lamb'].size))
+            indok_var = dprepare['indok_var'].reshape(
+                (nspect, dprepare['lamb'].size))
         else:
             indok_var = [dprepare['indok_var'].ravel()]*nspect
     else:
@@ -2042,15 +2037,19 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
     dratio, dshift = None, None
     if dinput['double'] is not False:
         if dinput['double'] is True:
-            dratio = sol_x[:, dind['dratio']]*scales[:, dind['dratio']]
-            dshift = sol_x[:, dind['dshift']]*scales[:, dind['dshift']]
+            dratio = (sol_x[:, dind['dratio']['x']]
+                      * scales[:, dind['dratio']['x']])
+            dshift = (sol_x[:, dind['dshift']['x']]
+                      * scales[:, dind['dshift']['x']])
         else:
             if dinput['double'].get('dratio') is None:
-                dratio = sol_x[:, dind['dratio']]*scales[:, dind['dratio']]
+                dratio = (sol_x[:, dind['dratio']['x']]
+                          * scales[:, dind['dratio']['x']])
             else:
                 dratio = np.full((nspect,), dinput['double']['dratio'])
             if dinput['double'].get('dshift') is None:
-                dshift = sol_x[:, dind['dshift']]*scales[:, dind['dshift']]
+                dshift = (sol_x[:, dind['dshift']['x']]
+                          * scales[:, dind['dshift']['x']])
             else:
                 dshift = np.full((nspect,), dinput['double']['dshift'])
 
@@ -2064,7 +2063,7 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
 
     # ---------------------------
     # Format output as dict
-    dout = {'dprepare': dprepare, 'dinput': dinput, 'dind': dind,
+    dout = {'dinput': dinput,
             'scales': scales, 'x0_scale': x0_scale,
             'bounds_scale': bounds_scale, 'phi2': phi2,
             'jac': jac, 'sol_x': sol_x,
@@ -2078,28 +2077,226 @@ def multigausfit2d_from_dlines(dprepare=None, dinput=None, dx0=None,
 ###########################################################
 ###########################################################
 #
+#   Main fit functions
+#
+###########################################################
+###########################################################
+
+
+def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
+          lamb=None, data=None, mask=None,
+          domain=None, pos=None, subset=None,
+          method=None, tr_solver=None, tr_options=None,
+          xtol=None, ftol=None, gtol=None,
+          max_nfev=None, loss=None, chain=None,
+          dx0=None, x0_scale=None, bounds_scale=None,
+          jac=None, verbose=None, showonly=None,
+          save=None, name=None, path=None,
+          plot=None):
+
+    # ----------------------
+    # Check / format
+    if showonly is None:
+        showonly = False
+    if save is None:
+        save = False
+    if plot is None:
+        plot = False
+
+    # ----------------------
+    # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
+    if dinput is None:
+        dinput = multigausfit1d_from_dlines_dinput(
+            dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
+            data=data, lamb=lamb,
+            mask=mask, domain=domain,
+            pos=pos, subset=subset,
+            fraction=None)
+
+    # ----------------------
+    # Perform 2d fitting
+    if showonly is True:
+        # TBF
+        dfit1d = {'shift': np.zeros((1, dinput['nlines'])),
+                  'coefs': np.zeros((1, dinput['nlines'])),
+                  'lamb': lambfit,
+                  'data': spect1d,
+                  'double': False,
+                  'Ti': False,
+                  'vi': False,
+                  'ratio': None}
+    else:
+        dfit1d = multigausfit1d_from_dlines(
+            dinput=dinput, dx0=dx0,
+            x0_scale=x0_scale, bounds_scale=bounds_scale,
+            method=method, max_nfev=max_nfev,
+            tr_solver=tr_solver, tr_options=tr_options,
+            xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
+            chain=chain, verbose=verbose, jac=jac)
+
+    # ----------------------
+    # Optional saving
+    if save is True:
+        if name is None:
+            name = 'custom'
+        name = 'TFS_fit1d_doutput_{}_nbs{}_{}_tol{}_{}.npz'.format(
+            name, dinput['nbs'], dinput['method'], dinput['xtol'])
+        if name[-4:] != '.npz':
+            name = name + '.npz'
+        if path is None:
+            path = './'
+        pfe = os.path.join(os.path.abspath(path), name)
+        np.savez(pfe, **dfit2d)
+        msg = ("Saved in:\n"
+               + "\t{}".format(pfe))
+        print(msg)
+
+    # ----------------------
+    # Optional plotting
+    if plot is True:
+        dout = fit1d_extract(dfit1d)
+        # TBF
+        dax = _plot_optics.CrystalBragg_plot_data_fit1d(
+            dfit1d, dinput=dinput, showonly=showonly,
+            lambmin=lambmin, lambmax=lambmax,
+            same_spectrum=same_spectrum,
+            fs=fs, dmargin=dmargin,
+            tit=tit, wintit=wintit)
+
+    # ----------------------
+    # return
+    if plot is True:
+        return dfit1d, dax
+    else:
+        return dfit1d
+
+
+def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
+          lamb=None, phi=None, data=None, mask=None,
+          domain=None, pos=None, binning=None, subset=None,
+          deg=None, knots=None, nbsplines=None,
+          method=None, tr_solver=None, tr_options=None,
+          xtol=None, ftol=None, gtol=None,
+          max_nfev=None, loss=None, chain=None,
+          dx0=None, x0_scale=None, bounds_scale=None,
+          jac=None, nxi=None, nxj=None, verbose=None, showonly=None,
+          save=None, name=None, path=None,
+          plot=None):
+
+    # ----------------------
+    # Check / format
+    if showonly is None:
+        showonly = False
+    if save is None:
+        save = False
+    if plot is None:
+        plot = False
+
+    # ----------------------
+    # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
+    if dinput is None:
+        dinput = multigausfit2d_from_dlines_dinput(
+            dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
+            data=data, lamb=lamb, phi=phi,
+            mask=mask, domain=domain,
+            pos=pos, binning=binning,
+            nbsplines=nbsplines, subset=subset,
+            nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None
+            deg=deg, knots=knots, nbsplines=nbsplines,
+            dataphi1d=dataphi1d, phi1d=phi1d, fraction=None)
+
+    # ----------------------
+    # Perform 2d fitting
+    if showonly is True:
+        pass
+    else:
+        dfit2d = multigausfit2d_from_dlines(
+            dinput=dinput, dx0=dx0,
+            x0_scale=x0_scale, bounds_scale=bounds_scale,
+            method=method, max_nfev=max_nfev,
+            tr_solver=tr_solver, tr_options=tr_options,
+            xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
+            chain=chain, verbose=verbose, jac=jac)
+
+    # ----------------------
+    # Optional saving
+    if save is True:
+        if name is None:
+            name = 'custom'
+        name = 'TFS_fit2d_doutput_{}_nbs{}_{}_tol{}_{}.npz'.format(
+            name, dinput['nbs'], dinput['method'], dinput['xtol'])
+        if name[-4:] != '.npz':
+            name = name + '.npz'
+        if path is None:
+            path = './'
+        pfe = os.path.join(os.path.abspath(path), name)
+        np.savez(pfe, **dfit2d)
+        msg = ("Saved in:\n"
+               + "\t{}".format(pfe))
+        print(msg)
+
+    # ----------------------
+    # Optional plotting
+    if plot is True:
+        dout = fit2d_extract(dfit2d)
+        dax = None
+
+    # ----------------------
+    # return
+    if plot is True:
+        return dfit2d, dax
+    else:
+        return dfit2d
+
+
+###########################################################
+###########################################################
+#
 #   Extract data from pre-computed dict of fitted results
 #
 ###########################################################
 ###########################################################
 
 
-def fit2d_get_data_checkformat(dfit2d=None,
-                               pts_phi=None, npts_phi=None,
-                               amp=None, Ti=None, vi=None,
-                               pts_lamb_phi_total=None,
-                               pts_lamb_phi_detail=None,
-                               dprepare=None, dinput=None):
-    # dfit2d
-    lk = ['dprepare', 'dinput', 'dind', 'sol_x', 'jac', 'phi2', 'scales']
-    c0 = (isinstance(dfit2d, dict)
-          and all([ss in dfit2d.keys() for ss in lk]))
-    if not isinstance(dfit2d, dict):
-        msg = ("dfit2d must be a dict with at least the following keys:\n"
+def fit12d_get_data_checkformat(dfit=None,
+                                pts_phi=None, npts_phi=None,
+                                amp=None, Ti=None, vi=None,
+                                pts_total=None, pts_detail=None,
+                                allow_pickle=None):
+
+    # load file if str
+    if isinstance(dfit, str):
+        if not os.path.isfile(dfit) or not dfit[-4:] == '.npz':
+            msg = ("Provided dfit must be either a dict or "
+                   + "the absolute path to a saved .npz\n"
+                   + "  You provided: {}".format(dfit))
+            raise Exception(msg)
+        if allow_pickle is None:
+            allow_pickle = _ALLOW_PICKLE
+        dfit = dict(np.load(dfit, allow_pickle=allow_pickle))
+        _rebuild_dict(dfit)
+
+    # check dfit basic structure
+    lk = ['dprepare', 'dinput', 'dind', 'sol_x', 'jac', 'scales']
+    c0 = (isinstance(dfit, dict)
+          and all([ss in dfit.keys() for ss in lk]))
+    if not isinstance(dfit, dict):
+        msg = ("dfit must be a dict with at least the following keys:\n"
                + "\t- {}\n".format(lk)
-               + "\t- provided: {}".format(dfit2d))
+               + "\t- provided: {}".format(dfit))
         raise Exception(msg)
 
+    # Identify if fit1d or fit2d
+    is2d = 'nbsplines' in dfit['dinput'].keys()
+    if is2d is True and not 'phi2' in dfit.keys():
+        msg = "dfit is a fit2d output but does not have key 'phi2'!"
+        raise Exception(msg)
+
+    # Extract dinput and dprepare (more readable)
+    dinput = dfit['dinput']
+    dprepare = dfit['dinput']['dprepare']
+
+    # Check / format amp, Ti, vi
     d3 = {'amp': [amp, 'amp'],
           'Ti': [Ti, 'width'],
           'vi': [vi, 'shift']}
@@ -2130,15 +2327,17 @@ def fit2d_get_data_checkformat(dfit2d=None,
                 d3[k0][0] = {'type': d3[k0][0],
                              'ind': np.arange(0, dinput['nlines'])}
             else:
-                d3[k0][0] = {'type': d3[k0][0],
-                             'ind': np.arange(0,
-                                              dinput[d3[k0][1]]['keys'].size)}
+                d3[k0][0] = {
+                    'type': d3[k0][0],
+                    'ind': np.arange(0, dinput[d3[k0][1]]['keys'].size)}
         elif lc[1]:
             d3[k0][0] = [d3[k0][0]]
 
         if isinstance(d3[k0][0], list):
-            lc = [all([ss in dinput['keys'] for ss in d3[k0][0]]),
-                  all([ss in dinput[d3[k0][1]]['keys'] for ss in d3[k0][0]])]
+            lc = [all([ss in dinput['keys']
+                       for ss in d3[k0][0]]),
+                  all([ss in dinput[d3[k0][1]]['keys']
+                       for ss in d3[k0][0]])]
             if not any(lc):
                 msg = ("Arg must contain either keys from:\n"
                        + "\t- lines keys: {}\n".format(dinput['keys'])
@@ -2159,36 +2358,166 @@ def fit2d_get_data_checkformat(dfit2d=None,
         d3[k0] = d3[k0][0]
 
     # pts_phi, npts_phi
-    c0 = any([v0 is not False for v0 in d3.values()])
-    c1 = [pts_phi is not None, npts_phi is not None]
-    if all(c1):
-        msg = "Arg pts_phi and npts_phi cannot be both provided!"
-        raise Exception(msg)
-    if not any(c1):
-        npts_phi = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
-    if npts_phi is not None:
-        npts_phi = int(npts_phi)
-        pts_phi = np.linspace(dprepare['domain']['phi']['minmax'][0],
-                              dprepare['domain']['phi']['minmax'][1],
-                              npts_phi)
-    else:
-        pts_phi = np.array(pts_phi).ravel()
-
-    # pts_lamb_phi_total, pts_lamb_phi_detail
-    if pts_lamb_phi_total is None:
-        if dprepare is None:
-            pts_lamb_phi_total = False
+    if is2d is True:
+        c0 = any([v0 is not False for v0 in d3.values()])
+        c1 = [pts_phi is not None, npts_phi is not None]
+        if all(c1):
+            msg = "Arg pts_phi and npts_phi cannot be both provided!"
+            raise Exception(msg)
+        if not any(c1):
+            npts_phi = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
+        if npts_phi is not None:
+            npts_phi = int(npts_phi)
+            pts_phi = np.linspace(dprepare['domain']['phi']['minmax'][0],
+                                  dprepare['domain']['phi']['minmax'][1],
+                                  npts_phi)
         else:
-            pts_lamb_phi_total = np.array([dprepare['lamb'],
-                                           dprepare['phi']])
-    if pts_lamb_phi_detail is None:
-        pts_lamb_phi_detail = False
-    if pts_lamb_phi_total is not False:
-        pts_lamb_phi_total = np.array(pts_lamb_phi_total)
-    if pts_lamb_phi_detail is not False:
-        pts_lamb_phi_detail = np.array(pts_lamb_phi_detail)
+            pts_phi = np.array(pts_phi).ravel()
 
-    return d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail
+    # pts_total, pts_detail
+    if pts_total is None:
+        if dprepare is None:
+            pts_total = False
+        else:
+            if is2d is True:
+                pts_total = np.array([dprepare['lamb'], dprepare['phi']])
+            else:
+                pts_total = dprepare['lamb']
+    if pts_detail is None:
+        pts_detail = False
+    if pts_total is not False:
+        pts_total = np.array(pts_total)
+    if pts_detail is not False:
+        pts_detail = np.array(pts_detail)
+
+    return d3, pts_phi, pts_total, pts_detail
+
+
+def _get_values(key,
+                nspect=None, dinput=None,
+                dind=None, sol_x=None, scales=None,
+                typ=None, ind=None, pts_phi=None):
+    ncoefs = ind.size
+    val = np.full((nspect, pts_phi.size, ncoefs), np.nan)
+    BS = BSpline(dinput['knots_mult'],
+                 np.ones((dinput['nbs'], ncoefs), dtype=float),
+                 dinput['deg'],
+                 extrapolate=False, axis=0)
+    if typ == 'lines':
+        keys = dinput['keys'][ind]
+    else:
+        keys = dinput[key]['keys'][ind]
+    indbis = dind[key][typ][:, ind]
+    for ii in range(nspect):
+        BS.c = sol_x[ii, indbis] * scales[ii, indbis]
+        val[ii, :, :] = BS(pts_phi)
+    return keys, val
+
+
+def fit1d_extract(dfit1d=None,
+                  amp=None, Ti=None, vi=None,
+                  pts_lamb_total=None, pts_lamb_detail=None):
+
+    # Check format input
+    out = fit12d_get_data_checkformat(
+        dfit=dfit1d,
+        amp=amp, Ti=Ti, vi=vi,
+        pts_total=pts_lamb_total,
+        pts_detail=pts_lamb_detail)
+
+    d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
+    nspect = dfit1d['dprepare']['data'].shape[0]
+
+    # Prepare output
+    shape = tuple(np.r_[nspect, pts_lamb_total.shape])
+    sol_tot = np.full(shape, np.nan)
+    if any([v0 is not False for v0 in d3.values()]):
+        nbs = dfit1d['dinput']['nbs']
+
+    dout = {}
+    # amp        # TBF
+    if d3['amp'] is not False:
+        keys, val = _get_values(
+            d3['amp']['field'], nspect=nspect,
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
+            scales=dfit2d['scales'],
+            typ=d3['amp']['type'], ind=d3['amp']['ind'])
+        dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
+    # Ti
+    if d3['Ti'] is not False:
+        keys, val = _get_values(
+            d3['Ti']['field'], nspect=nspect,
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
+            scales=dfit2d['scales'],
+            typ=d3['Ti']['type'], ind=d3['Ti']['ind'])
+        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
+        if d3['Ti']['type'] == 'lines':
+            indTi = np.arange(0, dfit2d['dinput']['nlines'])
+        else:
+            indTi = np.array([iit[0]
+                              for iit in dfit2d['dind']['width']['jac']])
+        indTi = indTi[d3['Ti']['ind']]
+        val = (conv * val
+               * dfit2d['dinput']['mz'][indTi][None, None, :]
+               * scpct.c**2)
+        dout['Ti'] = {'keys': keys, 'values': val, 'units': 'eV'}
+
+    # vi
+    if d3['vi'] is not False:
+        keys, val = _get_values(
+            d3['vi']['field'], nspect=nspect,
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
+            scales=dfit2d['scales'],
+            typ=d3['vi']['type'], ind=d3['vi']['ind'])
+        val = val * scpct.c
+        dout['vi'] = {'keys': keys, 'values': val, 'units': 'm.s^-1'}
+
+    # sol_detail and sol_tot
+    sold, solt = False, False
+    if pts_lamb_phi_detail is not False or pts_lamb_phi_total is not False:
+
+        func_detail = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+            dfit2d['dprepare']['lamb'], dfit2d['phi2'],
+            indok=dfit2d['dprepare']['indok'],
+            binning=dfit2d['dprepare']['binning'],
+            dinput=dfit2d['dinput'],
+            dind=dfit2d['dind'], jac=dfit2d['jac'])[0]
+
+        if pts_lamb_phi_detail is not False:
+            shape = tuple(np.r_[nspect, pts_lamb_phi_detail.shape,
+                                dfit2d['dinput']['nlines']+1,
+                                dfit2d['dinput']['nbs']])
+            sold = np.full(shape, np.nan)
+        if pts_lamb_phi_total is not False:
+            shape = tuple(np.r_[nspect, pts_lamb_phi_total.shape])
+            solt = np.full(shape, np.nan)
+
+        for ii in range(nspect):
+
+            # Separate and reshape output
+            fd = func_detail(dfit2d['sol_x'][ii, :],
+                             scales=dfit2d['scales'][ii, :],
+                             indok_var=dfit2d['dprepare']['indok_var'][ii])
+
+            if pts_lamb_phi_detail is not False:
+                sold[ii, ...] = fd
+            if pts_lamb_phi_total is not False:
+                solt[ii, ...] = np.nansum(np.nansum(fd, axis=-1), axis=-1)
+
+    dout['sol_detail'] = sold
+    dout['sol_tot'] = solt
+    dout['units'] = 'a.u.'
+
+    # Add input args
+    dout['d3'] = d3
+    dout['pts_phi'] = pts_phi
+    dout['pts_lamb_phi_detail'] = pts_lamb_phi_detail
+    dout['pts_lamb_phi_total'] = pts_lamb_phi_total
+    return dout
 
 
 def _get_phi_profile(key,
@@ -2212,19 +2541,18 @@ def _get_phi_profile(key,
     return keys, val
 
 
-def fit2d_extract_data(dfit2d=None,
-                       pts_phi=None, npts_phi=None,
-                       amp=None, Ti=None, vi=None,
-                       pts_lamb_phi_total=None, pts_lamb_phi_detail=None):
+def fit2d_extract(dfit2d=None,
+                  pts_phi=None, npts_phi=None,
+                  amp=None, Ti=None, vi=None,
+                  pts_lamb_phi_total=None, pts_lamb_phi_detail=None):
 
     # Check format input
-    out = fit2d_get_data_checkformat(
-        dfit2d=dfit2d,
+    out = fit12d_get_data_checkformat(
+        dfit=dfit2d,
         amp=amp, Ti=Ti, vi=vi,
         pts_phi=pts_phi, npts_phi=npts_phi,
-        pts_lamb_phi_total=pts_lamb_phi_total,
-        pts_lamb_phi_detail=pts_lamb_phi_detail,
-        dprepare=dfit2d['dprepare'], dinput=dfit2d['dinput'])
+        pts_total=pts_lamb_phi_total,
+        pts_detail=pts_lamb_phi_detail)
 
     d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
     nspect = dfit2d['dprepare']['data'].shape[0]
@@ -2319,3 +2647,46 @@ def fit2d_extract_data(dfit2d=None,
     dout['pts_lamb_phi_detail'] = pts_lamb_phi_detail
     dout['pts_lamb_phi_total'] = pts_lamb_phi_total
     return dout
+
+
+###########################################################
+###########################################################
+#
+#   Plot fitted data from pre-computed dict of fitted results
+#
+###########################################################
+###########################################################
+
+def fit2d_plot(dout=None):
+
+    # ----------------------
+    # Optional plotting
+    if plot is True:
+        if plotmode is None:
+            plotmode = 'transform'
+        if indspect is None:
+            indspect = 0
+
+        if spect1d is not None:
+            # Compute lambfit / phifit and spectrum1d
+            if nlambfit is None:
+                nlambfit = 200
+            ((spect1d, fit1d), lambfit,
+             phifit, _, phiminmax) = self._calc_spect1d_from_data2d(
+                 [dataflat[indspect, :], dfit2d['sol_tot'][indspect, :]],
+                 lambflat, phiflat,
+                 nlambfit=nlambfit, nphifit=10,
+                 spect1d=spect1d, mask=None, vertsum1d=False)
+        else:
+            fit1d, lambfit, phiminmax = None, None, None
+
+        dax = _plot_optics.CrystalBragg_plot_data_fit2d(
+            xi=xi, xj=xj, data=dfit2d['data'],
+            lamb=dfit2d['lamb'], phi=dfit2d['phi'], indspect=indspect,
+            indok=indok, dfit2d=dfit2d,
+            dax=dax, plotmode=plotmode, angunits=angunits,
+            cmap=cmap, vmin=vmin, vmax=vmax,
+            spect1d=spect1d, fit1d=fit1d,
+            lambfit=lambfit, phiminmax=phiminmax,
+            dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
+    return dax
