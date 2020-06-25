@@ -25,13 +25,11 @@ try:
     import tofu.data._plot as _plot
     import tofu.data._def as _def
     import tofu._physics as _physics
-    import tofu.data._spectrafit2d as _spectrafit2d
 except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
     from . import _def as _def
     from .. import _physics as _physics
-    from . import _spectrafit2d as _spectrafit2d
 
 __all__ = ['DataCam1D','DataCam2D',
            'DataCam1DSpectral','DataCam2DSpectral',

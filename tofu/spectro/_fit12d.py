@@ -18,10 +18,10 @@ import matplotlib.pyplot as plt
 
 # ToFu-specific
 import tofu.utils as utils
-from . import _spectrafit2d_funccostjac as _funccostjac
+from . import _fit12d_funccostjac as _funccostjac
 
 
-__all__ = ['fit1d', 'fit1d_from_2d', 'fit2d',
+__all__ = ['fit1d', 'fit2d',
            'fit1d_extract', 'fit2d_extract']
 
 
