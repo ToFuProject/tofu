@@ -1878,11 +1878,11 @@ class CrystalBragg(utils.ToFuObject):
                      domain=None, pos=None, subset=None, same_spectrum=None):
         """ Return a formatted dict of lines and constraints
 
-        To be fed to _spectrafit2d.multigausfit1d_from_dlines()
+        To be fed to _fit12d.multigausfit1d_from_dlines()
         Provides a user-friendly way of defining constraints
         """
-        import tofu.data._spectrafit2d as _spectrafit2d
-        return _spectrafit2d.multigausfit1d_from_dlines_dinput(
+        import tofu.spectro._fit12d as _fit12d
+        return _fit12d.multigausfit1d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb,
             mask=mask, domain=domain,
@@ -1913,8 +1913,8 @@ class CrystalBragg(utils.ToFuObject):
 
         # ----------------------
         # return
-        import tofu.data._spectrafit2d as _spectrafit2d
-        return _spectrafit2d.fit1d(
+        import tofu.spectro._fit12d as _fit12d
+        return _fit12d.fit1d(
             dinput=dinput, dprepare=dprepare,
             dlines=dlines, dconstraints=dconstraints,
             lamb=lamb, data=data, mask=mask,
@@ -2002,10 +2002,10 @@ class CrystalBragg(utils.ToFuObject):
                      dataphi1d=None, phi1d=None):
         """ Return a formatted dict of lines and constraints
 
-        To be fed to _spectrafit2d.multigausfit1d_from_dlines()
+        To be fed to _fit12d.multigausfit1d_from_dlines()
         Provides a user-friendly way of defining constraints
         """
-        import tofu.data._spectrafit2d as _spectrafit2d
+        import tofu.spectro._fit12d as _fit12d
         if dprepare is None:
             # ----------------------
             # Geometrical transform
@@ -2022,13 +2022,13 @@ class CrystalBragg(utils.ToFuObject):
 
             # ----------------------
             # Prepare input data (domain, binning, subset, noise...)
-            dprepare = _spectrafit2d.multigausfit2d_from_dlines_prepare(
+            dprepare = _fit12d.multigausfit2d_from_dlines_prepare(
                 data, lamb, phi,
                 mask=mask, domain=domain,
                 pos=pos, binning=binning,
                 nbsplines=nbsplines, subset=subset,
                 nxi=nxi, nxj=nxj, lphi=lphi, lphi_tol=lphi_tol)
-        return _spectrafit2d.multigausfit2d_from_dlines_dinput(
+        return _fit12d.multigausfit2d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints,
             deg=deg, knots=knots, nbsplines=nbsplines, dprepare=dprepare,
             dataphi1d=dataphi1d, phi1d=phi1d, fraction=None)
@@ -2078,8 +2078,8 @@ class CrystalBragg(utils.ToFuObject):
 
         # ----------------------
         # return
-        import tofu.data._spectrafit2d as _spectrafit2d
-        return _spectrafit2d.fit2d(
+        import tofu.spectro._fit12d as _fit12d
+        return _fit12d.fit2d(
             dinput=dinput, dprepare=dprepare,
             dlines=dlines, dconstraints=dconstraints,
             lamb=lamb, phi=phi, data=data, mask=mask,
@@ -2100,8 +2100,8 @@ class CrystalBragg(utils.ToFuObject):
                       pts_phi=None, npts_phi=None,
                       pts_lamb_phi_total=None,
                       pts_lamb_phi_detail=None):
-        import tofu.data._spectrafit2d as _spectrafit2d
-        return _spectrafit2d.fit2d_extract_data(
+        import tofu.data._fit12d as _fit12d
+        return _fit12d.fit2d_extract_data(
             dfit2d=dfit2d,
             amp=amp, Ti=Ti, vi=vi,
             pts_phi=pts_phi, npts_phi=npts_phi,
