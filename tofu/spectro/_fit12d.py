@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 # ToFu-specific
 import tofu.utils as utils
 from . import _fit12d_funccostjac as _funccostjac
+from . import _plot
 
 
 __all__ = ['fit1d', 'fit2d',
@@ -2180,10 +2181,8 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
     if plot is True:
         dout = fit1d_extract(dfit1d)
         # TBF
-        dax = _plot_optics.CrystalBragg_plot_data_fit1d(
-            dfit1d, dinput=dinput, showonly=showonly,
-            lambmin=lambmin, lambmax=lambmax,
-            same_spectrum=same_spectrum,
+        dax = _plot.plot_fit1d(
+            dfit1d=dfit1d, dout=dout, showonly=showonly,
             fs=fs, dmargin=dmargin,
             tit=tit, wintit=wintit)
 

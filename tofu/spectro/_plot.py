@@ -16,7 +16,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # tofu
 from tofu.version import __version__
-from . import _def as _def
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
@@ -208,12 +207,16 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
     return [ax0, ax1]
 
 
+# #################################################################
+# #################################################################
+#                   fit1d plot
+# #################################################################
+# #################################################################
 
-def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
-                                 lambmin=None, lambmax=None,
-                                 same_spectrum=None,
-                                 fs=None, dmargin=None,
-                                 tit=None, wintit=None):
+
+def plot_fit1d(dfit1d=None, dout=None, showonly=None,
+               fs=None, dmargin=None,
+               tit=None, wintit=None):
 
     # Check inputs
     # ------------
@@ -226,9 +229,13 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
                    'bottom':0.07, 'top':0.85,
                    'wspace':0.2, 'hspace':0.3}
 
+    # Extract (better redeability)
+    dprepare = dfit1d['dinput']['dprepare']
+    dinput = dfit1d['dinput']
+
     # pre-compute
     # ------------
-    if same_spectrum is True:
+    if dinput['same_spectrum'] is True:
         nlines = int(dinput['nlines'] / dinput['same_spectrum_nspect'])
         dinput['lines'] = dinput['lines'][:nlines]
         dinput['ion'] = dinput['ion'][:nlines]
@@ -251,16 +258,17 @@ def CrystalBragg_plot_data_fit1d(dfit1d, dinput=None, showonly=None,
 
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
-    if dfit1d['Ti'] is True:
+    if dout['Ti'] is not False:
         lfcol = ['y', 'g', 'c', 'm']
     else:
         lfcol = [None]
     nfcol = len(lfcol)
-    if dfit1d['vi'] is True:
+    if dout['vi'] is not False:
         lhatch = [None, '/', '\\', '|', '-', '+', 'x', '//']
     else:
         lhatch = [None]
     nhatch = len(lhatch)
+    import pdb; pdb.set_trace()      # DB
     nspect = dfit1d['data'].shape[0]
 
     # import pdb; pdb.set_trace()     # DB
