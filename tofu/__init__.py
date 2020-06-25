@@ -67,6 +67,7 @@ from tofu.utils import save, load, load_from_imas, calc_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
+import tofu.spectro as spectro
 
 
 # -------------------------------------
@@ -98,7 +99,7 @@ if len(lsubout) > 0:
 # Add optional subpackages to __all__
 # -------------------------------------
 
-__all__ = ['pathfile', 'utils', '_plot', 'geom', 'data']
+__all__ = ['pathfile', 'utils', '_plot', 'geom', 'data', 'spectro']
 for sub in dsub.keys():
     if dsub[sub] is True:
         __all__.append(sub)
