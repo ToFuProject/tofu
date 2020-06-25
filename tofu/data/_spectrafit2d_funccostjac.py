@@ -35,8 +35,13 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
     iax = dind['amp']['x']
     iwx = dind['width']['x']
     ishx = dind['shift']['x']
-    idratiox = dind['dratio']['x']
-    idshx = dind['dshift']['x']
+    idratiox, idshx = None, None
+    if dinput['double'] is not False:
+        c0 = dinput['double'] is True
+        if c0 or dinput['double'].get('dratio') is None:
+            idratiox = dind['dratio']['x']
+        if c0 or dinput['double'].get('dshift') is None:
+            idshx = dind['dshift']['x']
 
     ial = dind['amp']['lines']
     iwl = dind['width']['lines']
@@ -308,8 +313,13 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
     iax = dind['amp']['x']
     iwx = dind['width']['x']
     ishx = dind['shift']['x']
-    idratiox = dind['dratio']['x']
-    idshx = dind['dshift']['x']
+    idratiox, idshx = None, None
+    if dinput['double'] is not False:
+        c0 = dinput['double'] is True
+        if c0 or dinput['double'].get('dratio') is None:
+            idratiox = dind['dratio']['x']
+        if c0 or dinput['double'].get('dshift') is None:
+            idshx = dind['dshift']['x']
 
     ial = dind['amp']['lines']
     iwl = dind['width']['lines']

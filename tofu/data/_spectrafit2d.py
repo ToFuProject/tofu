@@ -902,7 +902,7 @@ def multigausfit1d_from_dlines_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     data=None, lamb=None, mask=None, domain=None, pos=None, subset=None,
     same_spectrum=None, nspect=None, dlamb=None,
-    fraction=None, defconst=_DCONSTRAINTS):
+    defconst=_DCONSTRAINTS):
 
     # ------------------------
     # Check / format dprepare
@@ -1062,6 +1062,13 @@ def multigausfit1d_from_dlines_dinput(
     # dinput['valid_indphi'] = _valid_indices(spectvect1d, phi1d,
                                             # threshold=threshold)
     # dinput['threshold'] = threshold
+
+    # Update with dprepare
+    dinput['dprepare'] = dict(dprepare)
+
+    # Add dind
+    dinput['dind'] = multigausfit1d_from_dlines_ind(dinput)
+
     return dinput
 
 
@@ -1071,7 +1078,7 @@ def multigausfit2d_from_dlines_dinput(
     data=None, lamb=None, phi=None,
     mask=None, domain=None, pos=None, binning=None, subset=None,
     noise_ind=None, nxi=None, nxj=None,
-    lphi=None, lphi_tol=None
+    lphi=None, lphi_tol=None,
     dataphi1d=None, phi1d=None,
     fraction=None, defconst=_DCONSTRAINTS):
 
@@ -1681,7 +1688,7 @@ def multigausfit1d_from_dlines(dinput=None,
         max_nfev = None
     if verbose is None:
         verbose = 1
-    if verbose == 2:
+    if verbose == 3:
         verbscp = 2
     else:
         verbscp = 0
@@ -1740,24 +1747,27 @@ def multigausfit1d_from_dlines(dinput=None,
     errmsg = ['' for ss in range(nspect)]
 
     # Prepare msg
-    if verbose > 0:
-        msg = ("Loop in {} spectra with jac = {}\n".format(nspect, jac)
-               + "time (s)    cost   nfev   njev   term"
-               + "-"*20)
+    if verbose in [1, 2]:
+        col = np.char.array(['Spect', 'time (s)', 'cost',
+                             'nfev', 'njev', 'msg'])
+        maxl = max(np.max(np.char.str_len(col)), 10)
+        msg = '\n'.join([' '.join([cc.ljust(maxl) for cc in col]),
+                         ' '.join(['-'*maxl]*6)])
         print(msg)
 
     # ---------------------------
     # Minimize
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
-        if verbose > 0:
-            msg = "Iteration {} / {}".format(ii+1, nspect)
+        if verbose == 3:
+            msg = "\nSpect {} / {}".format(ii+1, nspect)
             print(msg)
         try:
+            dti = None
             t0i = dtm.datetime.now()     # DB
             res = scpopt.least_squares(
                 func_cost, x0_scale[ii, :],
-                jac=jacob, bounds=bounds_scale,
+                jac=func_jac, bounds=bounds_scale,
                 method=method, ftol=ftol, xtol=xtol,
                 gtol=gtol, x_scale=1.0, f_scale=1.0,
                 loss=loss, diff_step=None,
@@ -1766,6 +1776,7 @@ def multigausfit1d_from_dlines(dinput=None,
                 verbose=verbscp, args=(),
                 kwargs={'data': datacost[ii, :],
                         'scales': scales[ii, :]})
+            dti = (dtm.datetime.now() - t0i).total_seconds()
 
             if chain is True and ii < nspect-1:
                 x0_scale[ii+1, :] = res.x
@@ -1777,17 +1788,23 @@ def multigausfit1d_from_dlines(dinput=None,
             message[ii] = res.message
             time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
                              ndigits=3)
-            if verbose > 0:
-                msg = " {}    {}    {}   {}   {}".format(time[ii],
-                                                         round(res.cost),
-                                                         res.nfev, res.njev,
-                                                         res.message)
-                print(msg)
             sol_x[ii, :] = res.x
 
         except Exception as err:
             errmsg[ii] = str(err)
             validity[ii] = -1
+
+        if verbose in [1, 2]:
+            col = np.char.array(['{} / {}'.format(ii+1, nspect),
+                                 '{}'.format(dti),
+                                 '{:5.3e}'.format(res.cost),
+                                 str(res.nfev), str(res.njev), res.message])
+            msg = ' '.join([cc.ljust(maxl) for cc in col])
+            if verbose == 1:
+                end = '\n' if ii == nspect-1 else '\r'
+                print(msg, end=end, flush=True)
+            else:
+                print(msg, end='\n')
 
     # ---------------------------
     # Reshape in case of same_spectrum
@@ -1846,15 +1863,14 @@ def multigausfit1d_from_dlines(dinput=None,
     if verbose > 0:
         dt = (dtm.datetime.now()-t0).total_seconds()
         msg = ("Total computation time:"
-               + "\t{} s for {} steps ({} s per step)".format(
+               + "\t{} s for {} spectra ({} s per spectrum)".format(
                    round(dt, ndigits=3), nspect,
                    round(dt/nspect, ndigits=3)))
         print(msg)
 
-    import pdb; pdb.set_trace()     # DB
     # ---------------------------
     # Format output as dict
-    dout = {'dinput': dinput,
+    dfit = {'dinput': dinput,
             'scales': scales, 'x0_scale': x0_scale,
             'bounds_scale': bounds_scale,
             'jac': jac, 'sol_x': sol_x,
@@ -1862,7 +1878,7 @@ def multigausfit1d_from_dlines(dinput=None,
             'time': time, 'success': success,
             'validity': validity, 'errmsg': np.array(errmsg),
             'cost': cost, 'nfev': nfev, 'msg': np.array(message)}
-    return dout
+    return dfit
 
 
 def multigausfit2d_from_dlines(dinput=None, dx0=None,
@@ -1915,7 +1931,7 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
         max_nfev = None
     if verbose is None:
         verbose = 1
-    if verbose == 2:
+    if verbose == 3:
         verbscp = 2
     else:
         verbscp = 0
@@ -1950,8 +1966,8 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
                                                      dinput['double'])
 
     # Get function, cost function and jacobian
-    (func_detail,
-     func_cost, jacob) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+    (func_detail, func_cost,
+     func_jac) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
          dprepare['lamb'], phi2, indok=dprepare['indok'],
          binning=dprepare['binning'], dinput=dinput,
          dind=dind, jac=jac)
@@ -1983,24 +1999,26 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
     dprepare['indok_var'] = indok_var
 
     # Prepare msg
-    if verbose > 0:
-        msg = ("Loop in {} spectra with jac = {}\n".format(nspect, jac)
-               + "time (s)    cost   nfev   njev   term"
-               + "-"*20)
+    if verbose in [1, 2]:
+        col = np.char.array(['Spect', 'time (s)', 'cost',
+                             'nfev', 'njev', 'msg'])
+        maxl = max(np.max(np.char.str_len(col)), 10)
+        msg = '\n'.join([' '.join([cc.ljust(maxl) for cc in col]),
+                         ' '.join(['-'*maxl]*6)])
         print(msg)
 
     # ---------------------------
     # Minimize
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
-        if verbose > 0:
-            msg = "Iteration {} / {}".format(ii+1, nspect)
+        if verbose == 3:
+            msg = "\nSpect {} / {}".format(ii+1, nspect)
             print(msg)
         try:
             t0i = dtm.datetime.now()     # DB
             res = scpopt.least_squares(
                 func_cost, x0_scale[ii, :],
-                jac=jacob, bounds=bounds_scale,
+                jac=func_jac, bounds=bounds_scale,
                 method=method, ftol=ftol, xtol=xtol,
                 gtol=gtol, x_scale=1.0, f_scale=1.0,
                 loss=loss, diff_step=None,
@@ -2021,17 +2039,23 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
             message[ii] = res.message
             time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
                              ndigits=3)
-            if verbose > 0:
-                msg = " {}    {}    {}   {}   {}".format(time[ii],
-                                                         round(res.cost),
-                                                         res.nfev, res.njev,
-                                                         res.message)
-                print(msg)
             sol_x[ii, :] = res.x
 
         except Exception as err:
             errmsg[ii] = str(err)
             validity[ii] = -1
+
+        if verbose in [1, 2]:
+            col = np.char.array(['{} / {}'.format(ii+1, nspect),
+                                 '{}'.format(dti),
+                                 '{:5.3e}'.format(res.cost),
+                                 str(res.nfev), str(res.njev), res.message])
+            msg = ' '.join([cc.ljust(maxl) for cc in col])
+            if verbose == 1:
+                end = '\n' if ii == nspect-1 else '\r'
+                print(msg, end=end, flush=True)
+            else:
+                print(msg, end='\n')
 
     # Isolate dratio and dshift
     dratio, dshift = None, None
@@ -2056,14 +2080,14 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
     if verbose > 0:
         dt = (dtm.datetime.now()-t0).total_seconds()
         msg = ("Total computation time:"
-               + "\t{} s for {} steps ({} s per step)".format(
+               + "\t{} s for {} spectra ({} s per spectrum)".format(
                    round(dt, ndigits=3), nspect,
                    round(dt/nspect, ndigits=3)))
         print(msg)
 
     # ---------------------------
     # Format output as dict
-    dout = {'dinput': dinput,
+    dfit = {'dinput': dinput,
             'scales': scales, 'x0_scale': x0_scale,
             'bounds_scale': bounds_scale, 'phi2': phi2,
             'jac': jac, 'sol_x': sol_x,
@@ -2071,7 +2095,7 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
             'time': time, 'success': success,
             'validity': validity, 'errmsg': np.array(errmsg),
             'cost': cost, 'nfev': nfev, 'msg': np.array(message)}
-    return dout
+    return dfit
 
 
 ###########################################################
@@ -2085,7 +2109,7 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
 
 def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           lamb=None, data=None, mask=None,
-          domain=None, pos=None, subset=None,
+          domain=None, pos=None, subset=None, same_spectrum=None,
           method=None, tr_solver=None, tr_options=None,
           xtol=None, ftol=None, gtol=None,
           max_nfev=None, loss=None, chain=None,
@@ -2111,7 +2135,7 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
             data=data, lamb=lamb,
             mask=mask, domain=domain,
             pos=pos, subset=subset,
-            fraction=None)
+            same_spectrum=same_spectrum)
 
     # ----------------------
     # Perform 2d fitting
@@ -2199,9 +2223,8 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb, phi=phi,
             mask=mask, domain=domain,
-            pos=pos, binning=binning,
-            nbsplines=nbsplines, subset=subset,
-            nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None
+            pos=pos, binning=binning, subset=subset,
+            nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None,
             deg=deg, knots=knots, nbsplines=nbsplines,
             dataphi1d=dataphi1d, phi1d=phi1d, fraction=None)
 
@@ -2385,10 +2408,10 @@ def fit12d_get_data_checkformat(dfit=None,
                 pts_total = dprepare['lamb']
     if pts_detail is None:
         pts_detail = False
-    if pts_total is not False:
-        pts_total = np.array(pts_total)
     if pts_detail is not False:
         pts_detail = np.array(pts_detail)
+    if pts_total is not False:
+        pts_total = np.array(pts_total)
 
     return d3, pts_phi, pts_total, pts_detail
 
@@ -2397,20 +2420,12 @@ def _get_values(key,
                 nspect=None, dinput=None,
                 dind=None, sol_x=None, scales=None,
                 typ=None, ind=None, pts_phi=None):
-    ncoefs = ind.size
-    val = np.full((nspect, pts_phi.size, ncoefs), np.nan)
-    BS = BSpline(dinput['knots_mult'],
-                 np.ones((dinput['nbs'], ncoefs), dtype=float),
-                 dinput['deg'],
-                 extrapolate=False, axis=0)
     if typ == 'lines':
         keys = dinput['keys'][ind]
     else:
         keys = dinput[key]['keys'][ind]
-    indbis = dind[key][typ][:, ind]
-    for ii in range(nspect):
-        BS.c = sol_x[ii, indbis] * scales[ii, indbis]
-        val[ii, :, :] = BS(pts_phi)
+    indbis = dind[key][typ][ind]
+    val = sol_x[:, indbis] * scales[:, indbis]
     return keys, val
 
 
@@ -2418,6 +2433,7 @@ def fit1d_extract(dfit1d=None,
                   amp=None, Ti=None, vi=None,
                   pts_lamb_total=None, pts_lamb_detail=None):
 
+    # -------------------
     # Check format input
     out = fit12d_get_data_checkformat(
         dfit=dfit1d,
@@ -2425,23 +2441,23 @@ def fit1d_extract(dfit1d=None,
         pts_total=pts_lamb_total,
         pts_detail=pts_lamb_detail)
 
-    d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
-    nspect = dfit1d['dprepare']['data'].shape[0]
+    d3, pts_phi, pts_lamb_total, pts_lamb_detail = out
 
+    # Extract dprepare and dind (more readable)
+    dprepare = dfit1d['dinput']['dprepare']
+    dind = dfit1d['dinput']['dind']
+    nspect = dprepare['data'].shape[0]
+
+    # -------------------
     # Prepare output
-    shape = tuple(np.r_[nspect, pts_lamb_total.shape])
-    sol_tot = np.full(shape, np.nan)
-    if any([v0 is not False for v0 in d3.values()]):
-        nbs = dfit1d['dinput']['nbs']
-
     dout = {}
     # amp        # TBF
     if d3['amp'] is not False:
         keys, val = _get_values(
             d3['amp']['field'], nspect=nspect,
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
-            scales=dfit2d['scales'],
+            dinput=dfit1d['dinput'],
+            dind=dind, sol_x=dfit1d['sol_x'],
+            scales=dfit1d['scales'],
             typ=d3['amp']['type'], ind=d3['amp']['ind'])
         dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
 
@@ -2449,19 +2465,19 @@ def fit1d_extract(dfit1d=None,
     if d3['Ti'] is not False:
         keys, val = _get_values(
             d3['Ti']['field'], nspect=nspect,
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
-            scales=dfit2d['scales'],
+            dinput=dfit1d['dinput'],
+            dind=dind, sol_x=dfit1d['sol_x'],
+            scales=dfit1d['scales'],
             typ=d3['Ti']['type'], ind=d3['Ti']['ind'])
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
         if d3['Ti']['type'] == 'lines':
-            indTi = np.arange(0, dfit2d['dinput']['nlines'])
+            indTi = np.arange(0, dfit1d['dinput']['nlines'])
         else:
             indTi = np.array([iit[0]
-                              for iit in dfit2d['dind']['width']['jac']])
+                              for iit in dind['width']['jac']])
         indTi = indTi[d3['Ti']['ind']]
         val = (conv * val
-               * dfit2d['dinput']['mz'][indTi][None, None, :]
+               * dfit1d['dinput']['mz'][indTi][None, :]
                * scpct.c**2)
         dout['Ti'] = {'keys': keys, 'values': val, 'units': 'eV'}
 
@@ -2469,54 +2485,53 @@ def fit1d_extract(dfit1d=None,
     if d3['vi'] is not False:
         keys, val = _get_values(
             d3['vi']['field'], nspect=nspect,
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
-            scales=dfit2d['scales'],
+            dinput=dfit1d['dinput'],
+            dind=dind, sol_x=dfit1d['sol_x'],
+            scales=dfit1d['scales'],
             typ=d3['vi']['type'], ind=d3['vi']['ind'])
         val = val * scpct.c
         dout['vi'] = {'keys': keys, 'values': val, 'units': 'm.s^-1'}
 
+    # -------------------
     # sol_detail and sol_tot
     sold, solt = False, False
-    if pts_lamb_phi_detail is not False or pts_lamb_phi_total is not False:
+    if pts_lamb_detail is not False or pts_lamb_total is not False:
 
-        func_detail = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-            dfit2d['dprepare']['lamb'], dfit2d['phi2'],
-            indok=dfit2d['dprepare']['indok'],
-            binning=dfit2d['dprepare']['binning'],
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], jac=dfit2d['jac'])[0]
+        func_detail = _funccostjac.multigausfit1d_from_dlines_funccostjac(
+            dprepare['lamb'],
+            indok=dprepare['indok'],
+            dinput=dfit1d['dinput'],
+            dind=dind, jac=dfit1d['jac'])[0]
 
-        if pts_lamb_phi_detail is not False:
-            shape = tuple(np.r_[nspect, pts_lamb_phi_detail.shape,
-                                dfit2d['dinput']['nlines']+1,
-                                dfit2d['dinput']['nbs']])
+        if pts_lamb_detail is not False:
+            shape = tuple(np.r_[nspect, pts_lamb_detail.shape,
+                                dfit1d['dinput']['nlines']+1])
             sold = np.full(shape, np.nan)
-        if pts_lamb_phi_total is not False:
-            shape = tuple(np.r_[nspect, pts_lamb_phi_total.shape])
+        if pts_lamb_total is not False:
+            shape = tuple(np.r_[nspect, pts_lamb_total.shape])
             solt = np.full(shape, np.nan)
 
         for ii in range(nspect):
 
             # Separate and reshape output
-            fd = func_detail(dfit2d['sol_x'][ii, :],
-                             scales=dfit2d['scales'][ii, :],
-                             indok_var=dfit2d['dprepare']['indok_var'][ii])
+            fd = func_detail(dfit1d['sol_x'][ii, :],
+                             scales=dfit1d['scales'][ii, :])
+                             #indok_var=dprepare['indok_var'][ii])
 
-            if pts_lamb_phi_detail is not False:
+            if pts_lamb_detail is not False:
                 sold[ii, ...] = fd
-            if pts_lamb_phi_total is not False:
+            if pts_lamb_total is not False:
                 solt[ii, ...] = np.nansum(np.nansum(fd, axis=-1), axis=-1)
 
     dout['sol_detail'] = sold
     dout['sol_tot'] = solt
     dout['units'] = 'a.u.'
 
+    # -------------------
     # Add input args
     dout['d3'] = d3
-    dout['pts_phi'] = pts_phi
-    dout['pts_lamb_phi_detail'] = pts_lamb_phi_detail
-    dout['pts_lamb_phi_total'] = pts_lamb_phi_total
+    dout['pts_lamb_detail'] = pts_lamb_detail
+    dout['pts_lamb_total'] = pts_lamb_total
     return dout
 
 
@@ -2546,6 +2561,7 @@ def fit2d_extract(dfit2d=None,
                   amp=None, Ti=None, vi=None,
                   pts_lamb_phi_total=None, pts_lamb_phi_detail=None):
 
+    # -------------------
     # Check format input
     out = fit12d_get_data_checkformat(
         dfit=dfit2d,
@@ -2557,12 +2573,8 @@ def fit2d_extract(dfit2d=None,
     d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
     nspect = dfit2d['dprepare']['data'].shape[0]
 
+    # -------------------
     # Prepare output
-    shape = tuple(np.r_[nspect, pts_lamb_phi_total.shape])
-    sol_tot = np.full(shape, np.nan)
-    if any([v0 is not False for v0 in d3.values()]):
-        nbs = dfit2d['dinput']['nbs']
-
     dout = {}
     # amp
     if d3['amp'] is not False:
@@ -2605,6 +2617,7 @@ def fit2d_extract(dfit2d=None,
         val = val * scpct.c
         dout['vi'] = {'keys': keys, 'values': val, 'units': 'm.s^-1'}
 
+    # -------------------
     # sol_detail and sol_tot
     sold, solt = False, False
     if pts_lamb_phi_detail is not False or pts_lamb_phi_total is not False:
@@ -2641,6 +2654,7 @@ def fit2d_extract(dfit2d=None,
     dout['sol_tot'] = solt
     dout['units'] = 'a.u.'
 
+    # -------------------
     # Add input args
     dout['d3'] = d3
     dout['pts_phi'] = pts_phi

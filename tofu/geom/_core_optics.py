@@ -1780,21 +1780,6 @@ class CrystalBragg(utils.ToFuObject):
                                                       mask=mask,
                                                       vertsum1d=vertsum1d)
 
-    @staticmethod
-    def get_dinput_for_fit1d(dlines=None, dconstraints=None,
-                             lambmin=None, lambmax=None,
-                             same_spectrum=None, nspect=None, dlamb=None):
-        """ Return a formatted dict of lines and constraints
-
-        To be fed to _spectrafit2d.multigausfit1d_from_dlines()
-        Provides a user-friendly way of defining constraints
-        """
-        import tofu.data._spectrafit2d as _spectrafit2d
-        return _spectrafit2d.multigausfit1d_from_dlines_dinput(
-            dlines=dlines, dconstraints=dconstraints,
-            lambmin=lambmin, lambmax=lambmax,
-            same_spectrum=same_spectrum, nspect=nspect, dlamb=dlamb)
-
     def plot_data_vs_lambphi(self, xi=None, xj=None, data=None, mask=None,
                              det=None, dtheta=None, psi=None, n=None,
                              nlambfit=None, nphifit=None,
@@ -1890,7 +1875,7 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def fit1d_dinput(dlines=None, dconstraints=None, dprepare=None,
                      data=None, lamb=None, mask=None,
-                     domain=None, pos=None, subset=None):
+                     domain=None, pos=None, subset=None, same_spectrum=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _spectrafit2d.multigausfit1d_from_dlines()
@@ -1901,31 +1886,30 @@ class CrystalBragg(utils.ToFuObject):
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb,
             mask=mask, domain=domain,
-            pos=pos, subset=subset, fraction=None)
+            pos=pos, subset=subset,
+            same_spectrum=same_spectrum)
 
-    def fit1d(self, data=None, lamb=None, mask=None,
+    def fit1d(self, dprepare=None, dlines=None, dconstraints=None, dinput=None,
+              data=None, lamb=None, mask=None,
               domain=None, subset=None, pos=None,
-              dlines=None, dprepare=None, dinput=None,
-              dconstraints=None, dx0=None,
-              same_spectrum=None, dlamb=None,
-              double=None,
+              dx0=None, same_spectrum=None, dlamb=None,
               dscales=None, x0_scale=None, bounds_scale=None,
-              method=None, tr_solver=None, tr_options=None,
-              max_nfev=None,
+              method=None, tr_solver=None, tr_options=None, max_nfev=None,
               xtol=None, ftol=None, gtol=None,
               loss=None, verbose=0, chain=None,
               jac=None, showonly=None,
-              plot=True, fs=None, dmargin=None,
+              save=None, name=None, path=None,
+              plot=None, fs=None, dmargin=None,
               tit=None, wintit=None, returnas=None):
 
         # ----------------------
         # Get dinput for 1d fitting from dlines, dconstraints, dprepare...
         if dinput is None:
-            dinput = self.fit2d_dinput(
+            dinput = self.fit1d_dinput(
                 dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
-                data=data, mask=mask, domain=domain,
+                data=data, lamb=lamb, mask=mask, domain=domain,
                 pos=pos, subset=subset,
-                same_spectrum=same_spectrum, fraction=None)
+                same_spectrum=same_spectrum)
 
         # ----------------------
         # return
@@ -2003,7 +1987,7 @@ class CrystalBragg(utils.ToFuObject):
               xtol=None, ftol=None, gtol=None,
               loss=None, verbose=0, chain=None,
               jac=None, showonly=None,
-              plot=True, fs=None, dmargin=None,
+              plot=None, fs=None, dmargin=None,
               tit=None, wintit=None, returnas=None)
         pass
 
@@ -2013,7 +1997,7 @@ class CrystalBragg(utils.ToFuObject):
                      det=None, dtheta=None, psi=None,
                      mask=None, domain=None,
                      pos=None, binning=None, subset=None,
-                     lphi=None, lphi_tol=None):
+                     lphi=None, lphi_tol=None,
                      deg=None, knots=None, nbsplines=None,
                      dataphi1d=None, phi1d=None):
         """ Return a formatted dict of lines and constraints
@@ -2061,10 +2045,10 @@ class CrystalBragg(utils.ToFuObject):
               loss=None, verbose=0, debug=None,
               pos=None, subset=None, binning=None,
               npts=None, dax=None,
-              ratio=None, jac=None, plot=True, fs=None,
+              ratio=None, jac=None,
               spect1d=None, nlambfit=None,
               plot=None, plotmode=None, angunits=None, indspect=None,
-              dmargin=None, tit=None, wintit=None,
+              fs=None, dmargin=None, tit=None, wintit=None,
               cmap=None, vmin=None, vmax=None,
               save=None, path=None, name=None):
         """ Perform 2d fitting of a 2d apectromtere image
