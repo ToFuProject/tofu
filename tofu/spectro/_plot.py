@@ -215,7 +215,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 
 def plot_fit1d(dfit1d=None, dout=None, showonly=None,
-               fs=None, dmargin=None,
+               indspect=None, fs=None, dmargin=None,
                tit=None, wintit=None):
 
     # Check inputs
@@ -228,6 +228,13 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
         dmargin = {'left':0.05, 'right':0.85,
                    'bottom':0.07, 'top':0.85,
                    'wspace':0.2, 'hspace':0.3}
+
+    # Index of spectra to plot
+    if indspect is None:
+        indspect = np.r_[0]
+    indspect = np.atleast_1d(indspect).ravel()
+    if indspect.dtype == 'bool':
+        indspect = np.nonzero(indspect)[0]
 
     # Extract (better redeability)
     dprepare = dfit1d['dinput']['dprepare']
@@ -254,7 +261,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
     indwidth = np.argmax(dinput['width']['ind'], axis=0)
     indshift = np.argmax(dinput['shift']['ind'], axis=0)
 
-    x = dinput['lines'][None, :] + dfit1d['shift']
+    x = dinput['lines'][None, :] + dout['shift']['values']
 
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
@@ -268,18 +275,16 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
     else:
         lhatch = [None]
     nhatch = len(lhatch)
-    import pdb; pdb.set_trace()      # DB
-    nspect = dfit1d['data'].shape[0]
-
-    # import pdb; pdb.set_trace()     # DB
+    nspect = indspect.size
 
     # Plot
     # ------------
 
     for ii in range(nspect):
+        ispect = indspect[ii]
         if tit is None:
-            titi = ("spect1d {}\n".format(ii)
-                   + "phi in [{}, {}]".format(round(ii), ii))
+            titi = ("spect {}\n".format(ispect+1)
+                    + "({}/{})".format(ispect, dprepare['data'].shape[0]))
         else:
             titi = tit
 
@@ -289,25 +294,30 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
         ax.set_ylabel(r'data (a.u.)')
         ax.set_xlabel(r'$\lambda$ (m)')
 
-        if showonly is not True:
-            ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][ii, 0, :],
-                    ls='-', c='k')
-            ax.set_prop_cycle(None)
-            if dfit1d['Ti'] is True or dfit1d['vi'] is True:
-                for jj in range(nlines):
-                    col = lfcol[indwidth[jj]%nfcol]
-                    hatch = lhatch[indshift[jj]%nhatch]
-                    ax.fill_between(dfit1d['lamb'],
-                                    dfit1d['sol_detail'][ii, 1+jj, :],
-                                    alpha=0.3, color=col, hatch=hatch)
-            else:
-                ax.plot(dfit1d['lamb'], dfit1d['sol_detail'][ii, 1:, :].T)
-            ax.plot(dfit1d['lamb'], dfit1d['sol'][ii, :], c='k', lw=2.)
-            ax.plot(dfit1d['lamb'], dfit1d['data'][ii, :],
-                    marker='.', c='k', ls='None', ms=8)
-        else:
-            ax.plot(dfit1d['lamb'], dfit1d['data'][ii, :],
+        if showonly is True:
+            ax.plot(dprepare['lamb'], dprepare['data'][ispect, :],
                     marker='.', c='k', ls='-', ms=8)
+        else:
+            if dout['sol_detail'] is not False:
+                ax.plot(dprepare['lamb'], dout['sol_detail'][ispect, 0, :],
+                        ls='-', c='k')
+            ax.set_prop_cycle(None)
+            if dout['sol_detail'] is not False:
+                if dout['Ti'] is not False or dout['vi'] is not False:
+                    for jj in range(nlines):
+                        col = lfcol[indwidth[jj]%nfcol]
+                        hatch = lhatch[indshift[jj]%nhatch]
+                        ax.fill_between(dprepare['lamb'],
+                                        dout['sol_detail'][ispect, 1+jj, :],
+                                        alpha=0.3, color=col, hatch=hatch)
+                else:
+                    ax.plot(dprepare['lamb'],
+                            dout['sol_detail'][ispect, 1:, :].T)
+            if dout['sol_tot'] is not False:
+                ax.plot(dprepare['lamb'], dout['sol_tot'][ispect, :],
+                        c='k', lw=2.)
+            ax.plot(dprepare['lamb'], dprepare['data'][ispect, :],
+                    marker='.', c='k', ls='None', ms=8)
 
         # Annotate lines
         for jj, k0 in enumerate(ions_u):
@@ -316,11 +326,15 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             for nn in ind:
                 ax.axvline(x[ii, nn],
                            c=col, ls='--')
-                lab = (dinput['symb'][nn]
-                       + '\n{:4.2e}'.format(dfit1d['coefs'][ii, nn])
-                       + '\n({:+4.2e} A)'.format(dfit1d['shift'][ii, nn]*1.e10))
+                lab = dinput['symb'][nn]
+                if dout['coefs'] is not False:
+                    val = dout['coefs']['values'][ispect, nn]
+                    lab += '\n{:4.2e}'.format(val)
+                if dout['shift'] is not False:
+                    val = dout['shift']['values'][ispect, nn]*1.e10
+                    lab += '\n({:+4.2e} A)'.format(val)
                 ax.annotate(lab,
-                            xy=(x[ii, nn], 1.01), xytext=None,
+                            xy=(x[ispect, nn], 1.01), xytext=None,
                             xycoords=('data', 'axes fraction'),
                             color=col, arrowprops=None,
                             horizontalalignment='center',
@@ -336,11 +350,11 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
         ax.add_artist(legi)
 
         # Ti legend
-        if dfit1d['Ti'] is True:
+        if dout['Ti'] is not False:
             hand = [mpatches.Patch(color=lfcol[jj%nfcol])
                     for jj in range(dinput['width']['ind'].shape[0])]
             lleg = [dinput['width']['keys'][jj]
-                    + '  {:4.2f}'.format(dfit1d['kTiev'][ii, jj]*1.e-3)
+                    + '  {:4.2f}'.format(dout['Ti']['values'][ii, jj]*1.e-3)
                     for jj in range(dinput['width']['ind'].shape[0])]
             legT = ax.legend(handles=hand, labels=lleg,
                              title='Ti (keV)',
@@ -348,12 +362,12 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             ax.add_artist(legT)
 
         # vi legend
-        if dfit1d['vi'] is True:
+        if dout['vi'] is not False:
             hand = [mpatches.Patch(facecolor='w', edgecolor='k',
                                    hatch=lhatch[jj%nhatch])
                     for jj in range(dinput['shift']['ind'].shape[0])]
             lleg = [dinput['shift']['keys'][jj]
-                    + '  {:4.2f}'.format(dfit1d['vims'][ii, jj]*1.e-3)
+                    + '  {:4.2f}'.format(dout['vi']['values'][ii, jj]*1.e-3)
                     for jj in range(dinput['shift']['ind'].shape[0])]
             legv = ax.legend(handles=hand, labels=lleg,
                              title='vi (km/s)',
@@ -361,6 +375,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             ax.add_artist(legv)
 
         # Ratios legend
+        import pdb; pdb.set_trace()      # DB
         if dfit1d['ratio'] is not None:
             nratio = len(dfit1d['ratio']['up'])
             hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
