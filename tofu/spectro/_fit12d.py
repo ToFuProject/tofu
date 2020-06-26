@@ -43,7 +43,9 @@ _SUBSET = False
 _CHAIN = True
 _METHOD = 'trf'
 _LOSS = 'linear'
-_D3 = 'x'
+_D3 = {'amp': 'x', 'coefs': 'lines',
+       'Ti': 'x', 'width': 'lines',
+       'vi': 'x', 'shift': 'lines'}
 _ALLOW_PICKLE = True
 
 
@@ -2117,7 +2119,7 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           dx0=None, x0_scale=None, bounds_scale=None,
           jac=None, verbose=None, showonly=None,
           save=None, name=None, path=None,
-          plot=None):
+          plot=None, fs=None, wintit=None, tit=None, dmargin=None):
 
     # ----------------------
     # Check / format
@@ -2282,7 +2284,9 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 
 def fit12d_get_data_checkformat(dfit=None,
                                 pts_phi=None, npts_phi=None,
-                                amp=None, Ti=None, vi=None,
+                                amp=None, coefs=None,
+                                Ti=None, width=None,
+                                vi=None, shift=None,
                                 pts_total=None, pts_detail=None,
                                 allow_pickle=None):
 
@@ -2320,14 +2324,17 @@ def fit12d_get_data_checkformat(dfit=None,
 
     # Check / format amp, Ti, vi
     d3 = {'amp': [amp, 'amp'],
+          'coefs': [coefs, 'amp'],
           'Ti': [Ti, 'width'],
-          'vi': [vi, 'shift']}
+          'width': [width, 'width'],
+          'vi': [vi, 'shift'],
+          'shift': [shift, 'shift']}
     # amp, Ti, vi
     for k0 in d3.keys():
         if d3[k0][0] is None:
             d3[k0][0] = True
         if d3[k0][0] is True:
-            d3[k0][0] = _D3
+            d3[k0][0] = _D3[k0]
         if d3[k0][0] is False:
             continue
         lc = [d3[k0][0] in ['lines', 'x'],
@@ -2415,28 +2422,19 @@ def fit12d_get_data_checkformat(dfit=None,
     return d3, pts_phi, pts_total, pts_detail
 
 
-def _get_values(key,
-                nspect=None, dinput=None,
-                dind=None, sol_x=None, scales=None,
-                typ=None, ind=None, pts_phi=None):
-    if typ == 'lines':
-        keys = dinput['keys'][ind]
-    else:
-        keys = dinput[key]['keys'][ind]
-    indbis = dind[key][typ][ind]
-    val = sol_x[:, indbis] * scales[:, indbis]
-    return keys, val
-
-
 def fit1d_extract(dfit1d=None,
-                  amp=None, Ti=None, vi=None,
+                  amp=None, coefs=None,
+                  Ti=None, width=None,
+                  vi=None, shift=None,
                   pts_lamb_total=None, pts_lamb_detail=None):
 
     # -------------------
     # Check format input
     out = fit12d_get_data_checkformat(
         dfit=dfit1d,
-        amp=amp, Ti=Ti, vi=vi,
+        amp=amp, coefs=coefs,
+        Ti=Ti, width=width,
+        vi=vi, shift=shift,
         pts_total=pts_lamb_total,
         pts_detail=pts_lamb_detail)
 
@@ -2447,49 +2445,60 @@ def fit1d_extract(dfit1d=None,
     dind = dfit1d['dinput']['dind']
     nspect = dprepare['data'].shape[0]
 
+    # Prepare extract func
+    def _get_values(key, pts_phi=None,
+                    d3=d3, nspect=nspect, dinput=dfit1d['dinput'],
+                    dind=dind, sol_x=dfit1d['sol_x'], scales=dfit1d['scales']):
+        if d3[key]['type'] == 'lines':
+            keys = dinput['keys'][d3[key]['ind']]
+        else:
+            keys = dinput[d3[key]['field']]['keys'][d3[key]['ind']]
+        indbis = dind[d3[key]['field']][d3[key]['type']][d3[key]['ind']]
+        val = sol_x[:, indbis] * scales[:, indbis]
+        return keys, val
+
     # -------------------
     # Prepare output
     dout = {}
-    # amp        # TBF
+    # amp
     if d3['amp'] is not False:
-        keys, val = _get_values(
-            d3['amp']['field'], nspect=nspect,
-            dinput=dfit1d['dinput'],
-            dind=dind, sol_x=dfit1d['sol_x'],
-            scales=dfit1d['scales'],
-            typ=d3['amp']['type'], ind=d3['amp']['ind'])
+        keys, val = _get_values('amp')
         dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
+    # coefs
+    if d3['coefs'] is not False:
+        keys, val = _get_values('coefs')
+        dout['coefs'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
 
     # Ti
     if d3['Ti'] is not False:
-        keys, val = _get_values(
-            d3['Ti']['field'], nspect=nspect,
-            dinput=dfit1d['dinput'],
-            dind=dind, sol_x=dfit1d['sol_x'],
-            scales=dfit1d['scales'],
-            typ=d3['Ti']['type'], ind=d3['Ti']['ind'])
+        keys, val = _get_values('Ti')
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        if d3['Ti']['type'] == 'lines':
-            indTi = np.arange(0, dfit1d['dinput']['nlines'])
-        else:
-            indTi = np.array([iit[0]
-                              for iit in dind['width']['jac']])
+        indTi = np.array([iit[0] for iit in dind['width']['jac']])
+        # if d3['Ti']['type'] == 'lines':
+            # indTi = np.arange(0, dfit1d['dinput']['nlines'])
         indTi = indTi[d3['Ti']['ind']]
         val = (conv * val
                * dfit1d['dinput']['mz'][indTi][None, :]
                * scpct.c**2)
         dout['Ti'] = {'keys': keys, 'values': val, 'units': 'eV'}
 
+    # width
+    if d3['width'] is not False:
+        keys, val = _get_values('width')
+        dout['width'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
     # vi
     if d3['vi'] is not False:
-        keys, val = _get_values(
-            d3['vi']['field'], nspect=nspect,
-            dinput=dfit1d['dinput'],
-            dind=dind, sol_x=dfit1d['sol_x'],
-            scales=dfit1d['scales'],
-            typ=d3['vi']['type'], ind=d3['vi']['ind'])
+        keys, val = _get_values('vi')
         val = val * scpct.c
         dout['vi'] = {'keys': keys, 'values': val, 'units': 'm.s^-1'}
+
+    # shift
+    if d3['shift'] is not False:
+        keys, val = _get_values('shift')
+        val = val * dfit1d['dinput']['lines'][None, :]
+        dout['shift'] = {'keys': keys, 'values': val, 'units': 'm'}
 
     # -------------------
     # sol_detail and sol_tot
