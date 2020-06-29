@@ -1899,6 +1899,10 @@ class CrystalBragg(utils.ToFuObject):
               loss=None, verbose=None, chain=None,
               jac=None, showonly=None,
               save=None, name=None, path=None,
+              amp=None, coefs=None, ratio=None,
+              Ti=None, width=None,
+              vi=None, shift=None,
+              pts_lamb_total=None, pts_lamb_detail=None,
               plot=None, fs=None, dmargin=None,
               tit=None, wintit=None, returnas=None):
 
@@ -1925,7 +1929,11 @@ class CrystalBragg(utils.ToFuObject):
             dx0=dx0, x0_scale=x0_scale, bounds_scale=bounds_scale,
             jac=jac, verbose=verbose,
             save=save, name=name, path=path,
-            plot=plot)
+            amp=amp, coefs=coefs, ratio=ratio,
+            Ti=Ti, width=width, vi=vi, shift=shift,
+            pts_lamb_total=pts_lamb_total,
+            pts_lamb_detail=pts_lamb_detail,
+            plot=plot, fs=fs, wintit=wintit, tit=tit)
 
     def fit1d_from2d(self):
         """ Useful for optimizing detector or crystal position

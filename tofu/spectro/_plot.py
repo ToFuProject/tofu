@@ -294,12 +294,12 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
         ax.set_ylabel(r'data (a.u.)')
         ax.set_xlabel(r'$\lambda$ (m)')
 
-        if showonly is True:
-            ax.plot(dprepare['lamb'], dprepare['data'][ispect, :],
-                    marker='.', c='k', ls='-', ms=8)
-        else:
+        ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
+                dprepare['data'][ispect, dprepare['indok'][ispect, :]],
+                marker='.', c='k', ls='None', ms=8)
+        if showonly is not True:
             if dout['sol_detail'] is not False:
-                ax.plot(dprepare['lamb'], dout['sol_detail'][ispect, 0, :],
+                ax.plot(dprepare['lamb'], dout['sol_detail'][ispect, :, 0],
                         ls='-', c='k')
             ax.set_prop_cycle(None)
             if dout['sol_detail'] is not False:
@@ -308,23 +308,21 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
                         col = lfcol[indwidth[jj]%nfcol]
                         hatch = lhatch[indshift[jj]%nhatch]
                         ax.fill_between(dprepare['lamb'],
-                                        dout['sol_detail'][ispect, 1+jj, :],
+                                        dout['sol_detail'][ispect, :, 1+jj],
                                         alpha=0.3, color=col, hatch=hatch)
                 else:
                     ax.plot(dprepare['lamb'],
-                            dout['sol_detail'][ispect, 1:, :].T)
+                            dout['sol_detail'][ispect, :, 1:].T)
             if dout['sol_tot'] is not False:
                 ax.plot(dprepare['lamb'], dout['sol_tot'][ispect, :],
                         c='k', lw=2.)
-            ax.plot(dprepare['lamb'], dprepare['data'][ispect, :],
-                    marker='.', c='k', ls='None', ms=8)
 
         # Annotate lines
         for jj, k0 in enumerate(ions_u):
             col = lcol[jj%ncol]
             ind = (dinput['ion'] == k0).nonzero()[0]
             for nn in ind:
-                ax.axvline(x[ii, nn],
+                ax.axvline(x[ispect, nn],
                            c=col, ls='--')
                 lab = dinput['symb'][nn]
                 if dout['coefs'] is not False:
@@ -354,7 +352,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             hand = [mpatches.Patch(color=lfcol[jj%nfcol])
                     for jj in range(dinput['width']['ind'].shape[0])]
             lleg = [dinput['width']['keys'][jj]
-                    + '  {:4.2f}'.format(dout['Ti']['values'][ii, jj]*1.e-3)
+                    + '  {:4.2f}'.format(dout['Ti']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['width']['ind'].shape[0])]
             legT = ax.legend(handles=hand, labels=lleg,
                              title='Ti (keV)',
@@ -367,7 +365,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
                                    hatch=lhatch[jj%nhatch])
                     for jj in range(dinput['shift']['ind'].shape[0])]
             lleg = [dinput['shift']['keys'][jj]
-                    + '  {:4.2f}'.format(dout['vi']['values'][ii, jj]*1.e-3)
+                    + '  {:4.2f}'.format(dout['vi']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['shift']['ind'].shape[0])]
             legv = ax.legend(handles=hand, labels=lleg,
                              title='vi (km/s)',
@@ -375,12 +373,12 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             ax.add_artist(legv)
 
         # Ratios legend
-        import pdb; pdb.set_trace()      # DB
-        if dfit1d['ratio'] is not None:
-            nratio = len(dfit1d['ratio']['up'])
+        if dout['ratio'] is not False:
+            nratio = dout['ratio']['values'].shape[1]
             hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
-            lleg = ['{} =  {:4.2e}'.format(dfit1d['ratio']['str'][jj],
-                                           dfit1d['ratio']['value'][ii, jj])
+            lleg = ['{} =  {:4.2e}'.format(
+                dout['ratio']['lab'][jj],
+                dout['ratio']['values'][ispect, jj])
                     for jj in range(nratio)]
             legr = ax.legend(handles=hand,
                              labels=lleg,
@@ -389,17 +387,17 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             ax.add_artist(legr)
 
         # double legend
-        if dfit1d['double'] is True:
+        if dinput['double'] is not False:
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
-            lleg = ['ratio = {:4.2f}'.format(dfit1d['dratio'][ii]),
+            lleg = ['ratio = {:4.2f}'.format(dout['dratio'][ispect]),
                     ('shift ' + r'$\approx$'
-                     + ' {:4.2e}'.format(dfit1d['dshift'][0]))]
+                     + ' {:4.2e}'.format(dout['dshift'][ispect]))]
             legr = ax.legend(handles=hand,
                              labels=lleg,
                              title='double',
                              bbox_to_anchor=(1.01, 0.), loc='lower left')
 
-        ax.set_xlim(lambmin, lambmax)
+        ax.set_xlim(dinput['dprepare']['domain']['lamb']['minmax'])
 
         if titi is not False:
             fig.suptitle(titi, size=14, weight='bold')

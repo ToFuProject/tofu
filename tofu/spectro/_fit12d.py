@@ -43,7 +43,7 @@ _SUBSET = False
 _CHAIN = True
 _METHOD = 'trf'
 _LOSS = 'linear'
-_D3 = {'amp': 'x', 'coefs': 'lines',
+_D3 = {'amp': 'x', 'coefs': 'lines', 'ratio': 'lines',
        'Ti': 'x', 'width': 'lines',
        'vi': 'x', 'shift': 'lines'}
 _ALLOW_PICKLE = True
@@ -458,11 +458,15 @@ def apply_domain(lamb=None, phi=None, domain=None):
     domain = _checkformat_domain(domain=domain, keys=din.keys())
     ind = np.ones(lamb.shape, dtype=bool)
     for k0, v0 in din.items():
+        indin = np.zeros(v0.shape, dtype=bool)
+        indout = np.zeros(v0.shape, dtype=bool)
         for v1 in domain[k0]['spec']:
             indi = (v0 >= v1[0]) & (v0 <= v1[1])
             if isinstance(v1, tuple):
-                indi = ~indi
-            ind &= indi
+                indout |= indi
+            else:
+                indin |= indi
+        ind = ind & indin & (~indout)
     return ind, domain
 
 
@@ -725,6 +729,9 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     # randomly pick subset indices (replace=False => no duplicates)
     indok = _get_subset_indices(subset, indok)
 
+    if indok.shape == lamb.shape:
+        indok = np.tile(indok, (data.shape[0], 1))
+
     # --------------
     # Return
     dprepare = {'data': data, 'lamb': lamb,
@@ -935,15 +942,12 @@ def multigausfit1d_from_dlines_dinput(
                + "  You provided: {}".format(dlines))
         raise Exception(msg)
 
-    if domain is None:
-          domain = False
-
     # Select relevant lines (keys, lamb)
     keys = np.array([k0 for k0 in dlines.keys()])
     lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
-    if domain is not False:
-        ind = ((lamb >= domain['lamb']['minmax'][0])
-               & (lamb <= domain['lamb']['minmax'][1]))
+    if dprepare['domain'] is not False:
+        ind = ((lamb >= dprepare['domain']['lamb']['minmax'][0])
+               & (lamb <= dprepare['domain']['lamb']['minmax'][1]))
         keys = keys[ind]
         lamb = lamb[ind]
     inds = np.argsort(lamb)
@@ -965,8 +969,8 @@ def multigausfit1d_from_dlines_dinput(
             msg = "Please provide nspect if same_spectrum = True"
             raise Exception(msg)
         if dlamb is None:
-            dlamb = min(2*np.diff(domain['lamb']['minmax']),
-                        domain['lamb']['minmax'][0])
+            dlamb = min(2*np.diff(dprepare['domain']['lamb']['minmax']),
+                        dprepare['domain']['lamb']['minmax'][0])
 
     # ------------------------
     # Check keys
@@ -1114,9 +1118,6 @@ def multigausfit2d_from_dlines_dinput(
                + "\t 'lineN': {'lambda': float}}"
                + "  You provided: {}".format(dlines))
         raise Exception(msg)
-
-    if dprepare['domain'] is None:
-        dprepare['domain'] = False
 
     # Select relevant lines (keys, lamb)
     keys = np.array([k0 for k0 in dlines.keys()])
@@ -1734,12 +1735,11 @@ def multigausfit1d_from_dlines(dinput=None,
     # Get function, cost function and jacobian
     (func_detail,
      func_cost, func_jac) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
-         lamb, indok=dprepare['indok'],
-         dinput=dinput, dind=dind, jac=jac)
+         lamb, dinput=dinput, dind=dind, jac=jac)
 
     # ---------------------------
     # Prepare output
-    datacost = dprepare['data'][:, dprepare['indok']]
+    datacost = dprepare['data']
     sol_x = np.full((nspect, dind['sizex']), np.nan)
     success = np.full((nspect,), np.nan)
     time = np.full((nspect,), np.nan)
@@ -1778,7 +1778,8 @@ def multigausfit1d_from_dlines(dinput=None,
                 jac_sparsity=None, max_nfev=max_nfev,
                 verbose=verbscp, args=(),
                 kwargs={'data': datacost[ii, :],
-                        'scales': scales[ii, :]})
+                        'scales': scales[ii, :],
+                        'indok': dprepare['indok'][ii, :]})
             dti = (dtm.datetime.now() - t0i).total_seconds()
 
             if chain is True and ii < nspect-1:
@@ -1798,10 +1799,17 @@ def multigausfit1d_from_dlines(dinput=None,
             validity[ii] = -1
 
         if verbose in [1, 2]:
-            col = np.char.array(['{} / {}'.format(ii+1, nspect),
-                                 '{}'.format(dti),
-                                 '{:5.3e}'.format(res.cost),
-                                 str(res.nfev), str(res.njev), res.message])
+            if validity[ii] == 0:
+                col = np.char.array(['{} / {}'.format(ii+1, nspect),
+                                     '{}'.format(dti),
+                                     '{:5.3e}'.format(res.cost),
+                                     str(res.nfev), str(res.njev),
+                                     res.message])
+            else:
+                col = np.char.array(['{} / {}'.format(ii+1, nspect),
+                                     '{}'.format(dti),
+                                     ' - ', ' - ', ' - ',
+                                     errmsg[ii]])
             msg = ' '.join([cc.ljust(maxl) for cc in col])
             if verbose == 1:
                 end = '\n' if ii == nspect-1 else '\r'
@@ -2119,6 +2127,10 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           dx0=None, x0_scale=None, bounds_scale=None,
           jac=None, verbose=None, showonly=None,
           save=None, name=None, path=None,
+          amp=None, coefs=None, ratio=None,
+          Ti=None, width=None,
+          vi=None, shift=None,
+          pts_lamb_total=None, pts_lamb_detail=None,
           plot=None, fs=None, wintit=None, tit=None, dmargin=None):
 
     # ----------------------
@@ -2181,7 +2193,12 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
     # ----------------------
     # Optional plotting
     if plot is True:
-        dout = fit1d_extract(dfit1d)
+        dout = fit1d_extract(
+            dfit1d,
+            amp=amp, coefs=coefs, ratio=ratio,
+            Ti=Ti, width=width, vi=vi, shift=shift,
+            pts_lamb_total=pts_lamb_total,
+            pts_lamb_detail=pts_lamb_detail)
         # TBF
         dax = _plot.plot_fit1d(
             dfit1d=dfit1d, dout=dout, showonly=showonly,
@@ -2190,10 +2207,7 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 
     # ----------------------
     # return
-    if plot is True:
-        return dfit1d, dax
-    else:
-        return dfit1d
+    return dfit1d
 
 
 def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
@@ -2284,7 +2298,7 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 
 def fit12d_get_data_checkformat(dfit=None,
                                 pts_phi=None, npts_phi=None,
-                                amp=None, coefs=None,
+                                amp=None, coefs=None, ratio=None,
                                 Ti=None, width=None,
                                 vi=None, shift=None,
                                 pts_total=None, pts_detail=None,
@@ -2321,6 +2335,12 @@ def fit12d_get_data_checkformat(dfit=None,
     # Extract dinput and dprepare (more readable)
     dinput = dfit['dinput']
     dprepare = dfit['dinput']['dprepare']
+
+    # ratio
+    if ratio is None:
+        ratio = False
+    if ratio is not False:
+        coefs = True
 
     # Check / format amp, Ti, vi
     d3 = {'amp': [amp, 'amp'],
@@ -2386,6 +2406,47 @@ def fit12d_get_data_checkformat(dfit=None,
         d3[k0][0]['field'] = d3[k0][1]
         d3[k0] = d3[k0][0]
 
+
+    # Ratio
+    if ratio is not False:
+        lkeys = dfit['dinput']['keys']
+        lc = [isinstance(ratio, tuple),
+              isinstance(ratio, list),
+              isinstance(ratio, np.ndarray)]
+        msg = ("Arg ratio (spectral lines magnitude ratio) must be either:\n"
+               + "\t- False:  no line ration computed\n"
+               + "\t- tuple of len=2: upper and lower keys of the lines\n"
+               + "\t- list of tuple of len=2: upper and lower keys pairs\n"
+               + "\t- np.ndarray of shape (2, N): upper keys and lower keys\n"
+               + "  You provided: {}\n".format(ratio)
+               + "  Available keys: {}".format(lkeys)
+              )
+        if not any(lc):
+            raise Exception(msg)
+        if lc[0]:
+            c0 = (len(ratio) == 2
+                  and all([ss in lkeys for ss in ratio]))
+            if not c0:
+                raise Exception(msg)
+            ratio = np.reshape(ratio, (2, 1))
+        elif lc[1]:
+            c0 = all([(isinstance(t, tuple)
+                       and len(tt) == 2
+                       and all([ss in lkeys for ss in tt]))
+                      for tt in ratio])
+            if not c0:
+                raise Exception(msg)
+            ratio = np.array(ratio).T
+        c0 = (isinstance(ratio, np.ndarray)
+              and ratio.ndim == 2
+              and ratio.shape[0] == 2
+              and all([ss in lkeys for ss in ratio[0, :]])
+              and all([ss in lkeys for ss in ratio[1, :]]))
+        if not c0:
+            raise Exception(msg)
+
+    d3['ratio'] = ratio
+
     # pts_phi, npts_phi
     if is2d is True:
         c0 = any([v0 is not False for v0 in d3.values()])
@@ -2414,6 +2475,8 @@ def fit12d_get_data_checkformat(dfit=None,
                 pts_total = dprepare['lamb']
     if pts_detail is None:
         pts_detail = False
+    if pts_detail is True and pts_total is not False:
+        pts_detail = pts_total
     if pts_detail is not False:
         pts_detail = np.array(pts_detail)
     if pts_total is not False:
@@ -2423,7 +2486,7 @@ def fit12d_get_data_checkformat(dfit=None,
 
 
 def fit1d_extract(dfit1d=None,
-                  amp=None, coefs=None,
+                  amp=None, coefs=None, ratio=None,
                   Ti=None, width=None,
                   vi=None, shift=None,
                   pts_lamb_total=None, pts_lamb_detail=None):
@@ -2432,7 +2495,7 @@ def fit1d_extract(dfit1d=None,
     # Check format input
     out = fit12d_get_data_checkformat(
         dfit=dfit1d,
-        amp=amp, coefs=coefs,
+        amp=amp, coefs=coefs, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
         pts_total=pts_lamb_total,
@@ -2459,7 +2522,10 @@ def fit1d_extract(dfit1d=None,
 
     # -------------------
     # Prepare output
-    dout = {}
+    lk = ['amp', 'coefs', 'ratio', 'Ti', 'width', 'vi', 'shift',
+          'dratio', 'dshift']
+    dout = dict.fromkeys(lk, False)
+
     # amp
     if d3['amp'] is not False:
         keys, val = _get_values('amp')
@@ -2469,6 +2535,21 @@ def fit1d_extract(dfit1d=None,
     if d3['coefs'] is not False:
         keys, val = _get_values('coefs')
         dout['coefs'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
+    # ratio
+    if d3['ratio'] is not False:
+        nratio = d3['ratio'].shape[1]
+        indup = np.r_[[(dout['coefs']['keys'] == kk).nonzero()[0][0]
+                       for kk in d3['ratio'][0, :]]]
+        indlo = np.r_[[(dout['coefs']['keys'] == kk).nonzero()[0][0]
+                       for kk in d3['ratio'][1, :]]]
+        val = (dout['coefs']['values'][:, indup]
+               / dout['coefs']['values'][:, indlo])
+        lab = np.r_[['{} / {}'.format(dfit1d['dinput']['symb'][indup[ii]],
+                                      dfit1d['dinput']['symb'][indlo[ii]])
+                     for ii in range(nratio)]]
+        dout['ratio'] = {'keys': dout['ratio'], 'values': val,
+                         'lab': lab, 'units': 'a.u.'}
 
     # Ti
     if d3['Ti'] is not False:
@@ -2500,36 +2581,58 @@ def fit1d_extract(dfit1d=None,
         val = val * dfit1d['dinput']['lines'][None, :]
         dout['shift'] = {'keys': keys, 'values': val, 'units': 'm'}
 
+    # double
+    if dfit1d['dinput']['double'] is not False:
+        double = dfit1d['dinput']['double']
+        if double is True or double.get('dratio') is None:
+            dout['dratio'] = dfit1d['sol_x'][:, dind['dratio']['x']]
+        else:
+            dout['dratio'] = np.full((nspect,), double['dratio'])
+        if double is True or double.get('dratio') is None:
+            dout['dshift'] = dfit1d['sol_x'][:, dind['dshift']['x']]
+        else:
+            dout['dshift'] = np.full((nspect,), double['dshift'])
+
     # -------------------
     # sol_detail and sol_tot
     sold, solt = False, False
     if pts_lamb_detail is not False or pts_lamb_total is not False:
 
-        func_detail = _funccostjac.multigausfit1d_from_dlines_funccostjac(
+        (func_detail,
+         func_cost, _) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
             dprepare['lamb'],
-            indok=dprepare['indok'],
             dinput=dfit1d['dinput'],
-            dind=dind, jac=dfit1d['jac'])[0]
+            dind=dind, jac=dfit1d['jac'])
 
         if pts_lamb_detail is not False:
             shape = tuple(np.r_[nspect, pts_lamb_detail.shape,
                                 dfit1d['dinput']['nlines']+1])
             sold = np.full(shape, np.nan)
+            for ii in range(nspect):
+                sold[ii, dprepare['indok'][ii, :], :] = func_detail(
+                    dfit1d['sol_x'][ii, :],
+                    scales=dfit1d['scales'][ii, :],
+                    indok=dprepare['indok'][ii, :])
+                    #indok_var=dprepare['indok_var'][ii])
+
         if pts_lamb_total is not False:
             shape = tuple(np.r_[nspect, pts_lamb_total.shape])
             solt = np.full(shape, np.nan)
+            for ii in range(nspect):
+                solt[ii, dprepare['indok'][ii, :]] = func_cost(
+                    dfit1d['sol_x'][ii, :],
+                    scales=dfit1d['scales'][ii, :],
+                    indok=dprepare['indok'][ii, :],
+                    data=0.)
 
-        for ii in range(nspect):
-
-            # Separate and reshape output
-            fd = func_detail(dfit1d['sol_x'][ii, :],
-                             scales=dfit1d['scales'][ii, :])
-                             #indok_var=dprepare['indok_var'][ii])
-
-            if pts_lamb_detail is not False:
-                sold[ii, ...] = fd
-            if pts_lamb_total is not False:
-                solt[ii, ...] = np.nansum(np.nansum(fd, axis=-1), axis=-1)
+            # Double-check consistency if possible
+            c0 = (pts_lamb_detail is not False
+                  and np.allclose(pts_lamb_total, pts_lamb_detail))
+            if c0:
+                if not np.allclose(solt, np.sum(sold, axis=-1),
+                                   equal_nan=True):
+                    msg = "Inconsistent computations detail vs total"
+                    raise Exception(msg)
 
     dout['sol_detail'] = sold
     dout['sol_tot'] = solt

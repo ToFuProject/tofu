@@ -25,7 +25,6 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                                            dinput=None,
                                            dind=None,
                                            scales=None,
-                                           indok=None,
                                            jac=None):
 
     if jac is None:
@@ -97,9 +96,10 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                     offsetsl=offsetsl[None, :],
                     double=dinput['double'],
                     scales=None,
-                    indok=None,
-                    indok_var=None):
-        shape = tuple(np.r_[lamb.shape, nbck+nlines])
+                    indok=None):
+        if indok is None:
+            indok = np.ones(lamb.shape, dtype=bool)
+        shape = tuple(np.r_[indok.sum(), nbck+nlines])
         y = np.full(shape, np.nan)
         xscale = x*scales
 
@@ -107,7 +107,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         amp = xscale[ial]*coefsal + offsetal
         wi2 = xscale[iwl]*coefswl + offsetwl
         shift = xscale[ishl]*coefssl + offsetsl
-        exp = np.exp(-(lambnorm - (1 + shift))**2 / (2*wi2))
+        exp = np.exp(-(lambnorm[indok, :] - (1 + shift))**2 / (2*wi2))
 
         if double is not False:
             # coefssl are line-specific, they do not affect dshift
@@ -117,7 +117,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
             else:
                 dratio = double.get('dratio', xscale[idratiox])
                 dshift = shift + double.get('dshift', xscale[idshx])
-            expd = np.exp(-(lambnorm - (1 + dshift))**2 / (2*wi2))
+            expd = np.exp(-(lambnorm[indok, :] - (1 + dshift))**2 / (2*wi2))
 
         # compute y
         y[:, ibckx] = xscale[ibckx]
@@ -143,7 +143,9 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
              offsetwl=offsetwl[None, :],
              offsetsl=offsetsl[None, :],
              double=dinput['double'],
-             indok_var=None, data=0.):
+             indok=None, data=0.):
+        if indok is None:
+            indok = np.ones(lamb.shape, dtype=bool)
 
         xscale = x*scales
 
@@ -151,7 +153,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         amp = xscale[ial] * coefsal + offsetal
         inv_2wi2 = 1./(2.*(xscale[iwl] * coefswl + offsetwl))
         shift = xscale[ishl] * coefssl + offsetsl
-        y = np.nansum((amp * np.exp(-(lambnorm - (1 + shift))**2
+        y = np.nansum((amp * np.exp(-(lambnorm[indok, :] - (1 + shift))**2
                                     * inv_2wi2)), axis=1) + xscale[ibckx]
         if double is not False:
             if double is True:
@@ -163,10 +165,12 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                 dshift = shift + double.get('dshift', xscale[idshx])
 
             y += np.nansum((amp * dratio
-                            * np.exp(-(lambnorm - (1 + dshift))**2
+                            * np.exp(-(lambnorm[indok, :] - (1 + dshift))**2
                                      * inv_2wi2)), axis=1)
-        return y - data
-
+        if isinstance(data, np.ndarray):
+            return y - data[indok]
+        else:
+            return y - data
 
     # Prepare jac
     if jac in ['dense', 'sparse']:
@@ -189,9 +193,11 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                   offsetwl=offsetwl[None, :],
                   offsetsl=offsetsl[None, :],
                   double=dinput['double'],
-                  scales=None, indok_var=None, data=None,
+                  scales=None, indok=None, data=None,
                   jac0=jac0):
             """ Basic docstr """
+            if indok is None:
+                indok = np.ones(lamb.shape, dtype=bool)
             xscale = x*scales
 
             # Intermediates
@@ -199,29 +205,29 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
             wi2 = xscale[iwl] * coefswl + offsetwl
             inv_wi2 = 1./wi2
             shift = xscale[ishl] * coefssl + offsetsl
-            beta = (lambnorm - (1 + shift)) * inv_wi2 / 2.
+            beta = (lambnorm[indok, :] - (1 + shift)) * inv_wi2 / 2.
             alpha = -beta**2 * (2*wi2)
             exp = np.exp(alpha)
 
             # Background
-            jac0[:, ibckx[0]] = scales[ibckx[0]]
+            jac0[indok, ibckx[0]] = scales[ibckx[0]]
 
             # amp (shape: nphi/lamb, namp[jj])
             for jj in range(len(iaj)):
-                jac0[:, iax[jj]] = np.sum(
+                jac0[indok, iax[jj]] = np.sum(
                     exp[:, iaj[jj]] * coefsal[:, iaj[jj]],
                     axis=1) * scales[iax[jj]]
 
             # width2
             for jj in range(len(iwj)):
-                jac0[:, iwx[jj]] = np.sum(
+                jac0[indok, iwx[jj]] = np.sum(
                     (-alpha[:, iwj[jj]] * amp[:, iwj[jj]]
                      * exp[:, iwj[jj]] * coefswl[:, iwj[jj]]
                     * inv_wi2[:, iwj[jj]]), axis=1) * scales[iwx[jj]]
 
             # shift
             for jj in range(len(ishj)):
-                jac0[:, ishx[jj]] = np.sum(
+                jac0[indok, ishx[jj]] = np.sum(
                     (amp[:, ishj[jj]] * 2. *beta[:, ishj[jj]])
                      * exp[:, ishj[jj]] * coefssl[:, ishj[jj]],
                     axis=1) * scales[ishx[jj]]
@@ -238,40 +244,40 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
                     dshift = shift + double.get('dshift', xscale[idshx])
                 # ampd not defined to save memory => *dratio instead
                 # ampd = amp*dratio
-                betad = (lambnorm - (1 + dshift)) * inv_wi2 / 2.
+                betad = (lambnorm[indok, :] - (1 + dshift)) * inv_wi2 / 2.
                 alphad = -betad**2 * (2*wi2)
                 expd = np.exp(alphad)
 
                 # amp
                 for jj in range(len(iaj)):
-                    jac0[:, iax[jj]] += dratio*np.sum(
+                    jac0[indok, iax[jj]] += dratio*np.sum(
                         expd[:, iaj[jj]] * coefsal[:, iaj[jj]],
                         axis=1) * scales[iax[jj]]
 
                 # width2
                 for jj in range(len(iwj)):
-                    jac0[:, iwx[jj]] += np.sum(
+                    jac0[indok, iwx[jj]] += np.sum(
                         (-alphad[:, iwj[jj]] * amp[:, iwj[jj]]
                          * expd[:, iwj[jj]] * coefswl[:, iwj[jj]]
                          * inv_wi2[:, iwj[jj]]), axis=1) * scales[iwx[jj]] * dratio
 
                 # shift
                 for jj in range(len(ishj)):
-                    jac0[:, ishx[jj]] += np.sum(
+                    jac0[indok, ishx[jj]] += np.sum(
                         (amp[:, ishj[jj]] * 2.*betad[:, ishj[jj]]
                          * expd[:, ishj[jj]] * coefssl[:, ishj[jj]]),
                         axis=1) * scales[ishx[jj]] * dratio
 
                 # dratio
                 if double is True or double.get('dratio') is None:
-                    jac0[:, idratiox] = (scales[idratiox]
+                    jac0[indok, idratiox] = (scales[idratiox]
                                          *np.sum(amp*expd, axis=1))
 
                 # dshift
                 if double is True or double.get('dshift') is None:
-                    jac0[:, idshx] = dratio * np.sum(
+                    jac0[indok, idshx] = dratio * np.sum(
                         amp * 2.*betad*scales[idshx] * expd, axis=1)
-            return jac0
+            return jac0[indok, :]
 
     elif jac == 'sparse':
         msg = "Sparse jacobian is pointless for 1d spectrum fitting"
