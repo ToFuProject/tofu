@@ -646,6 +646,8 @@ _ExpAUG = 'AUG'
 _ExpNSTX = 'NSTX'
 _ExpDEMO = 'DEMO'
 _ExpTOMAS = 'TOMAS'
+_ExpCOMPASS = 'COMPASS'
+
 # Default config
 _DEFCONFIG = 'ITER'
 
@@ -707,6 +709,8 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
             'TOMAS-V0': {'Exp': _ExpTOMAS,
                          'Ves': ['V0'],
                          'PFC': ['LimiterV0', 'AntennaV0']},
+            'COMPASS-V0': {'Exp': _ExpCOMPASS,
+                           'Ves': ['V0']},
             }
 
 # Each config can be called by various names / shortcuts (for benchmark and
@@ -725,7 +729,8 @@ _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
                       'AUG': 'AUG-V1',
                       'NSTX': 'NSTX-V0',
                       'DEMO': 'DEMO-2019',
-                      'TOMAS': 'TOMAS-V0'}
+                      'TOMAS': 'TOMAS-V0',
+                      'COMPASS': 'COMPASS-V0'}
 
 
 def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
