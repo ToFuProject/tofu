@@ -9,6 +9,7 @@ import datetime as dtm      # DB
 # Common
 import numpy as np
 import scipy.optimize as scpopt
+import scipy.interpolate as scpinterp
 import scipy.constants as scpct
 import scipy.sparse as sparse
 from scipy.interpolate import BSpline
@@ -2815,3 +2816,168 @@ def fit2d_plot(dout=None):
             lambfit=lambfit, phiminmax=phiminmax,
             dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
     return dax
+
+
+###########################################################
+###########################################################
+#
+#           1d vertical fitting for noise analysis
+#
+###########################################################
+###########################################################
+
+
+def get_noise_costjac(deg=None, nbsplines=None, phi=None,
+                      phiminmax=None, symmetryaxis=None, sparse=None):
+
+    if sparse is None:
+        sparse = False
+
+    dbsplines = multigausfit2d_from_dlines_dbsplines(
+        knots=None, deg=deg, nbsplines=nbsplines,
+        phimin=phiminmax[0], phimax=phiminmax[1],
+        symmetryaxis=symmetryaxis)
+
+    def cost(x, km=dbsplines['knots_mult'], data=None, phi=phi):
+        return scpinterp.BSpline(km, x, deg,
+                                 extrapolate=False, axis=0)(phi) - data
+
+    jac = np.zeros((phi.size, dbsplines['nbs']), dtype=float)
+    km = dbsplines['knots_mult']
+    kpb = dbsplines['nknotsperbs']
+    lind = [(phi >= km[ii]) & (phi < km[ii+kpb-1])
+            for ii in range(dbsplines['nbs'])]
+    if sparse is True:
+        def jac_func(x, jac=jac, km=km, data=None,
+                     phi=phi, kpb=kpb, lind=lind):
+            for ii in range(x.size):
+                jac[lind[ii], ii] = scpinterp.BSpline.basis_element(
+                    km[ii:ii+kpb], extrapolate=False)(phi[lind[ii]])
+            return scpsparse.csr_matrix(jac)
+    else:
+        def jac_func(x, jac=jac, km=km, data=None,
+                     phi=phi, kpb=kpb, lind=lind):
+            for ii in range(x.size):
+                jac[lind[ii], ii] = scpinterp.BSpline.basis_element(
+                    km[ii:ii+kpb], extrapolate=False)(phi[lind[ii]])
+            return jac
+    return cost, jac_func
+
+
+def noise_analysis_2d(data, lamb, phi,
+                      deg=None, knots=None, nbsplines=None, lnbsplines=None,
+                      nlamb=None, loss=None, max_nfev=None,
+                      xtol=None, ftol=None, gtol=None,
+                      method=None, tr_solver=None, tr_options=None,
+                      verbose=None):
+
+    # -------------
+    # Check inputs
+    if method is None:
+        method = _METHOD
+    assert method in ['trf', 'dogbox', 'lm'], method
+    if tr_solver is None:
+        tr_solver = None
+    if tr_options is None:
+        tr_options = {}
+    if xtol is None:
+        xtol = _TOL2D['x']
+    if ftol is None:
+        ftol = _TOL2D['f']
+    if gtol is None:
+        gtol = _TOL2D['g']
+    if loss is None:
+        loss = _LOSS
+    if max_nfev is None:
+        max_nfev = None
+    if verbose is None:
+        verbose = 1
+
+    c0 = lamb.shape == phi.shape == data.shape[1:]
+    if c0 is not True:
+        msg = ("input data, lamb, phi are non-conform!\n"
+               + "\t- expected lamb.shape == phi.shape == data.shape[1:]\n"
+               + "\t- provided: ")
+        raise Exception(msg)
+
+    nspect = data.shape[0]
+    domain = {'lamb': {'minmax': [np.nanmin(lamb), np.nanmax(lamb)]},
+              'phi': {'minmax': [np.nanmin(phi), np.nanmax(phi)]}}
+
+    if nlamb is None:
+        if lamb.ndim == 2:
+            nlamb = lamb.shape[0]
+        else:
+            msg = ("Please provide a value for nlamb (nb of bins)!")
+            raise Exception(msg)
+    nlamb = int(nlamb)
+
+    if lnbsplines is None:
+        lnbsplines = np.arange(5, 16)
+    else:
+        lnbsplines = np.atleast_1d(lnbsplines).ravel().astype(int)
+
+    # -------------
+    # lamb binning
+    lambedges = np.linspace(domain['lamb']['minmax'][0],
+                            domain['lamb']['minmax'][1], nlamb)
+
+    ilamb = np.searchsorted(lambedges, lamb)
+    ilambu = np.unique(ilamb)
+
+    # -------------
+    # Perform fits
+    datamax = np.full((nspect, ilambu.size), np.nan)
+    fit = np.full(data.shape, np.nan)
+    chi2 = np.full((nspect, lnbsplines.size), np.nan)
+    indok = ~np.isnan(data)
+    for jj in range(ilambu.size):
+        ind = ilamb == ilambu[jj]
+
+        # skips cases with no points
+        if not np.any(ind):
+            continue
+
+        phii = phi[ind]
+        inds = np.argsort(phii)
+        phii = phii[inds]
+        datamax[:, jj] = np.nanmax(data[:, ind], axis=1)
+
+        for ii in range(lnbsplines.size):
+            if verbose > 0:
+                msg = ("\tlambbin {} / {}".format(jj+1, ilambu.size)
+                       + "    "
+                       + "nbs = {} ({}/{})".format(lnbsplines[ii],
+                                                   ii+1, lnbsplines.size))
+                print(msg.ljust(50), end='\r', flush=True)
+
+            x0 = 1. - (2.*np.arange(lnbsplines[ii])/lnbsplines[ii] - 1.)**2
+
+            # skips cases with to few points
+            if ind.sum() < lnbsplines[ii] + 1:
+                continue
+
+            func_cost, func_jac = get_noise_costjac(
+                deg=deg, phi=phii,
+                nbsplines=int(lnbsplines[ii]),
+                phiminmax=domain['phi']['minmax'],
+                sparse=False,
+                symmetryaxis=False)
+
+            for tt in range(nspect):
+                if np.all(np.isnan(data[tt, ind])) or datamax[tt, jj] == 0.:
+                    continue
+                datai = data[tt, ind][inds] / datamax[tt, jj]
+                res = scpopt.least_squares(
+                    func_cost, x0, jac=func_jac,
+                    method=method, ftol=ftol, xtol=xtol, gtol=gtol,
+                    x_scale='jac', f_scale=1.0, loss=loss, diff_step=None,
+                    tr_solver=tr_solver, tr_options={}, jac_sparsity=None,
+                    max_nfev=max_nfev, verbose=0, args=(),
+                    kwargs={'data': datai})
+
+                chi2[tt, ii] = np.nansum(
+                    func_cost(x=res.x, data=datai)**2)
+                fit[tt, ind] = func_cost(res.x, data=0.) * datamax[tt, jj]
+
+    return lnbsplines, data, fit, chi2

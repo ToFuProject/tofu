@@ -2108,7 +2108,7 @@ class CrystalBragg(utils.ToFuObject):
                       pts_phi=None, npts_phi=None,
                       pts_lamb_phi_total=None,
                       pts_lamb_phi_detail=None):
-        import tofu.data._fit12d as _fit12d
+        import tofu.spectro._fit12d as _fit12d
         return _fit12d.fit2d_extract_data(
             dfit2d=dfit2d,
             amp=amp, Ti=Ti, vi=vi,
@@ -2131,5 +2131,27 @@ class CrystalBragg(utils.ToFuObject):
             cmap=cmap, vmin=vmin, vmax=vmax,
             dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
 
-    def noise_analysis(self):
-        pass
+    def noise_analysis(self, data=None, xi=None, xj=None, n=None,
+                       det=None, dtheta=None, psi=None,
+                       mask=None, domain=None, nlamb=None,
+                       deg=None, knots=None, nbsplines=None, lnbsplines=None):
+
+        # ----------------------
+        # Geometrical transform
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_braggphi_from_xixj(xii, xjj, n=n,
+                                                  det=det, dtheta=dtheta,
+                                                  psi=psi, plot=False)
+        assert bragg.shape == phi.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        import tofu.spectro._fit12d as _fit12d
+        return _fit12d.noise_analysis_2d(
+            data, lamb, phi,
+            deg=deg, knots=knots, nbsplines=nbsplines, lnbsplines=lnbsplines,
+            nlamb=nlamb)
+
