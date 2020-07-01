@@ -2864,12 +2864,12 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
     return cost, jac_func
 
 
-def noise_analysis_2d(data, lamb, phi,
+def noise_analysis_2d(data, lamb, phi, mask=None,
                       deg=None, knots=None, nbsplines=None, lnbsplines=None,
                       nlamb=None, loss=None, max_nfev=None,
                       xtol=None, ftol=None, gtol=None,
                       method=None, tr_solver=None, tr_options=None,
-                      verbose=None):
+                      verbose=None, plot=None):
 
     # -------------
     # Check inputs
@@ -2890,6 +2890,8 @@ def noise_analysis_2d(data, lamb, phi,
         loss = _LOSS
     if max_nfev is None:
         max_nfev = None
+    if plot is None:
+        plot = True
     if verbose is None:
         verbose = 1
 
@@ -2916,6 +2918,8 @@ def noise_analysis_2d(data, lamb, phi,
         lnbsplines = np.arange(5, 16)
     else:
         lnbsplines = np.atleast_1d(lnbsplines).ravel().astype(int)
+    if nbsplines is None:
+        nbsplines = lnbsplines[int(lnbsplines.size/2)]
 
     # -------------
     # lamb binning
@@ -2929,7 +2933,7 @@ def noise_analysis_2d(data, lamb, phi,
     # Perform fits
     datamax = np.full((nspect, ilambu.size), np.nan)
     fit = np.full(data.shape, np.nan)
-    chi2 = np.full((nspect, lnbsplines.size), np.nan)
+    chi2 = np.full((nspect, ilambu.size, lnbsplines.size), np.nan)
     indok = ~np.isnan(data)
     for jj in range(ilambu.size):
         ind = ilamb == ilambu[jj]
@@ -2976,8 +2980,13 @@ def noise_analysis_2d(data, lamb, phi,
                     max_nfev=max_nfev, verbose=0, args=(),
                     kwargs={'data': datai})
 
-                chi2[tt, ii] = np.nansum(
+                chi2[tt, jj, ii] = np.nansum(
                     func_cost(x=res.x, data=datai)**2)
-                fit[tt, ind] = func_cost(res.x, data=0.) * datamax[tt, jj]
+                if lnbsplines[ii] == nbsplines:
+                    fit[tt, ind] = func_cost(res.x, data=0.) * datamax[tt, jj]
+
+    # Plot
+    if plot is True:
+        dax = _plot.plot_noise_analysis()
 
     return lnbsplines, data, fit, chi2
