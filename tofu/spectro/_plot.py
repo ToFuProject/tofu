@@ -1,6 +1,7 @@
 
 
 # Built-in
+import os
 import itertools as itt
 
 # Common
@@ -662,4 +663,163 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         and (dax['data'] is not None or dax['fit'] is not None)):
         plt.colorbar(dataax, ax=dax['data'], cax=dax['data_colorbar'],
                      orientation='horizontal')
+    return dax
+
+
+# #################################################################
+# #################################################################
+#                   noise plot
+# #################################################################
+# #################################################################
+
+def plot_noise_analysis(dnoise=None,
+                        margin=None,
+                        dax=None, fs=None, cmap=None, dmargin=None,
+                        wintit=None, tit=None,
+                        save=None, name=None, path=None, fmt=None):
+
+    # Check inputs
+    # ------------
+    if save is None:
+        save = False
+
+    if margin is None:
+        margin = 3.
+
+    if dax is None:
+        if fs is None:
+            fs = (18, 9)
+        if cmap is None:
+            cmap = plt.cm.viridis
+        if dmargin is None:
+            dmargin = {'left':0.05, 'right':0.99,
+                       'bottom':0.06, 'top':0.95,
+                       'wspace':None, 'hspace':None}
+        if wintit is None:
+            wintit = _WINTIT
+        if tit is None:
+            tit = '2D fitting of X-Ray Crystal Bragg spectrometer'
+
+    # Prepare data
+    # ------------
+    nspect = dnoise['datasort'].shape[0]
+    nlamb = dnoise['chi2'].shape[1]
+
+
+    chi2plot = dnoise['chi2'].ravel()
+    lnbsplinesplot = np.tile(dnoise['lnbsplines'], (nspect, nlamb, 1)).ravel()
+
+    indnan = dnoise['indnan'][:-1]
+    phiplot = np.tile(np.insert(dnoise['phisort'], indnan, np.nan),
+                      (nspect, 1)).ravel()
+    dataplot = np.insert(dnoise['datasort'], indnan, np.nan, axis=1).ravel()
+    fitplot = np.insert(dnoise['fitsort'], indnan, np.nan, axis=1).ravel()
+    errplot = fitplot - dataplot
+    var = dnoise['var']
+    xdata = dnoise['var_xdata']
+
+    # fit sqrt on sigma
+    const = dnoise['var_const']
+    indout = np.abs(errplot) > margin*const*np.sqrt(fitplot)
+
+    # Prepare figure if dax not provided
+    # ------------
+    if dax is None:
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(2, 4, **dmargin)
+        ax0 = fig.add_subplot(gs[0, 0])
+        ax1 = fig.add_subplot(gs[0, 1], sharey=ax0)
+        ax2 = fig.add_subplot(gs[1, 0])
+        ax3 = fig.add_subplot(gs[1, 1])
+        ax4 = fig.add_subplot(gs[0, 2])
+        ax5 = fig.add_subplot(gs[1, 2])
+        ax6 = fig.add_subplot(gs[0, 3])
+
+        ax0.set_title('Profiles')
+        ax0.set_ylabel(r'$\phi$ (rad)')
+        ax0.set_xlabel(r'data (a.u.)')
+        ax1.set_title('Err profiles')
+        ax1.set_ylabel(r'$\phi$ (rad)')
+        ax1.set_xlabel(r'data (a.u.)')
+        ax2.set_title('nbspline scan')
+        ax2.set_xlabel('nbsplines')
+        ax2.set_ylabel(r'$\chi^2$')
+        ax3.set_title('Variance')
+        ax3.set_xlabel('data (a.u.)')
+        ax3.set_ylabel('err (a.u.)')
+        ax5.set_title('Variance')
+        ax5.set_xlabel('data (a.u.)')
+        ax5.set_ylabel(r'$\sigma$' + ' (a.u.)')
+        ax6.set_title('Camera')
+        ax6.set_xlabel(r'$x_i$ (m)')
+        ax6.set_ylabel(r'$x_j$ (m)')
+
+        dax = {'prof': ax0,
+               'proferr': ax1,
+               'scan': ax2,
+               'err': ax3,
+               'errbin': ax5,
+               'cam': ax6,
+              }
+
+    # Plot main images
+    # ------------
+
+    dax['prof'].plot(dataplot, phiplot,
+                     marker='.', ls='None', c='k')
+    dax['prof'].plot(fitplot, phiplot,
+                     marker='None', ls='-', c='b')
+    dax['prof'].plot(dataplot[indout], phiplot[indout],
+                     marker='.', ls='None', c='r')
+
+    dax['proferr'].plot(errplot, phiplot,
+                        marker='.', ls='None', c='k')
+    dax['proferr'].plot(errplot[indout], phiplot[indout],
+                        marker='.', ls='None', c='r')
+
+    # dax['cam'].imshow()
+
+    dax['scan'].plot(lnbsplinesplot, chi2plot,
+                     marker='.', ls='None', c='k')
+    # dax['scan'].plot(lnbsplinesplot[indout], chi2plot[indout],
+    #                  marker='.', ls='None', c='r')
+
+    dax['err'].fill_between(xdata,
+                            -margin*const*np.sqrt(xdata),
+                            margin*const*np.sqrt(xdata),
+                            color=(0.6, 0.6, 0.6))
+    dax['err'].fill_between(xdata,
+                            -const*np.sqrt(xdata),
+                            const*np.sqrt(xdata),
+                            color=(0.5, 0.5, 0.5))
+    dax['err'].plot(fitplot, errplot,
+                    marker='.', ls='None', c='k')
+    dax['err'].plot(fitplot[indout], errplot[indout],
+                    marker='.', ls='None', c='r')
+
+    dax['errbin'].plot(xdata, np.sqrt(var),
+                       marker='.', c='k', ls='None')
+    lab = r'$\sigma=$' + r'{:5.3e}'.format(const) + r'$\sqrt{data}$'
+    dax['errbin'].plot(xdata, const*np.sqrt(xdata),
+                       marker='None', ls='--', c='k', label=lab)
+    dax['errbin'].legend(loc='lower right', frameon=True)
+
+    # save
+    # ------------
+    if save is True:
+        if name is None:
+            name = 'NoiseAnalysis'
+        if fmt is None:
+            fmt = 'png'
+        if path is None:
+            path = './'
+        if name[-4:] != '.{}'.format(fmt):
+            name = '{}.{}'.format(name, fmt)
+
+        pfe = os.path.join(os.path.abspath(path), name)
+        dax['prof'].figure.savefig(pfe, format=fmt)
+
+        msg = "Saved in:\n\t{}".format(pfe)
+        print(msg)
+
     return dax

@@ -2134,7 +2134,13 @@ class CrystalBragg(utils.ToFuObject):
     def noise_analysis(self, data=None, xi=None, xj=None, n=None,
                        det=None, dtheta=None, psi=None,
                        mask=None, domain=None, nlamb=None,
-                       deg=None, knots=None, nbsplines=None, lnbsplines=None):
+                       deg=None, knots=None, nbsplines=None, lnbsplines=None,
+                       loss=None, max_nfev=None,
+                       xtol=None, ftol=None, gtol=None,
+                       method=None, tr_solver=None, tr_options=None,
+                       verbose=None, plot=None,
+                       dax=None, fs=None, dmargin=None,
+                       cmap=None, wintit=None, tit=None, return_dax=None):
 
         # ----------------------
         # Geometrical transform
@@ -2153,5 +2159,9 @@ class CrystalBragg(utils.ToFuObject):
         return _fit12d.noise_analysis_2d(
             data, lamb, phi,
             deg=deg, knots=knots, nbsplines=nbsplines, lnbsplines=lnbsplines,
-            nlamb=nlamb)
-
+            nlamb=nlamb, mask=mask,
+            loss=loss, max_nfev=max_nfev,
+            method=method, tr_solver=tr_solver, tr_options=tr_options,
+            verbose=verbose, plot=plot,
+            dax=dax, fs=fs, dmargin=dmargin,
+            cmap=cmap, wintit=wintit, tit=tit, return_dax=return_dax)

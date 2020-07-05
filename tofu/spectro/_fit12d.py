@@ -2869,7 +2869,9 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                       nlamb=None, loss=None, max_nfev=None,
                       xtol=None, ftol=None, gtol=None,
                       method=None, tr_solver=None, tr_options=None,
-                      verbose=None, plot=None):
+                      verbose=None, plot=None,
+                      dax=None, fs=None, dmargin=None,
+                      cmap=None, wintit=None, tit=None, return_dax=None):
 
     # -------------
     # Check inputs
@@ -2894,6 +2896,8 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
         plot = True
     if verbose is None:
         verbose = 1
+    if return_dax is None:
+        return_dax = False
 
     c0 = lamb.shape == phi.shape == data.shape[1:]
     if c0 is not True:
@@ -2915,7 +2919,7 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
     nlamb = int(nlamb)
 
     if lnbsplines is None:
-        lnbsplines = np.arange(5, 16)
+        lnbsplines = np.arange(5, 21)
     else:
         lnbsplines = np.atleast_1d(lnbsplines).ravel().astype(int)
     if nbsplines is None:
@@ -2924,19 +2928,22 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
     # -------------
     # lamb binning
     lambedges = np.linspace(domain['lamb']['minmax'][0],
-                            domain['lamb']['minmax'][1], nlamb)
-
+                            domain['lamb']['minmax'][1], nlamb+1)
     ilamb = np.searchsorted(lambedges, lamb)
     ilambu = np.unique(ilamb)
 
     # -------------
     # Perform fits
+    phisort = np.full((phi.size,), np.nan)
+    datasort = np.full((nspect, phi.size), np.nan)
     datamax = np.full((nspect, ilambu.size), np.nan)
-    fit = np.full(data.shape, np.nan)
+    fitsort = np.full(datasort.shape, np.nan)
     chi2 = np.full((nspect, ilambu.size, lnbsplines.size), np.nan)
-    indok = ~np.isnan(data)
+    i0, indnan = 0, []
     for jj in range(ilambu.size):
         ind = ilamb == ilambu[jj]
+        nind = ind.sum()
+        indsort = i0 + np.arange(0, nind)
 
         # skips cases with no points
         if not np.any(ind):
@@ -2944,7 +2951,8 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
 
         phii = phi[ind]
         inds = np.argsort(phii)
-        phii = phii[inds]
+        phisort[indsort] = phii[inds]
+        datasort[:, indsort] = data[:, ind][:, inds]
         datamax[:, jj] = np.nanmax(data[:, ind], axis=1)
 
         for ii in range(lnbsplines.size):
@@ -2958,20 +2966,26 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
             x0 = 1. - (2.*np.arange(lnbsplines[ii])/lnbsplines[ii] - 1.)**2
 
             # skips cases with to few points
-            if ind.sum() < lnbsplines[ii] + 1:
+            indok = ~np.any(np.isnan(datasort[:, indsort]), axis=0)
+            if mask is not None:
+                indok &= mask[ind][inds]
+            if ind.sum() < lnbsplines[ii] + 1 or not np.any(indok):
                 continue
 
             func_cost, func_jac = get_noise_costjac(
-                deg=deg, phi=phii,
+                deg=deg, phi=phisort[indsort][indok],
                 nbsplines=int(lnbsplines[ii]),
                 phiminmax=domain['phi']['minmax'],
                 sparse=False,
                 symmetryaxis=False)
 
             for tt in range(nspect):
-                if np.all(np.isnan(data[tt, ind])) or datamax[tt, jj] == 0.:
+                c0 = bool(
+                    ((~np.isnan(data[tt, ind])).sum() < lnbsplines[ii] + 1
+                     or datamax[tt, jj] == 0.))
+                if c0:
                     continue
-                datai = data[tt, ind][inds] / datamax[tt, jj]
+                datai = datasort[tt, indsort][indok] / datamax[tt, jj]
                 res = scpopt.least_squares(
                     func_cost, x0, jac=func_jac,
                     method=method, ftol=ftol, xtol=xtol, gtol=gtol,
@@ -2983,10 +2997,51 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                 chi2[tt, jj, ii] = np.nansum(
                     func_cost(x=res.x, data=datai)**2)
                 if lnbsplines[ii] == nbsplines:
-                    fit[tt, ind] = func_cost(res.x, data=0.) * datamax[tt, jj]
+                    fitsort[tt, indsort[indok]] = (func_cost(res.x, data=0.)
+                                                   * datamax[tt, jj])
+
+        i0 += nind
+        indnan.append(i0)
+
+    # -------------
+    # output dict
+    errsort = fitsort - datasort
+    xdata_edge = np.linspace(0, np.nanmax(fitsort), 100)
+    inderr = np.searchsorted(xdata_edge[1:-1], fitsort)
+    inderru = np.unique(inderr[~np.isnan(errsort)])
+    xdata = 0.5*(xdata_edge[1:] + xdata_edge[:-1])[inderru]
+    var = np.full((inderru.size,), np.nan)
+    for ii in range(inderru.size):
+        ind = inderr == inderru[ii]
+        indok = ~np.isnan(errsort[ind])
+        nn = np.sum(indok)
+        var[ii] = nn * np.nanmean(errsort[ind]**2) / (nn - 1)
+
+    # fit sqrt on sigma
+    const = np.nanmean(np.sqrt(var / xdata))
+
+    # -------------
+    # Identify outliers with respect to noise model
+    indout = None
+
+    # -------------
+    # output dict
+    dnoise = {'datasort': datasort, 'phisort': phisort,
+              'fitsort': fitsort, 'chi2': chi2, 'domain': domain,
+              'lnbsplines': lnbsplines, 'nbsplines': nbsplines,
+              'deg': deg, 'lambedges': lambedges,
+              'ilamb': ilamb, 'ilambu': ilambu, 'indnan': np.array(indnan),
+              'var': var, 'var_xdata': xdata, 'var_const': const,
+              'inderr': inderr, 'var_indout': indout}
 
     # Plot
     if plot is True:
-        dax = _plot.plot_noise_analysis()
+        dax = _plot.plot_noise_analysis(
+            dnoise=dnoise,
+            dax=dax, fs=fs, dmargin=dmargin,
+            cmap=cmap, wintit=wintit, tit=tit)
 
-    return lnbsplines, data, fit, chi2
+    if return_dax is True:
+        return dnoise, dax
+    else:
+        return dnoise
