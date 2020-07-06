@@ -2838,7 +2838,10 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
         phimin=phiminmax[0], phimax=phiminmax[1],
         symmetryaxis=symmetryaxis)
 
-    def cost(x, km=dbsplines['knots_mult'], data=None, phi=phi):
+    def cost(x,
+             km=dbsplines['knots_mult'],
+             deg=dbsplines['deg'],
+             data=0., phi=phi):
         return scpinterp.BSpline(km, x, deg,
                                  extrapolate=False, axis=0)(phi) - data
 
@@ -2892,6 +2895,8 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
         loss = _LOSS
     if max_nfev is None:
         max_nfev = None
+    if deg is None:
+        deg = 2
     if plot is None:
         plot = True
     if verbose is None:
@@ -2999,6 +3004,13 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                 if lnbsplines[ii] == nbsplines:
                     fitsort[tt, indsort[indok]] = (func_cost(res.x, data=0.)
                                                    * datamax[tt, jj])
+                # Store in original shape
+                # err[:, ind][inds][indok] = (fitsort[tt, indsort[indok]]
+                #             - datasort[tt, indsort[indok]])
+                # datasort[:, indsort] = data[:, ind][:, inds]
+
+
+
 
         i0 += nind
         indnan.append(i0)
@@ -3029,7 +3041,7 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
     dnoise = {'datasort': datasort, 'phisort': phisort,
               'fitsort': fitsort, 'chi2': chi2, 'domain': domain,
               'lnbsplines': lnbsplines, 'nbsplines': nbsplines,
-              'deg': deg, 'lambedges': lambedges,
+              'deg': deg, 'lambedges': lambedges, 'deg': deg,
               'ilamb': ilamb, 'ilambu': ilambu, 'indnan': np.array(indnan),
               'var': var, 'var_xdata': xdata, 'var_const': const,
               'inderr': inderr, 'var_indout': indout}
@@ -3045,3 +3057,6 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
         return dnoise, dax
     else:
         return dnoise
+
+
+# def get_noise_analysis_mask():

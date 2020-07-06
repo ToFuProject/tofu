@@ -673,7 +673,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
 # #################################################################
 
 def plot_noise_analysis(dnoise=None,
-                        margin=None,
+                        margin=None, ms=None,
                         dax=None, fs=None, cmap=None, dmargin=None,
                         wintit=None, tit=None,
                         save=None, name=None, path=None, fmt=None):
@@ -685,6 +685,9 @@ def plot_noise_analysis(dnoise=None,
 
     if margin is None:
         margin = 3.
+
+    if ms is None:
+        ms = 2.
 
     if dax is None:
         if fs is None:
@@ -721,6 +724,7 @@ def plot_noise_analysis(dnoise=None,
     # fit sqrt on sigma
     const = dnoise['var_const']
     indout = np.abs(errplot) > margin*const*np.sqrt(fitplot)
+    indok = ~indout
 
     # Prepare figure if dax not provided
     # ------------
@@ -765,37 +769,37 @@ def plot_noise_analysis(dnoise=None,
     # Plot main images
     # ------------
 
-    dax['prof'].plot(dataplot, phiplot,
-                     marker='.', ls='None', c='k')
+    dax['prof'].plot(dataplot[indok], phiplot[indok],
+                     marker='.', ls='None', c='k', ms=ms)
     dax['prof'].plot(fitplot, phiplot,
                      marker='None', ls='-', c='b')
     dax['prof'].plot(dataplot[indout], phiplot[indout],
-                     marker='.', ls='None', c='r')
+                     marker='.', ls='None', c='r', ms=ms)
 
-    dax['proferr'].plot(errplot, phiplot,
-                        marker='.', ls='None', c='k')
+    dax['proferr'].plot(errplot[indok], phiplot[indok],
+                        marker='.', ls='None', c='k', ms=ms)
     dax['proferr'].plot(errplot[indout], phiplot[indout],
-                        marker='.', ls='None', c='r')
+                        marker='.', ls='None', c='r', ms=ms)
 
     # dax['cam'].imshow()
 
     dax['scan'].plot(lnbsplinesplot, chi2plot,
-                     marker='.', ls='None', c='k')
+                     marker='.', ls='None', c='k', ms=ms)
     # dax['scan'].plot(lnbsplinesplot[indout], chi2plot[indout],
     #                  marker='.', ls='None', c='r')
 
     dax['err'].fill_between(xdata,
                             -margin*const*np.sqrt(xdata),
                             margin*const*np.sqrt(xdata),
-                            color=(0.6, 0.6, 0.6))
+                            color=(0.7, 0.7, 0.7, 1.))
+    dax['err'].plot(fitplot[indok], errplot[indok],
+                    marker='.', ls='None', c='k', ms=ms)
+    dax['err'].plot(fitplot[indout], errplot[indout],
+                    marker='.', ls='None', c='r', ms=ms)
     dax['err'].fill_between(xdata,
                             -const*np.sqrt(xdata),
                             const*np.sqrt(xdata),
-                            color=(0.5, 0.5, 0.5))
-    dax['err'].plot(fitplot, errplot,
-                    marker='.', ls='None', c='k')
-    dax['err'].plot(fitplot[indout], errplot[indout],
-                    marker='.', ls='None', c='r')
+                            color=(0.4, 0.4, 0.4, 0.5))
 
     dax['errbin'].plot(xdata, np.sqrt(var),
                        marker='.', c='k', ls='None')
