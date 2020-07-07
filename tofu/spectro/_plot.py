@@ -705,26 +705,57 @@ def plot_noise_analysis(dnoise=None,
 
     # Prepare data
     # ------------
-    nspect = dnoise['datasort'].shape[0]
+    nspect = dnoise['data'].shape[0]
     nlamb = dnoise['chi2'].shape[1]
 
 
     chi2plot = dnoise['chi2'].ravel()
     lnbsplinesplot = np.tile(dnoise['lnbsplines'], (nspect, nlamb, 1)).ravel()
 
+    indsort = dnoise['indsort']
     indnan = dnoise['indnan'][:-1]
-    phiplot = np.tile(np.insert(dnoise['phisort'], indnan, np.nan),
+    phiplot = np.tile(np.insert(dnoise['phi'][indsort[0, :], indsort[1, :]],
+                                indnan,
+                                np.nan),
                       (nspect, 1)).ravel()
-    dataplot = np.insert(dnoise['datasort'], indnan, np.nan, axis=1).ravel()
-    fitplot = np.insert(dnoise['fitsort'], indnan, np.nan, axis=1).ravel()
+    dataplot = np.insert(dnoise['data'][:, indsort[0, :], indsort[1, :]],
+                         indnan,
+                         np.nan, axis=1).ravel()
+    fitplot = np.insert(dnoise['fit'][:, indsort[0, :], indsort[1, :]],
+                        indnan,
+                        np.nan, axis=1).ravel()
     errplot = fitplot - dataplot
-    var = dnoise['var']
-    xdata = dnoise['var_xdata']
 
     # fit sqrt on sigma
-    const = dnoise['var_const']
-    indout = np.abs(errplot) > margin*const*np.sqrt(fitplot)
-    indok = ~indout
+    if margin is not None and margin != dnoise['var_margin']:
+        from . import _fit12d
+        (var, xdata, const,
+         indout, margin, log) = _fit12d.get_noise_analysis_var_mask(
+             fit=dnoise['fit'], data=dnoise['data'],
+             margin=margin, log=None)
+    else:
+        var = dnoise['var']
+        const = dnoise['var_const']
+        xdata = dnoise['xdata']
+        indout = dnoise['var_indout']
+        assert dnoise['var_log'] is None
+    indoutplot = np.insert(indout[:, indsort[0, :], indsort[1, :]],
+                           indnan,
+                           np.nan, axis=1).ravel()
+    indokplot = ~indoutplot
+
+    mask_sug = np.zeros(dnoise['phi'].shape, dtype=int)
+    mask_sug[np.any(indout, axis=0)] = 2.
+
+    # mask
+    maskout = dnoise['mask']
+    if maskout is not None:
+        maskout = ~maskout
+        maskplot = np.tile(np.insert(
+            maskout[indsort[0, isort], indsort[1, isort]],
+            indnan,
+            np.nan), (nspect, 1)).ravel()
+        mask_sug[maskout] = 1.
 
     # Prepare figure if dax not provided
     # ------------
@@ -737,7 +768,7 @@ def plot_noise_analysis(dnoise=None,
         ax3 = fig.add_subplot(gs[1, 1])
         ax4 = fig.add_subplot(gs[0, 2])
         ax5 = fig.add_subplot(gs[1, 2])
-        ax6 = fig.add_subplot(gs[0, 3])
+        ax6 = fig.add_subplot(gs[:, 3])
 
         ax0.set_title('Profiles')
         ax0.set_ylabel(r'$\phi$ (rad)')
@@ -769,17 +800,23 @@ def plot_noise_analysis(dnoise=None,
     # Plot main images
     # ------------
 
-    dax['prof'].plot(dataplot[indok], phiplot[indok],
+    dax['prof'].plot(dataplot[indokplot], phiplot[indokplot],
                      marker='.', ls='None', c='k', ms=ms)
     dax['prof'].plot(fitplot, phiplot,
-                     marker='None', ls='-', c='b')
-    dax['prof'].plot(dataplot[indout], phiplot[indout],
+                     marker='None', ls='-', c='g')
+    dax['prof'].plot(dataplot[indoutplot], phiplot[indoutplot],
                      marker='.', ls='None', c='r', ms=ms)
+    if maskout is not None:
+        dax['prof'].plot(dataplot[maskplot], phiplot[maskplot],
+                         marker='.', ls='None', c='b', ms=ms)
 
-    dax['proferr'].plot(errplot[indok], phiplot[indok],
+    dax['proferr'].plot(errplot[indokplot], phiplot[indokplot],
                         marker='.', ls='None', c='k', ms=ms)
-    dax['proferr'].plot(errplot[indout], phiplot[indout],
+    dax['proferr'].plot(errplot[indoutplot], phiplot[indoutplot],
                         marker='.', ls='None', c='r', ms=ms)
+    if maskout is not None:
+        dax['proferr'].plot(errplot[maskplot], phiplot[maskplot],
+                            marker='.', ls='None', c='b', ms=ms)
 
     # dax['cam'].imshow()
 
@@ -788,14 +825,18 @@ def plot_noise_analysis(dnoise=None,
     # dax['scan'].plot(lnbsplinesplot[indout], chi2plot[indout],
     #                  marker='.', ls='None', c='r')
 
+    dax['err'].axhline(0., c='k', ls='--', lw=1.)
     dax['err'].fill_between(xdata,
                             -margin*const*np.sqrt(xdata),
                             margin*const*np.sqrt(xdata),
                             color=(0.7, 0.7, 0.7, 1.))
-    dax['err'].plot(fitplot[indok], errplot[indok],
+    dax['err'].plot(fitplot[indokplot], errplot[indokplot],
                     marker='.', ls='None', c='k', ms=ms)
-    dax['err'].plot(fitplot[indout], errplot[indout],
+    dax['err'].plot(fitplot[indoutplot], errplot[indoutplot],
                     marker='.', ls='None', c='r', ms=ms)
+    if maskout is not None:
+        dax['err'].plot(fitplot[maskplot], errplot[maskplot],
+                        marker='.', ls='None', c='b', ms=ms)
     dax['err'].fill_between(xdata,
                             -const*np.sqrt(xdata),
                             const*np.sqrt(xdata),
@@ -807,6 +848,10 @@ def plot_noise_analysis(dnoise=None,
     dax['errbin'].plot(xdata, const*np.sqrt(xdata),
                        marker='None', ls='--', c='k', label=lab)
     dax['errbin'].legend(loc='lower right', frameon=True)
+
+    dax['cam'].imshow(mask_sug,
+                      origin='lower', interpolation='nearest')
+                      # cmap=cmap)
 
     # save
     # ------------

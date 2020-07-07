@@ -2869,7 +2869,7 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
 
 def noise_analysis_2d(data, lamb, phi, mask=None,
                       deg=None, knots=None, nbsplines=None, lnbsplines=None,
-                      nlamb=None, loss=None, max_nfev=None,
+                      nlamb=None, margin=None, loss=None, max_nfev=None,
                       xtol=None, ftol=None, gtol=None,
                       method=None, tr_solver=None, tr_options=None,
                       verbose=None, plot=None,
@@ -2943,12 +2943,14 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
     datasort = np.full((nspect, phi.size), np.nan)
     datamax = np.full((nspect, ilambu.size), np.nan)
     fitsort = np.full(datasort.shape, np.nan)
+    fit = np.full(data.shape, np.nan)
+    indsort = np.zeros((2, phi.size), dtype=int)
     chi2 = np.full((nspect, ilambu.size, lnbsplines.size), np.nan)
     i0, indnan = 0, []
     for jj in range(ilambu.size):
         ind = ilamb == ilambu[jj]
         nind = ind.sum()
-        indsort = i0 + np.arange(0, nind)
+        isort = i0 + np.arange(0, nind)
 
         # skips cases with no points
         if not np.any(ind):
@@ -2956,9 +2958,19 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
 
         phii = phi[ind]
         inds = np.argsort(phii)
-        phisort[indsort] = phii[inds]
-        datasort[:, indsort] = data[:, ind][:, inds]
-        datamax[:, jj] = np.nanmax(data[:, ind], axis=1)
+        inds_rev = np.argsort(inds)
+        indsort[0, isort] = ind.nonzero()[0][inds]
+        indsort[1, isort] = ind.nonzero()[1][inds]
+
+        # phisorti[isort] = phii[inds]
+        # datasort[:, isort] = data[:, ind][:, inds]
+        # datamax[:, jj] = np.nanmax(data[:, ind], axis=1)
+        phisort = phi[indsort[0, isort], indsort[1, isort]]
+        datasort = data[:, indsort[0, isort], indsort[1, isort]]
+        datamax[:, jj] = np.nanmax(datasort, axis=1)
+
+        if mask is not None:
+            masksort = mask[indsort[0, isort], indsort[1, isort]]
 
         for ii in range(lnbsplines.size):
             if verbose > 0:
@@ -2971,14 +2983,15 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
             x0 = 1. - (2.*np.arange(lnbsplines[ii])/lnbsplines[ii] - 1.)**2
 
             # skips cases with to few points
-            indok = ~np.any(np.isnan(datasort[:, indsort]), axis=0)
+            # indok = ~np.any(np.isnan(datasort[:, isort]), axis=0)
+            indok = ~np.any(np.isnan(datasort), axis=0)
             if mask is not None:
-                indok &= mask[ind][inds]
-            if ind.sum() < lnbsplines[ii] + 1 or not np.any(indok):
+                indok &= masksort
+            if indok.sum() < lnbsplines[ii] + 1 or not np.any(indok):
                 continue
 
             func_cost, func_jac = get_noise_costjac(
-                deg=deg, phi=phisort[indsort][indok],
+                deg=deg, phi=phisort[indok],
                 nbsplines=int(lnbsplines[ii]),
                 phiminmax=domain['phi']['minmax'],
                 sparse=False,
@@ -2990,7 +3003,7 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                      or datamax[tt, jj] == 0.))
                 if c0:
                     continue
-                datai = datasort[tt, indsort][indok] / datamax[tt, jj]
+                datai = datasort[tt, indok] / datamax[tt, jj]
                 res = scpopt.least_squares(
                     func_cost, x0, jac=func_jac,
                     method=method, ftol=ftol, xtol=xtol, gtol=gtol,
@@ -3002,49 +3015,31 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                 chi2[tt, jj, ii] = np.nansum(
                     func_cost(x=res.x, data=datai)**2)
                 if lnbsplines[ii] == nbsplines:
-                    fitsort[tt, indsort[indok]] = (func_cost(res.x, data=0.)
-                                                   * datamax[tt, jj])
-                # Store in original shape
-                # err[:, ind][inds][indok] = (fitsort[tt, indsort[indok]]
-                #             - datasort[tt, indsort[indok]])
-                # datasort[:, indsort] = data[:, ind][:, inds]
-
-
-
-
+                    # fitsort[tt, isort[indok]] = (func_cost(res.x, data=0.)
+                    #                             * datamax[tt, jj])
+                    # Store in original shape
+                    import pdb; pdb.set_trace()     # DB
+                    fit[tt, ind] = (func_cost(res.x, data=0.)
+                                    * datamax[tt, jj])[inds_rev]
+                    # fit[tt, ind] = fitsort[tt, isort][inds_rev]
         i0 += nind
         indnan.append(i0)
 
     # -------------
-    # output dict
-    errsort = fitsort - datasort
-    xdata_edge = np.linspace(0, np.nanmax(fitsort), 100)
-    inderr = np.searchsorted(xdata_edge[1:-1], fitsort)
-    inderru = np.unique(inderr[~np.isnan(errsort)])
-    xdata = 0.5*(xdata_edge[1:] + xdata_edge[:-1])[inderru]
-    var = np.full((inderru.size,), np.nan)
-    for ii in range(inderru.size):
-        ind = inderr == inderru[ii]
-        indok = ~np.isnan(errsort[ind])
-        nn = np.sum(indok)
-        var[ii] = nn * np.nanmean(errsort[ind]**2) / (nn - 1)
-
-    # fit sqrt on sigma
-    const = np.nanmean(np.sqrt(var / xdata))
-
-    # -------------
     # Identify outliers with respect to noise model
-    indout = None
+    var, xdata, const, indout, margin, log = get_noise_analysis_var_mask(
+        fit=fit, data=data, margin=margin)
 
     # -------------
     # output dict
-    dnoise = {'datasort': datasort, 'phisort': phisort,
-              'fitsort': fitsort, 'chi2': chi2, 'domain': domain,
+    dnoise = {'data': data, 'phi': phi, 'fit': fit,
+              'chi2': chi2, 'domain': domain, 'mask': mask,
+              'indsort': indsort, 'indnan': np.array(indnan),
               'lnbsplines': lnbsplines, 'nbsplines': nbsplines,
               'deg': deg, 'lambedges': lambedges, 'deg': deg,
-              'ilamb': ilamb, 'ilambu': ilambu, 'indnan': np.array(indnan),
+              'ilamb': ilamb, 'ilambu': ilambu,
               'var': var, 'var_xdata': xdata, 'var_const': const,
-              'inderr': inderr, 'var_indout': indout}
+              'var_indout': indout, 'var_margin': margin, 'var_log': log}
 
     # Plot
     if plot is True:
@@ -3059,4 +3054,30 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
         return dnoise
 
 
-# def get_noise_analysis_mask():
+def get_noise_analysis_var_mask(fit=None, data=None,
+                                margin=None, log=None):
+    if margin is None:
+        margin = 1.
+
+    err = fit - data
+    xdata_edge = np.linspace(0, np.nanmax(fit), 100)
+    inderr = np.searchsorted(xdata_edge[1:-1], fit)
+    inderru = np.unique(inderr[~np.isnan(err)])
+    xdata = 0.5*(xdata_edge[1:] + xdata_edge[:-1])[inderru]
+    var = np.full((inderru.size,), np.nan)
+    for ii in range(inderru.size):
+        ind = inderr == inderru[ii]
+        indok = ~np.isnan(err[ind])
+        nn = np.sum(indok)
+        var[ii] = nn * np.nanmean(err[ind]**2) / (nn - 1)
+
+    # fit sqrt on sigma
+    const = np.nanmean(np.sqrt(var / xdata))
+
+    # indout
+    indout = np.abs(err) > margin*const*np.sqrt(fit)
+    if log == 'any':
+        indout = np.any(indout, axis=0)
+    elif log == 'all':
+        indout = np.all(indout, axis=0)
+    return var, xdata, const, indout, margin, log
