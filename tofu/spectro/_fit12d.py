@@ -47,6 +47,7 @@ _LOSS = 'linear'
 _D3 = {'amp': 'x', 'coefs': 'lines', 'ratio': 'lines',
        'Ti': 'x', 'width': 'lines',
        'vi': 'x', 'shift': 'lines'}
+_SIGMA_MARGIN = 3.
 _ALLOW_PICKLE = True
 
 
@@ -2827,16 +2828,17 @@ def fit2d_plot(dout=None):
 ###########################################################
 
 
-def get_noise_costjac(deg=None, nbsplines=None, phi=None,
+def get_noise_costjac(deg=None, nbsplines=None, dbsplines=None, phi=None,
                       phiminmax=None, symmetryaxis=None, sparse=None):
 
     if sparse is None:
         sparse = False
 
-    dbsplines = multigausfit2d_from_dlines_dbsplines(
-        knots=None, deg=deg, nbsplines=nbsplines,
-        phimin=phiminmax[0], phimax=phiminmax[1],
-        symmetryaxis=symmetryaxis)
+    if dbsplines is None:
+        dbsplines = multigausfit2d_from_dlines_dbsplines(
+            knots=None, deg=deg, nbsplines=nbsplines,
+            phimin=phiminmax[0], phimax=phiminmax[1],
+            symmetryaxis=symmetryaxis)
 
     def cost(x,
              km=dbsplines['knots_mult'],
@@ -2868,13 +2870,221 @@ def get_noise_costjac(deg=None, nbsplines=None, phi=None,
 
 
 def noise_analysis_2d(data, lamb, phi, mask=None,
-                      deg=None, knots=None, nbsplines=None, lnbsplines=None,
+                      deg=None, knots=None, nbsplines=None,
                       nlamb=None, margin=None, loss=None, max_nfev=None,
                       xtol=None, ftol=None, gtol=None,
                       method=None, tr_solver=None, tr_options=None,
                       verbose=None, plot=None,
                       dax=None, fs=None, dmargin=None,
                       cmap=None, wintit=None, tit=None, return_dax=None):
+
+    # -------------
+    # Check inputs
+    if not isinstance(nbsplines, int):
+        msg = "Please provide a (>0) integer value for nbsplines"
+        raise Exception(msg)
+
+    if method is None:
+        method = _METHOD
+    assert method in ['trf', 'dogbox', 'lm'], method
+    if tr_solver is None:
+        tr_solver = None
+    if tr_options is None:
+        tr_options = {}
+    if xtol is None:
+        xtol = _TOL2D['x']
+    if ftol is None:
+        ftol = _TOL2D['f']
+    if gtol is None:
+        gtol = _TOL2D['g']
+    if loss is None:
+        loss = _LOSS
+    if max_nfev is None:
+        max_nfev = None
+    if deg is None:
+        deg = 2
+    if plot is None:
+        plot = True
+    if verbose is None:
+        verbose = 1
+    if return_dax is None:
+        return_dax = False
+
+    c0 = lamb.shape == phi.shape == data.shape[1:]
+    if c0 is not True:
+        msg = ("input data, lamb, phi are non-conform!\n"
+               + "\t- expected lamb.shape == phi.shape == data.shape[1:]\n"
+               + "\t- provided: ")
+        raise Exception(msg)
+
+    nspect = data.shape[0]
+    domain = {'lamb': {'minmax': [np.nanmin(lamb), np.nanmax(lamb)]},
+              'phi': {'minmax': [np.nanmin(phi), np.nanmax(phi)]}}
+
+    if nlamb is None:
+        if lamb.ndim == 2:
+            nlamb = lamb.shape[0]
+        else:
+            msg = ("Please provide a value for nlamb (nb of bins)!")
+            raise Exception(msg)
+    nlamb = int(nlamb)
+
+    # -------------
+    # lamb binning
+    lambedges = np.linspace(domain['lamb']['minmax'][0],
+                            domain['lamb']['minmax'][1], nlamb+1)
+    ilamb = np.searchsorted(lambedges, lamb)
+    ilambu = np.unique(ilamb)
+
+    # -------------
+    # bspline dict and plotting utilities
+    dbsplines = multigausfit2d_from_dlines_dbsplines(
+        knots=None, deg=deg, nbsplines=nbsplines,
+        phimin=domain['phi']['minmax'][0],
+        phimax=domain['phi']['minmax'][1],
+        symmetryaxis=False)
+    bs_phi = np.linspace(domain['phi']['minmax'][0],
+                         domain['phi']['minmax'][1], 100)
+    bs_val = np.array([
+        scpinterp.BSpline.basis_element(
+            dbsplines['knots_mult'][ii:ii+dbsplines['nknotsperbs']],
+            extrapolate=False)(bs_phi)
+        for ii in range(nbsplines)]).T
+
+    # -------------
+    # Perform fits
+    datamax = np.full((nspect, ilambu.size), np.nan)
+    fit = np.full(data.shape, np.nan)
+    indsort = np.zeros((2, phi.size), dtype=int)
+    indout_noeval = np.zeros(phi.shape, dtype=bool)
+    chi2 = np.full((nspect, ilambu.size), np.nan)
+    chi2_meandata = np.full((nspect, ilambu.size), np.nan)
+    i0, indnan = 0, []
+    if mask is None:
+        ind0 = np.ones(lamb.shape, dtype=bool)
+    else:
+        ind0 = mask
+    x0 = 1. - (2.*np.arange(nbsplines)/nbsplines - 1.)**2
+    for jj in range(ilambu.size):
+        ind = ilamb == ilambu[jj]
+        nind = ind.sum()
+        isort = i0 + np.arange(0, nind)
+
+        # skips cases with no points
+        if not np.any(ind):
+            continue
+
+        inds = np.argsort(phi[ind])
+        inds_rev = np.argsort(inds)
+        indsort[0, isort] = ind.nonzero()[0][inds]
+        indsort[1, isort] = ind.nonzero()[1][inds]
+
+        phisort = phi[indsort[0, isort], indsort[1, isort]]
+        datasort = data[:, indsort[0, isort], indsort[1, isort]]
+        datamax[:, jj] = np.nanmax(datasort, axis=1)
+
+        # skips cases with to few points
+        indok = ~np.any(np.isnan(datasort), axis=0)
+        if mask is not None:
+            indok &= mask[indsort[0, isort], indsort[1, isort]]
+
+        # Check there are enough phi vs bsplines
+        indphimin = np.searchsorted(np.linspace(domain['phi']['minmax'][0],
+                                                domain['phi']['minmax'][1],
+                                                nbsplines + 1),
+                                    phisort[indok])
+        if np.unique(indphimin).size < nbsplines:
+            indout_noeval[ind] = True
+            continue
+        indout_noeval[ind] = ~indok[inds_rev]
+
+        # get bsplines func
+        func_cost, func_jac = get_noise_costjac(phi=phisort[indok],
+                                                dbsplines=dbsplines,
+                                                sparse=False,
+                                                symmetryaxis=False)
+        for tt in range(nspect):
+            if verbose > 0:
+                msg = ("\tlambbin {} / {}".format(jj+1, ilambu.size)
+                       + "    "
+                       + "time step = {} / {}".format(tt+1, nspect))
+                print(msg.ljust(50), end='\r', flush=True)
+
+            datai = datasort[tt, indok] / datamax[tt, jj]
+            res = scpopt.least_squares(
+                func_cost, x0, jac=func_jac,
+                method=method, ftol=ftol, xtol=xtol, gtol=gtol,
+                x_scale='jac', f_scale=1.0, loss=loss, diff_step=None,
+                tr_solver=tr_solver, tr_options={}, jac_sparsity=None,
+                max_nfev=max_nfev, verbose=0, args=(),
+                kwargs={'data': datai})
+
+            chi2_meandata[tt, jj] = np.nanmean(datai)
+            chi2[tt, jj] = np.nansum(
+                func_cost(x=res.x, data=datai)**2)
+            # Store in original shape
+            fit[tt, ind] = (func_cost(res.x, phi=phisort, data=0.)
+                             * datamax[tt, jj])[inds_rev]
+        i0 += nind
+        indnan.append(i0)
+
+    # -------------
+    # Identify outliers with respect to noise model
+    var, xdata, const, indout_var, margin, log = get_noise_analysis_var_mask(
+        fit=fit, data=data, mask=(mask & (~indout_noeval)), margin=margin, log=None)
+
+    # Safety check
+    if mask is None:
+        indout_mask = np.zeros(lamb.shape, dtype=bool)
+    else:
+        indout_mask = ~mask
+    indout_noeval[~mask] = False
+    indout_tot = np.array([~mask,
+                           indout_noeval,
+                           np.any(indout_var, axis=0)])
+    c0 = np.all(np.sum(indout_tot.astype(int), axis=0) <= 1)
+    if not c0:
+        msg = "Overlapping indout!"
+        raise Exception(msg)
+
+    indin = ~np.any(indout_tot, axis=0)
+
+    # -------------
+    # output dict
+    dnoise = {'data': data, 'phi': phi, 'fit': fit,
+              'chi2': chi2, 'chi2_meandata': chi2_meandata, 'domain': domain,
+              'indin': indin, 'indout_mask': indout_mask,
+              'indout_noeval': indout_noeval, 'indout_var': indout_var,
+              'mask': mask, 'ind_noeval': None,
+              'indsort': indsort, 'indnan': np.array(indnan),
+              'nbsplines': nbsplines, 'bs_phi': bs_phi, 'bs_val': bs_val,
+              'deg': deg, 'lambedges': lambedges, 'deg': deg,
+              'ilamb': ilamb, 'ilambu': ilambu,
+              'var': var, 'var_xdata': xdata, 'var_const': const,
+              'var_margin': margin, 'var_log': log}
+
+    # Plot
+    if plot is True:
+        dax = _plot.plot_noise_analysis(
+            dnoise=dnoise,
+            dax=dax, fs=fs, dmargin=dmargin,
+            cmap=cmap, wintit=wintit, tit=tit)
+
+    if return_dax is True:
+        return dnoise, dax
+    else:
+        return dnoise
+
+
+def noise_analysis_2d_scannbs(
+    data, lamb, phi, mask=None,
+    deg=None, knots=None, nbsplines=None, lnbsplines=None,
+    nlamb=None, margin=None, loss=None, max_nfev=None,
+    xtol=None, ftol=None, gtol=None,
+    method=None, tr_solver=None, tr_options=None,
+    verbose=None, plot=None,
+    dax=None, fs=None, dmargin=None,
+    cmap=None, wintit=None, tit=None, return_dax=None):
 
     # -------------
     # Check inputs
@@ -2947,6 +3157,10 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
     indsort = np.zeros((2, phi.size), dtype=int)
     chi2 = np.full((nspect, ilambu.size, lnbsplines.size), np.nan)
     i0, indnan = 0, []
+    if mask is None:
+        ind0 = np.ones(lamb.shape, dtype=bool)
+    else:
+        ind0 = mask
     for jj in range(ilambu.size):
         ind = ilamb == ilambu[jj]
         nind = ind.sum()
@@ -2969,9 +3183,6 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
         datasort = data[:, indsort[0, isort], indsort[1, isort]]
         datamax[:, jj] = np.nanmax(datasort, axis=1)
 
-        if mask is not None:
-            masksort = mask[indsort[0, isort], indsort[1, isort]]
-
         for ii in range(lnbsplines.size):
             if verbose > 0:
                 msg = ("\tlambbin {} / {}".format(jj+1, ilambu.size)
@@ -2986,8 +3197,14 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
             # indok = ~np.any(np.isnan(datasort[:, isort]), axis=0)
             indok = ~np.any(np.isnan(datasort), axis=0)
             if mask is not None:
-                indok &= masksort
-            if indok.sum() < lnbsplines[ii] + 1 or not np.any(indok):
+                indok &= mask[indsort[0, isort], indsort[1, isort]]
+
+            # Check there are enough phi vs bsplines
+            indphimin = np.searchsorted(np.linspace(domain['phi']['minmax'][0],
+                                                    domain['phi']['minmax'][1],
+                                                    lnbsplines[ii] + 1),
+                                        phisort[indok])
+            if np.unique(indphimin).size < lnbsplines[ii]:
                 continue
 
             func_cost, func_jac = get_noise_costjac(
@@ -2998,11 +3215,6 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                 symmetryaxis=False)
 
             for tt in range(nspect):
-                c0 = bool(
-                    ((~np.isnan(data[tt, ind])).sum() < lnbsplines[ii] + 1
-                     or datamax[tt, jj] == 0.))
-                if c0:
-                    continue
                 datai = datasort[tt, indok] / datamax[tt, jj]
                 res = scpopt.least_squares(
                     func_cost, x0, jac=func_jac,
@@ -3015,25 +3227,22 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
                 chi2[tt, jj, ii] = np.nansum(
                     func_cost(x=res.x, data=datai)**2)
                 if lnbsplines[ii] == nbsplines:
-                    # fitsort[tt, isort[indok]] = (func_cost(res.x, data=0.)
-                    #                             * datamax[tt, jj])
                     # Store in original shape
-                    import pdb; pdb.set_trace()     # DB
-                    fit[tt, ind] = (func_cost(res.x, data=0.)
-                                    * datamax[tt, jj])[inds_rev]
-                    # fit[tt, ind] = fitsort[tt, isort][inds_rev]
+                    fit[tt, ind] = (func_cost(res.x, phi=phisort, data=0.)
+                                     * datamax[tt, jj])[inds_rev]
         i0 += nind
         indnan.append(i0)
 
     # -------------
     # Identify outliers with respect to noise model
     var, xdata, const, indout, margin, log = get_noise_analysis_var_mask(
-        fit=fit, data=data, margin=margin)
+        fit=fit, data=data, mask=mask, margin=margin, log=None)
 
     # -------------
     # output dict
     dnoise = {'data': data, 'phi': phi, 'fit': fit,
-              'chi2': chi2, 'domain': domain, 'mask': mask,
+              'chi2': chi2, 'domain': domain,
+              'mask': mask, 'ind_noeval': None,
               'indsort': indsort, 'indnan': np.array(indnan),
               'lnbsplines': lnbsplines, 'nbsplines': nbsplines,
               'deg': deg, 'lambedges': lambedges, 'deg': deg,
@@ -3055,27 +3264,31 @@ def noise_analysis_2d(data, lamb, phi, mask=None,
 
 
 def get_noise_analysis_var_mask(fit=None, data=None,
-                                margin=None, log=None):
+                                mask=None, margin=None, log=None):
     if margin is None:
-        margin = 1.
+        margin = _SIGMA_MARGIN
 
     err = fit - data
-    xdata_edge = np.linspace(0, np.nanmax(fit), 100)
-    inderr = np.searchsorted(xdata_edge[1:-1], fit)
-    inderru = np.unique(inderr[~np.isnan(err)])
+    if mask is None:
+        mask = np.ones(err.shape[1:], dtype=bool)
+    xdata_edge = np.linspace(0, np.nanmax(fit[:, mask]), 100)
+    inderr = np.searchsorted(xdata_edge[1:-1], fit[:, mask])
+    inderru = np.unique(inderr[~np.isnan(err[:, mask])])
     xdata = 0.5*(xdata_edge[1:] + xdata_edge[:-1])[inderru]
     var = np.full((inderru.size,), np.nan)
     for ii in range(inderru.size):
         ind = inderr == inderru[ii]
-        indok = ~np.isnan(err[ind])
+        indok = ~np.isnan(err[:, mask][ind])
         nn = np.sum(indok)
-        var[ii] = nn * np.nanmean(err[ind]**2) / (nn - 1)
+        var[ii] = nn * np.nanmean(err[:, mask][ind]**2) / (nn - 1)
 
     # fit sqrt on sigma
     const = np.nanmean(np.sqrt(var / xdata))
 
     # indout
-    indout = np.abs(err) > margin*const*np.sqrt(fit)
+    indok = ~np.isnan(err) & mask[None, ...]
+    indout = np.zeros(err.shape, dtype=bool)
+    indout[indok] = np.abs(err[indok]) > margin*const*np.sqrt(fit[indok])
     if log == 'any':
         indout = np.any(indout, axis=0)
     elif log == 'all':

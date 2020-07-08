@@ -2134,6 +2134,41 @@ class CrystalBragg(utils.ToFuObject):
     def noise_analysis(self, data=None, xi=None, xj=None, n=None,
                        det=None, dtheta=None, psi=None,
                        mask=None, domain=None, nlamb=None,
+                       deg=None, knots=None, nbsplines=None,
+                       loss=None, max_nfev=None,
+                       xtol=None, ftol=None, gtol=None,
+                       method=None, tr_solver=None, tr_options=None,
+                       verbose=None, plot=None,
+                       dax=None, fs=None, dmargin=None,
+                       cmap=None, wintit=None, tit=None, return_dax=None):
+
+        # ----------------------
+        # Geometrical transform
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        nxi = xi.size if xi is not None else np.unique(xii).size
+        nxj = xj.size if xj is not None else np.unique(xjj).size
+
+        # Compute lamb / phi
+        bragg, phi = self.calc_braggphi_from_xixj(xii, xjj, n=n,
+                                                  det=det, dtheta=dtheta,
+                                                  psi=psi, plot=False)
+        assert bragg.shape == phi.shape
+        lamb = self.get_lamb_from_bragg(bragg, n=n)
+
+        import tofu.spectro._fit12d as _fit12d
+        return _fit12d.noise_analysis_2d(
+            data, lamb, phi,
+            deg=deg, knots=knots, nbsplines=nbsplines,
+            nlamb=nlamb, mask=mask,
+            loss=loss, max_nfev=max_nfev,
+            method=method, tr_solver=tr_solver, tr_options=tr_options,
+            verbose=verbose, plot=plot,
+            dax=dax, fs=fs, dmargin=dmargin,
+            cmap=cmap, wintit=wintit, tit=tit, return_dax=return_dax)
+
+    def noise_analysis_scannbs(self, data=None, xi=None, xj=None, n=None,
+                       det=None, dtheta=None, psi=None,
+                       mask=None, domain=None, nlamb=None,
                        deg=None, knots=None, nbsplines=None, lnbsplines=None,
                        loss=None, max_nfev=None,
                        xtol=None, ftol=None, gtol=None,
