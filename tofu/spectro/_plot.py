@@ -673,8 +673,8 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
 # #################################################################
 # #################################################################
 
-def plot_noise_analysis(dnoise=None,
-                        margin=None, ms=None, dcolor=None,
+def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
+                        ms=None, dcolor=None,
                         dax=None, fs=None, cmap=None, dmargin=None,
                         wintit=None, tit=None, sublab=None,
                         save=None, name=None, path=None, fmt=None):
@@ -686,9 +686,11 @@ def plot_noise_analysis(dnoise=None,
 
     if margin is None:
         margin = 3.
+    if fraction is None:
+        fraction = 0.4
 
     if ms is None:
-        ms = 2.
+        ms = 4.
     if dcolor is None:
         dcolor = {'mask': (0.4, 0.4, 0.4),
                   'noeval': (0.7, 0.7, 0.7),
@@ -715,9 +717,7 @@ def plot_noise_analysis(dnoise=None,
     # ------------
     nbs = dnoise['nbsplines']
     nspect = dnoise['data'].shape[0]
-    nlamb = dnoise['chi2'].shape[1]
-
-    chi2plot = dnoise['chi2'].ravel()
+    nlamb = dnoise['chi2n'].shape[1]
 
     indsort = dnoise['indsort']
     indnan = dnoise['indnan'][:-1]
@@ -739,13 +739,16 @@ def plot_noise_analysis(dnoise=None,
     indout_noeval = dnoise['indout_noeval']
 
     # fit sqrt on sigma
-    if margin is not None and margin != dnoise['var_margin']:
+    c0 = ((margin is not None and margin != dnoise['var_margin'])
+          or dnoise['indout_var'].shape != dnoise['data'].shape)
+    if c0 is True:
         from . import _fit12d
-        (var, xdata, const,
-         indout_var, margin, log) = _fit12d.get_noise_analysis_var_mask(
+        (mean, var, xdata, const,
+         indout_var, _, margin, log) = _fit12d.get_noise_analysis_var_mask(
              fit=dnoise['fit'], data=dnoise['data'], mask=dnoise['mask'],
-             margin=margin, log=None)
+             margin=margin, fraction=False)
     else:
+        mean = dnoise['var_mean']
         var = dnoise['var']
         const = dnoise['var_const']
         xdata = dnoise['var_xdata']
@@ -753,9 +756,11 @@ def plot_noise_analysis(dnoise=None,
         assert dnoise['var_log'] is None
 
     # Safety check
+    indout_var_agg = (np.sum(indout_var, axis=0)/float(indout_var.shape[0])
+                      > fraction)
     indout_tot = np.array([indout_mask,
                            indout_noeval,
-                           np.any(indout_var, axis=0)])
+                           indout_var_agg])
     c0 = np.all(np.sum(indout_tot.astype(int), axis=0) <= 1)
     if not c0:
         msg = "Overlapping indout!"
@@ -771,10 +776,9 @@ def plot_noise_analysis(dnoise=None,
     indout_varplot = np.insert(
         indout_var[:, indsort[0, :], indsort[1, :]],
         indnan, False, axis=1).ravel()
-    dindout = {'mask': {'plot': indout_maskplot, 'ind': indout_mask},
-               'noeval': {'plot': indout_noevalplot, 'ind': indout_noeval},
-               'S/N': {'plot': indout_varplot,
-                       'ind': np.any(indout_var, axis=0)}}
+    dindout = {'mask': {'ind': indout_mask, 'plot': indout_maskplot},
+               'noeval': {'ind': indout_noeval}, #, 'plot': indout_noevalplot},
+               'S/N': {'ind': indout_var_agg, 'plot': indout_varplot}}
     indinplot = ~(indout_maskplot | indout_noevalplot | indout_varplot)
 
     # cam and cmap
@@ -789,15 +793,7 @@ def plot_noise_analysis(dnoise=None,
         newcolors[ii, :] = mcolors.to_rgba(dcolor[k0])
     cmap = ListedColormap(newcolors)
 
-    # mask
-    # maskout = dnoise['mask']
-    # if maskout is not None:
-        # maskout = ~maskout
-        # maskplot = np.tile(np.insert(
-            # maskout[indsort[0, :], indsort[1, :]],
-            # indnan,
-            # False), (nspect, 1)).ravel()
-        # mask_sug_out[maskout] = 1.
+    alpha = 0.2
 
     # Prepare figure if dax not provided
     # ------------
@@ -829,8 +825,8 @@ def plot_noise_analysis(dnoise=None,
         ax5.set_xlabel('')
         ax5.set_ylabel(r'$\phi$ (rad)')
         ax6.set_title('')
-        ax6.set_xlabel('mean data')
-        ax6.set_ylabel(r'$\chi^2$ (a.u.)')
+        ax6.set_xlabel('mean(fit)')
+        ax6.set_ylabel(r'$\chi^2_n$ (a.u.)')
 
         dax = {'bsplines': ax5,
                'prof': ax0,
@@ -845,80 +841,131 @@ def plot_noise_analysis(dnoise=None,
     # ------------
 
     # bsplines
-    dax['bsplines'].plot(dnoise['bs_val'],
-                         np.repeat(dnoise['bs_phi'][:, None],
-                                   dnoise['nbsplines'], axis=1),
-                         ls='-', lw=1.)
+    if dax.get('bsplines') is not None:
+        dax['bsplines'].plot(dnoise['bs_val'],
+                             np.repeat(dnoise['bs_phi'][:, None],
+                                       dnoise['nbsplines'], axis=1),
+                             ls='-', lw=1.)
 
     # Profile
-    dax['prof'].plot(dataplot[indinplot], phiplot[indinplot],
-                     marker='.', ls='None', c='k', ms=ms)
-    dax['prof'].plot(fitplot, phiplot,
-                     marker='None', ls='-', c='g')
-    for k0 in dindout.keys():
-        dax['prof'].plot(dataplot[dindout[k0]['plot']],
-                         phiplot[dindout[k0]['plot']],
-                         marker='.', ls='None', c=dcolor[k0], ms=ms)
+    if dax.get('prof') is not None:
+        dax['prof'].plot(dataplot[indinplot], phiplot[indinplot],
+                         marker='.', ls='None',
+                         mfc=(0., 0., 0., alpha), mec='None', ms=ms)
+        dax['prof'].plot(fitplot, phiplot,
+                         marker='None', ls='-', lw=1., c='g')
+        for k0 in ['mask', 'S/N']:
+            dax['prof'].plot(dataplot[dindout[k0]['plot']],
+                             phiplot[dindout[k0]['plot']],
+                             marker='.', ls='None',
+                             mfc=np.r_[dcolor[k0], alpha], mec='None', ms=ms)
 
     # Profile err
-    dax['proferr'].plot(errplot[indinplot], phiplot[indinplot],
-                        marker='.', ls='None', c='k', ms=ms)
-    for k0 in dindout.keys():
-        dax['proferr'].plot(errplot[dindout[k0]['plot']],
-                            phiplot[dindout[k0]['plot']],
-                            marker='.', ls='None', c=dcolor[k0], ms=ms)
+    if dax.get('proferr') is not None:
+        dax['proferr'].plot(errplot[indinplot], phiplot[indinplot],
+                            marker='.', ls='None',
+                            mfc=(0., 0., 0., alpha), mec='None', ms=ms)
+        for k0 in ['mask', 'S/N']:
+            dax['proferr'].plot(errplot[dindout[k0]['plot']],
+                                phiplot[dindout[k0]['plot']],
+                                marker='.', ls='None',
+                                mfc=np.r_[dcolor[k0], alpha],
+                                mec='None', ms=ms)
 
     # Error distribution
-    dax['err'].axhline(0., c='k', ls='--', lw=1.)
-    dax['err'].fill_between(xdata,
-                            -margin*const*np.sqrt(xdata),
-                            margin*const*np.sqrt(xdata),
-                            color=(0.7, 0.7, 0.7, 1.))
-    dax['err'].plot(fitplot[indinplot], errplot[indinplot],
-                    marker='.', ls='None', c='k', ms=ms)
-    for k0 in dindout.keys():
-        dax['err'].plot(fitplot[dindout[k0]['plot']],
-                        errplot[dindout[k0]['plot']],
-                        marker='.', ls='None', c=dcolor[k0], ms=ms)
-    dax['err'].fill_between(xdata,
-                            -const*np.sqrt(xdata),
-                            const*np.sqrt(xdata),
-                            color=(0.4, 0.4, 0.4, 0.5))
+    if dax.get('err') is not None:
+        dax['err'].axhline(0., c='k', ls='--', lw=1.)
+        lab = r'{}'.format(margin) + r'$\sigma$'
+        dax['err'].fill_between(xdata,
+                                -margin*const*np.sqrt(xdata),
+                                margin*const*np.sqrt(xdata),
+                                color=(0.7, 0.7, 0.7, 1.), label=lab)
+        dax['err'].plot(fitplot[indinplot], errplot[indinplot],
+                        marker='.', ls='None',
+                        mfc=(0., 0., 0., alpha), mec='None', ms=ms)
+        for k0 in ['mask', 'S/N']:
+            dax['err'].plot(fitplot[dindout[k0]['plot']],
+                            errplot[dindout[k0]['plot']],
+                            marker='.', ls='None',
+                            mfc=np.r_[dcolor[k0], alpha], mec='None', ms=ms)
+        dax['err'].legend(loc='lower right', frameon=True)
 
     # Error binning and standard variation estimate
-    dax['errbin'].plot(xdata, np.sqrt(var),
-                       marker='.', c='k', ls='None')
-    lab = r'$\sigma=$' + r'{:5.3e}'.format(const) + r'$\sqrt{data}$'
-    dax['errbin'].plot(xdata, const*np.sqrt(xdata),
-                       marker='None', ls='--', c='k', label=lab)
-    dax['errbin'].legend(loc='lower right', frameon=True)
+    if dax.get('errbin') is not None:
+        dax['errbin'].plot(xdata, np.sqrt(var),
+                           marker='.', c='k', ls='None')
+        lab = r'$\sigma=$' + r'{:5.3e}'.format(const) + r'$\sqrt{data}$'
+        dax['errbin'].plot(xdata, const*np.sqrt(xdata),
+                           marker='None', ls='-', c='k', label=lab)
+        dax['errbin'].plot(xdata, np.sqrt(xdata),
+                           marker='None', ls='--', c='k')
+        dax['errbin'].plot(xdata, mean,
+                           marker='.', ls='None', c='k')
+        dax['errbin'].axhline(0., ls='--', c='k', lw=1., marker='None')
+        dax['errbin'].legend(loc='lower right', frameon=True)
 
     # Camera with identified pixels
-    dax['cam'].imshow(cam,
-                      origin='lower', interpolation='nearest',
-                      aspect='equal', cmap=cmap)
+    if dax.get('cam') is not None:
+        dax['cam'].imshow(cam,
+                          origin='lower', interpolation='nearest',
+                          aspect='equal', cmap=cmap)
+        lab = r'err > {:02.0f}% {}$\sigma$'.format(fraction*100, margin)
+        hand = [mlines.Line2D([], [], c=dcolor['S/N'], marker='s', ls='None')]
+        dax['cam'].legend(hand, [lab], loc='best')
 
     # chi2
-    dax['chi2'].plot(dnoise['chi2_meandata'].ravel(),
-                     dnoise['chi2'].ravel(),
-                     c='k', marker='.', ms=ms, ls='None')
+    if dax.get('chi2') is not None:
+        dax['chi2'].plot(dnoise['chi2_meandata'].ravel(),
+                         (dnoise['chi2n']).ravel(),
+                         c='k', marker='.', ms=ms, ls='None')
 
     # Polish
     # ------------
     if sublab is True:
-        dax['bsplines'].annotate('(a)',
+        if dax.get('bsplines') is not None:
+            dax['bsplines'].annotate('(a)',
+                                     xy=(0., 1.02),
+                                     xycoords='axes fraction',
+                                     size=10, fontweight='bold',
+                                     horizontalalignment='center',
+                                     verticalalignment='bottom')
+        if dax.get('prof') is not None:
+            dax['prof'].annotate('(b)',
                                  xy=(0., 1.02),
                                  xycoords='axes fraction',
                                  size=10, fontweight='bold',
                                  horizontalalignment='center',
                                  verticalalignment='bottom')
-        dax['prof'].annotate('(b)',
-                             xy=(0., 1.02),
-                             xycoords='axes fraction',
-                             size=10, fontweight='bold',
-                             horizontalalignment='center',
-                             verticalalignment='bottom')
-        dax['proferr'].annotate('(c)',
+        if dax.get('proferr') is not None:
+            dax['proferr'].annotate('(c)',
+                                    xy=(0., 1.02),
+                                    xycoords='axes fraction',
+                                    size=10, fontweight='bold',
+                                    horizontalalignment='center',
+                                    verticalalignment='bottom')
+        if dax.get('chi2') is not None:
+            dax['chi2'].annotate('(d)',
+                                 xy=(0., 1.02),
+                                 xycoords='axes fraction',
+                                 size=10, fontweight='bold',
+                                 horizontalalignment='center',
+                                 verticalalignment='bottom')
+        if dax.get('err') is not None:
+            dax['err'].annotate('(e)',
+                                xy=(0., 1.02),
+                                xycoords='axes fraction',
+                                size=10, fontweight='bold',
+                                horizontalalignment='center',
+                                verticalalignment='bottom')
+        if dax.get('errbin') is not None:
+            dax['errbin'].annotate('(f)',
+                                   xy=(0., 1.02),
+                                   xycoords='axes fraction',
+                                   size=10, fontweight='bold',
+                                   horizontalalignment='center',
+                                   verticalalignment='bottom')
+        if dax.get('cam') is not None:
+            dax['cam'].annotate('(g)',
                                 xy=(0., 1.02),
                                 xycoords='axes fraction',
                                 size=10, fontweight='bold',

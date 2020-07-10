@@ -2131,16 +2131,18 @@ class CrystalBragg(utils.ToFuObject):
             cmap=cmap, vmin=vmin, vmax=vmax,
             dmargin=dmargin, tit=tit, wintit=wintit, fs=fs)
 
-    def noise_analysis(self, data=None, xi=None, xj=None, n=None,
-                       det=None, dtheta=None, psi=None,
-                       mask=None, domain=None, nlamb=None,
-                       deg=None, knots=None, nbsplines=None,
-                       loss=None, max_nfev=None,
-                       xtol=None, ftol=None, gtol=None,
-                       method=None, tr_solver=None, tr_options=None,
-                       verbose=None, plot=None,
-                       dax=None, fs=None, dmargin=None,
-                       cmap=None, wintit=None, tit=None, return_dax=None):
+    def noise_analysis(
+        self, data=None, xi=None, xj=None, n=None,
+        det=None, dtheta=None, psi=None,
+        mask=None, fraction=None, nxerrbin=None,
+        margin=None, domain=None, nlamb=None,
+        deg=None, knots=None, nbsplines=None,
+        loss=None, max_nfev=None,
+        xtol=None, ftol=None, gtol=None,
+        method=None, tr_solver=None, tr_options=None,
+        verbose=None, plot=None,
+        dax=None, fs=None, dmargin=None,
+        cmap=None, wintit=None, tit=None, return_dax=None):
 
         # ----------------------
         # Geometrical transform
@@ -2158,24 +2160,28 @@ class CrystalBragg(utils.ToFuObject):
         import tofu.spectro._fit12d as _fit12d
         return _fit12d.noise_analysis_2d(
             data, lamb, phi,
+            mask=mask, fraction=fraction, nxerrbin=nxerrbin,
+            nlamb=nlamb, margin=margin,
             deg=deg, knots=knots, nbsplines=nbsplines,
-            nlamb=nlamb, mask=mask,
             loss=loss, max_nfev=max_nfev,
+            xtol=xtol, ftol=ftol, gtol=gtol,
             method=method, tr_solver=tr_solver, tr_options=tr_options,
             verbose=verbose, plot=plot,
             dax=dax, fs=fs, dmargin=dmargin,
             cmap=cmap, wintit=wintit, tit=tit, return_dax=return_dax)
 
-    def noise_analysis_scannbs(self, data=None, xi=None, xj=None, n=None,
-                       det=None, dtheta=None, psi=None,
-                       mask=None, domain=None, nlamb=None,
-                       deg=None, knots=None, nbsplines=None, lnbsplines=None,
-                       loss=None, max_nfev=None,
-                       xtol=None, ftol=None, gtol=None,
-                       method=None, tr_solver=None, tr_options=None,
-                       verbose=None, plot=None,
-                       dax=None, fs=None, dmargin=None,
-                       cmap=None, wintit=None, tit=None, return_dax=None):
+    def noise_analysis_scannbs(
+        self, data=None, xi=None, xj=None, n=None,
+        det=None, dtheta=None, psi=None,
+        mask=None, fraction=None, nxerrbin=None,
+        margin=None, domain=None, nlamb=None,
+        deg=None, knots=None, nbsplines=None, lnbsplines=None,
+        loss=None, max_nfev=None,
+        xtol=None, ftol=None, gtol=None,
+        method=None, tr_solver=None, tr_options=None,
+        verbose=None, plot=None,
+        dax=None, fs=None, dmargin=None,
+        cmap=None, wintit=None, tit=None, return_dax=None):
 
         # ----------------------
         # Geometrical transform
@@ -2191,11 +2197,13 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         import tofu.spectro._fit12d as _fit12d
-        return _fit12d.noise_analysis_2d(
+        return _fit12d.noise_analysis_2d_scannbs(
             data, lamb, phi,
+            mask=mask, fraction=fraction, nxerrbin=nxerrbin,
+            nlamb=nlamb, margin=margin,
             deg=deg, knots=knots, nbsplines=nbsplines, lnbsplines=lnbsplines,
-            nlamb=nlamb, mask=mask,
             loss=loss, max_nfev=max_nfev,
+            xtol=xtol, ftol=ftol, gtol=gtol,
             method=method, tr_solver=tr_solver, tr_options=tr_options,
             verbose=verbose, plot=plot,
             dax=dax, fs=fs, dmargin=dmargin,
