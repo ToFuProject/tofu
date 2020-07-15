@@ -1132,7 +1132,6 @@ def plot_noise_analysis_nbsscan(dnoise=None, fraction=None,
                 for nbs in dnoise['nbsplines']]
         for ii in range(dnoise['nbsplines'].size):
             indin = dnoise['bs_indin'][ii]
-            import pdb; pdb.set_trace()     # DB
             dax['cases_fit'][ii].plot(dnoise['bs_data'][ii][indin],
                                       dnoise['bs_phidata'][ii][indin],
                                       c=(0.5, 0.5, 0.5),
@@ -1222,7 +1221,7 @@ def plot_noise_analysis_nbsscan(dnoise=None, fraction=None,
             name = '{}.{}'.format(name, fmt)
 
         pfe = os.path.join(os.path.abspath(path), name)
-        dax['prof'].figure.savefig(pfe, format=fmt)
+        dax['conv'].figure.savefig(pfe, format=fmt)
 
         msg = "Saved in:\n\t{}".format(pfe)
         print(msg)
