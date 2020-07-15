@@ -992,22 +992,27 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     return dax
 
 
-def plot_noise_analysis_nbsscan(dnoise=None,
-                                margin=None, ms=None,
-                                dax=None, fs=None, cmap=None, dmargin=None,
-                                wintit=None, tit=None,
-                                save=None, name=None, path=None, fmt=None):
+def plot_noise_analysis_nbsscan(dnoise=None, fraction=None,
+                        ms=None, dcolor=None,
+                        dax=None, fs=None, cmap=None, dmargin=None,
+                        wintit=None, tit=None, sublab=None,
+                        save=None, name=None, path=None, fmt=None):
 
     # Check inputs
     # ------------
     if save is None:
         save = False
 
-    if margin is None:
-        margin = 3.
+    if fraction is None:
+        fraction = 0.4
 
     if ms is None:
         ms = 2.
+    if dcolor is None:
+        dcolor = {'mask': (0.4, 0.4, 0.4),
+                  'noeval': (0.7, 0.7, 0.7),
+                  'S/N': (1., 0., 0.)}
+    dcolor['ok'] = dcolor.get('ok', (0., 0., 0.))
 
     if dax is None:
         if fs is None:
@@ -1015,163 +1020,194 @@ def plot_noise_analysis_nbsscan(dnoise=None,
         if cmap is None:
             cmap = plt.cm.viridis
         if dmargin is None:
-            dmargin = {'left':0.05, 'right':0.99,
-                       'bottom':0.06, 'top':0.95,
-                       'wspace':None, 'hspace':None}
+            dmargin = {'left': 0.06, 'right': 0.99,
+                       'bottom': 0.06, 'top': 0.96,
+                       'wspace': 0.5, 'hspace': 1.}
         if wintit is None:
             wintit = _WINTIT
         if tit is None:
             tit = '2D fitting of X-Ray Crystal Bragg spectrometer'
+        if sublab is None:
+            sublab = True
 
     # Prepare data
     # ------------
-    nspect = dnoise['data'].shape[0]
-    nlamb = dnoise['chi2'].shape[1]
+    nlbs = dnoise['lnbsplines'].size
+    nbs = dnoise['nbsplines']
+    nspect = dnoise['chi2n'].shape[1]
+    nlambu = dnoise['chi2n'].shape[2]
 
-
-    chi2plot = dnoise['chi2'].ravel()
-    lnbsplinesplot = np.tile(dnoise['lnbsplines'], (nspect, nlamb, 1)).ravel()
-
-    indsort = dnoise['indsort']
-    indnan = dnoise['indnan'][:-1]
-    phiplot = np.tile(np.insert(dnoise['phi'][indsort[0, :], indsort[1, :]],
-                                indnan,
-                                np.nan),
-                      (nspect, 1)).ravel()
-    dataplot = np.insert(dnoise['data'][:, indsort[0, :], indsort[1, :]],
-                         indnan,
-                         np.nan, axis=1).ravel()
-    fitplot = np.insert(dnoise['fit'][:, indsort[0, :], indsort[1, :]],
-                        indnan,
-                        np.nan, axis=1).ravel()
-    errplot = fitplot - dataplot
-
-    # fit sqrt on sigma
-    if margin is not None and margin != dnoise['var_margin']:
-        from . import _fit12d
-        (var, xdata, const,
-         indout, margin, log) = _fit12d.get_noise_analysis_var_mask(
-             fit=dnoise['fit'], data=dnoise['data'], mask=dnoise['mask'],
-             margin=margin, log=None)
-    else:
-        var = dnoise['var']
-        const = dnoise['var_const']
-        xdata = dnoise['xdata']
-        indout = dnoise['var_indout']
-        assert dnoise['var_log'] is None
-    indoutplot = np.insert(indout[:, indsort[0, :], indsort[1, :]],
-                           indnan,
-                           False, axis=1).ravel()
-    indinplot = ~indoutplot
-
-    mask_sug_out = np.zeros(dnoise['phi'].shape, dtype=int)
-    mask_sug_out[np.any(~indin, axis=0)] = 2.
-
-    # mask
-    maskout = dnoise['mask']
-    if maskout is not None:
-        maskout = ~maskout
-        maskplot = np.tile(np.insert(
-            maskout[indsort[0, :], indsort[1, :]],
-            indnan,
-            False), (nspect, 1)).ravel()
-        mask_sug_out[maskout] = 1.
+    # Plotting arrays
+    lnbsplines_plot = np.repeat(dnoise['lnbsplines'], nspect*nlambu)
+    chi2n_plot = dnoise['chi2n'].ravel()
+    alpha = np.tile((np.abs(dnoise['dataint'])
+                     / np.nanmax(np.abs(dnoise['dataint']))),
+                    (nlbs, 1, 1)).ravel()
+    colors = np.concatenate((np.tile([0., 0., 0.], (nspect*nlambu*nlbs, 1)),
+                             alpha[:, None]),
+                            axis=1)
+    chi2nmean = (np.nansum(dnoise['chi2n']*dnoise['dataint'][None, :, :],
+                           axis=-1).sum(axis=-1)
+                 / np.nansum(dnoise['dataint']))
+    var_mean = np.sqrt(np.nansum(dnoise['var_mean']**2, axis=1))
+    var_std = np.sqrt(np.nansum(
+        (np.sqrt(dnoise['var'])
+         - dnoise['var_const'][:, None]*np.sqrt(dnoise['var_xdata']))**2,
+        axis=1))
 
     # Prepare figure if dax not provided
     # ------------
     if dax is None:
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(2, 4, **dmargin)
-        ax0 = fig.add_subplot(gs[0, 0])
-        ax1 = fig.add_subplot(gs[0, 1], sharey=ax0)
-        ax2 = fig.add_subplot(gs[1, 0])
-        ax3 = fig.add_subplot(gs[1, 1])
-        ax4 = fig.add_subplot(gs[0, 2])
-        ax5 = fig.add_subplot(gs[1, 2])
-        ax6 = fig.add_subplot(gs[:, 3], aspect='equal', adjustable='datalim')
+        gs = gridspec.GridSpec(11, max(1, dnoise['nbsplines'].size*4+2),
+                               **dmargin)
+        ax0 = fig.add_subplot(gs[:4, :])
+        ax0.set_xlabel(r'nb. of bsplines')
+        ax0.set_ylabel(r'Residue (a.u.)')
 
-        ax0.set_title('Profiles')
-        ax0.set_ylabel(r'$\phi$ (rad)')
-        ax0.set_xlabel(r'data (a.u.)')
-        ax1.set_title('Err profiles')
-        ax1.set_ylabel(r'$\phi$ (rad)')
-        ax1.set_xlabel(r'data (a.u.)')
-        ax2.set_title('nbspline scan')
-        ax2.set_xlabel('nbsplines')
-        ax2.set_ylabel(r'$\chi^2$')
-        ax3.set_title('Variance')
-        ax3.set_xlabel('fit (a.u.)')
-        ax3.set_ylabel('err (a.u.)')
-        ax5.set_title('Variance')
-        ax5.set_xlabel('data (a.u.)')
-        ax5.set_ylabel(r'$\sigma$' + ' (a.u.)')
-        ax6.set_title('Camera')
-        ax6.set_xlabel(r'$x_i$ (m)')
-        ax6.set_ylabel(r'$x_j$ (m)')
+        dax = {'conv': ax0,
+               'cases_fit': [],
+               'cases_err': [],
+               'cases_var': []}
+        for ii in range(dnoise['nbsplines'].size):
+            if ii == 0:
+                dax['cases_fit'].append(fig.add_subplot(
+                    gs[5:9, ii*5:ii*5+2]))
+                dax['cases_err'].append(fig.add_subplot(
+                    gs[5:9, ii*5+2:ii*5+4],
+                    sharey=dax['cases_fit'][0]))
+                dax['cases_var'].append(fig.add_subplot(
+                    gs[9:, ii*5:ii*5+4]))
+            else:
+                dax['cases_fit'].append(fig.add_subplot(
+                    gs[5:9, ii*5:ii*5+2],
+                    sharey=dax['cases_fit'][ii-1]))
+                dax['cases_err'].append(fig.add_subplot(
+                    gs[5:9, ii*5+2:ii*5+4],
+                    sharex=dax['cases_err'][0],
+                    sharey=dax['cases_fit'][0]))
+                dax['cases_var'].append(fig.add_subplot(
+                    gs[9:, ii*5:ii*5+4],
+                    sharey=dax['cases_var'][ii-1]))
+            # dax['cases_err'][ii].
+            dax['cases_fit'][ii].set_ylabel(r'$\phi$ (rad)')
+            dax['cases_fit'][ii].set_xlabel(r'data (a.u.)')
+            dax['cases_err'][ii].set_xlabel(r'error (a.u.)')
+            dax['cases_var'][ii].set_xlabel(r'data (a.u.)')
+            dax['cases_var'][ii].set_ylabel(r'$\sigma$ (a.u.)')
 
-        dax = {'prof': ax0,
-               'proferr': ax1,
-               'scan': ax2,
-               'err': ax3,
-               'errbin': ax5,
-               'cam': ax6,
-              }
+            dax['cases_fit'][ii].xaxis.set_label_coords(0.5, -0.07)
+            dax['cases_err'][ii].xaxis.set_label_coords(0.5, -0.07)
+            plt.setp(dax['cases_err'][ii].get_yticklabels(), visible=False)
 
     # Plot main images
     # ------------
 
-    dax['prof'].plot(dataplot[indinplot], phiplot[indinplot],
-                     marker='.', ls='None', c='k', ms=ms)
-    dax['prof'].plot(fitplot, phiplot,
-                     marker='None', ls='-', c='g')
-    dax['prof'].plot(dataplot[indoutplot], phiplot[indoutplot],
-                     marker='.', ls='None', c='r', ms=ms)
-    if maskout is not None:
-        dax['prof'].plot(dataplot[maskplot], phiplot[maskplot],
-                         marker='.', ls='None', c='b', ms=ms)
+    # Fit chi2n vs nbs
+    if dax.get('conv') is not None:
+        chi2nn = ((dnoise['var_const'][0] - dnoise['var_const'][-1])
+                  * (chi2nmean - chi2nmean[-1]) / (chi2nmean[0] - chi2nmean[-1])
+                  + dnoise['var_const'][-1])
+        dax['conv'].plot(dnoise['lnbsplines'], chi2nn,
+                         c='k', ls='-', lw=2., label='fit cost')
 
-    dax['proferr'].plot(errplot[indinplot], phiplot[indinplot],
-                        marker='.', ls='None', c='k', ms=ms)
-    dax['proferr'].plot(errplot[indoutplot], phiplot[indoutplot],
-                        marker='.', ls='None', c='r', ms=ms)
-    if maskout is not None:
-        dax['proferr'].plot(errplot[maskplot], phiplot[maskplot],
-                            marker='.', ls='None', c='b', ms=ms)
+        # error dictribution moments vs nbs
+        varmn = ((dnoise['var_const'][0] - dnoise['var_const'][-1])
+                 * (var_mean - var_mean[-1]) / (var_mean[0] - var_mean[-1])
+                 + dnoise['var_const'][-1])
+        dax['conv'].plot(dnoise['lnbsplines'], varmn,
+                         c='b', ls='-', lw=2., label=r'$\hat{err}_{cost}$')
+        varstdn = ((dnoise['var_const'][0] - dnoise['var_const'][-1])
+                   * (var_std - var_std[-1]) / (var_std[0] - var_std[-1])
+                   + dnoise['var_const'][-1])
+        dax['conv'].plot(dnoise['lnbsplines'], varstdn,
+                         c='r', ls='-', lw=2., label=r'$\sigma_{cost}$')
+        dax['conv'].plot(dnoise['lnbsplines'], dnoise['var_const'],
+                         c='g', ls='-', lw=2., label='fitting constant')
+        dax['conv'].legend(loc='best')
 
-    # dax['cam'].imshow()
+    # Particular cases
+    if dax.get('cases_fit') is not None and dnoise.get('nbsplines') is not None:
+        inbs = [np.nonzero(dnoise['lnbsplines'] == nbs)[0][0]
+                for nbs in dnoise['nbsplines']]
+        for ii in range(dnoise['nbsplines'].size):
+            indin = dnoise['bs_indin'][ii]
+            import pdb; pdb.set_trace()     # DB
+            dax['cases_fit'][ii].plot(dnoise['bs_data'][ii][indin],
+                                      dnoise['bs_phidata'][ii][indin],
+                                      c=(0.5, 0.5, 0.5),
+                                      marker='.', ls='None', ms=ms)
+            dax['cases_fit'][ii].plot(dnoise['bs_fit'][ii][indin],
+                                      dnoise['bs_phidata'][ii][indin],
+                                      c='k', marker='None', ls='-', lw=2.)
 
-    dax['scan'].plot(lnbsplinesplot, chi2plot,
-                     marker='.', ls='None', c='k', ms=ms)
-    # dax['scan'].plot(lnbsplinesplot[indout], chi2plot[indout],
-    #                  marker='.', ls='None', c='r')
+            err = (dnoise['bs_fit'][ii] - dnoise['bs_data'][ii])
+            dax['cases_err'][ii].scatter(
+                err[indin], dnoise['bs_phidata'][ii][indin],
+                marker='.', facecolors=(0., 0., 0., 0.5),
+                edgecolors='None')
+            dax['cases_err'][ii].axvline(0., c='k', ls='--', lw=1.)
 
-    dax['err'].axhline(0., c='k', ls='--', lw=1.)
-    dax['err'].fill_between(xdata,
-                            -margin*const*np.sqrt(xdata),
-                            margin*const*np.sqrt(xdata),
-                            color=(0.7, 0.7, 0.7, 1.))
-    dax['err'].plot(fitplot[indinplot], errplot[indinplot],
-                    marker='.', ls='None', c='k', ms=ms)
-    dax['err'].plot(fitplot[indoutplot], errplot[indoutplot],
-                    marker='.', ls='None', c='r', ms=ms)
-    if maskout is not None:
-        dax['err'].plot(fitplot[maskplot], errplot[maskplot],
-                        marker='.', ls='None', c='b', ms=ms)
-    dax['err'].fill_between(xdata,
-                            -const*np.sqrt(xdata),
-                            const*np.sqrt(xdata),
-                            color=(0.4, 0.4, 0.4, 0.5))
+            # var
+            indok = ~np.isnan(dnoise['var'][inbs[ii], :])
+            varfit = (dnoise['var_const'][inbs[ii]]
+                      * np.sqrt(dnoise['var_xdata'][indok]))
+            lab = (r"{:4.2f}".format(dnoise['var_const'][inbs[ii]])
+                   + r"$\sqrt{data}$")
+            dax['cases_var'][ii].fill_between(
+                dnoise['var_xdata'][indok],
+                varfit, np.sqrt(dnoise['var'][inbs[ii], indok]),
+                fc=(1., 0., 0., 0.5), ls='-')
+            dax['cases_var'][ii].plot(
+                dnoise['var_xdata'],
+                np.sqrt(dnoise['var'][inbs[ii], :]),
+                c='r', marker='.', ls='None', ms=ms)
+            dax['cases_var'][ii].plot(
+                dnoise['var_xdata'][indok], varfit,
+                c='g', marker='None', ls='-', label=lab)
 
-    dax['errbin'].plot(xdata, np.sqrt(var),
-                       marker='.', c='k', ls='None')
-    lab = r'$\sigma=$' + r'{:5.3e}'.format(const) + r'$\sqrt{data}$'
-    dax['errbin'].plot(xdata, const*np.sqrt(xdata),
-                       marker='None', ls='--', c='k', label=lab)
-    dax['errbin'].legend(loc='lower right', frameon=True)
+            # mean
+            dax['cases_var'][ii].fill_between(
+                dnoise['var_xdata'], 0.,
+                dnoise['var_mean'][inbs[ii], :],
+                fc=(0., 0., 1., 0.5), ls='-')
+            dax['cases_var'][ii].axhline(0., c='k', ls='--', lw=1.)
+            dax['cases_var'][ii].plot(dnoise['var_xdata'],
+                                      dnoise['var_mean'][inbs[ii], :],
+                                      c='b', ls='-', lw=1.)
+            dax['cases_var'][ii].legend(loc='upper left')
 
-    dax['cam'].imshow(mask_sug_out,
-                      origin='lower', interpolation='nearest',
-                      aspect='equal')#cmap=cmap)
+            posx = 1.1
+            posy = 1.05
+            plt.text(posx, posy, '{} bsplines'.format(dnoise['nbsplines'][ii]),
+                     horizontalalignment='center',
+                     verticalalignment='center',
+                     size=12, fontweight='bold',
+                     transform=dax['cases_fit'][ii].transAxes)
+
+            if dax.get('conv') is not None:
+                dax['conv'].axvline(dnoise['nbsplines'][ii],
+                                    c='k', ls='--', lw=1.)
+
+    # Polish
+    # ------------
+    if sublab is True:
+        if dax.get('conv') is not None:
+            dax['conv'].annotate('(a)',
+                                 xy=(0., 1.02),
+                                 xycoords='axes fraction',
+                                 size=10, fontweight='bold',
+                                 horizontalalignment='center',
+                                 verticalalignment='bottom')
+        if dax.get('cases_fit') is not None:
+            ls = ['b', 'c', 'd', 'e', 'f']
+            for ii in range(len(dax['cases_fit'])):
+                dax['cases_fit'][ii].annotate(
+                    '({})'.format(ls[ii]),
+                    xy=(0., 1.02), xycoords='axes fraction',
+                    size=10, fontweight='bold',
+                    horizontalalignment='center',
+                    verticalalignment='bottom')
 
     # save
     # ------------
@@ -1190,5 +1226,4 @@ def plot_noise_analysis_nbsscan(dnoise=None,
 
         msg = "Saved in:\n\t{}".format(pfe)
         print(msg)
-
     return dax

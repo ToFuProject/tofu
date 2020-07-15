@@ -2898,7 +2898,7 @@ def _basic_loop(ilambu=None, ilamb=None, phi=None, data=None, mask=None,
 
     # ---------------
     # Prepare outputs
-    datamax = np.full((nspect, ilambu.size), np.nan)
+    dataint = np.full((nspect, ilambu.size), np.nan)
     fit = np.full(data.shape, np.nan)
     indsort = np.zeros((2, phi.size), dtype=int)
     indout_noeval = np.zeros(phi.shape, dtype=bool)
@@ -2924,7 +2924,7 @@ def _basic_loop(ilambu=None, ilamb=None, phi=None, data=None, mask=None,
 
         phisort = phi[indsort[0, isort], indsort[1, isort]]
         datasort = data[:, indsort[0, isort], indsort[1, isort]]
-        datamax[:, jj] = np.nanmax(datasort, axis=1)
+        dataint[:, jj] = np.nanmean(datasort, axis=1)
 
         # skips cases with to few points
         indok = ~np.any(np.isnan(datasort), axis=0)
@@ -2953,10 +2953,10 @@ def _basic_loop(ilambu=None, ilamb=None, phi=None, data=None, mask=None,
                        + "time step = {} / {}".format(tt+1, nspect))
                 print(msg.ljust(50), end='\r', flush=True)
 
-            if datamax[tt, jj] == 0.:
+            if dataint[tt, jj] == 0.:
                 continue
 
-            datai = datasort[tt, indok] / datamax[tt, jj]
+            datai = datasort[tt, indok] / dataint[tt, jj]
             res = scpopt.least_squares(
                 func_cost, x0, jac=func_jac,
                 method=method, ftol=ftol, xtol=xtol, gtol=gtol,
@@ -2967,13 +2967,13 @@ def _basic_loop(ilambu=None, ilamb=None, phi=None, data=None, mask=None,
 
             # Store in original shape
             fit[tt, ind] = (func_cost(res.x, phi=phisort, data=0.)
-                             * datamax[tt, jj])[inds_rev]
+                             * dataint[tt, jj])[inds_rev]
             chi2_meandata[tt, jj] = np.nanmean(fit[tt, ind])
             chi2n[tt, jj] = np.nanmean(func_cost(x=res.x, data=datai)**2)
 
         i0 += nind
         indnan.append(i0)
-    return (fit, datamax, indsort, np.array(indnan), indout_noeval,
+    return (fit, dataint, indsort, np.array(indnan), indout_noeval,
             chi2n, chi2_meandata)
 
 
@@ -3044,7 +3044,7 @@ def noise_analysis_2d(data, lamb, phi, mask=None, fraction=None,
 
     # -------------
     # Perform fits
-    (fit, datamax, indsort, indnan, indout_noeval,
+    (fit, dataint, indsort, indnan, indout_noeval,
      chi2n, chi2_meandata) = _basic_loop(
         ilambu=ilambu, ilamb=ilamb, phi=phi, data=data, mask=mask,
         domain=domain, nbs=nbsplines, dbsplines=dbsplines, nspect=nspect,
@@ -3079,7 +3079,7 @@ def noise_analysis_2d(data, lamb, phi, mask=None, fraction=None,
     # output dict
     dnoise = {
         'data': data, 'phi': phi, 'fit': fit,
-        'chi2n': chi2n, 'chi2_meandata': chi2_meandata, 'datamax': datamax,
+        'chi2n': chi2n, 'chi2_meandata': chi2_meandata, 'dataint': dataint,
         'domain': domain, 'indin': indin, 'indout_mask': indout_mask,
         'indout_noeval': indout_noeval, 'indout_var': indout_var,
         'mask': mask, 'ind_noeval': None,
@@ -3121,7 +3121,9 @@ def noise_analysis_2d_scannbs(
     else:
         lnbsplines = np.atleast_1d(lnbsplines).ravel().astype(int)
     if nbsplines is None:
-        nbsplines = lnbsplines[int(lnbsplines.size/2)]
+        nbsplines = int(lnbsplines.size/2)
+    if nbsplines is not None:
+        nbsplines = np.unique(np.atleast_1d(nbsplines)).astype(int)
     nlnbs = lnbsplines.size
     if nxerrbin is None:
         nxerrbin = 100
@@ -3163,9 +3165,9 @@ def noise_analysis_2d_scannbs(
 
     # -------------
     # Perform fits
-    xdata_edge = np.linspace(0, np.nanmax(data[:, mask]), nxerrbin)
+    xdata_edge = np.linspace(0, np.nanmax(data[:, mask]), nxerrbin+1)
     xdata = 0.5*(xdata_edge[1:] + xdata_edge[:-1])
-    datamax = np.full((nspect, ilambu.size), np.nan)
+    dataint = np.full((nspect, ilambu.size), np.nan)
     # fit = np.full(data.shape, np.nan)
     indsort = np.zeros((2, phi.size), dtype=int)
     # indout_noeval = np.zeros(phi.shape, dtype=bool)
@@ -3174,7 +3176,7 @@ def noise_analysis_2d_scannbs(
     const = np.full((nlnbs,), np.nan)
     mean = np.full((nlnbs, nxerrbin), np.nan)
     var = np.full((nlnbs, nxerrbin), np.nan)
-    i0, indnani, done = 0, [], False
+    bs_phidata, bs_data, bs_fit, bs_indin = [], [], [], []
     for ii in range(lnbsplines.size):
         nbs = int(lnbsplines[ii])
         # -------------
@@ -3190,13 +3192,25 @@ def noise_analysis_2d_scannbs(
         if verbose > 0:
             msg = "nbs = {} ({} / {})".format(nbs, ii+1, lnbsplines.size)
             print(msg)
-        (fiti, datamax, indsort, indnan, indout_noeval,
+        (fiti, dataint, indsort, indnan, indout_noeval,
          chi2n[ii, ...], chi2_meandata[ii, ...]) = _basic_loop(
              ilambu=ilambu, ilamb=ilamb, phi=phi, data=data, mask=mask,
              domain=domain, nbs=nbs, dbsplines=dbsplines, nspect=nspect,
              method=method, tr_solver=tr_solver, tr_options=tr_options,
              loss=loss, xtol=xtol, ftol=ftol, gtol=gtol,
              max_nfev=max_nfev, verbose=verbose)
+
+        if ii == 0:
+            ind_intmax = np.unravel_index(np.argmax(dataint, axis=None),
+                                          dataint.shape)
+
+        if nbs in nbsplines:
+            isi = np.split(indsort, indnan, axis=1)[ind_intmax[1]]
+            bs_phidata.append(phi[isi[0], isi[1]])
+            bs_data.append(data[ind_intmax[0], isi[0], isi[1]])
+            bs_fit.append(fiti[ind_intmax[0], isi[0], isi[1]])
+            indini = ~np.any(np.array([~mask, indout_noeval]), axis=0)
+            bs_indin.append(indini[isi[0], isi[1]])
 
         # -------------
         # Identify outliers with respect to noise model
@@ -3212,11 +3226,13 @@ def noise_analysis_2d_scannbs(
 
     # -------------
     # output dict
-    dnoise_scan = {
-        'chi2n': chi2n, 'chi2_meandata': chi2_meandata, 'datamax': datamax,
+    dnoise_scan = {'data': data,
+        'chi2n': chi2n, 'chi2_meandata': chi2_meandata, 'dataint': dataint,
         'domain': domain, 'lnbsplines': lnbsplines, 'nbsplines': nbsplines,
         'deg': deg, 'lambedges': lambedges, 'deg': deg,
         'ilamb': ilamb, 'ilambu': ilambu,
+        'bs_phidata': bs_phidata, 'bs_data': bs_data,
+        'bs_fit': bs_fit, 'bs_indin': bs_indin,
         'var_mean': mean, 'var': var, 'var_xdata': xdata,
         'var_const': const, 'var_margin': margin,
         'var_fraction': fraction}
