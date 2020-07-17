@@ -675,7 +675,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
 
 def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
                         ms=None, dcolor=None,
-                        dax=None, fs=None, cmap=None, dmargin=None,
+                        dax=None, fs=None, dmargin=None,
                         wintit=None, tit=None, sublab=None,
                         save=None, name=None, path=None, fmt=None):
 
@@ -684,8 +684,6 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     if save is None:
         save = False
 
-    if margin is None:
-        margin = 3.
     if fraction is None:
         fraction = 0.4
 
@@ -700,8 +698,6 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     if dax is None:
         if fs is None:
             fs = (18, 9)
-        if cmap is None:
-            cmap = plt.cm.viridis
         if dmargin is None:
             dmargin = {'left': 0.05, 'right': 0.99,
                        'bottom': 0.06, 'top': 0.95,
@@ -738,13 +734,15 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     indout_mask = dnoise['indout_mask']
     indout_noeval = dnoise['indout_noeval']
 
-    # fit sqrt on sigma
-    c0 = ((margin is not None and margin != dnoise['var_margin'])
-          or dnoise['indout_var'].shape != dnoise['data'].shape)
+    # fit sqrt on sigmai
+    c0 = (dnoise['var_fraction'] is not False
+          or (margin is not None and margin != dnoise['var_margin'])
+          or (fraction is not None
+              and fraction != dnoise['var_fraction']))
     if c0 is True:
         from . import _fit12d
         (mean, var, xdata, const,
-         indout_var, _, margin, log) = _fit12d.get_noise_analysis_var_mask(
+         indout_var, _, margin, _) = _fit12d.get_noise_analysis_var_mask(
              fit=dnoise['fit'], data=dnoise['data'], mask=dnoise['mask'],
              margin=margin, fraction=False)
     else:
@@ -753,7 +751,7 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
         const = dnoise['var_const']
         xdata = dnoise['var_xdata']
         indout_var = dnoise['indout_var']
-        assert dnoise['var_log'] is None
+        assert dnoise['var_fraction'] is False
 
     # Safety check
     indout_var_agg = (np.sum(indout_var, axis=0)/float(indout_var.shape[0])
@@ -765,6 +763,7 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     if not c0:
         msg = "Overlapping indout!"
         raise Exception(msg)
+
 
     # get plotting indout
     indout_maskplot = np.tile(np.insert(
@@ -992,33 +991,23 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     return dax
 
 
-def plot_noise_analysis_nbsscan(dnoise=None, fraction=None,
-                        ms=None, dcolor=None,
-                        dax=None, fs=None, cmap=None, dmargin=None,
-                        wintit=None, tit=None, sublab=None,
-                        save=None, name=None, path=None, fmt=None):
+def plot_noise_analysis_scannbs(
+    dnoise=None, ms=None,
+    dax=None, fs=None, dmargin=None,
+    wintit=None, tit=None, sublab=None,
+    save=None, name=None, path=None, fmt=None):
 
     # Check inputs
     # ------------
     if save is None:
         save = False
 
-    if fraction is None:
-        fraction = 0.4
-
     if ms is None:
         ms = 2.
-    if dcolor is None:
-        dcolor = {'mask': (0.4, 0.4, 0.4),
-                  'noeval': (0.7, 0.7, 0.7),
-                  'S/N': (1., 0., 0.)}
-    dcolor['ok'] = dcolor.get('ok', (0., 0., 0.))
 
     if dax is None:
         if fs is None:
             fs = (18, 9)
-        if cmap is None:
-            cmap = plt.cm.viridis
         if dmargin is None:
             dmargin = {'left': 0.06, 'right': 0.99,
                        'bottom': 0.06, 'top': 0.96,
@@ -1064,6 +1053,7 @@ def plot_noise_analysis_nbsscan(dnoise=None, fraction=None,
         ax0 = fig.add_subplot(gs[:4, :])
         ax0.set_xlabel(r'nb. of bsplines')
         ax0.set_ylabel(r'Residue (a.u.)')
+        ax0.set_title('nlamb = {}'.format(dnoise['lambedges'].size-1))
 
         dax = {'conv': ax0,
                'cases_fit': [],

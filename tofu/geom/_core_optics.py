@@ -2080,7 +2080,6 @@ class CrystalBragg(utils.ToFuObject):
                 det=det, dtheta=dtheta, psi=psi,
                 mask=mask, domain=domain,
                 pos=pos, binning=binning, subset=subset,
-                lphi=lphi, lphi_tol=lphi_tol,
                 deg=deg, knots=knots, nbsplines=nbsplines,
                 dataphi1d=dataphi1d, phi1d=phi1d)
 
@@ -2141,8 +2140,11 @@ class CrystalBragg(utils.ToFuObject):
         xtol=None, ftol=None, gtol=None,
         method=None, tr_solver=None, tr_options=None,
         verbose=None, plot=None,
+        ms=None, dcolor=None,
         dax=None, fs=None, dmargin=None,
-        cmap=None, wintit=None, tit=None, return_dax=None):
+        wintit=None, tit=None, sublab=None,
+        save_fig=None, name_fig=None, path_fig=None,
+        fmt=None, return_dax=None):
 
         # ----------------------
         # Geometrical transform
@@ -2160,28 +2162,47 @@ class CrystalBragg(utils.ToFuObject):
         import tofu.spectro._fit12d as _fit12d
         return _fit12d.noise_analysis_2d(
             data, lamb, phi,
-            mask=mask, fraction=fraction, nxerrbin=nxerrbin,
-            nlamb=nlamb, margin=margin,
-            deg=deg, knots=knots, nbsplines=nbsplines,
+            mask=mask, fraction=fraction, margin=margin, nxerrbin=nxerrbin,
+            nlamb=nlamb, deg=deg, knots=knots, nbsplines=nbsplines,
             loss=loss, max_nfev=max_nfev,
             xtol=xtol, ftol=ftol, gtol=gtol,
             method=method, tr_solver=tr_solver, tr_options=tr_options,
             verbose=verbose, plot=plot,
+            ms=ms, dcolor=dcolor,
             dax=dax, fs=fs, dmargin=dmargin,
-            cmap=cmap, wintit=wintit, tit=tit, return_dax=return_dax)
+            wintit=wintit, tit=tit, sublab=sublab,
+            save_fig=save_fig, name_fig=name_fig, path_fig=path_fig,
+            fmt=fmt, return_dax=return_dax)
+
+    @staticmethod
+    def noise_analysis_plot(
+        dnoise=None, margin=None, fraction=None,
+        ms=None, dcolor=None,
+        dax=None, fs=None, dmargin=None,
+        wintit=None, tit=None, sublab=None,
+        save=None, name=None, path=None, fmt=None):
+        import tofu.spectro._plot as _plot_spectro
+        return _plot_spectro.plot_noise_analysis(
+            dnoise=dnoise, margin=margin, fraction=fraction,
+            ms=ms, dcolor=dcolor,
+            dax=dax, fs=fs, dmargin=dmargin,
+            wintit=wintit, tit=tit, sublab=sublab,
+            save=save, name=name, path=path, fmt=fmt)
 
     def noise_analysis_scannbs(
         self, data=None, xi=None, xj=None, n=None,
         det=None, dtheta=None, psi=None,
-        mask=None, fraction=None, nxerrbin=None,
-        margin=None, domain=None, nlamb=None,
+        mask=None, nxerrbin=None,
+        domain=None, nlamb=None,
         deg=None, knots=None, nbsplines=None, lnbsplines=None,
         loss=None, max_nfev=None,
         xtol=None, ftol=None, gtol=None,
         method=None, tr_solver=None, tr_options=None,
         verbose=None, plot=None,
-        dax=None, fs=None, dmargin=None,
-        cmap=None, wintit=None, tit=None, return_dax=None):
+        ms=None, dax=None, fs=None, dmargin=None,
+        wintit=None, tit=None, sublab=None,
+        save_fig=None, name_fig=None, path_fig=None,
+        fmt=None, return_dax=None):
 
         # ----------------------
         # Geometrical transform
@@ -2199,12 +2220,26 @@ class CrystalBragg(utils.ToFuObject):
         import tofu.spectro._fit12d as _fit12d
         return _fit12d.noise_analysis_2d_scannbs(
             data, lamb, phi,
-            mask=mask, fraction=fraction, nxerrbin=nxerrbin,
-            nlamb=nlamb, margin=margin,
+            mask=mask, nxerrbin=nxerrbin, nlamb=nlamb,
             deg=deg, knots=knots, nbsplines=nbsplines, lnbsplines=lnbsplines,
             loss=loss, max_nfev=max_nfev,
             xtol=xtol, ftol=ftol, gtol=gtol,
             method=method, tr_solver=tr_solver, tr_options=tr_options,
             verbose=verbose, plot=plot,
-            dax=dax, fs=fs, dmargin=dmargin,
-            cmap=cmap, wintit=wintit, tit=tit, return_dax=return_dax)
+            ms=ms, dax=dax, fs=fs, dmargin=dmargin,
+            wintit=wintit, tit=tit, sublab=sublab,
+            save_fig=save_fig, name_fig=name_fig, path_fig=path_fig,
+            fmt=fmt, return_dax=return_dax)
+
+    @staticmethod
+    def noise_analysis_scannbs_plot(
+        dnoise_scan=None, ms=None,
+        dax=None, fs=None, dmargin=None,
+        wintit=None, tit=None, sublab=None,
+        save=None, name=None, path=None, fmt=None):
+        import tofu.spectro._plot as _plot_spectro
+        return _plot_spectro.plot_noise_analysis_scannbs(
+                dnoise=dnoise_scan, ms=ms,
+                dax=dax, fs=fs, dmargin=dmargin,
+                wintit=wintit, tit=tit, sublab=sublab,
+                save=save, name=name, path=path, fmt=fmt)

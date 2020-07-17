@@ -47,6 +47,8 @@ _LOSS = 'linear'
 _D3 = {'amp': 'x', 'coefs': 'lines', 'ratio': 'lines',
        'Ti': 'x', 'width': 'lines',
        'vi': 'x', 'shift': 'lines'}
+_NSIGMA = 5.
+_FRACTION = 0.8
 _SIGMA_MARGIN = 3.
 _ALLOW_PICKLE = True
 
@@ -904,6 +906,47 @@ def valid_indices_phi(sig1d, phi1d, threshold=None):
 ###########################################################
 ###########################################################
 #
+#           dvalid dict (S/N ratio)
+#
+###########################################################
+###########################################################
+
+
+def _dvalid_1d(data=None, nsigma=None,
+               focus=None, fraction=None):
+    # Check inputs
+    if nsigma is None:
+        nsigma = _NSIGMA
+    if fraction is None:
+        fraction = _FRACTION
+    if focus is None:
+        focus = np.ones((data.shape[1],), dtype=bool)
+
+    # Get indices of pts ok
+    indok = np.sqrt(data) > nsigma
+
+    # TBF
+    # More general with domain of focus instead of indices (think 2d)
+    # Allow multiple focuses
+    indt = np.sum(indok, axis=1) / data.shape[1] > fraction
+
+    import pdb; pdb.set_trace()     # DB
+    return dvalid
+
+
+def _dvalid_2d(data=None, knots_mult=None, knotspnbs=None,
+               nsigma=None):
+    if nsigma is None:
+        nsigma = _NSIGMA
+
+    import pdb; pdb.set_trace()     # DB
+
+    return dvalid
+
+
+###########################################################
+###########################################################
+#
 #           dinput dict (lines + spectral constraints)
 #
 ###########################################################
@@ -913,7 +956,7 @@ def valid_indices_phi(sig1d, phi1d, threshold=None):
 def multigausfit1d_from_dlines_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     data=None, lamb=None, mask=None, domain=None, pos=None, subset=None,
-    same_spectrum=None, nspect=None, dlamb=None,
+    same_spectrum=None, nspect=None, dlamb=None, nsigma=None,
     defconst=_DCONSTRAINTS):
 
     # ------------------------
@@ -1068,9 +1111,8 @@ def multigausfit1d_from_dlines_dinput(
         dinput['same_spectrum_dlamb'] = False
 
     # S/N threshold indices
-    # dinput['valid_indphi'] = _valid_indices(spectvect1d, phi1d,
-                                            # threshold=threshold)
-    # dinput['threshold'] = threshold
+    dinput['valid'] = _dvalid_1d(data=dprepare['data'],
+                                 nsigma=nsigma)
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1194,9 +1236,9 @@ def multigausfit2d_from_dlines_dinput(
         symmetryaxis=dinput.get('symmetry_axis')))
 
     # S/N threshold indices
-    # dinput['valid_indphi'] = _valid_indices(spectvect1d, phi1d,
-                                            # threshold=threshold)
-    # dinput['threshold'] = threshold
+    dinput['valid'] = _dvalid_2d(data=dprepare['data'],
+                                 knots_mult=dinput['knots_mult'],
+                                 knotspnbs=dinput['nknotsperbs'])
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -2133,7 +2175,8 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           Ti=None, width=None,
           vi=None, shift=None,
           pts_lamb_total=None, pts_lamb_detail=None,
-          plot=None, fs=None, wintit=None, tit=None, dmargin=None):
+          plot=None, fs=None, wintit=None, tit=None, dmargin=None,
+          return_dax=None):
 
     # ----------------------
     # Check / format
@@ -2143,6 +2186,8 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
         save = False
     if plot is None:
         plot = False
+    if return_dax is None:
+        return_dax = False
 
     # ----------------------
     # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
@@ -2209,7 +2254,10 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 
     # ----------------------
     # return
-    return dfit1d
+    if return_dax is True:
+        return dfit1d, dax
+    else:
+        return dfit1d
 
 
 def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
@@ -2222,7 +2270,7 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           dx0=None, x0_scale=None, bounds_scale=None,
           jac=None, nxi=None, nxj=None, verbose=None, showonly=None,
           save=None, name=None, path=None,
-          plot=None):
+          plot=None, return_dax=None):
 
     # ----------------------
     # Check / format
@@ -2232,6 +2280,8 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
         save = False
     if plot is None:
         plot = False
+    if return_dax is None:
+        return_dax = False
 
     # ----------------------
     # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
@@ -2283,7 +2333,7 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 
     # ----------------------
     # return
-    if plot is True:
+    if return_dax is True:
         return dfit2d, dax
     else:
         return dfit2d
@@ -2977,14 +3027,18 @@ def _basic_loop(ilambu=None, ilamb=None, phi=None, data=None, mask=None,
             chi2n, chi2_meandata)
 
 
-def noise_analysis_2d(data, lamb, phi, mask=None, fraction=None,
-                      deg=None, knots=None, nbsplines=None, nxerrbin=None,
-                      nlamb=None, margin=None, loss=None, max_nfev=None,
-                      xtol=None, ftol=None, gtol=None,
-                      method=None, tr_solver=None, tr_options=None,
-                      verbose=None, plot=None,
-                      dax=None, fs=None, dmargin=None,
-                      cmap=None, wintit=None, tit=None, return_dax=None):
+def noise_analysis_2d(
+    data, lamb, phi, mask=None, margin=None, fraction=None,
+    deg=None, knots=None, nbsplines=None, nxerrbin=None,
+    nlamb=None, loss=None, max_nfev=None,
+    xtol=None, ftol=None, gtol=None,
+    method=None, tr_solver=None, tr_options=None,
+    verbose=None, plot=None,
+    ms=None, dcolor=None,
+    dax=None, fs=None, dmargin=None,
+    wintit=None, tit=None, sublab=None,
+    save_fig=None, name_fig=None, path_fig=None, fmt=None,
+    return_dax=None):
 
     # -------------
     # Check inputs
@@ -3093,11 +3147,16 @@ def noise_analysis_2d(data, lamb, phi, mask=None, fraction=None,
 
     # Plot
     if plot is True:
-        dax = _plot.plot_noise_analysis(
-            dnoise=dnoise,
-            dax=dax, fs=fs, dmargin=dmargin,
-            cmap=cmap, wintit=wintit, tit=tit)
-
+        try:
+            dax = _plot.plot_noise_analysis(
+                dnoise=dnoise,
+                ms=ms, dcolor=dcolor,
+                dax=dax, fs=fs, dmargin=dmargin,
+                wintit=wintit, tit=tit, sublab=sublab,
+                save=save_fig, name=name_fig, path=path_fig, fmt=fmt)
+        except Exception as err:
+            msg = ("Plotting failed: {}".format(str(err)))
+            warnings.warn(msg)
     if return_dax is True:
         return dnoise, dax
     else:
@@ -3105,14 +3164,16 @@ def noise_analysis_2d(data, lamb, phi, mask=None, fraction=None,
 
 
 def noise_analysis_2d_scannbs(
-    data, lamb, phi, mask=None, fraction=None, nxerrbin=None,
+    data, lamb, phi, mask=None, nxerrbin=None,
     deg=None, knots=None, nbsplines=None, lnbsplines=None,
-    nlamb=None, margin=None, loss=None, max_nfev=None,
+    nlamb=None, loss=None, max_nfev=None,
     xtol=None, ftol=None, gtol=None,
     method=None, tr_solver=None, tr_options=None,
     verbose=None, plot=None,
     dax=None, fs=None, dmargin=None,
-    cmap=None, wintit=None, tit=None, return_dax=None):
+    wintit=None, tit=None, ms=None, sublab=None,
+    save_fig=None, name_fig=None, path_fig=None,
+    fmt=None, return_dax=None):
 
     # -------------
     # Check inputs
@@ -3215,10 +3276,10 @@ def noise_analysis_2d_scannbs(
         # -------------
         # Identify outliers with respect to noise model
         (meani, vari, xdatai, consti,
-         indout_vari, inderrui, margin, fraction) = get_noise_analysis_var_mask(
+         _, inderrui, _, _) = get_noise_analysis_var_mask(
              fit=fiti, data=data, xdata_edge=xdata_edge,
              mask=(mask & (~indout_noeval)),
-             margin=margin, fraction=fraction)
+             margin=None, fraction=False)
 
         const[ii] = consti
         mean[ii, inderrui] = meani
@@ -3234,15 +3295,19 @@ def noise_analysis_2d_scannbs(
         'bs_phidata': bs_phidata, 'bs_data': bs_data,
         'bs_fit': bs_fit, 'bs_indin': bs_indin,
         'var_mean': mean, 'var': var, 'var_xdata': xdata,
-        'var_const': const, 'var_margin': margin,
-        'var_fraction': fraction}
+        'var_const': const}
 
     # Plot
     if plot is True:
-        dax = _plot.plot_noise_analysis_scannbs(
-            dnoise_scan=dnoise_scan,
-            dax=dax, fs=fs, dmargin=dmargin,
-            cmap=cmap, wintit=wintit, tit=tit)
+        try:
+            dax = _plot.plot_noise_analysis_scannbs(
+                dnoise=dnoise_scan, ms=ms,
+                dax=dax, fs=fs, dmargin=dmargin,
+                wintit=wintit, tit=tit, sublab=sublab,
+                save=save_fig, name=name_fig, path=path_fig, fmt=fmt)
+        except Exception as err:
+            msg = ("Plotting failed: {}".format(str(err)))
+            warnings.warn(msg)
 
     if return_dax is True:
         return dnoise_scan, dax
