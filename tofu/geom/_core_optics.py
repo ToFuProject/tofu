@@ -1875,7 +1875,9 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def fit1d_dinput(dlines=None, dconstraints=None, dprepare=None,
                      data=None, lamb=None, mask=None,
-                     domain=None, pos=None, subset=None, same_spectrum=None):
+                     domain=None, pos=None, subset=None, same_spectrum=None,
+                     focus=None, focus_fraction=None,
+                     focus_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -1887,11 +1889,15 @@ class CrystalBragg(utils.ToFuObject):
             data=data, lamb=lamb,
             mask=mask, domain=domain,
             pos=pos, subset=subset,
-            same_spectrum=same_spectrum)
+            same_spectrum=same_spectrum,
+            focus=focus, focus_fraction=focus_fraction,
+            focus_nsigma=focus_nsigma, focus_width=focus_width)
 
     def fit1d(self, dprepare=None, dlines=None, dconstraints=None, dinput=None,
               data=None, lamb=None, mask=None,
               domain=None, subset=None, pos=None,
+              focus=None, focus_fraction=None,
+              focus_nsigma=None, focus_width=None,
               dx0=None, same_spectrum=None, dlamb=None,
               dscales=None, x0_scale=None, bounds_scale=None,
               method=None, tr_solver=None, tr_options=None, max_nfev=None,
@@ -1912,6 +1918,8 @@ class CrystalBragg(utils.ToFuObject):
             dinput = self.fit1d_dinput(
                 dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
                 data=data, lamb=lamb, mask=mask, domain=domain,
+                focus=focus, focus_fraction=focus_fraction,
+                focus_nsigma=focus_nsigma, focus_width=focus_width,
                 pos=pos, subset=subset,
                 same_spectrum=same_spectrum)
 
@@ -1934,6 +1942,20 @@ class CrystalBragg(utils.ToFuObject):
             pts_lamb_total=pts_lamb_total,
             pts_lamb_detail=pts_lamb_detail,
             plot=plot, fs=fs, wintit=wintit, tit=tit)
+
+    @staticmethod
+    def fitd_extract(
+        dfit1d=None,
+        amp=None, coefs=None, ratio=None,
+        Ti=None, width=None,
+        vi=None, shift=None,
+        pts_lamb_total=None, pts_lamb_detail=None):
+        return fit1d_extract(
+            dfit1d=dfit,d
+            amp=amp, coefs=coefs, ratio=ratio,
+            Ti=Ti, width=width,
+            vi=vi, shift=shift,
+            pts_lamb_total=pts_lamb_total, pts_lamb_detail=pts_lamb_detail)
 
     def fit1d_from2d(self):
         """ Useful for optimizing detector or crystal position
@@ -2007,7 +2029,9 @@ class CrystalBragg(utils.ToFuObject):
                      pos=None, binning=None, subset=None,
                      lphi=None, lphi_tol=None,
                      deg=None, knots=None, nbsplines=None,
-                     dataphi1d=None, phi1d=None):
+                     dataphi1d=None, phi1d=None,
+                     focus=None, focus_fraction=None,
+                     focus_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -2039,7 +2063,9 @@ class CrystalBragg(utils.ToFuObject):
         return _fit12d.multigausfit2d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints,
             deg=deg, knots=knots, nbsplines=nbsplines, dprepare=dprepare,
-            dataphi1d=dataphi1d, phi1d=phi1d, fraction=None)
+            dataphi1d=dataphi1d, phi1d=phi1d,
+            focus=focus, focus_fraction=focus_fraction,
+            focus_nsigma=focus_nsigma, focus_width=focus_width)
 
     def fit2d(self, xi=None, xj=None, data=None, mask=None,
               det=None, dtheta=None, psi=None, n=None,
@@ -2052,6 +2078,8 @@ class CrystalBragg(utils.ToFuObject):
               xtol=None, ftol=None, gtol=None,
               loss=None, verbose=None, debug=None,
               pos=None, subset=None, binning=None,
+              focus=None, focus_fraction=None,
+              focus_nsigma=None, focus_width=None,
               npts=None, dax=None,
               ratio=None, jac=None,
               spect1d=None, nlambfit=None,
@@ -2081,7 +2109,9 @@ class CrystalBragg(utils.ToFuObject):
                 mask=mask, domain=domain,
                 pos=pos, binning=binning, subset=subset,
                 deg=deg, knots=knots, nbsplines=nbsplines,
-                dataphi1d=dataphi1d, phi1d=phi1d)
+                dataphi1d=dataphi1d, phi1d=phi1d,
+                focus=focus, focus_fraction=focus_fraction,
+                focus_nsigma=focus_nsigma, focus_width=focus_width)
 
         # ----------------------
         # return
@@ -2119,7 +2149,7 @@ class CrystalBragg(utils.ToFuObject):
                    dax=None, plotmode=None, angunits=None,
                    cmap=None, vmin=None, vmax=None,
                    dmargin=None, tit=None, wintit=None, fs=None):
-        dout = self.fit2d_extract_data(
+        dout = self.fit2d_extract(
             dfit2d,
             amp=amp, Ti=Ti, vi=vi,
             pts_lamb_phi_total=pts_lamb_phi_total,

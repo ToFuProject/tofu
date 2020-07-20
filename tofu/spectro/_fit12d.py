@@ -35,7 +35,7 @@ _DCONSTRAINTS = {'amp': False,
                  'symmetry': False}
 _SAME_SPECTRUM = False
 _DEG = 2
-_NBSPLINES = 6
+_NBSPLINES = 13
 _TOL1D = {'x': 1e-12, 'f': 1.e-12, 'g': 1.e-12}
 _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 _SYMMETRY_CENTRAL_FRACTION = 0.3
@@ -47,7 +47,7 @@ _LOSS = 'linear'
 _D3 = {'amp': 'x', 'coefs': 'lines', 'ratio': 'lines',
        'Ti': 'x', 'width': 'lines',
        'vi': 'x', 'shift': 'lines'}
-_NSIGMA = 5.
+_NSIGMA = 6.
 _FRACTION = 0.8
 _SIGMA_MARGIN = 3.
 _ALLOW_PICKLE = True
@@ -410,7 +410,7 @@ def _checkformat_domain(domain=None, keys=['lamb', 'phi']):
     c0 = (isinstance(domain, dict)
           and all([k0 in keys for k0 in domain.keys()]))
     if not c0:
-        msg = ("Arg domain must be a dict with keys {}\n".format(ls)
+        msg = ("Arg domain must be a dict with keys {}\n".format(keys)
                + "\t- provided: {}".format(domain))
         raise Exception(msg)
 
@@ -912,25 +912,57 @@ def valid_indices_phi(sig1d, phi1d, threshold=None):
 ###########################################################
 
 
-def _dvalid_1d(data=None, nsigma=None,
-               focus=None, fraction=None):
+def _dvalid_checkfocus(focus=None, width=None,
+                       lines_keys=None, lines_lamb=None):
+    if focus is None:
+        focus = False
+
+    if focus is not False:
+        c0 = (lines_keys is not None
+              and lines_lamb is not None
+              and ((isinstance(focus, str) and focus in lines_keys)
+                   or (isinstance(focus, list)
+                       and all([isinstance(ff, str) and ff in lines_keys
+                                for ff in focus]))))
+        if c0 is True:
+            if width is None:
+                width = 0.1*(np.max(lines_lamb) - np.min(lines_lamb))
+            if isinstance(focus, str):
+                focus = [focus]
+            focus = [lines_lamb[lines_keys == ff] + width*np.r_[-0.5, 0.5]
+                     for ff in focus]
+        focus = _checkformat_domain(domain={'lamb': focus})['lamb']['spec']
+    return focus
+
+def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
+               focus=None, fraction=None,
+               width=None, lines_keys=None, lines_lamb=None):
     # Check inputs
     if nsigma is None:
         nsigma = _NSIGMA
     if fraction is None:
         fraction = _FRACTION
-    if focus is None:
-        focus = np.ones((data.shape[1],), dtype=bool)
+
+    focus = _dvalid_checkfocus(focus,
+                               width=width,
+                               lines_keys=lines_keys,
+                               lines_lamb=lines_lamb)
 
     # Get indices of pts ok
     indok = np.sqrt(data) > nsigma
 
-    # TBF
-    # More general with domain of focus instead of indices (think 2d)
-    # Allow multiple focuses
-    indt = np.sum(indok, axis=1) / data.shape[1] > fraction
+    # Get indok in focus
+    if focus is not False:
+        lambok = np.array([(lamb > ff[0]) & (lamb < ff[1]) for ff in focus]).T
+        import pdb; pdb.set_trace()     # DB
+        indok2 = indok[:, :, None] & lambok[None, :, :]
+        indok2 = np.sum(indok2, axis=1) / np.sum(lambok, axis=0)[None, :]
+        indt = np.all(indok2 > fraction, axis=1)
+    else:
+        indt = np.sum(indok, axis=1) / data.shape[1] > fraction
 
-    import pdb; pdb.set_trace()     # DB
+    dvalid = {'indt': indt,
+              'focus': focus, 'fraction': fraction, 'nsigma': nsigma}
     return dvalid
 
 
@@ -956,7 +988,8 @@ def _dvalid_2d(data=None, knots_mult=None, knotspnbs=None,
 def multigausfit1d_from_dlines_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     data=None, lamb=None, mask=None, domain=None, pos=None, subset=None,
-    same_spectrum=None, nspect=None, dlamb=None, nsigma=None,
+    same_spectrum=None, nspect=None, dlamb=None,
+    focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
     defconst=_DCONSTRAINTS):
 
     # ------------------------
@@ -989,15 +1022,15 @@ def multigausfit1d_from_dlines_dinput(
 
     # Select relevant lines (keys, lamb)
     keys = np.array([k0 for k0 in dlines.keys()])
-    lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
+    lines_lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
     if dprepare['domain'] is not False:
-        ind = ((lamb >= dprepare['domain']['lamb']['minmax'][0])
-               & (lamb <= dprepare['domain']['lamb']['minmax'][1]))
+        ind = ((lines_lamb >= dprepare['domain']['lamb']['minmax'][0])
+               & (lines_lamb <= dprepare['domain']['lamb']['minmax'][1]))
         keys = keys[ind]
-        lamb = lamb[ind]
-    inds = np.argsort(lamb)
-    keys, lamb = keys[inds], lamb[inds]
-    nlines = lamb.size
+        lines_lamb = lines_lamb[ind]
+    inds = np.argsort(lines_lamb)
+    keys, lines_lamb = keys[inds], lines_lamb[inds]
+    nlines = lines_lamb.size
 
     # Error message for constraints
     msg = "dconstraints must be a dict of constraints for spectrum fitting"
@@ -1058,7 +1091,8 @@ def multigausfit1d_from_dlines_dinput(
     if same_spectrum is True:
         keysadd = np.array([[kk+'_bis{:04.0f}'.format(ii) for kk in keys]
                             for ii in range(1, nspect)]).ravel()
-        lamb = (dlamb*np.arange(0, nspect)[:, None] + lamb[None, :])
+        lines_lamb = (dlamb*np.arange(0, nspect)[:, None]
+                      + lines_lamb[None, :])
         keys = np.r_[keys, keysadd]
 
         for k0 in ['amp', 'width', 'shift']:
@@ -1067,7 +1101,8 @@ def multigausfit1d_from_dlines_dinput(
             offset = np.tile(dinput[k0]['offset'], nspect)
             if k0 == 'shift':
                 ind = np.tile(dinput[k0]['ind'], (1, nspect))
-                coefs = (dinput[k0]['coefs'] * lamb[0, :] / lamb).ravel()
+                coefs = (dinput[k0]['coefs']
+                         * lines_lamb[0, :] / lines_lamb).ravel()
             else:
                 coefs = np.tile(dinput[k0]['coefs'], nspect)
                 keysadd = np.array([[kk+'_bis{:04.0f}'.format(ii)
@@ -1084,7 +1119,7 @@ def multigausfit1d_from_dlines_dinput(
             dinput[k0]['coefs'] = coefs
             dinput[k0]['offset'] = offset
         nlines *= nspect
-        lamb = lamb.ravel()
+        lines_lamb = lines_lamb.ravel()
 
         # update mz, symb, ion
         mz = np.tile(mz, nspect)
@@ -1095,7 +1130,7 @@ def multigausfit1d_from_dlines_dinput(
     # add lines and properties
     # ------------------------
     dinput['keys'] = keys
-    dinput['lines'] = lamb
+    dinput['lines'] = lines_lamb
     dinput['nlines'] = nlines
 
     dinput['mz'] = mz
@@ -1111,8 +1146,12 @@ def multigausfit1d_from_dlines_dinput(
         dinput['same_spectrum_dlamb'] = False
 
     # S/N threshold indices
-    dinput['valid'] = _dvalid_1d(data=dprepare['data'],
-                                 nsigma=nsigma)
+    dinput['valid'] = _dvalid_12d(
+        data=dprepare['data'], lamb=dprepare['lamb'],
+        nsigma=focus_nsigma,
+        fraction=focus_fraction,
+        focus=focus, width=focus_width,
+        lines_keys=keys, lines_lamb=lines_lamb)
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1128,10 +1167,11 @@ def multigausfit2d_from_dlines_dinput(
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None,
     mask=None, domain=None, pos=None, binning=None, subset=None,
+    focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
     noise_ind=None, nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
     dataphi1d=None, phi1d=None,
-    fraction=None, defconst=_DCONSTRAINTS):
+    defconst=_DCONSTRAINTS):
 
     # ------------------------
     # Check / format dprepare
@@ -1165,15 +1205,15 @@ def multigausfit2d_from_dlines_dinput(
 
     # Select relevant lines (keys, lamb)
     keys = np.array([k0 for k0 in dlines.keys()])
-    lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
+    lines_lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
     if dprepare['domain'] is not False:
-        ind = ((lamb >= dprepare['domain']['lamb']['minmax'][0])
-               & (lamb <= dprepare['domain']['lamb']['minmax'][1]))
+        ind = ((lines_lamb >= dprepare['domain']['lamb']['minmax'][0])
+               & (lines_lamb <= dprepare['domain']['lamb']['minmax'][1]))
         keys = keys[ind]
-        lamb = lamb[ind]
-    inds = np.argsort(lamb)
-    keys, lamb = keys[inds], lamb[inds]
-    nlines = lamb.size
+        lines_lamb = lines_lamb[ind]
+    inds = np.argsort(lines_lamb)
+    keys, lines_lamb = keys[inds], lines_lamb[inds]
+    nlines = lines_lamb.size
 
     # Error message for constraints
     msg = "dconstraints must be a dict of constraints for spectrum fitting"
@@ -1225,7 +1265,7 @@ def multigausfit2d_from_dlines_dinput(
     dinput['ion'] = np.array([dlines[k0].get('ION', '?') for k0 in keys])
 
     dinput['keys'] = keys
-    dinput['lines'] = lamb
+    dinput['lines'] = lines_lamb
     dinput['nlines'] = nlines
 
     # Get dict of bsplines
@@ -1236,9 +1276,12 @@ def multigausfit2d_from_dlines_dinput(
         symmetryaxis=dinput.get('symmetry_axis')))
 
     # S/N threshold indices
-    dinput['valid'] = _dvalid_2d(data=dprepare['data'],
-                                 knots_mult=dinput['knots_mult'],
-                                 knotspnbs=dinput['nknotsperbs'])
+    dinput['valid'] = _dvalid_12d(
+        data=dprepare['data'], lamb=dprepare['lamb'], phi=dprepare['phi'],
+        nsigma=focus_nsigma,
+        fraction=focus_fraction,
+        focus=focus, width=focus_width,
+        lines_keys=keys, lines_lamb=lines_lamb)
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1812,6 +1855,8 @@ def multigausfit1d_from_dlines(dinput=None,
         try:
             dti = None
             t0i = dtm.datetime.now()     # DB
+            if not dinput['valid']['indt'][ii]:
+                continue
             res = scpopt.least_squares(
                 func_cost, x0_scale[ii, :],
                 jac=func_jac, bounds=bounds_scale,

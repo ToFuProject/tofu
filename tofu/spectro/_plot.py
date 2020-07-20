@@ -231,16 +231,16 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
                    'bottom':0.07, 'top':0.85,
                    'wspace':0.2, 'hspace':0.3}
 
-    # Index of spectra to plot
-    if indspect is None:
-        indspect = np.r_[0]
-    indspect = np.atleast_1d(indspect).ravel()
-    if indspect.dtype == 'bool':
-        indspect = np.nonzero(indspect)[0]
-
     # Extract (better redeability)
     dprepare = dfit1d['dinput']['dprepare']
     dinput = dfit1d['dinput']
+
+    # Index of spectra to plot
+    if indspect is None:
+        indspect = dinput['valid']['indt'].nonzero()[0][0]
+    indspect = np.atleast_1d(indspect).ravel()
+    if indspect.dtype == 'bool':
+        indspect = np.nonzero(indspect)[0]
 
     # pre-compute
     # ------------
