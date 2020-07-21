@@ -1950,8 +1950,9 @@ class CrystalBragg(utils.ToFuObject):
         Ti=None, width=None,
         vi=None, shift=None,
         pts_lamb_total=None, pts_lamb_detail=None):
-        return fit1d_extract(
-            dfit1d=dfit,d
+        import tofu.spectro._fit12d as _fit12d
+        return _fit12d.fit1d_extract(
+            dfit1d=dfit,
             amp=amp, coefs=coefs, ratio=ratio,
             Ti=Ti, width=width,
             vi=vi, shift=shift,
@@ -2021,15 +2022,13 @@ class CrystalBragg(utils.ToFuObject):
               tit=None, wintit=None, returnas=None)
         pass
 
-    @staticmethod
-    def fit2d_dinput(dlines=None, dconstraints=None, dprepare=None,
+    def fit2d_dinput(self, dlines=None, dconstraints=None, dprepare=None,
                      data=None, xi=None, xj=None, n=None,
                      det=None, dtheta=None, psi=None,
                      mask=None, domain=None,
                      pos=None, binning=None, subset=None,
                      lphi=None, lphi_tol=None,
                      deg=None, knots=None, nbsplines=None,
-                     dataphi1d=None, phi1d=None,
                      focus=None, focus_fraction=None,
                      focus_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
@@ -2063,7 +2062,6 @@ class CrystalBragg(utils.ToFuObject):
         return _fit12d.multigausfit2d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints,
             deg=deg, knots=knots, nbsplines=nbsplines, dprepare=dprepare,
-            dataphi1d=dataphi1d, phi1d=phi1d,
             focus=focus, focus_fraction=focus_fraction,
             focus_nsigma=focus_nsigma, focus_width=focus_width)
 
@@ -2109,7 +2107,6 @@ class CrystalBragg(utils.ToFuObject):
                 mask=mask, domain=domain,
                 pos=pos, binning=binning, subset=subset,
                 deg=deg, knots=knots, nbsplines=nbsplines,
-                dataphi1d=dataphi1d, phi1d=phi1d,
                 focus=focus, focus_fraction=focus_fraction,
                 focus_nsigma=focus_nsigma, focus_width=focus_width)
 

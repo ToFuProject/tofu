@@ -131,15 +131,15 @@ def get_peaks(x, y, nmax=None):
     return A, x0, sigma
 
 
-def get_symmetry_axis_1dprofile(phi, data, fraction=None):
-    if fraction is None:
-        fraction  = _SYMMETRY_CENTRAL_FRACTION
+def get_symmetry_axis_1dprofile(phi, data, cent_fraction=None):
+    if cent_fraction is None:
+        cent_fraction  = _SYMMETRY_CENTRAL_FRACTION
 
     # Find the phi in the central fraction
     phimin = np.nanmin(phi)
     phimax = np.nanmax(phi)
     phic = 0.5*(phimax + phimin)
-    dphi = (phimax - phimin)*fraction
+    dphi = (phimax - phimin)*cent_fraction
     indphi = np.abs(phi-phic) <= dphi/2.
     phiok = phi[indphi]
 
@@ -308,7 +308,7 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
 
 
 def _dconstraints_symmetry(dinput, symmetry=None, dataphi1d=None, phi1d=None,
-                           fraction=None, defconst=_DCONSTRAINTS):
+                           cent_fraction=None, defconst=_DCONSTRAINTS):
     if symmetry is None:
         symmetry = defconst['symmetry']
     dinput['symmetry'] = symmetry
@@ -318,7 +318,7 @@ def _dconstraints_symmetry(dinput, symmetry=None, dataphi1d=None, phi1d=None,
 
     if dinput['symmetry'] is True:
         dinput['symmetry_axis'] = get_symmetry_axis_1dprofile(
-            phi1d, dataphi1d, fraction=fraction)
+            phi1d, dataphi1d, cent_fraction=cent_fraction)
 
 
 ###########################################################
@@ -485,6 +485,8 @@ def apply_domain(lamb=None, phi=None, domain=None):
 
 def _binning_check(binning, nlamb=None, nphi=None,
                    domain=None, nbsplines=None, deg=None):
+    lk = ['phi', 'lamb']
+    lkall = lk + ['nperbin']
     msg = ("binning must be dict of the form:\n"
            + "\t- provide number of bins:\n"
            + "\t  \t{'phi':  int,\n"
@@ -511,7 +513,7 @@ def _binning_check(binning, nlamb=None, nphi=None,
     ltypes1 = [tuple, list, np.ndarray]
     lc = [binning is False,
           (isinstance(binning, dict)
-           and all([kk in ['phi', 'lamb'] for kk in binning.keys()])),
+           and all([kk in lkall for kk in binning.keys()])),
           type(binning) in ltypes0,
           type(binning) in ltypes1]
     if not any(lc):
@@ -525,25 +527,25 @@ def _binning_check(binning, nlamb=None, nphi=None,
         binning = np.atleast_1d(binning).ravel()
         binning = {'phi': {'edges': binning},
                    'lamb': {'edges': binning}}
-    for kk in binning.keys():
+    for kk in lk:
         if type(binning[kk]) in ltypes0:
             binning[kk] = {'nbins': int(binning[kk])}
         elif type(binning[kk]) in ltypes1:
             binning[kk] = {'edges': np.atleast_1d(binning[kk]).ravel()}
 
     c0 = all([all([k1 in ['edges', 'nbins'] for k1 in binning[k0].keys()])
-              for k0 in binning.keys()])
+              for k0 in lk])
     c0 = (c0 and
           all([((binning[k0].get('nbins') is None
                  or type(binning[k0].get('nbins')) in ltypes0)
                 and (binning[k0].get('edges') is None
                  or type(binning[k0].get('edges')) in ltypes1))
-              for k0 in binning.keys()]))
+              for k0 in lk]))
     if not c0:
         raise Exception(msg)
 
     # Check dict
-    for k0 in binning.keys():
+    for k0 in lk:
         c0 = all([k1 in ['nbins', 'edges'] for k1 in binning[k0].keys()])
         if not c0:
             raise Exception(msg)
@@ -600,6 +602,11 @@ def binning_2d_data(lamb, phi, data, indok=None,
         lamb[indok], phi[indok], data[:, indok],
         statistic='mean', bins=bins,
         range=None, expand_binnumbers=True)[0]
+    nperbin = scpstats.binned_statistic_2d(
+        lamb[indok], phi[indok], np.ones((indok.size,), dtype=int),
+        statistic='sum', bins=bins,
+        range=None, expand_binnumbers=True)[0]
+    binning['nperbin'] = nperbin
 
     lambbin = 0.5*(binning['lamb']['edges'][1:]
                    + binning['lamb']['edges'][:-1])
@@ -608,6 +615,7 @@ def binning_2d_data(lamb, phi, data, indok=None,
     lambbin = np.repeat(lambbin[:, None], nphi, axis=1)
     phibin = np.repeat(phibin[None, :], nlamb, axis=0)
     indok = np.any(~np.isnan(databin), axis=0)
+
     return lambbin, phibin, databin, indok, binning
 
 
@@ -934,14 +942,18 @@ def _dvalid_checkfocus(focus=None, width=None,
         focus = _checkformat_domain(domain={'lamb': focus})['lamb']['spec']
     return focus
 
-def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
-               focus=None, fraction=None,
-               width=None, lines_keys=None, lines_lamb=None):
+def _dvalid_12d(data=None, lamb=None, nsigma=None,
+                binning=None, focus=None, fraction=None,
+                width=None, lines_keys=None, lines_lamb=None, dphimin=None):
     # Check inputs
     if nsigma is None:
         nsigma = _NSIGMA
     if fraction is None:
         fraction = _FRACTION
+    if binning is None:
+        binning = False
+    if dphimin is None:
+        dphimin = 0.
 
     focus = _dvalid_checkfocus(focus,
                                width=width,
@@ -949,19 +961,41 @@ def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
                                lines_lamb=lines_lamb)
 
     # Get indices of pts ok
-    indok = np.sqrt(data) > nsigma
+    if binning is False:
+        indok = np.sqrt(data) > nsigma
+    else:
+        indok = np.sqrt(data*binning['nperbin'][None, ...]) > nsigma
 
     # Get indok in focus
+    dphi = False
     if focus is not False:
-        lambok = np.array([(lamb > ff[0]) & (lamb < ff[1]) for ff in focus]).T
-        import pdb; pdb.set_trace()     # DB
-        indok2 = indok[:, :, None] & lambok[None, :, :]
-        indok2 = np.sum(indok2, axis=1) / np.sum(lambok, axis=0)[None, :]
-        indt = np.all(indok2 > fraction, axis=1)
+        lambok = np.rollaxis(
+            np.array([(lamb > ff[0]) & (lamb < ff[1]) for ff in focus]),
+            0, lamb.ndim+1)
+        indok2 = indok[..., None] & lambok[None, ...]
+        # sum on lambda
+        nlamb = np.sum(lambok, axis=0)
+        nok = np.sum(indok2, axis=1)
+        if binning is False:
+            if nok.ndim == 3:
+                nok = np.sum(nok, axis=1)
+                nlamb = np.sum(nlamb, axis=0)
+            indt = np.all(nok / nlamb[None, ...] > fraction, axis=1)
+        else:
+            indtphibin = np.all(nok / nlamb[None, ...] > fraction, axis=2)
+            phibin = 0.5*(binning['phi']['edges'][1:]
+                          + binning['phi']['edges'][:-1])
+            dphi = np.full((data.shape[0], 2), 0.)
+            indt = np.full((data.shape[0],), False)
+            for ii in range(data.shape[0]):
+                if np.any(indtphibin[ii, :]):
+                    dphi[ii, :] = (phibin[indtphibin[ii, :]].min(),
+                                   phibin[indtphibin[ii, :]].max())
+                    indt[ii] = dphi[ii, 1] - dphi[ii, 0] > dphimin
     else:
         indt = np.sum(indok, axis=1) / data.shape[1] > fraction
 
-    dvalid = {'indt': indt,
+    dvalid = {'indt': indt, 'dphi': dphi,
               'focus': focus, 'fraction': fraction, 'nsigma': nsigma}
     return dvalid
 
@@ -1165,12 +1199,11 @@ def multigausfit1d_from_dlines_dinput(
 def multigausfit2d_from_dlines_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     deg=None, nbsplines=None, knots=None,
-    data=None, lamb=None, phi=None,
+    data=None, lamb=None, phi=None, cent_fraction=None,
     mask=None, domain=None, pos=None, binning=None, subset=None,
     focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
     noise_ind=None, nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
-    dataphi1d=None, phi1d=None,
     defconst=_DCONSTRAINTS):
 
     # ------------------------
@@ -1242,8 +1275,9 @@ def multigausfit2d_from_dlines_dinput(
     # Check / format symmetry
     # ------------------------
     _dconstraints_symmetry(dinput, symmetry=dconstraints.get('symmetry'),
-                           dataphi1d=dataphi1d, phi1d=phi1d,
-                           fraction=fraction, defconst=defconst)
+                           dataphi1d=dprepare['dataphi1d'],
+                           phi1d=dprepare['phi1d'],
+                           cent_fraction=cent_fraction, defconst=defconst)
 
     # ------------------------
     # Check / format double
@@ -1277,12 +1311,31 @@ def multigausfit2d_from_dlines_dinput(
 
     # S/N threshold indices
     dinput['valid'] = _dvalid_12d(
-        data=dprepare['data'], lamb=dprepare['lamb'], phi=dprepare['phi'],
+        data=dprepare['data'], lamb=dprepare['lamb'],
+        binning=dprepare['binning'],
         nsigma=focus_nsigma,
         fraction=focus_fraction,
         focus=focus, width=focus_width,
         lines_keys=keys, lines_lamb=lines_lamb)
 
+    # Update bsplines
+    if dinput['valid']['dphi'] is not False:
+        ibs = np.array([
+            ~(np.all((dinput['knots_mult'][None, ii:ii+dinput['nknotsperbs']]
+                      < dinput['valid']['dphi'][:, 0][:, None]), axis=1)
+              | np.all((dinput['knots_mult'][None, ii:ii+dinput['nknotsperbs']]
+                        > dinput['valid']['dphi'][:, 1][:, None]), axis=1))
+            for ii in range(dinput['nbs'])]).T
+        ibs[~dinput['valid']['indt'], :] = False
+        dinput['valid']['indbs'] = ibs
+
+        # TBF
+        # phibin = 0.5*(dprepare['binning']['phi']['edges'][1:]
+                      # + dprepare['binning']['phi']['edges'][:-1])
+        # dinput['valid']['indok'] = [
+            # ((phibin >= dinput['valid']['dphi'][:, 0])
+             # & (phibin >= dinput['valid']['dphi'][:, 1]))
+        # ]
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
 
@@ -1409,6 +1462,13 @@ def multigausfit2d_from_dlines_ind(dinput=None):
         indi = dinput['amp']['ind'][ii, :].nonzero()[0]
         amp_x0[ii] = indi[np.argmin(np.abs(dinput['amp']['coefs'][indi]-1.))]
     dind['amp_x0'] = amp_x0
+
+    # Make bsplines selections easy
+    if dinput['valid']['dphi'] is not False:
+        dind['bs']['amp'] = 
+        import pdb; pdb.set_trace()     # DB
+        pass
+
     return dind
 
 
@@ -2116,6 +2176,8 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
             print(msg)
         try:
             t0i = dtm.datetime.now()     # DB
+            if not dinput['valid']['indt'][ii]:
+                continue
             res = scpopt.least_squares(
                 func_cost, x0_scale[ii, :],
                 jac=func_jac, bounds=bounds_scale,

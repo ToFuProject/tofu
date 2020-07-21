@@ -311,7 +311,6 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                                            indok=None,
                                            jac=None):
 
-
     if jac is None:
         jac = _JAC
 
@@ -386,7 +385,9 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                     double=dinput['double'],
                     scales=None,
                     indok=None,
-                    indok_var=None):
+                    indbs=None):
+        if indok is None:
+            indok = np.ones(phi.shape, dtype=bool)
         shape = tuple(np.r_[phi.shape, nbck+nlines, nbs])
         y = np.full(shape, np.nan)
         xscale = x*scales
