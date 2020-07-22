@@ -439,7 +439,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
              coefswl=coefswl[None, :],
              coefssl=coefssl[None, :],
              double=dinput['double'],
-             indok_var=None, data=0.):
+             indok_var=None, ind_bs=None, data=0.):
 
         xscale = x*scales
 
@@ -460,6 +460,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                                                   axis=0)(phi)))**2
                                  / (2*wi2))),
                        axis=1)
+        import pdb; pdb.set_trace()     # DB
         if double is not False:
             if double is True:
                 dratio = xscale[idratiox]

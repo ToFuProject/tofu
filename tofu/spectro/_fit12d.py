@@ -347,7 +347,7 @@ def _checkformat_data_fit1d_dlines(data, lamb, mask=None):
         raise Exception(msg)
     c0 = (data.ndim in [1, 2]
           and lamb.ndim == 1
-          and lamb.size == lamb.shape[-1])
+          and lamb.size == data.shape[-1])
     if not c0:
         raise Exception(msg)
     if data.ndim == 1:
@@ -368,7 +368,7 @@ def _checkformat_data_fit2d_dlines(data, lamb, phi,
         raise Exception(msg)
     c0 = (data.ndim in [2, 3]
           and lamb.ndim == phi.ndim == 2
-          and lamb.shape == phi.shape == lamb.shape[-2:]
+          and lamb.shape == phi.shape == data.shape[-2:]
           and lamb.shape in [(nxi, nxj), (nxj, nxi)])
     if not c0:
         raise Exception(msg)
@@ -1329,13 +1329,6 @@ def multigausfit2d_from_dlines_dinput(
         ibs[~dinput['valid']['indt'], :] = False
         dinput['valid']['indbs'] = ibs
 
-        # TBF
-        # phibin = 0.5*(dprepare['binning']['phi']['edges'][1:]
-                      # + dprepare['binning']['phi']['edges'][:-1])
-        # dinput['valid']['indok'] = [
-            # ((phibin >= dinput['valid']['dphi'][:, 0])
-             # & (phibin >= dinput['valid']['dphi'][:, 1]))
-        # ]
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
 
@@ -1464,10 +1457,10 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     dind['amp_x0'] = amp_x0
 
     # Make bsplines selections easy
-    if dinput['valid']['dphi'] is not False:
-        dind['bs']['amp'] = 
-        import pdb; pdb.set_trace()     # DB
-        pass
+    # if dinput['valid']['dphi'] is not False:
+        # dind['bs']['amp'] =
+        # import pdb; pdb.set_trace()     # DB
+        # pass
 
     return dind
 
@@ -2189,7 +2182,8 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
                 verbose=verbscp, args=(),
                 kwargs={'data': datacost[ii, :],
                         'scales': scales[ii, :],
-                        'indok_var': indok_var[ii]})
+                        'indok_var': indok_var[ii],
+                        'ind_bs': dinput['valid']['indbs'][ii, :]})
 
             if chain is True and ii < nspect-1:
                 x0_scale[ii+1, :] = res.x
