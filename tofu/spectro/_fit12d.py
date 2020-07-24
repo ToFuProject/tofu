@@ -2293,8 +2293,7 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb,
             mask=mask, domain=domain,
-            pos=pos, subset=subset,
-            same_spectrum=same_spectrum)
+            pos=pos, subset=subset, same_spectrum=same_spectrum)
 
     # ----------------------
     # Perform 2d fitting
@@ -2356,10 +2355,10 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
     else:
         return dfit1d
 
-
+# TBF
 def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           lamb=None, phi=None, data=None, mask=None,
-          domain=None, pos=None, binning=None, subset=None,
+          domain=None, pos=None, subset=None, binning=None,
           deg=None, knots=None, nbsplines=None,
           method=None, tr_solver=None, tr_options=None,
           xtol=None, ftol=None, gtol=None,
@@ -2367,7 +2366,12 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
           dx0=None, x0_scale=None, bounds_scale=None,
           jac=None, nxi=None, nxj=None, verbose=None, showonly=None,
           save=None, name=None, path=None,
-          plot=None, return_dax=None):
+          amp=None, coefs=None, ratio=None,
+          Ti=None, width=None,
+          vi=None, shift=None,
+          pts_lamb_total=None, pts_lamb_detail=None,
+          plot=None, fs=None, wintit=None, tit=None, dmargin=None,
+          return_dax=None):
 
     # ----------------------
     # Check / format
@@ -2383,18 +2387,19 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
     # ----------------------
     # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
     if dinput is None:
+        # TBC
         dinput = multigausfit2d_from_dlines_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb, phi=phi,
             mask=mask, domain=domain,
-            pos=pos, binning=binning, subset=subset,
+            pos=pos, subset=subset, binning=binning,
             nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None,
-            deg=deg, knots=knots, nbsplines=nbsplines,
-            dataphi1d=dataphi1d, phi1d=phi1d, fraction=None)
+            deg=deg, knots=knots, nbsplines=nbsplines)
 
     # ----------------------
     # Perform 2d fitting
     if showonly is True:
+        # TBF
         pass
     else:
         dfit2d = multigausfit2d_from_dlines(
@@ -2817,24 +2822,85 @@ def _get_phi_profile(key,
 
 
 def fit2d_extract(dfit2d=None,
-                  pts_phi=None, npts_phi=None,
-                  amp=None, Ti=None, vi=None,
+                  amp=None, coefs=None, ratio=None,
+                  Ti=None, width=None,
+                  vi=None, shift=None,
                   pts_lamb_phi_total=None, pts_lamb_phi_detail=None):
 
     # -------------------
     # Check format input
     out = fit12d_get_data_checkformat(
         dfit=dfit2d,
-        amp=amp, Ti=Ti, vi=vi,
-        pts_phi=pts_phi, npts_phi=npts_phi,
-        pts_total=pts_lamb_phi_total,
-        pts_detail=pts_lamb_phi_detail)
+        amp=amp, coefs=coefs, ratio=ratio,
+        Ti=Ti, width=width,
+        vi=vi, shift=shift,
+        pts_total=pts_lamb_total,
+        pts_detail=pts_lamb_detail)
 
     d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
-    nspect = dfit2d['dprepare']['data'].shape[0]
+
+    # Extract dprepare and dind (more readable)
+    dprepare = dfit1d['dinput']['dprepare']
+    dind = dfit1d['dinput']['dind']
+    nspect = dprepare['data'].shape[0]
+
+    # Prepare extract func
+    # TBF
+    def _get_values(key, pts_phi=None,
+                    d3=d3, nspect=nspect, dinput=dfit1d['dinput'],
+                    dind=dind, sol_x=dfit1d['sol_x'], scales=dfit1d['scales']):
+        if d3[key]['type'] == 'lines':
+            keys = dinput['keys'][d3[key]['ind']]
+        else:
+            keys = dinput[d3[key]['field']]['keys'][d3[key]['ind']]
+        indbis = dind[d3[key]['field']][d3[key]['type']][d3[key]['ind']]
+
+        # 1d vs 2d
+        if pts_phi is None:
+            val = sol_x[:, indbis] * scales[:, indbis]
+        else:
+            BS = BSpline(dinput['knots_mult'],
+                         np.ones((dinput['nbs'], ncoefs), dtype=float),
+                         dinput['deg'],
+                         extrapolate=False, axis=0)
+        for ii in range(nspect):
+            BS.c = sol_x[ii, indbis] * scales[ii, indbis]
+            val[ii, :, :] = BS(pts_phi)
+            
+
+        return keys, val
 
     # -------------------
     # Prepare output
+    lk = ['amp', 'coefs', 'ratio', 'Ti', 'width', 'vi', 'shift',
+          'dratio', 'dshift']
+    dout = dict.fromkeys(lk, False)
+
+    # amp
+    if d3['amp'] is not False:
+        keys, val = _get_values('amp')
+        dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
+    # coefs
+    if d3['coefs'] is not False:
+        keys, val = _get_values('coefs')
+        dout['coefs'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+
+    # ratio
+    if d3['ratio'] is not False:
+        nratio = d3['ratio'].shape[1]
+        indup = np.r_[[(dout['coefs']['keys'] == kk).nonzero()[0][0]
+                       for kk in d3['ratio'][0, :]]]
+        indlo = np.r_[[(dout['coefs']['keys'] == kk).nonzero()[0][0]
+                       for kk in d3['ratio'][1, :]]]
+        val = (dout['coefs']['values'][:, indup]
+               / dout['coefs']['values'][:, indlo])
+        lab = np.r_[['{} / {}'.format(dfit1d['dinput']['symb'][indup[ii]],
+                                      dfit1d['dinput']['symb'][indlo[ii]])
+                     for ii in range(nratio)]]
+        dout['ratio'] = {'keys': dout['ratio'], 'values': val,
+                         'lab': lab, 'units': 'a.u.'}
+
     dout = {}
     # amp
     if d3['amp'] is not False:
