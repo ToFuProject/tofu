@@ -173,6 +173,23 @@ def get_symmetry_axis_1dprofile(phi, data, cent_fraction=None):
 ###########################################################
 
 
+def _checkformat_dconstraints(dconstraints=None, defconst=None):
+    # Check constraints
+    if dconstraints is None:
+        dconstraints =  defconst
+
+    # Check dconstraints keys
+    lk = sorted(_DCONSTRAINTS.keys())
+    c0= (isinstance(dconstraints, dict)
+         and all([k0 in lk for k0 in dconstraints.keys()]))
+    if not c0:
+        msg = "dconstraints must be a dict of constraints for spectrum fitting"
+        raise Exception(msg)
+
+    # copy to avoid modifying reference
+    return copy.deepcopy(dconstraints)
+
+
 def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
     dinput['double'] = dconstraints.get('double', defconst['double'])
     ltypes = [int, float, np.int_, np.float_]
@@ -360,10 +377,19 @@ def _checkformat_data_fit1d_dlines(data, lamb, mask=None):
 
 def _checkformat_data_fit2d_dlines(data, lamb, phi,
                                    nxi=None, nxj=None, mask=None):
+    datash = data.shape if isinstance(data, np.ndarray) else type(data)
+    lambsh = lamb.shape if isinstance(lamb, np.ndarray) else type(lamb)
+    phish = phi.shape if isinstance(phi, np.ndarray) else type(phi)
+    masksh = mask.shape if isinstance(mask, np.ndarray) else type(mask)
     msg = ("Args data, lamb, phi and mask must be:\n"
            + "\t- data: (nt, n1, n2) or (n1, n2) np.ndarray\n"
            + "\t- lamb, phi: both (n1, n2) np.ndarray\n"
-           + "\t- mask: None or (n1, n2)")
+           + "\t- mask: None or (n1, n2)"
+           + "  You provided:\n"
+           + "\t - data: {}\n".format(datash)
+           + "\t - lamb: {}\n".format(lambsh)
+           + "\t - phi: {}\n".format(phish)
+           + "\t - mask: {}\n".format(masksh))
     if not isinstance(data, np.ndarray):
         raise Exception(msg)
     c0 = (data.ndim in [2, 3]
@@ -390,7 +416,7 @@ def _checkformat_data_fit2d_dlines(data, lamb, phi,
 ###########################################################
 ###########################################################
 #
-#           Domain limitation (2d only)
+#           Domain limitation
 #
 ###########################################################
 ###########################################################
@@ -452,7 +478,7 @@ def apply_domain(lamb=None, phi=None, domain=None):
 
     lc = [lamb is not None, phi is not None]
     if not lc[0]:
-        msg = "At least lamb mut be provided!"
+        msg = "At least lamb must be provided!"
         raise Exception(msg)
 
     din = {'lamb': lamb}
@@ -658,7 +684,7 @@ def _get_subset_indices(subset, indlogical):
 
 
 def _extract_lphi_spectra(data, phi, lamb,
-                          lphi, lphi_tol,
+                          lphi=None, lphi_tol=None,
                           databin=None, binning=None, nlamb=None):
 
     # --------------
@@ -720,7 +746,7 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     if pos is None:
         pos = False
     if subset is None:
-        subset = False
+        subset = _SUBSET
 
     # Check shape of data (multiple time slices possible)
     lamb, data, mask = _checkformat_data_fit1d_dlines(data, lamb, mask=mask)
@@ -752,11 +778,10 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     return dprepare
 
 
-def multigausfit2d_from_dlines_prepare(data, lamb, phi,
+def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
                                        mask=None, domain=None,
                                        pos=None, binning=None,
                                        nbsplines=None, subset=None,
-                                       noise_ind=None,
                                        nxi=None, nxj=None,
                                        lphi=None, lphi_tol=None):
 
@@ -769,8 +794,6 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
             subset = _SUBSET
         else:
             subset = False
-    if noise_ind is None:
-        noise_ind = False
 
     # Check shape of data (multiple time slices possible)
     lamb, phi, data, mask = _checkformat_data_fit2d_dlines(
@@ -797,17 +820,18 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
 
     # --------------
     # Get vertical profile of mean data
-    if binning is False:
-        nphid = nxj
-        phi1d_bins = np.linspace(domain['phi']['minmax'][0],
-                                 domain['phi']['minmax'][1], nxj)
-        phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
-        dataphi1d =  scpstats.binned_statistic(
-            phi[indok], data[:, indok],
-            bins=phi1d_bins, statistic='mean')[0]
-    else:
-        phi1d = (binning['phi']['edges'][1:] + binning['phi']['edges'][:-1])/2.
-        dataphi1d = np.nanmean(databin, axis=1)
+    # DEPRECATED BY VALID ???
+    # if binning is False:
+        # nphid = nxj
+        # phi1d_bins = np.linspace(domain['phi']['minmax'][0],
+                                 # domain['phi']['minmax'][1], nxj)
+        # phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
+        # dataphi1d =  scpstats.binned_statistic(
+            # phi[indok], data[:, indok],
+            # bins=phi1d_bins, statistic='mean')[0]
+    # else:
+        # phi1d = (binning['phi']['edges'][1:] + binning['phi']['edges'][:-1])/2.
+        # dataphi1d = np.nanmean(databin, axis=1)
 
     # --------------
     # Optionally fit only on subset
@@ -825,7 +849,7 @@ def multigausfit2d_from_dlines_prepare(data, lamb, phi,
     # Return
     dprepare = {'data': databin, 'lamb': lambbin, 'phi': phibin,
                 'domain': domain, 'binning': binning, 'indok': indok,
-                'phi1d': phi1d, 'dataphi1d': dataphi1d,
+                # 'phi1d': phi1d, 'dataphi1d': dataphi1d,
                 'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
                 'lphi': lphi, 'lphi_tol': lphi_tol,
                 'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb}
@@ -904,11 +928,6 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
                  'nknotsperbs': nknotsperbs, 'ptsx0': ptsx0,
                  'nbs': nbs, 'deg': deg}
     return dbsplines
-
-
-def valid_indices_phi(sig1d, phi1d, threshold=None):
-    ind = sig1d < threshold
-    return ind
 
 
 ###########################################################
@@ -1000,44 +1019,16 @@ def _dvalid_12d(data=None, lamb=None, nsigma=None,
     return dvalid
 
 
-def _dvalid_2d(data=None, knots_mult=None, knotspnbs=None,
-               nsigma=None):
-    if nsigma is None:
-        nsigma = _NSIGMA
-
-    import pdb; pdb.set_trace()     # DB
-
-    return dvalid
-
-
 ###########################################################
 ###########################################################
 #
-#           dinput dict (lines + spectral constraints)
+#           dlines dict (lines vs domain)
 #
 ###########################################################
 ###########################################################
 
 
-def multigausfit1d_from_dlines_dinput(
-    dlines=None, dconstraints=None, dprepare=None,
-    data=None, lamb=None, mask=None, domain=None, pos=None, subset=None,
-    same_spectrum=None, nspect=None, dlamb=None,
-    focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
-    defconst=_DCONSTRAINTS):
-
-    # ------------------------
-    # Check / format dprepare
-    # ------------------------
-    if dprepare is None:
-        dprepare = multigausfit1d_from_dlines_prepare(
-            data=data, lamb=lamb,
-            mask=mask, domain=domain,
-            pos=pos, subset=subset)
-
-    # ------------------------
-    # Check / format basics
-    # ------------------------
+def _checkformat_dlines(dlines=None, domain=None):
     if dlines is None:
         dlines = False
     c0 = (isinstance(dlines, dict)
@@ -1065,13 +1056,40 @@ def multigausfit1d_from_dlines_dinput(
     inds = np.argsort(lines_lamb)
     keys, lines_lamb = keys[inds], lines_lamb[inds]
     nlines = lines_lamb.size
+    return dlines, lines_keys, lines_lamb
 
-    # Error message for constraints
-    msg = "dconstraints must be a dict of constraints for spectrum fitting"
 
-    # Check constraints
-    if dconstraints is None:
-        dconstraints =  defconst
+###########################################################
+###########################################################
+#
+#           dinput dict (lines + spectral constraints)
+#
+###########################################################
+###########################################################
+
+
+def multigausfit1d_from_dlines_dinput(
+    dlines=None, dconstraints=None, dprepare=None,
+    data=None, lamb=None, mask=None,
+    domain=None, pos=None, subset=None,
+    same_spectrum=None, nspect=None, dlamb=None,
+    focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+    defconst=_DCONSTRAINTS):
+
+    # ------------------------
+    # Check / format dprepare
+    # ------------------------
+    if dprepare is None:
+        dprepare = multigausfit1d_from_dlines_prepare(
+            data=data, lamb=lamb,
+            mask=mask, domain=domain,
+            pos=pos, subset=subset)
+
+    # ------------------------
+    # Check / format dlines
+    # ------------------------
+    dlines, lines_keys, lines_lamb = _checkformat_dlines(dlines=dlines,
+                                                         domain=domain)
 
     # Check same_spectrum
     if same_spectrum is None:
@@ -1085,18 +1103,11 @@ def multigausfit1d_from_dlines_dinput(
                         dprepare['domain']['lamb']['minmax'][0])
 
     # ------------------------
-    # Check keys
+    # Check / format dconstraints
     # ------------------------
 
-    # Check dconstraints keys
-    lk = sorted(_DCONSTRAINTS.keys())
-    c0= (isinstance(dconstraints, dict)
-         and all([k0 in lk for k0 in dconstraints.keys()]))
-    if not c0:
-        raise Exception(msg)
-
-    # copy to avoid modifying reference
-    dconstraints = copy.deepcopy(dconstraints)
+    dconstraints = _checkformat_dconstraints(dconstraints=dconstraints,
+                                             defconst=defconst)
     ltypes = [int, float, np.int_, np.float_]
     dinput = {}
 
@@ -1110,14 +1121,15 @@ def multigausfit1d_from_dlines_dinput(
     # ------------------------
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]),
-                                      keys=keys, nlines=nlines, dlines=dlines)
+                                      keys=lines_keys, nlines=nlines,
+                                      dlines=dlines)
 
     # ------------------------
     # add mz, symb, ION, keys, lamb
     # ------------------------
-    mz = np.array([dlines[k0].get('m', np.nan) for k0 in keys])
-    symb = np.array([dlines[k0].get('symbol', k0) for k0 in keys])
-    ion = np.array([dlines[k0].get('ION', '?') for k0 in keys])
+    mz = np.array([dlines[k0].get('m', np.nan) for k0 in lines_keys])
+    symb = np.array([dlines[k0].get('symbol', k0) for k0 in lines_keys])
+    ion = np.array([dlines[k0].get('ION', '?') for k0 in lines_keys])
 
     # ------------------------
     # same_spectrum
@@ -1163,7 +1175,7 @@ def multigausfit1d_from_dlines_dinput(
     # ------------------------
     # add lines and properties
     # ------------------------
-    dinput['keys'] = keys
+    dinput['keys'] = lines_keys
     dinput['lines'] = lines_lamb
     dinput['nlines'] = nlines
 
@@ -1179,13 +1191,15 @@ def multigausfit1d_from_dlines_dinput(
         dinput['same_spectrum_nspect'] = False
         dinput['same_spectrum_dlamb'] = False
 
+    # ------------------------
     # S/N threshold indices
+    # ------------------------
     dinput['valid'] = _dvalid_12d(
         data=dprepare['data'], lamb=dprepare['lamb'],
         nsigma=focus_nsigma,
         fraction=focus_fraction,
         focus=focus, width=focus_width,
-        lines_keys=keys, lines_lamb=lines_lamb)
+        lines_keys=lines_keys, lines_lamb=lines_lamb)
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1199,10 +1213,10 @@ def multigausfit1d_from_dlines_dinput(
 def multigausfit2d_from_dlines_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     deg=None, nbsplines=None, knots=None,
-    data=None, lamb=None, phi=None, cent_fraction=None,
-    mask=None, domain=None, pos=None, binning=None, subset=None,
+    data=None, lamb=None, phi=None, mask=None,
+    domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
     focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
-    noise_ind=None, nxi=None, nxj=None,
+    nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
     defconst=_DCONSTRAINTS):
 
@@ -1211,63 +1225,24 @@ def multigausfit2d_from_dlines_dinput(
     # ------------------------
     if dprepare is None:
         dprepare = multigausfit2d_from_dlines_prepare(
-            data, lamb, phi,
+            data=data, lamb=lamb, phi=phi,
             mask=mask, domain=domain,
-            pos=pos, binning=binning,
-            nbsplines=nbsplines, subset=subset,
-            nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None)
+            pos=pos, subset=subset, binning=binning,
+            nbsplines=nbsplines, nxi=nxi, nxj=nxj,
+            lphi=None, lphi_tol=None)
 
     # ------------------------
-    # Check / format basics
+    # Check / format dlines
     # ------------------------
-    if dlines is None:
-        dlines = False
-    c0 = (isinstance(dlines, dict)
-          and all([(isinstance(k0, str)
-                    and isinstance(v0, dict)
-                    and 'lambda' in v0.keys())
-                   for k0, v0 in dlines.items()]))
-    if not c0:
-        msg = ("Arg dlines must be a dict of the form:\n"
-               + "\t{'line0': {'lambda': float},\n"
-               + "\t 'line1': {'lambda': float},\n"
-               + "\t  ...\n"
-               + "\t 'lineN': {'lambda': float}}"
-               + "  You provided: {}".format(dlines))
-        raise Exception(msg)
-
-    # Select relevant lines (keys, lamb)
-    keys = np.array([k0 for k0 in dlines.keys()])
-    lines_lamb = np.array([dlines[k0]['lambda'] for k0 in keys])
-    if dprepare['domain'] is not False:
-        ind = ((lines_lamb >= dprepare['domain']['lamb']['minmax'][0])
-               & (lines_lamb <= dprepare['domain']['lamb']['minmax'][1]))
-        keys = keys[ind]
-        lines_lamb = lines_lamb[ind]
-    inds = np.argsort(lines_lamb)
-    keys, lines_lamb = keys[inds], lines_lamb[inds]
-    nlines = lines_lamb.size
-
-    # Error message for constraints
-    msg = "dconstraints must be a dict of constraints for spectrum fitting"
-
-    # Check constraints
-    if dconstraints is None:
-        dconstraints =  defconst
+    dlines, lines_keys, lines_lamb = _checkformat_dlines(dlines=dlines,
+                                                         domain=domain)
 
     # ------------------------
-    # Check keys
+    # Check / format dconstraints
     # ------------------------
 
-    # Check dconstraints keys
-    lk = sorted(_DCONSTRAINTS.keys())
-    c0= (isinstance(dconstraints, dict)
-         and all([k0 in lk for k0 in dconstraints.keys()]))
-    if not c0:
-        raise Exception(msg)
-
-    # copy to avoid modifying reference
-    dconstraints = copy.deepcopy(dconstraints)
+    dconstraints = _checkformat_dconstraints(dconstraints=dconstraints,
+                                             defconst=defconst)
     ltypes = [int, float, np.int_, np.float_]
     dinput = {}
 
@@ -1280,7 +1255,7 @@ def multigausfit2d_from_dlines_dinput(
                            cent_fraction=cent_fraction, defconst=defconst)
 
     # ------------------------
-    # Check / format double
+    # Check / format double (spectral line doubling)
     # ------------------------
     _dconstraints_double(dinput, dconstraints, defconst=defconst)
 
@@ -1289,18 +1264,22 @@ def multigausfit2d_from_dlines_dinput(
     # ------------------------
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]),
-                                      keys=keys, nlines=nlines, dlines=dlines)
+                                      keys=lines_keys, nlines=nlines, dlines=dlines)
 
     # ------------------------
     # add mz, symb, ION, keys, lamb
     # ------------------------
-    dinput['mz'] = np.array([dlines[k0].get('m', np.nan) for k0 in keys])
-    dinput['symb'] = np.array([dlines[k0].get('symbol', k0) for k0 in keys])
-    dinput['ion'] = np.array([dlines[k0].get('ION', '?') for k0 in keys])
+    mz = np.array([dlines[k0].get('m', np.nan) for k0 in lines_keys])
+    symb = np.array([dlines[k0].get('symbol', k0) for k0 in lines_keys])
+    ion = np.array([dlines[k0].get('ION', '?') for k0 in lines_keys])
 
-    dinput['keys'] = keys
+    dinput['keys'] = lines_keys
     dinput['lines'] = lines_lamb
     dinput['nlines'] = nlines
+
+    dinput['mz'] = mz
+    dinput['symb'] = symb
+    dinput['ion'] = ion
 
     # Get dict of bsplines
     dinput.update(multigausfit2d_from_dlines_dbsplines(
@@ -1309,14 +1288,16 @@ def multigausfit2d_from_dlines_dinput(
         phimax=dprepare['domain']['phi']['minmax'][1],
         symmetryaxis=dinput.get('symmetry_axis')))
 
+    # ------------------------
     # S/N threshold indices
+    # ------------------------
     dinput['valid'] = _dvalid_12d(
         data=dprepare['data'], lamb=dprepare['lamb'],
         binning=dprepare['binning'],
         nsigma=focus_nsigma,
         fraction=focus_fraction,
         focus=focus, width=focus_width,
-        lines_keys=keys, lines_lamb=lines_lamb)
+        lines_keys=lines_keys, lines_lamb=lines_lamb)
 
     # Update bsplines
     if dinput['valid']['dphi'] is not False:
@@ -1353,7 +1334,7 @@ def multigausfit1d_from_dlines_ind(dinput=None):
     # indices
     # General shape: [bck, amp, widths, shifts]
     # If double [..., double_shift, double_ratio]
-    # Excpet for bck, all indices should render nlines (2*nlines if double)
+    # Except for bck, all indices should render nlines (2*nlines if double)
     dind = {'bck': {'x': np.r_[0]},
             'dshift': None,
             'dratio': None}
@@ -1405,7 +1386,7 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     # indices
     # General shape: [bck, amp, widths, shifts]
     # If double [..., double_shift, double_ratio]
-    # Excpet for bck, all indices should render nlines (2*nlines if double)
+    # Except for bck, all indices should render nlines (2*nlines if double)
     nbs = dinput['nbs']
     dind = {'bck': {'x': np.arange(0, nbs)},
             'dshift': None,
@@ -1458,7 +1439,7 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 
     # Make bsplines selections easy
     # if dinput['valid']['dphi'] is not False:
-        # dind['bs']['amp'] =
+        # dind['bs']['x'] = 
         # import pdb; pdb.set_trace()     # DB
         # pass
 
@@ -1547,6 +1528,9 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
                                      scales=None, dscales=None,
                                      domain=None, dinput=None,
                                      dind=None, nspect=None):
+    if dscales is None:
+        dscales = False
+
     if scales is None:
         scales = np.full((nspect, dind['sizex']), np.nan)
         Dphi = domain['phi']['minmax'][1] - domain['phi']['minmax'][0]
@@ -1554,6 +1538,7 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
         lambm = domain['lamb']['minmax'][0]
         ibckx, iax = dind['bck']['x'], dind['amp']['x']
         iwx, isx = dind['width']['x'].ravel(), dind['shift']['x'].ravel()
+
         # Perform by sector
         nbs, nlines = dinput['nbs'], dinput['nlines']
         na = dinput['amp']['ind'].shape[0]
@@ -1782,35 +1767,8 @@ def _checkformat_dinput(dinput):
 ###########################################################
 
 
-def multigausfit1d_from_dlines(dinput=None,
-                               dx0=None, scales=None, dscales=None,
-                               x0_scale=None, bounds_scale=None,
-                               method=None, tr_solver=None, tr_options=None,
-                               xtol=None, ftol=None, gtol=None,
-                               max_nfev=None, chain=None, verbose=None,
-                               loss=None, jac=None):
-    """ Solve multi_gaussian fit in 1d from dlines
-
-    If double is True, all lines are double with common shift and ratio
-
-    Unknowns are:
-        x = [bck, w0, v0, c00, c01, ..., c0n, w1, v1, c10, c11, ..., c1N, ...]
-
-        - bck : constant background
-        - wi  : spectral width of a group of lines (ion): wi^2 = 2kTi / m*c**2
-                This way, it is dimensionless
-        - vni : normalised velicity of the ion: vni = vi / c
-        - cij : normalised coef (intensity) of line: cij = Aij
-
-    Scaling is done so each quantity is close to unity:
-        - bck: np.mean(data[data < mean(data)/2])
-        - wi : Dlamb / 20
-        - vni: 10 km/s
-        - cij: np.mean(data)
-
-    """
-
-    # Check format
+def _checkformat_options(chain, method, tr_solver, tr_options,
+                         xtol, ftol, gtol, loss, max_nfev, verbose):
     if chain is None:
         chain = _CHAIN
     if method is None:
@@ -1837,11 +1795,50 @@ def multigausfit1d_from_dlines(dinput=None,
     else:
         verbscp = 0
 
+     return (chain, method, tr_solver, tr_options,
+             xtol, ftol, gtol, loss, max_nfev, verbose, verbscp)
+
+
+def multigausfit1d_from_dlines(dinput=None, dx0=None,
+                               scales=None, dscales=None,
+                               x0_scale=None, bounds_scale=None,
+                               method=None, tr_solver=None, tr_options=None,
+                               xtol=None, ftol=None, gtol=None,
+                               max_nfev=None, chain=None, verbose=None,
+                               loss=None, jac=None):
+    """ Solve multi_gaussian fit in 1d from dlines
+
+    If double is True, all lines are double with common shift and ratio
+
+    Unknowns are:
+        x = [bck, w0, v0, c00, c01, ..., c0n, w1, v1, c10, c11, ..., c1N, ...]
+
+        - bck : constant background
+        - wi  : spectral width of a group of lines (ion): wi^2 = 2kTi / m*c**2
+                This way, it is dimensionless
+        - vni : normalised velicity of the ion: vni = vi / c
+        - cij : normalised coef (intensity) of line: cij = Aij
+
+    Scaling is done so each quantity is close to unity:
+        - bck: np.mean(data[data < mean(data)/2])
+        - wi : Dlamb / 20
+        - vni: 10 km/s
+        - cij: np.mean(data)
+
+    """
+
+    # ---------------------------
+    # Check format options
+    (chain, method, tr_solver, tr_options,
+     xtol, ftol, gtol, loss, max_nfev,
+     verbose, verbscp) = _checkformat_options(
+         chain, method, tr_solver, tr_options,
+         xtol, ftol, gtol, loss, max_nfev, verbose)
+
     # ---------------------------
     # Load dinput if necessary
     dinput = _checkformat_dinput(dinput)
     dprepare, dind = dinput['dprepare'], dinput['dind']
-
     nspect = dprepare['data'].shape[0]
 
     # ---------------------------
@@ -1856,25 +1853,29 @@ def multigausfit1d_from_dlines(dinput=None,
         lamb = dprepare['lamb']
         data = dprepare['data']
 
+    # ---------------------------
     # Get scaling
     scales = multigausfit1d_from_dlines_scale(
         data, lamb,
         domain=dprepare['domain'], dinput=dinput,
         dind=dind, scales=scales, dscales=dscales, nspect=nspect)
 
+    # ---------------------------
     # Get initial guess
     x0_scale = multigausfit12d_from_dlines_x0(
         dind=dind, double=dinput['double'], nspect=nspect,
         dx0=dx0, keys=dinput['keys'])
 
+    # ---------------------------
     # get bounds
     bounds_scale = multigausfit12d_from_dlines_bounds(dind['sizex'],
                                                       dind,
                                                       dinput['double'])
 
+    # ---------------------------
     # Get function, cost function and jacobian
-    (func_detail,
-     func_cost, func_jac) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
+    (func_detail, func_cost,
+     func_jac) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
          lamb, dinput=dinput, dind=dind, jac=jac)
 
     # ---------------------------
@@ -1900,6 +1901,7 @@ def multigausfit1d_from_dlines(dinput=None,
 
     # ---------------------------
     # Minimize
+    end = '\r'
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
         if verbose == 3:
@@ -1954,7 +1956,8 @@ def multigausfit1d_from_dlines(dinput=None,
                                      errmsg[ii]])
             msg = ' '.join([cc.ljust(maxl) for cc in col])
             if verbose == 1:
-                end = '\n' if ii == nspect-1 else '\r'
+                if ii == nspect-1:
+                    end = '\n'
                 print(msg, end=end, flush=True)
             else:
                 print(msg, end='\n')
@@ -2062,38 +2065,18 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
 
     """
 
-    # Check format
-    if chain is None:
-        chain = _CHAIN
-    if method is None:
-        method = _METHOD
-    assert method in ['trf', 'dogbox', 'lm'], method
-    if tr_solver is None:
-        tr_solver = None
-    if tr_options is None:
-        tr_options = {}
-    if xtol is None:
-        xtol = _TOL2D['x']
-    if ftol is None:
-        ftol = _TOL2D['f']
-    if gtol is None:
-        gtol = _TOL2D['g']
-    if loss is None:
-        loss = _LOSS
-    if max_nfev is None:
-        max_nfev = None
-    if verbose is None:
-        verbose = 1
-    if verbose == 3:
-        verbscp = 2
-    else:
-        verbscp = 0
+    # ---------------------------
+    # Check format options
+    (chain, method, tr_solver, tr_options,
+     xtol, ftol, gtol, loss, max_nfev,
+     verbose, verbscp) = _checkformat_options(
+         chain, method, tr_solver, tr_options,
+         xtol, ftol, gtol, loss, max_nfev, verbose)
 
     # ---------------------------
     # Load dinput if necessary
     dinput = _checkformat_dinput(dinput)
     dprepare, dind = dinput['dprepare'], dinput['dind']
-
     nspect = dprepare['data'].shape[0]
 
     # ---------------------------
@@ -2107,17 +2090,20 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
         domain=dprepare['domain'], dinput=dinput,
         dind=dind, scales=scales, dscales=dscales, nspect=nspect)
 
+    # ---------------------------
     # Get initial guess
     x0_scale = multigausfit2d_from_dlines_x0(
         dind=dind, double=dinput['double'],
-        nspect=nspect, nbs=dinput['nbs'],
-        dx0=dx0, keys=dinput['keys'])
+        dx0=dx0, keys=dinput['keys'],
+        nspect=nspect, nbs=dinput['nbs'])
 
+    # ---------------------------
     # get bounds
     bounds_scale = multigausfit2d_from_dlines_bounds(dind['sizex'],
                                                      dind,
                                                      dinput['double'])
 
+    # ---------------------------
     # Get function, cost function and jacobian
     (func_detail, func_cost,
      func_jac) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
@@ -2162,6 +2148,7 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
 
     # ---------------------------
     # Minimize
+    end = '\r'
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
         if verbose == 3:
@@ -2184,6 +2171,7 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
                         'scales': scales[ii, :],
                         'indok_var': indok_var[ii],
                         'ind_bs': dinput['valid']['indbs'][ii, :]})
+            dti = (dtm.datetime.now() - t0i).total_seconds()
 
             if chain is True and ii < nspect-1:
                 x0_scale[ii+1, :] = res.x
@@ -2202,13 +2190,21 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
             validity[ii] = -1
 
         if verbose in [1, 2]:
-            col = np.char.array(['{} / {}'.format(ii+1, nspect),
-                                 '{}'.format(dti),
-                                 '{:5.3e}'.format(res.cost),
-                                 str(res.nfev), str(res.njev), res.message])
+            if validity[ii] == 0:
+                col = np.char.array(['{} / {}'.format(ii+1, nspect),
+                                     '{}'.format(dti),
+                                     '{:5.3e}'.format(res.cost),
+                                     str(res.nfev), str(res.njev),
+                                     res.message])
+            else:
+                col = np.char.array(['{} / {}'.format(ii+1, nspect),
+                                     '{}'.format(dti),
+                                     ' - ', ' - ', ' - ',
+                                     errmsg[ii]])
             msg = ' '.join([cc.ljust(maxl) for cc in col])
             if verbose == 1:
-                end = '\n' if ii == nspect-1 else '\r'
+                if ii == nspect-1:
+                    end = '\n'
                 print(msg, end=end, flush=True)
             else:
                 print(msg, end='\n')
