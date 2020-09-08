@@ -26,6 +26,104 @@ except Exception:
 
 
 # ==============================================================================
+# Interfacing functions
+# ==============================================================================
+
+def get_path_from_svg(pfe):
+
+    # Predefine useful var
+    dout = {}
+    inpath = False
+    path = []
+
+    # Extract paths
+    with open(pfe, 'r') as fid:
+        while True:
+            l0 = fid.readline()
+            i0 = 0
+            if '<path' in l0 and '/>' in l0[l0.index('<path'):]:
+                # Case with all on a single line (e.g.: from draw.io)
+                while '<path' in l0:
+                    l0 = l0[l0.index('<path')+len('<path'):]
+                    i1 = l0.index('/>')
+                    path.append([l0[i0:i1]])
+                    l0 = l0[i1:]
+            elif '<path' in l0:
+                i0 = l0.index('<path')
+                path.append([])
+                inpath = True
+            elif inpath is True and '/>' in l0:
+                i1 = l0.index('/>')
+                path[-1].append(l0[:i1])
+                inpath = False
+
+            if inpath is True:
+                path[-1].append(l0[i0:])
+
+            if not l0:
+                break
+
+    # Inspect path to get cls and poly
+    dkeys = {'cls': ['style', 'fill'],
+             'name': 'id',
+             'poly': 'd'}
+    for ii in range(len(path)):
+        if len(path[ii]) == 1:
+            nkeys = path[ii][0].count('=')
+            l0_inv = path[ii][0][::-1]
+            li0 = []
+            while '=' in l0_inv:
+                ind = l0_inv.index('=')
+                if ' ' in l0_inv[ind+1:]:
+                    i0 = l0_inv[ind+1:].index(' ')
+                else:
+                    i0 = len(l0_inv)
+                li0.append(len(l0_inv) - ind - i0 - 2)
+                l0_inv = l0_inv[ind+i0+2:]
+            li0 = li0[::-1]
+            path[ii] = [path[ii][0][i+1:j] for i, j in zip(li0, li0[1:]+[None])]
+
+        dpath = {pp.split('=')[0].strip(' '): pp.split('=')[1].strip(' ')
+                 for pp in path[ii] if '=' in pp}
+
+        cls, color = 'PFC', None
+        if 'fill' in dpath.keys():
+            if 'none' in dpath['fill']:
+                cls = 'Ves'
+            elif '#' in dpath['fill']:
+                color = dpath['fill']
+        elif 'style' in dpath.keys():
+            if 'fill' in dpath['style']:
+                dstyle = {ss.split(':')[0].replace('"', ''): ss.split(':')[1]
+                          for ss in dpath['style'].split(';')
+                          if ss.split(':')[0].replace('"', '') == 'fill'}
+                if len(dstyle) > 0:
+                    if 'none' in dstyle['fill']:
+                        cls = 'Ves'
+                    elif '#' in dstyle['fill']:
+                        color = dstyle['fill']
+
+        if dkeys['name'] in dpath.keys():
+            name = dpath[dkeys['name']].replace('\n', '').replace('"','')
+        else:
+            name = 'Struct{:02.0f}'.format(ii)
+
+        if dkeys['poly'] in dpath.keys():
+            poly = dpath[dkeys['poly']]
+            if 'M' in poly:
+                pass
+            # poly = poly[poly.index('m')+2:poly.index('z')-1]
+            # poly = np.array([(float(dd.split(',')[0]),
+                              # float(dd.split(',')[1]))
+                             # for dd in poly.split(' ')], dtype=float)
+
+        if cls not in dout.keys():
+            dout[cls] = {}
+            dout[cls].update({name: {'poly': poly, 'color': color}})
+    return dout
+
+
+# ==============================================================================
 # = Ves sub-functions
 # ==============================================================================
 def _Struct_set_Poly(
