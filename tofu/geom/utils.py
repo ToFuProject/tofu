@@ -846,7 +846,7 @@ def _create_config_testcase(config=None, returnas='object',
             try:
                 obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
                                                  Exp=dconfig[config]['Exp'],
-                                                 out=returnas)
+                                                 returnas=returnas)
                 if returnas not in ['object', object]:
                     obj = ((ss, {'Poly': obj[0],
                                  'pos': obj[1], 'extent': obj[2]}),)

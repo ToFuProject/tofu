@@ -479,10 +479,10 @@ def load(name, path=None, strip=None, verb=True, allow_pickle=None):
         Flag indocating whether to print a summary of the loaded file
     """
 
-    lmodes = ['.npz','.mat','.txt']
+    lmodes = ['.npz', '.mat', '.txt', '.csv']
     name, mode, pfe = _filefind(name=name, path=path, lmodes=lmodes)
 
-    if mode == 'txt':
+    if mode in ['txt', 'csv']:
         obj = _load_from_txt(name, pfe)
     else:
         if mode == 'npz':
