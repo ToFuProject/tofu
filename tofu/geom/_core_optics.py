@@ -1944,7 +1944,7 @@ class CrystalBragg(utils.ToFuObject):
             plot=plot, fs=fs, wintit=wintit, tit=tit)
 
     @staticmethod
-    def fitd_extract(
+    def fit1d_extract(
         dfit1d=None,
         amp=None, coefs=None, ratio=None,
         Ti=None, width=None,
