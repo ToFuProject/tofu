@@ -905,7 +905,7 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
 
     # Camera with identified pixels
     if dax.get('cam') is not None:
-        dax['cam'].imshow(cam,
+        dax['cam'].imshow(cam.T,
                           origin='lower', interpolation='nearest',
                           aspect='equal', cmap=cmap)
         lab = r'err > {:02.0f}% {}$\sigma$'.format(fraction*100, margin)

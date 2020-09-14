@@ -1450,7 +1450,8 @@ class CrystalBragg(utils.ToFuObject):
         if xi.shape == xj.shape:
             return xi, xj, (xi, xj)
         else:
-            return xi, xj, np.meshgrid(xi, xj)
+            return xi, xj, np.meshgrid(xi, xj,
+                                       copy=True, sparse=False, indexing='ij')
 
     @staticmethod
     def _checkformat_dthetapsi(psi=None, dtheta=None,
@@ -2027,7 +2028,7 @@ class CrystalBragg(utils.ToFuObject):
                      det=None, dtheta=None, psi=None,
                      mask=None, domain=None,
                      pos=None, binning=None, subset=None,
-                     lphi=None, lphi_tol=None,
+                     # lphi=None, lphi_tol=None,
                      deg=None, knots=None, nbsplines=None,
                      focus=None, focus_fraction=None,
                      focus_nsigma=None, focus_width=None):
