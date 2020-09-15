@@ -1874,64 +1874,72 @@ class CrystalBragg(utils.ToFuObject):
             return ax
 
     @staticmethod
-    def fit1d_dinput(dlines=None, dconstraints=None, dprepare=None,
-                     data=None, lamb=None, mask=None,
-                     domain=None, pos=None, subset=None, same_spectrum=None,
-                     focus=None, focus_fraction=None,
-                     focus_nsigma=None, focus_width=None):
+    def fit1d_dinput(
+        dlines=None, dconstraints=None, dprepare=None,
+        data=None, lamb=None,
+        mask=None, domain=None, pos=None, subset=None,
+        same_spectrum=None, same_spectrum_dlamb=None,
+        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
         Provides a user-friendly way of defining constraints
         """
+
         import tofu.spectro._fit12d as _fit12d
-        return _fit12d.multigausfit1d_from_dlines_dinput(
+        return _fit12d.fit1d_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb,
-            mask=mask, domain=domain,
-            pos=pos, subset=subset,
+            mask=mask, domain=domain, pos=pos, subset=subset,
             same_spectrum=same_spectrum,
+            same_spectrum_dlamb=same_spectrum_dlamb,
             focus=focus, focus_fraction=focus_fraction,
             focus_nsigma=focus_nsigma, focus_width=focus_width)
 
-    def fit1d(self, dprepare=None, dlines=None, dconstraints=None, dinput=None,
-              data=None, lamb=None, mask=None,
-              domain=None, subset=None, pos=None,
-              focus=None, focus_fraction=None,
-              focus_nsigma=None, focus_width=None,
-              dx0=None, same_spectrum=None, dlamb=None,
-              dscales=None, x0_scale=None, bounds_scale=None,
-              method=None, tr_solver=None, tr_options=None, max_nfev=None,
-              xtol=None, ftol=None, gtol=None,
-              loss=None, verbose=None, chain=None,
-              jac=None, showonly=None,
-              save=None, name=None, path=None,
-              amp=None, coefs=None, ratio=None,
-              Ti=None, width=None,
-              vi=None, shift=None,
-              pts_lamb_total=None, pts_lamb_detail=None,
-              plot=None, fs=None, dmargin=None,
-              tit=None, wintit=None, returnas=None):
+    def fit1d(
+        self,
+        # Input data kwdargs
+        data=None, lamb=None,
+        dinput=None, dprepare=None, dlines=None, dconstraints=None,
+        mask=None, domain=None, subset=None, pos=None,
+        same_spectrum=None, same_spectrum_dlamb=None,
+        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+        # Optimization kwdargs
+        dx0=None, dscales=None, x0_scale=None, bounds_scale=None,
+        method=None, tr_solver=None, tr_options=None, max_nfev=None,
+        xtol=None, ftol=None, gtol=None,
+        loss=None, verbose=None, chain=None, jac=None, showonly=None,
+        # Results extraction kwdargs
+        amp=None, coefs=None, ratio=None,
+        Ti=None, width=None, vi=None, shift=None,
+        pts_lamb_total=None, pts_lamb_detail=None,
+        # Saving and plotting kwdargs
+        save=None, name=None, path=None,
+        plot=None, fs=None, dmargin=None,
+        tit=None, wintit=None, returnas=None):
 
         # ----------------------
         # Get dinput for 1d fitting from dlines, dconstraints, dprepare...
         if dinput is None:
             dinput = self.fit1d_dinput(
                 dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
-                data=data, lamb=lamb, mask=mask, domain=domain,
+                data=data, lamb=lamb,
+                mask=mask, domain=domain, pos=pos, subset=subset,
                 focus=focus, focus_fraction=focus_fraction,
                 focus_nsigma=focus_nsigma, focus_width=focus_width,
-                pos=pos, subset=subset,
-                same_spectrum=same_spectrum)
+                same_spectrum=same_spectrum,
+                same_spectrum_dlamb=same_spectrum_dlamb)
 
         # ----------------------
         # return
         import tofu.spectro._fit12d as _fit12d
         return _fit12d.fit1d(
+            # Input data kwdargs
+            data=data, lamb=lamb,
             dinput=dinput, dprepare=dprepare,
             dlines=dlines, dconstraints=dconstraints,
-            lamb=lamb, data=data, mask=mask,
-            domain=domain, pos=pos, subset=subset,
+            mask=mask, domain=domain, subset=subset, pos=pos,
+            # Optimization kwdargs
             method=method, tr_solver=tr_solver, tr_options=tr_options,
             xtol=xtol, ftol=ftol, gtol=gtol,
             max_nfev=max_nfev, loss=loss, chain=chain,
@@ -2023,20 +2031,20 @@ class CrystalBragg(utils.ToFuObject):
               tit=None, wintit=None, returnas=None)
         pass
 
-    def fit2d_dinput(self, dlines=None, dconstraints=None, dprepare=None,
-                     data=None, xi=None, xj=None, n=None,
-                     det=None, dtheta=None, psi=None,
-                     mask=None, domain=None,
-                     pos=None, binning=None, subset=None,
-                     # lphi=None, lphi_tol=None,
-                     deg=None, knots=None, nbsplines=None,
-                     focus=None, focus_fraction=None,
-                     focus_nsigma=None, focus_width=None):
+    def fit2d_dinput(
+        self, dlines=None, dconstraints=None, dprepare=None,
+        data=None, xi=None, xj=None, n=None,
+        det=None, dtheta=None, psi=None,
+        mask=None, domain=None, pos=None, binning=None, subset=None,
+        # lphi=None, lphi_tol=None,
+        deg=None, knots=None, nbsplines=None,
+        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
         Provides a user-friendly way of defining constraints
         """
+
         import tofu.spectro._fit12d as _fit12d
         if dprepare is None:
             # ----------------------
@@ -2059,33 +2067,41 @@ class CrystalBragg(utils.ToFuObject):
                 mask=mask, domain=domain,
                 pos=pos, binning=binning,
                 nbsplines=nbsplines, subset=subset,
-                nxi=nxi, nxj=nxj, lphi=lphi, lphi_tol=lphi_tol)
-        return _fit12d.multigausfit2d_from_dlines_dinput(
-            dlines=dlines, dconstraints=dconstraints,
-            deg=deg, knots=knots, nbsplines=nbsplines, dprepare=dprepare,
+                nxi=nxi, nxj=nxj) # , lphi=lphi, lphi_tol=lphi_tol)
+        return _fit12d.fit2d_dinput(
+            dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
+            deg=deg, knots=knots, nbsplines=nbsplines,
             focus=focus, focus_fraction=focus_fraction,
             focus_nsigma=focus_nsigma, focus_width=focus_width)
 
-    def fit2d(self, xi=None, xj=None, data=None, mask=None,
-              det=None, dtheta=None, psi=None, n=None,
-              domain=None, dinput=None, dprepare=None,
-              dlines=None, dconstraints=None, dx0=None,
-              x0_scale=None, bounds_scale=None,
-              deg=None, knots=None, nbsplines=None,
-              method=None, tr_solver=None, tr_options=None,
-              predeclare=None, max_nfev=None, chain=None,
-              xtol=None, ftol=None, gtol=None,
-              loss=None, verbose=None, debug=None,
-              pos=None, subset=None, binning=None,
-              focus=None, focus_fraction=None,
-              focus_nsigma=None, focus_width=None,
-              npts=None, dax=None,
-              ratio=None, jac=None,
-              spect1d=None, nlambfit=None,
-              plot=None, plotmode=None, angunits=None, indspect=None,
-              fs=None, dmargin=None, tit=None, wintit=None,
-              cmap=None, vmin=None, vmax=None,
-              save=None, path=None, name=None):
+    def fit2d(
+        self,
+        # Input data kwdargs
+        data=None, xi=None, xj=None,
+        det=None, dtheta=None, psi=None, n=None,
+        dinput=None, dprepare=None, dlines=None, dconstraints=None,
+        mask=None, domain=None, subset=None, pos=None, binning=None,
+        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+        deg=None, knots=None, nbsplines=None,
+        # Optimization kwdargs
+        dx0=None, dscales=None, x0_scale=None, bounds_scale=None,
+        method=None, tr_solver=None, tr_options=None, max_nfev=None,
+        xtol=None, ftol=None, gtol=None,
+        loss=None, verbose=None, chain=None, jac=None, showonly=None,
+        predeclare=None, debug=None,
+        # Results extraction kwdargs
+        amp=None, coefs=None, ratio=None,
+        Ti=None, width=None, vi=None, shift=None,
+        pts_lamb_total=None, pts_lamb_detail=None,
+        # Saving and plotting kwdargs
+        save=None, name=None, path=None,
+        plot=None, fs=None, dmargin=None,
+        tit=None, wintit=None, returnas=None):
+
+        # npts=None, dax=None,
+        # spect1d=None, nlambfit=None,
+        # plotmode=None, angunits=None, indspect=None,
+        # cmap=None, vmin=None, vmax=None):
         """ Perform 2d fitting of a 2d apectromtere image
 
         Fit the spectrum by a sum of gaussians

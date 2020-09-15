@@ -236,6 +236,10 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
     dinput = dfit1d['dinput']
 
     # Index of spectra to plot
+    if not np.any(dinput['valid']['indt']):
+        msg = "The provided fit1d result has no valid time step!"
+        raise Exception(msg)
+
     if indspect is None:
         indspect = dinput['valid']['indt'].nonzero()[0][0]
     indspect = np.atleast_1d(indspect).ravel()

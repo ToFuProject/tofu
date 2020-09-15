@@ -1088,12 +1088,13 @@ def _checkformat_dlines(dlines=None, domain=None):
 ###########################################################
 
 
-def multigausfit1d_from_dlines_dinput(
+def fit1d_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     data=None, lamb=None, mask=None,
     domain=None, pos=None, subset=None,
-    same_spectrum=None, nspect=None, dlamb=None,
+    same_spectrum=None, nspect=None, same_spectrum_dlamb=None,
     focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+    dscales=None, dx0=None, dbounds=None,
     defconst=_DCONSTRAINTS):
 
     # ------------------------
@@ -1120,9 +1121,10 @@ def multigausfit1d_from_dlines_dinput(
         if type(nspect) not in [int, np.int]:
             msg = "Please provide nspect if same_spectrum = True"
             raise Exception(msg)
-        if dlamb is None:
-            dlamb = min(2*np.diff(dprepare['domain']['lamb']['minmax']),
-                        dprepare['domain']['lamb']['minmax'][0])
+        if same_spectrum_dlamb is None:
+            same_spectrum_dlamb = min(
+                2*np.diff(dprepare['domain']['lamb']['minmax']),
+                dprepare['domain']['lamb']['minmax'][0])
 
     # ------------------------
     # Check / format dconstraints
@@ -1159,7 +1161,8 @@ def multigausfit1d_from_dlines_dinput(
     if same_spectrum is True:
         keysadd = np.array([[kk+'_bis{:04.0f}'.format(ii) for kk in keys]
                             for ii in range(1, nspect)]).ravel()
-        lines_lamb = (dlamb*np.arange(0, nspect)[:, None]
+        lines_lamb = (same_spectrum_dlamb
+                      *np.arange(0, nspect)[:, None]
                       + lines_lamb[None, :])
         keys = np.r_[keys, keysadd]
 
@@ -1208,7 +1211,7 @@ def multigausfit1d_from_dlines_dinput(
     dinput['same_spectrum'] = same_spectrum
     if same_spectrum is True:
         dinput['same_spectrum_nspect'] = nspect
-        dinput['same_spectrum_dlamb'] = dlamb
+        dinput['same_spectrum_dlamb'] = same_spectrum_dlamb
     else:
         dinput['same_spectrum_nspect'] = False
         dinput['same_spectrum_dlamb'] = False
@@ -1229,15 +1232,22 @@ def multigausfit1d_from_dlines_dinput(
     # Add dind
     dinput['dind'] = multigausfit1d_from_dlines_ind(dinput)
 
+    # Add dscales, dx0 and dbounds
+    dinput['dscales'] = fit12d_dscales(dscales=dscales,
+                                        dinput=dinput)
+    dinput['dx0'] = fit12d_dx0()
+    dinput['dbounds'] = fit12d_dbounds()
+
     return dinput
 
 
-def multigausfit2d_from_dlines_dinput(
+def fit2d_dinput(
     dlines=None, dconstraints=None, dprepare=None,
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None, mask=None,
     domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
     focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+    dscales=None, dx0=None, dbounds=None,
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
     defconst=_DCONSTRAINTS):
@@ -1343,6 +1353,11 @@ def multigausfit2d_from_dlines_dinput(
     # Add dind
     dinput['dind'] = multigausfit2d_from_dlines_ind(dinput)
 
+    # Add dscales, dx0 and dbounds
+    dinput['dscales'] = fit12d_dscales(dscales=dscales,
+                                       dinput=dinput)
+    dinput['dx0'] = fit12d_dx0()
+    dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
 
@@ -1398,7 +1413,7 @@ def multigausfit1d_from_dlines_ind(dinput=None):
     dind['nbck'] = 1
     # dind['shapey1'] = dind['bck']['x'].size + dinput['nlines']
 
-    # Ref line for amp (for x0)
+    # Ref line for amp (for dscales)
     amp_x0 = np.zeros((dinput['amp']['ind'].shape[0],), dtype=int)
     for ii in range(dinput['amp']['ind'].shape[0]):
         indi = dinput['amp']['ind'][ii, :].nonzero()[0]
@@ -1480,6 +1495,160 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 #
 ###########################################################
 ###########################################################
+
+
+def fit12d_dscales(dscales=None,
+                   dinput=None):
+
+    # --------------
+    # Input checks
+    lkconst = ['dratio', 'dshift']
+    lk = ['bck']
+    lkdict = ['amp', 'width', 'shift']
+    ltypes = [int, float, np.int, np.float]
+    c0 = dscales is None
+    c1 = (isinstance(dscales, dict)
+          and all([(k0 in lkconst and type(v0) in ltypes)
+                   or (k0 in lk and type(v0) in ltypes + [np.ndarray])
+                   or (k0 in lkdict
+                       and isinstance(v0, dict)
+                       and all([k1 in dinput[k0]['keys']
+                                and type(v1) in ltypes + [np.ndarray]
+                                for k1, v1 in v0.items()]))
+                   for k0, v0 in dscales.items()]))
+    if c0 is True:
+        dscales = {}
+    elif not c1:
+        msg = ("Arg dscales must be a dict of the form:\n"
+               + "\t- {}\n".format(dict.fromkeys(lk, 1.))
+               + "\t- provided: {}".format(dscales))
+        raise Exception(msg)
+
+    data = dinput['dprepare']['data']
+    lamb = dinput['dprepare']['lamb']
+
+    # --------------
+    # 2d spectrum = 1d spectrum + vert. profile
+    if data.ndim == 3:
+        phi = dinput['dprepare']['phi']
+        if dinput['dprepare']['binning'] is False:
+            lambbins = np.linspace(
+                dinput['dprepare']['domain']['lamb']['minmax'][0],
+                dinput['dprepare']['domain']['lamb']['minmax'][1],
+                dinput['dprepare']['nxi']-1)
+            phibins = np.linspace(
+                dinput['dprepare']['domain']['phi']['minmax'][0],
+                dinput['dprepare']['domain']['phi']['minmax'][1],
+                dinput['dprepare']['nxj']-1)
+            datavert = scpstats.binned_statistic(
+                phi[dinput['dprepare']['indok']],
+                data[:, dinput['dprepare']['indok']],
+                statistic='mean', bins=phibins, range=None)[0]
+            data = scpstats.binned_statistic(
+                lamb[dinput['dprepare']['indok']],
+                data[:, dinput['dprepare']['indok']],
+                statistic='mean', bins=lambbins, range=None)[0]
+            lamb = 0.5*(lambbins[1:] + lambbins[:-1])
+            phi = 0.5*(phibins[1:] + phibins[:-1])
+        else:
+            datavert = np.nanmean(data, axis=1)
+            data = np.nanmean(data, axis=2)
+            lamb = lamb[:, 0]
+            phi = phi[0, :]
+    nspect = data.shape[0]
+
+    # --------------
+    # Default values for filling missing fields
+    Dlamb = np.diff(dinput['dprepare']['domain']['lamb']['minmax'])
+    lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
+
+    # bck
+    if dscales.get('bck') is None:
+        indbck = data < np.nanmean(data, axis=1)[:, None]
+        dscales['bck'] = np.array(np.ma.masked_where(indbck,
+                                                     data).mean(axis=1))
+    else:
+        if type(dscales['bck']) in ltypes:
+            dscales['bck'] = np.full((nspect,), dscales['bck'])
+        else:
+            assert dscales['bck'].shape == (nspect,)
+
+    # amp
+    dscales['amp'] = dscales.get('amp', dict.fromkeys(dinput['amp']['keys']))
+    for ii, ij in enumerate(dinput['dind']['amp_x0']):
+        key = dinput['amp']['keys'][ii]
+        if dscales['amp'].get(key) is None:
+            indi = np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.
+            dscales['amp'][key] = np.nanmean(data[:, indi], axis=1)
+        else:
+            if type(dscales['amp'][key]) in ltypes:
+                dscales['amp'][key] = np.full((nspect,), dscales['amp'][key])
+            else:
+                assert dscales['amp'][key].shape == (nspect,)
+
+    # width
+    if dinput.get('same_spectrum') is True:
+        lambm2 = (lambm
+                 + dinput['same_spectrum_dlamb']
+                 * np.arange(0, dinput['same_spectrum_nspect']))
+        nw0 = iwx.size / dinput['same_spectrum_nspect']
+        lambmw = np.repeat(lambm2, nw0)
+        widthref = (Dlamb/(20*lambmw))**2
+    else:
+        widthref = (Dlamb/(20*lambm))**2
+
+    if dscales.get('width') is None:
+        dscales['width'] = {k0: np.full((nspect,), widthref)
+                            for k0 in dinput['width']['keys']}
+    else:
+        for k0 in dinput['width']['keys']:
+            if dscales['width'].get(k0) is None:
+                dscales['width'][k0] = np.full((nspect,), widthref)
+            elif type(dscales['width'][k0]) in ltypes:
+                dscales['width'][k0] = np.full((nspect,), dscales['width'][k0])
+            else:
+                assert dscales['width'][k0].shape == (nspect,)
+
+    # shift
+    shiftref = Dlamb/(50*lambm)
+    if dscales.get('shift') is None:
+        dscales['shift'] = {k0: np.full((nspect,), shiftref)
+                            for k0 in dinput['shift']['keys']}
+    else:
+        for k0 in dinput['shift']['keys']:
+            if dscales['shift'].get(k0) is None:
+                dscales['shift'][k0] = np.full((nspect,), shiftref)
+            elif type(dscales['shift'][k0]) in ltypes:
+                dscales['shift'][k0] = np.full((nspect,), dscales['shift'][k0])
+            else:
+                assert dscales['shift'][k0].shape == (nspect,)
+
+    # Double
+    if dinput['double'] is not False:
+        dratio = 1.
+        dshift = float(Dlamb/(50*lambm))
+        if dinput['double'] is True:
+            dscales['dratio'] = float(dscales.get('dratio', dratio))
+            dscales['dshift'] = float(dscales.get('dshift', dshift))
+        else:
+            if dinput['double'].get('dratio') is None:
+                dscales['dratio'] = float(dscales.get('dratio', dratio))
+            if dinput['double'].get('dshift') is None:
+                dscales['dshift'] = float(dscales.get('dshift', dshift))
+
+    # --------------
+    # bsplines modulation of bck and amp, if relevant
+    # fit bsplines on datavert (vertical profile)
+    # to modulate scales (bck and amp)
+
+    bs = scpinterp.LSQUnivariateSpline(phi, datavert.T,
+                                       dinput['knots'][1:-1],
+                                       k=dinput['deg'],
+                                       bbox=dinput['knots'][np.r_[0,-1]],
+                                       ext=0)
+    import pdb; pdb.set_trace()     # DB
+
+    return dscales
 
 
 def multigausfit1d_from_dlines_scale(data, lamb,
@@ -1646,48 +1815,52 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
 ###########################################################
 
 
-def _checkformat_dx0(amp_x0=None, keys=None, dx0=None):
-    # Check
+def _checkformat_dx0(dx0=None, dinput=None, scales=None):
+
+    # -----------------
+    # Check preliminary
+    ltypes = [int, float, np.int_, np.float_]
     c0 = dx0 is None
     c1 = (isinstance(dx0, dict)
-          and all([k0 in keys for k0 in dx0.keys()]))
-    c2 = (isinstance(dx0, dict)
-          and sorted(dx0.keys()) == ['amp']
-          and isinstance(dx0['amp'], dict)
-          and all([kk in keys for kk in dx0['amp'].keys()]))
-    c3 = (isinstance(dx0, dict)
-          and sorted(dx0.keys()) == ['amp']
-          and isinstance(dx0['amp'], np.ndarray))
-    if not any([c0, c1, c2]):
-        msg = ("dx0 must be a dict of the form:\n"
-               + "\t{k0: {'amp': float},\n"
-               + "\t k1: {'amp': float},\n"
-               + "\t ...,\n"
-               + "\t kn: {'amp': float}\n"
-               + "where [k0, k1, ..., kn] are keys of spectral lines")
+          and all([(k0 in ['amp', 'width', 'shift']
+                    and isinstance(v0, dict)
+                    and all([k1 in dinput[k0].keys()
+                             and type(v1) in ltypes
+                             for k1 in v0.keys()]))
+                   for k0, v0 in dx0.items()]))
+
+    if not any([c0, c1]):
+        msg = ("dx0 must be None or a dict of the form:\n"
+               + "\t{'amp': {'a0': float, 'a1': float, ...},\n"
+               + "\t 'width': {'w0': float, 'w1': float, ...},\n"
+               + "\t 'shift': {'s0': float, 's1': float, ...}\n"
+               + "  where, as defined in dconstraints:\n"
+               + "\t- [a0, a1, ...] are keys of amp groups\n"
+               + "\t- [w0, w1, ...] are keys of width groups\n"
+               + "\t- [s0, s1, ...] are keys of shift groups\n\n"
+               + "You provided:\n{}".format(dx0))
         raise Exception(msg)
 
+    # -----------------
     # Build
     if c0:
-        dx0 = {'amp': np.ones((amp_x0.size,))}
-    elif c1:
-        coefs = np.array([dx0.get(keys[ii], {'amp': 1.}).get('amp', 1.)
-                          for ii in amp_x0])
-        dx0 = {'amp': coefs}
-    elif c2:
-        coefs = np.array([dx0['amp'].get(keys[ii], 1.)
-                          for ii in amp_x0])
-        dx0 = {'amp': coefs}
-    elif c3:
-        assert dx0['amp'].shape == (amp_x0.size,)
+        dx0 = {}
+
+    dx0['bck'] = dx0.get('bck', 1.)
+    for kk, vv in [('amp', 1.), ('width', 1.), ('shift', 0.)]:
+        dx0[kk] = {k1: dx0.get(kk, {kk: {k1: vv}}).get(k1, vv)
+                   for k1 in dinput[kk].keys()}
+
+    # double
+    if dinput['doube'] is not False:
+        dx0['dratio'] = dx0.get('dratio', 1.)
+        dx0['dshift'] = dx0.get('dshift', 0.)
     return dx0
 
 
 def multigausfit12d_from_dlines_x0(dind=None, nbs=None,
                                    double=None, dx0=None,
                                    nspect=None, keys=None):
-    # user-defined coefs on amplitude
-    dx0 = _checkformat_dx0(amp_x0=dind['amp_x0'], keys=keys, dx0=dx0)
 
     # Only difference between 1d and 2d
     iax = dind['amp']['x']
@@ -1697,10 +1870,10 @@ def multigausfit12d_from_dlines_x0(dind=None, nbs=None,
 
     # Each x0 should be understood as x0*scale
     x0_scale = np.full((nspect, dind['sizex']), np.nan)
-    x0_scale[:, iax] = dx0['amp']
+    x0_scale[:, iax] = dx0['amp'] # / scales[?]
     x0_scale[:, dind['bck']['x']] = 1.
-    x0_scale[:, dind['width']['x']] = 0.4
-    x0_scale[:, dind['shift']['x']] = 0.
+    x0_scale[:, dind['width']['x']] = dx0['width']
+    x0_scale[:, dind['shift']['x']] = dx0['shift']
     if double is not False:
         if double is True:
             x0_scale[:, dind['dratio']['x']] = 0.7
@@ -1827,8 +2000,7 @@ def _checkformat_options(chain, method, tr_solver, tr_options,
 
 
 def multigausfit1d_from_dlines(dinput=None, dx0=None,
-                               scales=None, dscales=None,
-                               x0_scale=None, bounds_scale=None,
+                               scales=None, dscales=None, bounds_scale=None,
                                method=None, tr_solver=None, tr_options=None,
                                xtol=None, ftol=None, gtol=None,
                                max_nfev=None, chain=None, verbose=None,
@@ -1889,6 +2061,9 @@ def multigausfit1d_from_dlines(dinput=None, dx0=None,
 
     # ---------------------------
     # Get initial guess
+    dx0 = _checkformat_dx0(dx0=dx0, dinput=dinput, scales=scales)
+
+    # with scaling
     x0_scale = multigausfit12d_from_dlines_x0(
         dind=dind, double=dinput['double'], nspect=nspect,
         dx0=dx0, keys=dinput['keys'])
@@ -1927,18 +2102,22 @@ def multigausfit1d_from_dlines(dinput=None, dx0=None,
         print(msg)
 
     # ---------------------------
-    # Minimize
+    # Main loop
     end = '\r'
     t0 = dtm.datetime.now()     # DB
     for ii in range(nspect):
+
         if verbose == 3:
             msg = "\nSpect {} / {}".format(ii+1, nspect)
             print(msg)
+
         try:
             dti = None
             t0i = dtm.datetime.now()     # DB
             if not dinput['valid']['indt'][ii]:
                 continue
+
+            # optimization
             res = scpopt.least_squares(
                 func_cost, x0_scale[ii, :],
                 jac=func_jac, bounds=bounds_scale,
@@ -1969,6 +2148,7 @@ def multigausfit1d_from_dlines(dinput=None, dx0=None,
             errmsg[ii] = str(err)
             validity[ii] = -1
 
+        # Verbose
         if verbose in [1, 2]:
             if validity[ii] == 0:
                 col = np.char.array(['{} / {}'.format(ii+1, nspect),
@@ -2286,21 +2466,20 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
 ###########################################################
 
 
-def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
-          lamb=None, data=None, mask=None,
-          domain=None, pos=None, subset=None, same_spectrum=None,
-          method=None, tr_solver=None, tr_options=None,
-          xtol=None, ftol=None, gtol=None,
-          max_nfev=None, loss=None, chain=None,
-          dx0=None, x0_scale=None, bounds_scale=None,
-          jac=None, verbose=None, showonly=None,
-          save=None, name=None, path=None,
-          amp=None, coefs=None, ratio=None,
-          Ti=None, width=None,
-          vi=None, shift=None,
-          pts_lamb_total=None, pts_lamb_detail=None,
-          plot=None, fs=None, wintit=None, tit=None, dmargin=None,
-          return_dax=None):
+def fit1d(
+    dinput=None,
+    method=None, tr_solver=None, tr_options=None,
+    xtol=None, ftol=None, gtol=None,
+    max_nfev=None, loss=None, chain=None,
+    dx0=None, x0_scale=None, bounds_scale=None,
+    jac=None, verbose=None, showonly=None,
+    save=None, name=None, path=None,
+    amp=None, coefs=None, ratio=None,
+    Ti=None, width=None,
+    vi=None, shift=None,
+    pts_lamb_total=None, pts_lamb_detail=None,
+    plot=None, fs=None, wintit=None, tit=None, dmargin=None,
+    return_dax=None):
 
     # ----------------------
     # Check / format
@@ -2315,17 +2494,18 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 
     # ----------------------
     # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
-    if dinput is None:
-        dinput = multigausfit1d_from_dlines_dinput(
-            dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
-            data=data, lamb=lamb,
-            mask=mask, domain=domain,
-            pos=pos, subset=subset, same_spectrum=same_spectrum)
+    if not isinstance(dinput, dict):
+        msg = ("Please provide a properly formatted dict of inputs!\n"
+               + "fit1d() needs the problem to be given as a dinput dict\n"
+               + "  => Use dinput = fit1d_dinput()")
+        raise Exception(msg)
 
     # ----------------------
     # Perform 2d fitting
     if showonly is True:
-        # TBF
+        msg = "TBF: lambfit and spect1d not defined"
+        raise Exception(msg)
+
         dfit1d = {'shift': np.zeros((1, dinput['nlines'])),
                   'coefs': np.zeros((1, dinput['nlines'])),
                   'lamb': lambfit,
@@ -2336,8 +2516,8 @@ def fit1d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
                   'ratio': None}
     else:
         dfit1d = multigausfit1d_from_dlines(
-            dinput=dinput, dx0=dx0,
-            x0_scale=x0_scale, bounds_scale=bounds_scale,
+            dinput=dinput,
+            dx0=dx0, dscales=dscales, bounds_scale=bounds_scale,
             method=method, max_nfev=max_nfev,
             tr_solver=tr_solver, tr_options=tr_options,
             xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
@@ -2415,7 +2595,7 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
     # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
     if dinput is None:
         # TBC
-        dinput = multigausfit2d_from_dlines_dinput(
+        dinput = fit2d_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb, phi=phi,
             mask=mask, domain=domain,
