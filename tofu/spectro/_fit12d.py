@@ -632,12 +632,13 @@ def binning_2d_data(lamb, phi, data, indok=None,
     # ------------------
     # Compute
 
+
     databin = scpstats.binned_statistic_2d(
         lamb[indok], phi[indok], data[:, indok],
         statistic='mean', bins=bins,
         range=None, expand_binnumbers=True)[0]
     nperbin = scpstats.binned_statistic_2d(
-        lamb[indok], phi[indok], np.ones((indok.size,), dtype=int),
+        lamb[indok], phi[indok], np.ones((indok.sum(),), dtype=int),
         statistic='sum', bins=bins,
         range=None, expand_binnumbers=True)[0]
     binning['nperbin'] = nperbin
@@ -776,8 +777,8 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     # randomly pick subset indices (replace=False => no duplicates)
     indok = _get_subset_indices(subset, indok)
 
-    if indok.shape == lamb.shape:
-        indok = np.tile(indok, (data.shape[0], 1))
+    # if indok.shape == lamb.shape:
+    #    indok = np.tile(indok, (data.shape[0], 1))
 
     # --------------
     # Return
@@ -970,13 +971,16 @@ def _dvalid_checkfocus(focus=None, width=None,
         focus = _checkformat_domain(domain={'lamb': focus})['lamb']['spec']
     return focus
 
-def _dvalid_12d(data=None, lamb=None, nsigma=None,
-                binning=None, focus=None, fraction=None,
-                width=None, lines_keys=None, lines_lamb=None, dphimin=None):
+def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
+                indok=None, binning=None, focus=None, fraction=None,
+                width=None, lines_keys=None, lines_lamb=None, dphimin=None,
+                return_ind=None):
     """ Return a dict of valid time steps and phi indices
 
     data points are considered valid if there signal is sufficient:
         np.sqrt(data) >= nsigma
+
+    data is supposed to be provided in counts (or photons).. TBC!!!
 
     """
 
@@ -989,6 +993,9 @@ def _dvalid_12d(data=None, lamb=None, nsigma=None,
         binning = False
     if dphimin is None:
         dphimin = 0.
+    if return_ind is None:
+        return_ind = False
+    data2d = data.ndim == 3
 
     focus = _dvalid_checkfocus(focus,
                                width=width,
@@ -997,45 +1004,70 @@ def _dvalid_12d(data=None, lamb=None, nsigma=None,
 
     # Get indices of pts with enough signal
     if binning is False:
-        indok = np.sqrt(data) > nsigma
+        ind = np.sqrt(data) > nsigma
     else:
-        indok = np.sqrt(data*binning['nperbin'][None, ...]) > nsigma
+        ind = np.sqrt(data*binning['nperbin'][None, ...]) > nsigma
 
-    # Get indok in focus
+    if indok is not None:
+        ind2 = ind & indok[None, ...]
+    else:
+        ind2 = ind
+
+
+    # TBC, TBF
+
+    # Derive indt and optionally dphi and indknots
     dphi = False
     if focus is False:
-        indt = np.sum(indok, axis=1) / data.shape[1] > fraction
+        nok, ntot = np.sum(ind2, axis=-1), data.shape[-1]
+        if data2d is True:
+            nok, ntot = np.sum(nok, axis=-1), ntot*data.shape[1]
+        indt = nok / ntot > fraction
 
     else:
+        # Get ind in focus
         lambok = np.rollaxis(
             np.array([(lamb > ff[0]) & (lamb < ff[1]) for ff in focus]),
             0, lamb.ndim+1)
-        indok2 = indok[..., None] & lambok[None, ...]
-        # sum on lambda
-        nlamb = np.sum(lambok, axis=0)
-        nok = np.sum(indok2, axis=1)
+        indall = ind2[..., None] & lambok[None, ...]
 
-        if binning is False:
-            if nok.ndim == 3:
-                nok = np.sum(nok, axis=1)
-                nlamb = np.sum(nlamb, axis=0)
-            indt = np.all(nok / nlamb[None, ...] > fraction, axis=1)
-
+        if data2d is False:
+            # sum on lambda
+            ntot = np.sum(lambok, axis=0)
+            nok = np.sum(indall, axis=1)
+            indt = np.all(nok / ntot[None, ...] > fraction, axis=-1)
         else:
-            # if binning, also return dphi (interval on which ok)
-            indtphibin = np.all(nok / nlamb[None, ...] > fraction, axis=2)
+            if binning is False:
+                ntot = np.sum(np.sum(lambok, axis=0), axis=0)
+                nok = np.sum(np.sum(indall, axis=1), axis=1)
+                indt = np.all(nok / ntot[None, ...] > fraction, axis=-1)
+
+            else:
+                ntot = np.sum(np.sum(lambok, axis=0), axis=0)
+                nok = np.sum(np.sum(indall, axis=1), axis=1)
+                indt = np.all(nok / ntot[None, ...] > fraction, axis=-1)
+
+        # Get dphi, indknots, indbs
+        import pdb; pdb.set_trace()     # DB
+        if binning is False:
+            dphi = None
+        else:
+            # Get ind of
+            ok_per_phi = np.all((np.sum(indall, axis=1)
+                                 / np.sum(lambok[None, ...], axis=1)
+                                 > fraction), axis=-1)
+            indt = np.sum(ok_per_phi, axis=-1) > 1
             phibin = 0.5*(binning['phi']['edges'][1:]
                           + binning['phi']['edges'][:-1])
-            dphi = np.full((data.shape[0], 2), 0.)
-            indt = np.full((data.shape[0],), False)
-            for ii in range(data.shape[0]):
-                if np.any(indtphibin[ii, :]):
-                    dphi[ii, :] = (phibin[indtphibin[ii, :]].min(),
-                                   phibin[indtphibin[ii, :]].max())
-                    indt[ii] = dphi[ii, 1] - dphi[ii, 0] > dphimin
+            phiok = phibin[None, :][ok_per_phi]
+            dphi = np.array([np.min(phiok, axis=-1),
+                             np.max(phiok, axis=1)])
 
     dvalid = {'indt': indt, 'dphi': dphi,
               'focus': focus, 'fraction': fraction, 'nsigma': nsigma}
+    if return_ind:
+        dvalid['ind'] = ind
+    import pdb; pdb.set_trace()     # DB
     return dvalid
 
 
@@ -1220,7 +1252,9 @@ def fit1d_dinput(
     # S/N threshold indices
     # ------------------------
     dinput['valid'] = _dvalid_12d(
-        data=dprepare['data'], lamb=dprepare['lamb'],
+        data=dprepare['data'],
+        lamb=dprepare['lamb'],
+        indok=dprepare['indok'],
         nsigma=focus_nsigma,
         fraction=focus_fraction,
         focus=focus, width=focus_width,
@@ -1329,8 +1363,11 @@ def fit2d_dinput(
     # S/N threshold indices
     # ------------------------
     dinput['valid'] = _dvalid_12d(
-        data=dprepare['data'], lamb=dprepare['lamb'],
+        data=dprepare['data'],
+        lamb=dprepare['lamb'],
+        phi=dprepare['phi'],
         binning=dprepare['binning'],
+        indok=dprepare['indok'],
         nsigma=focus_nsigma,
         fraction=focus_fraction,
         focus=focus, width=focus_width,
@@ -1526,10 +1563,12 @@ def fit12d_dscales(dscales=None,
 
     data = dinput['dprepare']['data']
     lamb = dinput['dprepare']['lamb']
+    nspect = data.shape[0]
 
     # --------------
     # 2d spectrum = 1d spectrum + vert. profile
-    if data.ndim == 3:
+    data2d = data.ndim == 3
+    if data2d is True:
         phi = dinput['dprepare']['phi']
         if dinput['dprepare']['binning'] is False:
             lambbins = np.linspace(
@@ -1555,7 +1594,26 @@ def fit12d_dscales(dscales=None,
             data = np.nanmean(data, axis=2)
             lamb = lamb[:, 0]
             phi = phi[0, :]
-    nspect = data.shape[0]
+
+        # bsplines modulation of bck and amp, if relevant
+        # fit bsplines on datavert (vertical profile)
+        # to modulate scales (bck and amp)
+
+        if data2d is True:
+            dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
+            for ii in dinput['valid']['indt'].nonzero()[0]:
+                # indbs =
+                # knots =
+                indnonan = ~np.isnan(datavert[ii, :])
+                bs = scpinterp.LSQUnivariateSpline(
+                    phi[indnonan], datavert[ii, indnonan],
+                    dinput['knots'][1:-1],
+                    k=dinput['deg'],
+                    bbox=dinput['knots'][np.r_[0,-1]],
+                    ext=0)
+                dscales['bs'][ii, :] = (bs.get_coeffs()
+                                        / np.nanmean(datavert[ii, :]))
+        import pdb; pdb.set_trace()     # DB
 
     # --------------
     # Default values for filling missing fields
@@ -1635,18 +1693,6 @@ def fit12d_dscales(dscales=None,
                 dscales['dratio'] = float(dscales.get('dratio', dratio))
             if dinput['double'].get('dshift') is None:
                 dscales['dshift'] = float(dscales.get('dshift', dshift))
-
-    # --------------
-    # bsplines modulation of bck and amp, if relevant
-    # fit bsplines on datavert (vertical profile)
-    # to modulate scales (bck and amp)
-
-    bs = scpinterp.LSQUnivariateSpline(phi, datavert.T,
-                                       dinput['knots'][1:-1],
-                                       k=dinput['deg'],
-                                       bbox=dinput['knots'][np.r_[0,-1]],
-                                       ext=0)
-    import pdb; pdb.set_trace()     # DB
 
     return dscales
 
