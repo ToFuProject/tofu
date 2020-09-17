@@ -49,8 +49,8 @@ _LOSS = 'linear'
 _D3 = {'amp': 'x', 'coefs': 'lines', 'ratio': 'lines',
        'Ti': 'x', 'width': 'lines',
        'vi': 'x', 'shift': 'lines'}
-_NSIGMA = 6.
-_FRACTION = 0.8
+_VALID_NSIGMA = 6.
+_VALID_FRACTION = 0.8
 _SIGMA_MARGIN = 3.
 _ALLOW_PICKLE = True
 
@@ -951,7 +951,7 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
 ###########################################################
 
 
-def _dvalid_checkfocus(focus=None, width=None,
+def _dvalid_checkfocus(focus=None, focus_width=None,
                        lines_keys=None, lines_lamb=None):
     if focus is None:
         focus = False
@@ -964,34 +964,37 @@ def _dvalid_checkfocus(focus=None, width=None,
                        and all([isinstance(ff, str) and ff in lines_keys
                                 for ff in focus]))))
         if c0 is True:
-            if width is None:
-                width = 0.1*(np.max(lines_lamb) - np.min(lines_lamb))
+            if focus_width is None:
+                focus_width = 0.1*(np.max(lines_lamb) - np.min(lines_lamb))
             if isinstance(focus, str):
                 focus = [focus]
-            focus = [lines_lamb[lines_keys == ff] + width*np.r_[-0.5, 0.5]
+            focus = [(lines_lamb[lines_keys == ff]
+                      + focus_width*np.r_[-0.5, 0.5])
                      for ff in focus]
         focus = _checkformat_domain(domain={'lamb': focus})['lamb']['spec']
     return focus
 
-def fit12d_dvalid(data=None, lamb=None, phi=None, nsigma=None,
-                  indok=None, binning=None, focus=None, fraction=None,
-                  width=None, lines_keys=None, lines_lamb=None, dphimin=None,
+def fit12d_dvalid(data=None, lamb=None, phi=None,
+                  indok=None, binning=None,
+                  valid_nsigma=None, valid_fraction=None,
+                  focus=None, focus_width=None,
+                  lines_keys=None, lines_lamb=None, dphimin=None,
                   nbs=None, deg=None, knots_mult=None, nknotsperbs=None,
                   return_ind=None, return_fract=None):
     """ Return a dict of valid time steps and phi indices
 
     data points are considered valid if there signal is sufficient:
-        np.sqrt(data) >= nsigma
+        np.sqrt(data) >= valid_nsigma
 
     data is supposed to be provided in counts (or photons).. TBC!!!
 
     """
 
     # Check inputs
-    if nsigma is None:
-        nsigma = _NSIGMA
-    if fraction is None:
-        fraction = _FRACTION
+    if valid_nsigma is None:
+        valid_nsigma = _VALID_NSIGMA
+    if valid_fraction is None:
+        valid_fraction = _VALID_FRACTION
     if binning is None:
         binning = False
     if dphimin is None:
@@ -1004,15 +1007,15 @@ def fit12d_dvalid(data=None, lamb=None, phi=None, nsigma=None,
     nspect = data.shape[0]
 
     focus = _dvalid_checkfocus(focus,
-                               width=width,
+                               focus_width=focus_width,
                                lines_keys=lines_keys,
                                lines_lamb=lines_lamb)
 
     # Get indices of pts with enough signal
     if binning is False:
-        ind = np.sqrt(data) > nsigma
+        ind = np.sqrt(data) > valid_nsigma
     else:
-        ind = np.sqrt(data*binning['nperbin'][None, ...]) > nsigma
+        ind = np.sqrt(data*binning['nperbin'][None, ...]) > valid_nsigma
 
     if indok is not None:
         ind2 = ind & indok[None, ...]
@@ -1039,7 +1042,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None, nsigma=None,
                 fract[:, ii] = (np.sum(np.sum(ind2 & iphi[None, ...],
                                               axis=-1), axis=-1)
                                 / np.sum(iphi))
-            indbs = fract > fraction
+            indbs = fract > valid_fraction
         else:
             fract = np.full((nspect, nbs, len(focus)), np.nan)
             for ii in range(nbs):
@@ -1050,7 +1053,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None, nsigma=None,
                                   axis=1), axis=1)
                     / np.sum(np.sum(iphi[..., None] & lambok,
                                     axis=0), axis=0))
-            indbs = np.all(fract > fraction, axis=2)
+            indbs = np.all(fract > valid_fraction, axis=2)
         indt = np.any(indbs, axis=1)
         dphi = deltaphi*(deg + indbs[:, deg:-deg].sum(axis=1))
 
@@ -1058,13 +1061,14 @@ def fit12d_dvalid(data=None, lamb=None, phi=None, nsigma=None,
         # 1d spectra
         if focus is False:
             fract = ind2.sum(axis=-1) / ind2.shape[1]
-            indt = fract > fraction
+            indt = fract > valid_fraction
         else:
             fract = np.sum(indall, axis=1) / lambok.sum(axis=0)[None, :]
-            indt = np.all(fract > fraction, axis=1)
+            indt = np.all(fract > valid_fraction, axis=1)
 
     dvalid = {'indt': indt, 'dphi': dphi, 'indbs': indbs,
-              'focus': focus, 'fraction': fraction, 'nsigma': nsigma}
+              'focus': focus, 'valid_fraction': valid_fraction,
+              'valid_nsigma': valid_nsigma}
     if return_ind is True:
         dvalid['ind'] = ind
     if return_fract is True:
@@ -1126,7 +1130,7 @@ def fit1d_dinput(
     data=None, lamb=None, mask=None,
     domain=None, pos=None, subset=None,
     same_spectrum=None, nspect=None, same_spectrum_dlamb=None,
-    focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+    focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
     dscales=None, dx0=None, dbounds=None,
     defconst=_DCONSTRAINTS):
 
@@ -1256,9 +1260,9 @@ def fit1d_dinput(
         data=dprepare['data'],
         lamb=dprepare['lamb'],
         indok=dprepare['indok'],
-        nsigma=focus_nsigma,
-        fraction=focus_fraction,
-        focus=focus, width=focus_width,
+        valid_nsigma=valid_nsigma,
+        validfraction=valid_fraction,
+        focus=focus, focus_width=focus_width,
         lines_keys=lines_keys, lines_lamb=lines_lamb)
 
     # Update with dprepare
@@ -1281,7 +1285,7 @@ def fit2d_dinput(
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None, mask=None,
     domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
-    focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+    focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
     dscales=None, dx0=None, dbounds=None,
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
@@ -1369,9 +1373,9 @@ def fit2d_dinput(
         phi=dprepare['phi'],
         binning=dprepare['binning'],
         indok=dprepare['indok'],
-        nsigma=focus_nsigma,
-        fraction=focus_fraction,
-        focus=focus, width=focus_width,
+        valid_nsigma=valid_nsigma,
+        valid_fraction=valid_fraction,
+        focus=focus, focus_width=focus_width,
         lines_keys=lines_keys, lines_lamb=lines_lamb,
         nbs=dinput['nbs'],
         deg=dinput['deg'],
@@ -3124,7 +3128,6 @@ def fit2d_extract(dfit2d=None,
         for ii in range(nspect):
             BS.c = sol_x[ii, indbis] * scales[ii, indbis]
             val[ii, :, :] = BS(pts_phi)
-            
 
         return keys, val
 
@@ -3449,7 +3452,7 @@ def _basic_loop(ilambu=None, ilamb=None, phi=None, data=None, mask=None,
 
 
 def noise_analysis_2d(
-    data, lamb, phi, mask=None, margin=None, fraction=None,
+    data, lamb, phi, mask=None, margin=None, valid_fraction=None,
     deg=None, knots=None, nbsplines=None, nxerrbin=None,
     nlamb=None, loss=None, max_nfev=None,
     xtol=None, ftol=None, gtol=None,
@@ -3536,9 +3539,9 @@ def noise_analysis_2d(
     # -------------
     # Identify outliers with respect to noise model
     (mean, var, xdata, const,
-     indout_var, _, margin, fraction) = get_noise_analysis_var_mask(
+     indout_var, _, margin, valid_fraction) = get_noise_analysis_var_mask(
          fit=fit, data=data, mask=(mask & (~indout_noeval)),
-         margin=margin, fraction=fraction)
+         margin=margin, valid_fraction=valid_fraction)
 
     # Safety check
     if mask is None:
@@ -3570,7 +3573,7 @@ def noise_analysis_2d(
         'ilamb': ilamb, 'ilambu': ilambu,
         'var_mean': mean, 'var': var, 'var_xdata': xdata,
         'var_const': const, 'var_margin': margin,
-        'var_fraction': fraction}
+        'var_fraction': valid_fraction}
 
     # Plot
     if plot is True:
@@ -3706,7 +3709,7 @@ def noise_analysis_2d_scannbs(
          _, inderrui, _, _) = get_noise_analysis_var_mask(
              fit=fiti, data=data, xdata_edge=xdata_edge,
              mask=(mask & (~indout_noeval)),
-             margin=None, fraction=False)
+             margin=None, valid_fraction=False)
 
         const[ii] = consti
         mean[ii, inderrui] = meani
@@ -3743,12 +3746,13 @@ def noise_analysis_2d_scannbs(
 
 
 def get_noise_analysis_var_mask(fit=None, data=None,
-                                xdata_edge=None, nxerrbin=None, fraction=None,
+                                xdata_edge=None, nxerrbin=None,
+                                valid_fraction=None,
                                 mask=None, margin=None):
     if margin is None:
         margin = _SIGMA_MARGIN
-    if fraction is None:
-        fraction = False
+    if valid_fraction is None:
+        valid_fraction = False
     if nxerrbin is None:
         nxerrbin = 100
 
@@ -3779,6 +3783,6 @@ def get_noise_analysis_var_mask(fit=None, data=None,
     indout = np.zeros(err.shape, dtype=bool)
     indout[indok] = (np.abs(err[indok])
                      > margin*const*np.sqrt(np.abs(fit[indok])))
-    if fraction is not False:
-        indout = np.sum(indout, axis=0)/float(indout.shape[0]) > fraction
-    return mean, var, xdata, const, indout, inderru, margin, fraction
+    if valid_fraction is not False:
+        indout = np.sum(indout, axis=0)/float(indout.shape[0]) > valid_fraction
+    return mean, var, xdata, const, indout, inderru, margin, valid_fraction

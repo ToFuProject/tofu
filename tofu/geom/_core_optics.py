@@ -1879,7 +1879,7 @@ class CrystalBragg(utils.ToFuObject):
         data=None, lamb=None,
         mask=None, domain=None, pos=None, subset=None,
         same_spectrum=None, same_spectrum_dlamb=None,
-        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None):
+        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -1893,8 +1893,8 @@ class CrystalBragg(utils.ToFuObject):
             mask=mask, domain=domain, pos=pos, subset=subset,
             same_spectrum=same_spectrum,
             same_spectrum_dlamb=same_spectrum_dlamb,
-            focus=focus, focus_fraction=focus_fraction,
-            focus_nsigma=focus_nsigma, focus_width=focus_width)
+            focus=focus, valid_fraction=valid_fraction,
+            valid_nsigma=valid_nsigma, focus_width=focus_width)
 
     def fit1d(
         self,
@@ -1903,7 +1903,7 @@ class CrystalBragg(utils.ToFuObject):
         dinput=None, dprepare=None, dlines=None, dconstraints=None,
         mask=None, domain=None, subset=None, pos=None,
         same_spectrum=None, same_spectrum_dlamb=None,
-        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
         # Optimization kwdargs
         dx0=None, dscales=None, x0_scale=None, bounds_scale=None,
         method=None, tr_solver=None, tr_options=None, max_nfev=None,
@@ -1925,8 +1925,8 @@ class CrystalBragg(utils.ToFuObject):
                 dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
                 data=data, lamb=lamb,
                 mask=mask, domain=domain, pos=pos, subset=subset,
-                focus=focus, focus_fraction=focus_fraction,
-                focus_nsigma=focus_nsigma, focus_width=focus_width,
+                focus=focus, valid_fraction=valid_fraction,
+                valid_nsigma=valid_nsigma, focus_width=focus_width,
                 same_spectrum=same_spectrum,
                 same_spectrum_dlamb=same_spectrum_dlamb)
 
@@ -2038,7 +2038,7 @@ class CrystalBragg(utils.ToFuObject):
         mask=None, domain=None, pos=None, binning=None, subset=None,
         # lphi=None, lphi_tol=None,
         deg=None, knots=None, nbsplines=None,
-        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None):
+        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -2071,8 +2071,8 @@ class CrystalBragg(utils.ToFuObject):
         return _fit12d.fit2d_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             deg=deg, knots=knots, nbsplines=nbsplines,
-            focus=focus, focus_fraction=focus_fraction,
-            focus_nsigma=focus_nsigma, focus_width=focus_width)
+            focus=focus, valid_fraction=valid_fraction,
+            valid_nsigma=valid_nsigma, focus_width=focus_width)
 
     def fit2d(
         self,
@@ -2081,7 +2081,7 @@ class CrystalBragg(utils.ToFuObject):
         det=None, dtheta=None, psi=None, n=None,
         dinput=None, dprepare=None, dlines=None, dconstraints=None,
         mask=None, domain=None, subset=None, pos=None, binning=None,
-        focus=None, focus_fraction=None, focus_nsigma=None, focus_width=None,
+        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
         deg=None, knots=None, nbsplines=None,
         # Optimization kwdargs
         dx0=None, dscales=None, x0_scale=None, bounds_scale=None,
@@ -2124,8 +2124,8 @@ class CrystalBragg(utils.ToFuObject):
                 mask=mask, domain=domain,
                 pos=pos, binning=binning, subset=subset,
                 deg=deg, knots=knots, nbsplines=nbsplines,
-                focus=focus, focus_fraction=focus_fraction,
-                focus_nsigma=focus_nsigma, focus_width=focus_width)
+                focus=focus, valid_fraction=valid_fraction,
+                valid_nsigma=valid_nsigma, focus_width=focus_width)
 
         # ----------------------
         # return
@@ -2177,7 +2177,7 @@ class CrystalBragg(utils.ToFuObject):
     def noise_analysis(
         self, data=None, xi=None, xj=None, n=None,
         det=None, dtheta=None, psi=None,
-        mask=None, fraction=None, nxerrbin=None,
+        mask=None, valid_fraction=None, nxerrbin=None,
         margin=None, domain=None, nlamb=None,
         deg=None, knots=None, nbsplines=None,
         loss=None, max_nfev=None,
@@ -2206,7 +2206,8 @@ class CrystalBragg(utils.ToFuObject):
         import tofu.spectro._fit12d as _fit12d
         return _fit12d.noise_analysis_2d(
             data, lamb, phi,
-            mask=mask, fraction=fraction, margin=margin, nxerrbin=nxerrbin,
+            mask=mask, valid_fraction=valid_fraction,
+            margin=margin, nxerrbin=nxerrbin,
             nlamb=nlamb, deg=deg, knots=knots, nbsplines=nbsplines,
             loss=loss, max_nfev=max_nfev,
             xtol=xtol, ftol=ftol, gtol=gtol,
@@ -2220,14 +2221,14 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def noise_analysis_plot(
-        dnoise=None, margin=None, fraction=None,
+        dnoise=None, margin=None, valid_fraction=None,
         ms=None, dcolor=None,
         dax=None, fs=None, dmargin=None,
         wintit=None, tit=None, sublab=None,
         save=None, name=None, path=None, fmt=None):
         import tofu.spectro._plot as _plot_spectro
         return _plot_spectro.plot_noise_analysis(
-            dnoise=dnoise, margin=margin, fraction=fraction,
+            dnoise=dnoise, margin=margin, valid_fraction=valid_fraction,
             ms=ms, dcolor=dcolor,
             dax=dax, fs=fs, dmargin=dmargin,
             wintit=wintit, tit=tit, sublab=sublab,
