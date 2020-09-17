@@ -23,7 +23,9 @@ from . import _fit12d_funccostjac as _funccostjac
 from . import _plot
 
 
-__all__ = ['fit1d', 'fit2d',
+__all__ = ['fit1d_dinput', 'fit2d_dinput',
+           'fit12d_dvalid', 'fit12d_dscales',
+           'fit1d', 'fit2d',
            'fit1d_extract', 'fit2d_extract']
 
 
@@ -971,10 +973,11 @@ def _dvalid_checkfocus(focus=None, width=None,
         focus = _checkformat_domain(domain={'lamb': focus})['lamb']['spec']
     return focus
 
-def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
-                indok=None, binning=None, focus=None, fraction=None,
-                width=None, lines_keys=None, lines_lamb=None, dphimin=None,
-                return_ind=None):
+def fit12d_dvalid(data=None, lamb=None, phi=None, nsigma=None,
+                  indok=None, binning=None, focus=None, fraction=None,
+                  width=None, lines_keys=None, lines_lamb=None, dphimin=None,
+                  nbs=None, deg=None, knots_mult=None, nknotsperbs=None,
+                  return_ind=None, return_fract=None):
     """ Return a dict of valid time steps and phi indices
 
     data points are considered valid if there signal is sufficient:
@@ -995,7 +998,10 @@ def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
         dphimin = 0.
     if return_ind is None:
         return_ind = False
+    if return_fract is None:
+        return_fract = True
     data2d = data.ndim == 3
+    nspect = data.shape[0]
 
     focus = _dvalid_checkfocus(focus,
                                width=width,
@@ -1013,61 +1019,56 @@ def _dvalid_12d(data=None, lamb=None, phi=None, nsigma=None,
     else:
         ind2 = ind
 
-
-    # TBC, TBF
-
     # Derive indt and optionally dphi and indknots
-    dphi = False
-    if focus is False:
-        nok, ntot = np.sum(ind2, axis=-1), data.shape[-1]
-        if data2d is True:
-            nok, ntot = np.sum(nok, axis=-1), ntot*data.shape[1]
-        indt = nok / ntot > fraction
-
-    else:
-        # Get ind in focus
+    indbs, dphi = False, False
+    if focus is not False:
         lambok = np.rollaxis(
             np.array([(lamb > ff[0]) & (lamb < ff[1]) for ff in focus]),
             0, lamb.ndim+1)
         indall = ind2[..., None] & lambok[None, ...]
 
-        if data2d is False:
-            # sum on lambda
-            ntot = np.sum(lambok, axis=0)
-            nok = np.sum(indall, axis=1)
-            indt = np.all(nok / ntot[None, ...] > fraction, axis=-1)
+    if data2d is True:
+        # Make sure there are at least deg + 2 different phi
+        deltaphi = np.max(np.diff(knots_mult))
+        # Code ok with and without binning :-)
+        if focus is False:
+            fract = np.full((nspect, nbs), np.nan)
+            for ii in range(nbs):
+                iphi = ((phi >= knots_mult[ii])
+                        & (phi < knots_mult[ii+nknotsperbs-1]))
+                fract[:, ii] = (np.sum(np.sum(ind2 & iphi[None, ...],
+                                              axis=-1), axis=-1)
+                                / np.sum(iphi))
+            indbs = fract > fraction
         else:
-            if binning is False:
-                ntot = np.sum(np.sum(lambok, axis=0), axis=0)
-                nok = np.sum(np.sum(indall, axis=1), axis=1)
-                indt = np.all(nok / ntot[None, ...] > fraction, axis=-1)
+            fract = np.full((nspect, nbs, len(focus)), np.nan)
+            for ii in range(nbs):
+                iphi = ((phi >= knots_mult[ii])
+                        & (phi < knots_mult[ii+nknotsperbs-1]))
+                fract[:, ii, :] = (
+                    np.sum(np.sum(indall & iphi[None, ..., None],
+                                  axis=1), axis=1)
+                    / np.sum(np.sum(iphi[..., None] & lambok,
+                                    axis=0), axis=0))
+            indbs = np.all(fract > fraction, axis=2)
+        indt = np.any(indbs, axis=1)
+        dphi = deltaphi*(deg + indbs[:, deg:-deg].sum(axis=1))
 
-            else:
-                ntot = np.sum(np.sum(lambok, axis=0), axis=0)
-                nok = np.sum(np.sum(indall, axis=1), axis=1)
-                indt = np.all(nok / ntot[None, ...] > fraction, axis=-1)
-
-        # Get dphi, indknots, indbs
-        import pdb; pdb.set_trace()     # DB
-        if binning is False:
-            dphi = None
+    else:
+        # 1d spectra
+        if focus is False:
+            fract = ind2.sum(axis=-1) / ind2.shape[1]
+            indt = fract > fraction
         else:
-            # Get ind of
-            ok_per_phi = np.all((np.sum(indall, axis=1)
-                                 / np.sum(lambok[None, ...], axis=1)
-                                 > fraction), axis=-1)
-            indt = np.sum(ok_per_phi, axis=-1) > 1
-            phibin = 0.5*(binning['phi']['edges'][1:]
-                          + binning['phi']['edges'][:-1])
-            phiok = phibin[None, :][ok_per_phi]
-            dphi = np.array([np.min(phiok, axis=-1),
-                             np.max(phiok, axis=1)])
+            fract = np.sum(indall, axis=1) / lambok.sum(axis=0)[None, :]
+            indt = np.all(fract > fraction, axis=1)
 
-    dvalid = {'indt': indt, 'dphi': dphi,
+    dvalid = {'indt': indt, 'dphi': dphi, 'indbs': indbs,
               'focus': focus, 'fraction': fraction, 'nsigma': nsigma}
-    if return_ind:
+    if return_ind is True:
         dvalid['ind'] = ind
-    import pdb; pdb.set_trace()     # DB
+    if return_fract is True:
+        dvalid['fract'] = fract
     return dvalid
 
 
@@ -1251,7 +1252,7 @@ def fit1d_dinput(
     # ------------------------
     # S/N threshold indices
     # ------------------------
-    dinput['valid'] = _dvalid_12d(
+    dinput['valid'] = fit12d_dvalid(
         data=dprepare['data'],
         lamb=dprepare['lamb'],
         indok=dprepare['indok'],
@@ -1362,7 +1363,7 @@ def fit2d_dinput(
     # ------------------------
     # S/N threshold indices
     # ------------------------
-    dinput['valid'] = _dvalid_12d(
+    dinput['valid'] = fit12d_dvalid(
         data=dprepare['data'],
         lamb=dprepare['lamb'],
         phi=dprepare['phi'],
@@ -1371,7 +1372,11 @@ def fit2d_dinput(
         nsigma=focus_nsigma,
         fraction=focus_fraction,
         focus=focus, width=focus_width,
-        lines_keys=lines_keys, lines_lamb=lines_lamb)
+        lines_keys=lines_keys, lines_lamb=lines_lamb,
+        nbs=dinput['nbs'],
+        deg=dinput['deg'],
+        knots_mult=dinput['knots_mult'],
+        nknotsperbs=dinput['nknotsperbs'])
 
     # Update bsplines
     if dinput['valid']['dphi'] is not False:
