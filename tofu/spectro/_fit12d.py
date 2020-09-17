@@ -1273,7 +1273,7 @@ def fit1d_dinput(
 
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
-                                        dinput=dinput)
+                                       dinput=dinput)
     dinput['dx0'] = fit12d_dx0()
     dinput['dbounds'] = fit12d_dbounds()
 
@@ -1381,17 +1381,6 @@ def fit2d_dinput(
         deg=dinput['deg'],
         knots_mult=dinput['knots_mult'],
         nknotsperbs=dinput['nknotsperbs'])
-
-    # Update bsplines
-    if dinput['valid']['dphi'] is not False:
-        ibs = np.array([
-            ~(np.all((dinput['knots_mult'][None, ii:ii+dinput['nknotsperbs']]
-                      < dinput['valid']['dphi'][:, 0][:, None]), axis=1)
-              | np.all((dinput['knots_mult'][None, ii:ii+dinput['nknotsperbs']]
-                        > dinput['valid']['dphi'][:, 1][:, None]), axis=1))
-            for ii in range(dinput['nbs'])]).T
-        ibs[~dinput['valid']['indt'], :] = False
-        dinput['valid']['indbs'] = ibs
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1622,6 +1611,7 @@ def fit12d_dscales(dscales=None,
                     ext=0)
                 dscales['bs'][ii, :] = (bs.get_coeffs()
                                         / np.nanmean(datavert[ii, :]))
+        # TBC / TBF
         import pdb; pdb.set_trace()     # DB
 
     # --------------
