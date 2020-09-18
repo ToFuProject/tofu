@@ -38,7 +38,7 @@ _DCONSTRAINTS = {'amp': False,
 _SAME_SPECTRUM = False
 _DEG = 2
 _NBSPLINES = 13
-_TOL1D = {'x': 1e-12, 'f': 1.e-12, 'g': 1.e-12}
+_TOL1D = {'x': 1e-10, 'f': 1.e-10, 'g': 1.e-10}
 _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 _SYMMETRY_CENTRAL_FRACTION = 0.3
 _BINNING = False
@@ -820,8 +820,12 @@ def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
     indok, domain = apply_domain(lamb, phi, domain=domain)
     if mask is not None:
         indok &= mask
-    indok &= np.any(~np.isnan(data), axis=0)
-    domain['lamb']['minmax'] = [np.nanmin(lamb[indok]), np.nanmax(lamb[indok])]
+    indok = indok[None, ...] & (~np.isnan(data))
+    indok[indok] = data[indok] >= 0.
+
+    # TBC / TBF
+    domain['lamb']['minmax'] = [np.nanmin(lamb[indok]),
+                                np.nanmax(lamb[indok])]
     domain['phi']['minmax'] = [np.nanmin(phi[indok]), np.nanmax(phi[indok])]
 
     # --------------
