@@ -637,7 +637,7 @@ def binning_2d_data(lamb, phi, data, indok=None,
 
     databin = scpstats.binned_statistic_2d(
         lamb[indok], phi[indok], data[:, indok],
-        statistic='mean', bins=bins,
+        statistic='sum', bins=bins,
         range=None, expand_binnumbers=True)[0]
     nperbin = scpstats.binned_statistic_2d(
         lamb[indok], phi[indok], np.ones((indok.sum(),), dtype=int),
@@ -1053,7 +1053,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
     if return_ind is None:
         return_ind = False
     if return_fract is None:
-        return_fract = True
+        return_fract = False
     data2d = data.ndim == 3
     nspect = data.shape[0]
 
@@ -1063,10 +1063,12 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
                                lines_lamb=lines_lamb)
 
     # Get indices of pts with enough signal
-    if binning is False:
-        ind = np.sqrt(data) > valid_nsigma
-    else:
-        ind = np.sqrt(data*binning['nperbin'][None, ...]) > valid_nsigma
+    ind = np.zeros(data.shape, dtype=bool)
+    isafe = (~np.isnan(data))
+    isafe[isafe] = data[isafe] >= 0.
+    # Ok with and w/o binning if data provided as counts / photons
+    # and binning was done by sum (and not mean)
+    ind[isafe] = np.sqrt(data[isafe]) > valid_nsigma
 
     if indok is not None:
         ind2 = ind & indok[None, ...]
@@ -1117,6 +1119,24 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
             fract = np.sum(indall, axis=1) / lambok.sum(axis=0)[None, :]
             indt = np.all(fract > valid_fraction, axis=1)
 
+    # Optional debug
+    if focus is not False and False:
+        indt_debug, ifocus = 40, 1
+        if data2d is True:
+            indall2 = indall.astype(int)
+            indall2[:, lambok] = 1
+            indall2[ind2[..., None] & lambok[None, ...]] = 2
+            plt.figure();
+            plt.imshow(indall2[indt_debug, :, :, ifocus].T, origin='lower');
+        else:
+            plt.figure();
+            plt.plot(lamb[~indall[indt_debug, :, ifocus]],
+                     data[indt_debug, ~indall[indt_debug, :, ifocus]], '.k',
+                     lamb[indall[indt_debug, :, ifocus]],
+                     data[indt_debug, indall[indt_debug, :, ifocus]], '.r');
+            plt.axvline(focus[ifocus, 0], ls='--', c='k');
+
+    # return
     dvalid = {'indt': indt, 'dphi': dphi, 'indbs': indbs,
               'focus': focus, 'valid_fraction': valid_fraction,
               'valid_nsigma': valid_nsigma}
@@ -1313,7 +1333,7 @@ def fit1d_dinput(
         lamb=dprepare['lamb'],
         indok=dprepare['indok'],
         valid_nsigma=valid_nsigma,
-        validfraction=valid_fraction,
+        valid_fraction=valid_fraction,
         focus=focus, focus_half_width=focus_half_width,
         lines_keys=lines_keys, lines_lamb=lines_lamb,
         return_ind=valid_return_ind,
