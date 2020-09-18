@@ -1879,7 +1879,8 @@ class CrystalBragg(utils.ToFuObject):
         data=None, lamb=None,
         mask=None, domain=None, pos=None, subset=None,
         same_spectrum=None, same_spectrum_dlamb=None,
-        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None):
+        focus=None, valid_fraction=None, valid_nsigma=None,
+        focus_half_width=None, valid_return_ind=None, valid_return_fract=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -1894,7 +1895,9 @@ class CrystalBragg(utils.ToFuObject):
             same_spectrum=same_spectrum,
             same_spectrum_dlamb=same_spectrum_dlamb,
             focus=focus, valid_fraction=valid_fraction,
-            valid_nsigma=valid_nsigma, focus_width=focus_width)
+            valid_nsigma=valid_nsigma, focus_half_width=focus_half_width,
+            valid_return_ind=valid_return_ind,
+            valid_return_fract=valid_return_fract)
 
     def fit1d(
         self,
@@ -1903,7 +1906,8 @@ class CrystalBragg(utils.ToFuObject):
         dinput=None, dprepare=None, dlines=None, dconstraints=None,
         mask=None, domain=None, subset=None, pos=None,
         same_spectrum=None, same_spectrum_dlamb=None,
-        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
+        focus=None, valid_fraction=None, valid_nsigma=None,
+        focus_half_width=None,
         # Optimization kwdargs
         dx0=None, dscales=None, x0_scale=None, bounds_scale=None,
         method=None, tr_solver=None, tr_options=None, max_nfev=None,
@@ -1926,7 +1930,7 @@ class CrystalBragg(utils.ToFuObject):
                 data=data, lamb=lamb,
                 mask=mask, domain=domain, pos=pos, subset=subset,
                 focus=focus, valid_fraction=valid_fraction,
-                valid_nsigma=valid_nsigma, focus_width=focus_width,
+                valid_nsigma=valid_nsigma, focus_half_width=focus_half_width,
                 same_spectrum=same_spectrum,
                 same_spectrum_dlamb=same_spectrum_dlamb)
 
@@ -2038,7 +2042,8 @@ class CrystalBragg(utils.ToFuObject):
         mask=None, domain=None, pos=None, binning=None, subset=None,
         # lphi=None, lphi_tol=None,
         deg=None, knots=None, nbsplines=None,
-        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None):
+        focus=None, valid_fraction=None, valid_nsigma=None,
+        focus_half_width=None, valid_return_ind=None, valid_return_fract=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -2072,7 +2077,9 @@ class CrystalBragg(utils.ToFuObject):
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             deg=deg, knots=knots, nbsplines=nbsplines,
             focus=focus, valid_fraction=valid_fraction,
-            valid_nsigma=valid_nsigma, focus_width=focus_width)
+            valid_nsigma=valid_nsigma, focus_half_width=focus_half_width,
+            valid_return_ind=valid_return_ind,
+            valid_return_fract=valid_return_fract)
 
     def fit2d(
         self,
@@ -2081,7 +2088,8 @@ class CrystalBragg(utils.ToFuObject):
         det=None, dtheta=None, psi=None, n=None,
         dinput=None, dprepare=None, dlines=None, dconstraints=None,
         mask=None, domain=None, subset=None, pos=None, binning=None,
-        focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
+        focus=None, valid_fraction=None, valid_nsigma=None,
+        focus_half_width=None,
         deg=None, knots=None, nbsplines=None,
         # Optimization kwdargs
         dx0=None, dscales=None, x0_scale=None, bounds_scale=None,
@@ -2125,7 +2133,7 @@ class CrystalBragg(utils.ToFuObject):
                 pos=pos, binning=binning, subset=subset,
                 deg=deg, knots=knots, nbsplines=nbsplines,
                 focus=focus, valid_fraction=valid_fraction,
-                valid_nsigma=valid_nsigma, focus_width=focus_width)
+                valid_nsigma=valid_nsigma, focus_half_width=focus_half_width)
 
         # ----------------------
         # return

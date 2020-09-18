@@ -951,33 +951,84 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
 ###########################################################
 
 
-def _dvalid_checkfocus(focus=None, focus_width=None,
+def _dvalid_checkfocus_errmsg(focus=None, focus_half_width=None,
+                              lines_keys=None):
+    msg = ("Please provide focus as:\n"
+           + "\t- str: the key of an available spectral line:\n"
+           + "\t\t{}\n".format(lines_keys)
+           + "\t- float: a wavelength value\n"
+           + "\t- a list / tuple / flat np.ndarray of such\n"
+           + "  You provided:\n"
+           + "{}\n\n".format(focus)
+           + "Please provide focus_half_width as:\n"
+           + "\t- float: a unique wavelength value for all focus\n"
+           + "\t- a list / tuple / flat np.ndarray of such\n"
+           + "  You provided:\n"
+           + "{}".format(focus_half_width))
+    return msg
+
+
+def _dvalid_checkfocus(focus=None, focus_half_width=None,
                        lines_keys=None, lines_lamb=None):
+    """ Check the provided focus is properly formatted and convert it
+
+    focus specifies the wavelength range of interest in which S/N is evaluated
+    It can be provided as:
+        - a spectral line key (or list of such)
+        - a wavelength (or list of such)
+
+    For each wavelength, a spectral range centered on it, is defined using
+    the provided focus_half_width
+    The focus_half_width can be a unique value applied to all or a list of
+    values of the same length as focus.
+
+    focus is then return as a (n, 2) array where:
+        each line gives a central wavelength and halfwidth of interest
+
+    """
     if focus is None:
         focus = False
 
     if focus is not False:
-        c0 = (lines_keys is not None
-              and lines_lamb is not None
-              and ((isinstance(focus, str) and focus in lines_keys)
-                   or (isinstance(focus, list)
-                       and all([isinstance(ff, str) and ff in lines_keys
-                                for ff in focus]))))
-        if c0 is True:
-            if focus_width is None:
-                focus_width = 0.1*(np.max(lines_lamb) - np.min(lines_lamb))
-            if isinstance(focus, str):
-                focus = [focus]
-            focus = [(lines_lamb[lines_keys == ff]
-                      + focus_width*np.r_[-0.5, 0.5])
-                     for ff in focus]
-        focus = _checkformat_domain(domain={'lamb': focus})['lamb']['spec']
-    return focus
+        ltypes = [float, int, np.int_, np.float_]
+
+        # Check focus and transform to array of floats
+        lc0 = [type(focus) in [str] + ltypes,
+               type(focus) in [list, tuple, np.ndarray]]
+        if not any(lc0):
+            msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
+                                            lines_keys)
+            raise Exception(msg)
+        if lc0[0] is True:
+            focus = [focus]
+        for ii in range(len(focus)):
+            if focus[ii] not in lines_keys and type(focus[ii]) not in ltypes:
+                msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
+                                                lines_keys)
+                raise Exception(msg)
+        focus = np.array([lines_lamb[(lines_keys == ff).nonzero()[0][0]]
+                          if ff in lines_keys else ff for ff in focus])
+
+        # Check focus_half_width and transform to array of floats
+        if focus_half_width is None:
+            focus_half_width = (np.max(lines_lamb) - np.min(lines_lamb))/20
+        lc0 = [type(focus_half_width) in ltypes,
+               (type(focus_half_width) in [list, tuple, np.ndarray]
+                and len(focus_half_width) == focus.size
+                and all([type(fhw) in ltypes for fhw in focus_half_width]))]
+        if not any(lc0):
+            msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
+                                            lines_keys)
+            raise Exception(msg)
+        if lc0[0] is True:
+            focus_half_width = np.full((focus.size,), focus_half_width)
+    return np.array([focus, np.r_[focus_half_width]]).T
+
 
 def fit12d_dvalid(data=None, lamb=None, phi=None,
                   indok=None, binning=None,
                   valid_nsigma=None, valid_fraction=None,
-                  focus=None, focus_width=None,
+                  focus=None, focus_half_width=None,
                   lines_keys=None, lines_lamb=None, dphimin=None,
                   nbs=None, deg=None, knots_mult=None, nknotsperbs=None,
                   return_ind=None, return_fract=None):
@@ -1007,7 +1058,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
     nspect = data.shape[0]
 
     focus = _dvalid_checkfocus(focus,
-                               focus_width=focus_width,
+                               focus_half_width=focus_half_width,
                                lines_keys=lines_keys,
                                lines_lamb=lines_lamb)
 
@@ -1026,7 +1077,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
     indbs, dphi = False, False
     if focus is not False:
         lambok = np.rollaxis(
-            np.array([(lamb > ff[0]) & (lamb < ff[1]) for ff in focus]),
+            np.array([np.abs(lamb - ff[0]) < ff[1] for ff in focus]),
             0, lamb.ndim+1)
         indall = ind2[..., None] & lambok[None, ...]
 
@@ -1130,7 +1181,8 @@ def fit1d_dinput(
     data=None, lamb=None, mask=None,
     domain=None, pos=None, subset=None,
     same_spectrum=None, nspect=None, same_spectrum_dlamb=None,
-    focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
+    focus=None, valid_fraction=None, valid_nsigma=None, focus_half_width=None,
+    valid_return_ind=None, valid_return_fract=None,
     dscales=None, dx0=None, dbounds=None,
     defconst=_DCONSTRAINTS):
 
@@ -1262,8 +1314,10 @@ def fit1d_dinput(
         indok=dprepare['indok'],
         valid_nsigma=valid_nsigma,
         validfraction=valid_fraction,
-        focus=focus, focus_width=focus_width,
-        lines_keys=lines_keys, lines_lamb=lines_lamb)
+        focus=focus, focus_half_width=focus_half_width,
+        lines_keys=lines_keys, lines_lamb=lines_lamb,
+        return_ind=valid_return_ind,
+        return_fract=valid_return_fract)
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1274,9 +1328,8 @@ def fit1d_dinput(
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
                                        dinput=dinput)
-    dinput['dx0'] = fit12d_dx0()
-    dinput['dbounds'] = fit12d_dbounds()
-
+    # dinput['dx0'] = fit12d_dx0()
+    # dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
 
@@ -1285,7 +1338,8 @@ def fit2d_dinput(
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None, mask=None,
     domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
-    focus=None, valid_fraction=None, valid_nsigma=None, focus_width=None,
+    focus=None, valid_fraction=None, valid_nsigma=None, focus_half_width=None,
+    valid_return_ind=None, valid_return_fract=None,
     dscales=None, dx0=None, dbounds=None,
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
@@ -1375,12 +1429,14 @@ def fit2d_dinput(
         indok=dprepare['indok'],
         valid_nsigma=valid_nsigma,
         valid_fraction=valid_fraction,
-        focus=focus, focus_width=focus_width,
+        focus=focus, focus_half_width=focus_half_width,
         lines_keys=lines_keys, lines_lamb=lines_lamb,
         nbs=dinput['nbs'],
         deg=dinput['deg'],
         knots_mult=dinput['knots_mult'],
-        nknotsperbs=dinput['nknotsperbs'])
+        nknotsperbs=dinput['nknotsperbs'],
+        return_ind=valid_return_ind,
+        return_fract=valid_return_fract)
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1391,8 +1447,8 @@ def fit2d_dinput(
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
                                        dinput=dinput)
-    dinput['dx0'] = fit12d_dx0()
-    dinput['dbounds'] = fit12d_dbounds()
+    # dinput['dx0'] = fit12d_dx0()
+    # dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
 
@@ -1597,22 +1653,20 @@ def fit12d_dscales(dscales=None,
         # fit bsplines on datavert (vertical profile)
         # to modulate scales (bck and amp)
 
-        if data2d is True:
-            dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
-            for ii in dinput['valid']['indt'].nonzero()[0]:
-                # indbs =
-                # knots =
-                indnonan = ~np.isnan(datavert[ii, :])
-                bs = scpinterp.LSQUnivariateSpline(
-                    phi[indnonan], datavert[ii, indnonan],
-                    dinput['knots'][1:-1],
-                    k=dinput['deg'],
-                    bbox=dinput['knots'][np.r_[0,-1]],
-                    ext=0)
-                dscales['bs'][ii, :] = (bs.get_coeffs()
-                                        / np.nanmean(datavert[ii, :]))
-        # TBC / TBF
-        import pdb; pdb.set_trace()     # DB
+        dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
+        for ii in dinput['valid']['indt'].nonzero()[0]:
+            indnonan = ~np.isnan(datavert[ii, :])
+            bs = scpinterp.LSQUnivariateSpline(
+                phi[indnonan], datavert[ii, indnonan],
+                dinput['knots'][1:-1],
+                k=dinput['deg'],
+                bbox=dinput['knots'][np.r_[0,-1]],
+                ext=0)
+            dscales['bs'][ii, :] = bs.get_coeffs()
+        # Normalize to avoid double-amplification when amp*bs
+        corr = np.max(dscales['bs'][dinput['valid']['indt'], :],
+                      axis=1)[:, None]
+        dscales['bs'][dinput['valid']['indt'], :] /= corr
 
     # --------------
     # Default values for filling missing fields
@@ -1692,7 +1746,6 @@ def fit12d_dscales(dscales=None,
                 dscales['dratio'] = float(dscales.get('dratio', dratio))
             if dinput['double'].get('dshift') is None:
                 dscales['dshift'] = float(dscales.get('dshift', dshift))
-
     return dscales
 
 
