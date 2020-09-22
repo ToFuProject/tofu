@@ -1880,7 +1880,7 @@ class CrystalBragg(utils.ToFuObject):
         mask=None, domain=None, pos=None, subset=None,
         same_spectrum=None, same_spectrum_dlamb=None,
         focus=None, valid_fraction=None, valid_nsigma=None,
-        focus_half_width=None, valid_return_ind=None, valid_return_fract=None):
+        focus_half_width=None, valid_return_fract=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -1896,7 +1896,6 @@ class CrystalBragg(utils.ToFuObject):
             same_spectrum_dlamb=same_spectrum_dlamb,
             focus=focus, valid_fraction=valid_fraction,
             valid_nsigma=valid_nsigma, focus_half_width=focus_half_width,
-            valid_return_ind=valid_return_ind,
             valid_return_fract=valid_return_fract)
 
     def fit1d(
@@ -2043,7 +2042,7 @@ class CrystalBragg(utils.ToFuObject):
         # lphi=None, lphi_tol=None,
         deg=None, knots=None, nbsplines=None,
         focus=None, valid_fraction=None, valid_nsigma=None,
-        focus_half_width=None, valid_return_ind=None, valid_return_fract=None):
+        focus_half_width=None, valid_return_fract=None):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -2078,7 +2077,6 @@ class CrystalBragg(utils.ToFuObject):
             deg=deg, knots=knots, nbsplines=nbsplines,
             focus=focus, valid_fraction=valid_fraction,
             valid_nsigma=valid_nsigma, focus_half_width=focus_half_width,
-            valid_return_ind=valid_return_ind,
             valid_return_fract=valid_return_fract)
 
     def fit2d(

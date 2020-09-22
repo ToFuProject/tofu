@@ -42,6 +42,7 @@ _TOL1D = {'x': 1e-10, 'f': 1.e-10, 'g': 1.e-10}
 _TOL2D = {'x': 1e-6, 'f': 1.e-6, 'g': 1.e-6}
 _SYMMETRY_CENTRAL_FRACTION = 0.3
 _BINNING = False
+_POS = False
 _SUBSET = False
 _CHAIN = True
 _METHOD = 'trf'
@@ -634,7 +635,6 @@ def binning_2d_data(lamb, phi, data, indok=None,
     # ------------------
     # Compute
 
-
     databin = scpstats.binned_statistic_2d(
         lamb[indok], phi[indok], data[:, indok],
         statistic='sum', bins=bins,
@@ -671,16 +671,16 @@ def _get_subset_indices(subset, indlogical):
     if subset is False:
         return indlogical
 
-    msg = ("subset must be either:\n"
-           + "\t- an array of bool of shape: {}\n".format(indlogical.shape)
-           + "\t- a positive int (nb. of indices to be kept from indlogical)\n"
-           + "You provided: {}".format(subset))
     c0 = ((isinstance(subset, np.ndarray)
            and subset.shape == indlogical.shape
            and 'bool' in subset.dtype.name)
           or (type(subset) in [int, float, np.int_, np.float_]
               and subset >= 0))
     if not c0:
+        msg = ("subset must be either:\n"
+               + "\t- an array of bool of shape: {}\n".format(indlogical.shape)
+               + "\t- a positive int (nb. of ind. to keep from indlogical)\n"
+               + "You provided:\n{}".format(subset))
         raise Exception(msg)
 
     if isinstance(subset, np.ndarray):
@@ -697,6 +697,7 @@ def _get_subset_indices(subset, indlogical):
 def _extract_lphi_spectra(data, phi, lamb,
                           lphi=None, lphi_tol=None,
                           databin=None, binning=None, nlamb=None):
+    """ Extra several 1d spectra from 2d image at lphi """
 
     # --------------
     # Check input
@@ -712,11 +713,8 @@ def _extract_lphi_spectra(data, phi, lamb,
         return False, False
     nphi = len(lphi)
 
-
     # --------------
     # Compute non-trivial cases
-
-    # Investigate use of scipy.binned_statistics !!!
 
     if binning is False:
         if nlamb is None:
@@ -724,7 +722,7 @@ def _extract_lphi_spectra(data, phi, lamb,
         lphi_lamb = np.linspace(lamb.min(), lamb.max(), nlamb+1)
         lphi_spectra = np.full((data.shape[0], lphi_lamb.size-1, nphi), np.nan)
         for ii in range(nphi):
-            indphi = (phi > lphi[ii]-lphi_tol) & (phi < lphi[ii]+lphi_tol)
+            indphi = np.abs(phi - lphi[ii]) < lphi_tol
             lphi_spectra[:, :, ii] = scpstats.binned_statistic(
                 lamb[indphi], data[:, indphi], bins=lphi_lamb,
                 statistic='mean', range=None)[0]
@@ -737,8 +735,7 @@ def _extract_lphi_spectra(data, phi, lamb,
         lphi_spectra = np.full((data.shape[0], lphi_lamb.size, nphi), np.nan)
         lphi_spectra1 = np.full((data.shape[0], lphi_lamb.size, nphi), np.nan)
         for ii in range(nphi):
-            datai = databin[:, :, ((lphi_phi > lphi[ii]-lphi_tol)
-                                   & (lphi_phi < lphi[ii]+lphi_tol))]
+            datai = databin[:, :, np.abs(lphi_phi - lphi[ii]) < lphi_tol]
             iok = np.any(~np.isnan(datai), axis=2)
             for jj in range(datai.shape[0]):
                 if np.any(iok[jj, :]):
@@ -748,39 +745,57 @@ def _extract_lphi_spectra(data, phi, lamb,
     return lphi_spectra, lphi_lamb
 
 
+def _checkformat_possubset(pos=None, subset=None):
+    if pos is None:
+        pos = _POS
+    ltypes = [float, int, np.float_, np.int_]
+    c0 = isinstance(pos, bool) or type(pos) in ltypes
+    if not c0:
+        msg = ("Arg pos must be either:\n"
+               + "\t- False: no positivity constraints\n"
+               + "\t- True: all negative values are set to nan\n"
+               + "\t- float: all negative values are set to pos")
+        raise Exception(msg)
+    if subset is None:
+        subset = _SUBSET
+    return pos, subset
+
+
 def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
                                        mask=None, domain=None,
                                        pos=None, subset=None):
 
     # --------------
     # Check input
-    if pos is None:
-        pos = False
-    if subset is None:
-        subset = _SUBSET
+    pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
     lamb, _, data, mask = _checkformat_data_fit12d_dlines(data, lamb,
                                                           mask=mask)
-
-    if pos is True:
-        data[data < 0.] = 0.
 
     # --------------
     # Use valid data only and optionally restrict lamb
     indok, domain = apply_domain(lamb, domain=domain)
     if mask is not None:
         indok &= mask
+
+    # Optional positivity constraint
+    if pos is not False:
+        if pos is True:
+            data[data < 0.] = np.nan
+        else:
+            data[data < 0.] = pos
+
+    # Introduce time-dependence (useful for valid)
     indok &= np.any(~np.isnan(data), axis=0)
+
+    # Recompute domain
     domain['lamb']['minmax'] = [np.nanmin(lamb[indok]), np.nanmax(lamb[indok])]
 
     # --------------
     # Optionally fit only on subset
     # randomly pick subset indices (replace=False => no duplicates)
     indok = _get_subset_indices(subset, indok)
-
-    # if indok.shape == lamb.shape:
-    #    indok = np.tile(indok, (data.shape[0], 1))
 
     # --------------
     # Return
@@ -799,33 +814,31 @@ def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
 
     # --------------
     # Check input
-    if pos is None:
-        pos = False
-    if subset is None:
-        if binning in [None, False]:
-            subset = _SUBSET
-        else:
-            subset = False
+    pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
     lamb, phi, data, mask = _checkformat_data_fit12d_dlines(
         data, lamb, phi,
         nxi=nxi, nxj=nxj, mask=mask)
 
-    if pos is True:
-        data[data < 0.] = 0.
-
     # --------------
     # Use valid data only and optionally restrict lamb / phi
     indok, domain = apply_domain(lamb, phi, domain=domain)
     if mask is not None:
         indok &= mask
-    indok = indok[None, ...] & (~np.isnan(data))
-    indok[indok] = data[indok] >= 0.
 
-    # TBC / TBF
-    domain['lamb']['minmax'] = [np.nanmin(lamb[indok]),
-                                np.nanmax(lamb[indok])]
+    # Optional positivity constraint
+    if pos is not False:
+        if pos is True:
+            data[data < 0.] = np.nan
+        else:
+            data[data < 0.] = pos
+
+    # Introduce time-dependence (useful for valid)
+    indok &= np.any(~np.isnan(data), axis=0)
+
+    # Recompute domain
+    domain['lamb']['minmax'] = [np.nanmin(lamb[indok]), np.nanmax(lamb[indok])]
     domain['phi']['minmax'] = [np.nanmin(phi[indok]), np.nanmax(phi[indok])]
 
     # --------------
@@ -833,21 +846,6 @@ def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
     lambbin, phibin, databin, indok, binning = binning_2d_data(
         lamb, phi, data, indok=indok,
         binning=binning, domain=domain, nbsplines=nbsplines)
-
-    # --------------
-    # Get vertical profile of mean data
-    # DEPRECATED BY VALID ???
-    # if binning is False:
-        # nphid = nxj
-        # phi1d_bins = np.linspace(domain['phi']['minmax'][0],
-                                 # domain['phi']['minmax'][1], nxj)
-        # phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
-        # dataphi1d =  scpstats.binned_statistic(
-            # phi[indok], data[:, indok],
-            # bins=phi1d_bins, statistic='mean')[0]
-    # else:
-        # phi1d = (binning['phi']['edges'][1:] + binning['phi']['edges'][:-1])/2.
-        # dataphi1d = np.nanmean(databin, axis=1)
 
     # --------------
     # Optionally fit only on subset
@@ -865,7 +863,6 @@ def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
     # Return
     dprepare = {'data': databin, 'lamb': lambbin, 'phi': phibin,
                 'domain': domain, 'binning': binning, 'indok': indok,
-                # 'phi1d': phi1d, 'dataphi1d': dataphi1d,
                 'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
                 'lphi': lphi, 'lphi_tol': lphi_tol,
                 'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb}
@@ -990,42 +987,41 @@ def _dvalid_checkfocus(focus=None, focus_half_width=None,
         each line gives a central wavelength and halfwidth of interest
 
     """
-    if focus is None:
-        focus = False
+    if focus in [None, False]:
+        return False
 
-    if focus is not False:
-        ltypes = [float, int, np.int_, np.float_]
+    ltypes = [float, int, np.int_, np.float_]
 
-        # Check focus and transform to array of floats
-        lc0 = [type(focus) in [str] + ltypes,
-               type(focus) in [list, tuple, np.ndarray]]
-        if not any(lc0):
+    # Check focus and transform to array of floats
+    lc0 = [type(focus) in [str] + ltypes,
+           type(focus) in [list, tuple, np.ndarray]]
+    if not any(lc0):
+        msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
+                                        lines_keys)
+        raise Exception(msg)
+    if lc0[0] is True:
+        focus = [focus]
+    for ii in range(len(focus)):
+        if focus[ii] not in lines_keys and type(focus[ii]) not in ltypes:
             msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
                                             lines_keys)
             raise Exception(msg)
-        if lc0[0] is True:
-            focus = [focus]
-        for ii in range(len(focus)):
-            if focus[ii] not in lines_keys and type(focus[ii]) not in ltypes:
-                msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
-                                                lines_keys)
-                raise Exception(msg)
-        focus = np.array([lines_lamb[(lines_keys == ff).nonzero()[0][0]]
-                          if ff in lines_keys else ff for ff in focus])
+    focus = np.array([lines_lamb[(lines_keys == ff).nonzero()[0][0]]
+                      if ff in lines_keys else ff for ff in focus])
 
-        # Check focus_half_width and transform to array of floats
-        if focus_half_width is None:
-            focus_half_width = (np.max(lines_lamb) - np.min(lines_lamb))/20
-        lc0 = [type(focus_half_width) in ltypes,
-               (type(focus_half_width) in [list, tuple, np.ndarray]
-                and len(focus_half_width) == focus.size
-                and all([type(fhw) in ltypes for fhw in focus_half_width]))]
-        if not any(lc0):
-            msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
-                                            lines_keys)
-            raise Exception(msg)
-        if lc0[0] is True:
-            focus_half_width = np.full((focus.size,), focus_half_width)
+    # Check focus_half_width and transform to array of floats
+    if focus_half_width is None:
+        focus_half_width = (np.max(lines_lamb) - np.min(lines_lamb))/20
+    lc0 = [type(focus_half_width) in ltypes,
+           (type(focus_half_width) in [list, tuple, np.ndarray]
+            and len(focus_half_width) == focus.size
+            and all([type(fhw) in ltypes for fhw in focus_half_width]))]
+    if not any(lc0):
+        msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
+                                        lines_keys)
+        raise Exception(msg)
+    if lc0[0] is True:
+        focus_half_width = np.full((focus.size,), focus_half_width)
     return np.array([focus, np.r_[focus_half_width]]).T
 
 
@@ -1035,7 +1031,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
                   focus=None, focus_half_width=None,
                   lines_keys=None, lines_lamb=None, dphimin=None,
                   nbs=None, deg=None, knots_mult=None, nknotsperbs=None,
-                  return_ind=None, return_fract=None):
+                  return_fract=None):
     """ Return a dict of valid time steps and phi indices
 
     data points are considered valid if there signal is sufficient:
@@ -1054,8 +1050,6 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
         binning = False
     if dphimin is None:
         dphimin = 0.
-    if return_ind is None:
-        return_ind = False
     if return_fract is None:
         return_fract = False
     data2d = data.ndim == 3
@@ -1068,16 +1062,14 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
 
     # Get indices of pts with enough signal
     ind = np.zeros(data.shape, dtype=bool)
-    isafe = (~np.isnan(data))
-    isafe[isafe] = data[isafe] >= 0.
-    # Ok with and w/o binning if data provided as counts / photons
-    # and binning was done by sum (and not mean)
-    ind[isafe] = np.sqrt(data[isafe]) > valid_nsigma
-
-    if indok is not None:
-        ind2 = ind & indok[None, ...]
+    if indok is None:
+        isafe = (~np.isnan(data))
+        isafe[isafe] = data[isafe] >= 0.
+        # Ok with and w/o binning if data provided as counts / photons
+        # and binning was done by sum (and not mean)
+        ind[isafe] = np.sqrt(data[isafe]) > valid_nsigma
     else:
-        ind2 = ind
+        ind[:, indok] = np.sqrt(data[:, indok]) > valid_nsigma
 
     # Derive indt and optionally dphi and indknots
     indbs, dphi = False, False
@@ -1085,7 +1077,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
         lambok = np.rollaxis(
             np.array([np.abs(lamb - ff[0]) < ff[1] for ff in focus]),
             0, lamb.ndim+1)
-        indall = ind2[..., None] & lambok[None, ...]
+        indall = ind[..., None] & lambok[None, ...]
 
     if data2d is True:
         # Make sure there are at least deg + 2 different phi
@@ -1096,7 +1088,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
             for ii in range(nbs):
                 iphi = ((phi >= knots_mult[ii])
                         & (phi < knots_mult[ii+nknotsperbs-1]))
-                fract[:, ii] = (np.sum(np.sum(ind2 & iphi[None, ...],
+                fract[:, ii] = (np.sum(np.sum(ind & iphi[None, ...],
                                               axis=-1), axis=-1)
                                 / np.sum(iphi))
             indbs = fract > valid_fraction
@@ -1117,7 +1109,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
     else:
         # 1d spectra
         if focus is False:
-            fract = ind2.sum(axis=-1) / ind2.shape[1]
+            fract = ind.sum(axis=-1) / ind.shape[1]
             indt = fract > valid_fraction
         else:
             fract = np.sum(indall, axis=1) / lambok.sum(axis=0)[None, :]
@@ -1129,7 +1121,7 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
         if data2d is True:
             indall2 = indall.astype(int)
             indall2[:, lambok] = 1
-            indall2[ind2[..., None] & lambok[None, ...]] = 2
+            indall2[ind[..., None] & lambok[None, ...]] = 2
             plt.figure();
             plt.imshow(indall2[indt_debug, :, :, ifocus].T, origin='lower');
         else:
@@ -1141,11 +1133,9 @@ def fit12d_dvalid(data=None, lamb=None, phi=None,
             plt.axvline(focus[ifocus, 0], ls='--', c='k');
 
     # return
-    dvalid = {'indt': indt, 'dphi': dphi, 'indbs': indbs,
+    dvalid = {'indt': indt, 'dphi': dphi, 'indbs': indbs, 'ind': ind,
               'focus': focus, 'valid_fraction': valid_fraction,
               'valid_nsigma': valid_nsigma}
-    if return_ind is True:
-        dvalid['ind'] = ind
     if return_fract is True:
         dvalid['fract'] = fract
     return dvalid
@@ -1206,7 +1196,7 @@ def fit1d_dinput(
     domain=None, pos=None, subset=None,
     same_spectrum=None, nspect=None, same_spectrum_dlamb=None,
     focus=None, valid_fraction=None, valid_nsigma=None, focus_half_width=None,
-    valid_return_ind=None, valid_return_fract=None,
+    valid_return_fract=None,
     dscales=None, dx0=None, dbounds=None,
     defconst=_DCONSTRAINTS):
 
@@ -1340,7 +1330,6 @@ def fit1d_dinput(
         valid_fraction=valid_fraction,
         focus=focus, focus_half_width=focus_half_width,
         lines_keys=lines_keys, lines_lamb=lines_lamb,
-        return_ind=valid_return_ind,
         return_fract=valid_return_fract)
 
     # Update with dprepare
@@ -1352,7 +1341,7 @@ def fit1d_dinput(
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
                                        dinput=dinput)
-    # dinput['dx0'] = fit12d_dx0()
+    dinput['dx0'] = fit12d_dx0(dinput=dinput)
     # dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
@@ -1363,7 +1352,7 @@ def fit2d_dinput(
     data=None, lamb=None, phi=None, mask=None,
     domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
     focus=None, valid_fraction=None, valid_nsigma=None, focus_half_width=None,
-    valid_return_ind=None, valid_return_fract=None,
+    valid_return_fract=None,
     dscales=None, dx0=None, dbounds=None,
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
@@ -1459,7 +1448,6 @@ def fit2d_dinput(
         deg=dinput['deg'],
         knots_mult=dinput['knots_mult'],
         nknotsperbs=dinput['nknotsperbs'],
-        return_ind=valid_return_ind,
         return_fract=valid_return_fract)
 
     # Update with dprepare
@@ -1471,7 +1459,7 @@ def fit2d_dinput(
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
                                        dinput=dinput)
-    # dinput['dx0'] = fit12d_dx0()
+    # dinput['dx0'] = fit12d_dx0(dinput=dinput)
     # dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
@@ -1612,6 +1600,31 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 ###########################################################
 
 
+def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
+    lkconst = ['dratio', 'dshift']
+    lk = ['bck']
+    lkdict = ['amp', 'width', 'shift']
+    ltypes = [int, float, np.int, np.float]
+    c0 = din is None
+    c1 = (isinstance(din, dict)
+          and all([(k0 in lkconst and type(v0) in ltypes)
+                   or (k0 in lk and type(v0) in ltypes + [np.ndarray])
+                   or (k0 in lkdict
+                       and isinstance(v0, dict)
+                       and all([k1 in dinput[k0]['keys']
+                                and type(v1) in ltypes + [np.ndarray]
+                                for k1, v1 in v0.items()]))
+                   for k0, v0 in din.items()]))
+    if c0 is True:
+        din = {}
+    elif not c1:
+        msg = ("Arg {} must be a dict of the form:\n".format(name)
+               + "\t- {}\n".format(dict.fromkeys(lk, 1.))
+               + "\t- provided: {}".format(din))
+        raise Exception(msg)
+    return din
+
+
 def fit12d_dscales(dscales=None,
                    dinput=None):
 
@@ -1621,23 +1634,8 @@ def fit12d_dscales(dscales=None,
     lk = ['bck']
     lkdict = ['amp', 'width', 'shift']
     ltypes = [int, float, np.int, np.float]
-    c0 = dscales is None
-    c1 = (isinstance(dscales, dict)
-          and all([(k0 in lkconst and type(v0) in ltypes)
-                   or (k0 in lk and type(v0) in ltypes + [np.ndarray])
-                   or (k0 in lkdict
-                       and isinstance(v0, dict)
-                       and all([k1 in dinput[k0]['keys']
-                                and type(v1) in ltypes + [np.ndarray]
-                                for k1, v1 in v0.items()]))
-                   for k0, v0 in dscales.items()]))
-    if c0 is True:
-        dscales = {}
-    elif not c1:
-        msg = ("Arg dscales must be a dict of the form:\n"
-               + "\t- {}\n".format(dict.fromkeys(lk, 1.))
-               + "\t- provided: {}".format(dscales))
-        raise Exception(msg)
+    dscales = _fit12d_checkformat_dscalesx0(din=dscales, dinput=dinput,
+                                            name='dscales')
 
     data = dinput['dprepare']['data']
     lamb = dinput['dprepare']['lamb']
@@ -1937,7 +1935,7 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
 ###########################################################
 
 
-def _checkformat_dx0(dx0=None, dinput=None, scales=None):
+def _checkformat_dx0(dx0=None, dinput=None):
 
     # -----------------
     # Check preliminary
@@ -2716,7 +2714,6 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
     # ----------------------
     # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
     if dinput is None:
-        # TBC
         dinput = fit2d_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             data=data, lamb=lamb, phi=phi,
