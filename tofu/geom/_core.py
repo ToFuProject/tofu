@@ -2308,43 +2308,54 @@ class Config(utils.ToFuObject):
     ###########
 
     def _checkformat_inputs_Struct(self, struct, err=True):
-        assert issubclass(struct.__class__, Struct)
-        C0 = struct.Id.Exp == self.Id.Exp
-        C1 = struct.Id.Type == self.Id.Type
-        C2 = struct.Id.Name.isidentifier()
-        C2 = C2 and '_' not in struct.Id.Name
         msgi = None
-        if not (C0 and C1 and C2):
-            msgi = "\n    - {0} :".format(struct.Id.SaveName)
-            if not C0:
-                msgi += "\n     Exp: {0}".format(struct.Id.Exp)
-            if not C1:
-                msgi += "\n     Type: {0}".format(struct.Id.Type)
-            if not C2:
-                msgi += "\n     Name: {0}".format(struct.Id.Name)
-            if err:
-                msg = "Non-conform struct Id:" + msgi
-                raise Exception(msg)
+        c0 = issubclass(struct.__class__, Struct)
+        if not c0:
+            msgi = "\n\t- Not a struct subclass: {}".format(type(struct))
+        else:
+            c1 = struct.Id.Exp == self.Id.Exp
+            c2 = struct.Id.Type == self.Id.Type
+            c3 = struct.Id.Name.isidentifier()
+            c4 = c3 and '_' not in struct.Id.Name
+            if not (c0 and c1 and c2 and c3):
+                c1 = struct.Id.Exp == self.Id.Exp
+                c2 = struct.Id.Type == self.Id.Type
+                c3 = struct.Id.Name.isidentifier()
+                c4 = c3 and '_' not in struct.Id.Name
+                msgi = "\n\t- {0} :".format(struct.Id.SaveName)
+                if not c1:
+                    msgi += "\n\tExp: {0}".format(struct.Id.Exp)
+                if not c2:
+                    msgi += "\n\tType: {0}".format(struct.Id.Type)
+                if not c3:
+                    msgi += "\n\tName: {0}".format(struct.Id.Name)
+        if msgi is not None and err is True:
+            msg = "Non-conform struct:" + msgi
+            raise Exception(msg)
         return msgi
 
-    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
-        if lStruct is None:
-            msg = "Arg lStruct must be"
-            msg += " a tofu.geom.Struct subclass or a list of such !"
-            msg += "\nValid subclasses include:"
-            lsub = ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]
-            for ss in lsub:
-                msg = "\n    - tf.geom.{0}".format(ss)
-            raise Exception(msg)
+    @staticmethod
+    def _errmsg_dStruct(lStruct):
+        ls = ["tf.geom.{}".format(ss)
+              for ss in ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]]
+        msg = ("Arg lStruct must be "
+               + "a tofu.geom.Struct subclass or list of such!\n"
+               + "Valid subclasses include:\n\t- "
+               + "\n\t- ".join(ls)
+               + "\nYou provided: {}".format(type(lStruct)))
+        return msg
 
-        C0 = isinstance(lStruct, list) or isinstance(lStruct, tuple)
-        C1 = issubclass(lStruct.__class__, Struct)
-        assert C0 or C1, msg
-        if C0:
-            Ci = [issubclass(ss.__class__, Struct) for ss in lStruct]
-            assert all(Ci), msg
+    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
+        c0 = lStruct is not None
+        c1 = ((isinstance(lStruct, list) or isinstance(lStruct, tuple))
+              and all([issubclass(ss.__class__, Struct) for ss in lStruct]))
+        c2 = issubclass(lStruct.__class__, Struct)
+        if not (c0 and (c1 or c2)):
+            raise Exception(self._errmsg_dStruct(lStruct))
+
+        if c1 and isinstance(lStruct, tuple):
             lStruct = list(lStruct)
-        else:
+        elif c2:
             lStruct = [lStruct]
 
         msg = ""
