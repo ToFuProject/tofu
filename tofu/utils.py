@@ -457,6 +457,63 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     return name, mode, pfe
 
 
+def get_param_from_file_name(pfe=None, lparams=None, test=True):
+    """ Try to extract desired parameter from file name
+
+    tofu typically saves files with names formatted as:
+        XXX_Key0param0_Key1param1_Key2param2...
+
+    Where:
+        - XXX corresponds to the sub-package that created the file
+        - Keyiparami are (key, value) parameter pairs, when possible
+
+    """
+
+    # Check inputs
+    if test is True:
+        # Check inputs
+        if not c0:
+            msg = ("Provided file does not exist!\n"
+                   + "{}".format(pfe))
+            raise Exception(msg)
+
+        c0 = (isinstance(lparams, str)
+              or (isinstance(lparams, list)
+                  and all([isinstance(pp, str) for pp in lparams])))
+        if not c0:
+            msg = ("Arg lparams must be a str of list of str!\n"
+                   + "Provided:\n{}".format(lparams))
+            raise Exception(msg)
+        c0 = os.path.isfile(pfe)
+
+    if isinstance(lparams, str):
+        lparams = [lparams]
+
+    # Get params
+    path, name = os.path.split(os.path.abspath(pfe))
+
+    # First, try from file name
+    dout = dict.fromkeys(lparams)
+    lk = name.split("_")
+    nk = len(lk)
+    for pp in lparams:
+        lind = [ii for ii in range(nk) if '_'+pp in '_'+lk[ii]]
+        if len(lind) == 1:
+            dout[pp] = lk[lind[0]].replace(pp, '')
+            if dout[pp].isnumeric():
+                dout[pp] = int(dout[pp])
+            elif '.' in dout[pp]:
+                try:
+                    dout[pp] = float(dout[pp])
+                except:
+                    pass
+        elif len(lind) > 1:
+            msg = ("Several values for key {} found in file:\n"
+                   + "    file: {}".format(pfe))
+            warnings.warn(msg)
+    return dout
+
+
 def load(name, path=None, strip=None, verb=True, allow_pickle=None):
     """     Load a tofu object file
 
@@ -609,9 +666,77 @@ def _load_mat(pfe):
     return _get_load_npzmat_dict(out, pfe, mode='mat', exclude_keys=lsmat)
 
 
+###############################################
+#       Getting parameters from txt files
+###############################################
+
+
+def from_txt_extract_params(pfe=None, lparams=None):
+    """ Extract key parameters stored as commented lines at top of file
+
+    tofu saves some data to txt files with the following formatting:
+        - a series of commented (#) lines, each with format:
+            # key: value
+        - a 1d or 2d np.ndarray
+
+    This routine extracts the desired parameters from the commented lines
+
+    """
+
+    # Check inputs
+    c0 = os.path.isfile(pfe)
+    if not c0:
+        msg = ("Provided file does not exist!\n"
+               + "{}".format(pfe))
+        raise Exception(msg)
+
+    c0 = (isinstance(lparams, str)
+          or (isinstance(lparams, list)
+              and all([isinstance(pp, str) for pp in lparams])))
+    if not c0:
+        msg = ("Arg lparams must be a str of list of str!\n"
+               + "Provided:\n{}".format(lparams))
+        raise Exception(msg)
+    if isinstance(lparams, str):
+        lparams = [lparams]
+
+    # First, try from file name
+    dout = get_param_from_file_name(pfe=pfe, lparams=lparams, test=False):
+
+    # Then try from file content (overwrite but warn)
+    lout = [param, "#", ":", "=", " ", "\n", "\t"]
+    with open(pfe) as fid:
+        for pp in lparams:
+            while True:
+                line = fid.readline()
+                if pp in line:
+                    for kk in lout:
+                        line = line.replace(kk, "")
+                    if line.isnumeric():
+                        line = int(line)
+                    elif '.' in line:
+                        try:
+                            line = float(line)
+                        except:
+                            pass
+                    if dout.get(pp) is not None and dout[pp] != line:
+                        msg = ("Inconsistency between file name and content\n"
+                               + "\t- file: {}\n".format(pfe)
+                               + "\t- parameter: {}\n".format(pp)
+                               + "\t- from name: {}\n".format(dout[pp])
+                               + "\t- from content: {}\n".format(line))
+                        warnings.warn(msg)
+                    dout[pp] = line
+                    break
+                elif not line:
+                    break
+    return dout
+
+
 #######
 #   tf.geom.Struct - specific
 #######
+
 
 def _load_from_txt(name, pfe, Name=None, Exp=None):
 

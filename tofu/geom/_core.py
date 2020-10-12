@@ -1863,10 +1863,13 @@ class Struct(utils.ToFuObject):
             pos, extent = None, None
 
         # Try reading Exp and Name if not provided
-        if Exp is None:
-            Exp = cls._from_txt_extract_params(pfe, "Exp")
-        if Name is None:
-            Name = cls._from_txt_extract_params(pfe, "Name")
+        lc = [ss for ss, vv in [('Exp', Exp), ('Name', Name)] if vv is None]
+        if len(lc) > 0:
+            dparam = utils.from_txt_extract_params(pfe, lc)
+            if 'Exp' in lc:
+                Exp = dparam['Exp']
+            if 'Name' in lc:
+                Name = dparam['Name']
 
         if out == "dict":
             return {"poly": poly, "pos": pos, "extent": extent}
@@ -1884,37 +1887,6 @@ class Struct(utils.ToFuObject):
                 color=color,
             )
             return obj
-
-    @staticmethod
-    def _from_txt_extract_params(pfe, param):
-        p, name = os.path.split(pfe)
-
-        # Try from file name
-        lk = name.split("_")
-        lind = [param in k for k in lk]
-        if np.sum(lind) > 1:
-            msg = "Several values form %s found in file name:\n"
-            msg += "    file: %s" % pfe
-            raise Exception(msg)
-        if any(lind):
-            paramstr = lk[np.nonzero(lind)[0][0]]
-            paramstr = paramstr.replace(param, "")
-            return paramstr
-
-        # try from file content
-        paramstr = None
-        lout = [param, "#", ":", "=", " ", "\n", "\t"]
-        with open(pfe) as fid:
-            while True:
-                line = fid.readline()
-                if param in line:
-                    for k in lout:
-                        line = line.replace(k, "")
-                    paramstr = line
-                    break
-                elif not line:
-                    break
-        return paramstr
 
     def save_to_imas(
         self,
