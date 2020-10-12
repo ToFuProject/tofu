@@ -2287,7 +2287,7 @@ class Plasma2D(utils.ToFuObject):
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
         # Python 2
-        super(Plasma2D,cls).__init_subclass__(**kwdargs)
+        super(Plasma2D, cls).__init_subclass__(**kwdargs)
         # Python 3
         # super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Plasma2D._ddef)
@@ -2871,11 +2871,11 @@ class Plasma2D(utils.ToFuObject):
         # dgroup
         dgroup = {}
         if len(dtime) > 0:
-            dgroup['time'] = {'dref':list(dtime.keys())[0]}
+            dgroup['time'] = {'dref': list(dtime.keys())[0]}
         if len(dradius) > 0:
-            dgroup['radius'] = {'dref':list(dradius.keys())[0]}
+            dgroup['radius'] = {'dref': list(dradius.keys())[0]}
         if len(dmesh) > 0:
-            dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
+            dgroup['mesh'] = {'dref': list(dmesh.keys())[0]}
 
         # Update dict
         self._dgroup = dgroup
@@ -2884,8 +2884,6 @@ class Plasma2D(utils.ToFuObject):
         # Complement
         self._complement()
 
-
-
     def _complement(self):
 
         # --------------
@@ -2893,8 +2891,8 @@ class Plasma2D(utils.ToFuObject):
         for k0, v0 in self.ddata.items():
             lindout = [ii for ii in v0['depend'] if ii not in self.dindref.keys()]
             if not len(lindout) == 0:
-                msg = "ddata[%s]['depend'] has keys not in dindref:\n"%k0
-                msg += "    - " + "\n    - ".join(lindout)
+                msg = ("ddata[{}]['depend'] keys not in dindref:\n".format(k0)
+                       + "    - " + "\n    - ".join(lindout))
                 raise Exception(msg)
 
             self.ddata[k0]['lgroup'] = [self.dindref[ii]['group']
@@ -2907,9 +2905,10 @@ class Plasma2D(utils.ToFuObject):
                 c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
                 c1 = not c0 and len(v0['data']) == shape[0]
                 if not (c0 or c1):
-                    msg = k0+'\n'
-                    msg += str([c0, c1, type_, len(v0['data']), shape])
-                    msg += "\n" + str(v0['data'])
+                    msg = (k0 + '\n'
+                           + str([c0, c1, type_, len(v0['data']), shape])
+                           + "\n" + str(v0['data']))
+                    raise Exception(msg)
             else:
                 assert type(v0['data']) is np.ndarray
                 assert v0['data'].shape == shape
@@ -3182,27 +3181,180 @@ class Plasma2D(utils.ToFuObject):
     # Methods for adding ref / quantities
     #---------------------
 
-    def add_ref(self, key=None, data=None, group=None,
+    def _checkformat_addref(self, key=None, data=None, group=None,
+                            dim=None, quant=None, units=None,
+                            origin=None, name=None):
+        # Check data
+        lc = [isinstance(data, np.ndarray),
+              isinstance(data, dict),
+              isinstance(data, str) and os.path.isfile(data)]
+        if not any(lc):
+            msg = ("Arg data must be either:\n"
+                   + "\t- np.ndarray: a 1d array\n"
+                   + "\t- dict:       a dict containing a 2d mesh\n"
+                   + "\t- str:        an absolute path to an existing file\n"
+                   + "You provided:\n{}".format(data))
+            raise Exception(msg)
+
+        # If file: check content and extract data
+        if lc[2] is True:
+            data = os.path.abspath(data)
+            (data, key, group, units,
+             quant, dim, origin, name) = self._add_ref_from_file(
+                 pfe=data,
+                 key=key, group=group,
+                 dim=dim, quant=quant, units=units, origin=origin, name=name)
+
+        # Check key
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = ("Arg key must be a str not already in self.ddata.keys()\n"
+                   + "\t- key: {}\n".format(key))
+            raise Exception(msg)
+
+        # Check group
+        c0 = group in self._dgroup.keys()
+        if not c0:
+            msg = ("Arg group must be str in self.dgroup.keys()\n"
+                   + "\t- group: {}".format(group)
+                   + "\t- available groups: {}".format(self.dgroups.keys()))
+            raise Exception(msg)
+
+        return data, key, group, units, dim, quant, origin, name
+
+    @staticmethod
+    def _add_ref_from_file(pfe=None, key=None, group=None,
+                           dim=None, quant=None, units=None,
+                           origin=None, name=None):
+        lf = ['.mat', '.txt']
+        c0 = pfe[-4:] in lf
+        if not c0:
+            msg = ("Only the following file formats are supported:\n"
+                   + "\n\t- " + "\n\t- ".join(lf) + "\n"
+                   + "You provided: {}".format(pfe))
+            raise Exception(msg)
+
+        # Extract data
+        if pfe[-4:] == '.mat':
+            # load and check only one 1x1 struct
+            import scipy.io as scpio
+            out = scpio.loadmat(pfe)
+            ls = [ss for ss in out.keys() if '__' not in ss]
+            c0 = (len(ls) == 1
+                  and isinstance(out[ls[0]], np.ndarray)
+                  and len(out[ls[0]]) == 1)
+            if not c0:
+                msg = ("The file should contain a 1x1 matlab struct only!\n"
+                       + "file contains: {}".format(ls))
+                raise Exception(msg)
+
+            # Get into unique struct and get key / value pairs
+            out = out[ls[0]][0]
+            nk = len(out.dtype)
+            if nk != len(out[0]):
+                msg = ("Non-conform file!\n"
+                       + "\tlen(out.dtype) = {}\n".format(nk)
+                       + "\tlen(out[0] = {}".format(len(out[0])))
+                raise Exception(msg)
+
+            lvi = [ii for ii in range(nk)
+                   if (out[0][ii].dtype.char == 'U'
+                       and out[0][ii].shape == (1,))]
+            limat = [ii for ii in range(nk) if ii not in lvi]
+
+            c0 = ((len(limat) == 1 and nk >= 1)
+                  and (out[0][limat[0]].ndim == 2
+                       and 1 in out[0][limat[0]].shape))
+            if not c0:
+                msg = (
+                    "The struct store in {} should contain:\n".format(pfe)
+                    + "\t- at least a (1, N) matrice\n"
+                    + "\t- optionally, the following char str:\n"
+                    + "\t\t- key: unique identifier\n"
+                    + "\t\t- group: 'time', 'radius', 'mesh', ...\n"
+                    + "\t\t- dim: physical dimension (e.g.: 'B flux',)\n"
+                    + "\t\t- quant: 'psi', 'phi, ...\n"
+                    + "\t\t- units: 'Wb', ...\n"
+                    + "\t\t- origin: 'NICE', 'CHEASE'..."
+                    + "\t\t\tby the default the file name\n"
+                    + "\t\t- name: short identifier (e.g.: 1dpsiNICE)\n\n"
+                    + "You provided:\n{}".format(out))
+                raise Exception(msg)
+            dout = {out.dtype.names[ii]: out[0][ii][0] for ii in lvi}
+            data = out[0][limat[0]].ravel()
+
+        elif pfe[-4:] == '.txt':
+            # data array
+            data = np.loadtxt(pfe, comment='#')
+            if not data.ndim == 1:
+                msg = ("data stored in {} is not a 1d array!\n".format(pfe)
+                       + "\t- data.shape = {}".format(data.shape))
+                raise Exception(msg)
+
+            # params
+            dout = utils.from_txt_extract_params(
+                pfe=pfe,
+                lparams=['key', 'group', 'units',
+                         'dim', 'quant', 'origin', 'name'])
+
+        # Get default values
+        din = {'key': key, 'group': group, 'dim': dim, 'quant': quant,
+               'units': units, 'origin': origin, 'name': name}
+        for k0, v0 in din.items():
+            if v0 is None:
+                din[k0] = dout.get(k0, pfe) if k0 == 'origin' else dout.get(k0)
+            else:
+                if dout.get(k0) is not None:
+                    if din[k0] != dout[k0]:
+                        msg = ("Non-matching values of {}:\n".format(k0)
+                               + "{}\n".format(pfe)
+                               + "\t- kwdarg: {}\n".format(din[k0])
+                               + "\t- file: {}".format(dout[k0]))
+                        warnings.warn(msg)
+        return (data, din['key'], din['group'], din['units'],
+                din['quant'], din['dim'], din['origin'], din['name'])
+
+
+    def add_ref(self, pfe=None, key=None, data=None, group=None,
                 dim=None, quant=None, units=None, origin=None, name=None):
-        """ Add a reference """
-        assert type(key) is str and key not in self._ddata.keys()
-        assert type(data) in [np.ndarray, dict]
-        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
-                                 'units':units, 'origin':origin}}, key)
+        """ Add a reference
+
+        The reference data is contained in data, which can be:
+            - np.array: a 1d profile
+            - dict: for mesh
+            - str:  absolute path to a file, holding a 1d profile
+
+        Please also provide (if not included in file if data is a str):
+            - key: unique str identifying the data
+            - group: str identifying the reference group (self.dgroup.keys())
+        If data is a str to a file, key and group (and others) can be included
+        in the file
+        """
+        # Check inputs
+        (data, key, group, units,
+         dim, quant, origin, name) = self._checkformat_addref(
+             data=data, key=key, group=group, units=units,
+             dim=dim, quant=quant, origin=origin, name=name)
+
+        # Format inputs
+        out = self._extract_dnd({key:{'dim': dim, 'quant': quant, 'name': name,
+                                      'units': units, 'origin': origin}}, key)
         dim, quant, origin, name, units = out
-        assert group in self._dgroup.keys()
         if type(data) is np.ndarray:
             size = data.shape[0]
         else:
-            assert data['ftype'] in [0,1]
+            assert data['ftype'] in [0, 1]
             size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
 
-        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+        # Update attributes
+        self._dindref[key] = {'group': group, 'size': size, 'ldata': [key]}
 
-        self._ddata[key] = {'data':data,
-                            'dim':dim, 'quant':quant, 'units':units,
-                            'origin':origin, 'name':name,
-                            'depend':(key,), 'lgroup':[group]}
+        self._ddata[key] = {'data': data,
+                            'dim': dim, 'quant': quant, 'units': units,
+                            'origin': origin, 'name': name,
+                            'depend': (key,), 'lgroup': [group]}
+
+        # Run global consistency check and complement if necessary
         self._complement()
 
     def add_quantity(self, key=None, data=None, depend=None,

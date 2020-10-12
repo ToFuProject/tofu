@@ -701,7 +701,7 @@ def from_txt_extract_params(pfe=None, lparams=None):
         lparams = [lparams]
 
     # First, try from file name
-    dout = get_param_from_file_name(pfe=pfe, lparams=lparams, test=False):
+    dout = get_param_from_file_name(pfe=pfe, lparams=lparams, test=False)
 
     # Then try from file content (overwrite but warn)
     lout = [param, "#", ":", "=", " ", "\n", "\t"]
