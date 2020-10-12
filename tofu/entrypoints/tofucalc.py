@@ -40,9 +40,9 @@ _ = sys.path.pop(1)
 
 
 if 'imas2tofu' not in dir(tf):
-    msg = "imas does not seem to be available\n"
-    msg += "  => tf.imas2tofu not available\n"
-    msg += "  => tofuplot not available"
+    msg = ("imas does not seem to be available\n"
+           + "  => tf.imas2tofu not available\n"
+           + "  => tofucalc not available")
     raise Exception(msg)
 
 
