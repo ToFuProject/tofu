@@ -657,7 +657,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
                    sharex=False, invertx=None, extra=True,
-                   bck=True, indch_auto=True, t=None, init=None, dR_sep=None):
+                   bck=True, indch_auto=True, t=None,
+                   mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
+
     # -------------------
     # import imas2tofu
     try:
@@ -740,13 +742,13 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         equi_z_r_ext = equi.ddata['equilibrium.sep']['data'][
                        equi_ind_t][1][equi_ind_r_ext]
 
-        nbr_init = 10
-        if dR_sep is not None:
-            r_init = [equi_r_ext + dR_sep]*nbr_init
-        else:
-            r_init = [equi_r_ext]*nbr_init
-        phi_init = [ii*2.*np.pi/nbr_init for ii in range(nbr_init)]
-        z_init = [equi_z_r_ext]*nbr_init
+        if mag_sep_nbpts is None:
+            mag_sep_nbpts = 5
+        if mag_sep_dR is None:
+            mag_sep_dR = 0.
+        r_init = [equi_r_ext + mag_sep_dR]*mag_sep_nbpts
+        phi_init = [ii*2.*np.pi/mag_sep_nbpts for ii in range(mag_sep_nbpts)]
+        z_init = [equi_z_r_ext]*mag_sep_nbpts
         init_plt = [r_init, phi_init, z_init]
 
         if False:
@@ -772,14 +774,14 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         refpt = np.r_[2.4,0.]
         dax = config.plot_phithetaproj_dist(refpt, invertx=invertx)
 
-        if init is not None:
+        if mag_init_pts is not None:
             trace_init = tfm.MagFieldLines(
-                         int(shot[0])).trace_mline(init, t,
+                         int(shot[0])).trace_mline(mag_init_pts, t,
                                                    direction='FWD',
                                                    length_line=35,
                                                    stp=None)
             trace_init_rev = tfm.MagFieldLines(
-                             int(shot[0])).trace_mline(init, t,
+                             int(shot[0])).trace_mline(mag_init_pts, t,
                                                        direction='REV',
                                                        length_line=35,
                                                        stp=None)
@@ -808,8 +810,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         for ii in range(0,len(trace)):
             # Concatenate trace lists
-            trace[ii] = trace[ii] + trace_rev[ii]
-            for jj in range(0,len(trace[ii])):
+            # trace[ii] = trace[ii] + trace_rev[ii]
+            for jj in range(0, len(trace[ii])):
                 lab = r't = %s s'%str(t[ii])
                 phi = np.arctan2(np.sin(trace[ii][jj]['p']),
                                  np.cos(trace[ii][jj]['p']))
@@ -818,27 +820,50 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 # insert nans for clean periodicity
                 indnan = ((np.abs(np.diff(phi)) > np.pi)
                           | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
-                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
-                                    np.insert(theta, indnan, np.nan),
-                                    label=lab, alpha=alpha_mag_lines)
+                l, = dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                         np.insert(theta, indnan, np.nan),
+                                         label=lab, alpha=alpha_mag_lines)
+                color = l.get_color()
                 dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
-                                     label=lab, alpha=alpha_mag_lines)
+                                     label=lab, alpha=alpha_mag_lines,
+                                     color=color)
                 x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
-                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines)
+                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines,
+                                   color=color)
+                # rev
+                phi = np.arctan2(np.sin(trace_rev[ii][jj]['p']),
+                                 np.cos(trace_rev[ii][jj]['p']))
+                theta = np.arctan2(trace_rev[ii][jj]['z']-refpt[1],
+                                   trace_rev[ii][jj]['r']-refpt[0])
+                # insert nans for clean periodicity
+                indnan = ((np.abs(np.diff(phi)) > np.pi)
+                          | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                    np.insert(theta, indnan, np.nan),
+                                    label=lab, alpha=alpha_mag_lines,
+                                   color=color)
+                dax['cross'][0].plot(trace_rev[ii][jj]['r'],
+                                     trace_rev[ii][jj]['z'],
+                                     label=lab, alpha=alpha_mag_lines,
+                                     color=color)
+                x = trace_rev[ii][jj]['r']*np.cos(trace_rev[ii][jj]['p'])
+                y = trace_rev[ii][jj]['r']*np.sin(trace_rev[ii][jj]['p'])
+                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines,
+                                   color=color)
 
         dax['cross'][0].plot(equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][0],
                              equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0'][
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0']['data'][
                              equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike0'][
+                             multi.get_data('equilibrium')['strike0']['data'][
                              equi_ind_t][1], '+', color='k', markersize=10)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1'][
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1']['data'][
                              equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike1'][
+                             multi.get_data('equilibrium')['strike1']['data'][
                              equi_ind_t][1], '+', color='k', markersize=10)
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
                                     .format(shot[0], t[0]))
@@ -1329,7 +1354,7 @@ def calc_from_imas(
                                       interp_t=interp_t,
                                       indch_auto=indch_auto,
                                       t0=t0, dextra=dextra,
-                                      coefs=coefs, plot=True,
+                                      coefs=coefs, plot=True, bck=bck,
                                       plot_compare=plot_compare)
 
     else:
@@ -1364,7 +1389,7 @@ def calc_from_imas(
                                                 quant='core_profiles.1dbrem',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
-                                                coefs=coefs,
+                                                coefs=coefs, bck=bck,
                                                 Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:
