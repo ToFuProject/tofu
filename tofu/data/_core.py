@@ -3183,7 +3183,8 @@ class Plasma2D(utils.ToFuObject):
 
     def _checkformat_addref(self, key=None, data=None, group=None,
                             dim=None, quant=None, units=None,
-                            origin=None, name=None):
+                            origin=None, name=None,
+                            comments=None, delimiter=None):
         # Check data
         lc = [isinstance(data, np.ndarray),
               isinstance(data, dict),
@@ -3203,7 +3204,8 @@ class Plasma2D(utils.ToFuObject):
              quant, dim, origin, name) = self._add_ref_from_file(
                  pfe=data,
                  key=key, group=group,
-                 dim=dim, quant=quant, units=units, origin=origin, name=name)
+                 dim=dim, quant=quant, units=units, origin=origin, name=name,
+                 comments=comments, delimiter=delimiter)
 
         # Check key
         c0 = type(key) is str and key not in self._ddata.keys()
@@ -3225,7 +3227,11 @@ class Plasma2D(utils.ToFuObject):
     @staticmethod
     def _add_ref_from_file(pfe=None, key=None, group=None,
                            dim=None, quant=None, units=None,
-                           origin=None, name=None):
+                           origin=None, name=None,
+                           comments=None, delimiter=None):
+        if comments is None:
+            comments = '#'
+
         lf = ['.mat', '.txt']
         c0 = pfe[-4:] in lf
         if not c0:
@@ -3285,7 +3291,7 @@ class Plasma2D(utils.ToFuObject):
 
         elif pfe[-4:] == '.txt':
             # data array
-            data = np.loadtxt(pfe, comment='#')
+            data = np.loadtxt(pfe, comments=comments, delimiter=delimiter)
             if not data.ndim == 1:
                 msg = ("data stored in {} is not a 1d array!\n".format(pfe)
                        + "\t- data.shape = {}".format(data.shape))
@@ -3295,7 +3301,11 @@ class Plasma2D(utils.ToFuObject):
             dout = utils.from_txt_extract_params(
                 pfe=pfe,
                 lparams=['key', 'group', 'units',
-                         'dim', 'quant', 'origin', 'name'])
+                         'dim', 'quant', 'origin', 'name'],
+                comments=comments)
+
+        if 'origin' in dout.keys() and dout['origin'] is None:
+            del dout['origin']
 
         # Get default values
         din = {'key': key, 'group': group, 'dim': dim, 'quant': quant,
@@ -3314,9 +3324,9 @@ class Plasma2D(utils.ToFuObject):
         return (data, din['key'], din['group'], din['units'],
                 din['quant'], din['dim'], din['origin'], din['name'])
 
-
     def add_ref(self, pfe=None, key=None, data=None, group=None,
-                dim=None, quant=None, units=None, origin=None, name=None):
+                dim=None, quant=None, units=None, origin=None, name=None,
+                comments=None, delimiter=None):
         """ Add a reference
 
         The reference data is contained in data, which can be:
@@ -3329,12 +3339,17 @@ class Plasma2D(utils.ToFuObject):
             - group: str identifying the reference group (self.dgroup.keys())
         If data is a str to a file, key and group (and others) can be included
         in the file
+
+        Parameters dim, quant, units, origin and name are optional
+        Parameters comments and delimiter and only used if data is the path to
+        a .txt file (fed to np.loadtxt)
         """
         # Check inputs
         (data, key, group, units,
          dim, quant, origin, name) = self._checkformat_addref(
              data=data, key=key, group=group, units=units,
-             dim=dim, quant=quant, origin=origin, name=name)
+             dim=dim, quant=quant, origin=origin, name=name,
+             comments=comments, delimiter=delimiter)
 
         # Format inputs
         out = self._extract_dnd({key:{'dim': dim, 'quant': quant, 'name': name,

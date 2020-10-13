@@ -671,7 +671,7 @@ def _load_mat(pfe):
 ###############################################
 
 
-def from_txt_extract_params(pfe=None, lparams=None):
+def from_txt_extract_params(pfe=None, lparams=None, comments=None):
     """ Extract key parameters stored as commented lines at top of file
 
     tofu saves some data to txt files with the following formatting:
@@ -684,6 +684,9 @@ def from_txt_extract_params(pfe=None, lparams=None):
     """
 
     # Check inputs
+    if comments is None:
+        comments = '#'
+
     c0 = os.path.isfile(pfe)
     if not c0:
         msg = ("Provided file does not exist!\n"
@@ -704,7 +707,7 @@ def from_txt_extract_params(pfe=None, lparams=None):
     dout = get_param_from_file_name(pfe=pfe, lparams=lparams, test=False)
 
     # Then try from file content (overwrite but warn)
-    lout = [param, "#", ":", "=", " ", "\n", "\t"]
+    lout = lparams + [comments, ":", "=", " ", "\n", "\t"]
     with open(pfe) as fid:
         for pp in lparams:
             while True:
