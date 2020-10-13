@@ -2848,6 +2848,89 @@ class Config(utils.ToFuObject):
         self._dynamicattr()
 
     ###########
+    # SOLEDGE3X
+    ###########
+
+    @staticmethod
+    def _from_SOLEDGE_extract_dict(pfe=None):
+        # Check input
+        c0 = (isinstance(pfe, str)
+              and os.path.isfile(pfe)
+              and pfe[-4:] == '.mat')
+        if not c0:
+            msg = ("Arg pfe must be a valid .mat file!\n"
+                   + "\t- provided: {}".format(pfe))
+            raise Exception(msg)
+        pfe = os.path.abspath(pfe)
+
+        # Open file
+        import scipy.io as scpio
+        dout = scpio.loadmat(pfe)
+
+        # Check conformity of content
+        lk = ['Nwalls', 'coord', 'type']
+        lk0 = [kk for kk, vv in dout.items()
+               if kk == 'walls' and isinstance(vv, np.ndarray)]
+        c0 = (len(lk0) == 1
+              and len(dout['walls']) == 1
+              and sorted(dout['walls'][0].dtype.names) == lk
+              and len(dout['walls'][0][0]) == len(lk))
+        if not c0:
+            msg = ("Non-conform .mat file content from SOLEDGE3X:\n"
+                   + "\t- file: {}\n".format(pfe)
+                   + "\t- Expected:\n"
+                   + "\t\t- a unique matlab structure 'walls' with 3 fields\n"
+                   + "\t\t\t- Nwalls: int\n"
+                   + "\t\t\t- coord: 1xn struct\n"
+                   + "\t\t\t- type: 1xn double\n"
+                   + "Provided:\n"
+                   + "\t- variables: {}\n".format(lk0)
+                   + "\t- 1x{} struct with {} fields".format(
+                       len(dout[lk0[0]]),
+                       len(dout[lk0[0]][0].dtype)))
+            raise Exception(msg)
+        out = dout['walls'][0][0]
+
+        # Get inside fields 'type', 'Nwalls', 'coord'
+        di0 = {kk: dout['walls'][0].dtype.names.index(kk) for kk in lk}
+        dout = {'type': out[di0['type']].ravel(),
+                'Nwalls': out[di0['Nwalls']][0, 0]}
+        out = out[di0['coord']][0]
+        c0 = (sorted(out.dtype.names) == ['Rwall', 'Zwall']
+              and len(out) == dout['type'].size
+              and all([len(oo) == 2 for oo in out]))
+        if not c0:
+            msg = ("Field {} not conform:\n".format('coord')
+                   + "\t- expected: 1x{} struct ".format(dout['type'].size)
+                   + "with fields ('Rwall', 'Zwall')\n"
+                   + "\t- provided: 1x{} struct ".format(len(out))
+                   + "with fields {}".format(out.dtype.names))
+            raise Exception(msg)
+
+        dout['coord'] = [np.array([out[ii][0].ravel(), out[ii][1].ravel()])
+                         for ii in range(dout['type'].size)]
+        return dout
+
+    @classmethod
+    def from_SOLEDGE3X(cls, pfe=None,
+                       Name=None, Exp=None):
+
+        # Check input and extract dict from file
+        dout = cls._from_SOLEDGE_extract_dict(pfe)
+        npoly = len(dout['type'])
+
+        # Prepare lStruct
+        lcls = [Ves if dout['type'][ii] == 1 else PFC for ii in range(npoly)]
+        lnames = ['Soledge3X{:02.0f}'.format(ii) for ii in range(npoly)]
+        lS = [lcls[ii](Poly=dout['coord'][ii],
+                       Type='Tor',
+                       Name=lnames[ii],
+                       pos=None,
+                       Exp=Exp)
+              for ii in range(npoly)]
+        return cls(lStruct=lS, Exp=Exp, Name=Name)
+
+    ###########
     # Properties
     ###########
 
@@ -5148,6 +5231,7 @@ class Rays(utils.ToFuObject):
             self._dchans.update(**fd["dchans"])
         if self._is2D():
             self._dX12.update(**fd["dX12"])
+
 
     ###########
     # properties
