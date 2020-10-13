@@ -2930,6 +2930,77 @@ class Config(utils.ToFuObject):
               for ii in range(npoly)]
         return cls(lStruct=lS, Exp=Exp, Name=Name)
 
+    def _to_SOLEDGE3X_get_data(self,
+                               matlab_version=None, matlab_platform=None):
+
+        # Check inputs
+        if matlab_version is None:
+            matlab_version = '5.0'
+        if not isinstance(matlab_version, str):
+            msg = ("Arg matlab_version must be provided as a str!\n"
+                   + "\t- example: '5.0'\n"
+                   + "\t- provided: {}".format(matlab_version))
+            raise Exception(msg)
+
+        if matlab_platform is None:
+            matlab_platform = 'GLNXA64'
+        if not isinstance(matlab_platform, str):
+            msg = ("Arg matlab_platform must be provided as a str!\n"
+                   + "\t- example: 'GLNXA64'\n"
+                   + "\t- provided: {}".format(matlab_platform))
+            raise Exception(msg)
+
+        # Build header and hidden attributes
+        import datetime as dtm
+        now = dtm.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+        head = ('MATLAB {} MAT-file, '.format(matlab_version)
+                + 'Platform: {}, '.format(matlab_platform)
+                + 'Created on: {}'.format(now))
+        dout = {
+            '___header__': head.encode(),
+            '__version__': '1.0',
+            '__globals__': [],
+            'walls': None,
+        }
+
+        # Build walls
+
+
+        return dout
+
+    def to_SOLEDGE3X(self, name=None, path=None, verb=None):
+
+        # Check inputs
+        if verbis None:
+            verb = True
+        if name is None:
+            name = None
+        if not isinstance(name, str):
+            msg = ("Arg name must be a str!\n"
+                   + "\t- provided: {}".format(name))
+            raise Exception(msg)
+        if name[-4:] != '.mat':
+            name = name + '.mat'
+
+        if path is None:
+            path = os.path.abspath('.')
+        if not os.path.isdir(path):
+            msg = ("Provided path is not a valid dir!\n"
+                   + "\t- path: {}".format(path))
+            raise Exception(msg)
+        path = os.path.abspath(path)
+
+        pfe = os.path.join(path, name)
+
+        # Get data in proper shape
+        dout = self._to_SOLEDGE3X_get_data()
+
+        # save
+        import scipy.io as scpio
+        scpio.savemat(pfe, dout)
+        if verb is True:
+            print("Saved in:\n\t{}".format(pfe))
+
     ###########
     # Properties
     ###########
