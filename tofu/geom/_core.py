@@ -3026,7 +3026,7 @@ class Config(utils.ToFuObject):
         # Get data in proper shape
         dout = self._to_SOLEDGE3X_get_data(type_extraprop=type_extraprop,
                                            matlab_version=matlab_version,
-                                           matlab_platform= matlab_platform)
+                                           matlab_platform=matlab_platform)
         # save
         import scipy.io as scpio
         scpio.savemat(pfe, dout)

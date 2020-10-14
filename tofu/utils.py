@@ -2493,8 +2493,8 @@ class ID(ToFuObjectBase):
                 usr = getpass.getuser()
             except:
                 pass
-        lc = [shot is None or (type(shot) is int and shot>=0),
-              Deg is None or (type(Deg) is int and Deg>=0),
+        lc = [shot is None or (type(shot) is int and shot >= 0),
+              Deg is None or (type(Deg) is int and Deg >= 0),
               Cls is not None and issubclass(Cls, ToFuObject),
               include is None or isinstance(include, list)]
         if not all(lc):
