@@ -216,7 +216,6 @@ def parser_plot():
 
     ddef = {
         # User-customizable
-        'config': _defscripts._TFPLOT_CONFIG,
         'run': _defscripts._TFPLOT_RUN,
         'user': _defscripts._TFPLOT_USER,
         'tokamak': _defscripts._TFPLOT_TOKAMAK,
@@ -227,6 +226,9 @@ def parser_plot():
         'bck': _defscripts._TFPLOT_BCK,
         'extra': _defscripts._TFPLOT_EXTRA,
         'indch_auto': _defscripts._TFPLOT_INDCH_AUTO,
+
+        'config': _defscripts._TFPLOT_CONFIG,
+        'tosoledge3x': _defscripts._TFPLOT_TOSOLEDGE3X,
 
         'mag_sep_nbpts': _defscripts._TFPLOT_MAG_SEP_NBPTS,
         'mag_sep_dR': _defscripts._TFPLOT_MAG_SEP_DR,
@@ -244,6 +246,10 @@ def parser_plot():
     parser.add_argument('-c', '--config', help=msg,
                         required=False, type=str,
                         default=ddef['config'])
+    msg = 'path in which to save the tofu config in SOLEDGE3X format'
+    parser.add_argument('-tse3x', '--tosoledge3x', help=msg,
+                        required=False, type=str,
+                        default=ddef['tosoledge3x'])
     parser.add_argument('-s', '--shot', type=int,
                         help='shot number', required=False, nargs='+')
     msg = 'username of the DB where the datafile is located'

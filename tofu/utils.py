@@ -652,12 +652,13 @@ def _get_exception(q, ids, qtype='quantity'):
 
 
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, returnas=None, tlim=None, config=None,
+                   ids=None, Name=None, returnas=None, tlim=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
                    sharex=False, invertx=None, extra=True,
                    bck=True, indch_auto=True, t=None,
+                   config=None, tosoledge3x=None,
                    mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
 
     # -------------------
@@ -881,12 +882,13 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         import tofu.geom as tfg
         if config in [None, False]:
             tfg.utils.get_available_config()
-            return
         else:
             conf = tfg.utils.create_config(config)
             conf.set_colors_random()
             conf.plot()
-            return
+            if tosoledge3x not in [None, False]:
+                conf.to_SOLEDGE3X(path=tosoledge3x)
+        return
 
     # -------------------
     # Prepare returnas
