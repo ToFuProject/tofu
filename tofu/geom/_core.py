@@ -2397,7 +2397,7 @@ class Config(utils.ToFuObject):
     def _checkformat_inputs_extraval(
         self, extraval, key="", multi=True, size=None
     ):
-        lsimple = [bool, float, int, np.int64, np.float64]
+        lsimple = [bool, float, int, np.int_, np.float_]
         C0 = type(extraval) in lsimple
         C1 = isinstance(extraval, np.ndarray)
         C2 = isinstance(extraval, dict)
@@ -2604,16 +2604,18 @@ class Config(utils.ToFuObject):
         assert not (k0 is None and k1 is not None)
         dp = "d" + pp
         if k0 is None and k1 is None:
-            val = np.zeros((self._dStruct["nObj"],), dtype=bool)
+            k0, k1 = self._dStruct["lorder"][0].split('_')
+            val = np.zeros((self._dStruct["nObj"],),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k0, k1 = k.split("_")
                 val[ii] = self._dextraprop[dp][k0][k1]
                 ii += 1
         elif k1 is None:
-            val = np.zeros(
-                (len(self._dStruct["dObj"][k0].keys()),), dtype=bool
-            )
+            k1 = list(self._dStruct["dObj"][k0].keys())[0]
+            val = np.zeros((len(self._dStruct["dObj"][k0].keys()),),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k, k1 = k.split("_")
@@ -2931,50 +2933,79 @@ class Config(utils.ToFuObject):
         return cls(lStruct=lS, Exp=Exp, Name=Name)
 
     def _to_SOLEDGE3X_get_data(self,
+                               type_extraprop=None,
                                matlab_version=None, matlab_platform=None):
 
+        head = None
         # Check inputs
-        if matlab_version is None:
-            matlab_version = '5.0'
-        if not isinstance(matlab_version, str):
+        if not (matlab_version is None or isinstance(matlab_version, str)):
             msg = ("Arg matlab_version must be provided as a str!\n"
                    + "\t- example: '5.0'\n"
                    + "\t- provided: {}".format(matlab_version))
             raise Exception(msg)
 
+        # useful ? to be deprecated ?
         if matlab_platform is None:
-            matlab_platform = 'GLNXA64'
-        if not isinstance(matlab_platform, str):
+            out = os.popen('which matlab').read()
+            keypath = os.path.join('bin', 'matlab')
+            if keypath in out:
+                path = os.path.join(out[:out.index(keypath)], 'etc')
+                lf = [ff for ff in os.listdir(path)
+                      if os.path.isdir(os.path.join(path, ff))]
+                if len(lf) == 1:
+                    matlab_platform = lf[0].upper()
+                else:
+                    msg = ("Couldn't get matlab_platform from 'which matlab'\n"
+                           + "  => Please provide the matlab platform\n"
+                           + "     Should be in {}/../etc".format(out))
+                    warnings.warn(msg)
+        if not (matlab_platform is None or isinstance(matlab_platform, str)):
             msg = ("Arg matlab_platform must be provided as a str!\n"
                    + "\t- example: 'GLNXA64'\n"
                    + "\t- provided: {}".format(matlab_platform))
             raise Exception(msg)
 
-        # Build header and hidden attributes
-        import datetime as dtm
-        now = dtm.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
-        head = ('MATLAB {} MAT-file, '.format(matlab_version)
-                + 'Platform: {}, '.format(matlab_platform)
-                + 'Created on: {}'.format(now))
-        dout = {
-            '___header__': head.encode(),
-            '__version__': '1.0',
-            '__globals__': [],
-            'walls': None,
-        }
+        if matlab_version is not None and matlab_platform is not None:
+            import datetime as dtm
+            now = dtm.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+            head = ('MATLAB {} MAT-file, '.format(matlab_version)
+                    + 'Platform: {}, '.format(matlab_platform)
+                    + 'Created on: {}'.format(now))
 
         # Build walls
+        nwall = np.array([[self.nStruct]], dtype=int)
 
+        # typ (from extraprop if any, else from Ves / Struct)
+        if type_extraprop is not None:
+            typ = np.array([self._get_extraprop(type_extraprop)], dtype=int)
+        else:
+            typ = np.array([[1 if ss._InOut == 'in' else -1
+                             for ss in self.lStruct]], dtype=int)
+        # Get coord
+        coord = np.array([np.array([
+            (ss.Poly[0:1, :].T, ss.Poly[1:2, :].T) for ss in self.lStruct],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])
 
+        # put together
+        dout = {'walls': np.array([[
+            (nwall, coord, typ)]],
+            dtype=[('Nwalls', 'O'), ('coord', 'O'), ('type', 'O')])}
+
+        # Optinally set header and version
+        if head is not None:
+            dout['__header__'] = head.encode()
         return dout
 
-    def to_SOLEDGE3X(self, name=None, path=None, verb=None):
+    def to_SOLEDGE3X(self, name=None, path=None, verb=None,
+                     type_extraprop=None,
+                     matlab_version=None, matlab_platform=None):
 
         # Check inputs
-        if verbis None:
+        if verb is None:
             verb = True
         if name is None:
-            name = None
+            name = self.Id.SaveName
         if not isinstance(name, str):
             msg = ("Arg name must be a str!\n"
                    + "\t- provided: {}".format(name))
@@ -2993,8 +3024,9 @@ class Config(utils.ToFuObject):
         pfe = os.path.join(path, name)
 
         # Get data in proper shape
-        dout = self._to_SOLEDGE3X_get_data()
-
+        dout = self._to_SOLEDGE3X_get_data(type_extraprop=type_extraprop,
+                                           matlab_version=matlab_version,
+                                           matlab_platform= matlab_platform)
         # save
         import scipy.io as scpio
         scpio.savemat(pfe, dout)
