@@ -4,6 +4,7 @@
 #                   tofuplot parameters
 # #############################################################################
 
+_TFPLOT_CONFIG = False
 _TFPLOT_RUN = 0
 _TFPLOT_USER = 'imas_public'
 _TFPLOT_TOKAMAK = 'west'

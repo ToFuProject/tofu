@@ -216,6 +216,7 @@ def parser_plot():
 
     ddef = {
         # User-customizable
+        'config': _defscripts._TFPLOT_CONFIG,
         'run': _defscripts._TFPLOT_RUN,
         'user': _defscripts._TFPLOT_USER,
         'tokamak': _defscripts._TFPLOT_TOKAMAK,
@@ -239,6 +240,10 @@ def parser_plot():
 
     parser = argparse.ArgumentParser(description=msg)
 
+    msg = 'config name to be loaded'
+    parser.add_argument('-c', '--config', help=msg,
+                        required=False, type=str,
+                        default=ddef['config'])
     parser.add_argument('-s', '--shot', type=int,
                         help='shot number', required=False, nargs='+')
     msg = 'username of the DB where the datafile is located'
