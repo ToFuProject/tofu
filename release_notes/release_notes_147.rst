@@ -1,17 +1,20 @@
 ====================
-What's new in 1.4.5
+What's new in 1.4.7
 ====================
 
-tofu 1.4.5 is a minor upgrade from 1.4.4
+tofu 1.4.7 is a minor upgrade from 1.4.6
+It is the first attempt at porting tofu to conda-forge
 
 Main changes:
 =============
 
-- Better portability #378
-- Preparing for conda-forge #388
-- Better documentation #384
-- New bash command to get tofu version # 390
-- More informative error messages
+- Better portability #398
+- First attempt at deployment to conda-forge #410
+- Better imas units #396
+- Better documentation #399
+- Better bash command #402, #404, #405
+- New config: COMPASS #406
+- Compatibility with SOLEDGE3X wall geometry #411
 - Better PEP8 compliance
 
 
@@ -20,33 +23,32 @@ Detailed changes:
 
 Installation / portability:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- default config txt files are now included in sdist #378
-- License is now included in sdist (preparing for conda-forge) #388
+- Added missing files in MANIFEST.in #398
+- tests data is now included in sdist for conda-forge #410
 
 scripts:
 ~~~~~~~~
-- bash command tofu-version return version of currently installed tofu without
-  loading tofu itself (read tofu/version.py, faster) #390
-- More robust tofucalc and tofuplot, with less warnings #393
+- arg bck can now be used from tofucalc #402
+- 'tofu XXX' can now be used instead of 'tofuXXX' #404
+- Minor debugging #405
 
 Geometry:
 ~~~~~~~~~
-- New **DEMO 2019 configuration** available! #391
-- New **TOMAS configuration** available! #391
+- New **COMPASS configuration** available! #406
 
 IMAS interfacing:
 ~~~~~~~~~~~~~~~~~
-- imas2tofu now provides tools for inspecting units from the dd_units tool
-  Consequently it checks units when multi.calc_signal() is called to determine
-  if a 4pi factor is necessary.
-  Also, a user-provided corrective coefficient can be used.
-  Also, time limts can be passed and events is usable as ids in tofuplot
-  Also, events can be passed as time limits
-  Also, a function provides a comparison between tofu and IMAS units #380
+- tofu now provides units harmonized with IMAS #396
+
+SOLEDGE3X interfacing:
+~~~~~~~~~~~~~~~~~~~~~~
+- tofu can now read/write tokamak wall geometry from/to SOLEGDE3X format: #411
+  - Config.to_SOLEGDE3X() to save a mat file
+  - Config.from_SOLEDGE3X() to read from a mat file
 
 Documentation:
 ~~~~~~~~~~~~~~
-- More accurate name, version number and copyright in doc #384
+-
 
 Miscellaneous:
 ~~~~~~~~~~~~~~
@@ -59,13 +61,11 @@ Many thanks to all developpers and contributors:
 - Didier Vezinet (@Didou09)
 - Laura Mendoza (@lasofivec)
 - Florian Le Bourdais  (@flothesof)
-- Riccardo Ragona (@rragona)
 
 
 What's next (indicative):
 =========================
 - Migrating from nosetests (ongoing for @lasofivec : issues #95 and #232)
-- Availability via conda-forge (ongoing for @flothesof: issues )
 - Easier binary and source installs from pip and conda for all platforms, including unit tests on all platforms (ongoing for @lasofivec and @flothesof : issue #259)
 - Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing for @lasofivec : Issues #71, #72, #73, #74, #75, #76, #77, #78)
 - Tools and classes to handle 2D Bragg X-Ray crystal spectrometer (ongoing for @Didou09 : Issues #202 and #263)
@@ -77,4 +77,4 @@ What's next (indicative):
 
 List of PR merged into this release:
 ====================================
-- PR: #378, #380, #384, #388, #390, #391, #393
+- PR: #396, #398, #399, #402, #404, #405, #406, #410, #412

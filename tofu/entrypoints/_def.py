@@ -4,6 +4,8 @@
 #                   tofuplot parameters
 # #############################################################################
 
+_TFPLOT_CONFIG = False
+_TFPLOT_TOSOLEDGE3X = False
 _TFPLOT_RUN = 0
 _TFPLOT_USER = 'imas_public'
 _TFPLOT_TOKAMAK = 'west'
@@ -13,6 +15,9 @@ _TFPLOT_SHAREX = False
 _TFPLOT_BCK = True
 _TFPLOT_EXTRA = True
 _TFPLOT_INDCH_AUTO = True
+_TFPLOT_MAG_SEP_NBPTS = 5
+_TFPLOT_MAG_SEP_DR = 0.
+_TFPLOT_MAG_INIT_PTS = None
 
 
 # #############################################################################

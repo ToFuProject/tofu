@@ -363,7 +363,7 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.tests03core_data": ["*.py", "*.txt"],
+        "tofu.tests.tests01_geom.tests03_core_data": ["*.py", "*.txt"],
         "tofu.geom.inputs": ["*.txt"],
     },
     include_package_data=True,
@@ -390,6 +390,7 @@ setup(
             'tofucalc=tofu.entrypoints.tofucalc:main',
             'tofu-version=scripts.tofuversion:main',
             'tofu-custom=scripts.tofucustom:main',
+            'tofu=scripts.tofu_bash:main',
         ],
     },
 
