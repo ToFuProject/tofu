@@ -70,6 +70,7 @@ def call_tfloadimas(shot=None, run=None, user=None,
                     ids=None, quantity=None, X=None, t0=None, tlim=None,
                     sharex=None, indch=None, indch_auto=None,
                     background=None, t=None, ddef=None,
+                    config=None, tosoledge3x=None,
                     mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
 
     # --------------

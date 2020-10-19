@@ -365,6 +365,7 @@ setup(
     package_data={
         "tofu.tests.tests01_geom.tests03_core_data": ["*.py", "*.txt"],
         "tofu.geom.inputs": ["*.txt"],
+        "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
     include_package_data=True,
 
