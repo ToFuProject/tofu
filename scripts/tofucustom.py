@@ -5,8 +5,13 @@ import os
 from shutil import copyfile
 
 
+_HERE = os.path.abspath(os.path.dirname(__file__))
+
+
 # import parser dict
+sys.path.insert(1, _HERE)
 from _dparser import _DPARSER
+_ = sys.path.pop(1)
 
 
 ###################################################
