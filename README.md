@@ -17,7 +17,7 @@ tofu
 
 **tofu** stands for **To**mography for **Fu**sion, it is an IMAS-compatible open-source machine-independent python library.
 
-It is an active part of the plasma-oriented python environement, like [PlasmaPy](https://github.com/PlasmaPy/PlasmaPy), with which some degree of interoperability is being implemented.
+tofu tries to take an active part in the plasma community open-source python environment, like [PlasmaPy](https://github.com/PlasmaPy/PlasmaPy), with which some degree of interoperability is being implemented.
 
 It aims at providing the **fusion** and **plasma** community with an object-oriented, transparent and documented tool for designing **tomography diagnostics**, computing **synthetic signal** (direct problem) as well as **tomographic inversions** (inverse problem). It gives access to a full 3D description of the diagnostic geometry, thus reducing the impact of geometrical approximations on the direct and, most importantly, on the inverse problem.
 
