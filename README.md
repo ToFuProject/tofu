@@ -105,29 +105,28 @@ Do you want to use **tofu** on IMAS and don't know where to start?
 
 ## Installing tofu
 
-### From source (compiled on your system using pip, all platforms)
+**From source** (compiled on your system using pip, all platforms)
 
    ``` pip install tofu ```
 
-### From pre-compiled binaries (using conda, all platforms)
+**From pre-compiled binaries** (using conda, all platforms)
 
    ``` conda install -c conda-forge tofu ```
 
-### For Developers and other platforms
+**For Developers and other platforms**
 
 Clone the git repository from github
 [See our documentation.](https://tofuproject.github.io/tofu/installation.html)
------
 
 
-**Licensing**
+## Licensing
 
 It is distributed under the MIT license and aims at providing the fusion
 community with a transparent and modular tool for creating / designing
 diagnostics and using them for synthetic diagnostic (direct problem)
 and tomography (inverse problem).
 
-**History**
+## History
 
 It was first created at the Max-Planck Institute for Plasma Physics (IPP)
 in Garching, Germany, by Didier Vezinet, and is now maintained, debugged
