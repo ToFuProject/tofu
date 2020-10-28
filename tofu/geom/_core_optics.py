@@ -300,6 +300,9 @@ class CrystalBragg(utils.ToFuObject):
         assert all([isinstance(ss, str) for ss in dbragg.keys()])
         assert all([ss in lkok for ss in dbragg.keys()])
 
+        # Insert def_lamb in dbragg
+        # TBD, TBF
+
         for kk in cls._ddef['dbragg'].keys():
             dbragg[kk] = dbragg.get(kk, cls._ddef['dbragg'][kk])
         if dbragg.get('rockingcurve') is not None:
