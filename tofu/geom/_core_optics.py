@@ -83,7 +83,7 @@ class CrystalBragg(utils.ToFuObject):
                               'Name', 'shot', 'version']},
              'dgeom':{'Type': 'sph', 'Typeoutline': 'rect'},
              'dmat':{},
-             'dbragg':{},
+             'dbragg':{'bragg_ref': np.pi/4.},
              'dmisc':{'color':'k'}}
     _dplot = {'cross':{'Elt':'P',
                        'dP':{'color':'k','lw':2},
@@ -291,20 +291,56 @@ class CrystalBragg(utils.ToFuObject):
             assert dmat['cut'].size <= 4
         return dmat
 
-    @classmethod
-    def _checkformat_dbragg(cls, dbragg=None):
+    def _checkformat_dbragg(self, dbragg=None):
         if dbragg is None:
-            return
+            dbragg = dict.fromkeys(self._get_keys_dbragg())
         assert isinstance(dbragg, dict)
-        lkok = cls._get_keys_dbragg()
+        lkok = self._get_keys_dbragg()
         assert all([isinstance(ss, str) for ss in dbragg.keys()])
         assert all([ss in lkok for ss in dbragg.keys()])
 
-        # Insert def_lamb in dbragg
-        # TBD, TBF
+        # Set default parameters when necessary
+        for kk in self._ddef['dbragg'].keys():
+            if dbragg.get(kk) is None:
+                dbragg[kk] = self._ddef['dbragg'][kk]
 
-        for kk in cls._ddef['dbragg'].keys():
-            dbragg[kk] = dbragg.get(kk, cls._ddef['dbragg'][kk])
+        # Check braggref
+        ltypes = [int, float, np.int_, np.float_]
+        c0 = (type(dbragg.get('bragg_ref')) in ltypes
+              and dbragg['bragg_ref'] >= 0.
+              and dbragg['bragg_ref'] <= np.pi/2.)
+        if c0 is not True:
+            msg = ("dbragg['bragg_ref'] is not valid!\n"
+                   + "\t- should be in [0; pi/2]\n"
+                   + "\t- provided: {}".format(dbragg['bragg_ref']))
+            raise Exception(msg)
+
+        # Set default lambda if necessary
+        user_prov = True
+        if dbragg.get('lambda_ref') is None:
+            # set to bragg = bragg_ref
+            dbragg['lambda_ref'] = _comp_optics.get_lamb_from_bragg(
+                np.r_[dbragg['bragg_ref']], self._dmat['d'], n=1)[0]
+            user_prov = False
+
+        # Check provided lambda_ref is valid
+        braggref = _comp_optics.get_bragg_from_lamb(
+            np.r_[dbragg['lambda_ref']], self._dmat['d'], n=1)[0]
+        if np.isnan(braggref):
+            lambok = []
+            msg = ("dbragg['lambda_ref'] is not valid, "
+                   + "wavelength is out of accessible interval:\n"
+                   + "\t- crystal inter-plane d = {}\n".format(self._dmat['d'])
+                   + "\t- wavelength interval (m): {}\n".format(lambok)
+                   + "\t- lambda_ref = {}".format(dbragg['lambda_ref']))
+            raise Exception(msg)
+
+        # Update bragg_ref according to lambda_ref
+        # (if lambda_ref was user-provided)
+        if user_prov is True:
+            dbragg['bragg_ref'] = braggref
+
+        # Check rocking curve if any
         if dbragg.get('rockingcurve') is not None:
             assert isinstance(dbragg['rockingcurve'], dict)
             drock = dbragg['rockingcurve']
@@ -391,7 +427,7 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dbragg():
-        lk = ['rockingcurve']
+        lk = ['rockingcurve', 'lambda_ref', 'bragg_ref']
         return lk
 
     @staticmethod
@@ -655,12 +691,13 @@ class CrystalBragg(utils.ToFuObject):
         # -----------------------
         # Build material
         col0 = ['formula', 'symmetry', 'cut', 'density',
-                'd (A)', 'bragg({:9.6} A) (deg)'.format(self._DEFLAMB*1e10),
+                'd (A)',
+                'bragg({:9.6} A) (deg)'.format(self._dbragg['lambda_ref']*1e10),
                 'rocking curve']
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
                '{0:5.3f}'.format(self._dmat['d']*1.e10),
-               str(self.get_bragg_from_lamb(self._DEFLAMB)[0]*180./np.pi)]
+               str(self._dbragg['bragg_ref']*180./np.pi)]
         try:
             ar0.append(self.rockingcurve['type'])
         except Exception as err:
@@ -964,7 +1001,7 @@ class CrystalBragg(utils.ToFuObject):
     def _checkformat_bragglamb(self, bragg=None, lamb=None, n=None):
         lc = [lamb is not None, bragg is not None]
         if not any(lc):
-            lamb = self._DEFLAMB
+            lamb = self._dbragg['lambda_ref']
             lc[0] = True
         assert np.sum(lc) == 1, "Provide lamb xor bragg!"
         if lc[0]:
@@ -1158,16 +1195,18 @@ class CrystalBragg(utils.ToFuObject):
             msg += "  => self.set_dmat({'d':...})"
             raise Exception(msg)
         if lamb is None:
-            lamb = self._DEFLAMB
+            lamb = self._dbragg['lambda_ref']
         return _comp_optics.get_bragg_from_lamb(np.atleast_1d(lamb),
                                                 self._dmat['d'], n=n)
 
-    def get_lamb_from_bragg(self, bragg, n=None):
+    def get_lamb_from_bragg(self, bragg=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
             msg = "Interplane distance d no set !\n"
             msg += "  => self.set_dmat({'d':...})"
             raise Exception(msg)
+        if bragg is None:
+            bragg = self._dbragg['bragg_ref']
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
 
@@ -1285,7 +1324,7 @@ class CrystalBragg(utils.ToFuObject):
         msg = ("det must be:\n"
                + "\t- False: not det provided\n"
                + "\t- None:  use default approx det from:\n"
-               + "\t           self.get_detector_approx(lamb=self._DEFLAMB)\n"
+               + "\t           self.get_detector_approx()\n"
                + "\t- dict:  a dictionary of 3d (x,y,z) coordinates of a point"
                + " (local frame center) and 3 unit vectors forming a direct "
                + "orthonormal basis attached to the detector's frame\n"
@@ -1298,7 +1337,7 @@ class CrystalBragg(utils.ToFuObject):
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            det = self.get_detector_approx(lamb=self._DEFLAMB)
+            det = self.get_detector_approx(lamb=self._dbragg['lambda_ref'])
         elif lc[2]:
             lk = ['cent', 'nout', 'ei', 'ej']
             c0 = (isinstance(det, dict)
@@ -1522,7 +1561,7 @@ class CrystalBragg(utils.ToFuObject):
         """
         # Check / format inputs
         if lamb is None:
-            lamb = self._DEFLAMB
+            lamb = self._dbragg['lambda_ref']
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
 
@@ -1673,7 +1712,7 @@ class CrystalBragg(utils.ToFuObject):
         det = self._checkformat_det(det)
 
         if lamb is None:
-            lamb = self._DEFLAMB
+            lamb = self._dbragg['lambda_ref']
         lamb = np.r_[lamb]
         nlamb = lamb.size
         bragg = self.get_bragg_from_lamb(lamb, n=n)
@@ -1717,7 +1756,7 @@ class CrystalBragg(utils.ToFuObject):
         if returnas is None:
             returnas = 'data'
         if lamb is None:
-            lamb = self._DEFLAMB
+            lamb = self._dbragg['lambda_ref']
         if plot is None or plot is True:
             plot = ['det', '3d']
         if isinstance(plot, str):
