@@ -1,0 +1,8 @@
+\select@language {english}
+\contentsline {chapter}{\numberline {1}3D field from a straight current segment}{5}{chapter.1}
+\contentsline {chapter}{\numberline {2}Circular coil}{7}{chapter.2}
+\contentsline {section}{\numberline {2.1}Circle discretization}{7}{section.2.1}
+\contentsline {subsection}{\numberline {2.1.1}N-sided polygon}{7}{subsection.2.1.1}
+\contentsline {chapter}{\numberline {A}Appendices}{9}{appendix.A}
+\contentsline {section}{\numberline {A.1}Section}{9}{section.A.1}
+\contentsline {subsection}{\numberline {A.1.1}Subsection}{9}{subsection.A.1.1}

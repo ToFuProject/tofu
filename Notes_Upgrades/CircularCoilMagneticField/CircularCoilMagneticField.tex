@@ -1,0 +1,202 @@
+\documentclass[a4paper,11pt,twoside,titlepage,openright]{book}
+
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\usepackage[margin=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{epsfig,amsfonts}
+\usepackage{xcolor,import}
+
+
+\pagestyle{plain}
+
+\newcommand{\ud}[1]{\underline{#1}}
+\newcommand{\e}[1]{\underline{e}_{#1}}
+\newcommand{\lt}{\left}
+\newcommand{\rt}{\right}
+\DeclareMathOperator{\L2}{L_{1/2}}
+\DeclareMathOperator{\n}{\underline{n}}
+\DeclareMathOperator{\ei}{\underline{e}_1}
+\DeclareMathOperator{\et}{\underline{e}_2}
+\DeclareMathOperator{\ex}{\underline{e}_x}
+\DeclareMathOperator{\ey}{\underline{e}_y}
+\DeclareMathOperator{\ez}{\underline{e}_z}
+\DeclareMathOperator{\nin}{\underline{n}_{in}}
+\DeclareMathOperator{\nout}{\underline{n}_{out}}
+\DeclareMathOperator{\np}{\underline{n}_{P}}
+\DeclareMathOperator{\bragg}{\theta_{bragg}}
+\DeclareMathOperator{\DD}{\cos(\theta)^2 - \sin(\psi)^2}
+\newcommand{\wdg}{\wedge}
+\newcommand{\hypot}[1]{\textbf{\textcolor{green}{#1}}}
+
+
+\begin{document}
+
+\title{ToFu tools\\Magnetic fields}
+\author{Didier VEZINET}
+\date{05.11.2020}
+\maketitle
+
+\tableofcontents
+
+
+\chapter{3D field from a straight current segment}
+
+
+Let's consider current segment with current $I$, centered on $A$, with unit
+vector $\ud{u}$ and half-length $\L2$. Considering a point $P$ in this segment,
+identified by its length to $A$:
+$$
+\ud{OP} = \ud{OA} + l\ud{u},
+\text{ with } l \in \left[-\L2; \L2\right]
+$$
+
+Any point $M$ in space can be located by its position with respect to $\ud{A}$
+$$
+\left\{
+\begin{array}{ll}
+\ud{OM} = \ud{OA} + l_M\ud{u} + r_M\ud{v}\\
+\ud{v} = \ud{AM} - \ud{AM} \cdot \ud{u} \ud{u}
+\end{array}
+\right.
+$$
+
+The Biot-Savart law stipulates that an elementary length of current creates
+an elementary magnetic field at $M$:
+$$
+\left\{
+\begin{array}{ll}
+\ud{dI} = Idl\ud{u}\\
+\ud{PM} = (l_M-l)\ud{u} + r_M\ud{v}\\
+\ud{B_A} = \frac{\mu_0}{4\pi}
+	\int_{-\L2}^{\L2} \frac{\ud{dI} \wedge \ud{PM}}{\| \ud{PM}\|^3}
+\end{array}
+\right.
+$$
+
+Introducing $\ud{w} = \ud{u}\wedge\ud{v}$:
+$$
+\ud{dI}\wedge\ud{PM} = Idlr_M\ud{w}
+$$
+
+and:
+$$
+\|\ud{PM}\| = \sqrt{(l-l_M)^2 + r_M^2}
+$$
+
+Hence:
+$$
+\ud{B_A} = \frac{\mu_0}{4\pi}Ir_M\ud{w}
+	\int_{-\L2}^{\L2} \frac{dl}{\left((l-l_M)^2 + r_M^2\right)^{3/2}}\\
+$$
+
+Introducing $x = l-l_M \Rightarrow dx = dl$:
+$$
+\begin{array}{ll}
+\ud{B_A} & = \frac{\mu_0}{4\pi}Ir_M\ud{w}
+	\int_{-\L2-l_M}^{\L2-l_M} \frac{dx}{\left(x^2 + r_M^2\right)^{3/2}}
+\end{array}
+$$
+
+Noticing that:
+$$
+\begin{array}{ll}
+\frac{\partial}{\partial x}\left(\frac{x}{\sqrt{x^2+a}}\right)
+& = \frac{\sqrt{x^2+a} - x\frac{1}{2}\frac{2x}{\sqrt{x^2+a}}}{x^2+a}\\
+& = \frac{(x^2+a) - x^2}{(x^2+a)^{3/2}}\\
+& = \frac{a}{(x^2+a)^{3/2}}
+\end{array}
+$$
+
+Hence:
+$$
+\begin{array}{ll}
+\ud{B_A} & = \frac{\mu_0}{4\pi}Ir_M\ud{w}
+	\left[\frac{1}{r_M^2}\frac{x}{\sqrt{x^2+r_M^2}}\right]_{-\L2-l_M}^{\L2-l_M}\\
+	& =  \frac{\mu_0}{4\pi}\frac{I}{r_M}\ud{w}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)\\
+\end{array}
+$$
+
+
+\chapter{Circular coil}
+\label{chap:CircularCoil}
+
+The magnetic field produced at any point in 3D space by a planar circular coil
+cannot be derived analytically.
+
+
+\section{Circle discretization}
+
+Let's consider a circular coil of radius $R$ centered on axis $(A, \ud{n})$.
+
+For a given point $M$ in space, let's make the plane $(O, M, \ud{e}_z)$ a
+symmetry plane and divide the circle into a $N$-sided polygon.
+
+\subsection{N-sided polygon}
+
+
+The polygon is N-sided, with N an even number.
+The polygon shall have either:
+\begin{itemize}
+	\item the same perimeter as the circle: $L=2\pi R$
+	\item the same area as the circle: $S=\pi R^2$
+    \item the same magnetic field on the center as the circle:
+        $B=\frac{\mu_0I}{2R}$
+\end{itemize}
+
+For a N-sided regular polygon of height $h$:
+$$
+\left\{
+    \begin{array}{ll}
+	    L_i = 2h\tan\left(\frac{\pi}{N}\right) & \text{ is the length a single side}\\
+		S_i = \frac{hL_i}{2} = h^2\tan\left(\frac{\pi}{N}\right) & \text{ is the area a single side}
+	\end{array}
+\right.
+$$
+
+Remembering that, at the center, $l_m=0$ and $r_m=h$ for all, by construction,
+and that $\L2=\frac{L_i}{2}=h\tan\left(\frac{\pi}{N}\right)$, we derive:
+$$
+\begin{array}{ll}
+    B & = N \frac{\mu_0}{4\pi}\frac{I}{h}
+    \left(\frac{\L2}{\sqrt{(\L2)^2+h^2}}
+    + \frac{\L2}{\sqrt{(\L2)^2+h^2}}\right)\\
+    & = N \frac{\mu_0}{2\pi}\frac{I}{h}
+    \frac{\L2}{\sqrt{(\L2)^2+h^2}}\\
+    & = N \frac{\mu_0}{2\pi}\frac{I}{h}
+    \frac{h\tan\left(\frac{\pi}{N}\right)}{\sqrt{h^2\tan^2\left(\frac{\pi}{N}\right)+h^2}}\\
+    & = N \frac{\mu_0}{2\pi}\frac{I}{h}
+    \frac{\tan\left(\frac{\pi}{N}\right)}{\sqrt{\tan^2\left(\frac{\pi}{N}\right)+1}}\\
+    & = \frac{\mu_0I}{2}\frac{1}{h}\frac{N}{\pi}
+    \frac{\tan\left(\frac{\pi}{N}\right)}{\sqrt{\tan^2\left(\frac{\pi}{N}\right)+1}}\\
+\end{array}
+$$
+
+Hence,
+\begin{itemize}
+	\item same perimeter
+        $\Rightarrow h = R \frac{\frac{\pi}{N}}{\tan\left(\frac{\pi}{N}\right)}$
+	\item same area
+        $\Rightarrow h = R \sqrt{\frac{\frac{\pi}{N}}{\tan\left(\frac{\pi}{N}\right)}}$
+    \item same field
+        $\Rightarrow h =
+        R\frac{\tan\left(\frac{\pi}{N}\right)}{\frac{\pi}{N}}\frac{1}{\sqrt{\tan^2\left(\frac{\pi}{N}\right)+1}}$
+\end{itemize}
+
+
+
+
+
+
+\appendix
+\chapter{Appendices}
+
+\section{Section}
+\subsection{Subsection}
+
+\end{document}
