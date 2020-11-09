@@ -321,7 +321,7 @@ For a given point $M$ in space, let's make the plane $(O, M, \ud{e}_z)$ a
 symmetry plane and divide the circle into a $N$-sided polygon.
 
 \subsection{N-sided polygon}
-
+\label{subsect:constraint}
 
 The polygon is N-sided, with N an even number.
 The polygon shall have either:
@@ -380,6 +380,100 @@ other one perpendicular to that one.
 
 This way we can define a 4-symetry for the discretization of the circle,
 indexed by $n$.
+
+
+\subsection{Deriving B from discretized 3D cirle}
+
+Let's consider a spire as a circle in 3D with center $C$, axis $(C, \ud{e}_3)$
+and radius $R$.
+Let's consider a point $M$ in 3D with coordinates $(x_M, y_M, z_M)$.
+
+Local coordinate system $(\ud{e}_1, \ud{e}_2)$ can be defined from:
+$$
+\left\{
+    \begin{array}{ll}
+        \ud{CM} = r\ud{e}_1 + z\ud{e}_3\\
+        \ud{e}_2 = \ud{e}_3 \wedge \ud{e}_1
+	\end{array}
+\right.
+$$
+
+Let's discretize the circle into a 4n-sided polygon with 2 symetry planes,
+including $(M, C, {e}_3)$.
+
+Depending on the constraint, the height $h$ of each polygon can be derived (cf.
+~\ref{subsect:constraint}). Similarly, the length of the basis of each polygon
+can also be derived as $L=2h\tan(\frac{\pi}{4n})$.
+
+Knowing $h$ and $L$ one can write, for $i \in [1; 2n]$ (we only consider one
+half of the circle due to the symetry):
+$$
+\left\{
+    \begin{array}{ll}
+        \theta_i = (i-\frac{1}{2})\frac{\pi}{4n}\\
+        \ud{CA_i} = h\cos(\theta_i)\ud{e}_1 + h\sin(\theta_i)\ud{e}_2\\
+        \ud{u}_i = -\sin(\theta_i)\ud{e}_1 + \cos(\theta_i)\ud{e}_2\\
+	\end{array}
+\right.
+$$
+
+For each side $i$, we can write:
+$$
+\begin{array}{ll}
+    \ud{A_iM}
+    & = \ud{CM} - \ud{CA_i}\\
+    & = r\ud{e}_1 + z\ud{e}_3
+    - h\cos(\theta_i)\ud{e}_1 - h\sin(\theta_i)\ud{e}_2\\
+    & = (r-h\cos(\theta_i))\ud{e}_1 - h\sin(\theta_i)\ud{e}_2 + z\ud{e}_3
+\end{array}
+$$
+
+Hence:
+$$
+\begin{array}{lll}
+    \ud{u}_i \wedge \ud{A_iM}
+    & = & (-\sin(\theta_i))(- h\sin(\theta_i))\ud{e}_3
+    + (-\sin(\theta_i))(z)(-\ud{e}_2)\\
+    && + (\cos(\theta_i))((r-h\cos(\theta_i)))(-\ud{e}_3)
+    + (\cos(\theta_i))(z)(\ud{e}_1)\\
+    & = & z\cos(\theta_i)\ud{e}_1
+    + z\sin(\theta_i)\ud{e}_2
+    + (h\sin^2(\theta_i) + h\cos^2(\theta_i) - r\cos(\theta_i))\ud{e}_3\\
+    & = & z\cos(\theta_i)\ud{e}_1
+    + z\sin(\theta_i)\ud{e}_2
+    + (h - r\cos(\theta_i))\ud{e}_3\\
+\end{array}
+$$
+
+and:
+$$
+\begin{array}{lll}
+    \ud{u}_i \cdot \ud{A_iM}
+    & = & (r-h\cos(\theta_i))(-\sin(\theta_i))
+    + (\cos(\theta_i))(-h\sin(\theta_i))\\
+    & = & -r\sin(\theta_i)
+\end{array}
+$$
+
+And since here $\ud{n} = \ud{e}_2$:
+$$
+\begin{array}{lll}
+    \ud{A_iM} \cdot \ud{n}
+    & = & - h\sin(\theta_i)\\
+\end{array}
+$$
+
+Hence:
+$$
+\left\{
+    \begin{array}{lll}
+        r_{Mi} & = \sqrt{z^2 + (h - r\cos(\theta_i))^2}\\
+        l_{Mi} & = -r\sin(\theta_i)\\
+        d_{Ai} & = - h\sin(\theta_i)
+    \end{array}
+\right.
+$$
+
 
 
 
