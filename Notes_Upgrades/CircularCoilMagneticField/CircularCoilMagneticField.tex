@@ -43,8 +43,9 @@
 \tableofcontents
 
 
-\chapter{3D field from a straight current segment}
+\chapter{3D field from straight current segments}
 
+\section{Single segment}
 
 Let's consider current segment with current $I$, centered on $A$, with unit
 vector $\ud{u}$ and half-length $\L2$. Considering a point $P$ in this segment,
@@ -58,11 +59,19 @@ Any point $M$ in space can be located by its position with respect to $\ud{A}$
 $$
 \left\{
 \begin{array}{ll}
-\ud{OM} = \ud{OA} + l_M\ud{u} + r_M\ud{v}\\
-\ud{v} = \ud{AM} - \ud{AM} \cdot \ud{u} \ud{u}
+    \ud{OM} = \ud{OA} + l_M\ud{u} + r_M\ud{v}\\
+    \ud{v} = \ud{AM} - (\ud{AM} \cdot \ud{u}) \ud{u}
 \end{array}
 \right.
 $$
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[scale=0.80]{Fig01_SingleSegment.pdf} 
+    \caption{\small MAgnetic field at any point $M$ from a straight current
+    segment}
+   \label{Fig:Single}  
+\end{figure}
 
 The Biot-Savart law stipulates that an elementary length of current creates
 an elementary magnetic field at $M$:
@@ -121,6 +130,180 @@ $$
 	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)\\
 \end{array}
 $$
+
+For numerical evaluation, keep in mind that:
+$$
+\left\{
+\begin{array}{ll}
+l_M = \ud{u}\cdot\ud{AM}\\
+r_M = \|\ud{u}\wedge\ud{AM}\|\\
+\ud{w} = \frac{\ud{u}\wedge\ud{AM}}{r_M}
+\end{array}
+\right.
+$$
+
+
+\section{2 mirrored segments}
+
+Let's consider 2 current segments $(A, \ud{u})$ and $(A', \ud{u'})$ one being
+the symmetric of the other via a symmetry plane $(M, \ud{n})$.\\
+Each current segment has its own current $I$ (resp. $I'$).
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[scale=0.50]{Fig02_MirroredSegments.pdf} 
+    \caption{\small Magnetic field at any point $M$ from 2 mirrored straight
+    current segments}
+   \label{Fig:Mirrored}  
+\end{figure}
+
+By construction:
+$$
+\left\{
+\begin{array}{lll}
+    l'_P & = l_M\\
+    r'_M & = r_M\\
+    L'_{1/2} & = L_{1/2}\\
+    d_A & = \ud{AM} \cdot \ud{n}\\
+    \ud{AA'} & = 2d_A\ud{n}\\
+    \ud{u}' & = \ud{u} - 2(\ud{u} \cdot \ud{n})\ud{n}\\
+    \ud{AM} & = l_M\ud{u} + r_M\ud{v}\\
+    \ud{A'M} & = l_M\ud{u'} + r_M\ud{v'}\\
+\end{array}
+\right.
+$$
+
+
+The total magnetic field created in $M$ is:
+$$
+\begin{array}{lll}
+    \ud{B}
+    & = \ud{B_A}(I) + \ud{B_{A'}}(I')\\
+	& =  \frac{\mu_0}{4\pi}\frac{I}{r_M}\ud{w}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
+	+ \frac{\mu_0}{4\pi}\frac{I'}{r_M}\ud{w'}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)\\
+	& =  \frac{\mu_0}{4\pi}\frac{1}{r_M}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
+    \left(I\ud{w} + I'\ud{w'}\right)
+\end{array}
+$$
+
+Now, considering that:
+$$
+\begin{array}{llll}
+    & r_M\ud{v'}
+    & = \ud{A'M}-l_M\ud{u'}\\
+    && = \ud{A'A} + \ud{AM} - l_M(\ud{u} - 2(\ud{u}\cdot\ud{n})\ud{n})\\
+    && = -2d_A\ud{n} + \ud{AM} - l_M\ud{u} + 2l_M(\ud{u}\cdot\ud{n})\ud{n}\\
+    && = -2d_A\ud{n} + r_M\ud{v} + 2l_M(\ud{u}\cdot\ud{n})\ud{n}\\
+    \Leftrightarrow
+    & \ud{v'}
+    & = \ud{v} + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) - d_A\right)\ud{n}
+\end{array}
+$$
+
+Hence:
+$$
+\begin{array}{lll}
+    \ud{w'}
+    & = \ud{u'} \wedge \ud{v'}\\
+    & = (\ud{u} - 2(\ud{u}\cdot\ud{n})\ud{n})
+    \wedge
+    \left(\ud{v} + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) - d_A\right)\ud{n}\right)\\
+    & = \ud{u}\wedge\ud{v}
+    + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) - d_A\right)\ud{u}\wedge\ud{n}
+    - 2(\ud{u}\cdot\ud{n})\ud{n}\wedge\ud{v}\\
+    & = \ud{w}
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})l_M - d_A}{r_M}\ud{u}
+    + (\ud{u}\cdot\ud{n})\ud{v}\right] \wedge \ud{n}\\
+    & = \ud{w}
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})(l_M\ud{u}+r_M\ud{v}) - d_A\ud{u}}{r_M}
+    \right] \wedge \ud{n}\\
+    & = \ud{w}
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - d_A\ud{u}}{r_M}\right]
+    \wedge \ud{n}
+\end{array}
+$$
+
+Then, assuming $I'=-I$ we have:
+$$
+\begin{array}{lll}
+    \ud{B}
+	& =  \frac{\mu_0}{4\pi}\frac{I}{r_M}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
+    \left(\ud{w} - \ud{w'}\right)\\
+	& = -\frac{\mu_0}{4\pi}\frac{I}{r_M}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
+    \left(2\left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - d_A\ud{u}}{r_M}\right]
+    \wedge \ud{n}\right)\\
+	& = \frac{\mu_0}{2\pi}\frac{I}{r_M}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
+    \left(
+    \ud{n} \wedge \left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - d_A\ud{u}}{r_M}\right]
+    \right)\\
+\end{array}
+$$
+
+For numerical evaluation, keep in mind that:
+$$
+\left\{
+\begin{array}{ll}
+l_M = \ud{u}\cdot\ud{AM}\\
+r_M = \|\ud{u}\wedge\ud{AM}\|\\
+    d_A = \ud{AM}\cdot\ud{n}
+\end{array}
+\right.
+$$
+
+
+\section{4 mirrored segments}
+
+Let's consider the 2 previous mirrored current segments and add a pair
+mirroring them via another plane $(C, \ud{m})$, perpendicular to the first
+plane $(C, \ud{n})=(M, \ud{n})$. All segments are lying in the same plane $(C, \ud{a})$\\
+The same current is running through each segment and they all have the same
+half-length $L_{1/2}$.\\
+
+The same derivation as previously can be done for pair $AA'$ and pair $BB'$.
+
+\begin{figure}[hbtp]
+    \centering
+    \includegraphics[scale=0.80]{Fig03_SegmentedCircle.pdf} 
+    \caption{\small Magnetic field at any point $M$ from 2 mirrored straight
+    current segments}
+   \label{Fig:Mirrored}  
+\end{figure}
+
+The total magnetic field created in $M$ is:
+$$
+\begin{array}{lll}
+    \ud{B}
+    & = \ud{B_{AA'}}(I) + \ud{B_{BB'}}(I)\\
+	& = \frac{\mu_0}{2\pi}\frac{I}{r_M}
+	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
+	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
+    \left(
+    \ud{n} \wedge \left[\frac{(\ud{u}_A\cdot\ud{n})\ud{AM} - d_A\ud{u}_A}{r_M}\right]
+    \right)\\
+	& + \frac{\mu_0}{2\pi}\frac{I}{r_M''}
+	\left(\frac{\L2-l_M''}{\sqrt{(\L2-l_M'')^2+r_M''^2}}
+	+ \frac{\L2+l_M''}{\sqrt{(\L2+l_M'')^2+r_M''^2}}\right)
+    \left(
+    \ud{n} \wedge \left[\frac{(\ud{u}_B\cdot\ud{n})\ud{BM} - d_B\ud{u}_B}{r_M''}\right]
+    \right)\\
+\end{array}
+$$
+
+By construction, we have:
+.... cannot get $(r''_M, l''_M)$ from $(r_M, l_M)$.
+
 
 
 \chapter{Circular coil}
@@ -189,7 +372,14 @@ Hence,
 \end{itemize}
 
 
+\subsection{Symetries}
 
+Let's consider, for a point $M$, the 2 symetry planes passing through the
+center of the circle, containing its axis, and one passing through $M$, the
+other one perpendicular to that one.
+
+This way we can define a 4-symetry for the discretization of the circle,
+indexed by $n$.
 
 
 
