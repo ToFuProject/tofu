@@ -552,8 +552,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # -----------------
     # Plot conf and bck
-    c0 = lData[0]._dgeom['config'] not in [None, False]
-    c1 = c0 and lData[0]._dgeom['lCam'] not in [None, False]
+    c0 = (lData[0]._dgeom['config'] is not None
+          and lData[0]._dgeom['config'] is not False)
+    c1 = (c0 and lData[0]._dgeom['lCam'] is not None
+          and lData[0]._dgeom['lCam'] is not False)
     if c0:
         out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
                                              element='P',
@@ -1306,8 +1308,10 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
     # -----------------
     # Plot conf and bck
-    c0 = lData[0]._dgeom['config'] not in [None, False]
-    c1 = c0 and lData[0]._dgeom['lCam'] not in [None, False]
+    c0 = (lData[0]._dgeom['config'] is not None
+          and lData[0]._dgeom['config'] is not False)
+    c1 = (c0 and lData[0]._dgeom['lCam'] is not None
+          and lData[0]._dgeom['lCam'] is not False)
     if c0:
         out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0],
                                                   dax['hor'][0]],
@@ -1853,7 +1857,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         lData[0], lData[indref] = lData[indref], lData[0]
     nDat = len(lData)
 
-
     # ---------
     # Get time
     lt = [dd.t for dd in lData]
@@ -1996,12 +1999,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     if tit != False:
         fig.suptitle(tit)
 
-
     # -----------------
     # Plot ref dextra and ref conf H
 
     # conf
-    c0 = lData[0]._dgeom['config'] not in [None, False]
+    c0 = (lData[0]._dgeom['config'] is not None
+          and lData[0]._dgeom['config'] is not False)
     if c0:
         dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0],
                                                        proj='hor', element='P',
@@ -2035,7 +2038,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     for ii in range(0,nDat):
 
         # cross config
-        c0 = lData[0]._dgeom['config'] not in [None, False]
+        c0 = (lData[0]._dgeom['config'] is not None
+              and lData[0]._dgeom['config'] is not False)
         if c0:
             dax['cross'][ii] = lData[ii].config.plot(lax=dax['cross'][ii],
                                                      element='P', dLeg=None,
@@ -2043,7 +2047,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                      draw=False)
 
         # los
-        c1 = lData[ii]._dgeom['lCam'] not in [None, False]
+        c1 = (lData[ii]._dgeom['lCam'] is not None
+              and lData[ii]._dgeom['lCam'] is not False)
         c2 = c1 and lData[ii]._isLOS
         if c2:
             llCross[ii] = [None for jj in range(0,len(lData[ii]._dgeom['lCam']))]
@@ -2089,7 +2094,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             tbck = np.tile(np.r_[lt[ii], np.nan], lnch[ii])
             dbck = np.vstack((ldata[ii], np.full((1,lnch[ii]),np.nan))).T.ravel()
             dax['t'][ii+1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
-
 
 
     # ---------------
@@ -2188,7 +2192,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     dobj = {}
 
 
-
     ##################
     # Populating dobj
 
@@ -2253,7 +2256,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         dobj[l0] = {'dupdate':{'txt':{'id':lidt[0], 'lrid':[lidt[0]],
                                       'bstr':'{0:%s} s'%fmt_t}},
                     'drefid':{lidt[0]:jj}}
-
 
     # -------------
     # Data-specific
@@ -2638,8 +2640,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         fig.suptitle(tit)
 
     # Plot vessel
-    c0 = Data._dgeom['config'] not in [None, False]
-    c1 = c0 and Data._dgeom['lCam'] not in [None, False]
+    c0 = (Data._dgeom['config'] is not None
+          and Data._dgeom['config'] is not False)
+    c1 = (c0 and Data._dgeom['lCam'] is not None
+          and Data._dgeom['lCam'] is not False)
     if c0:
         out = Data._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
                                          element='P', dLeg=None, draw=False)
@@ -3296,8 +3300,10 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     ############
 
     # Config and LOS
-    c0 = Data._dgeom['config'] not in [None, False]
-    c1 = c0 and Data._dgeom['lCam'] not in [None, False]
+    c0 = (Data._dgeom['config'] is not None
+          and Data._dgeom['config'] is not False)
+    c1 = (c0 and Data._dgeom['lCam'] is not None
+          and Data._dgeom['lCam'] is not False)
     if c0:
         out = Data._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
                                          element='P', dLeg=None, draw=False)
