@@ -1895,10 +1895,10 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     lx1, lx2, lindr, lextent = zip(*[lData[ii].get_X12plot('imshow') if lis2D[ii]
                                      else (None, None, None, None)
                                      for ii in range(0,nDat)])
-    lidx12 = [id((x1,x2)) if x1 not in [None, False] else None
-              for x1,x2 in zip(lx1,lx2)]
-    ln12 = [(x1.size,x2.size) if x1 not in [None, False] else None
-            for x1,x2 in zip(lx1,lx2)]
+    lidx12 = [id((x1, x2)) if x1 is not None else None
+              for x1, x2 in zip(lx1, lx2)]
+    ln12 = [(x1.size, x2.size) if x1 is not None else None
+            for x1, x2 in zip(lx1, lx2)]
 
 
     # dchans
@@ -1943,7 +1943,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dmarker[lkEq_temp[0]] = str(dmarker[k0])
                 del dmarker[k0]
 
-    lkEq = sorted([vv for vv in dEq_corres.values() if vv not in [None, False]])
+    lkEq = sorted([vv for vv in dEq_corres.values()
+                   if vv not in [None, False]])
     kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
 
@@ -1993,8 +1994,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                    lis2D=lis2D, fldict=fldict, sharex=sharex)
     fig  = dax['t'][0].figure
     if tit is None:
-        tit = [str(getattr(lData[0].Id,aa)) for aa in ['Exp','Diag','shot']
-               if getattr(lData[0].Id,aa) not in [None, False]]
+        tit = [str(getattr(lData[0].Id, aa)) for aa in ['Exp', 'Diag', 'shot']
+               if getattr(lData[0].Id, aa) not in [None, False]]
         tit = ' - '.join(tit)
     if tit != False:
         fig.suptitle(tit)
