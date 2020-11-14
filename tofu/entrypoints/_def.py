@@ -4,7 +4,7 @@
 #                   tofuplot parameters
 # #############################################################################
 
-_TFPLOT_CONFIG = False
+_TFPLOT_CONFIG = None
 _TFPLOT_TOSOLEDGE3X = False
 _TFPLOT_RUN = 0
 _TFPLOT_USER = 'imas_public'
