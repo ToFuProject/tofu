@@ -49,8 +49,8 @@ def plot_B_RZ_conv(rad=None, cent_Z=None,
 
     if ptsRZ is None:
         ptsRZ = np.array([
-            np.repeat(_PTS_R, _PTS_Z.size),
-            np.tile(_PTS_Z, _PTS_R.size)
+            np.repeat(_PTS_R[None, :], _PTS_Z.size, axis=0),
+            np.repeat(_PTS_Z[:, None], _PTS_R.size, axis=1)
         ])
 
     if nscan is None:
@@ -58,20 +58,25 @@ def plot_B_RZ_conv(rad=None, cent_Z=None,
     nscan = np.unique(np.atleast_1d(nscan).ravel())
     ntot = nscan.size
 
-    Btot = np.full((ntot, 2, ptsRZ.shape[1]), np.nan)
+    Btot = np.full(tuple(np.r_[ntot, ptsRZ.shape]), np.nan)
     for ii in range(ntot):
-        Btot[ii, :, :] = _comp.get_B_2d_RZ(rad=rad, cent_Z=cent_Z, ptsRZ=ptsRZ,
-                                           nn=nscan[ii], constraint=constraint,
-                                           returnas='sum')
+        Btot[ii, ...] = _comp.get_B_2d_RZ(rad=rad, cent_Z=cent_Z, ptsRZ=ptsRZ,
+                                          nn=nscan[ii], constraint=constraint,
+                                          returnas='sum')
 
     Bnorm = np.sqrt(np.sum(Btot**2, axis=1))
-    errabs = np.sqrt(np.sum((Btot - Btot[ntot-1:ntot, :, :])**2, axis=1))
-    errrel = errabs / Bnorm[ntot-1:ntot, :]
+    errabs = np.sqrt(np.sum((Btot - Btot[ntot-1:ntot, ...])**2, axis=1))
+    errrel = errabs / Bnorm[ntot-1:ntot, ...]
     errnorm = 100. * errrel
     vmax = 0.1
 
-    dist = np.hypot(ptsRZ[0, :] - rad, ptsRZ[1, :] - cent_Z)
+    dist = np.hypot(ptsRZ[0, ...] - rad, ptsRZ[1, ...] - cent_Z).ravel()
     distmax = np.nanmax(dist)
+
+    dR = np.mean(np.diff(np.unique(ptsRZ[0, ...])))
+    dZ = np.mean(np.diff(np.unique(ptsRZ[1, ...])))
+    extent = (np.min(ptsRZ[0, ...])-dR/2., np.max(ptsRZ[0, ...])+dR/2.,
+              np.min(ptsRZ[1, ...])-dZ/2., np.max(ptsRZ[1, ...])+dZ/2.)
 
     # ----------------
     #   plot
@@ -79,7 +84,7 @@ def plot_B_RZ_conv(rad=None, cent_Z=None,
     # default args
     axCol = "w"
     if fs is None:
-        fs = (14, 8)
+        fs = (14, 6)
     elif type(fs) is str:
         if fs.lower() == 'a4':
             fs = (8.27, 11.69)
@@ -87,8 +92,8 @@ def plot_B_RZ_conv(rad=None, cent_Z=None,
             fs = (11.69, 8.27)
     if dmargin is None:
         dmargin = {'left':0.05, 'right':0.99,
-                   'bottom':0.06, 'top':0.90,
-                   'wspace':0.4, 'hspace':0.3}
+                   'bottom':0.10, 'top':0.88,
+                   'wspace':0.4, 'hspace':0.5}
     if dleg is None:
         dleg = {'loc': 'upper left',
                 'bbox_to_anchor': (1, 1)}
@@ -113,7 +118,8 @@ def plot_B_RZ_conv(rad=None, cent_Z=None,
         else:
             dax['B'][ii] = fig.add_subplot(gs[0, ii],
                                            sharex=dax['B'][0],
-                                           sharey=dax['B'][0])
+                                           sharey=dax['B'][0],
+                                           aspect='equal')
         # dax['Bnorm'][ii] = fig.add_subplot(gs[1, ii],
                                            # sharex=dax['B'][0],
                                            # sharey=dax['B'][0])
@@ -146,33 +152,36 @@ def plot_B_RZ_conv(rad=None, cent_Z=None,
 
     # plot
     for ii in range(ntot):
-        dax['B'][ii].quiver(ptsRZ[0, :], ptsRZ[1, :],
-                            Btot[ii, 0, :], Btot[ii, 1, :], angles='uv', pivot='mid')
+        dax['B'][ii].quiver(ptsRZ[0, ...].ravel(), ptsRZ[1, ...].ravel(),
+                            Btot[ii, 0, ...].ravel(), Btot[ii, 1, ...].ravel(),
+                            angles='uv', pivot='mid')
         # dax['Bnorm'][ii].scatter(ptsRZ[0, :], ptsRZ[1, :],
                                  # c=Bnorm[ii, :], s=8,
                                  # marker='s', edgecolors='None',
                                  # cmap=plt.cm.viridis)
-        dax['err'][ii].scatter(ptsRZ[0, :], ptsRZ[1, :],
-                               c=errnorm[ii, :], s=8,
-                               marker='s', edgecolors='None',
-                               cmap=plt.cm.seismic,
-                               vmin=-vmax, vmax=vmax)
+        dax['err'][ii].imshow(errnorm[ii, ...],
+                              extent=extent,
+                              origin='lower',
+                              interpolation='nearest',
+                              aspect='equal',
+                              cmap=plt.cm.seismic,
+                              vmin=-vmax, vmax=vmax)
         dax['err'][ii].plot([rad], [cent_Z],
                             c='g', ls='None', marker='o', ms=2)
 
         if ii != ntot-1:
-            dax['convr'].plot(dist/rad, errnorm[ii, :],
+            dax['convr'].plot(dist/rad, errnorm[ii, ...].ravel(),
                               ls='None', marker='.',
                               label='n = {}'.format(nscan[ii]))
         # Add marker for coils
 
-    dax['conv'].plot(nscan, np.sum(errnorm, axis=-1),
+    dax['conv'].plot(nscan, np.sum(errnorm, axis=-1).sum(axis=-1),
                      c='k', ls='-', lw=1.)
 
     dax['convr'].axhline(vmax, ls='--', lw=1., c='k')
     dax['convr'].set_title('vmax = {} %'.format(vmax))
 
-    dax['circ'].plot(rad/dist, Bnorm[-1, :],
+    dax['circ'].plot(rad/dist, Bnorm[-1, ...].ravel(),
                      ls='None', c='k', marker='.')
 
     if dleg is not False:
