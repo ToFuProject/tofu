@@ -61,6 +61,42 @@ def _check_inputs_spire(rad=None, cent=None, axis=None):
     return rad, cent, axis
 
 
+def _check_inputs_spire_2d(rad=None, cent_Z=None):
+    """ Check conformity of inputs for defining axisymmetric circles """
+
+    # Basic check (should be np.ndarray)
+    try:
+        rad = np.ateast_1d(rad).ravel()
+        cent_Z = np.atleast_1d(cent_Z).ravel()
+    except Exception as err:
+        msg = ("Arg rad, cent_Z must be convertible to respectively:\n"
+               + "\t- a 1d np.ndarray\n"
+               + "\t- a 1d np.ndarray\n"
+               + "Provided:\n"
+               + "\t- rad: {}".format(rad)
+               + "\t- cent_Z: {}\n".format(cent_Z)
+              )
+        raise Exception(msg)
+
+    # Check all are either unique or the good shape
+    nspire = max(rad.size, cent_Z.size)
+    c0 = (rad.size in [1, nspire]
+          and cent_Z.size in [1, nspire])
+    if not c0:
+        msg = ('Arg rad and cent_Z must be of size 1 or nspire:\n'
+               + '\t- rad.size: {}\n'.format(rad.size)
+               + '\t- cent_Z.size: {}'.format(cent_Z.size))
+        raise Exception(msg)
+
+    # Complement if necessary
+    if rad.size < nspire:
+        rad = np.repeat(rad, nspire)
+    if cent_Z.size < nspire:
+        cent_Z = np.repeat(cent_Z, nspire)
+
+    return rad, cent_Z
+
+
 def _check_inputs_nn(nn=None):
     """ Check nn is an integer >= 1 """
 
@@ -111,6 +147,23 @@ def _check_inputs_pts(pts=None):
     if pts.shape[0] != 3:
         pts = pts.T
     return pts
+
+
+def _check_inputs_ptsRZ(ptsRZ=None):
+    """ Check pts contains the 2D (R, Z) coordinates of points """
+
+    try:
+        ptsRZ = np.atleast_2d(ptsRZ)
+        if 2 not in ptsRZ.shape:
+            raise Exception
+    except Exception as err:
+        msg = ("Arg ptsRZ must be 2d (2, N) np.ndarray\n"
+               + "Provided: {}".format(ptsRZ))
+        raise Exception(msg)
+
+    if ptsRZ.shape[0] != 2:
+        ptsRZ = ptsRZ.T
+    return ptsRZ
 
 
 def _check_inputs_I(I=None, nspire=None):
@@ -179,7 +232,34 @@ def _get_hLcossin(rad=None, nn=None, constraint=None):
 
 
 def get_B_3d(rad=None, cent=None, axis=None,
-             pts=None, nn=None, constraint=None, I=None):
+             pts=None, nn=None, constraint=None, I=None,
+             returnas=None):
+    """ Return the 3d field generated at pts from a set of circular coils
+
+    pts are defined by their 3d cartesian coordinates
+    coils are defined by their:
+        - centers: 3d cartesian coordinates
+        - unit vector axis: 3d cartesian coordinates
+        - radii: positive
+    Each coil can have a different center / axis / radius
+    When a single value is provided, it is assumed identical for all coils
+
+    Computation is done by discretizing circular coils as 4nn-sided polygons
+    Where nn is set by the user (>=1)
+    Disctreziation is done following a constraint:
+        - 'perimeter':  same perimeter as the circle
+        - 'area':       same area as the circle
+        - 'mag':        same magnetic field on its center
+    In practice 'area' or 'mag' are the most relevant
+
+    The total magnetic field is returned as a np.ndarray of 3 dimensions:
+        [(X, Y, Z) coordinates, npts, ncoils]
+
+    If returnas is set to 'sum', instead of returning the detail for each coil,
+    only the total field is returned with dimensions:
+        [(X, Y, Z) coordinates, npts]
+
+    """
 
     # Check inputs
     rad, cent, axis = _check_inputs_spire(rad=rad, cent=cent, axis=axis)
@@ -195,7 +275,7 @@ def get_B_3d(rad=None, cent=None, axis=None,
     # dimensions for r, z: [pts, spire]
     axis = axis[:, None, :, None]
     CM = (pts[:, :, None, None] - cent[:, None, :, None])
-    z = np.sum(CM*axis, axis=0i, keepdims=True)
+    z = np.sum(CM*axis, axis=0, keepdims=True)
     e1 = CM - z*axis
     e1 = e1 / np.sqrt(np.sum(e1**2, axis=0, keepdims=True))
     r = np.sum(CM*e1, axis=0, keepdims=True)
@@ -232,11 +312,66 @@ def get_B_3d(rad=None, cent=None, axis=None,
 
 
 def get_B_2d_RZ(rad=None, cent_Z=None,
-                pts_R=None, pts_Z=None, nn=None, constraint=None):
-    return
+                pts_RZ=None, nn=None, constraint=None,
+                returnas=None):
+    """ Simplified version of get_B_3d() in axisymmetric configuration
 
+    Here, all coils are supposed to be centered on the (O, z) axis
+    Only their radii and height can be varied
+    pts are only passed via their (R, Z) coordinates due to axisymmetry
 
+    Due to axisymmetry, the magnetic field is returned using its cylindrical
+    coordinates (R, Z):
+        [(R, Z) coordinates, npts, ncoils]
+    Unless returnas = 'sum' in which case it is summed on all coils:
+        [(R, Z) coordinates, npts]
 
+    """
+    # Check inputs
+    rad, cent_Z = _check_inputs_spire_2d(rad=rad, cent_Z=cent_Z)
+    pts_RZ = _check_inputs_ptsRZ(pts_RZ=pts_RZ)
+
+    # Check I and broadcast for future uses
+    # dimensions for h, Lhalf: [spire] => [coords, pts, spires, discret]
+    I = _check_inputs_I(I=I, nspire=rad.size)[None, None, :, None]
+
+    # Get local coordinates and unit vectors for spire / pts
+    # Broadcasted for future use => [coords, pts, spires, discret]
+    # dimensions for e1: [coords, pts, spire]
+    # dimensions for r, z: [pts, spire]
+    z = ptsRZ[1:2, :, None, None] - cent_Z[None, None, :, None]
+    r = ptsRZ[0:1, :, None, None]
+
+    # Get computation intermediate: h, Lhalf, cos, sin, and broadcast 
+    # dimensions for h, Lhalf: [spire]
+    # dimensions for cos, sin: [discret]
+    h, Lhalf, cos, sin = _get_hLcossin(rad=rad, nn=nn, constraint=constraint)
+    h, Lhalf = h[None, None, :, None], Lhalf[None, None, :, None]
+    cos, sin = cos[None, None, None, :], sin[None, None, None, :]
+
+    # Get vectors for segment pairs (one per pair per spire per pts)
+    # dimensions: [coords, pts, spires, discret]
+    vect = (z*cos*np.r_[1, 0][:, None, None, None]
+            + (h - r*cos)*np.r_[0, 1][:, None, None, None])
+
+    # Get 2 symmetric terms in parenthesis in Bi
+    # dimensions: [pts, spires, discret]
+    alphai = Lhalf**2 + h**2 + r**2 + z**2 - 2.*h*r*cos
+    rsin = r*sin
+    L2rsin = 2.*Lhalf*rsin
+    terms_sum = ((Lhalf + rsin) / np.sqrt(alphai + L2rsin)
+                 + (Lhalf - rsin) / np.sqrt(alphai - L2rsin))
+    const_inv_rMi2 = scpct.mu_0/(2.*np.pi) / (z**2 + (h-r*cos)**2)
+
+    # Get field for segment pairs and sum to get field per pts and spire
+    # dimensions of B: [coords, pts, spires]
+    B = np.sum(I * const_inv_rMi2 * terms_sum * vect, axis=-1)
+
+    # Sum on discretization and optionally on spires
+    if returnas == 'sum':
+        return np.sum(B, axis=-1)
+    else:
+        return B
 
 
 ###############################################################################
