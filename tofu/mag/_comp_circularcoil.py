@@ -1,4 +1,6 @@
 
+import warnings
+
 import scipy.constants as scpct
 import numpy as np
 
@@ -15,7 +17,7 @@ def _check_inputs_spire(rad=None, cent=None, axis=None):
 
     # Basic check (should be np.ndarray)
     try:
-        rad = np.ateast_1d(rad).ravel()
+        rad = np.atleast_1d(rad).ravel()
         cent = np.atleast_2d(cent)
         axis= np.atleast_2d(axis)
         if 3 not in cent.shape or 3 not in axis.shape:
@@ -66,15 +68,15 @@ def _check_inputs_spire_2d(rad=None, cent_Z=None):
 
     # Basic check (should be np.ndarray)
     try:
-        rad = np.ateast_1d(rad).ravel()
+        rad = np.atleast_1d(rad).ravel()
         cent_Z = np.atleast_1d(cent_Z).ravel()
     except Exception as err:
         msg = ("Arg rad, cent_Z must be convertible to respectively:\n"
                + "\t- a 1d np.ndarray\n"
                + "\t- a 1d np.ndarray\n"
                + "Provided:\n"
-               + "\t- rad: {}".format(rad)
-               + "\t- cent_Z: {}\n".format(cent_Z)
+               + "\t- rad: {}\n".format(rad)
+               + "\t- cent_Z: {}".format(cent_Z)
               )
         raise Exception(msg)
 
@@ -119,7 +121,7 @@ def _check_inputs_nn(nn=None):
 def _check_inputs_constraint(rad=None, nn=None, constraint=None):
     """ Check the constraint to be used for spire discretization """
     if constraint is None:
-        constraint = 'B0'
+        constraint = 'mag'
     dok = {'mag': 'same magnetic field at spire center',
            'perimeter': 'same perimeter',
            'area': 'same area'}
@@ -162,7 +164,15 @@ def _check_inputs_ptsRZ(ptsRZ=None):
         raise Exception(msg)
 
     if ptsRZ.shape[0] != 2:
-        ptsRZ = ptsRZ.T
+        if ptsRZ.ndim == 2:
+            ptsRZ = ptsRZ.T
+            msg = "ptsRZ was transposed!"
+            warnings.warn(msg)
+        else:
+            msg = ("ptsRZ does not have the proper shape!"
+                   + "\t- expected: (2, ...)\n"
+                   + "\t- provided: {}".format(ptsRZ.shape))
+            raise Exception(msg)
     return ptsRZ
 
 
@@ -172,11 +182,12 @@ def _check_inputs_I(I=None, nspire=None):
         I = 1.
 
     try:
-        I = np.atleats_1d(I).ravel()
+        I = np.atleast_1d(I).ravel()
         if I.size != 1 and I.size != nspire:
             raise Exception
     except Exception as err:
-        msg = ""
+        msg = ("Arg I should be convetible to a 1d np.ndarray!\n"
+               + 'You provided: {}'.format(I))
         raise Exception(msg)
 
     if I.size < nspire:
@@ -312,7 +323,7 @@ def get_B_3d(rad=None, cent=None, axis=None,
 
 
 def get_B_2d_RZ(rad=None, cent_Z=None,
-                pts_RZ=None, nn=None, constraint=None,
+                ptsRZ=None, nn=None, constraint=None, I=None,
                 returnas=None):
     """ Simplified version of get_B_3d() in axisymmetric configuration
 
@@ -329,30 +340,37 @@ def get_B_2d_RZ(rad=None, cent_Z=None,
     """
     # Check inputs
     rad, cent_Z = _check_inputs_spire_2d(rad=rad, cent_Z=cent_Z)
-    pts_RZ = _check_inputs_ptsRZ(pts_RZ=pts_RZ)
+    ncoils = rad.size
+    ptsRZ = _check_inputs_ptsRZ(ptsRZ=ptsRZ)
+
+    # Get computation intermediate: h, Lhalf, cos, sin, and broadcast 
+    # dimensions for h, Lhalf: [ncoils]
+    # dimensions for cos, sin: [nseg]
+    h, Lhalf, cos, sin = _get_hLcossin(rad=rad, nn=nn, constraint=constraint)
+    nseg = cos.size
+
+    # Reshaping
+    shape = tuple(np.r_[ptsRZ.shape, ncoils, nseg])
+    shapeRZ1 = tuple(np.ones((ptsRZ.ndim,), dtype=int))
+    shapecoils = np.r_[shapeRZ1, ncoils, 1]
+    shapeseg = np.r_[shapeRZ1, 1, nseg]
+    cent_Z = cent_Z.reshape(shapecoils)
+    h, Lhalf = h.reshape(shapecoils), Lhalf.reshape(shapecoils)
+    cos, sin = cos.reshape(shapeseg), sin.reshape(shapeseg)
 
     # Check I and broadcast for future uses
-    # dimensions for h, Lhalf: [spire] => [coords, pts, spires, discret]
-    I = _check_inputs_I(I=I, nspire=rad.size)[None, None, :, None]
+    # dimensions for h, Lhalf: [ncoils] => [coords, pts, ncoils, nseg]
+    I = _check_inputs_I(I=I, nspire=rad.size).reshape(shapecoils)
 
     # Get local coordinates and unit vectors for spire / pts
     # Broadcasted for future use => [coords, pts, spires, discret]
-    # dimensions for e1: [coords, pts, spire]
-    # dimensions for r, z: [pts, spire]
-    z = ptsRZ[1:2, :, None, None] - cent_Z[None, None, :, None]
-    r = ptsRZ[0:1, :, None, None]
-
-    # Get computation intermediate: h, Lhalf, cos, sin, and broadcast 
-    # dimensions for h, Lhalf: [spire]
-    # dimensions for cos, sin: [discret]
-    h, Lhalf, cos, sin = _get_hLcossin(rad=rad, nn=nn, constraint=constraint)
-    h, Lhalf = h[None, None, :, None], Lhalf[None, None, :, None]
-    cos, sin = cos[None, None, None, :], sin[None, None, None, :]
+    z = ptsRZ[1:2, ..., None, None] - cent_Z
+    r = ptsRZ[0:1, ..., None, None]
 
     # Get vectors for segment pairs (one per pair per spire per pts)
     # dimensions: [coords, pts, spires, discret]
-    vect = (z*cos*np.r_[1, 0][:, None, None, None]
-            + (h - r*cos)*np.r_[0, 1][:, None, None, None])
+    vect = np.array([(z*cos)[0, ...],
+                     (h - r*cos)[0, ...]])
 
     # Get 2 symmetric terms in parenthesis in Bi
     # dimensions: [pts, spires, discret]
@@ -372,99 +390,3 @@ def get_B_2d_RZ(rad=None, cent_Z=None,
         return np.sum(B, axis=-1)
     else:
         return B
-
-
-###############################################################################
-###############################################################################
-#               3D circular coils - DEPRECATED
-###############################################################################
-
-
-def discretize_circles_check(cent, rad, axis=None,
-                             nn=None, pts=None):
-    """ Check conformity of inputs for discretize_circles()  """
-    c0 = isinstance(cent, np.ndarray) and cent.ndim == 2 and 3 in cent.shape
-    if not c0:
-        cent = np.atleast_2d(cent)
-        if 3 not in cent.shape:
-            msg = ""
-            raise Exception(msg)
-    if cent.shape[0] != 3:
-        cent = cent.T
-
-    if axis is None:
-        pass
-
-    if pts is None:
-        pts = (0., 0., 0.)
-
-    return cent, rad, axis, nn, pts
-
-def discretize_circles(cent, rad,
-                       axis=None, nn=None, pts=None,
-                       constraint=None):
-    """ Discretize circles into 4n-sided polygon with symmetry plane at pts """
-
-    # Check inputs
-    cent, rad, axis, nn, pts = discretize_circles_check(cent, rad, axis=axis,
-                                                        nn=nn, pts=pts)
-
-    ncirc = cent.shape[1]
-    npts = pts.shape[1]
-
-    # Get heights
-    pin = np.pi/(4*nn)
-    tanpin = np.tan(pin)
-    lconst = ['radius', 'perimeter', 'area', 'field']
-    if constraint == lconst[0]:
-        C = 1.
-    elif constraint == lconst[1]:
-        C = pin / tanpin
-    elif constraint == lconst[2]:
-        C = np.sqrt(pin / tanpin)
-    elif constraint == lconst[3]:
-        C = (tanpin/pin) / np.sqrt(1 + tanpin**2)
-    else:
-        msg = ("constraint not recognized:\n"
-               + "\t- available: {}\n".format(lconst)
-               + "\t- provided: {}".format(constraint))
-        raise Exception(msg)
-    h = rad * C
-
-    # Get segments 
-    phi_ref = None
-    dphi = np.pi/4./nn
-    phi = dphi_half + np.linspace(0. )
-    CM = pts - cent
-    CM = CM - np.sum(CM*axis)*axis
-    e1 = CM / np.sqrt(np.sum(CM**2, axis=0))
-    e2 = np.array([axis[1, ...]*e1[2,...] - axis[2, ...]*e1[1,...],
-                   axis[2, ...]*e1[0,...] - axis[0, ...]*e1[2,...],
-                   axis[0, ...]*e1[1,...] - axis[1, ...]*e1[0,...]])
-    seg_cent = cent + h*(np.cos(phi)*e1 + np.sin(phi)*e2)
-    seg_vect = None
-
-    # lM, rM, dA
-
-    # Bs
-
-    return seg_cent, seg_vect
-
-
-def field_from_spire():
-    """ Get magnetic field from arbitrary 3D circular coil """
-    return
-
-
-###############################################################################
-###############################################################################
-#               circular poloidal field coils
-###############################################################################
-
-
-def field_from_poloidal_coil(ptsR, ptsZ,
-                             coils_Z=None, coils_R=None, coils_I=None):
-
-
-    return
-
