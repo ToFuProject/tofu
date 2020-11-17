@@ -46,6 +46,7 @@
 \chapter{3D field from straight current segments}
 
 \section{Single segment}
+\label{sec:single}
 
 Let's consider current segment with current $I$, centered on $A$, with unit
 vector $\ud{u}$ and half-length $\L2$. Considering a point $P$ in this segment,
@@ -144,6 +145,7 @@ $$
 
 
 \section{2 mirrored segments}
+\label{sec:mirror}
 
 Let's consider 2 current segments $(A, \ud{u})$ and $(A', \ud{u'})$ one being
 the symmetric of the other via a symmetry plane $(M, \ud{n})$.\\
@@ -161,11 +163,11 @@ By construction:
 $$
 \left\{
 \begin{array}{lll}
-    l'_P & = l_M\\
+    l'_M & = l_M\\
     r'_M & = r_M\\
     L'_{1/2} & = L_{1/2}\\
-    d_A & = \ud{AM} \cdot \ud{n}\\
-    \ud{AA'} & = 2d_A\ud{n}\\
+    d_A & = -\ud{AM} \cdot \ud{n}\\
+    \ud{A'A} & = 2d_A\ud{n}\\
     \ud{u}' & = \ud{u} - 2(\ud{u} \cdot \ud{n})\ud{n}\\
     \ud{AM} & = l_M\ud{u} + r_M\ud{v}\\
     \ud{A'M} & = l_M\ud{u'} + r_M\ud{v'}\\
@@ -198,11 +200,11 @@ $$
     & r_M\ud{v'}
     & = \ud{A'M}-l_M\ud{u'}\\
     && = \ud{A'A} + \ud{AM} - l_M(\ud{u} - 2(\ud{u}\cdot\ud{n})\ud{n})\\
-    && = -2d_A\ud{n} + \ud{AM} - l_M\ud{u} + 2l_M(\ud{u}\cdot\ud{n})\ud{n}\\
-    && = -2d_A\ud{n} + r_M\ud{v} + 2l_M(\ud{u}\cdot\ud{n})\ud{n}\\
-    \Leftrightarrow
+    && = 2d_A\ud{n} + \ud{AM} - l_M\ud{u} + 2l_M(\ud{u}\cdot\ud{n})\ud{n}\\
+    && = 2d_A\ud{n} + r_M\ud{v} + 2l_M(\ud{u}\cdot\ud{n})\ud{n}\\
+    \underbrace{\Leftrightarrow}_{r_{M}\neq 0}
     & \ud{v'}
-    & = \ud{v} + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) - d_A\right)\ud{n}
+    & = \ud{v} + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) + d_A\right)\ud{n}
 \end{array}
 $$
 
@@ -213,21 +215,41 @@ $$
     & = \ud{u'} \wedge \ud{v'}\\
     & = (\ud{u} - 2(\ud{u}\cdot\ud{n})\ud{n})
     \wedge
-    \left(\ud{v} + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) - d_A\right)\ud{n}\right)\\
+    \left(\ud{v} + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) + d_A\right)\ud{n}\right)\\
     & = \ud{u}\wedge\ud{v}
-    + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) - d_A\right)\ud{u}\wedge\ud{n}
+    + \frac{2}{r_M}\left(l_M(\ud{u}\cdot\ud{n}) + d_A\right)\ud{u}\wedge\ud{n}
     - 2(\ud{u}\cdot\ud{n})\ud{n}\wedge\ud{v}\\
     & = \ud{w}
-    + 2\left[\frac{(\ud{u}\cdot\ud{n})l_M - d_A}{r_M}\ud{u}
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})l_M + d_A}{r_M}\ud{u}
     + (\ud{u}\cdot\ud{n})\ud{v}\right] \wedge \ud{n}\\
     & = \ud{w}
-    + 2\left[\frac{(\ud{u}\cdot\ud{n})(l_M\ud{u}+r_M\ud{v}) - d_A\ud{u}}{r_M}
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})(l_M\ud{u}+r_M\ud{v}) + d_A\ud{u}}{r_M}
     \right] \wedge \ud{n}\\
     & = \ud{w}
-    + 2\left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - d_A\ud{u}}{r_M}\right]
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} + d_A\ud{u}}{r_M}\right]
     \wedge \ud{n}
 \end{array}
 $$
+
+Remebering that $d_A=-\ud{AM}\cdot\ud{n}$ and that
+$\ud{a}\wedge(\ud{b}\wedge{c}) = (\ud{a}\cdot\ud{c})\ud{b} - (\ud{a}\cdot\ud{b})\ud{c}$:
+$$
+\begin{array}{lll}
+    \ud{w'}
+    & = \ud{w}
+    + 2\left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - (\ud{AM}\cdot\ud{n})\ud{u}}{r_M}\right]
+    \wedge \ud{n}\\
+    & = \ud{w}
+    + \frac{2}{r_m}\left[ \ud{n}\wedge (\ud{AM} \wedge \ud{u}) \right]
+    \wedge \ud{n}\\
+    & = \ud{w}
+    + 2\frac{\sqrt{r_m^2+l_M^2}}{r_m}\left[ \ud{n}\wedge (\ud{e}_{AM} \wedge \ud{u}) \right]
+    \wedge \ud{n}\\
+\end{array}
+$$
+
+Where we have introduced $\ud{AM} = \sqrt{r_M^2+l_M^2} \ud{e}_{AM}$:
+
 
 Then, assuming $I'=-I$ we have:
 $$
@@ -240,14 +262,12 @@ $$
 	& = -\frac{\mu_0}{4\pi}\frac{I}{r_M}
 	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
 	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
-    \left(2\left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - d_A\ud{u}}{r_M}\right]
-    \wedge \ud{n}\right)\\
-	& = \frac{\mu_0}{2\pi}\frac{I}{r_M}
+    2\frac{\sqrt{r_m^2+l_M^2}}{r_m}
+    \left[ \ud{n}\wedge (\ud{e}_{AM} \wedge \ud{u}) \right] \wedge \ud{n}\\
+	& = \frac{\mu_0}{2\pi}I\frac{\sqrt{r_m^2+l_M^2}}{r_m^2}
 	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
 	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
-    \left(
-    \ud{n} \wedge \left[\frac{(\ud{u}\cdot\ud{n})\ud{AM} - d_A\ud{u}}{r_M}\right]
-    \right)\\
+    \ud{n} \wedge \left[ \ud{n}\wedge (\ud{e}_{AM} \wedge \ud{u}) \right]\\
 \end{array}
 $$
 
@@ -255,9 +275,9 @@ For numerical evaluation, keep in mind that:
 $$
 \left\{
 \begin{array}{ll}
-l_M = \ud{u}\cdot\ud{AM}\\
-r_M = \|\ud{u}\wedge\ud{AM}\|\\
-    d_A = \ud{AM}\cdot\ud{n}
+    l_M = \ud{u}\cdot\ud{AM}\\
+    r_M = \|\ud{u}\wedge\ud{AM}\|\\
+    d_A = -\ud{AM}\cdot\ud{n}
 \end{array}
 \right.
 $$
@@ -290,13 +310,13 @@ $$
 	\left(\frac{\L2-l_M}{\sqrt{(\L2-l_M)^2+r_M^2}}
 	+ \frac{\L2+l_M}{\sqrt{(\L2+l_M)^2+r_M^2}}\right)
     \left(
-    \ud{n} \wedge \left[\frac{(\ud{u}_A\cdot\ud{n})\ud{AM} - d_A\ud{u}_A}{r_M}\right]
+    \ud{n} \wedge \left[\frac{(\ud{u}_A\cdot\ud{n})\ud{AM} + d_A\ud{u}_A}{r_M}\right]
     \right)\\
 	& + \frac{\mu_0}{2\pi}\frac{I}{r_M''}
 	\left(\frac{\L2-l_M''}{\sqrt{(\L2-l_M'')^2+r_M''^2}}
 	+ \frac{\L2+l_M''}{\sqrt{(\L2+l_M'')^2+r_M''^2}}\right)
     \left(
-    \ud{n} \wedge \left[\frac{(\ud{u}_B\cdot\ud{n})\ud{BM} - d_B\ud{u}_B}{r_M''}\right]
+    \ud{n} \wedge \left[\frac{(\ud{u}_B\cdot\ud{n})\ud{BM} + d_B\ud{u}_B}{r_M''}\right]
     \right)\\
 \end{array}
 $$
@@ -315,9 +335,9 @@ cannot be derived analytically.
 
 \section{Circle discretization}
 
-Let's consider a circular coil of radius $R$ centered on axis $(A, \ud{n})$.
+Let's consider a circular coil of radius $R$ centered on axis $(C, \ud{e}_3)$.
 
-For a given point $M$ in space, let's make the plane $(O, M, \ud{e}_z)$ a
+For a given point $M$ in space, let's make the plane $(C, M, \ud{e}_3)$ a
 symmetry plane and divide the circle into a $N$-sided polygon.
 
 \subsection{N-sided polygon}
@@ -326,18 +346,20 @@ symmetry plane and divide the circle into a $N$-sided polygon.
 The polygon is N-sided, with N an even number.
 The polygon shall have either:
 \begin{itemize}
-	\item the same perimeter as the circle: $L=2\pi R$
-	\item the same area as the circle: $S=\pi R^2$
+	\item the same perimeter as the circle: $L = 2\pi R$
+	\item the same area as the circle: $S = \pi R^2$
     \item the same magnetic field on the center as the circle:
-        $B=\frac{\mu_0I}{2R}$
+        $B(0) = \frac{\mu_0I}{2R}$
 \end{itemize}
 
 For a N-sided regular polygon of height $h$:
 $$
 \left\{
     \begin{array}{ll}
-	    L_i = 2h\tan\left(\frac{\pi}{N}\right) & \text{ is the length a single side}\\
-		S_i = \frac{hL_i}{2} = h^2\tan\left(\frac{\pi}{N}\right) & \text{ is the area a single side}
+	    L_i = 2h\tan\left(\frac{\pi}{N}\right)
+        & \text{ is the length of a single side}\\
+		S_i = \frac{hL_i}{2} = h^2\tan\left(\frac{\pi}{N}\right)
+        & \text{ is the area of a single side}
 	\end{array}
 \right.
 $$
@@ -346,7 +368,7 @@ Remembering that, at the center, $l_m=0$ and $r_m=h$ for all, by construction,
 and that $\L2=\frac{L_i}{2}=h\tan\left(\frac{\pi}{N}\right)$, we derive:
 $$
 \begin{array}{ll}
-    B & = N \frac{\mu_0}{4\pi}\frac{I}{h}
+    B(0, N) & = N \frac{\mu_0}{4\pi}\frac{I}{h}
     \left(\frac{\L2}{\sqrt{(\L2)^2+h^2}}
     + \frac{\L2}{\sqrt{(\L2)^2+h^2}}\right)\\
     & = N \frac{\mu_0}{2\pi}\frac{I}{h}
@@ -366,7 +388,7 @@ Hence,
         $\Rightarrow h = R \frac{\frac{\pi}{N}}{\tan\left(\frac{\pi}{N}\right)}$
 	\item same area
         $\Rightarrow h = R \sqrt{\frac{\frac{\pi}{N}}{\tan\left(\frac{\pi}{N}\right)}}$
-    \item same field
+    \item same field on axis
         $\Rightarrow h =
         R\frac{\tan\left(\frac{\pi}{N}\right)}{\frac{\pi}{N}}\frac{1}{\sqrt{\tan^2\left(\frac{\pi}{N}\right)+1}}$
 \end{itemize}
@@ -382,7 +404,7 @@ This way we can define a 4-symetry for the discretization of the circle,
 indexed by $n$.
 
 
-\subsection{Deriving B from discretized 3D cirle}
+\section{Deriving B from discretized 3D cirle}
 
 Let's consider a spire as a circle in 3D with center $C$, axis $(C, \ud{e}_3)$
 and radius $R$.
@@ -403,9 +425,26 @@ including $(M, C, {e}_3)$.
 
 Depending on the constraint, the height $h$ of each polygon can be derived (cf.
 ~\ref{subsect:constraint}). Similarly, the length of the basis of each polygon
-can also be derived as $L=2h\tan(\frac{\pi}{4n})$.
+can also be derived as:
 
-Knowing $h$ and $L$ one can write, for $i \in [1; 2n]$ (we only consider one
+$$
+\left\{
+    \begin{array}{ll}
+        h
+        & \underbrace{=}_{\text{perim.}}
+        R \frac{\frac{\pi}{4n}}{\tan\left(\frac{\pi}{4n}\right)}\\
+        & \underbrace{=}_{\text{area}}
+        R \sqrt{\frac{\frac{\pi}{4n}}{\tan\left(\frac{\pi}{4n}\right)}}\\
+        & \underbrace{=}_{\text{B(0)}}
+        R\frac{\tan\left(\frac{\pi}{4n}\right)}{\frac{\pi}{4n}}
+        \frac{1}{\sqrt{\tan^2\left(\frac{\pi}{4n}\right)+1}}\\
+        \L2 & = h\tan(\frac{\pi}{4n})\\
+	\end{array}
+\right.
+$$
+
+
+Knowing $h$ and $\L2$ one can write, for $i \in [1; 2n]$ (we only consider one
 half of the circle due to the symetry):
 $$
 \left\{
@@ -414,6 +453,19 @@ $$
         \ud{CA_i} = h\cos(\theta_i)\ud{e}_1 + h\sin(\theta_i)\ud{e}_2\\
         \ud{u}_i = -\sin(\theta_i)\ud{e}_1 + \cos(\theta_i)\ud{e}_2\\
 	\end{array}
+\right.
+$$
+
+Introducing the local coordinates with respect to $(C, \ud{e}_3)$:
+$$
+\ud{CM} = r\ud{e}_1 + z\ud{e}_3
+\Rightarrow
+\left\{
+    \begin{array}{lll}
+        z & = \ud{CM}\cdot\ud{e}_3\\
+        r & = \|\ud{CM} - z\ud{e}_3\|\\
+        \ud{e}_1 & = (\ud{CM} - z\ud{e}_3) / r
+    \end{array}
 \right.
 $$
 
@@ -469,10 +521,76 @@ $$
     \begin{array}{lll}
         r_{Mi} & = \sqrt{z^2 + (h - r\cos(\theta_i))^2}\\
         l_{Mi} & = -r\sin(\theta_i)\\
-        d_{Ai} & = - h\sin(\theta_i)
+        d_{Ai} & = h\sin(\theta_i)
     \end{array}
 \right.
 $$
+
+Thus, according to \ref{sec:mirror} the magnetic field produced at $M$ by the
+two segments $A_i$ and $A_{4n+1-i}$ mirrored throught $(C, \ud{e}_2)$ is:
+
+$$
+\begin{array}{lll}
+    \ud{B}_i
+    & = \frac{\mu_0}{2\pi}\frac{I}{r_{Mi}^2}
+    \left(\frac{\L2-l_{Mi}}{\sqrt{(\L2-l_{Mi})^2+r_{Mi}^2}}
+    + \frac{\L2+l_{Mi}}{\sqrt{(\L2+l_{Mi})^2+r_{Mi}^2}}\right)
+    \ud{e}_2 \wedge \left[ \ud{e}_2 \wedge (\ud{A_iM} \wedge \ud{u_i}) \right]
+\end{array}
+$$
+
+Where:
+$$
+\begin{array}{llll}
+    & \ud{e}_2 \wedge (\ud{A_iM} \wedge \ud{u_i})
+    & = &
+    z\cos(\theta_i)\ud{e}_3
+    - (h - r\cos(\theta_i))\ud{e}_1\\
+    \Rightarrow &
+    \ud{e}_2 \wedge \left[ \ud{e}_2 \wedge (\ud{A_iM} \wedge \ud{u_i}) \right]
+    & = &
+    z\cos(\theta_i)\ud{e}_1 + (h - r\cos(\theta_i))\ud{e}_3
+\end{array}
+$$
+
+And:
+$$
+\left\{
+\begin{array}{llll}
+    & \frac{\L2-l_{Mi}}{\sqrt{(\L2-l_{Mi})^2+r_{Mi}^2}}
+    & = &
+    \frac{\L2+r\sin(\theta_i)}
+    {\sqrt{(\L2+r\sin(\theta_i))^2 + z^2 + (h - r\cos(\theta_i))^2}}\\
+    && = &
+    \frac{\L2+r\sin(\theta_i)}
+    {\sqrt{\L2^2 + 2\L2r\sin(\theta_i) + r^2 + z^2 + h^2 - 2hr\cos(\theta_i)}}\\
+    
+    & \frac{\L2 + l_{Mi}}{\sqrt{(\L2+l_{Mi})^2+r_{Mi}^2}}
+    & = &
+    \frac{\L2 - r\sin(\theta_i)}
+    {\sqrt{\L2^2 - 2\L2r\sin(\theta_i) + r^2 + z^2 + h^2 - 2hr\cos(\theta_i)}}\\
+\end{array}
+\right.
+$$
+
+Hence, introducing $\alpha_i = \L2^2 + r^2 + z^2 + h^2 - 2hr\cos(\theta_i)$:
+$$
+\begin{array}{lll}
+    \ud{B}_i
+    & = \frac{\mu_0}{2\pi}\frac{I}{z^2 + (h - r\cos(\theta_i))^2}
+    \left(\frac{\L2 + r\sin(\theta_i)}{\sqrt{\alpha_i + 2\L2r\sin(\theta_i)}}
+    + \frac{\L2 - r\sin(\theta_i)}{\sqrt{\alpha_i - 2\L2r\sin(\theta_i)}}\right)
+    \left( z\cos(\theta_i)\ud{e}_1 + (h - r\cos(\theta_i))\ud{e}_3 \right)
+\end{array}
+$$
+
+Hence, numerically:
+\begin{enumerate}
+    \item Get all $\theta_i$, $\cos(\theta_i)$ and $\sin(\theta_i)$ from $n$.
+    \item Get $h$, $\L2$ for each spire, defined by $(C, R, \ud{e}_3)$
+    \item Get $r$, $z$ and $\ud{e}_1$ for each pair $(M, spire)$
+    \item Sum all terms
+\end{enumerate}
 
 
 
