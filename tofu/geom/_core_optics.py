@@ -306,9 +306,9 @@ class CrystalBragg(utils.ToFuObject):
 
         # Check braggref
         ltypes = [int, float, np.int_, np.float_]
-        c0 = (type(dbragg.get('braggref')) in ltypes
-              and dbragg['braggref'] >= 0.
-              and dbragg['braggref'] <= np.pi/2.)
+        c0 = bool(type(dbragg.get('braggref')) in ltypes
+                  and dbragg['braggref'] >= 0.
+                  and dbragg['braggref'] <= np.pi/2.)
         if c0 is not True:
             msg = ("dbragg['braggref'] is not valid!\n"
                    + "\t- should be in [0; pi/2]\n"
@@ -710,7 +710,7 @@ class CrystalBragg(utils.ToFuObject):
                 'half-extent', 'summit', 'center', 'nin', 'e1']
         ar1 = [self._dgeom['Type'], self._dgeom['Typeoutline'],
                '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
-               '{0:5.2f}'.format(self._dgeom['rcurve']),
+               '{0:6.3f}'.format(self._dgeom['rcurve']),
                str(np.round(self._dgeom['extenthalf'], decimals=3)),
                str(np.round(self._dgeom['summit'], decimals=2)),
                str(np.round(self._dgeom['center'], decimals=2)),
@@ -1117,12 +1117,64 @@ class CrystalBragg(utils.ToFuObject):
     # methods for general plotting
     # -----------------
 
-    def plot(self, dax=None, proj=None, res=None, element=None,
-             color=None, det=None,
-             dP=None, dI=None, dBs=None, dBv=None,
-             dVect=None, dIHor=None, dBsHor=None,
-             dBvHor=None, dleg=None,
-             draw=True, dmargin=None, fs=None, wintit=None, Test=True):
+    def plot(self, dcryst=None,
+             dax=None, proj=None, res=None, element=None,
+             color=None, det=None, ddet=None,
+             dleg=None, draw=True, dmargin=None,
+             fs=None, wintit=None):
+        """ Plot the crystal in desired axes
+
+        Parameters
+        ----------
+        dax:        None / dict
+            dict of axes to be used, with keys:
+                - 'cross': axe where to plot cross-section view
+                - 'hor':   axe where to plot horizontal (from top) view
+                - '3d':    axe where to plot 3d view
+            if None, a new figure and axes are created
+        proj:       None / str
+            key indicating which plot to make:
+                - 'cross':  cross-section projection
+                - 'hor':    horizontal projection
+                - 'all':    cross-section + horizontal view
+                - '3d':     3d view
+        element:    None / str
+            char string where each letter indicates an element to plot
+                - 'o': outline (edges of crystal)
+                - 's': summit (geometrical center of the crystal)
+                - 'c': center (of the sphere of curvature)
+                - 'r': rowland circle (plotted in e1 direction)
+                - 'v': local unit vectors e1, e2, nout
+            If None, default to 'oscvr'
+        res:        None / float
+            Resolution for the discretization of the outline
+        dcryst:     None / dict
+            dict of dict for plotting the various elements of the crystal:
+                - 'outline': dict of properties fed to plot()
+                - 'cent': dict of properties fed to plot()
+                - 'summit': dict of properties fed to plot()
+                - 'rowland': dict of properties fed to plot()
+                - 'vectors': dict of properties fed to quiver()
+        ddet:       None / dict
+            dict of dict for plotting the various elements of the det:
+                - 'outline': dict of properties fed to plot()
+                - 'cent': dict of properties fed to plot()
+                - 'vectors': dict of properties fed to quiver()
+        color:      None / str / tuple
+            color to be used for plotting
+            Overwrites all colors in dcryst and ddet
+        det:        None / dict
+            Optionnal associated detector to be plotted, as a dict with keys:
+                - 'cent': 1d array of cartesian coordinates of the center
+                - 'nout': 1d array of cartesian coordinates of unit vector
+                            oriented towards the crystal
+                - 'ei':   1d array of cartesian coordinates of unit vector
+                - 'ej':   1d array of cartesian coordinates of unit vector
+                - 'outline': 2d array of outline coordinates in (ei, ej)
+        dleg:       None / dict
+            dict of properties to be passed to plt.legend()
+            if False legend is not plotted
+        """
         kwdargs = locals()
         lout = ['self']
         for k in lout:
@@ -1130,9 +1182,6 @@ class CrystalBragg(utils.ToFuObject):
         if det is None:
             det = False
         det = self._checkformat_det(det)
-        if det is not False:
-            kwdargs.update({'det_'+kk: vv for kk, vv in det.items()})
-        del kwdargs['det']
         return _plot_optics.CrystalBragg_plot(self, **kwdargs)
 
     def plot_rays_from_summit(self, phi=None, bragg=None, lamb=None,

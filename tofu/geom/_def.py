@@ -312,7 +312,43 @@ LOSdict = dict(Lax=None, Proj='All', Lplot=LOSLplot, Elt='LDIORP', EltVes='', Le
 
 
 
+#####################################################################
+#################  CrystalBragg class  ##############################
+#####################################################################
 
+
+# ------------ Computing settings ---------------
+
+
+# --- Plotting dictionaries and parameters ------
+
+_CRYSTAL_PLOT_DDICT = {
+    'outline': {'ls': '-', 'lw': 2.},
+    'cent': {'ls': 'None', 'marker': 'o', 'ms': 6},
+    'summit': {'ls': 'None', 'marker': '^', 'ms': 6},
+    'rowland': {'ls': '--', 'lw': 1.},
+    'vectors': {'ls': '-', 'lw': 1., 'scale': 10.},
+}
+
+
+
+#####################################################################
+#######################  Detect class  ##############################
+#####################################################################
+
+
+# ------------ Computing settings ---------------
+
+
+# --- Plotting dictionaries and parameters ------
+
+_DET_PLOT_DDICT = {
+    'outline': {'ls': '-', 'lw': 2., 'color': 'k'},
+    'cent': {'ls': 'None', 'marker': 'o', 'ms': 6, 'color': 'k'},
+    'summit': {'ls': 'None', 'marker': '^', 'ms': 6, 'color': 'k'},
+    'rowland': {'ls': '--', 'lw': 1., 'color': 'k'},
+    'vectors': {'ls': '-', 'lw': 1., 'scale': 10., 'color': 'k'},
+}
 
 """
 #####################################################################
