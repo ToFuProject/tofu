@@ -2406,7 +2406,7 @@ class Config(utils.ToFuObject):
         else:
             assert C0, str(type(extraval))
         if multi and C1:
-            size = self._dStruct["nStruct"] if size is None else size
+            size = self._dStruct["nObj"] if size is None else size
             C = extraval.shape == ((self._dStruct["nObj"],))
             if not C:
                 msg = "The value for %s has wrong shape!" % key
