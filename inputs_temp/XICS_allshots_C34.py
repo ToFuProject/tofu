@@ -283,13 +283,13 @@ for cryst, v0 in _DSHOTS.items():
 _DCRYST = {
     'ArXVII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.3b4-5-g7eec56a7.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.7-208-gb3dcce6e.npz')),
     'ArXVIII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVIII_sh00000_Vers.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVIII_sh00000_Vers1.4.7-221-g65718177.npz')),
     'FeXXV': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_FeXXV_sh00000_Vers1.4.2-a5-117-g6496abee.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_FeXXV_sh00000_Vers1.4.7-221-g65718177.npz')),
 }
 
 _DDET = {'ArXVII':
@@ -314,7 +314,7 @@ _MASKPATH = os.path.abspath(os.path.join(
 ))
 _DETPATH = os.path.abspath(os.path.join(
     _HERE,
-    'det37_CTVD_incC4.npz'
+    'det37_CTVD_incC4_New.npz'
 ))
 _MASK = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
 _DLINES = None
