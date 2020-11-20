@@ -127,8 +127,9 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor',
         f.canvas.set_window_title(wintit)
     if Mode.lower() == 'all':
         if dmargin is None:
-            dmargin = {'left': 0.07, 'right': 0.85, 'bottom': 0.1, 'top': 0.8,
-                       'wspace': 0.1, 'hspace': 0.1}
+            dmargin = {'left': 0.06, 'right': 0.95,
+                       'bottom': 0.08, 'top': 0.95,
+                       'wspace': 0.20, 'hspace': 0.1}
         gs = gridspec.GridSpec(1, 2, **dmargin)
         axP = f.add_subplot(gs[0, 0], frameon=True,facecolor=axCol)
         axT = f.add_subplot(gs[0, 1], frameon=True,facecolor=axCol)
