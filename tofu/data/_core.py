@@ -198,7 +198,10 @@ class DataAbstract(utils.ToFuObject):
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
-            assert isinstance(Id,utils.ID)
+            if not isinstance(Id, utils.ID):
+                msg = ("Arg Id must be a utils.ID instance!\n"
+                    + "\t- provided: {}".format(Id))
+                raise Exception(msg)
             Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
         assert type(Name) is str, Name
         assert type(Diag) is str, Diag

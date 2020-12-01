@@ -852,7 +852,7 @@ def _create_config_testcase_check_inputs(
 def _create_config_testcase(
     config=None,
     path=None,
-    dconfig=None,
+    dconfig=_DCONFIG,
     dconfig_shortcuts=None,
     returnas=None,
 ):
@@ -939,7 +939,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=None, r=None, elong=None, Dshape=None,
                   divlow=None, divup=None, nP=None,
-                  returnas='object', SavePath='./', path=_path_testcases):
+                  returnas=None, SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
