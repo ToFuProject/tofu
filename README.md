@@ -14,7 +14,6 @@
 tofu
 ====
 
-
 **tofu** stands for **To**mography for **Fu**sion, it is an IMAS-compatible open-source machine-independent python library.
 
 tofu tries to take an active part in the plasma community open-source python environment, like [PlasmaPy](https://github.com/PlasmaPy/PlasmaPy), with which some degree of interoperability is being implemented.
