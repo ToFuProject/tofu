@@ -200,7 +200,7 @@ class DataAbstract(utils.ToFuObject):
         if Id is not None:
             if not isinstance(Id, utils.ID):
                 msg = ("Arg Id must be a utils.ID instance!\n"
-                    + "\t- provided: {}".format(Id))
+                       + "\t- provided: {}".format(Id))
                 raise Exception(msg)
             Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
         assert type(Name) is str, Name
