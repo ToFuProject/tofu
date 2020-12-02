@@ -198,7 +198,10 @@ class DataAbstract(utils.ToFuObject):
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
-            assert isinstance(Id,utils.ID)
+            if not isinstance(Id, utils.ID):
+                msg = ("Arg Id must be a utils.ID instance!\n"
+                       + "\t- provided: {}".format(Id))
+                raise Exception(msg)
             Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
         assert type(Name) is str, Name
         assert type(Diag) is str, Diag
@@ -2183,13 +2186,13 @@ class DataCam2D(DataAbstract):
         lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
               isinstance(dX12, dict) and dX12 != {'from':'geom'}]
         if not np.sum(lc) == 1:
-            msg = "dX12 must be either:\n"
-            msg += "    - None\n"
-            msg += "    - 'geom' : will be derived from the cam geometry\n"
-            msg += "    - dict : containing {'x1'  : array of coords.,\n"
-            msg += "                         'x2'  : array of coords.,\n"
-            msg += "                         'ind1': array of int indices,\n"
-            msg += "                         'ind2': array of int indices}"
+            msg = ("dX12 must be either:\n"
+                   + "\t- None\n"
+                   + "\t- 'geom' : will be derived from the cam geometry\n"
+                   + "\t- dict : containing {'x1'  : array of coords.,\n"
+                   + "\t                     'x2'  : array of coords.,\n"
+                   + "\t                     'ind1': array of int indices,\n"
+                   + "\t                     'ind2': array of int indices}")
             raise Exception(msg)
 
         if lc[1]:

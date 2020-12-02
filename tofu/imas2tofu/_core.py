@@ -2652,8 +2652,8 @@ class MultiIDSLoader(object):
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)
         for kk in lk:
-            dins['dlabels'][kk] = {'name': dsig[kk], 'units':
-                                   out[dsig[kk]]['units']}
+            dins['dlabels'][kk] = {'name': dsig[kk],
+                                   'units': out[dsig[kk]]['units']}
 
         # dextra
         dextra = self._get_dextra(dextra, fordata=True)

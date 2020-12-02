@@ -810,10 +810,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                     dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                     'lrid':[lXother[ii]]}
             else:
-                im = dax['X'][ii*ntMax+jj].imshow(nan2_data, extent=extent, aspect='equal',
-                                         interpolation='nearest', origin='lower',
-                                         zorder=-1, norm=norm,
-                                         cmap=cmap)
+                im = dax['X'][ii*ntMax+jj].imshow(
+                    nan2_data, extent=extent, aspect='equal',
+                    interpolation='nearest', origin='lower',
+                    zorder=-1, norm=norm, cmap=cmap)
                 dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
                                                        'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}

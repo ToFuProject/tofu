@@ -407,10 +407,11 @@ def plasma_checkformat_dsig(dsig=None,
             msg = ("dsig[{}] does not have {}\n".format(k0, lc)
                    + "    - dsig[{}] = {}".format(k0, dsig[k0]))
             raise Exception(msg)
+
+        # Check required minimum for 2dmesh, for valid shortcuts
         if any(['2d' in ss for ss in dsig[k0]]):
-            for ss in lsmesh:
-                if ss not in dsig[k0]:
-                    dsig[k0].append(ss)
+            lsmesh0 = set(lsmesh).intersection(dshort[k0].keys())
+            dsig[k0] += list(lsmesh0.difference(dsig[k0]))
         dout[k0] = dsig[k0]
     return dout
 
