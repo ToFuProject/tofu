@@ -29,7 +29,7 @@ _dict_lexcept_key = []
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
 
-_LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts']
+_LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts', 'config']
 
 
 ###############################################
@@ -780,12 +780,13 @@ def _get_exception(q, ids, qtype='quantity'):
 
 
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, returnas=None, tlim=None, config=None,
+                   ids=None, Name=None, returnas=None, tlim=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
                    sharex=False, invertx=None, extra=True,
                    bck=True, indch_auto=True, t=None,
+                   config=None, tosoledge3x=None,
                    mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
 
     # -------------------
@@ -839,8 +840,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     # -------------------
     # Prepare shot
-    shot = np.r_[shot].astype(int)
-    nshot = shot.size
+    if shot is not None:
+        shot = np.r_[shot].astype(int)
+        nshot = shot.size
 
     # -------------------
     # Call magfieldline if relevant
@@ -1002,6 +1004,18 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                          tokamak=tokamak, version=version,
                                          ids='pulse_schedule', ids_base=False)
         multi.get_events(verb=True)
+        return
+
+    elif ids == ['config']:
+        import tofu.geom as tfg
+        if config in [None, False]:
+            tfg.utils.get_available_config()
+        else:
+            conf = tfg.utils.create_config(config)
+            conf.set_colors_random()
+            conf.plot()
+            if tosoledge3x not in [None, False]:
+                conf.to_SOLEDGE3X(path=tosoledge3x)
         return
 
     # -------------------
@@ -2600,18 +2614,39 @@ class ID(ToFuObjectBase):
                                  SaveName=None, include=None,
                                  lObj=None, dUSR=None):
         # Str args
-        ls = [usr,Type,SavePath,Exp,Diag,SaveName]
+        ls = [usr, Type, SavePath, Exp, Diag, SaveName]
         assert all(ss is None or type(ss) is str for ss in ls)
         if usr is None:
             try:
                 usr = getpass.getuser()
             except:
                 pass
-        assert shot is None or type(shot) is int and shot>=0
-        assert Deg is None or type(Deg) is int and Deg>=0
-        assert Cls is not None
-        assert issubclass(Cls, ToFuObject)
-        assert include is None or type(include) is list
+        lc = [shot is None or (type(shot) is int and shot >= 0),
+              Deg is None or (type(Deg) is int and Deg >= 0),
+              Cls is not None and issubclass(Cls, ToFuObject),
+              include is None or isinstance(include, list)]
+        if not all(lc):
+            msg = ""
+            if not lc[0]:
+                msg += ("\nArg shot should be either:\n"
+                        + "\t- None\n"
+                        + "\t- int and positive\n"
+                        + "  You provided: {}".format(shot))
+            if not lc[1]:
+                msg += ("\nArg Deg should be either:\n"
+                        + "\t- None\n"
+                        + "\t- int and positive\n"
+                        + "  You provided: {}".format(Deg))
+            if not lc[2]:
+                msg += ("\nArg Cls should be a ToFuObject subclass!"
+                        + "  You provided: {}".format(Cls))
+            if not lc[3]:
+                msg += ("\nArg include should be either:\n"
+                        + "\t- None\n"
+                        + "\t- list\n"
+                        + "  You provided: {}".format(include))
+            raise Exception(msg)
+
         dout = locals()
         del dout['ls']
         return dout
