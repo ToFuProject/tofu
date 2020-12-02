@@ -404,11 +404,19 @@ class Test01_Struct(object):
                         ii = 0
                         out = obj.get_sampleV(0.1, resMode='abs', DV=box,
                                               Out='(X,Y,Z)')
-                        pts0, ind = out[0], out[2]
+                        pts0, ind0 = out[0], out[2]
                         ii = 1
-                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind,
+                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
                                               Out='(X,Y,Z)')
-                        pts1 = out[0]
+                        pts1, ind1 = out[0], out[2]
+                        ii = 2
+                        out = obj.get_sampleV(0.1, resMode='abs', DV=box,
+                                              Out='(X,Y,Z)', algo='old')
+                        pts2, ind2 = out[0], out[2]
+                        ii = 3
+                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
+                                              Out='(X,Y,Z)', algo='old')
+                        pts3, ind3 = out[0], out[2]
                     except Exception as err:
                         msg = str(err)
                         msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
@@ -418,10 +426,16 @@ class Test01_Struct(object):
                         raise Exception(msg)
 
                     if type(pts0) is list:
-                        assert all([np.allclose(pts0[ii],pts1[ii])
-                                    for ii in range(0,len(pts0))])
+                        assert all([np.allclose(pts0[ii], pts1[ii])
+                                    for ii in range(0, len(pts0))])
+                        assert all([np.allclose(pts0[ii], pts2[ii])
+                                    for ii in range(0, len(pts0))])
+                        assert all([np.allclose(pts0[ii], pts3[ii])
+                                    for ii in range(0, len(pts0))])
                     else:
-                        assert np.allclose(pts0,pts1)
+                        assert np.allclose(pts0, pts1)
+                        assert np.allclose(pts0, pts2)
+                        assert np.allclose(pts0, pts3)
 
     def test16_plot(self):
         for typ in self.dobj.keys():
