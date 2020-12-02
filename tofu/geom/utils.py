@@ -647,6 +647,7 @@ _ExpNSTX = 'NSTX'
 _ExpDEMO = 'DEMO'
 _ExpTOMAS = 'TOMAS'
 _ExpCOMPASS = 'COMPASS'
+_ExpTCV = 'TCV'
 
 # Default config
 _DEFCONFIG = 'ITER'
@@ -689,6 +690,10 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'BLK16', 'BLK17', 'BLK18',
                                 'Div1', 'Div2', 'Div3',
                                 'Div4', 'Div5', 'Div6']},
+            'ITER-SOLEDGE3XV0': {'Exp': _ExpITER,
+                                 'Ves': ['SOLEDGE3XV0'],
+                                 'PFC': ['SOLEDGE3XDivDomeV0',
+                                         'SOLEDGE3XDivSupportV0']},
             'AUG-V1': {'Exp': _ExpAUG,
                        'Ves': ['VESiR'],
                        'PFC': ['D2cdome', 'D2cdomL', 'D2cdomR', 'D2ci1',
@@ -711,12 +716,24 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                          'PFC': ['LimiterV0', 'AntennaV0']},
             'COMPASS-V0': {'Exp': _ExpCOMPASS,
                            'Ves': ['V0']},
+            'TCV-V0': {'Exp': _ExpTCV,
+                       'Ves': ['v', 't'],
+                       'CoilPF': ['A001', 'B001', 'B002',
+                                  'B03A1', 'B03A2', 'B03A3',
+                                  'C001', 'C002', 'D001', 'D002',
+                                  'E001', 'E002', 'E003', 'E004',
+                                  'E005', 'E006', 'E007', 'E008',
+                                  'E03A1', 'E03A2', 'E03A3',
+                                  'F001', 'F002', 'F003', 'F004',
+                                  'F005', 'F006', 'F007', 'F008',
+                                  'T03A1', 'T03A2', 'T03A3']},
             }
 
 # Each config can be called by various names / shortcuts (for benchmark and
 # retro-compatibility), this table stores, for each shortcut,
 # the associated unique name it refers to
 _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
+                      'ITER-SOLEDGE3X': 'ITER-SOLEDGE3XV0',
                       'JET': 'JET-V0',
                       'WEST': 'WEST-V4',
                       'A1': 'WEST-V1',
@@ -730,7 +747,8 @@ _DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
                       'NSTX': 'NSTX-V0',
                       'DEMO': 'DEMO-2019',
                       'TOMAS': 'TOMAS-V0',
-                      'COMPASS': 'COMPASS-V0'}
+                      'COMPASS': 'COMPASS-V0',
+                      'TCV': 'TCV-V0'}
 
 
 def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
