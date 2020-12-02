@@ -3324,7 +3324,7 @@ class Plasma2D(utils.ToFuObject):
         return (data, din['key'], din['group'], din['units'],
                 din['quant'], din['dim'], din['origin'], din['name'])
 
-    def add_ref(self, pfe=None, key=None, data=None, group=None,
+    def add_ref(self, key=None, data=None, group=None,
                 dim=None, quant=None, units=None, origin=None, name=None,
                 comments=None, delimiter=None):
         """ Add a reference
