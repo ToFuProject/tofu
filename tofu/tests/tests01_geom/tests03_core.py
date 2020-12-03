@@ -6,6 +6,7 @@ This module contains tests for tofu.geom in its structured version
 
 # External modules
 import os
+import itertools as itt
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings as warn
@@ -118,10 +119,12 @@ lf = os.listdir(path)
 lf = [f for f in lf if all([s in f for s in [_Exp,'.txt']])]
 lCls = sorted(set([f.split('_')[1] for f in lf]))
 
+
+# Define a dict of objects to be tested, in linear and toroidal geometry
 dobj = {'Tor':{}, 'Lin':{}}
 for tt in dobj.keys():
     for cc in lCls:
-        lfc = [f for f in lf if f.split('_')[1]==cc and 'V0' in f]
+        lfc = [f for f in lf if f.split('_')[1] == cc and 'V0' in f]
         ln = []
         for f in lfc:
             if 'CoilCS' in f:
@@ -129,13 +132,13 @@ for tt in dobj.keys():
             else:
                 ln.append(f.split('_')[2].split('.')[0])
         lnu = sorted(set(ln))
-        if not len(lnu)==len(ln):
-            msg = "Non-unique name list for {0}:".format(cc)
-            msg += "\n    ln = [{0}]".format(', '.join(ln))
-            msg += "\n    lnu = [{0}]".format(', '.join(lnu))
+        if not len(lnu) == len(ln):
+            msg = ("Non-unique name list for {0}:".format(cc)
+                   + "\n\tln = [{0}]".format(', '.join(ln))
+                   + "\n\tlnu = [{0}]".format(', '.join(lnu)))
             raise Exception(msg)
         dobj[tt][cc] = {}
-        for ii in range(0,len(ln)):
+        for ii in range(0, len(ln)):
             if 'BumperOuter' in ln[ii]:
                 Lim = np.r_[10.,20.]*np.pi/180.
             elif 'BumperInner' in ln[ii]:
@@ -160,16 +163,21 @@ for tt in dobj.keys():
                 Lim = None
 
             Poly = np.loadtxt(os.path.join(path,lfc[ii]))
-            assert Poly.ndim==2
-            assert Poly.size>=2*3
+            assert Poly.ndim == 2
+            assert Poly.size >= 2*3
             kwd = dict(Name=ln[ii]+tt, Exp=_Exp, SavePath=_here,
                        Poly=Poly, Lim=Lim, Type=tt)
-            dobj[tt][cc][ln[ii]] = eval('tfg.%s(**kwd)'%cc)
-
-
+            dobj[tt][cc][ln[ii]] = eval('tfg.{}(**kwd)'.format(cc))
 
 
 class Test01_Struct(object):
+    """ Class for testing the Struct clas and its methods
+
+    In tofu, a Struct is a 3D object defined by a 2D contour in a cross-section
+    It has a - toroidal or linear - extension (None if axisymmetric)
+    It has methods for plotting, computing key parameters...
+
+    """
 
     @classmethod
     def setup_class(cls, dobj=dobj):
@@ -484,17 +492,32 @@ class Test01_Struct(object):
 #  Creating Config objects and testing methods
 #
 #######################################################
-dconf = {}
+
+# Define a dict dconfig holding all the typical Config we want to test
+
+dconf = dict.fromkeys(dobj.keys())
 for typ in dobj.keys():
-    lS = []
-    for c in dobj[typ].keys():
-        lS += list(dobj[typ][c].values())
-    Lim = None if typ=='Tor' else [0.,10.]
+
+    # Get list of structures (lS) composing the config
+    lS = list(itt.chain.from_iterable([list(dobj[typ][c].values())
+                                       for c in dobj[typ].keys()]))
+
+    # Set the limits (none in toroidal geometry, [0., 10.] in linear geometry)
+    Lim = None if typ == 'Tor' else [0., 10.]
+
+    # Create config and store in dict
     dconf[typ] = tfg.Config(Name='Test%s'%typ, Exp=_Exp,
                             lStruct=lS, Lim=Lim,
                             Type=typ, SavePath=_here)
 
 class Test02_Config(object):
+    """ Class for testing the Config class and its methods
+
+    A Config class holds the geometrical configuration of a tokamak
+    It holds all the structural elements constituting it
+    It provides methods to plot, move them
+
+    """
 
     @classmethod
     def setup_class(cls, dobj=dconf, verb=False):
@@ -651,6 +674,7 @@ class Test02_Config(object):
 #
 #######################################################
 
+# Define a dict of cams to be tested
 dCams = {}
 foc = 0.08
 DX = 0.05
