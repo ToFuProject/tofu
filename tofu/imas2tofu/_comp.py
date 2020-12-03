@@ -731,7 +731,6 @@ def get_data_units(dsig=None, occ=None,
             except Exception as err:
                 dfail[ids][sigi] = str(err)
                 anyfail = True
-                raise err       # DB
 
         if len(dfail[ids]) == 0:
             del dfail[ids]

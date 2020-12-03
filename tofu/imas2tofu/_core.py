@@ -2609,6 +2609,7 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
             t = t[0, :]
         dins['t'] = t
+
         indt = self.get_tlim(t, tlim=tlim,
                              indevent=indevent, returnas=int)['indt']
 
@@ -2650,7 +2651,7 @@ class MultiIDSLoader(object):
                            + "  => Only data should have dimension 3!")
                     raise Exception(msg)
                 # Temporary fix until clean-uo and upgrading of _set_fsig()
-                if kk == 'data' and int is not None:
+                if kk == 'data' and indt is not None:
                     out[dsig[kk]]['data'] = out[dsig[kk]]['data'][:, :, indt]
                 dins[kk] = np.swapaxes(out[dsig[kk]]['data'].T, 1, 2)
 
@@ -2673,8 +2674,10 @@ class MultiIDSLoader(object):
 
         # Apply indt if was not done in get_data
         for kk,vv in dins.items():
-            if (vv.ndim == 2 or kk == 't') and vv.shape[0] > indt.size:
-                dins[kk] = vv[indt,...]
+            c0 = (((vv.ndim == 2 and kk!='lamb') or kk == 't')
+                  and vv.shape[0] > indt.size)
+            if c0:
+                dins[kk] = vv[indt, ...]
 
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)
