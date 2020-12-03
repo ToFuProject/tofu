@@ -45,6 +45,9 @@ _DATA = True
 _UNITS = True
 _STRICT = True
 _STACK = True
+_WARN = True
+_RETURN_ALL = False
+
 
 # #############################################################################
 #                      Units functions
@@ -199,12 +202,18 @@ def get_fsig(sig):
                     if ind is None:
                         ind = range(0, nb)
                     if nsig > 1:
-                        assert type(ind) is not str and len(ind) == 1
+                        if isinstance(ind, str) or len(ind)!= 1:
+                            msg = ('ind should be have len() = 1\n'
+                                   + '\t- ind: {}'.format(ind))
+                            raise Exception(msg)
 
                     if len(ind) == 1:
                         sig[jj] = sig[jj][ind[0]]
                     else:
-                        assert nsig == 1
+                        if nsig != 1:
+                            msg = ("nsig should be 1!\n"
+                                   + "\t- nsig: {}".format(nsig))
+                            raise Exception(msg)
                         sig = [sig[0][ll] for ll in ind]
                         nsig = len(sig)
 
@@ -259,7 +268,7 @@ def get_fsig(sig):
 # #############################################################################
 
 
-def _checkformat_getdata_ids(
+def _checkformat_getdata_dsig(
     dsig=None,
     occ=None,
     indch=None,
@@ -324,7 +333,8 @@ def _checkformat_getdata_ids(
             raise Exception(msg)
 
         if lc[0] or lc[1] or lc[2]:
-            occi, indchi, indti, sig = occ, indch, indt, dsig[k0]
+            dsig[k0] = {'sig': dsig[k0]}
+            occi, indchi, indti, sig = occ, indch, indt, dsig[k0]['sig']
         elif lc[3]:
             occi = dsig['k0'].get('occ', occ)
             indchi = dsig[k0].get('indch', indch)
@@ -334,7 +344,6 @@ def _checkformat_getdata_ids(
         # Check occ
         occi = _checkformat_getdata_occ(occi, k0, dids=dids)
         indoc = np.where(dids[k0]['occ'] == occi)[0]
-        dsig[k0]['occ'] = occi
 
         # Check all occ have isget = True
         indok = dids[k0]['isget'][indoc]
@@ -350,13 +359,12 @@ def _checkformat_getdata_ids(
         if hasattr(dids[k0]['ids'][indoc[0]], 'channel'):
             nch = len(getattr(dids[k0]['ids'][indoc[0]], 'channel'))
             indchi = _checkformat_getdata_indch(indchi, nch)
-            dsig[k0]['indch'] = indchi
 
         # Check shortcuts
         sig, comp = _checkformat_getdata_sig(sig, k0,
                                              dshort=dshort, dcomp=dcomp,
                                              dall_except=dall_except)
-        dsig[k0] = {'occ': occ, 'indch': indch, 'indt': indti,
+        dsig[k0] = {'occ': occi, 'indch': indchi, 'indt': indti,
                     'sig': sig, 'comp': comp}
     return dsig
 
@@ -457,7 +465,11 @@ def _checkformat_getdata_indch(indch, nch):
             raise Exception(msg)
         if lc[1]:
             indch = np.nonzero(indch)[0]
-        assert np.all((indch >= 0) & (indch < nch))
+        if not np.all((indch >= 0) & (indch < nch)):
+            msg = ("Some channel indices are out of scope!\n"
+                   + "\t- nch: {}\n".format(nch)
+                   + "\t- indch: {}".format(indch))
+            raise Exception(msg)
     return indch
 
 
@@ -584,11 +596,11 @@ def _get_data_units(ids=None, sig=None, occ=None,
                 lstr = dcomp[ids][sig]['lstr']
                 kargs = dcomp[ids][sig].get('kargs', {})
                 ddata = get_data_units(
-                    ids=ids, sig=lstr, occ=occ, indch=indch,
+                    dsig={ids: lstr}, occ=occ, indch=indch,
                     data=True, units=False, indt=indt, stack=stack,
                     flatocc=False, nan=nan, pos=pos, warn=warn,
                     dids=dids, dcomp=dcomp, dshort=dshort,
-                    dall_except=dall_except)[0]
+                    dall_except=dall_except)[ids]
                 out = [dcomp[ids][sig]['func'](
                     *[ddata[kk]['data'][nn] for kk in lstr],
                     **kargs)
@@ -643,7 +655,8 @@ def get_data_units(dsig=None, occ=None,
                    data=None, units=None,
                    indch=None, indt=None, stack=None,
                    isclose=None, flatocc=True,
-                   nan=True, pos=None, empty=None, strict=None, warn=True,
+                   nan=True, pos=None, empty=None, strict=None,
+                   return_all=None, warn=True,
                    dids=None, dshort=None, dcomp=None, dall_except=None):
     """ Return a dict with the data and units (and empty, errors)
 
@@ -663,6 +676,10 @@ def get_data_units(dsig=None, occ=None,
 
     if strict is None:
         strict = _STRICT
+    if warn is None:
+        warn = _WARN
+    if return_all is None:
+        return_all = _RETURN_ALL
 
     # dsig = {ids: {'sig': [...], 'comp': [...]}}
     dsig = _checkformat_getdata_dsig(
@@ -679,15 +696,15 @@ def get_data_units(dsig=None, occ=None,
     # get data
 
     anyfail = False
-    dout = dict.fromkeys(dsig.keys())
+    dout = {ids: {} for ids in dsig.keys()}
     dfail = {ids: {} for ids in dsig.keys()}
     for ids in dsig.keys():
+        indchi = dsig[ids]['indch']
+        indti = dsig[ids]['indt']
+        occi = dsig[ids]['occ']
         for ii in range(len(dsig[ids]['sig'])):
-            sigi = dsig['sig'][ids][ii]
+            sigi = dsig[ids]['sig'][ii]
             compi = bool(dsig[ids]['comp'][ii])
-            indchi = dsig[ids]['indch'][ii]
-            indti = dsig[ids]['indt'][ii]
-            occi = dsig[ids]['occ'][ii]
             if isclose is None:
                 isclose_ = sigi == 't'
             else:
@@ -702,8 +719,8 @@ def get_data_units(dsig=None, occ=None,
                     dids=dids, dcomp=dcomp, dshort=dshort,
                     dall_except=dall_except)
 
-                lc = [dout[k0][sigi]['errunits'] is not None,
-                      dout[ids][sigi]['errdata'] is not None]
+                lc = [dout[ids][sigi]['errdata'] is not None,
+                      dout[ids][sigi]['errunits'] is not None]
                 if any(lc):
                     anyfail = True
                     if lc[0]:
@@ -714,19 +731,24 @@ def get_data_units(dsig=None, occ=None,
             except Exception as err:
                 dfail[ids][sigi] = str(err)
                 anyfail = True
+                raise err       # DB
 
-            if len(dfail[ids]) == 0:
-                del dfail[ids]
+        if len(dfail[ids]) == 0:
+            del dfail[ids]
 
     # Print if any failure
     if anyfail and warn:
         msg = "The following data could not be retrieved:"
         for ids in dfail.keys():
-            nmax = np.max([len(k1) for k1 in dfail[ids].values()])
+            nmax = np.max([len(k1) for k1 in dfail[ids].keys()])
             msg += "\n\t- {}:".format(ids)
-            for sigii, msgi in dfail[ids].items()
+            for sigi, msgi in dfail[ids].items():
                 msg += "\n\t\t{0}:  {1}".format(sigi.ljust(nmax),
                                                 msgi.replace('\n', ' '))
         warnings.warn(msg)
 
-    return dout, dfail, dsig
+    # return
+    if return_all:
+        return dout, dfail, dsig
+    else:
+        return dout

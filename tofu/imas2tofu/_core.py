@@ -1364,7 +1364,8 @@ class MultiIDSLoader(object):
                  data=None, units=None,
                  indch=None, indt=None, stack=None,
                  isclose=None, flatocc=True,
-                 nan=True, pos=None, empty=None, strict=None, warn=True):
+                 nan=None, pos=None, empty=None, strict=None,
+                 return_all=None, warn=None):
         """ Return a dict of the desired signals extracted from specified ids
 
         For each signal, loads the data and / or units
@@ -1417,6 +1418,8 @@ class MultiIDSLoader(object):
         empty:      None / bool
             Check whether the loaded data array ie empty (or full of nans)
                 If so, a flag isempty is set to True
+        return_all: bool
+            Flag indicating whether to return only dout or also dfail and dsig
         warn:       bool
             Flag indicating whether to print warning messages for data could
             not be retrieved
@@ -1425,17 +1428,32 @@ class MultiIDSLoader(object):
         ------
         dout:   dict
             Dictionnary containing the loaded data
+        dfail:  dict, only returned in return_all = True
+            Dictionnary of failed data loading, with error messages
+        dsig:  dict, only returned in return_all = True
+            Dictionnary of requested signals, occ, indt, indch
 
         """
-        return _comp.get_data_units(dsig=dsig, occ=occ,
-                                    data=data, units=units,
-                                    indch=indch, indt=indt,
-                                    stack=stack, isclose=isclose,
-                                    flatocc=flatocc, nan=nan, pos=pos,
-                                    empty=empty, strict=strict, warn=warn,
-                                    dids=self._dids, dshort=self._dshort,
-                                    dcomp=self._dcomp,
-                                    dall_except=self._dall_except)[0]
+        return _comp.get_data_units(
+            dsig=dsig,
+            occ=occ,
+            data=data,
+            units=units,
+            indch=indch,
+            indt=indt,
+            stack=stack,
+            isclose=isclose,
+            flatocc=flatocc,
+            nan=nan,
+            pos=pos,
+            empty=empty,
+            strict=strict,
+            warn=warn,
+            dids=self._dids,
+            dshort=self._dshort,
+            dcomp=self._dcomp,
+            dall_except=self._dall_except,
+            return_all=return_all)
 
 
     # def get_data_all(self, dsig=None, stack=None,
@@ -1521,13 +1539,13 @@ class MultiIDSLoader(object):
         assert returnas in [False, list, tuple]
 
         # Get events and sort
-        names = self.get_data('pulse_schedule', sig='events_names',
-                              occ=occ, nan=False, pos=False, stack=True,
-                              empty=True, strict=True)['events_names']['data']
-        times = self.get_data('pulse_schedule',
-                              sig='events_times',
-                              occ=occ, nan=True, pos=False, stack=True,
-                              empty=True, strict=True)['events_times']
+        dout = self.get_data(
+            dsig={'pulse_schedule': ['events_names', 'events_times']},
+            occ=occ, nan=False, pos=False, stack=True,
+            empty=True, strict=True, return_all=False
+        )['pulse_schedule']
+
+        names, times = dout['events_names']['data'], dout['events_times']
         tunits = times['units']
         times = times['data']
         ind = np.argsort(times)
@@ -1573,9 +1591,11 @@ class MultiIDSLoader(object):
                 c0 = (len(t0.split('.')) <= 2
                       and all([ss.isdecimal() for ss in t0.split('.')]))
                 if 'pulse_schedule' in self._dids.keys():
-                    events = self.get_data(ids='pulse_schedule',
-                                           sig=['events_names',
-                                                'events_times'])
+                    events = self.get_data(
+                        dsig={'pulse_schedule': ['events_names',
+                                                 'events_times']},
+                        return_all=False,
+                    )['pulse_schedule']
                     names = np.char.strip(events['events_names']['data'])
                     if t0 in names:
                         indt = np.nonzero(names == t0)[0]
@@ -1700,8 +1720,9 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan,
-                                    pos=pos, stack=stack)
+                out = self.get_data(dsig={ids: vs}, nan=nan,
+                                    pos=pos, stack=stack,
+                                    return_all=False)[ids]
                 inds = [ii for ii in range(0, len(vs)) if vs[ii] in out.keys()]
                 _comp_toobjects.extra_get_fordataTrue(
                     inds, vs, vc, out, dout,
@@ -1712,8 +1733,9 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan,
-                                    pos=pos, stack=stack)
+                out = self.get_data(dsig={ids: vs}, nan=nan,
+                                    pos=pos, stack=stack,
+                                    return_all=False)[ids]
                 _comp_toobjects.extra_get_fordataFalse(
                     out, d0d, dt0,
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
@@ -1824,9 +1846,10 @@ class MultiIDSLoader(object):
 
         # -------------
         #   get all relevant data
-        out0 = self.get_data_all(dsig=dsig,
-                                 nan=nan, pos=pos,
-                                 empty=empty, isclose=isclose, strict=True)
+        out0 = self.get_data(dsig=dsig,
+                             nan=nan, pos=pos,
+                             empty=empty, isclose=isclose, strict=True,
+                             return_all=False)
 
         # -------------
         #   Input dicts
@@ -1868,10 +1891,11 @@ class MultiIDSLoader(object):
             # -------------
             # d1d and dradius
             lsig = [k for k in out0[ids].keys() if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=indt,
+            out_ = self.get_data(dsig={ids: lsig}, indt=indt,
                                  nan=nan, pos=pos, stack=stack,
                                  isclose=isclose, empty=empty,
-                                 strict=strict, warn=False)
+                                 strict=strict, return_all=False,
+                                 warn=False)[ids]
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
@@ -1946,10 +1970,11 @@ class MultiIDSLoader(object):
             # d2d and dmesh
             lsig = [k for k in out0[ids].keys() if '2d' in k]
             lsigmesh = [k for k in lsig if 'mesh' in k]
-            out_ = self.get_data(ids, sig=lsig, indt=indt,
+            out_ = self.get_data(dsig={ids: lsig}, indt=indt,
                                  nan=nan, pos=pos, stack=stack,
                                  isclose=isclose, empty=empty,
-                                 strict=strict, warn=False)
+                                 strict=strict, return_all=False,
+                                 warn=False)[ids]
 
             cmesh = any([ss in out_.keys() for ss in lsigmesh])
             if len(out_) > 0:
@@ -2157,9 +2182,9 @@ class MultiIDSLoader(object):
         # STcak has to be False for inspect_channels...
         # if stack is None:
             # stack = self._didsdiag[ids].get('stack', False)
-        out = self.get_data(ids, sig=lsig,
+        out = self.get_data(dsig={ids: lsig},
                             isclose=False, stack=False,
-                            nan=True, pos=False)
+                            nan=True, pos=False, return_all=False)[ids]
 
         # --------------
         # dout, indchout
@@ -2195,9 +2220,10 @@ class MultiIDSLoader(object):
             return lout
 
     def _to_Cam_Du(self, ids, lk, indch):
-        out = self.get_data(ids, sig=list(lk), indch=indch,
+        out = self.get_data(dsig={ids: list(lk)}, indch=indch,
                             nan=True, pos=False, stack=True,
-                            empty=True, strict=True)
+                            empty=True, strict=True,
+                            return_all=False)[ids]
         return _comp_toobjects.cam_to_Cam_Du(out, ids=ids)
 
     def to_Cam(self, ids=None, indch=None, indch_auto=False,
@@ -2552,8 +2578,8 @@ class MultiIDSLoader(object):
         # Get time
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        t = self.get_data(ids, sig=dsig.get('t', 't'),
-                          indch=indch, stack=stack)['t']['data']
+        t = self.get_data(dsig={ids: dsig.get('t', 't')},
+                          indch=indch, stack=stack)[ids]['t']['data']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
@@ -2562,9 +2588,9 @@ class MultiIDSLoader(object):
 
         # ----------
         # Get data
-        out = self.get_data(ids, sig=dsig['data'],
+        out = self.get_data(dsig={ids: dsig['data']},
                             indch=indch, nan=nan, pos=pos,
-                            empty=empty, strict=strict, stack=stack)
+                            empty=empty, strict=strict, stack=stack)[ids]
         if len(out[dsig['data']]['data']) == 0:
             msgstr = self._dshort[ids]['data']['str']
             msg = ("The data array is not available for {}:\n".format(ids)
@@ -2588,9 +2614,9 @@ class MultiIDSLoader(object):
 
         # -----------
         # Get data
-        out = self.get_data(ids, sig=[dsig[k] for k in lk],
+        out = self.get_data(dsig={ids: [dsig[k] for k in lk]},
                             indt=indt, indch=indch, nan=nan, pos=pos,
-                            stack=stack)
+                            stack=stack)[ids]
         for kk in set(lk).difference('t'):
             # Arrange depending on shape and field
             if type(out[dsig[kk]]['data']) is not np.ndarray:
@@ -2635,10 +2661,10 @@ class MultiIDSLoader(object):
             dins['data'] = np.fliplr(dins['data'])
 
         if 'validity_timed' in self._dshort[ids].keys():
-            inan = self.get_data(ids, sig='validity_timed',
+            inan = self.get_data(dsig={ids: 'validity_timed'},
                                  indt=indt, indch=indch,
                                  nan=nan, stack=stack,
-                                 pos=pos)['validity_timed']['data'].T < 0.
+                                 pos=pos)[ids]['validity_timed']['data'].T < 0.
             dins['data'][inan] = np.nan
         if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
@@ -2830,8 +2856,8 @@ class MultiIDSLoader(object):
         ani = False
         if ids == 'bremsstrahlung_visible':
             try:
-                lamb = self.get_data(ids, sig='lamb',
-                                     stack=True)['lamb']['data']
+                lamb = self.get_data(dsig={ids: 'lamb'},
+                                     stack=True)[ids]['lamb']['data']
             except Exception as err:
                 lamb = 5238.e-10
                 msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
@@ -2850,8 +2876,8 @@ class MultiIDSLoader(object):
             dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
-            lamb = self.get_data(ids, sig='lamb',
-                                 stack=True)['lamb']['data'][0]
+            lamb = self.get_data(dsig={ids: 'lamb'},
+                                 stack=True)[ids]['lamb']['data'][0]
 
             # Get time reference
             doutt, dtut, tref = plasma.get_time_common(lq)

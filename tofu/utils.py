@@ -987,14 +987,15 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                              equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0']['data'][
-                             equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike0']['data'][
-                             equi_ind_t][1], '+', color='k', markersize=10)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1']['data'][
-                             equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike1']['data'][
-                             equi_ind_t][1], '+', color='k', markersize=10)
+
+        s01 = multi.get_data(dsig={'equilibrium': ['strike0', 'strike1']},
+                             return_all=False)['equilibrium']
+        dax['cross'][0].plot(s01['strike0']['data'][equi_ind_t][0],
+                             s01['strike0']['data'][equi_ind_t][1],
+                             '+', color='k', markersize=10)
+        dax['cross'][0].plot(s01['strike1']['data'][equi_ind_t][0],
+                             s01['strike1']['data'][equi_ind_t][1],
+                             '+', color='k', markersize=10)
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
                                     .format(shot[0], t[0]))
         return dax
@@ -1507,7 +1508,10 @@ def calc_from_imas(
             multi.add_ids('equilibrium', get=True)
             plasma = multi.to_Plasma2D()
             lf = ['t', 'rhotn', 'brem']
-            lamb = multi.get_data('bremsstrahlung_visible', sig='lamb')['lamb']
+            lamb = multi.get_data(
+                dsig={'bremsstrahlung_visible': 'lamb'},
+                return_all=False
+            )['bremsstrahlung_visible']['lamb']
             dout = imas2tofu.get_data_from_matids(input_file,
                                                   return_fields=lf,
                                                   lamb=lamb[0])
