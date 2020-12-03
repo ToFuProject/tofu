@@ -198,7 +198,10 @@ class DataAbstract(utils.ToFuObject):
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
-            assert isinstance(Id,utils.ID)
+            if not isinstance(Id, utils.ID):
+                msg = ("Arg Id must be a utils.ID instance!\n"
+                       + "\t- provided: {}".format(Id))
+                raise Exception(msg)
             Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
         assert type(Name) is str, Name
         assert type(Diag) is str, Diag
@@ -274,11 +277,13 @@ class DataAbstract(utils.ToFuObject):
                                      X=None, indtX=None,
                                      lamb=None, indtlamb=None,
                                      indXlamb=None, indtXlamb=None):
-        assert data is not None
+        if data is None:
+            msg = "data can not be None!"
+            raise Exception(msg)
         data = np.atleast_1d(np.asarray(data).squeeze())
 
         if data.ndim == 1:
-            data = data.reshape((1,data.size))
+            data = data.reshape((1, data.size))
         if t is not None:
             t = np.atleast_1d(np.asarray(t).squeeze())
         if X is not None:
@@ -298,20 +303,26 @@ class DataAbstract(utils.ToFuObject):
         ndim = data.ndim
         assert ndim in [2,3]
         if not self._isSpectral():
-            msg = "self is not of spectral type"
-            msg += "\n  => the data cannot be 3D ! (ndim)"
+            msg = ("self is not of spectral type\n"
+                   + "  => the data cannot be 3D ! (ndim)")
             assert ndim==2, msg
 
         nt = data.shape[0]
         if t is None:
             t = np.arange(0,nt)
         else:
-            assert t.shape==(nt,)
+            if t.shape != (nt,):
+                msg = ("Wrong time dimension\n"
+                       + "\t- t.shape = {}\n".format(t.shape)
+                       + "\t- nt = {}".format(nt))
+                raise Exception(msg)
 
         n1 = data.shape[1]
         if ndim==2:
             lC = [X is None, lamb is None]
-            assert any(lC)
+            if not any(lC):
+                msg = "Please provide at least X or lamb (both are None)!"
+                raise Exception(msg)
             if all(lC):
                 if self._isSpectral():
                     X = np.array([0])
@@ -320,18 +331,36 @@ class DataAbstract(utils.ToFuObject):
                 else:
                     X = np.arange(0,n1)
             elif lC[0]:
-                assert self._isSpectral()
+                if not self._isSpectral():
+                    msg = "lamb provided => self._isSpectral() must be True!"
+                    raise Exception(msg)
                 X = np.array([0])
-                data = data.reshape((nt,1,n1))
-                assert lamb.ndim in [1,2]
-                if lamb.ndim==1:
-                    assert lamb.size==n1
-                elif lamb.ndim==2:
-                    assert lamb.shape[1]==n1
+                data = data.reshape((nt, 1, n1))
+                if lamb.ndim not in [1, 2]:
+                    msg = ("lamb.ndim must be in [1, 2]\n"
+                           + "\t- lamb.shape = {}".format(lamb.shape))
+                    raise Exception(msg)
+                if lamb.ndim == 1:
+                    if lamb.size != n1:
+                        msg = ("lamb has wrong size!\n"
+                               + "\t- expected: {}".format(n1)
+                               + "\t- provided: {}".format(lamb.size))
+                        raise Exception(msg)
+                elif lamb.ndim == 2:
+                    if lamb.shape[1] != n1:
+                        msg = ("lamb has wrong shape!\n"
+                               + "\t- expected: (.., {})".format(n1)
+                               + "\t- provided: {}".format(lamb.shape))
+                        raise Exception(msg)
             else:
-                assert not self._isSpectral()
-                assert X.ndim in [1,2]
-                assert X.shape[-1]==n1
+                if self._isSpectral():
+                    msg = "object cannot be spectral!"
+                    raise Exception(msg)
+                if X.ndim not in [1, 2] or X.shape[-1] != n1:
+                    msg = ("X.ndim should be in [1, 2]\n"
+                           + "\t- expected: (..., {})\n".format(n1)
+                           + "\t- provided: {}".format(X.shape))
+                    raise Exception(msg)
         else:
             assert self._isSpectral()
             n2 = data.shape[2]
@@ -2157,13 +2186,13 @@ class DataCam2D(DataAbstract):
         lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
               isinstance(dX12, dict) and dX12 != {'from':'geom'}]
         if not np.sum(lc) == 1:
-            msg = "dX12 must be either:\n"
-            msg += "    - None\n"
-            msg += "    - 'geom' : will be derived from the cam geometry\n"
-            msg += "    - dict : containing {'x1'  : array of coords.,\n"
-            msg += "                         'x2'  : array of coords.,\n"
-            msg += "                         'ind1': array of int indices,\n"
-            msg += "                         'ind2': array of int indices}"
+            msg = ("dX12 must be either:\n"
+                   + "\t- None\n"
+                   + "\t- 'geom' : will be derived from the cam geometry\n"
+                   + "\t- dict : containing {'x1'  : array of coords.,\n"
+                   + "\t                     'x2'  : array of coords.,\n"
+                   + "\t                     'ind1': array of int indices,\n"
+                   + "\t                     'ind2': array of int indices}")
             raise Exception(msg)
 
         if lc[1]:

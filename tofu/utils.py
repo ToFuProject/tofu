@@ -29,6 +29,8 @@ _dict_lexcept_key = []
 _SAVETYP = '__type__'
 _NSAVETYP = len(_SAVETYP)
 
+_LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts', 'config']
+
 
 ###############################################
 #           File searching
@@ -650,12 +652,15 @@ def _get_exception(q, ids, qtype='quantity'):
 
 
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, returnas=None, tlim=None, config=None,
+                   ids=None, Name=None, returnas=None, tlim=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None,
                    sharex=False, invertx=None, extra=True,
-                   bck=True, indch_auto=True, t=None, init=None, dR_sep=None):
+                   bck=True, indch_auto=True, t=None,
+                   config=None, tosoledge3x=None,
+                   mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
+
     # -------------------
     # import imas2tofu
     try:
@@ -686,9 +691,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldlines']
+    lidscustom = _LIDS_CUSTOM
     lidsout = [ids_ for ids_ in ids
-               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+               if (ids_ is not None and ids_ not in lidsok + lidscustom)]
     if len(lidsout) > 0:
         msg = "ids %s matched no known imas ids !\n"%str(lidsout)
         msg += "  => Available imas ids are:\n"
@@ -699,11 +704,17 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if nids > 1:
         assert not any([ids_ in ids for ids_ in lidscustom])
 
+    # -------------------
+    # print shortcuts if relevant
+    if ids == ['shortcuts']:
+        imas2tofu.MultiIDSLoader.get_shortcutsc(force=True)
+        return
 
     # -------------------
     # Prepare shot
-    shot = np.r_[shot].astype(int)
-    nshot = shot.size
+    if shot is not None:
+        shot = np.r_[shot].astype(int)
+        nshot = shot.size
 
     # -------------------
     # Call magfieldline if relevant
@@ -733,13 +744,13 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         equi_z_r_ext = equi.ddata['equilibrium.sep']['data'][
                        equi_ind_t][1][equi_ind_r_ext]
 
-        nbr_init = 10
-        if dR_sep is not None:
-            r_init = [equi_r_ext + dR_sep]*nbr_init
-        else:
-            r_init = [equi_r_ext]*nbr_init
-        phi_init = [ii*2.*np.pi/nbr_init for ii in range(nbr_init)]
-        z_init = [equi_z_r_ext]*nbr_init
+        if mag_sep_nbpts is None:
+            mag_sep_nbpts = 5
+        if mag_sep_dR is None:
+            mag_sep_dR = 0.
+        r_init = [equi_r_ext + mag_sep_dR]*mag_sep_nbpts
+        phi_init = [ii*2.*np.pi/mag_sep_nbpts for ii in range(mag_sep_nbpts)]
+        z_init = [equi_z_r_ext]*mag_sep_nbpts
         init_plt = [r_init, phi_init, z_init]
 
         if False:
@@ -765,14 +776,14 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         refpt = np.r_[2.4,0.]
         dax = config.plot_phithetaproj_dist(refpt, invertx=invertx)
 
-        if init is not None:
+        if mag_init_pts is not None:
             trace_init = tfm.MagFieldLines(
-                         int(shot[0])).trace_mline(init, t,
+                         int(shot[0])).trace_mline(mag_init_pts, t,
                                                    direction='FWD',
                                                    length_line=35,
                                                    stp=None)
             trace_init_rev = tfm.MagFieldLines(
-                             int(shot[0])).trace_mline(init, t,
+                             int(shot[0])).trace_mline(mag_init_pts, t,
                                                        direction='REV',
                                                        length_line=35,
                                                        stp=None)
@@ -801,8 +812,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         for ii in range(0,len(trace)):
             # Concatenate trace lists
-            trace[ii] = trace[ii] + trace_rev[ii]
-            for jj in range(0,len(trace[ii])):
+            # trace[ii] = trace[ii] + trace_rev[ii]
+            for jj in range(0, len(trace[ii])):
                 lab = r't = %s s'%str(t[ii])
                 phi = np.arctan2(np.sin(trace[ii][jj]['p']),
                                  np.cos(trace[ii][jj]['p']))
@@ -811,32 +822,73 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                 # insert nans for clean periodicity
                 indnan = ((np.abs(np.diff(phi)) > np.pi)
                           | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
-                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
-                                    np.insert(theta, indnan, np.nan),
-                                    label=lab, alpha=alpha_mag_lines)
+                l, = dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                         np.insert(theta, indnan, np.nan),
+                                         label=lab, alpha=alpha_mag_lines)
+                color = l.get_color()
                 dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
-                                     label=lab, alpha=alpha_mag_lines)
+                                     label=lab, alpha=alpha_mag_lines,
+                                     color=color)
                 x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
                 y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
-                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines)
+                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines,
+                                   color=color)
+                # rev
+                phi = np.arctan2(np.sin(trace_rev[ii][jj]['p']),
+                                 np.cos(trace_rev[ii][jj]['p']))
+                theta = np.arctan2(trace_rev[ii][jj]['z']-refpt[1],
+                                   trace_rev[ii][jj]['r']-refpt[0])
+                # insert nans for clean periodicity
+                indnan = ((np.abs(np.diff(phi)) > np.pi)
+                          | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                    np.insert(theta, indnan, np.nan),
+                                    label=lab, alpha=alpha_mag_lines,
+                                   color=color)
+                dax['cross'][0].plot(trace_rev[ii][jj]['r'],
+                                     trace_rev[ii][jj]['z'],
+                                     label=lab, alpha=alpha_mag_lines,
+                                     color=color)
+                x = trace_rev[ii][jj]['r']*np.cos(trace_rev[ii][jj]['p'])
+                y = trace_rev[ii][jj]['r']*np.sin(trace_rev[ii][jj]['p'])
+                dax['hor'][0].plot(x, y, label=lab, alpha=alpha_mag_lines,
+                                   color=color)
 
         dax['cross'][0].plot(equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][0],
                              equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0'][
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0']['data'][
                              equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike0'][
+                             multi.get_data('equilibrium')['strike0']['data'][
                              equi_ind_t][1], '+', color='k', markersize=10)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1'][
+        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1']['data'][
                              equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike1'][
+                             multi.get_data('equilibrium')['strike1']['data'][
                              equi_ind_t][1], '+', color='k', markersize=10)
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
                                     .format(shot[0], t[0]))
         return dax
 
+    elif ids == ['events']:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids='pulse_schedule', ids_base=False)
+        multi.get_events(verb=True)
+        return
+
+    elif ids == ['config']:
+        import tofu.geom as tfg
+        if config in [None, False]:
+            tfg.utils.get_available_config()
+        else:
+            conf = tfg.utils.create_config(config)
+            conf.set_colors_random()
+            conf.plot()
+            if tosoledge3x not in [None, False]:
+                conf.to_SOLEDGE3X(path=tosoledge3x)
+        return
 
     # -------------------
     # Prepare returnas
@@ -976,24 +1028,24 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         for ii in range(0, nids):
             try:
                 if returnas[ii] == 'Config':
-                    dout[ss]['Config'].append(multi.to_Config(
+                    dout[ss][returnas[ii]].append(multi.to_Config(
                         Name=Name, occ=occ,
                         description_2d=description_2d, plot=False))
 
                 elif returnas[ii] == 'Plasma2D':
-                    dout[ss]['Plasma2D'].append(multi.to_Plasma2D(
+                    dout[ss][returnas[ii]].append(multi.to_Plasma2D(
                         Name=Name, occ=occ,
                         tlim=tlim, dsig=dsig, t0=t0,
                         plot=False, plot_sig=plot_sig,
                         dextra=dextra, plot_X=plot_X,
                         config=config, bck=bck))
                 elif returnas[ii] == 'Cam':
-                    dout[ss]['Cam'].append(multi.to_Cam(
+                    dout[ss][returnas[ii]].append(multi.to_Cam(
                         Name=Name, occ=occ,
                         ids=lids[ii], indch=indch, config=config,
                         plot=False))
                 elif returnas[ii] == "Data":
-                    dout[ss]['Data'].append(multi.to_Data(
+                    dout[ss][returnas[ii]].append(multi.to_Data(
                         Name=Name, occ=occ,
                         ids=lids[ii], tlim=tlim, dsig=dsig,
                         config=config, data=data, X=X, indch=indch,
@@ -1001,6 +1053,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                         dextra=dextra, plot=False, bck=bck))
             except Exception as err:
                 warnings.warn('{}: {}'.format(lids[ii], str(err)))
+                dout[ss][returnas[ii]].append(None)
 
     # -------------------
     # plot if relevant
@@ -1010,32 +1063,43 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         for ss in shot:
             for k0 in set(['Config', 'Cam']).intersection(returnas):
                 for ii in range(0, len(dout[ss][k0])):
-                    dout[ss][k0][ii].plot()
+                    if dout[ss][k0][ii] is not None:
+                        dout[ss][k0][ii].plot()
 
         # Plasma2D
         if nshot == 1 and nPla == 1:
-            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
+            if dout[shot[0]]['Plasma2D'][0] is not None:
+                dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
         elif nshot > 1 and nPla == 1:
             ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                    plot=False)
-                  for ss in shot[1:]]
-            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
-                                                       plot=False)
-            d0.plot_compare(ld, bck=bck)
+                  for ss in shot if dout[ss]['Plasma2D'][0] is not None]
+            if len(ld) == 1:
+                ld[0].plot(bck=bck)
+            elif len(ld) > 1:
+                ld[0].plot_compare(ld[1:], bck=bck)
 
         # Data
         elif nshot == 1 and nDat == 1:
-            dout[shot[0]]['Data'][0].plot(bck=bck)
+            if dout[shot[0]]['Data'][0] is not None:
+                dout[shot[0]]['Data'][0].plot(bck=bck)
         elif nshot > 1 and nDat == 1:
-            tit = "{} - {}".format(dout[shot[0]]['Data'][0].Id.Exp,
-                                   dout[shot[0]]['Data'][0].Id.Diag)
-            ld = [dout[ss]['Data'][0] for ss in shot[1:]]
-            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck, tit=tit)
+            ld = [dout[ss]['Data'][0] for ss in shot
+                  if dout[ss]['Data'][0] is not None]
+            if len(ld) > 0:
+                tit = "{} - {}".format(ld[0].Id.Exp, ld[0].Id.Diag)
+                if len(ld) == 1:
+                    ld[0].plot(bck=bck, tit=tit)
+                else:
+                    ld[0].plot_compare(ld[1:], bck=bck, tit=tit)
         elif nshot == 1 and nDat > 1:
-            tit = multi._dids[dout[shot[0]]['Data'][0].Id.Diag]['idd']
-            ld = dout[shot[0]]['Data'][1:]
-            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex,
-                                                  bck=bck, tit=tit)
+            ld = [dd for dd in dout[shot[0]]['Data'] if dd is not None]
+            if len(ld) > 0:
+                tit = multi._dids[ld[0].Id.Diag]['idd']
+                if len(ld) == 1:
+                    ld[0].plot(bck=bck, tit=tit)
+                else:
+                    ld[0].plot_combine(ld[1:], sharex=sharex, bck=bck, tit=tit)
 
     # return
     if nshot == 1 and nDat == 1:
@@ -1054,7 +1118,7 @@ def calc_from_imas(
     dsig=None, data=None, X=None, t0=None, dextra=None,
     Brightness=None, res=None, interp_t=None, extra=None,
     plot=None, plot_compare=True, sharex=False,
-    input_file=None, output_file=None,
+    input_file=None, output_file=None, coefs=None,
     bck=True, indch_auto=True, t=None, init=None
 ):
     """ Calculate syntehtic signal for a diagnostic
@@ -1304,7 +1368,7 @@ def calc_from_imas(
                                       interp_t=interp_t,
                                       indch_auto=indch_auto,
                                       t0=t0, dextra=dextra,
-                                      plot=True,
+                                      coefs=coefs, plot=True, bck=bck,
                                       plot_compare=plot_compare)
 
     else:
@@ -1339,6 +1403,7 @@ def calc_from_imas(
                                                 quant='core_profiles.1dbrem',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
+                                                coefs=coefs, bck=bck,
                                                 Brightness=True, plot=plot)[0]
         if output_file is not None:
             try:
@@ -2421,18 +2486,39 @@ class ID(ToFuObjectBase):
                                  SaveName=None, include=None,
                                  lObj=None, dUSR=None):
         # Str args
-        ls = [usr,Type,SavePath,Exp,Diag,SaveName]
+        ls = [usr, Type, SavePath, Exp, Diag, SaveName]
         assert all(ss is None or type(ss) is str for ss in ls)
         if usr is None:
             try:
                 usr = getpass.getuser()
             except:
                 pass
-        assert shot is None or type(shot) is int and shot>=0
-        assert Deg is None or type(Deg) is int and Deg>=0
-        assert Cls is not None
-        assert issubclass(Cls, ToFuObject)
-        assert include is None or type(include) is list
+        lc = [shot is None or (type(shot) is int and shot >= 0),
+              Deg is None or (type(Deg) is int and Deg >= 0),
+              Cls is not None and issubclass(Cls, ToFuObject),
+              include is None or isinstance(include, list)]
+        if not all(lc):
+            msg = ""
+            if not lc[0]:
+                msg += ("\nArg shot should be either:\n"
+                        + "\t- None\n"
+                        + "\t- int and positive\n"
+                        + "  You provided: {}".format(shot))
+            if not lc[1]:
+                msg += ("\nArg Deg should be either:\n"
+                        + "\t- None\n"
+                        + "\t- int and positive\n"
+                        + "  You provided: {}".format(Deg))
+            if not lc[2]:
+                msg += ("\nArg Cls should be a ToFuObject subclass!"
+                        + "  You provided: {}".format(Cls))
+            if not lc[3]:
+                msg += ("\nArg include should be either:\n"
+                        + "\t- None\n"
+                        + "\t- list\n"
+                        + "  You provided: {}".format(include))
+            raise Exception(msg)
+
         dout = locals()
         del dout['ls']
         return dout

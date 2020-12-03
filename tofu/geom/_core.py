@@ -308,7 +308,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dreflect():
-        largs = ["Types", "coefs"]
+        largs = ["Types", "coefs_reflect"]
         return largs
 
     @staticmethod
@@ -499,7 +499,7 @@ class Struct(utils.ToFuObject):
             lSymbols = np.asarray(lSymbols, dtype=str)
         return lSymbols
 
-    def _checkformat_inputs_dreflect(self, Types=None, coefs=None):
+    def _checkformat_inputs_dreflect(self, Types=None, coefs_reflect=None):
         if Types is None:
             Types = self._ddef["dreflect"]["Type"]
 
@@ -517,15 +517,15 @@ class Struct(utils.ToFuObject):
                            for vv in self._DREFLECT_DTYPES.values()])
             assert np.all(np.any(lc, axis=0))
 
-        assert coefs is None
-        return Types, coefs
+        assert coefs_reflect is None
+        return Types, coefs_reflect
 
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
             color = mpl.colors.to_rgba(cls._ddef["dmisc"]["color"])
         assert mpl.colors.is_color_like(color)
-        return tuple(mpl.colors.to_rgba(color))
+        return tuple(np.array(mpl.colors.to_rgba(color), dtype=float))
 
     ###########
     # Get keys of dictionnaries
@@ -574,7 +574,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dreflect():
-        lk = ["Types", "coefs"]
+        lk = ["Types", "coefs_reflect"]
         return lk
 
     @staticmethod
@@ -669,12 +669,12 @@ class Struct(utils.ToFuObject):
         lSymbols = self._checkformat_inputs_dphys(lSymbols)
         self._dphys["lSymbols"] = lSymbols
 
-    def set_dreflect(self, Types=None, coefs=None):
-        Types, coefs = self._checkformat_inputs_dreflect(
-            Types=Types, coefs=coefs
+    def set_dreflect(self, Types=None, coefs_reflect=None):
+        Types, coefs_reflect = self._checkformat_inputs_dreflect(
+            Types=Types, coefs_reflect=coefs_reflect
         )
         self._dreflect["Types"] = Types
-        self._dreflect["coefs"] = coefs
+        self._dreflect["coefs_reflect"] = coefs_reflect
 
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
@@ -703,7 +703,7 @@ class Struct(utils.ToFuObject):
     def _strip_dphys(self, lkeep=["lSymbols"]):
         utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
 
-    def _strip_dreflect(self, lkeep=["Types", "coefs"]):
+    def _strip_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         utils.ToFuObject._strip_dict(self._dreflect, lkeep=lkeep)
 
     def _strip_dmisc(self, lkeep=["color"]):
@@ -747,14 +747,15 @@ class Struct(utils.ToFuObject):
             )
             self.set_dphys(lSymbols=self.dphys["lSymbols"])
 
-    def _rebuild_dreflect(self, lkeep=["Types", "coefs"]):
+    def _rebuild_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         reset = utils.ToFuObject._test_Rebuild(self._dreflect, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(
                 self._dreflect, lkeep=lkeep, dname="dreflect"
             )
             self.set_dreflect(
-                Types=self.dreflect["Types"], coefs=self.dreflect["coefs"]
+                Types=self.dreflect["Types"],
+                coefs_reflect=self.dreflect["coefs_reflect"]
             )
 
     def _rebuild_dmisc(self, lkeep=["color"]):
@@ -926,7 +927,11 @@ class Struct(utils.ToFuObject):
             ar0 += [self._dgeom["move"],
                     str(round(self._dgeom["move_param"], ndigits=4))]
         col0.append('color')
-        ar0.append(str(self._dmisc["color"]))
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
 
         return self._get_summary(
             [ar0],
@@ -2306,43 +2311,54 @@ class Config(utils.ToFuObject):
     ###########
 
     def _checkformat_inputs_Struct(self, struct, err=True):
-        assert issubclass(struct.__class__, Struct)
-        C0 = struct.Id.Exp == self.Id.Exp
-        C1 = struct.Id.Type == self.Id.Type
-        C2 = struct.Id.Name.isidentifier()
-        C2 = C2 and '_' not in struct.Id.Name
         msgi = None
-        if not (C0 and C1 and C2):
-            msgi = "\n    - {0} :".format(struct.Id.SaveName)
-            if not C0:
-                msgi += "\n     Exp: {0}".format(struct.Id.Exp)
-            if not C1:
-                msgi += "\n     Type: {0}".format(struct.Id.Type)
-            if not C2:
-                msgi += "\n     Name: {0}".format(struct.Id.Name)
-            if err:
-                msg = "Non-conform struct Id:" + msgi
-                raise Exception(msg)
+        c0 = issubclass(struct.__class__, Struct)
+        if not c0:
+            msgi = "\n\t- Not a struct subclass: {}".format(type(struct))
+        else:
+            c1 = struct.Id.Exp == self.Id.Exp
+            c2 = struct.Id.Type == self.Id.Type
+            c3 = struct.Id.Name.isidentifier()
+            c4 = c3 and '_' not in struct.Id.Name
+            if not (c0 and c1 and c2 and c3):
+                c1 = struct.Id.Exp == self.Id.Exp
+                c2 = struct.Id.Type == self.Id.Type
+                c3 = struct.Id.Name.isidentifier()
+                c4 = c3 and '_' not in struct.Id.Name
+                msgi = "\n\t- {0} :".format(struct.Id.SaveName)
+                if not c1:
+                    msgi += "\n\tExp: {0}".format(struct.Id.Exp)
+                if not c2:
+                    msgi += "\n\tType: {0}".format(struct.Id.Type)
+                if not c3:
+                    msgi += "\n\tName: {0}".format(struct.Id.Name)
+        if msgi is not None and err is True:
+            msg = "Non-conform struct:" + msgi
+            raise Exception(msg)
         return msgi
 
-    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
-        if lStruct is None:
-            msg = "Arg lStruct must be"
-            msg += " a tofu.geom.Struct subclass or a list of such !"
-            msg += "\nValid subclasses include:"
-            lsub = ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]
-            for ss in lsub:
-                msg = "\n    - tf.geom.{0}".format(ss)
-            raise Exception(msg)
+    @staticmethod
+    def _errmsg_dStruct(lStruct):
+        ls = ["tf.geom.{}".format(ss)
+              for ss in ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]]
+        msg = ("Arg lStruct must be "
+               + "a tofu.geom.Struct subclass or list of such!\n"
+               + "Valid subclasses include:\n\t- "
+               + "\n\t- ".join(ls)
+               + "\nYou provided: {}".format(type(lStruct)))
+        return msg
 
-        C0 = isinstance(lStruct, list) or isinstance(lStruct, tuple)
-        C1 = issubclass(lStruct.__class__, Struct)
-        assert C0 or C1, msg
-        if C0:
-            Ci = [issubclass(ss.__class__, Struct) for ss in lStruct]
-            assert all(Ci), msg
+    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
+        c0 = lStruct is not None
+        c1 = ((isinstance(lStruct, list) or isinstance(lStruct, tuple))
+              and all([issubclass(ss.__class__, Struct) for ss in lStruct]))
+        c2 = issubclass(lStruct.__class__, Struct)
+        if not (c0 and (c1 or c2)):
+            raise Exception(self._errmsg_dStruct(lStruct))
+
+        if c1 and isinstance(lStruct, tuple):
             lStruct = list(lStruct)
-        else:
+        elif c2:
             lStruct = [lStruct]
 
         msg = ""
@@ -2384,7 +2400,7 @@ class Config(utils.ToFuObject):
     def _checkformat_inputs_extraval(
         self, extraval, key="", multi=True, size=None
     ):
-        lsimple = [bool, float, int, np.int64, np.float64]
+        lsimple = [bool, float, int, np.int_, np.float_]
         C0 = type(extraval) in lsimple
         C1 = isinstance(extraval, np.ndarray)
         C2 = isinstance(extraval, dict)
@@ -2393,7 +2409,7 @@ class Config(utils.ToFuObject):
         else:
             assert C0, str(type(extraval))
         if multi and C1:
-            size = self._dStruct["nStruct"] if size is None else size
+            size = self._dStruct["nObj"] if size is None else size
             C = extraval.shape == ((self._dStruct["nObj"],))
             if not C:
                 msg = "The value for %s has wrong shape!" % key
@@ -2591,16 +2607,18 @@ class Config(utils.ToFuObject):
         assert not (k0 is None and k1 is not None)
         dp = "d" + pp
         if k0 is None and k1 is None:
-            val = np.zeros((self._dStruct["nObj"],), dtype=bool)
+            k0, k1 = self._dStruct["lorder"][0].split('_')
+            val = np.zeros((self._dStruct["nObj"],),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k0, k1 = k.split("_")
                 val[ii] = self._dextraprop[dp][k0][k1]
                 ii += 1
         elif k1 is None:
-            val = np.zeros(
-                (len(self._dStruct["dObj"][k0].keys()),), dtype=bool
-            )
+            k1 = list(self._dStruct["dObj"][k0].keys())[0]
+            val = np.zeros((len(self._dStruct["dObj"][k0].keys()),),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k, k1 = k.split("_")
@@ -2833,6 +2851,190 @@ class Config(utils.ToFuObject):
         self._dextraprop.update(**fd["dextraprop"])
         self._dsino.update(**fd["dsino"])
         self._dynamicattr()
+
+    ###########
+    # SOLEDGE3X
+    ###########
+
+    @staticmethod
+    def _from_SOLEDGE_extract_dict(pfe=None):
+        # Check input
+        c0 = (isinstance(pfe, str)
+              and os.path.isfile(pfe)
+              and pfe[-4:] == '.mat')
+        if not c0:
+            msg = ("Arg pfe must be a valid .mat file!\n"
+                   + "\t- provided: {}".format(pfe))
+            raise Exception(msg)
+        pfe = os.path.abspath(pfe)
+
+        # Open file
+        import scipy.io as scpio
+        dout = scpio.loadmat(pfe)
+
+        # Check conformity of content
+        lk = ['Nwalls', 'coord', 'type']
+        lk0 = [kk for kk, vv in dout.items()
+               if kk == 'walls' and isinstance(vv, np.ndarray)]
+        c0 = (len(lk0) == 1
+              and len(dout['walls']) == 1
+              and sorted(dout['walls'][0].dtype.names) == lk
+              and len(dout['walls'][0][0]) == len(lk))
+        if not c0:
+            msg = ("Non-conform .mat file content from SOLEDGE3X:\n"
+                   + "\t- file: {}\n".format(pfe)
+                   + "\t- Expected:\n"
+                   + "\t\t- a unique matlab structure 'walls' with 3 fields\n"
+                   + "\t\t\t- Nwalls: int\n"
+                   + "\t\t\t- coord: 1xn struct\n"
+                   + "\t\t\t- type: 1xn double\n"
+                   + "Provided:\n"
+                   + "\t- variables: {}\n".format(lk0)
+                   + "\t- 1x{} struct with {} fields".format(
+                       len(dout[lk0[0]]),
+                       len(dout[lk0[0]][0].dtype)))
+            raise Exception(msg)
+        out = dout['walls'][0][0]
+
+        # Get inside fields 'type', 'Nwalls', 'coord'
+        di0 = {kk: dout['walls'][0].dtype.names.index(kk) for kk in lk}
+        dout = {'type': out[di0['type']].ravel(),
+                'Nwalls': out[di0['Nwalls']][0, 0]}
+        out = out[di0['coord']][0]
+        c0 = (sorted(out.dtype.names) == ['Rwall', 'Zwall']
+              and len(out) == dout['type'].size
+              and all([len(oo) == 2 for oo in out]))
+        if not c0:
+            msg = ("Field {} not conform:\n".format('coord')
+                   + "\t- expected: 1x{} struct ".format(dout['type'].size)
+                   + "with fields ('Rwall', 'Zwall')\n"
+                   + "\t- provided: 1x{} struct ".format(len(out))
+                   + "with fields {}".format(out.dtype.names))
+            raise Exception(msg)
+
+        dout['coord'] = [np.array([out[ii][0].ravel(), out[ii][1].ravel()])
+                         for ii in range(dout['type'].size)]
+        return dout
+
+    @classmethod
+    def from_SOLEDGE3X(cls, pfe=None,
+                       Name=None, Exp=None):
+
+        # Check input and extract dict from file
+        dout = cls._from_SOLEDGE_extract_dict(pfe)
+        npoly = len(dout['type'])
+
+        # Prepare lStruct
+        lcls = [Ves if dout['type'][ii] == 1 else PFC for ii in range(npoly)]
+        lnames = ['Soledge3X{:02.0f}'.format(ii) for ii in range(npoly)]
+        lS = [lcls[ii](Poly=dout['coord'][ii],
+                       Type='Tor',
+                       Name=lnames[ii],
+                       pos=None,
+                       Exp=Exp)
+              for ii in range(npoly)]
+        return cls(lStruct=lS, Exp=Exp, Name=Name)
+
+    def _to_SOLEDGE3X_get_data(self,
+                               type_extraprop=None,
+                               matlab_version=None, matlab_platform=None):
+
+        head = None
+        # Check inputs
+        if not (matlab_version is None or isinstance(matlab_version, str)):
+            msg = ("Arg matlab_version must be provided as a str!\n"
+                   + "\t- example: '5.0'\n"
+                   + "\t- provided: {}".format(matlab_version))
+            raise Exception(msg)
+
+        # useful ? to be deprecated ?
+        if matlab_platform is None:
+            out = os.popen('which matlab').read()
+            keypath = os.path.join('bin', 'matlab')
+            if keypath in out:
+                path = os.path.join(out[:out.index(keypath)], 'etc')
+                lf = [ff for ff in os.listdir(path)
+                      if os.path.isdir(os.path.join(path, ff))]
+                if len(lf) == 1:
+                    matlab_platform = lf[0].upper()
+                else:
+                    msg = ("Couldn't get matlab_platform from 'which matlab'\n"
+                           + "  => Please provide the matlab platform\n"
+                           + "     Should be in {}/../etc".format(out))
+                    warnings.warn(msg)
+        if not (matlab_platform is None or isinstance(matlab_platform, str)):
+            msg = ("Arg matlab_platform must be provided as a str!\n"
+                   + "\t- example: 'GLNXA64'\n"
+                   + "\t- provided: {}".format(matlab_platform))
+            raise Exception(msg)
+
+        if matlab_version is not None and matlab_platform is not None:
+            import datetime as dtm
+            now = dtm.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+            head = ('MATLAB {} MAT-file, '.format(matlab_version)
+                    + 'Platform: {}, '.format(matlab_platform)
+                    + 'Created on: {}'.format(now))
+
+        # Build walls
+        nwall = np.array([[self.nStruct]], dtype=int)
+
+        # typ (from extraprop if any, else from Ves / Struct)
+        if type_extraprop is not None:
+            typ = np.array([self._get_extraprop(type_extraprop)], dtype=int)
+        else:
+            typ = np.array([[1 if ss._InOut == 'in' else -1
+                             for ss in self.lStruct]], dtype=int)
+        # Get coord
+        coord = np.array([np.array([
+            (ss.Poly[0:1, :].T, ss.Poly[1:2, :].T) for ss in self.lStruct],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])
+
+        # put together
+        dout = {'walls': np.array([[
+            (nwall, coord, typ)]],
+            dtype=[('Nwalls', 'O'), ('coord', 'O'), ('type', 'O')])}
+
+        # Optinally set header and version
+        if head is not None:
+            dout['__header__'] = head.encode()
+        return dout
+
+    def to_SOLEDGE3X(self, name=None, path=None, verb=None,
+                     type_extraprop=None,
+                     matlab_version=None, matlab_platform=None):
+
+        # Check inputs
+        if verb is None:
+            verb = True
+        if name is None:
+            name = self.Id.SaveName
+        if not isinstance(name, str):
+            msg = ("Arg name must be a str!\n"
+                   + "\t- provided: {}".format(name))
+            raise Exception(msg)
+        if name[-4:] != '.mat':
+            name = name + '.mat'
+
+        if path is None:
+            path = os.path.abspath('.')
+        if not os.path.isdir(path):
+            msg = ("Provided path is not a valid dir!\n"
+                   + "\t- path: {}".format(path))
+            raise Exception(msg)
+        path = os.path.abspath(path)
+
+        pfe = os.path.join(path, name)
+
+        # Get data in proper shape
+        dout = self._to_SOLEDGE3X_get_data(type_extraprop=type_extraprop,
+                                           matlab_version=matlab_version,
+                                           matlab_platform=matlab_platform)
+        # save
+        import scipy.io as scpio
+        scpio.savemat(pfe, dout)
+        if verb is True:
+            print("Saved in:\n\t{}".format(pfe))
 
     ###########
     # Properties
@@ -3098,15 +3300,18 @@ class Config(utils.ToFuObject):
         for k in self._ddef["dStruct"]["order"]:
             if k not in d.keys():
                 continue
+            otemp = self._dStruct["dObj"][k]
             for kk in d[k].keys():
                 lu = [
                     k,
-                    self._dStruct["dObj"][k][kk]._Id._dall["Name"],
-                    self._dStruct["dObj"][k][kk]._Id._dall["SaveName"],
-                    str(self._dStruct["dObj"][k][kk]._dgeom["nP"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["noccur"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["move"]),
-                    str(self._dStruct["dObj"][k][kk]._dmisc["color"]),
+                    otemp[kk]._Id._dall["Name"],
+                    otemp[kk]._Id._dall["SaveName"],
+                    str(otemp[kk]._dgeom["nP"]),
+                    str(otemp[kk]._dgeom["noccur"]),
+                    str(otemp[kk]._dgeom["move"]),
+                    ('(' + ', '.join(['{:4.2}'.format(cc)
+                                      for cc in otemp[kk]._dmisc["color"]])
+                     + ')'),
                 ]
                 for pp in self._dextraprop["lprop"]:
                     lu.append(self._dextraprop["d" + pp][k][kk])
@@ -5133,6 +5338,7 @@ class Rays(utils.ToFuObject):
         if self._is2D():
             self._dX12.update(**fd["dX12"])
 
+
     ###########
     # properties
     ###########
@@ -6385,6 +6591,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6481,8 +6688,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6490,7 +6697,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    s += coefs * _GG.LOS_calc_signal(
+                    s += coefs_reflect * _GG.LOS_calc_signal(
                         func,
                         Dsi,
                         usi,
@@ -6544,6 +6751,15 @@ class Rays(utils.ToFuObject):
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
 
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
+
         # Format output
         return self._calc_signal_postformat(
             sig,
@@ -6586,6 +6802,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6681,8 +6898,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6690,7 +6907,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    sig += coefs * _GG.LOS_calc_signal(
+                    sig += coefs_reflect * _GG.LOS_calc_signal(
                         funcbis,
                         Dsi,
                         usi,
@@ -6749,6 +6966,15 @@ class Rays(utils.ToFuObject):
             # (cf. https://stackoverflow.com/questions/59079141)
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
+
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
 
         # Format output
         # this is the secod slowest step (~0.75 s)

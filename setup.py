@@ -363,8 +363,9 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.tests03core_data": ["*.py", "*.txt"],
+        "tofu.tests.tests01_geom.tests03_core_data": ["*.py", "*.txt"],
         "tofu.geom.inputs": ["*.txt"],
+        "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
     include_package_data=True,
 
@@ -375,14 +376,22 @@ setup(
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     # data_files=[('my_data', ['data/data_file'])],
 
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    entry_points={
+    # executable scripts can be declared here
+    # They can be python or non-python scripts
+    # scripts=[
+    # ],
+
+    # entry_points point to functions in the package
+    # Theye are generally preferable over scripts because they provide
+    # cross-platform support and allow pip to create the appropriate form
+    # of executable for the target platform.
+   entry_points={
         'console_scripts': [
-            'tofuplot=tofu.scripts.tofuplot:main',
-            'tofucalc=tofu.scripts.tofucalc:main',
-            'tofu-custom=tofu.scripts.tofucustom:main',
+            'tofuplot=tofu.entrypoints.tofuplot:main',
+            'tofucalc=tofu.entrypoints.tofucalc:main',
+            'tofu-version=scripts.tofuversion:main',
+            'tofu-custom=scripts.tofucustom:main',
+            'tofu=scripts.tofu_bash:main',
         ],
     },
 
