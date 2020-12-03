@@ -328,7 +328,7 @@ def _checkformat_getdata_sig(sig, ids,
             msg = ("Each provided sig must be either:\n"
                    + "\t- a valid shortcut (cf. self.shortcuts()\n"
                    + "\t- a valid long version (cf. self.shortcuts)\n"
-                   + "\n  Provided sig: {} for ids {}".format(sig, ids))
+                   + "\n  Provided sig: {} for ids {}".format(sig[ii], ids))
             raise Exception(msg)
         if c1:
             comp[ii] = True

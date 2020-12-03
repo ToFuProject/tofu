@@ -804,22 +804,77 @@ def get_available_config(dconfig=_DCONFIG,
         return msg
 
 
-def _create_config_testcase(config=None, returnas='object',
-                            path=_path_testcases, dconfig=_DCONFIG,
-                            dconfig_shortcuts=_DCONFIG_SHORTCUTS):
+def _create_config_testcase_check_inputs(
+    config=None,
+    path=None,
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=None,
+):
+    if config is None:
+        config = _DEFCONFIG
+    if not isinstance(config, str):
+        msg = ("Arg config must be a str!\n"
+               + "\tProvided: {}".format(config))
+        raise Exception(msg)
+
+    if path is None:
+        path = _path_testcases
+    if not isinstance(path, str) or not os.path.isdir(path):
+        msg = ("Arg path must be a valid path!\n"
+               + "\tProvided: {}".format(path))
+        raise Exception(msg)
+    path = os.path.abspath(path)
+
+    if dconfig is None:
+        dconfig = _DCONFIG
+    if not isinstance(dconfig, dict):
+        msg = ("Arg dconfig must be a dict!\n"
+               + "\tProvided: {}".format(dconfig))
+        raise Exception(msg)
+
+    if dconfig_shortcuts is None:
+        dconfig_shortcuts = _DCONFIG_SHORTCUTS
+    if not isinstance(dconfig_shortcuts, dict):
+        msg = ("Arg dconfig_shortcuts must be a dict!\n"
+               + "\tProvided: {}".format(dconfig_shortcuts))
+        raise Exception(msg)
+
+    if returnas is None:
+        returnas = object
+    if returnas not in [object, dict]:
+        msg = ("Arg returnas must be either object or dict!\n"
+               + "\t-Provided: {}".format(returnas))
+        raise Exception(msg)
+    return config, path, dconfig, dconfig_shortcuts, returnas
+
+
+def _create_config_testcase(
+    config=None,
+    path=None,
+    dconfig=_DCONFIG,
+    dconfig_shortcuts=None,
+    returnas=None,
+):
     """ Load the desired test case configuration
 
     Choose from one of the reference preset configurations:
         {0}
 
     """.format('['+', '.join(dconfig.keys())+']')
-    # Check input
-    if config is None:
-        config = _DEFCONFIG
-    assert all([type(ss) is str for ss in [config, path]])
-    assert type(dconfig) is dict
-    path = os.path.abspath(path)
 
+    # -----------
+    # Check input
+    (config, path, dconfig,
+     dconfig_shortcuts, returnas) = _create_config_testcase_check_inputs(
+        config=config,
+        path=path,
+        dconfig=dconfig,
+        dconfig_shortcuts=dconfig_shortcuts,
+        returnas=returnas,
+     )
+
+    # --------------------------
     # Check config is available
     if config in dconfig.keys():
         pass
@@ -834,7 +889,8 @@ def _create_config_testcase(config=None, returnas='object',
                + "\n\n  => you provided: {}\n".format(config))
         raise Exception(msg)
 
-    # Get file names for config
+    # -------------------------
+    # Get file and build config
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
     lcls = sorted([k for k in dconfig[config].keys() if k!= 'Exp'])
@@ -878,11 +934,12 @@ def _create_config_testcase(config=None, returnas='object',
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
     return conf
 
+
 def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=None, r=None, elong=None, Dshape=None,
                   divlow=None, divup=None, nP=None,
-                  returnas='object', SavePath='./', path=_path_testcases):
+                  returnas=None, SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
