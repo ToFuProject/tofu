@@ -1360,7 +1360,7 @@ class MultiIDSLoader(object):
                                dshort=cls._dshort, dcomp=cls._dcomp,
                                force=force)
 
-    def get_data(self, ids=None, sig=None, occ=None,
+    def get_data(self, dsig=None, occ=None,
                  data=None, units=None,
                  indch=None, indt=None, stack=None,
                  isclose=None, flatocc=True,
@@ -1427,7 +1427,7 @@ class MultiIDSLoader(object):
             Dictionnary containing the loaded data
 
         """
-        return _comp.get_data_units(ids=ids, sig=sig, occ=occ,
+        return _comp.get_data_units(dsig=dsig, occ=occ,
                                     data=data, units=units,
                                     indch=indch, indt=indt,
                                     stack=stack, isclose=isclose,
@@ -1437,69 +1437,70 @@ class MultiIDSLoader(object):
                                     dcomp=self._dcomp,
                                     dall_except=self._dall_except)[0]
 
-    def get_data_all(self, dsig=None, stack=None,
-                     isclose=None, flatocc=True, nan=True,
-                     pos=None, empty=None, strict=None):
-        """ Get all data available from all desired ids
 
-        Return a dict
+    # def get_data_all(self, dsig=None, stack=None,
+                     # isclose=None, flatocc=True, nan=True,
+                     # pos=None, empty=None, strict=None):
+        # """ Get all data available from all desired ids
 
-        """
+        # Return a dict
 
-        if stack is None:
-            stack = True
+        # """
 
-        # --------------
-        # Prepare dsig
-        if dsig is None:
-            if self._preset is not None:
-                dsig = self._dpreset[self._preset]
-            else:
-                dsig = dict.fromkeys(self._dids.keys())
-        else:
-            assert type(dsig) is dict
-        dout = dict.fromkeys(set(self._dids.keys()).intersection(dsig.keys()))
+        # if stack is None:
+            # stack = True
 
-        lc = [ss for ss in dsig.keys() if ss not in dout.keys()]
-        if len(lc) != 0:
-            msg = "The following ids are asked but not available:\n"
-            msg += "    - %s"%str(lc)
-            raise Exception(msg)
-        assert all([type(v) in [str,list] or v is None for v in dsig.values()])
+        # # --------------
+        # # Prepare dsig
+        # if dsig is None:
+            # if self._preset is not None:
+                # dsig = self._dpreset[self._preset]
+            # else:
+                # dsig = dict.fromkeys(self._dids.keys())
+        # else:
+            # assert type(dsig) is dict
+        # dout = dict.fromkeys(set(self._dids.keys()).intersection(dsig.keys()))
 
-        # --------------
-        # Get data
-        dfail = dict.fromkeys(dout.keys())
-        anyerror = False
-        for ids in dout.keys():
-            try:
-                dout[ids], dfail[ids] = _comp.get_data_units(
-                    ids=ids, sig=dsig[ids], occ=None,
-                    data=True, units=True,
-                    indch=None, indt=None,
-                    stack=stack, isclose=isclose,
-                    flatocc=flatocc, nan=nan,
-                    pos=pos, empty=empty, strict=strict, warn=False,
-                    dids=self._dids, dshort=self._dshort,
-                    dcomp=self._dcomp, dall_except=self._dall_except)
-                if len(dfail[ids]) > 0:
-                    anyerror = True
-            except Exception as err:
-                del dout[ids]
-                dfail[ids] = dict.fromkeys(dsig[ids].keys(), 'ids error')
-                anyerror = True
-        if anyerror:
-            msg = "The following data could not be retrieved:"
-            for ids, v0 in dfail.items():
-                if len(v0) == 0:
-                    continue
-                msg += "\n\t- {}:".format(ids)
-                nk1max = np.max([len(k1) for k1 in v0.keys()])
-                for k1, v1 in v0.items():
-                    msg += "\n\t\t{0}:  {1}".format(k1.ljust(nk1max),
-                                                    v1.replace('\n', ' '))
-            warnings.warn(msg)
-        return dout
+        # lc = [ss for ss in dsig.keys() if ss not in dout.keys()]
+        # if len(lc) != 0:
+            # msg = "The following ids are asked but not available:\n"
+            # msg += "    - %s"%str(lc)
+            # raise Exception(msg)
+        # assert all([type(v) in [str,list] or v is None for v in dsig.values()])
+
+        # # --------------
+        # # Get data
+        # dfail = dict.fromkeys(dout.keys())
+        # anyerror = False
+        # for ids in dout.keys():
+            # try:
+                # dout[ids], dfail[ids] = _comp.get_data_units(
+                    # ids=ids, sig=dsig[ids], occ=None,
+                    # data=True, units=True,
+                    # indch=None, indt=None,
+                    # stack=stack, isclose=isclose,
+                    # flatocc=flatocc, nan=nan,
+                    # pos=pos, empty=empty, strict=strict, warn=False,
+                    # dids=self._dids, dshort=self._dshort,
+                    # dcomp=self._dcomp, dall_except=self._dall_except)
+                # if len(dfail[ids]) > 0:
+                    # anyerror = True
+            # except Exception as err:
+                # del dout[ids]
+                # dfail[ids] = dict.fromkeys(dsig[ids].keys(), 'ids error')
+                # anyerror = True
+        # if anyerror:
+            # msg = "The following data could not be retrieved:"
+            # for ids, v0 in dfail.items():
+                # if len(v0) == 0:
+                    # continue
+                # msg += "\n\t- {}:".format(ids)
+                # nk1max = np.max([len(k1) for k1 in v0.keys()])
+                # for k1, v1 in v0.items():
+                    # msg += "\n\t\t{0}:  {1}".format(k1.ljust(nk1max),
+                                                    # v1.replace('\n', ' '))
+            # warnings.warn(msg)
+        # return dout
 
     def get_events(self, occ=None, verb=True, returnas=False):
         """ Return chronoligical events stored in pulse_schedule

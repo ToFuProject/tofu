@@ -259,32 +259,106 @@ def get_fsig(sig):
 # #############################################################################
 
 
-def _checkformat_getdata_ids(ids=None, dids=None):
-    """ Check the desired sids is available """
+def _checkformat_getdata_ids(
+    dsig=None,
+    occ=None,
+    indch=None,
+    indt=None,
+    dids=None,
+    dshort=None,
+    dcomp=None,
+    dall_except=None):
+    """ Check the desired ids / signal is available """
+
     if not isinstance(dids, dict):
         msg = ("dids must be a dict\n"
                + "\t- provided: {}".format(type(dids)))
         raise Exception(msg)
 
-    msg = ("Arg ids must be either:\n"
-           + "\t- None: if self.dids only has one key\n"
-           + "\t- str: a valid key of self.dids\n\n"
-           + "  Provided : {}\n".format(ids)
-           + "  Available: {}\n".format(list(dids.keys()))
-           + "  => Consider using self.add_ids({})".format(str(ids)))
-
-    lc = [ids is None, type(ids) is str]
+    lc = [dsig is None,
+          isinstance(dsig, str) and dsig in dids.keys(),
+          isinstance(dsig, list) and all([ss in dids.keys() for ss in dsig]),
+          isinstance(dsig, dict)
+          and all([k0 in dids.keys()
+                   and (v0 is None
+                        or isinstance(v0, str)
+                        or (isinstance(v0, list)
+                            and all([isinstance(ss, str) for ss in v0]))
+                        or isinstance(v0, dict))
+                   for k0, v0 in dsig.items()])]
     if not any(lc):
+        msg = ("Arg dsig must be either:\n"
+               + "\t- None: All shortucts of all ids\n"
+               + "\t- str: a valid ids, all shortcuts\n"
+               + "\t- list: a list of valid ids, all shortcuts for each\n"
+               + "\t- dict: a dict of the form:\n"
+               + "\t        {ids0: [short00, ..., short0N],\n"
+               + "\t         ids1: [short10, ..., short1M],\n"
+               + "\t         ids2: short2}\n"
+               + "\t    Where the values are shortucts or list of such\n\n"
+               + "  Provided : {}\n".format(ids)
+               + "  Available: {}\n".format(list(dids.keys()))
+               + "  => Consider using self.add_ids({})".format(str(ids)))
         raise Exception(msg)
 
     if lc[0]:
-        if len(dids.keys()) != 1:
-            raise Exception(msg)
-        ids = list(dids.keys())[0]
+        dsig = dict.fromkeys(dids.keys())
     elif lc[1]:
-        if ids not in dids.keys():
+        dsig = dict.fromkeys([dsig])
+    elif lc[2]:
+        dsig = dict.fromkeys(dsig)
+    elif lc[3]:
+        # copy to avoid reference
+        dsig = dict(dsig)
+
+    # Check occurences, channels and signals
+    for k0 in dsig.keys():
+
+        # Extract occ, indch and sig if any
+        lc = [dsig[k0] is None,
+              isinstance(dsig[k0], str),
+              isinstance(dsig[k0], list),
+              isinstance(dsig[k0], dict)]
+        if not any(lc):
+            msg = ""
             raise Exception(msg)
-    return ids
+
+        if lc[0] or lc[1] or lc[2]:
+            occi, indchi, indti, sig = occ, indch, indt, dsig[k0]
+        elif lc[3]:
+            occi = dsig['k0'].get('occ', occ)
+            indchi = dsig[k0].get('indch', indch)
+            indti = dsig[k0].get('indt', indt)
+            sig = dsig[k0].get('sig')
+
+        # Check occ
+        occi = _checkformat_getdata_occ(occi, k0, dids=dids)
+        indoc = np.where(dids[k0]['occ'] == occi)[0]
+        dsig[k0]['occ'] = occi
+
+        # Check all occ have isget = True
+        indok = dids[k0]['isget'][indoc]
+        if not np.all(indok):
+            msg = ("All desired occurences shall have not been gotten!\n"
+                   + "    - desired occ:   {}\n".format(occi)
+                   + "    - available occ: {}\n".format(dids[k0]['occ'])
+                   + "    - isget:         {}".format(dids[k0]['isget'])
+                   + "\n  => Try running self.open_get_close()")
+            raise Exception(msg)
+
+        # Check indch
+        if hasattr(dids[k0]['ids'][indoc[0]], 'channel'):
+            nch = len(getattr(dids[k0]['ids'][indoc[0]], 'channel'))
+            indchi = _checkformat_getdata_indch(indchi, nch)
+            dsig[k0]['indch'] = indchi
+
+        # Check shortcuts
+        sig, comp = _checkformat_getdata_sig(sig, k0,
+                                             dshort=dshort, dcomp=dcomp,
+                                             dall_except=dall_except)
+        dsig[k0] = {'occ': occ, 'indch': indch, 'indt': indti,
+                    'sig': sig, 'comp': comp}
+    return dsig
 
 
 def _checkformat_getdata_sig(sig, ids,
@@ -343,11 +417,15 @@ def _checkformat_getdata_occ(occ, ids, dids=None):
         msg = ("dids must be a dict\n"
                + "\t- provided: {}".format(type(dids)))
         raise Exception(msg)
+
     msg = ("Arg occ must be a either:\n"
            + "\t- None: all occurences are used\n"
            + "\t- int: occurence (in self.dids[{}]['occ'])\n".format(ids)
            + "\t- int array: occurences (in self.dids[{}]['occ'])".format(ids))
-    lc = [occ is None, type(occ) is int, hasattr(occ, '__iter__')]
+    lc = [occ is None,
+          type(occ) is int,
+          hasattr(occ, '__iter__')]
+
     if not any(lc):
         raise Exception(msg)
     if lc[0]:
@@ -474,7 +552,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
 
     A warning is issued if warn = True
 
-    If comp = True, it means the data is not loaded diurectly from the ids,
+    If comp = True, it means the data is not loaded directly from the ids,
     but computed from a combination of signals in the ids.
     The computation function must have been defined previously
 
@@ -561,7 +639,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
             'isempty': isempty, 'errdata': errdata, 'errunits': errunits}
 
 
-def get_data_units(ids=None, sig=None, occ=None,
+def get_data_units(dsig=None, occ=None,
                    data=None, units=None,
                    indch=None, indt=None, stack=None,
                    isclose=None, flatocc=True,
@@ -569,7 +647,10 @@ def get_data_units(ids=None, sig=None, occ=None,
                    dids=None, dshort=None, dcomp=None, dall_except=None):
     """ Return a dict with the data and units (and empty, errors)
 
-    For multiple shorcuts from the same ids
+    Can be used:
+        - For multiple (all) shorcuts from a unique ids
+        - For all shortcuts from multiple ids
+        - For a custom ids: shortcuts dict
 
     For the desired ids and signal (shortcut), load the data and units
     Return a dict also containing a bool indicating whether the data is empty
@@ -583,72 +664,69 @@ def get_data_units(ids=None, sig=None, occ=None,
     if strict is None:
         strict = _STRICT
 
-    # ids = valid self.dids.keys()
-    ids = _checkformat_getdata_ids(ids, dids=dids)
-
-    # sig = list of str (shortcuts)
-    sig, comp = _checkformat_getdata_sig(sig, ids,
-                                         dshort=dshort, dcomp=dcomp,
-                                         dall_except=dall_except)
-
-    # occ = np.ndarray of valid int
-    occ = _checkformat_getdata_occ(occ, ids, dids=dids)
-    indoc = np.where(dids[ids]['occ'] == occ)[0]
-
-    # Check all occ have isget = True
-    indok = dids[ids]['isget'][indoc]
-    if not np.all(indok):
-        msg = ("All desired occurences shall have been gotten !\n"
-               + "    - desired occ:   {}\n".format(occ)
-               + "    - available occ: {}\n".format(dids[ids]['occ'])
-               + "    - isget:         {}".format(dids[ids]['isget'])
-               + "\n  => Try running self.open_get_close()")
-        raise Exception(msg)
-
-    # check indch if ids has channels
-    if hasattr(dids[ids]['ids'][indoc[0]], 'channel'):
-        nch = len(getattr(dids[ids]['ids'][indoc[0]], 'channel'))
-        indch = _checkformat_getdata_indch(indch, nch)
+    # dsig = {ids: {'sig': [...], 'comp': [...]}}
+    dsig = _checkformat_getdata_dsig(
+        dsig,
+        occ=occ,
+        indch=indch,
+        indt=indt,
+        dids=dids,
+        dshort=dshort,
+        dcomp=dcomp,
+        dall_except=dall_except)
 
     # ------------------
     # get data
 
-    dout, dfail = {}, {}
-    for ii in range(0, len(sig)):
-        if isclose is None:
-            isclose_ = sig[ii] == 't'
-        else:
-            isclose_ = isclose
-        try:
-            dout[sig[ii]] = _get_data_units(
-                ids, sig[ii], occ, comp=bool(comp[ii]),
-                indt=indt, indch=indch,
-                stack=stack, isclose=isclose_, flatocc=flatocc,
-                data=data, units=units,
-                nan=nan, pos=pos, empty=empty, warn=warn,
-                dids=dids, dcomp=dcomp, dshort=dshort,
-                dall_except=dall_except)
-            if dout[sig[ii]]['errdata'] is not None:
-                dfail[sig[ii]] = dout[sig[ii]]['errdata']
-                if warn is True:
-                    msg = ('\n{}\n\t '.format(dout[sig[ii]]['errdata'])
-                           + 'fail {0}.{1} data'.format(ids, sig[ii]))
-                    warnings.warn(msg)
-            if dout[sig[ii]]['errunits'] is not None:
-                if warn is True:
-                    msg = ('\n{}\n\t '.format(dout[sig[ii]]['errunits'])
-                           + 'fail {0}.{1} units'.format(ids, sig[ii]))
-                    warnings.warn(msg)
+    anyfail = False
+    dout = dict.fromkeys(dsig.keys())
+    dfail = {ids: {} for ids in dsig.keys()}
+    for ids in dsig.keys():
+        for ii in range(len(dsig[ids]['sig'])):
+            sigi = dsig['sig'][ids][ii]
+            compi = bool(dsig[ids]['comp'][ii])
+            indchi = dsig[ids]['indch'][ii]
+            indti = dsig[ids]['indt'][ii]
+            occi = dsig[ids]['occ'][ii]
+            if isclose is None:
+                isclose_ = sigi == 't'
+            else:
+                isclose_ = isclose
+            try:
+                dout[ids][sigi] = _get_data_units(
+                    ids, sigi, occi, comp=compi,
+                    indt=indti, indch=indchi,
+                    stack=stack, isclose=isclose_, flatocc=flatocc,
+                    data=data, units=units,
+                    nan=nan, pos=pos, empty=empty, warn=warn,
+                    dids=dids, dcomp=dcomp, dshort=dshort,
+                    dall_except=dall_except)
 
-            # Remove if strict
-            if strict is True:
-                if dout[sig[ii]]['errdata'] is not None:
-                    del dout[sig[ii]]
+                lc = [dout[k0][sigi]['errunits'] is not None,
+                      dout[ids][sigi]['errdata'] is not None]
+                if any(lc):
+                    anyfail = True
+                    if lc[0]:
+                        dfail[ids][sigi+' data'] = dout[ids][sigi]['errdata']
+                    if lc[1]:
+                        dfail[ids][sigi+' units'] = dout[ids][sigi]['errunits']
 
-        except Exception as err:
-            dfail[sig[ii]] = str(err)
-            if warn is True:
-                msg = ('\n{}\n\t '.format(dfail[sig[ii]])
-                       + 'signal {0}.{1} not loaded!'.format(ids, sig[ii]))
-                warnings.warn(msg)
-    return dout, dfail
+            except Exception as err:
+                dfail[ids][sigi] = str(err)
+                anyfail = True
+
+            if len(dfail[ids]) == 0:
+                del dfail[ids]
+
+    # Print if any failure
+    if anyfail and warn:
+        msg = "The following data could not be retrieved:"
+        for ids in dfail.keys():
+            nmax = np.max([len(k1) for k1 in dfail[ids].values()])
+            msg += "\n\t- {}:".format(ids)
+            for sigii, msgi in dfail[ids].items()
+                msg += "\n\t\t{0}:  {1}".format(sigi.ljust(nmax),
+                                                msgi.replace('\n', ' '))
+        warnings.warn(msg)
+
+    return dout, dfail, dsig
