@@ -246,7 +246,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     VIn = VIn/np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:]
     dL = 0.01
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL, D1=None,
+    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
+                                                             D1=None,
                                                              D2=None,
                                                              margin=1.e-9,
                                                              DIn=0., VIn=VIn)
@@ -260,8 +261,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
     PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
-                                                             D1=np.r_[0.,2.],
-                                                             D2=np.r_[-2.,0.],
+                                                             D1=[0., 2.],
+                                                             D2=[-2., 0.],
                                                              margin=1.e-9,
                                                              DIn=0.05, VIn=VIn)
     assert np.all(PtsCross[0,:]>=0.) and np.all(PtsCross[0,:]<=2.) and \
@@ -275,8 +276,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
     PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
-                                                             D1=np.r_[0.,2.],
-                                                             D2=np.r_[-2.,0.],
+                                                             D1=[0.,2.],
+                                                             D2=[-2.,0.],
                                                              margin=1.e-9,
                                                              DIn=-0.05, VIn=VIn)
     assert np.all(PtsCross[0,:]>=0.-0.05) and np.all(PtsCross[0,:]<=2.) and \
@@ -300,8 +301,8 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
             dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
                                                                  RMinMax,
                                                                  ZMinMax,
-                                                                 DR=np.array([0.5,2.]),
-                                                                 DZ=np.array([0.,1.2]),
+                                                                 DR=[0.5, 2.],
+                                                                 DZ=[0., 1.2],
                                                                  DPhi=LDPhi[ii],
                                                                  VPoly=VPoly,
                                                                  Out='(R,Z,Phi)',
