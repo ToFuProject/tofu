@@ -282,7 +282,10 @@ def _Ves_get_sample_checkinputs(
         raise Exception(msg)
     for ii in range(len(domain)):
         if domain[ii] is not None:
-            domain[ii] = np.r_[domain[ii]].astype(float)
+            domain[ii] = [float(domain[ii][0])
+                          if domain[ii][0] is not None else None,
+                          float(domain[ii][1])
+                          if domain[ii][1] is not None else None]
 
     # resMode
     if resMode is None:
