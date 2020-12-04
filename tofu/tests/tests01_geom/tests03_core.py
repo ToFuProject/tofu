@@ -400,6 +400,8 @@ class Test01_Struct(object):
                         assert np.allclose(pts0,pts1)
 
     def test15_get_sampleV(self):
+        ldomain = [None,
+                   [[2.,3.], [0., None], [0., np.pi/2.]]]
         for typ in self.dobj.keys():
             # Todo : introduce possibility of choosing In coordinates !
             for c in self.dobj[typ].keys():
@@ -409,45 +411,111 @@ class Test01_Struct(object):
                     obj = self.dobj[typ][c][n]
                     P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
                     P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
-                    box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
-                    try:
-                        ii = 0
-                        out = obj.get_sampleV(0.1, resMode='abs',
-                                              domain=box,
-                                              returnas='(X,Y,Z)')
-                        pts0, ind0 = out[0], out[2]
-                        ii = 1
-                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
-                                              returnas='(X,Y,Z)')
-                        pts1, ind1 = out[0], out[2]
-                        ii = 2
-                        out = obj.get_sampleV(0.1, resMode='abs',
-                                              domain=box,
-                                              returnas='(X,Y,Z)', algo='old')
-                        pts2, ind2 = out[0], out[2]
-                        ii = 3
-                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
-                                              returnas='(X,Y,Z)', algo='old')
-                        pts3, ind3 = out[0], out[2]
-                    except Exception as err:
-                        msg = str(err)
-                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
-                        msg += "\n    ii={0}".format(ii)
-                        msg += "\n    Lim={0}".format(str(obj.Lim))
-                        msg += "\n    DS={0}".format(str(box))
-                        raise Exception(msg)
+                    for ii in range(len(ldomain)):
+                        try:
+                            out = obj.get_sampleV(0.1, resMode='abs',
+                                                  domain=ldomain[ii],
+                                                  returnas='(X,Y,Z)',
+                                                  algo='old')
+                            pts0, ind0 = out[0], out[2]
+                        except Exception as err:
+                            msg = (str(err) +
+                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                + "\t- ii = {0}\n".format(ii)
+                                + "\t- Lim = {0}\n".format(obj.Lim)
+                                + "\t- domain = {0}\n".format(ldomain[ii])
+                                + "\t- algo = 'old'"
+                            )
+                            raise Exception(msg)
+                        try:
+                            out = obj.get_sampleV(0.1, resMode='abs',
+                                                  ind=ind0,
+                                                  returnas='(X,Y,Z)',
+                                                  algo='old')
+                            pts1, ind1 = out[0], out[2]
+                        except Exception as err:
+                            msg = (str(err) +
+                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                + "\t- ii = {0}\n".format(ii)
+                                + "\t- Lim = {0}\n".format(obj.Lim)
+                                + "\t- ind = {0}\n".format(ind0)
+                                + "\t- algo = 'old'"
+                            )
+                            raise Exception(msg)
+                        try:
+                            out = obj.get_sampleV(0.1, resMode='abs',
+                                                  domain=ldomain[ii],
+                                                  returnas='(X,Y,Z)',
+                                                  algo='new')
+                            pts2, ind2 = out[0], out[2]
+                        except Exception as err:
+                            msg = (str(err) +
+                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                + "\t- ii = {0}\n".format(ii)
+                                + "\t- Lim = {0}\n".format(obj.Lim)
+                                + "\t- domain = {0}\n".format(ldomain[ii])
+                                + "\t- algo = 'new'"
+                            )
+                            raise Exception(msg)
+                        try:
+                            out = obj.get_sampleV(0.1, resMode='abs',
+                                                  ind=ind0,
+                                                  returnas='(X,Y,Z)',
+                                                  algo='new')
+                            pts3, ind3 = out[0], out[2]
+                        except Exception as err:
+                            msg = (str(err) +
+                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                + "\t- ii = {0}\n".format(ii)
+                                + "\t- Lim = {0}\n".format(obj.Lim)
+                                + "\t- domain = {0}\n".format(ldomain[ii])
+                                + "\t- ind = {0}\n".format(ind0)
+                                + "\t- algo = 'new'"
+                            )
+                            raise Exception(msg)
 
-                    if type(pts0) is list:
-                        assert all([np.allclose(pts0[ii], pts1[ii])
-                                    for ii in range(0, len(pts0))])
-                        assert all([np.allclose(pts0[ii], pts2[ii])
-                                    for ii in range(0, len(pts0))])
-                        assert all([np.allclose(pts0[ii], pts3[ii])
-                                    for ii in range(0, len(pts0))])
-                    else:
-                        assert np.allclose(pts0, pts1)
-                        assert np.allclose(pts0, pts2)
-                        assert np.allclose(pts0, pts3)
+                        if type(pts0) is list:
+                            assert all([np.allclose(pts0[ii], pts1[ii])
+                                        for ii in range(0, len(pts0))])
+                            assert all([np.allclose(pts0[ii], pts2[ii])
+                                        for ii in range(0, len(pts0))])
+                            assert all([np.allclose(pts0[ii], pts3[ii])
+                                        for ii in range(0, len(pts0))])
+                        else:
+
+                            c0 = pts0.shape == pts1.shape
+                            c1 = c0 and np.allclose(pts0, pts1)
+                            if not c1:
+                                msg = ("Volume sampling:\n"
+                                       + "\t- bad reconstruction from ind\n"
+                                       + "\t- (old algo)\n"
+                                       + "\t- same shape: {}\n".format(c0)
+                                       + "\t- np.allclose() {}\n".format(c1)
+                                       + "\t- domain = {}\n".format(ldomain[ii])
+                                       + "\t- ind = {}".format(ind0))
+                                raise Exception(msg)
+
+                            c0 = pts0.shape == pts2.shape
+                            c1 = c0 and np.allclose(pts0, pts2)
+                            if not c0:
+                                msg = ("Volume sampling:\n"
+                                       + "\t- no match old vs new algo\n"
+                                       + "\t- same shape: {}\n".format(c0)
+                                       + "\t- np.allclose() {}\n".format(c1)
+                                       + "\t- domain = {}".format(ldomain[ii]))
+                                raise Exception(msg)
+
+                            c0 = pts0.shape == pts3.shape
+                            c1 = c0 and np.allclose(pts0, pts3)
+                            if not c0:
+                                msg = ("Volume sampling:\n"
+                                       + "\t- bad reconstruction from ind\n"
+                                       + "\t- (new algo)\n"
+                                       + "\t- same shape: {}\n".format(c0)
+                                       + "\t- np.allclose() {}\n".format(c1)
+                                       + "\t- domain = {}".format(ldomain[ii])
+                                       + "\t- ind = {}".format(ind0))
+                                raise Exception(msg)
 
     def test16_plot(self):
         for typ in self.dobj.keys():
