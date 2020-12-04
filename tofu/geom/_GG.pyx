@@ -4275,10 +4275,11 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
 
 
 def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
-                                   double[::1] RMinMax, double[::1] ZMinMax,
-                                   double[::1] DR=None, double[::1] DZ=None,
-                                   DPhi=None, VPoly=None,
-                                   str Out='(X,Y,Z)', double margin=_VSMALL):
+                                       double[::1] RMinMax, double[::1] ZMinMax,
+                                       list DR=None,
+                                       list DZ=None,
+                                       DPhi=None, VPoly=None,
+                                       str Out='(X,Y,Z)', double margin=_VSMALL):
     """
     Return the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (dR,dZ,dRphi)
