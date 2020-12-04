@@ -773,7 +773,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
 
 
 def discretize_vpoly(double[:,::1] VPoly, double dL,
-                     str mode='abs', list D1=None, list D2=None,
+                     str mode='abs', double[::1] D1=None, double[::1] D2=None,
                      double margin=_VSMALL, double DIn=0.,
                      double[:,::1] VIn=None):
     """
