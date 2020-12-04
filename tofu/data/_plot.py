@@ -451,9 +451,16 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # ---------
     # Check data
     ldata = [dd.data for dd in lData]
-    vmin = np.min([np.nanmin(dat) for dat in ldata])
-    vmax = np.max([np.nanmax(dat) for dat in ldata])
-    Dlim = [min(0.,vmin), max(0.,vmax)]
+    indany = [np.any(~np.isnan(dat)) for dat in ldata]
+    if any(indany):
+        vmin = np.min([np.nanmin(dat) for ii, dat in enumerate(ldata)
+                       if indany[ii]])
+        vmax = np.max([np.nanmax(dat) for ii, dat in enumerate(ldata)
+                       if indany[ii]])
+    else:
+        vmin, vmax = 0, 1
+
+    Dlim = [min(0., vmin), max(0., vmax)]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
     Dlab = r"{0} ({1})".format(lData[0].dlabels['data']['name'],
                                lData[0].dlabels['data']['units'])
