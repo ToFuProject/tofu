@@ -2609,7 +2609,7 @@ class MultiIDSLoader(object):
 
         # Apply indt if was not done in get_data
         for kk,vv in dins.items():
-            c0 = (((vv.ndim == 2 and kk!='lamb') or kk == 't')
+            c0 = (((vv.ndim == 2 and kk != 'lamb') or kk == 't')
                   and vv.shape[0] > indt.size)
             if c0:
                 dins[kk] = vv[indt, ...]

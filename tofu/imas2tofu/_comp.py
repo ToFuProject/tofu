@@ -202,7 +202,7 @@ def get_fsig(sig):
                     if ind is None:
                         ind = range(0, nb)
                     if nsig > 1:
-                        if isinstance(ind, str) or len(ind)!= 1:
+                        if isinstance(ind, str) or len(ind) != 1:
                             msg = ('ind should be have len() = 1\n'
                                    + '\t- ind: {}'.format(ind))
                             raise Exception(msg)
@@ -276,7 +276,8 @@ def _checkformat_getdata_dsig(
     dids=None,
     dshort=None,
     dcomp=None,
-    dall_except=None):
+    dall_except=None
+):
     """ Check the desired ids / signal is available """
 
     if not isinstance(dids, dict):

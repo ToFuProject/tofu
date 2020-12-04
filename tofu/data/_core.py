@@ -3179,7 +3179,6 @@ class Plasma2D(utils.ToFuObject):
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
 
-
     #---------------------
     # Methods for adding ref / quantities
     #---------------------
@@ -3355,8 +3354,11 @@ class Plasma2D(utils.ToFuObject):
              comments=comments, delimiter=delimiter)
 
         # Format inputs
-        out = self._extract_dnd({key:{'dim': dim, 'quant': quant, 'name': name,
-                                      'units': units, 'origin': origin}}, key)
+        out = self._extract_dnd({key: {
+            'dim': dim, 'quant': quant, 'name': name,
+            'units': units, 'origin': origin
+        }},
+            key)
         dim, quant, origin, name, units = out
         if type(data) is np.ndarray:
             size = data.shape[0]

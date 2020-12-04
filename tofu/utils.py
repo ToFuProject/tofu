@@ -505,7 +505,7 @@ def get_param_from_file_name(pfe=None, lparams=None, test=True):
             elif '.' in dout[pp]:
                 try:
                     dout[pp] = float(dout[pp])
-                except:
+                except Exception as err:
                     pass
         elif len(lind) > 1:
             msg = ("Several values for key {} found in file:\n"
@@ -720,7 +720,7 @@ def from_txt_extract_params(pfe=None, lparams=None, comments=None):
                     elif '.' in line:
                         try:
                             line = float(line)
-                        except:
+                        except Exception as err:
                             pass
                     if dout.get(pp) is not None and dout[pp] != line:
                         msg = ("Inconsistency between file name and content\n"
