@@ -427,7 +427,7 @@ class Test01_Struct(object):
                         pts2, ind2 = out[0], out[2]
                         ii = 3
                         out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
-                                              domain='(X,Y,Z)', algo='old')
+                                              returnas='(X,Y,Z)', algo='old')
                         pts3, ind3 = out[0], out[2]
                     except Exception as err:
                         msg = str(err)
