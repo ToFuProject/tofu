@@ -282,7 +282,7 @@ def _Ves_get_sample_checkinputs(
         raise Exception(msg)
     for ii in range(len(domain)):
         if domain[ii] is not None:
-            domain[ii] = np.r_[domain[ii]]
+            domain[ii] = np.r_[domain[ii]].astype(float)
 
     # resMode
     if resMode is None:
@@ -528,8 +528,8 @@ def _Ves_get_sampleS(
                      reseff[ii][1],
                      nRPhi0,
                      VPbis) = _GG._Ves_Smesh_Tor_SubFromD_cython(
-                         res[ii][0],
-                         res[ii][1],
+                         res[0],
+                         res[1],
                          VPoly,
                          DR=domain[0],
                          DZ=domain[1],
@@ -552,8 +552,8 @@ def _Ves_get_sampleS(
                      reseff[ii][1],
                      VPbis) = _GG._Ves_Smesh_TorStruct_SubFromD_cython(
                          VLim[Ind[ii]],
-                         res[ii][0],
-                         res[ii][1],
+                         res[0],
+                         res[1],
                          VPoly,
                          DR=domain[0],
                          DZ=domain[1],
@@ -577,8 +577,8 @@ def _Ves_get_sampleS(
                  dZ0r,
                  VPbis) = _GG._Ves_Smesh_Lin_SubFromD_cython(
                      VLim[Ind[ii]],
-                     res[ii][0],
-                     res[ii][1],
+                     res[0],
+                     res[1],
                      VPoly,
                      DX=domain[0],
                      DY=domain[1],
@@ -600,8 +600,8 @@ def _Ves_get_sampleS(
                 if ind[Ind[ii]].size > 0:
                     if VLim[Ind[ii]] is None:
                         out_loc = _GG._Ves_Smesh_Tor_SubFromInd_cython(
-                            res[ii][0],
-                            res[ii][1],
+                            res[0],
+                            res[1],
                             VPoly,
                             ind[Ind[ii]],
                             DIn=offsetIn,
@@ -615,8 +615,8 @@ def _Ves_get_sampleS(
                     else:
                         out_loc = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(
                             VLim[Ind[ii]],
-                            res[ii][0],
-                            res[ii][1],
+                            res[0],
+                            res[1],
                             VPoly,
                             ind[Ind[ii]],
                             DIn=offsetIn,
@@ -632,8 +632,8 @@ def _Ves_get_sampleS(
                 if ind[Ind[ii]].size > 0:
                     out_loc = _GG._Ves_Smesh_Lin_SubFromInd_cython(
                         VLim[Ind[ii]],
-                        res[ii][0],
-                        res[ii][1],
+                        res[0],
+                        res[1],
                         VPoly,
                         ind[Ind[ii]],
                         DIn=offsetIn,
