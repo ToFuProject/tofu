@@ -299,13 +299,21 @@ def _Ves_get_sample_checkinputs(
           or (isinstance(ind, np.ndarray)
               and ind.ndim == 1
               and ind.dtype == np.int_
-              and np.all(ind >= 0)))
+              and np.all(ind >= 0))
+          or (which == 'surface'
+              and isinstance(ind, list)
+              and all([isinstance(indi, np.ndarray)
+                       and indi.ndim == 1
+                       and indi.dtype == np.int_
+                       and np.all(indi >= 0) for indi in ind])))
     if not c0:
-          msg = ("Arg ind must be either:\n"
-                 + "\t- None: domain is used instead\n"
-                 + "\t- 1d np.ndarray of positive int: indices\n"
-                 + "  You provided:\n{}".format(ind))
-          raise Exception(msg)
+        msg = ("Arg ind must be either:\n"
+               + "\t- None: domain is used instead\n"
+               + "\t- 1d np.ndarray of positive int: indices\n")
+        if which == 'surface':
+            msg += "\t- list of 1d np.ndarray of positive indices\n"
+        msg += "  You provided:\n{}".format(ind)
+        raise Exception(msg)
 
     return res, domain, resMode, ind
 
@@ -486,27 +494,20 @@ def _Ves_get_sampleS(
             Ind = [Ind] if not hasattr(Ind, "__iter__") else Ind
             Ind = np.asarray(Ind).astype(int)
         if ind is not None:
-            assert hasattr(ind, "__iter__") and len(ind) == len(
-                Ind
-            ), "For multiple Struct, ind must be a list of len() = len(Ind) !"
-            assert all(
-                [
-                    type(ind[ii]) is np.ndarray
-                    and ind[ii].ndim == 1
-                    and ind[ii].dtype in ["int32", "int64"]
-                    and np.all(ind[ii] >= 0)
-                    for ii in range(0, len(ind))
-                ]
-            ), "For multiple Struct, ind must be a list of index arrays !"
+            if isinstance(ind, np.ndarray):
+                ind = [ind for ii in range(len(Ind))]
+            elif not (isinstance(ind, list) and len(ind) == len(Ind)):
+                msg = ("Arg ind must be a list of same len() as Ind!\n"
+                       + "\t- provided: {}".format(ind))
+                raise Exception(msg)
 
     else:
         VLim = [None] if VLim is None else [VLim.ravel()]
-        assert ind is None or (
-            type(ind) is np.ndarray
-            and ind.ndim == 1
-            and ind.dtype in ["int32", "int64"]
-            and np.all(ind >= 0)
-        ), "Arg ind must be None or 1D np.ndarray of positive int !"
+        if ind is not None:
+            if not isinstance(ind, np.ndarray):
+                msg = ("ind must be a np.ndarray if nVLim == 1\n"
+                       + "\t- provided: {}".format(ind))
+                raise Exception(msg)
         Ind = [0]
 
     if ind is None:
