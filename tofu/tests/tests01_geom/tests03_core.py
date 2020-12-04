@@ -377,11 +377,13 @@ class Test01_Struct(object):
                     try:
                         ii = 0
                         out = obj.get_sampleS(0.05, resMode='abs', domain=DS,
-                                              offsetIn=0.02, Out='(X,Y,Z)')
+                                              offsetIn=0.02,
+                                              returnas='(X,Y,Z)')
                         pts0, ind = out[0], out[2]
                         ii = 1
                         out = obj.get_sampleS(0.05, resMode='abs', ind=ind,
-                                              offsetIn=0.02, Out='(X,Y,Z)')
+                                              offsetIn=0.02,
+                                              returnas='(X,Y,Z)')
                         pts1 = out[0]
                     except Exception as err:
                         msg = str(err)
