@@ -1192,7 +1192,7 @@ class Struct(utils.ToFuObject):
         if res is None:
             res = _RES
         return _comp._Ves_get_sampleEdge(
-            self.Poly,
+            self.Poly_closed,
             res=res,
             domain=domain,
             resMode=resMode,
