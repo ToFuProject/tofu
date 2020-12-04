@@ -339,7 +339,7 @@ class Test01_Struct(object):
                                              offsetIn=0.001)
                     out = obj.get_sampleEdge(0.1, resMode='rel',
                                              offsetIn=-0.001)
-                    out = obj.get_sampleEdge(0.05, DS=[None,[-2.,0.]],
+                    out = obj.get_sampleEdge(0.05, domain=[None,[-2.,0.]],
                                              resMode='abs', offsetIn=0.)
 
     def test13_get_sampleCross(self):
@@ -357,7 +357,7 @@ class Test01_Struct(object):
                                    obj.dgeom['P1Max'][0])
                         DS1 = PMinMax[0] + (PMinMax[1]-PMinMax[0])/2.
                         ii = 2
-                        out = obj.get_sampleCross(0.1, DS=[[None,DS1],None],
+                        out = obj.get_sampleCross(0.1, domain=[[None,DS1],None],
                                                   resMode='rel')
                     except Exception as err:
                         msg = str(err)
@@ -376,7 +376,7 @@ class Test01_Struct(object):
                     DS = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
                     try:
                         ii = 0
-                        out = obj.get_sampleS(0.05, resMode='abs', DS=DS,
+                        out = obj.get_sampleS(0.05, resMode='abs', domain=DS,
                                               offsetIn=0.02, Out='(X,Y,Z)')
                         pts0, ind = out[0], out[2]
                         ii = 1
@@ -410,20 +410,22 @@ class Test01_Struct(object):
                     box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
                     try:
                         ii = 0
-                        out = obj.get_sampleV(0.1, resMode='abs', DV=box,
-                                              Out='(X,Y,Z)')
+                        out = obj.get_sampleV(0.1, resMode='abs',
+                                              domain=box,
+                                              returnas='(X,Y,Z)')
                         pts0, ind0 = out[0], out[2]
                         ii = 1
                         out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
-                                              Out='(X,Y,Z)')
+                                              returnas='(X,Y,Z)')
                         pts1, ind1 = out[0], out[2]
                         ii = 2
-                        out = obj.get_sampleV(0.1, resMode='abs', DV=box,
-                                              Out='(X,Y,Z)', algo='old')
+                        out = obj.get_sampleV(0.1, resMode='abs',
+                                              domain=box,
+                                              returnas='(X,Y,Z)', algo='old')
                         pts2, ind2 = out[0], out[2]
                         ii = 3
                         out = obj.get_sampleV(0.1, resMode='abs', ind=ind0,
-                                              Out='(X,Y,Z)', algo='old')
+                                              domain='(X,Y,Z)', algo='old')
                         pts3, ind3 = out[0], out[2]
                     except Exception as err:
                         msg = str(err)
