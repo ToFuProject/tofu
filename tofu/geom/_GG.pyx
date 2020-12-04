@@ -486,8 +486,8 @@ def _Ves_isInside(double[:, ::1] pts, double[:, ::1] ves_poly,
 #
 # ==============================================================================
 def discretize_line1d(double[::1] LMinMax, double dstep,
-                       DL=None, bint Lim=True,
-                       str mode='abs', double margin=_VSMALL):
+                      DL=None, bint Lim=True,
+                      str mode='abs', double margin=_VSMALL):
     """
     Discretize a 1D segment LMin-LMax. If `mode` is "abs" (absolute), then the
     segment will be discretized in cells each of size `dstep`. Else, if `mode`
@@ -563,10 +563,12 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
 #
 # ==============================================================================
 def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
-                       double dstep1, double dstep2,
-                       D1=None, D2=None, str mode='abs',
-                       double[:,::1] VPoly=None,
-                       double margin=_VSMALL):
+                         double dstep1, double dstep2,
+                         D1=None,
+                         D2=None,
+                         str mode='abs',
+                         double[:,::1] VPoly=None,
+                         double margin=_VSMALL):
     """
     Discretizes a 2D segment where the 1st coordinates are defined in LMinMax1
     and the second ones in LMinMax2. The refinement in x is defined by dstep1,
@@ -773,7 +775,9 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
 
 
 def discretize_vpoly(double[:,::1] VPoly, double dL,
-                     str mode='abs', double[::1] D1=None, double[::1] D2=None,
+                     str mode='abs',
+                     list D1=None,
+                     list D2=None,
                      double margin=_VSMALL, double DIn=0.,
                      double[:,::1] VIn=None):
     """
@@ -1413,14 +1417,14 @@ def _getBoundsinter2AngSeg(bool Full, double Phi0, double Phi1,
     return inter, Bounds, Faces
 
 
-
-
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                                    double[:,::1] VPoly,
-                                   DR=None, DZ=None, DPhi=None,
+                                   DR=None,
+                                   DZ=None,
+                                   DPhi=None,
                                    double DIn=0., VIn=None, PhiMinMax=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL):
     """ Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi)
@@ -1482,9 +1486,15 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         NR0 = R0.size
         indin = np.ones((ptsCross.shape[1],),dtype=bool)
         if DR is not None:
-            indin = indin & (R0>=DR[0]) & (R0<=DR[1])
+            if DR[0] is not None:
+                indin = indin & (R0 >= DR[0])
+            if DR[1] is not None:
+                indin = indin & (R0 <= DR[1])
         if DZ is not None:
-            indin = indin & (ptsCross[1,:]>=DZ[0]) & (ptsCross[1,:]<=DZ[1])
+            if DZ[0] is not None:
+                indin = indin & (ptsCross[1,:] >= DZ[0])
+            if DZ[1] is not None:
+                indin = indin & (ptsCross[1,:] <= DZ[1])
         ptsCross, dLr, indL, Rref = ptsCross[:,indin], dLr[indin], \
           indL[indin], Rref[indin]
         Ln = indin.sum()
@@ -1792,7 +1802,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
           dRPhir, nRPhi0,\
           VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
                                                  DR=DR, DZ=DZ,
-                                                 DPhi=[DPhi0,DPhi1],
+                                                 DPhi=[DPhi0, DPhi1],
                                                  DIn=DIn, VIn=VIn,
                                                  PhiMinMax=phiMinMax,
                                                  Out=Out, margin=margin)
@@ -1975,7 +1985,9 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
 @cython.boundscheck(False)
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
-                                   list DX=None, list DY=None, list DZ=None,
+                                   list DX=None,
+                                   list DY=None,
+                                   list DZ=None,
                                    double DIn=0., VIn=None,
                                    double margin=_VSMALL):
     """Return the desired surfacic submesh indicated by the limits (DX,DY,DZ),
