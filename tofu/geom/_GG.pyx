@@ -889,8 +889,10 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
 # ==============================================================================
 def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                    double[::1] RMinMax, double[::1] ZMinMax,
-                                   double[::1] DR=None, double[::1] DZ=None,
-                                   DPhi=None, double[:,::1] VPoly=None,
+                                   list DR=None,
+                                   list DZ=None,
+                                   DPhi=None,
+                                   double[:,::1] VPoly=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL,
                                    int num_threads=48):
     """Returns the desired submesh indicated by the limits (DR,DZ,DPhi),
