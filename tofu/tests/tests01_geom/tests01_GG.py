@@ -260,8 +260,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
     PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
-                                                             D1=[0.,2.],
-                                                             D2=[-2.,0.],
+                                                             D1=np.r_[0.,2.],
+                                                             D2=np.r_[-2.,0.],
                                                              margin=1.e-9,
                                                              DIn=0.05, VIn=VIn)
     assert np.all(PtsCross[0,:]>=0.) and np.all(PtsCross[0,:]<=2.) and \
@@ -275,8 +275,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
     PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
-                                                             D1=[0.,2.],
-                                                             D2=[-2.,0.],
+                                                             D1=np.r_[0.,2.],
+                                                             D2=np.r_[-2.,0.],
                                                              margin=1.e-9,
                                                              DIn=-0.05, VIn=VIn)
     assert np.all(PtsCross[0,:]>=0.-0.05) and np.all(PtsCross[0,:]<=2.) and \
