@@ -351,9 +351,9 @@ def test08_Ves_Vmesh_Lin(VPoly=VPoly):
     Pts, dV, ind,\
         dXr, dYr, dZr = GG._Ves_Vmesh_Lin_SubFromD_cython(dX, dY, dZ, XMinMax,
                                                           YMinMax, ZMinMax,
-                                                          DX=np.array([8.,15.]),
-                                                          DY=np.array([0.5,2.]),
-                                                          DZ=np.array([0.,1.2]),
+                                                          DX=[8., 15.],
+                                                          DY=[0.5, 2.],
+                                                          DZ=[0., 1.2],
                                                           VPoly=VPoly,
                                                           margin=1.e-9)
     assert Pts.ndim==2 and Pts.shape[0]==3
