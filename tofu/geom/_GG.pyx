@@ -1261,9 +1261,10 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
 def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                    double[::1] XMinMax, double[::1] YMinMax,
                                    double[::1] ZMinMax,
-                                   double[::1] DX=None,
-                                   double[::1] DY=None,
-                                   double[::1] DZ=None, VPoly=None,
+                                   list DX=None,
+                                   list DY=None,
+                                   list DZ=None,
+                                   VPoly=None,
                                    double margin=_VSMALL):
     """ Return the desired submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dY,dZ)
