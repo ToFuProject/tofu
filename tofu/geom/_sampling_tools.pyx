@@ -1548,6 +1548,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                                 double* step_rphi,
                                 double[::1] reso_phi_mv,
                                 long* tot_nc_plane,
+                                int ind_loc_r0,
                                 int ncells_r0,
                                 int ncells_z,
                                 int* max_sz_phi,
@@ -1558,7 +1559,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                                 double margin,
                                 int num_threads) nogil:
     cdef int ii, jj
-    cdef int ind_loc_r0
     cdef int NP
     cdef int loc_nc_rphi
     cdef double inv_drphi
@@ -1568,7 +1568,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     cdef double abs0, abs1
     cdef int nphi0, nphi1
     # .. Initialization Variables ..............................................
-    ind_loc_r0 = 0
     NP = 0
     twopi_over_dphi = _TWOPI / phistep
     min_phi_pi = min_phi + Cpi
@@ -1595,18 +1594,19 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
                 else:
                     ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
                     tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
             # be created within those limits
             margin_step = margin * step_rphi[ii]
-            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin_step:
-                nphi0 = int(Cround(min_phi_pi * inv_drphi))
+            if abs0 - step_rphi[ii]*Cfloor(abs0 / step_rphi[ii]) < margin_step:
+                nphi0 = int(Cround(min_phi_pi / step_rphi[ii]))
             else:
-                nphi0 = int(Cfloor(min_phi_pi * inv_drphi))
-            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin_step:
-                nphi1 = int(Cround(max_phi_pi * inv_drphi)-1)
+                nphi0 = int(Cfloor(min_phi_pi / step_rphi[ii]))
+            if abs1-step_rphi[ii]*Cfloor(abs1 / step_rphi[ii]) < margin_step:
+                nphi1 = int(Cround(max_phi_pi / step_rphi[ii])-1)
             else:
-                nphi1 = int(Cfloor(max_phi_pi * inv_drphi))
+                nphi1 = int(Cfloor(max_phi_pi / step_rphi[ii]))
             sz_phi[ii] = nphi1 + 1 - nphi0
             if max_sz_phi[0] < sz_phi[ii]:
                 max_sz_phi[0] = sz_phi[ii]
@@ -1636,14 +1636,14 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             # Get the extreme indices of the mesh elements that really need to
             # be created within those limits
             margin_step = margin*step_rphi[ii]
-            if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin_step:
-                nphi0 = int(Cround(min_phi_pi * inv_drphi))
+            if abs0 - step_rphi[ii]*Cfloor(abs0 / step_rphi[ii]) < margin_step:
+                nphi0 = int(Cround(min_phi_pi / step_rphi[ii]))
             else:
-                nphi0 = int(Cfloor(min_phi_pi * inv_drphi))
-            if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin_step:
-                nphi1 = int(Cround(max_phi_pi * inv_drphi)-1)
+                nphi0 = int(Cfloor(min_phi_pi / step_rphi[ii]))
+            if abs1-step_rphi[ii]*Cfloor(abs1 / step_rphi[ii]) < margin_step:
+                nphi1 = int(Cround(max_phi_pi / step_rphi[ii])-1)
             else:
-                nphi1 = int(Cfloor(max_phi_pi * inv_drphi))
+                nphi1 = int(Cfloor(max_phi_pi / step_rphi[ii]))
             sz_phi[ii] = nphi1+1+loc_nc_rphi-nphi0
             if max_sz_phi[0] < sz_phi[ii]:
                 max_sz_phi[0] = sz_phi[ii]
