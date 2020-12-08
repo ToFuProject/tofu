@@ -284,6 +284,12 @@ class MultiIDSLoader(object):
                 if not all([iids in self._IDS_BASE
                             for iids in self._dids.keys()]):
                     ids_base = True
+            if not isinstance(ids_base, bool):
+                msg = ("Arg ids_base must be bool:\n"
+                       + "\t- False: adds no ids\n"
+                       + "\t- True: adds ids in self._IDS_BASE\n"
+                       + "  You provided:\n{}".format(ids_base))
+                raise Exception(msg)
             if ids_base is True:
                 self.add_ids_base(get=False)
             if synthdiag is None:
@@ -1483,6 +1489,17 @@ class MultiIDSLoader(object):
         names, times = dout['events_names']['data'], dout['events_times']
         tunits = times['units']
         times = times['data']
+        c0 = len(names) == len(times)
+        if not c0:
+            msg = ("events names and times seem incompatible!\n"
+                   + "\t- len(events_names['data']) = {}\n".format(len(names))
+                   + "\t- len(events_times['data']) = {}".format(len(times)))
+            raise Exception(msg)
+        if np.size(names) == 0:
+            msg = ("ids pulse_schedule has no events!\n"
+                   + "\t- len(events_names['data']) = {}\n".format(len(names))
+                   + "\t- len(events_times['data']) = {}".format(len(times)))
+            raise Exception(msg)
         ind = np.argsort(times)
         names, times = names[ind], times[ind]
 
@@ -1601,6 +1618,14 @@ class MultiIDSLoader(object):
                 description_2d = 1
             else:
                 description_2d = 0
+
+        ndescript = len(self._dids[ids]['ids'][indoc].description_2d)
+        if ndescript < description_2d+1:
+            msg = ("Requested description_2d not available!\n"
+                   + "\t- len(wall[].description_2d) = {}\n".format(indoc,
+                                                                    ndescript)
+                   + "\t- required description_2d: {}".format(description_2d))
+            raise Exception(msg)
 
         # ----------------
         # Extract all relevant structures
@@ -1791,8 +1816,17 @@ class MultiIDSLoader(object):
 
         # config
         if config is None:
-            config = self.to_Config(Name=Name, occ=occ,
-                                    description_2d=description_2d, plot=False)
+            try:
+                config = self.to_Config(
+                    Name=Name,
+                    occ=occ,
+                    description_2d=description_2d,
+                    plot=False)
+            except Exception as err:
+                msg = (str(err)
+                       + "\nCould not load waal from wall ids\n"
+                       + "  => No config provided to Plasma2D instance!")
+                warnings.warn(msg)
 
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
@@ -1916,6 +1950,7 @@ class MultiIDSLoader(object):
                 npts, datashape = None, None
                 keym = '{}.mesh'.format(ids) if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
+
                     # Check data shape
                     if out_[ss]['data'].ndim not in [1, 2, 3]:
                         shape = out_[ss]['data'].shape
@@ -2317,8 +2352,13 @@ class MultiIDSLoader(object):
         c0 = (isinstance(tlim, list)
               and all([type(tt) in [float, int, np.float_, np.int_]
                        for tt in tlim]))
-        if not c0:
-            names, times = self.get_events(verb=False, returnas=tuple)
+        if not c0 and 'pulse_schedule' in self._dids.keys():
+            try:
+                names, times = self.get_events(verb=False, returnas=tuple)
+            except Exception as err:
+                msg = (str(err)
+                       + "\nEvents could not be loaded from ids pulse_schedule!")
+                warnings.warn(msg)
         if 'pulse_schedule' in self._dids.keys():
             idd = self._dids['pulse_schedule']['idd']
             Exp = self._didd[idd]['params']['tokamak']
