@@ -3108,9 +3108,9 @@ class Plasma2D(utils.ToFuObject):
             if group is None or group in lg:
                 return str_, None
             else:
-                msg = "Required data key does not have matching group:\n"
-                msg += "    - ddata[%s]['lgroup'] = %s\n"%(str_, lg)
-                msg += "    - Expected group:  %s"%group
+                msg = ("Required data key does not have matching group:\n"
+                       + "\t- ddata[{}]['lgroup'] = {}\n".format(str_, lg)
+                       + "\t- Expected group:  {}".format(group))
                 if raise_:
                     raise Exception(msg)
 

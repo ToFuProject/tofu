@@ -2357,7 +2357,7 @@ class MultiIDSLoader(object):
                 names, times = self.get_events(verb=False, returnas=tuple)
             except Exception as err:
                 msg = (str(err)
-                       + "\nEvents could not be loaded from ids pulse_schedule!")
+                       + "\nEvents not loaded from ids pulse_schedule!")
                 warnings.warn(msg)
         if 'pulse_schedule' in self._dids.keys():
             idd = self._dids['pulse_schedule']['idd']
