@@ -339,7 +339,7 @@ class Test01_Struct(object):
                                              offsetIn=0.001)
                     out = obj.get_sampleEdge(0.1, resMode='rel',
                                              offsetIn=-0.001)
-                    out = obj.get_sampleEdge(0.05, domain=[None,[-2.,0.]],
+                    out = obj.get_sampleEdge(0.05, domain=[None, [-2., 0.]],
                                              resMode='abs', offsetIn=0.)
 
     def test13_get_sampleCross(self):
@@ -357,11 +357,12 @@ class Test01_Struct(object):
                                    obj.dgeom['P1Max'][0])
                         DS1 = PMinMax[0] + (PMinMax[1]-PMinMax[0])/2.
                         ii = 2
-                        out = obj.get_sampleCross(0.1, domain=[[None,DS1],None],
+                        out = obj.get_sampleCross(0.1, domain=[[None, DS1],
+                                                               None],
                                                   resMode='rel')
                     except Exception as err:
                         msg = str(err)
-                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ, c, n)
                         msg += " and ii={0}".format(ii)
                         raise Exception(msg)
 
@@ -373,7 +374,7 @@ class Test01_Struct(object):
                     obj = self.dobj[typ][c][n]
                     P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
                     P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
-                    DS = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+                    DS = None#[[2., 3.], [0., 5.], [0., np.pi/2.]]
                     try:
                         ii = 0
                         out = obj.get_sampleS(0.05, resMode='abs', domain=DS,
@@ -401,7 +402,7 @@ class Test01_Struct(object):
 
     def test15_get_sampleV(self):
         ldomain = [None,
-                   [[2.,3.], [0., None], [0., np.pi/2.]]]
+                   [[2., 3.], [0., None], [0., np.pi/2.]]]
         for typ in self.dobj.keys():
             # Todo : introduce possibility of choosing In coordinates !
             for c in self.dobj[typ].keys():
@@ -420,11 +421,11 @@ class Test01_Struct(object):
                             pts0, ind0 = out[0], out[2]
                         except Exception as err:
                             msg = (str(err) +
-                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
-                                + "\t- ii = {0}\n".format(ii)
-                                + "\t- Lim = {0}\n".format(obj.Lim)
-                                + "\t- domain = {0}\n".format(ldomain[ii])
-                                + "\t- algo = 'old'"
+                                   "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                   + "\t- ii = {0}\n".format(ii)
+                                   + "\t- Lim = {0}\n".format(obj.Lim)
+                                   + "\t- domain = {0}\n".format(ldomain[ii])
+                                   + "\t- algo = 'old'"
                             )
                             raise Exception(msg)
                         try:
@@ -435,11 +436,11 @@ class Test01_Struct(object):
                             pts1, ind1 = out[0], out[2]
                         except Exception as err:
                             msg = (str(err) +
-                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
-                                + "\t- ii = {0}\n".format(ii)
-                                + "\t- Lim = {0}\n".format(obj.Lim)
-                                + "\t- ind = {0}\n".format(ind0)
-                                + "\t- algo = 'old'"
+                                   "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                   + "\t- ii = {0}\n".format(ii)
+                                   + "\t- Lim = {0}\n".format(obj.Lim)
+                                   + "\t- ind = {0}\n".format(ind0)
+                                   + "\t- algo = 'old'"
                             )
                             raise Exception(msg)
                         try:
@@ -465,12 +466,13 @@ class Test01_Struct(object):
                             pts3, ind3 = out[0], out[2]
                         except Exception as err:
                             msg = (str(err) +
-                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
-                                + "\t- ii = {0}\n".format(ii)
-                                + "\t- Lim = {0}\n".format(obj.Lim)
-                                + "\t- domain = {0}\n".format(ldomain[ii])
-                                + "\t- ind = {0}\n".format(ind0)
-                                + "\t- algo = 'new'"
+                                   "\nFailed for {0}_{1}_{2}\n".format(typ,
+                                                                       c, n)
+                                   + "\t- ii = {0}\n".format(ii)
+                                   + "\t- Lim = {0}\n".format(obj.Lim)
+                                   + "\t- domain = {0}\n".format(ldomain[ii])
+                                   + "\t- ind = {0}\n".format(ind0)
+                                   + "\t- algo = 'new'"
                             )
                             raise Exception(msg)
 
@@ -491,7 +493,7 @@ class Test01_Struct(object):
                                        + "\t- (old algo)\n"
                                        + "\t- same shape: {}\n".format(c0)
                                        + "\t- np.allclose() {}\n".format(c1)
-                                       + "\t- domain = {}\n".format(ldomain[ii])
+                                       + "\t- domain= {}\n".format(ldomain[ii])
                                        + "\t- ind = {}".format(ind0))
                                 raise Exception(msg)
 

@@ -413,10 +413,12 @@ def _Ves_get_sampleCross(
             out = (Pts, dS, ind, (d1r, d2r))
         else:
             x1, d1r, ind1, N1 = _GG._Ves_mesh_dlfromL_cython(
-                MinMax1, res[0], domain[0], Lim=True, dLMode=resMode, margin=margin
+                MinMax1, res[0], domain[0], Lim=True,
+                dLMode=resMode, margin=margin
             )
             x2, d2r, ind2, N2 = _GG._Ves_mesh_dlfromL_cython(
-                MinMax2, res[1], domain[1], Lim=True, dLMode=resMode, margin=margin
+                MinMax2, res[1], domain[1], Lim=True,
+                dLMode=resMode, margin=margin
             )
             xx1, xx2 = np.meshgrid(x1, x2)
             pts = np.squeeze([xx1, xx2])

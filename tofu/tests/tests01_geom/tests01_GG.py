@@ -126,7 +126,7 @@ def test02_Poly_CLockOrder():
 
     assert not np.allclose(P[:, 0], P[:, -1]), "poly should not be closed"
     assert P.shape == (2, 4), ("shape of poly should be (2,4), here = "
-                               + str(P.shape) + "\n Poly = " + str(P) )
+                               + str(P.shape) + "\n Poly = " + str(P))
     assert GG.Poly_isClockwise(np.concatenate((P, P[:, 0:1]), axis=1))
     assert not P.flags['C_CONTIGUOUS']
     assert P.flags['F_CONTIGUOUS']
