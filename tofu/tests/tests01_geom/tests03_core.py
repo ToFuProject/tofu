@@ -421,12 +421,13 @@ class Test01_Struct(object):
                             pts0, ind0 = out[0], out[2]
                         except Exception as err:
                             msg = (str(err) +
-                                   "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                   "\nFailed for {0}_{1}_{2}\n".format(typ,
+                                                                       c, n)
                                    + "\t- ii = {0}\n".format(ii)
                                    + "\t- Lim = {0}\n".format(obj.Lim)
                                    + "\t- domain = {0}\n".format(ldomain[ii])
                                    + "\t- algo = 'old'"
-                            )
+                                   )
                             raise Exception(msg)
                         try:
                             out = obj.get_sampleV(0.1, resMode='abs',
@@ -436,12 +437,13 @@ class Test01_Struct(object):
                             pts1, ind1 = out[0], out[2]
                         except Exception as err:
                             msg = (str(err) +
-                                   "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                   "\nFailed for {0}_{1}_{2}\n".format(typ,
+                                                                       c, n)
                                    + "\t- ii = {0}\n".format(ii)
                                    + "\t- Lim = {0}\n".format(obj.Lim)
                                    + "\t- ind = {0}\n".format(ind0)
                                    + "\t- algo = 'old'"
-                            )
+                                   )
                             raise Exception(msg)
                         try:
                             out = obj.get_sampleV(0.1, resMode='abs',
@@ -451,12 +453,12 @@ class Test01_Struct(object):
                             pts2, ind2 = out[0], out[2]
                         except Exception as err:
                             msg = (str(err) +
-                                "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
-                                + "\t- ii = {0}\n".format(ii)
-                                + "\t- Lim = {0}\n".format(obj.Lim)
-                                + "\t- domain = {0}\n".format(ldomain[ii])
-                                + "\t- algo = 'new'"
-                            )
+                                   "\nFailed for {0}_{1}_{2}\n".format(typ, c, n)
+                                   + "\t- ii = {0}\n".format(ii)
+                                   + "\t- Lim = {0}\n".format(obj.Lim)
+                                   + "\t- domain = {0}\n".format(ldomain[ii])
+                                   + "\t- algo = 'new'"
+                                   )
                             raise Exception(msg)
                         try:
                             out = obj.get_sampleV(0.1, resMode='abs',
@@ -473,7 +475,7 @@ class Test01_Struct(object):
                                    + "\t- domain = {0}\n".format(ldomain[ii])
                                    + "\t- ind = {0}\n".format(ind0)
                                    + "\t- algo = 'new'"
-                            )
+                                   )
                             raise Exception(msg)
 
                         if type(pts0) is list:
