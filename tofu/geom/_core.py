@@ -1177,31 +1177,41 @@ class Struct(utils.ToFuObject):
             Test=Test,
         )
 
-    def get_sampleEdge(self, res=None, DS=None, resMode="abs", offsetIn=0.0):
+    def get_sampleEdge(
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        offsetIn=0.0,
+    ):
         """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
-        Sampling can be limited to a subdomain defined by DS
+        Sampling can be limited to a domain
         """
         if res is None:
             res = _RES
-        pts, dlr, ind = _comp._Ves_get_sampleEdge(
-            self.Poly,
-            res,
-            DS=DS,
-            dLMode=resMode,
-            DIn=offsetIn,
+        return _comp._Ves_get_sampleEdge(
+            self.Poly_closed,
+            res=res,
+            domain=domain,
+            resMode=resMode,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             margin=1.0e-9,
         )
-        return pts, dlr, ind
 
     def get_sampleCross(
-        self, res=None, DS=None, resMode="abs", ind=None, mode="flat"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        mode="flat",
     ):
         """ Sample, with resolution res, the 2D cross-section
 
-        The sampling domain can be limited by DS or ind
+        The sampling domain can be limited by domain or ind
 
         Depending on the value of mode, the method returns:
             - 'flat': (tuned for integrals computing)
@@ -1224,25 +1234,24 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DS=DS, dSMode=resMode, ind=ind, margin=1.0e-9, mode=mode
+            res=res, domain=domain, resMode=resMode, ind=ind,
+            margin=1.0e-9, mode=mode
         )
-        out = _comp._Ves_get_sampleCross(*args, **kwdargs)
-        return out
+        return _comp._Ves_get_sampleCross(*args, **kwdargs)
 
     def get_sampleS(
         self,
         res=None,
-        DS=None,
-        resMode="abs",
+        domain=None,
+        resMode=None,
         ind=None,
         offsetIn=0.0,
-        Out="(X,Y,Z)",
+        returnas="(X,Y,Z)",
         Ind=None,
     ):
-        """ Sample, with resolution res, the surface defined by DS or ind
+        """ Sample, with resolution res, the surface defined by domain or ind
 
         An optionnal offset perpendicular to the surface can be used
         (offsetIn>0 => inwards)
@@ -1255,13 +1264,13 @@ class Struct(utils.ToFuObject):
                 list    : [dl,dXPhi] where:
                     dl      : res. along polygon contours (cross-section)
                     dXPhi   : res. along axis (toroidal/linear direction)
-        DS      :   None / list of 3 lists of 2 floats
+        domain :    None / list of 3 lists of 2 floats
             Limits of the domain in which the sample should be computed
                 None : whole surface of the object
-                list : [D1,D2,D3], where Di is a len()=2 list
+                list : [D1, D2, D3], where Di is a len()=2 list
                        (increasing floats, setting limits along coordinate i)
-                    [DR,DZ,DPhi]: in toroidal geometry (self.Id.Type=='Tor')
-                    [DX,DY,DZ]  : in linear geometry (self.Id.Type=='Lin')
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
         resMode  :   str
             Flag, specifies if res is absolute or relative to element sizes
                 'abs'   :   res is an absolute distance
@@ -1284,7 +1293,7 @@ class Struct(utils.ToFuObject):
             Offset distance from the actual surface of the object
             Inwards if positive
             Useful to avoid numerical errors
-        Out     :   str
+        returnas:   str
             Flag indicating the coordinate system of returned points
             e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
         Ind     :   None / iterable of ints
@@ -1308,27 +1317,98 @@ class Struct(utils.ToFuObject):
         if res is None:
             res = _RES
         kwdargs = dict(
-            DS=DS,
-            dSMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
-            DIn=offsetIn,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             VType=self.Id.Type,
             VLim=np.ascontiguousarray(self.Lim),
             nVLim=self.noccur,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
             Multi=self.dgeom["Multi"],
             Ind=Ind,
         )
-        args = [self.Poly, res]
-        pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
-        return pts, dS, ind, reseff
+        return _comp._Ves_get_sampleS(self.Poly, **kwdargs)
 
     def get_sampleV(
-        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        returnas="(X,Y,Z)",
+        algo="new",
+        num_threads=48
     ):
-        """ Sample, with resolution res, the volume defined by DV or ind """
+        """ Sample, with resolution res, the volume defined by domain or ind
+
+        The 3D volume is sampled in:
+            - the whole volume (domain=None and ind=None)
+            - a sub-domain defined by bounds on each coordinates (domain)
+            - a pre-computed subdomain stored in indices (ind)
+
+        The coordinatesd of the center of each volume elements are returned as
+        pts in choosen coordinates (returnas)
+
+        For a torus, the elementary volume is kept constant, meaning that the
+        toroidal angular step is decreased as R increases
+
+        Parameters
+        ----------
+        res     :   float / list of 3 floats
+            Desired resolution of the surfacic sample
+                float   : same resolution for all directions of the sample
+                list    : [dYR, dZ, dXPhi] where:
+                    dYR     : res. along in radial / Y direction
+                    dZ      : res. along Z direction
+                    dXPhi   : res. along axis (toroidal/linear direction)
+        domain :    None / list of 3 lists of 2 floats
+            Limits of the domain in which the sample should be computed
+                None : whole surface of the object
+                list : [D1, D2, D3], where Di is a len()=2 list
+                       (increasing floats, setting limits along coordinate i)
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
+        resMode  :   str
+            Flag, specifies if res is absolute or relative to element sizes
+                'abs'   :   res is an absolute distance
+                'rel'   :   if res=0.1, each polygon segment is divided in 10,
+                            as is the toroidal/linear length
+        ind     :   None / np.ndarray of int
+            If provided, DS is ignored and the sample points corresponding to
+            the provided indices are returned
+            Example (assuming obj is a Ves object)
+                > # We create a 5x5 cm2 sample of the whole surface
+                > pts, dS, ind, reseff = obj.get_sample(0.05)
+                > # Perform operations, save only the points indices
+                > # (save space)
+                > ...
+                > # Retrieve the points from their indices (requires same res)
+                > pts2, dS2, ind2, reseff2 = obj.get_sample(0.05, ind=ind)
+                > np.allclose(pts,pts2)
+                True
+        returnas:   str
+            Flag indicating the coordinate system of returned points
+            e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+        Ind     :   None / iterable of ints
+            Array of indices of the entities to be considered
+            (only when multiple entities, i.e.: self.nLim>1)
+
+        Returns
+        -------
+        pts     :   np.ndarray / list of np.ndarrays
+            Sample points coordinates, as a (3,N) array.
+            A list is returned if the object has multiple entities
+        dV      :   np.ndarray / list of np.ndarrays
+            The volume (in m^3) associated to each point
+        ind     :   np.ndarray / list of np.ndarrays
+            The index of each point
+        reseff  :   np.ndarray / list of np.ndarrays
+            Effective resolution in both directions after sample computation
+        """
 
         args = [
             self.Poly,
@@ -1336,19 +1416,20 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DV=DV,
-            dVMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
             VType=self.Id.Type,
             VLim=self.Lim,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
+            algo=algo,
+            num_threads=num_threads
         )
-        pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
-        return pts, dV, ind, reseff
+        return _comp._Ves_get_sampleV(*args, **kwdargs)
 
     def _get_phithetaproj(self, refpt=None):
         # Prepare ax
