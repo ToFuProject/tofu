@@ -21,9 +21,9 @@ Main changes:
 Detailed changes:
 =================
 
-Installation / portability:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
--
+Community:
+~~~~~~~~~~
+- README now includes PlasmaPy badges
 
 scripts:
 ~~~~~~~~
