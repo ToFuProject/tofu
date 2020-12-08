@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.data package &#8212; Tofu 1.4.6</title>
+    <title>tofu.data package &#8212; Tofu 1.4.7</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
@@ -39,7 +39,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.7</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -150,7 +150,7 @@ Can also exclude a frequency interval and its higher harmonics</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>t</strong> (<em>np.ndarray</em>) – 1D array, monotonously increasing time vector with regular spacing</p></li>
 <li><p><strong>data</strong> (<em>np.ndarray</em>) – 1 or 2D array, with shape[0]=t.size, the data to be filtered</p></li>
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which method to use:</dt><dd><ul>
 <li><p>’rfft’:   scipy.fftpack.rfft</p></li>
 <li><p>’stft’:   scipy.signal.stft</p></li>
@@ -159,11 +159,11 @@ Can also exclude a frequency interval and its higher harmonics</p>
 </dl>
 </p></li>
 <li><p><strong>df</strong> (<em>None / list</em>) – List or tuple of len()=2, containing the bandpass lower / upper bounds</p></li>
-<li><p><strong>harm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If True all the higher harmonics of df will also be included</p></li>
+<li><p><strong>harm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True all the higher harmonics of df will also be included</p></li>
 <li><p><strong>df_out</strong> (<em>None / list</em>) – List or tuple of len()=2, containing the bandpass lower / upper bounds
 to be excluded from filtering (if it overlaps with high harmonics of df)</p></li>
-<li><p><strong>harm_out</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If True, the higher harmonics of the interval df_out are also excluded</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – If True tests all the input arguments for any mistake</p></li>
+<li><p><strong>harm_out</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True, the higher harmonics of the interval df_out are also excluded</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True tests all the input arguments for any mistake</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -285,8 +285,26 @@ to be excluded from filtering (if it overlaps with high harmonics of df)</p></li
 
 <dl class="method">
 <dt id="tofu.data._core.Plasma2D.add_ref">
-<code class="sig-name descname">add_ref</code><span class="sig-paren">(</span><em class="sig-param">key=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">group=None</em>, <em class="sig-param">dim=None</em>, <em class="sig-param">quant=None</em>, <em class="sig-param">units=None</em>, <em class="sig-param">origin=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core.html#Plasma2D.add_ref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core.Plasma2D.add_ref" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_ref</code><span class="sig-paren">(</span><em class="sig-param">key=None</em>, <em class="sig-param">data=None</em>, <em class="sig-param">group=None</em>, <em class="sig-param">dim=None</em>, <em class="sig-param">quant=None</em>, <em class="sig-param">units=None</em>, <em class="sig-param">origin=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">comments=None</em>, <em class="sig-param">delimiter=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_core.html#Plasma2D.add_ref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._core.Plasma2D.add_ref" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a reference</p>
+<dl class="simple">
+<dt>The reference data is contained in data, which can be:</dt><dd><ul class="simple">
+<li><p>np.array: a 1d profile</p></li>
+<li><p>dict: for mesh</p></li>
+<li><p>str:  absolute path to a file, holding a 1d profile</p></li>
+</ul>
+</dd>
+<dt>Please also provide (if not included in file if data is a str):</dt><dd><ul class="simple">
+<li><p>key: unique str identifying the data</p></li>
+<li><p>group: str identifying the reference group (self.dgroup.keys())</p></li>
+</ul>
+</dd>
+</dl>
+<p>If data is a str to a file, key and group (and others) can be included
+in the file</p>
+<p>Parameters dim, quant, units, origin and name are optional
+Parameters comments and delimiter and only used if data is the path to
+a .txt file (fed to np.loadtxt)</p>
 </dd></dl>
 
 <dl class="method">
@@ -468,7 +486,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: dgeom pathfiles</p>
@@ -662,7 +680,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: None</p>
@@ -695,7 +713,7 @@ Use strip=0 to recover all atributes</p>
 
 <dl class="function">
 <dt id="tofu.data._plot.Data_plot_spectrogram">
-<code class="sig-prename descclassname">tofu.data._plot.</code><code class="sig-name descname">Data_plot_spectrogram</code><span class="sig-paren">(</span><em class="sig-param">Data, tf, f, lpsd, lang, fmax=None, key=None, bck=True, indref=0, cmap_f=None, cmap_img=None, ms=4, vmin=None, vmax=None, normt=False, ntMax=None, nfMax=3, lls=['-', '--', '-.', ':'], lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], lcch=[(0.8392156862745098, 0.15294117647058825, 0.1568627450980392), (0.5803921568627451, 0.403921568627451, 0.7411764705882353), (0.5490196078431373, 0.33725490196078434, 0.29411764705882354), (1.0, 0.596078431372549, 0.5882352941176471), (0.7725490196078432, 0.6901960784313725, 0.8352941176470589), (0.7686274509803922, 0.611764705882353, 0.5803921568627451)], plotmethod='imshow', invert=False, fs=None, dmargin=None, wintit='tofu-1.4.6-2-g7a0d42d4        report issues / requests at https://github.com/ToFuProject/tofu/issues', tit=None, fontsize=None, draw=True, connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_plot.html#Data_plot_spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._plot.Data_plot_spectrogram" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.data._plot.</code><code class="sig-name descname">Data_plot_spectrogram</code><span class="sig-paren">(</span><em class="sig-param">Data, tf, f, lpsd, lang, fmax=None, key=None, bck=True, indref=0, cmap_f=None, cmap_img=None, ms=4, vmin=None, vmax=None, normt=False, ntMax=None, nfMax=3, lls=['-', '--', '-.', ':'], lct=[(0.12156862745098039, 0.4666666666666667, 0.7058823529411765), (1.0, 0.4980392156862745, 0.054901960784313725), (0.17254901960784313, 0.6274509803921569, 0.17254901960784313), (0.6823529411764706, 0.7803921568627451, 0.9098039215686274), (1.0, 0.7333333333333333, 0.47058823529411764), (0.596078431372549, 0.8745098039215686, 0.5411764705882353)], lcch=[(0.8392156862745098, 0.15294117647058825, 0.1568627450980392), (0.5803921568627451, 0.403921568627451, 0.7411764705882353), (0.5490196078431373, 0.33725490196078434, 0.29411764705882354), (1.0, 0.596078431372549, 0.5882352941176471), (0.7725490196078432, 0.6901960784313725, 0.8352941176470589), (0.7686274509803922, 0.611764705882353, 0.5803921568627451)], plotmethod='imshow', invert=False, fs=None, dmargin=None, wintit='tofu-1.4.7-45-g06ba4170        report issues / requests at https://github.com/ToFuProject/tofu/issues', tit=None, fontsize=None, draw=True, connect=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/data/_plot.html#Data_plot_spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.data._plot.Data_plot_spectrogram" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -824,7 +842,7 @@ Takes already formatted 2d data:</p>
     </p>
     <p>
         &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Jun 04, 2020.<br/>
+      Last updated on Dec 08, 2020.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

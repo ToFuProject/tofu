@@ -118,7 +118,7 @@ output.
 
  .. code-block:: none
 
-    /home/lasofivec/tofu/tofu/utils.py:3230: UserWarning: Not interactive backend!:
+    /home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -162,7 +162,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.436 seconds)
+   **Total running time of the script:** ( 0 minutes  2.900 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:

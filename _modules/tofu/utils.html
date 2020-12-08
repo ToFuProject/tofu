@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.utils &#8212; Tofu 1.4.6</title>
+    <title>tofu.utils &#8212; Tofu 1.4.7</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.7</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -144,7 +144,7 @@
 <span class="n">_SAVETYP</span> <span class="o">=</span> <span class="s1">&#39;__type__&#39;</span>
 <span class="n">_NSAVETYP</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_SAVETYP</span><span class="p">)</span>
 
-<span class="n">_LIDS_CUSTOM</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;magfieldlines&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;shortcuts&#39;</span><span class="p">]</span>
+<span class="n">_LIDS_CUSTOM</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;magfieldlines&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;shortcuts&#39;</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">]</span>
 
 
 <span class="c1">###############################################</span>
@@ -572,6 +572,63 @@
     <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">pfe</span>
 
 
+<div class="viewcode-block" id="get_param_from_file_name"><a class="viewcode-back" href="../../tofu.html#tofu.utils.get_param_from_file_name">[docs]</a><span class="k">def</span> <span class="nf">get_param_from_file_name</span><span class="p">(</span><span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lparams</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Try to extract desired parameter from file name</span>
+
+<span class="sd">    tofu typically saves files with names formatted as:</span>
+<span class="sd">        XXX_Key0param0_Key1param1_Key2param2...</span>
+
+<span class="sd">    Where:</span>
+<span class="sd">        - XXX corresponds to the sub-package that created the file</span>
+<span class="sd">        - Keyiparami are (key, value) parameter pairs, when possible</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">test</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># Check inputs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Provided file does not exist!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">lparams</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+              <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">lparams</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+                  <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">lparams</span><span class="p">])))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg lparams must be a str of list of str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lparams</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lparams</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">lparams</span> <span class="o">=</span> <span class="p">[</span><span class="n">lparams</span><span class="p">]</span>
+
+    <span class="c1"># Get params</span>
+    <span class="n">path</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
+
+    <span class="c1"># First, try from file name</span>
+    <span class="n">dout</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">lparams</span><span class="p">)</span>
+    <span class="n">lk</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="n">nk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lk</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">lparams</span><span class="p">:</span>
+        <span class="n">lind</span> <span class="o">=</span> <span class="p">[</span><span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nk</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">pp</span> <span class="ow">in</span> <span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">lk</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lind</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]</span> <span class="o">=</span> <span class="n">lk</span><span class="p">[</span><span class="n">lind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">():</span>
+                <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">lind</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Several values for key </span><span class="si">{}</span><span class="s2"> found in file:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;    file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
+
+
 <div class="viewcode-block" id="load"><a class="viewcode-back" href="../../tofu.html#tofu.utils.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;     Load a tofu object file</span>
 
@@ -724,9 +781,80 @@
     <span class="k">return</span> <span class="n">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;mat&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="n">lsmat</span><span class="p">)</span>
 
 
+<span class="c1">###############################################</span>
+<span class="c1">#       Getting parameters from txt files</span>
+<span class="c1">###############################################</span>
+
+
+<div class="viewcode-block" id="from_txt_extract_params"><a class="viewcode-back" href="../../tofu.html#tofu.utils.from_txt_extract_params">[docs]</a><span class="k">def</span> <span class="nf">from_txt_extract_params</span><span class="p">(</span><span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lparams</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract key parameters stored as commented lines at top of file</span>
+
+<span class="sd">    tofu saves some data to txt files with the following formatting:</span>
+<span class="sd">        - a series of commented (#) lines, each with format:</span>
+<span class="sd">            # key: value</span>
+<span class="sd">        - a 1d or 2d np.ndarray</span>
+
+<span class="sd">    This routine extracts the desired parameters from the commented lines</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">comments</span> <span class="o">=</span> <span class="s1">&#39;#&#39;</span>
+
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Provided file does not exist!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">lparams</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+          <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">lparams</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+              <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">lparams</span><span class="p">])))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg lparams must be a str of list of str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lparams</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lparams</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">lparams</span> <span class="o">=</span> <span class="p">[</span><span class="n">lparams</span><span class="p">]</span>
+
+    <span class="c1"># First, try from file name</span>
+    <span class="n">dout</span> <span class="o">=</span> <span class="n">get_param_from_file_name</span><span class="p">(</span><span class="n">pfe</span><span class="o">=</span><span class="n">pfe</span><span class="p">,</span> <span class="n">lparams</span><span class="o">=</span><span class="n">lparams</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Then try from file content (overwrite but warn)</span>
+    <span class="n">lout</span> <span class="o">=</span> <span class="n">lparams</span> <span class="o">+</span> <span class="p">[</span><span class="n">comments</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">]</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">lparams</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">fid</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">lout</span><span class="p">:</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">kk</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">():</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">line</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                    <span class="k">if</span> <span class="n">dout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pp</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]</span> <span class="o">!=</span> <span class="n">line</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Inconsistency between file name and content</span><span class="se">\n</span><span class="s2">&quot;</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- file: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- parameter: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pp</span><span class="p">)</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- from name: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">])</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- from content: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+                        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                    <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">]</span> <span class="o">=</span> <span class="n">line</span>
+                    <span class="k">break</span>
+                <span class="k">elif</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="k">break</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
+
+
 <span class="c1">#######</span>
 <span class="c1">#   tf.geom.Struct - specific</span>
 <span class="c1">#######</span>
+
 
 <span class="k">def</span> <span class="nf">_load_from_txt</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -767,12 +895,15 @@
 
 
 <div class="viewcode-block" id="load_from_imas"><a class="viewcode-back" href="../../tofu.html#tofu.utils.load_from_imas">[docs]</a><span class="k">def</span> <span class="nf">load_from_imas</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tokamak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">occ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description_2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">equilibrium</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dextra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_sig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plot_X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">sharex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">invertx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                   <span class="n">bck</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indch_auto</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dR_sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                   <span class="n">bck</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indch_auto</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tosoledge3x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">mag_init_pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mag_sep_dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mag_sep_nbpts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
     <span class="c1"># -------------------</span>
     <span class="c1"># import imas2tofu</span>
     <span class="k">try</span><span class="p">:</span>
@@ -824,8 +955,9 @@
 
     <span class="c1"># -------------------</span>
     <span class="c1"># Prepare shot</span>
-    <span class="n">shot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">shot</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-    <span class="n">nshot</span> <span class="o">=</span> <span class="n">shot</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">if</span> <span class="n">shot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">shot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">shot</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">nshot</span> <span class="o">=</span> <span class="n">shot</span><span class="o">.</span><span class="n">size</span>
 
     <span class="c1"># -------------------</span>
     <span class="c1"># Call magfieldline if relevant</span>
@@ -855,13 +987,13 @@
         <span class="n">equi_z_r_ext</span> <span class="o">=</span> <span class="n">equi</span><span class="o">.</span><span class="n">ddata</span><span class="p">[</span><span class="s1">&#39;equilibrium.sep&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span>
                        <span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">equi_ind_r_ext</span><span class="p">]</span>
 
-        <span class="n">nbr_init</span> <span class="o">=</span> <span class="mi">10</span>
-        <span class="k">if</span> <span class="n">dR_sep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">r_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">equi_r_ext</span> <span class="o">+</span> <span class="n">dR_sep</span><span class="p">]</span><span class="o">*</span><span class="n">nbr_init</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">r_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">equi_r_ext</span><span class="p">]</span><span class="o">*</span><span class="n">nbr_init</span>
-        <span class="n">phi_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">ii</span><span class="o">*</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">nbr_init</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbr_init</span><span class="p">)]</span>
-        <span class="n">z_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">equi_z_r_ext</span><span class="p">]</span><span class="o">*</span><span class="n">nbr_init</span>
+        <span class="k">if</span> <span class="n">mag_sep_nbpts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mag_sep_nbpts</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="k">if</span> <span class="n">mag_sep_dR</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mag_sep_dR</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">r_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">equi_r_ext</span> <span class="o">+</span> <span class="n">mag_sep_dR</span><span class="p">]</span><span class="o">*</span><span class="n">mag_sep_nbpts</span>
+        <span class="n">phi_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">ii</span><span class="o">*</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">mag_sep_nbpts</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mag_sep_nbpts</span><span class="p">)]</span>
+        <span class="n">z_init</span> <span class="o">=</span> <span class="p">[</span><span class="n">equi_z_r_ext</span><span class="p">]</span><span class="o">*</span><span class="n">mag_sep_nbpts</span>
         <span class="n">init_plt</span> <span class="o">=</span> <span class="p">[</span><span class="n">r_init</span><span class="p">,</span> <span class="n">phi_init</span><span class="p">,</span> <span class="n">z_init</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="kc">False</span><span class="p">:</span>
@@ -887,14 +1019,14 @@
         <span class="n">refpt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">2.4</span><span class="p">,</span><span class="mf">0.</span><span class="p">]</span>
         <span class="n">dax</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">plot_phithetaproj_dist</span><span class="p">(</span><span class="n">refpt</span><span class="p">,</span> <span class="n">invertx</span><span class="o">=</span><span class="n">invertx</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mag_init_pts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">trace_init</span> <span class="o">=</span> <span class="n">tfm</span><span class="o">.</span><span class="n">MagFieldLines</span><span class="p">(</span>
-                         <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">trace_mline</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span>
+                         <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">trace_mline</span><span class="p">(</span><span class="n">mag_init_pts</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span>
                                                    <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;FWD&#39;</span><span class="p">,</span>
                                                    <span class="n">length_line</span><span class="o">=</span><span class="mi">35</span><span class="p">,</span>
                                                    <span class="n">stp</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
             <span class="n">trace_init_rev</span> <span class="o">=</span> <span class="n">tfm</span><span class="o">.</span><span class="n">MagFieldLines</span><span class="p">(</span>
-                             <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">trace_mline</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span>
+                             <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">trace_mline</span><span class="p">(</span><span class="n">mag_init_pts</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span>
                                                        <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;REV&#39;</span><span class="p">,</span>
                                                        <span class="n">length_line</span><span class="o">=</span><span class="mi">35</span><span class="p">,</span>
                                                        <span class="n">stp</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
@@ -923,8 +1055,8 @@
 
         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">trace</span><span class="p">)):</span>
             <span class="c1"># Concatenate trace lists</span>
-            <span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span> <span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">])):</span>
+            <span class="c1"># trace[ii] = trace[ii] + trace_rev[ii]</span>
+            <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">])):</span>
                 <span class="n">lab</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;t = </span><span class="si">%s</span><span class="s1"> s&#39;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
                 <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">]),</span>
                                  <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">]))</span>
@@ -933,28 +1065,52 @@
                 <span class="c1"># insert nans for clean periodicity</span>
                 <span class="n">indnan</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
                           <span class="o">|</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
-                <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;dist&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">indnan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-                                    <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">indnan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-                                    <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">)</span>
+                <span class="n">l</span><span class="p">,</span> <span class="o">=</span> <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;dist&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">indnan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                                         <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">indnan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                                         <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">)</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">get_color</span><span class="p">()</span>
                 <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">],</span> <span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">],</span>
-                                     <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">)</span>
+                                     <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">,</span>
+                                     <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
                 <span class="n">x</span> <span class="o">=</span> <span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">])</span>
                 <span class="n">y</span> <span class="o">=</span> <span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">trace</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">])</span>
-                <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">)</span>
+                <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">,</span>
+                                   <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                <span class="c1"># rev</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">]),</span>
+                                 <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">]))</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">refpt</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                   <span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">refpt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="c1"># insert nans for clean periodicity</span>
+                <span class="n">indnan</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+                          <span class="o">|</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;dist&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">indnan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                                    <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">indnan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+                                    <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">,</span>
+                                   <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">],</span>
+                                     <span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;z&#39;</span><span class="p">],</span>
+                                     <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">,</span>
+                                     <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">])</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;r&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">trace_rev</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">jj</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">])</span>
+                <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha_mag_lines</span><span class="p">,</span>
+                                   <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
 
         <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">equi</span><span class="o">.</span><span class="n">ddata</span><span class="p">[</span><span class="s1">&#39;equilibrium.sep&#39;</span><span class="p">][</span>
                              <span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
                              <span class="n">equi</span><span class="o">.</span><span class="n">ddata</span><span class="p">[</span><span class="s1">&#39;equilibrium.sep&#39;</span><span class="p">][</span>
                              <span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
                              <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-.&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
-        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">)[</span><span class="s1">&#39;strike0&#39;</span><span class="p">][</span>
-                             <span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
-                             <span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">)[</span><span class="s1">&#39;strike0&#39;</span><span class="p">][</span>
-                             <span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">)[</span><span class="s1">&#39;strike1&#39;</span><span class="p">][</span>
-                             <span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
-                             <span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">)[</span><span class="s1">&#39;strike1&#39;</span><span class="p">][</span>
-                             <span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+        <span class="n">s01</span> <span class="o">=</span> <span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">dsig</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;strike0&#39;</span><span class="p">,</span> <span class="s1">&#39;strike1&#39;</span><span class="p">]},</span>
+                             <span class="n">return_all</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">]</span>
+        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">s01</span><span class="p">[</span><span class="s1">&#39;strike0&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                             <span class="n">s01</span><span class="p">[</span><span class="s1">&#39;strike0&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                             <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">s01</span><span class="p">[</span><span class="s1">&#39;strike1&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                             <span class="n">s01</span><span class="p">[</span><span class="s1">&#39;strike1&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">equi_ind_t</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                             <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
         <span class="n">dax</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Shot </span><span class="si">{0}</span><span class="s1">, t = </span><span class="si">{1:6.3f}</span><span class="s1"> s&#39;</span>
                                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">dax</span>
@@ -964,6 +1120,18 @@
                                          <span class="n">tokamak</span><span class="o">=</span><span class="n">tokamak</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
                                          <span class="n">ids</span><span class="o">=</span><span class="s1">&#39;pulse_schedule&#39;</span><span class="p">,</span> <span class="n">ids_base</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">multi</span><span class="o">.</span><span class="n">get_events</span><span class="p">(</span><span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">elif</span> <span class="n">ids</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]:</span>
+        <span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">]:</span>
+            <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_available_config</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="n">conf</span><span class="o">.</span><span class="n">set_colors_random</span><span class="p">()</span>
+            <span class="n">conf</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">tosoledge3x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">]:</span>
+                <span class="n">conf</span><span class="o">.</span><span class="n">to_SOLEDGE3X</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">tosoledge3x</span><span class="p">)</span>
         <span class="k">return</span>
 
     <span class="c1"># -------------------</span>
@@ -1444,7 +1612,7 @@
                                       <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span>
                                       <span class="n">indch_auto</span><span class="o">=</span><span class="n">indch_auto</span><span class="p">,</span>
                                       <span class="n">t0</span><span class="o">=</span><span class="n">t0</span><span class="p">,</span> <span class="n">dextra</span><span class="o">=</span><span class="n">dextra</span><span class="p">,</span>
-                                      <span class="n">coefs</span><span class="o">=</span><span class="n">coefs</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">coefs</span><span class="o">=</span><span class="n">coefs</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bck</span><span class="o">=</span><span class="n">bck</span><span class="p">,</span>
                                       <span class="n">plot_compare</span><span class="o">=</span><span class="n">plot_compare</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
@@ -1455,7 +1623,10 @@
             <span class="n">multi</span><span class="o">.</span><span class="n">add_ids</span><span class="p">(</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">,</span> <span class="n">get</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">plasma</span> <span class="o">=</span> <span class="n">multi</span><span class="o">.</span><span class="n">to_Plasma2D</span><span class="p">()</span>
             <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="s1">&#39;rhotn&#39;</span><span class="p">,</span> <span class="s1">&#39;brem&#39;</span><span class="p">]</span>
-            <span class="n">lamb</span> <span class="o">=</span> <span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="s1">&#39;bremsstrahlung_visible&#39;</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="s1">&#39;lamb&#39;</span><span class="p">)[</span><span class="s1">&#39;lamb&#39;</span><span class="p">]</span>
+            <span class="n">lamb</span> <span class="o">=</span> <span class="n">multi</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span>
+                <span class="n">dsig</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;bremsstrahlung_visible&#39;</span><span class="p">:</span> <span class="s1">&#39;lamb&#39;</span><span class="p">},</span>
+                <span class="n">return_all</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)[</span><span class="s1">&#39;bremsstrahlung_visible&#39;</span><span class="p">][</span><span class="s1">&#39;lamb&#39;</span><span class="p">]</span>
             <span class="n">dout</span> <span class="o">=</span> <span class="n">imas2tofu</span><span class="o">.</span><span class="n">get_data_from_matids</span><span class="p">(</span><span class="n">input_file</span><span class="p">,</span>
                                                   <span class="n">return_fields</span><span class="o">=</span><span class="n">lf</span><span class="p">,</span>
                                                   <span class="n">lamb</span><span class="o">=</span><span class="n">lamb</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1479,7 +1650,7 @@
                                                 <span class="n">quant</span><span class="o">=</span><span class="s1">&#39;core_profiles.1dbrem&#39;</span><span class="p">,</span>
                                                 <span class="n">ref1d</span><span class="o">=</span><span class="s1">&#39;core_profiles.1drhotn&#39;</span><span class="p">,</span>
                                                 <span class="n">ref2d</span><span class="o">=</span><span class="s1">&#39;equilibrium.2drhotn&#39;</span><span class="p">,</span>
-                                                <span class="n">coefs</span><span class="o">=</span><span class="n">coefs</span><span class="p">,</span>
+                                                <span class="n">coefs</span><span class="o">=</span><span class="n">coefs</span><span class="p">,</span> <span class="n">bck</span><span class="o">=</span><span class="n">bck</span><span class="p">,</span>
                                                 <span class="n">Brightness</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="n">plot</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">output_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
@@ -2562,18 +2733,39 @@
                                  <span class="n">SaveName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">lObj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dUSR</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># Str args</span>
-        <span class="n">ls</span> <span class="o">=</span> <span class="p">[</span><span class="n">usr</span><span class="p">,</span><span class="n">Type</span><span class="p">,</span><span class="n">SavePath</span><span class="p">,</span><span class="n">Exp</span><span class="p">,</span><span class="n">Diag</span><span class="p">,</span><span class="n">SaveName</span><span class="p">]</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="p">[</span><span class="n">usr</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">SavePath</span><span class="p">,</span> <span class="n">Exp</span><span class="p">,</span> <span class="n">Diag</span><span class="p">,</span> <span class="n">SaveName</span><span class="p">]</span>
         <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">ss</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">ls</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">usr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">usr</span> <span class="o">=</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span>
             <span class="k">except</span><span class="p">:</span>
                 <span class="k">pass</span>
-        <span class="k">assert</span> <span class="n">shot</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">and</span> <span class="n">shot</span><span class="o">&gt;=</span><span class="mi">0</span>
-        <span class="k">assert</span> <span class="n">Deg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">Deg</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">and</span> <span class="n">Deg</span><span class="o">&gt;=</span><span class="mi">0</span>
-        <span class="k">assert</span> <span class="n">Cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">Cls</span><span class="p">,</span> <span class="n">ToFuObject</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">include</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">include</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">shot</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span>
+              <span class="n">Deg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">Deg</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">and</span> <span class="n">Deg</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span>
+              <span class="n">Cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">Cls</span><span class="p">,</span> <span class="n">ToFuObject</span><span class="p">),</span>
+              <span class="n">include</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">include</span><span class="p">,</span> <span class="nb">list</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Arg shot should be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- int and positive</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;  You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Arg Deg should be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- int and positive</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;  You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Deg</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Arg Cls should be a ToFuObject subclass!&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;  You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Cls</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lc</span><span class="p">[</span><span class="mi">3</span><span class="p">]:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Arg include should be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- list</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;  You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">include</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
         <span class="n">dout</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
         <span class="k">del</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;ls&#39;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">dout</span>
@@ -4102,7 +4294,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Jun 04, 2020.<br/>
+      Last updated on Dec 08, 2020.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

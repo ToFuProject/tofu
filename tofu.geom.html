@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.geom package &#8212; Tofu 1.4.6</title>
+    <title>tofu.geom package &#8212; Tofu 1.4.7</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
@@ -39,7 +39,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.7</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -559,7 +559,7 @@ Actual desired limits</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Lim</strong> (<em>(</em><em>optional</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Indicated if the subdomain should be taken into account</p></li>
+<li><p><strong>Lim</strong> (<em>(</em><em>optional</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Indicated if the subdomain should be taken into account</p></li>
 <li><p><strong>mode</strong> (<em>(</em><em>optional</em><em>) </em><em>string</em>) – If <cite>mode</cite> is “abs” (absolute), then the
 segment will be discretized in cells each of size <cite>dstep</cite>. Else,
 if “rel” (relative), the meshing step is relative to the segments norm
@@ -1145,7 +1145,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: Remove dsino and dmag expendables
@@ -1215,6 +1215,11 @@ ones</p>
 <p>It is desined for iterative root-finding algorithms and is thus called
 for a unique position</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Config.from_SOLEDGE3X">
+<em class="property">classmethod </em><code class="sig-name descname">from_SOLEDGE3X</code><span class="sig-paren">(</span><em class="sig-param">pfe=None</em>, <em class="sig-param">Name=None</em>, <em class="sig-param">Exp=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config.from_SOLEDGE3X"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config.from_SOLEDGE3X" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="tofu.geom._core.Config.get_color">
@@ -1327,7 +1332,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: apply strip(1) to objects in self.lStruct
@@ -1341,6 +1346,11 @@ Use strip=0 to recover all atributes</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="method">
+<dt id="tofu.geom._core.Config.to_SOLEDGE3X">
+<code class="sig-name descname">to_SOLEDGE3X</code><span class="sig-paren">(</span><em class="sig-param">name=None</em>, <em class="sig-param">path=None</em>, <em class="sig-param">verb=None</em>, <em class="sig-param">type_extraprop=None</em>, <em class="sig-param">matlab_version=None</em>, <em class="sig-param">matlab_platform=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_core.html#Config.to_SOLEDGE3X"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._core.Config.to_SOLEDGE3X" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -1568,7 +1578,7 @@ vector was provided.</p></li>
 <dd><p>Compute dictionnary of geometrical attributes (dgeom)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>show_debug_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – In case some lines of sight have no visibility inside the tokamak,
+<dd class="field-odd"><p><strong>show_debug_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – In case some lines of sight have no visibility inside the tokamak,
 they will be considered invalid. tofu will issue a warning with
 their indices and if show_debug_plot is True, try to plot a 3d
 figure to help understand why these los have no visibility</p>
@@ -1628,8 +1638,8 @@ It is possible to sample only a subset of the LOS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>res</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – Desired resolution</p></li>
-<li><p><strong>resMode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>res</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – Desired resolution</p></li>
+<li><p><strong>resMode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating res should be understood as:</dt><dd><ul>
 <li><p>’abs’:    an absolute distance in meters</p></li>
 <li><p>’rel’:    a relative distance (fraction of the LOS length)</p></li>
@@ -1641,7 +1651,7 @@ It is possible to sample only a subset of the LOS</p>
 L1 and L2 are distances from the starting point of the LOS (LOS.D)
 DL can be an iterable of len()==2 (identical to all los), or a
 (2,nlos) array</p></li>
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl>
 <dt>Flag indicating which to use for sampling:</dt><dd><ul>
 <li><dl>
 <dt>’sum’:    the LOS is sampled into N segments of equal length,</dt><dd><dl class="simple">
@@ -1683,9 +1693,9 @@ DL can be an iterable of len()==2 (identical to all los), or a
 </dl>
 </p></li>
 <li><p><strong>ind</strong> (<em>None / iterable of int</em>) – indices of the LOS to be sampled</p></li>
-<li><p><strong>pts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to return only the abscissa parameter k
+<li><p><strong>pts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether to return only the abscissa parameter k
 (False) or the 3D pts coordinates (True)</p></li>
-<li><p><strong>compact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag incating whether to retrun the sampled pts of all los in a
+<li><p><strong>compact</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag incating whether to retrun the sampled pts of all los in a
 single concatenated array (True) or splitted into
 a list of nlos arrays)</p></li>
 </ul>
@@ -1815,7 +1825,7 @@ The plot can also include:</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lax</strong> (<em>list / plt.Axes</em>) – The axes for plotting (list of 2 axes if Proj=’All’)
 If None a new figure with new axes is created</p></li>
-<li><p><strong>proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the kind of projection:</dt><dd><ul>
 <li><p>’Cross’ : cross-section</p></li>
 <li><p>’Hor’ : horizontal</p></li>
@@ -1825,9 +1835,9 @@ If None a new figure with new axes is created</p></li>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>projections</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot also the reflected rays
+<li><p><strong>projections</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether to plot also the reflected rays
 Assuming some reflected rays are present (self.add_reflections())</p></li>
-<li><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <p>Flag specifying which elements to plot
+<li><p><strong>element</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <p>Flag specifying which elements to plot
 Each capital letter corresponds to an element:</p>
 <blockquote>
 <div><ul>
@@ -1844,7 +1854,7 @@ Each capital letter corresponds to an element:</p>
 </ul>
 </div></blockquote>
 </p></li>
-<li><p><strong>Lplot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Lplot</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag specifying the length to plot:</dt><dd><ul>
 <li><p>’Tot’: total length, from starting point (D) to output point</p></li>
 <li><p>’In’ : only the in-vessel fraction (from input to output)</p></li>
@@ -1852,20 +1862,20 @@ Each capital letter corresponds to an element:</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>element_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Fed to self.config.plot()</p></li>
-<li><p><strong>Leg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Legend, if Leg=’’ the LOS name is used</p></li>
+<li><p><strong>element_config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Fed to self.config.plot()</p></li>
+<li><p><strong>Leg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Legend, if Leg=’’ the LOS name is used</p></li>
 <li><p><strong>dL</strong> (<em>dict / None</em>) – Dictionary of properties for plotting the lines
 Fed to plt.Axes.plot(), set to default if None</p></li>
-<li><p><strong>dPtD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘D’</p></li>
-<li><p><strong>dPtI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘I’</p></li>
-<li><p><strong>dPtO</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘O’</p></li>
-<li><p><strong>dPtR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘R’</p></li>
-<li><p><strong>dPtP</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘P’</p></li>
-<li><p><strong>dLeg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)"><em>None</em></a>) – Dictionary of properties for plotting the legend
+<li><p><strong>dPtD</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘D’</p></li>
+<li><p><strong>dPtI</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘I’</p></li>
+<li><p><strong>dPtO</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘O’</p></li>
+<li><p><strong>dPtR</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘R’</p></li>
+<li><p><strong>dPtP</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting point ‘P’</p></li>
+<li><p><strong>dLeg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><em>None</em></a>) – Dictionary of properties for plotting the legend
 Fed to plt.legend(), the legend is not plotted if None</p></li>
-<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether fig.canvas.draw() shall be called</p></li>
-<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot the figure in a4 dimensions</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – </p></li>
+<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether fig.canvas.draw() shall be called</p></li>
+<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether to plot the figure in a4 dimensions</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – </p></li>
 <li><p><strong>a4</strong> – Flag indicating whether to plot the figure in a4 dimensions</p></li>
 <li><p><strong>Test</strong> – </p></li>
 <li><p><strong>a4</strong> – Flag indicating whether to plot the figure in a4 dimensions</p></li>
@@ -1894,7 +1904,7 @@ the angle that the LOS makes with the cross-section plane
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Proj</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether to plot:</dt><dd><ul>
 <li><p>’Cross’:  a classic sinogram (vessel cross-section)</p></li>
 <li><p>’3d’: an extended 3D version (‘3d’), with an additional angle</p></li>
@@ -1903,7 +1913,7 @@ the angle that the LOS makes with the cross-section plane
 </dl>
 </p></li>
 <li><p><strong>ax</strong> (<em>None / plt.Axes</em>) – The axes on which to plot, if None a new figure is created</p></li>
-<li><p><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which elements to plot (one per capital letter):</dt><dd><ul>
 <li><p>’L’: LOS</p></li>
 <li><p>’V’: Vessel</p></li>
@@ -1911,7 +1921,7 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>Ang</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>Ang</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating which angle to use for the impact parameter:</dt><dd><ul>
 <li><p>’xi’: the angle of the line itself</p></li>
 <li><p>’theta’: its impact parameter (theta)</p></li>
@@ -1919,7 +1929,7 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>AngUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>AngUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag for the angle units to be displayed:</dt><dd><ul>
 <li><p>’rad’: for radians</p></li>
 <li><p>’deg’: for degrees</p></li>
@@ -1927,14 +1937,14 @@ the angle that the LOS makes with the cross-section plane
 </dd>
 </dl>
 </p></li>
-<li><p><strong>Sketch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to plot a skecth with angles definitions</p></li>
-<li><p><strong>dL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting the Rays points</p></li>
-<li><p><strong>dV</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – Dictionary of properties for plotting the vessel envelopp</p></li>
+<li><p><strong>Sketch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether to plot a skecth with angles definitions</p></li>
+<li><p><strong>dL</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting the Rays points</p></li>
+<li><p><strong>dV</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – Dictionary of properties for plotting the vessel envelopp</p></li>
 <li><p><strong>dLeg</strong> (<em>None / dict</em>) – Dictionary of properties for plotting the legend
 The legend is not plotted if None</p></li>
-<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether to draw the figure</p></li>
-<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether the figure should be a4</p></li>
-<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – Flag indicating whether the inputs shall be tested for conformity</p></li>
+<li><p><strong>draw</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether to draw the figure</p></li>
+<li><p><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether the figure should be a4</p></li>
+<li><p><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Flag indicating whether the inputs shall be tested for conformity</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -2012,7 +2022,7 @@ The plot shows which strutural element is touched by each LOS</p>
 <li><p><strong>key</strong> (<em>None / str</em>) – A key to be found in self.dchans</p></li>
 <li><p><strong>val</strong> (<em>int / str / float / list of such</em>) – The value to be matched
 If a list of values is provided, the behaviour depends on log</p></li>
-<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>log</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>A flag indicating which behaviour to use when val is a list</dt><dd><ul>
 <li><p>any : Returns indices of rays matching any value in val</p></li>
 <li><p>all : Returns indices of rays matching all values in val</p></li>
@@ -2049,7 +2059,7 @@ Only relevant when the element has noccur&gt;1</p>
 </div></blockquote>
 <p>In this case only log=’not’ has an effect</p>
 </p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>Flag indicating whether to return:</dt><dd><ul>
 <li><p>bool : a (nRays,) boolean array of indices</p></li>
 <li><dl class="simple">
@@ -2147,7 +2157,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: dgeom w/o pts + config.strip(1)
@@ -2243,7 +2253,7 @@ It is characterized by its:</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>Id</strong> (<em>str / tfpf.ID</em>) – A name string or a pre-built tfpf.ID class to be used to identify this
 particular instance, if a string is provided, it is fed to tfpf.ID()</p></li>
-<li><p><strong>dgeom</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – <dl class="simple">
+<li><p><strong>dgeom</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – <dl class="simple">
 <dt>An array (2,N) or (N,2) defining the contour of the vacuum vessel in a</dt><dd><p>cross-section, if not closed, will be closed automatically</p>
 </dd>
 <dt>dspectral:     str</dt><dd><p>Flag indicating whether the vessel will be a torus (‘Tor’) or a linear
@@ -2627,7 +2637,7 @@ Use strip=0 to recover all atributes</p>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – <dl>
+<dd class="field-odd"><p><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – <dl>
 <dt>Flag indicating how much to strip from the object</dt><dd><blockquote>
 <div><p>0: Make complete (retrieve all attributes)
 1: Remove nothing</p>
@@ -2968,7 +2978,7 @@ return ax1, ax2, ax3</p>
 
 <dl class="function">
 <dt id="tofu.geom._plot.Plot_Impact_3DPoly">
-<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.6-2-g7a0d42d4        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom._plot.</code><code class="sig-name descname">Plot_Impact_3DPoly</code><span class="sig-paren">(</span><em class="sig-param">T</em>, <em class="sig-param">Leg=''</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">Ang='theta'</em>, <em class="sig-param">AngUnit='rad'</em>, <em class="sig-param">Pdict={'color': (0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.8</em>, <em class="sig-param">0.4)</em>, <em class="sig-param">'linestyle': 'solid'</em>, <em class="sig-param">'linewidth': 0}</em>, <em class="sig-param">dLeg={'bbox_to_anchor': (1.01</em>, <em class="sig-param">1)</em>, <em class="sig-param">'borderaxespad': 0.0</em>, <em class="sig-param">'frameon': False</em>, <em class="sig-param">'loc': 2</em>, <em class="sig-param">'ncol': 1</em>, <em class="sig-param">'prop': {'size': 10}}</em>, <em class="sig-param">draw=True</em>, <em class="sig-param">fs=None</em>, <em class="sig-param">wintit='tofu-1.4.7-45-g06ba4170        report issues / requests at https://github.com/ToFuProject/tofu/issues'</em>, <em class="sig-param">Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/_plot.html#Plot_Impact_3DPoly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom._plot.Plot_Impact_3DPoly" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plotting the toroidal projection of a Ves instance</p>
 <p>D. VEZINET, Aug. 2014
 Inputs :</p>
@@ -3126,7 +3136,7 @@ axT          The plt.Axes instance on which the toroidal plot was performed</p>
 
 <dl class="function">
 <dt id="tofu.geom.utils.get_available_config">
-<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">get_available_config</code><span class="sig-paren">(</span><em class="sig-param">dconfig={'AUG-V1': {'Exp': 'AUG', 'PFC': ['D2cdome', 'D2cdomL', 'D2cdomR', 'D2ci1', 'D2ci2', 'D2cTPib', 'D2cTPic', 'D2cTPi', 'D2dBG2', 'D2dBl1', 'D2dBl2', 'D2dBl3', 'D2dBu1', 'D2dBu2', 'D2dBu3', 'D2dBu4', 'D3BG10', 'D3BG1', 'ICRHa', 'LIM09', 'PClow', 'PCup', 'SBi', 'TPLT1', 'TPLT2', 'TPLT3', 'TPLT4', 'TPLT5', 'TPRT2', 'TPRT3', 'TPRT4', 'TPRT5'], 'Ves': ['VESiR']}, 'DEMO-2019': {'Exp': 'DEMO', 'PFC': ['LimiterUpperV0', 'LimiterEquatV0', 'BlanketInnerV0', 'BlanketOuterV0', 'DivertorV0'], 'Ves': ['V0']}, 'ITER-V1': {'Exp': 'ITER', 'Ves': ['V0']}, 'ITER-V2': {'Exp': 'ITER', 'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05', 'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10', 'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15', 'BLK16', 'BLK17', 'BLK18', 'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6'], 'Ves': ['V1']}, 'JET-V0': {'Exp': 'JET', 'Ves': ['V0']}, 'NSTX-V0': {'Exp': 'NSTX', 'Ves': ['V0']}, 'TOMAS-V0': {'Exp': 'TOMAS', 'PFC': ['LimiterV0', 'AntennaV0'], 'Ves': ['V0']}, 'WEST-Sep': {'Exp': 'WEST', 'PlasmaDomain': ['Sep']}, 'WEST-V1': {'Exp': 'WEST', 'Ves': ['V1']}, 'WEST-V2': {'Exp': 'WEST', 'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1'], 'Ves': ['V2']}, 'WEST-V3': {'Exp': 'WEST', 'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2', 'BumperInnerV1', 'BumperOuterV1', 'IC1V1', 'IC2V1', 'IC3V1'], 'Ves': ['V2']}, 'WEST-V4': {'Exp': 'WEST', 'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3', 'BumperInnerV3', 'BumperOuterV3', 'IC1V1', 'IC2V1', 'IC3V1', 'LH1V1', 'LH2V1', 'RippleV1', 'VDEV0'], 'Ves': ['V2']}}, dconfig_shortcuts={'A1': 'WEST-V1', 'A2': 'ITER-V1', 'A3': 'WEST-Sep', 'AUG': 'AUG-V1', 'B1': 'WEST-V2', 'B2': 'WEST-V3', 'B3': 'WEST-V4', 'B4': 'ITER-V2', 'DEMO': 'DEMO-2019', 'ITER': 'ITER-V2', 'JET': 'JET-V0', 'NSTX': 'NSTX-V0', 'TOMAS': 'TOMAS-V0', 'WEST': 'WEST-V4'}, verb=True, returnas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#get_available_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.get_available_config" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">get_available_config</code><span class="sig-paren">(</span><em class="sig-param">dconfig={'AUG-V1': {'Exp': 'AUG', 'PFC': ['D2cdome', 'D2cdomL', 'D2cdomR', 'D2ci1', 'D2ci2', 'D2cTPib', 'D2cTPic', 'D2cTPi', 'D2dBG2', 'D2dBl1', 'D2dBl2', 'D2dBl3', 'D2dBu1', 'D2dBu2', 'D2dBu3', 'D2dBu4', 'D3BG10', 'D3BG1', 'ICRHa', 'LIM09', 'PClow', 'PCup', 'SBi', 'TPLT1', 'TPLT2', 'TPLT3', 'TPLT4', 'TPLT5', 'TPRT2', 'TPRT3', 'TPRT4', 'TPRT5'], 'Ves': ['VESiR']}, 'COMPASS-V0': {'Exp': 'COMPASS', 'Ves': ['V0']}, 'DEMO-2019': {'Exp': 'DEMO', 'PFC': ['LimiterUpperV0', 'LimiterEquatV0', 'BlanketInnerV0', 'BlanketOuterV0', 'DivertorV0'], 'Ves': ['V0']}, 'ITER-SOLEDGE3XV0': {'Exp': 'ITER', 'PFC': ['SOLEDGE3XDivDomeV0', 'SOLEDGE3XDivSupportV0'], 'Ves': ['SOLEDGE3XV0']}, 'ITER-V1': {'Exp': 'ITER', 'Ves': ['V0']}, 'ITER-V2': {'Exp': 'ITER', 'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05', 'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10', 'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15', 'BLK16', 'BLK17', 'BLK18', 'Div1', 'Div2', 'Div3', 'Div4', 'Div5', 'Div6'], 'Ves': ['V1']}, 'JET-V0': {'Exp': 'JET', 'Ves': ['V0']}, 'NSTX-V0': {'Exp': 'NSTX', 'Ves': ['V0']}, 'TCV-V0': {'CoilPF': ['A001', 'B001', 'B002', 'B03A1', 'B03A2', 'B03A3', 'C001', 'C002', 'D001', 'D002', 'E001', 'E002', 'E003', 'E004', 'E005', 'E006', 'E007', 'E008', 'E03A1', 'E03A2', 'E03A3', 'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007', 'F008', 'T03A1', 'T03A2', 'T03A3'], 'Exp': 'TCV', 'Ves': ['v', 't']}, 'TOMAS-V0': {'Exp': 'TOMAS', 'PFC': ['LimiterV0', 'AntennaV0'], 'Ves': ['V0']}, 'WEST-Sep': {'Exp': 'WEST', 'PlasmaDomain': ['Sep']}, 'WEST-V1': {'Exp': 'WEST', 'Ves': ['V1']}, 'WEST-V2': {'Exp': 'WEST', 'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1'], 'Ves': ['V2']}, 'WEST-V3': {'Exp': 'WEST', 'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2', 'BumperInnerV1', 'BumperOuterV1', 'IC1V1', 'IC2V1', 'IC3V1'], 'Ves': ['V2']}, 'WEST-V4': {'Exp': 'WEST', 'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3', 'BumperInnerV3', 'BumperOuterV3', 'IC1V1', 'IC2V1', 'IC3V1', 'LH1V1', 'LH2V1', 'RippleV1', 'VDEV0'], 'Ves': ['V2']}}, dconfig_shortcuts={'A1': 'WEST-V1', 'A2': 'ITER-V1', 'A3': 'WEST-Sep', 'AUG': 'AUG-V1', 'B1': 'WEST-V2', 'B2': 'WEST-V3', 'B3': 'WEST-V4', 'B4': 'ITER-V2', 'COMPASS': 'COMPASS-V0', 'DEMO': 'DEMO-2019', 'ITER': 'ITER-V2', 'ITER-SOLEDGE3X': 'ITER-SOLEDGE3XV0', 'JET': 'JET-V0', 'NSTX': 'NSTX-V0', 'TCV': 'TCV-V0', 'TOMAS': 'TOMAS-V0', 'WEST': 'WEST-V4'}, verb=True, returnas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#get_available_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.get_available_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print a table showing all pre-defined config</p>
 <p>Each pre-defined config in tofu can be called by its unique name or
 by a series of shortcuts / alterantive names refereing to the same unique
@@ -3145,7 +3155,7 @@ of the geometry.</p>
 
 <dl class="function">
 <dt id="tofu.geom.utils.create_config">
-<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=None, r=None, elong=None, Dshape=None, divlow=None, divup=None, nP=None, returnas='object', SavePath='./', path='/home/lasofivec/tofu/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.geom.utils.</code><code class="sig-name descname">create_config</code><span class="sig-paren">(</span><em class="sig-param">case=None, Exp='Dummy', Type='Tor', Lim=None, Bump_posextent=[0.7853981633974483, 0.7853981633974483], R=None, r=None, elong=None, Dshape=None, divlow=None, divup=None, nP=None, returnas=None, SavePath='./', path='/home/lasofivec/tofu/tofu/geom/inputs'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/geom/utils.html#create_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.geom.utils.create_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create easily a tofu.geom.Config object</p>
 <p>In tofu, a Config (short for geometrical configuration) refers to the 3D
 geometry of a fusion device.
@@ -3159,20 +3169,20 @@ config, use directly tofu.geom.Config and provide the parameters you want.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>case</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of a reference test case, if provided, this arguments is
+<li><p><strong>case</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The name of a reference test case, if provided, this arguments is
 sufficient, the others are ignored</p></li>
-<li><p><strong>Exp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The name of the experiment</p></li>
-<li><p><strong>Type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – The type of configuration (toroidal ‘Tor’ or linear ‘Lin’)</p></li>
-<li><p><strong>Lim_Bump</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.8)"><em>list</em></a>) – The angular (poloidal) limits, in the cross-section of the extension of
+<li><p><strong>Exp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The name of the experiment</p></li>
+<li><p><strong>Type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The type of configuration (toroidal ‘Tor’ or linear ‘Lin’)</p></li>
+<li><p><strong>Lim_Bump</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – The angular (poloidal) limits, in the cross-section of the extension of
 the outer bumper</p></li>
-<li><p><strong>R</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The major radius of the center of the cross-section</p></li>
-<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – The minor radius of the cross-section</p></li>
-<li><p><strong>elong</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – An elongation parameter (in [-1;1])</p></li>
-<li><p><strong>Dshape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.8)"><em>float</em></a>) – A parameter specifying the D-shape of the cross-section (in [-1;1])</p></li>
-<li><p><strong>divlow</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – A flag specifying whether to include a lower divertor-like shape</p></li>
-<li><p><strong>divup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a>) – A flag specifying whether to include an upper divertor-like shape</p></li>
-<li><p><strong>nP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – Number of points used to describe the cross-section polygon</p></li>
-<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – <dl class="simple">
+<li><p><strong>R</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The major radius of the center of the cross-section</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The minor radius of the cross-section</p></li>
+<li><p><strong>elong</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – An elongation parameter (in [-1;1])</p></li>
+<li><p><strong>Dshape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – A parameter specifying the D-shape of the cross-section (in [-1;1])</p></li>
+<li><p><strong>divlow</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – A flag specifying whether to include a lower divertor-like shape</p></li>
+<li><p><strong>divup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – A flag specifying whether to include an upper divertor-like shape</p></li>
+<li><p><strong>nP</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Number of points used to describe the cross-section polygon</p></li>
+<li><p><strong>out</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – <dl class="simple">
 <dt>FLag indicating whether to return:</dt><dd><ul>
 <li><p>’dict’  : the polygons as a dictionary of np.ndarrays</p></li>
 <li><p>’object’: the configuration as a tofu.geom.Config instance</p></li>
@@ -3325,7 +3335,7 @@ returned as:</p>
     </p>
     <p>
         &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Jun 04, 2020.<br/>
+      Last updated on Dec 08, 2020.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

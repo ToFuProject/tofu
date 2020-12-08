@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.geom._core &#8212; Tofu 1.4.6</title>
+    <title>tofu.geom._core &#8212; Tofu 1.4.7</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.7</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -1292,31 +1292,41 @@
             <span class="n">Test</span><span class="o">=</span><span class="n">Test</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">get_sampleEdge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DS</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span> <span class="n">offsetIn</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_sampleEdge</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">resMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">offsetIn</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Sample the polygon edges, with resolution res</span>
 
 <span class="sd">        Sample each segment of the 2D polygon</span>
-<span class="sd">        Sampling can be limited to a subdomain defined by DS</span>
+<span class="sd">        Sampling can be limited to a domain</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">_RES</span>
-        <span class="n">pts</span><span class="p">,</span> <span class="n">dlr</span><span class="p">,</span> <span class="n">ind</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleEdge</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span>
-            <span class="n">res</span><span class="p">,</span>
-            <span class="n">DS</span><span class="o">=</span><span class="n">DS</span><span class="p">,</span>
-            <span class="n">dLMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span>
-            <span class="n">DIn</span><span class="o">=</span><span class="n">offsetIn</span><span class="p">,</span>
+        <span class="k">return</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleEdge</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">resMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span>
+            <span class="n">offsetIn</span><span class="o">=</span><span class="n">offsetIn</span><span class="p">,</span>
             <span class="n">VIn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;VIn&quot;</span><span class="p">],</span>
             <span class="n">margin</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dlr</span><span class="p">,</span> <span class="n">ind</span>
 
     <span class="k">def</span> <span class="nf">get_sampleCross</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DS</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;flat&quot;</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">resMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;flat&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Sample, with resolution res, the 2D cross-section</span>
 
-<span class="sd">        The sampling domain can be limited by DS or ind</span>
+<span class="sd">        The sampling domain can be limited by domain or ind</span>
 
 <span class="sd">        Depending on the value of mode, the method returns:</span>
 <span class="sd">            - &#39;flat&#39;: (tuned for integrals computing)</span>
@@ -1339,25 +1349,24 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;P1Max&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;P2Min&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;P2Max&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
-            <span class="n">res</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">DS</span><span class="o">=</span><span class="n">DS</span><span class="p">,</span> <span class="n">dSMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span>
+            <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span>
+            <span class="n">margin</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span>
         <span class="p">)</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleCross</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleCross</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_sampleS</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">DS</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">resMode</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span>
+        <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">resMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">offsetIn</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">Out</span><span class="o">=</span><span class="s2">&quot;(X,Y,Z)&quot;</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="o">=</span><span class="s2">&quot;(X,Y,Z)&quot;</span><span class="p">,</span>
         <span class="n">Ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Sample, with resolution res, the surface defined by DS or ind</span>
+        <span class="sd">&quot;&quot;&quot; Sample, with resolution res, the surface defined by domain or ind</span>
 
 <span class="sd">        An optionnal offset perpendicular to the surface can be used</span>
 <span class="sd">        (offsetIn&gt;0 =&gt; inwards)</span>
@@ -1370,13 +1379,13 @@
 <span class="sd">                list    : [dl,dXPhi] where:</span>
 <span class="sd">                    dl      : res. along polygon contours (cross-section)</span>
 <span class="sd">                    dXPhi   : res. along axis (toroidal/linear direction)</span>
-<span class="sd">        DS      :   None / list of 3 lists of 2 floats</span>
+<span class="sd">        domain :    None / list of 3 lists of 2 floats</span>
 <span class="sd">            Limits of the domain in which the sample should be computed</span>
 <span class="sd">                None : whole surface of the object</span>
-<span class="sd">                list : [D1,D2,D3], where Di is a len()=2 list</span>
+<span class="sd">                list : [D1, D2, D3], where Di is a len()=2 list</span>
 <span class="sd">                       (increasing floats, setting limits along coordinate i)</span>
-<span class="sd">                    [DR,DZ,DPhi]: in toroidal geometry (self.Id.Type==&#39;Tor&#39;)</span>
-<span class="sd">                    [DX,DY,DZ]  : in linear geometry (self.Id.Type==&#39;Lin&#39;)</span>
+<span class="sd">                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type==&#39;Tor&#39;)</span>
+<span class="sd">                    [DX, DY, DZ]  : in linear geometry (self.Id.Type==&#39;Lin&#39;)</span>
 <span class="sd">        resMode  :   str</span>
 <span class="sd">            Flag, specifies if res is absolute or relative to element sizes</span>
 <span class="sd">                &#39;abs&#39;   :   res is an absolute distance</span>
@@ -1399,7 +1408,7 @@
 <span class="sd">            Offset distance from the actual surface of the object</span>
 <span class="sd">            Inwards if positive</span>
 <span class="sd">            Useful to avoid numerical errors</span>
-<span class="sd">        Out     :   str</span>
+<span class="sd">        returnas:   str</span>
 <span class="sd">            Flag indicating the coordinate system of returned points</span>
 <span class="sd">            e.g. : &#39;(X,Y,Z)&#39; or &#39;(R,Z,Phi)&#39;</span>
 <span class="sd">        Ind     :   None / iterable of ints</span>
@@ -1423,27 +1432,98 @@
         <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">_RES</span>
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">DS</span><span class="o">=</span><span class="n">DS</span><span class="p">,</span>
-            <span class="n">dSMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">resMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span>
             <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span>
-            <span class="n">DIn</span><span class="o">=</span><span class="n">offsetIn</span><span class="p">,</span>
+            <span class="n">offsetIn</span><span class="o">=</span><span class="n">offsetIn</span><span class="p">,</span>
             <span class="n">VIn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;VIn&quot;</span><span class="p">],</span>
             <span class="n">VType</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span><span class="p">,</span>
             <span class="n">VLim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Lim</span><span class="p">),</span>
             <span class="n">nVLim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">noccur</span><span class="p">,</span>
-            <span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">,</span>
+            <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
             <span class="n">margin</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span>
             <span class="n">Multi</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;Multi&quot;</span><span class="p">],</span>
             <span class="n">Ind</span><span class="o">=</span><span class="n">Ind</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span> <span class="n">res</span><span class="p">]</span>
-        <span class="n">pts</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleS</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span>
+        <span class="k">return</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleS</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_sampleV</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="n">DV</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s2">&quot;abs&quot;</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="s2">&quot;(X,Y,Z)&quot;</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">resMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="o">=</span><span class="s2">&quot;(X,Y,Z)&quot;</span><span class="p">,</span>
+        <span class="n">algo</span><span class="o">=</span><span class="s2">&quot;new&quot;</span><span class="p">,</span>
+        <span class="n">num_threads</span><span class="o">=</span><span class="mi">48</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Sample, with resolution res, the volume defined by DV or ind &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Sample, with resolution res, the volume defined by domain or ind</span>
+
+<span class="sd">        The 3D volume is sampled in:</span>
+<span class="sd">            - the whole volume (domain=None and ind=None)</span>
+<span class="sd">            - a sub-domain defined by bounds on each coordinates (domain)</span>
+<span class="sd">            - a pre-computed subdomain stored in indices (ind)</span>
+
+<span class="sd">        The coordinatesd of the center of each volume elements are returned as</span>
+<span class="sd">        pts in choosen coordinates (returnas)</span>
+
+<span class="sd">        For a torus, the elementary volume is kept constant, meaning that the</span>
+<span class="sd">        toroidal angular step is decreased as R increases</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        res     :   float / list of 3 floats</span>
+<span class="sd">            Desired resolution of the surfacic sample</span>
+<span class="sd">                float   : same resolution for all directions of the sample</span>
+<span class="sd">                list    : [dYR, dZ, dXPhi] where:</span>
+<span class="sd">                    dYR     : res. along in radial / Y direction</span>
+<span class="sd">                    dZ      : res. along Z direction</span>
+<span class="sd">                    dXPhi   : res. along axis (toroidal/linear direction)</span>
+<span class="sd">        domain :    None / list of 3 lists of 2 floats</span>
+<span class="sd">            Limits of the domain in which the sample should be computed</span>
+<span class="sd">                None : whole surface of the object</span>
+<span class="sd">                list : [D1, D2, D3], where Di is a len()=2 list</span>
+<span class="sd">                       (increasing floats, setting limits along coordinate i)</span>
+<span class="sd">                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type==&#39;Tor&#39;)</span>
+<span class="sd">                    [DX, DY, DZ]  : in linear geometry (self.Id.Type==&#39;Lin&#39;)</span>
+<span class="sd">        resMode  :   str</span>
+<span class="sd">            Flag, specifies if res is absolute or relative to element sizes</span>
+<span class="sd">                &#39;abs&#39;   :   res is an absolute distance</span>
+<span class="sd">                &#39;rel&#39;   :   if res=0.1, each polygon segment is divided in 10,</span>
+<span class="sd">                            as is the toroidal/linear length</span>
+<span class="sd">        ind     :   None / np.ndarray of int</span>
+<span class="sd">            If provided, DS is ignored and the sample points corresponding to</span>
+<span class="sd">            the provided indices are returned</span>
+<span class="sd">            Example (assuming obj is a Ves object)</span>
+<span class="sd">                &gt; # We create a 5x5 cm2 sample of the whole surface</span>
+<span class="sd">                &gt; pts, dS, ind, reseff = obj.get_sample(0.05)</span>
+<span class="sd">                &gt; # Perform operations, save only the points indices</span>
+<span class="sd">                &gt; # (save space)</span>
+<span class="sd">                &gt; ...</span>
+<span class="sd">                &gt; # Retrieve the points from their indices (requires same res)</span>
+<span class="sd">                &gt; pts2, dS2, ind2, reseff2 = obj.get_sample(0.05, ind=ind)</span>
+<span class="sd">                &gt; np.allclose(pts,pts2)</span>
+<span class="sd">                True</span>
+<span class="sd">        returnas:   str</span>
+<span class="sd">            Flag indicating the coordinate system of returned points</span>
+<span class="sd">            e.g. : &#39;(X,Y,Z)&#39; or &#39;(R,Z,Phi)&#39;</span>
+<span class="sd">        Ind     :   None / iterable of ints</span>
+<span class="sd">            Array of indices of the entities to be considered</span>
+<span class="sd">            (only when multiple entities, i.e.: self.nLim&gt;1)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pts     :   np.ndarray / list of np.ndarrays</span>
+<span class="sd">            Sample points coordinates, as a (3,N) array.</span>
+<span class="sd">            A list is returned if the object has multiple entities</span>
+<span class="sd">        dV      :   np.ndarray / list of np.ndarrays</span>
+<span class="sd">            The volume (in m^3) associated to each point</span>
+<span class="sd">        ind     :   np.ndarray / list of np.ndarrays</span>
+<span class="sd">            The index of each point</span>
+<span class="sd">        reseff  :   np.ndarray / list of np.ndarrays</span>
+<span class="sd">            Effective resolution in both directions after sample computation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">Poly</span><span class="p">,</span>
@@ -1451,19 +1531,20 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;P1Max&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;P2Min&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;P2Max&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
-            <span class="n">res</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">DV</span><span class="o">=</span><span class="n">DV</span><span class="p">,</span>
-            <span class="n">dVMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">resMode</span><span class="o">=</span><span class="n">resMode</span><span class="p">,</span>
             <span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span>
             <span class="n">VType</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span><span class="p">,</span>
             <span class="n">VLim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Lim</span><span class="p">,</span>
-            <span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">,</span>
+            <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
             <span class="n">margin</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span>
+            <span class="n">algo</span><span class="o">=</span><span class="n">algo</span><span class="p">,</span>
+            <span class="n">num_threads</span><span class="o">=</span><span class="n">num_threads</span>
         <span class="p">)</span>
-        <span class="n">pts</span><span class="p">,</span> <span class="n">dV</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleV</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dV</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span>
+        <span class="k">return</span> <span class="n">_comp</span><span class="o">.</span><span class="n">_Ves_get_sampleV</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_phithetaproj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">refpt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="c1"># Prepare ax</span>
@@ -1978,10 +2059,13 @@
             <span class="n">pos</span><span class="p">,</span> <span class="n">extent</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
         <span class="c1"># Try reading Exp and Name if not provided</span>
-        <span class="k">if</span> <span class="n">Exp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">Exp</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_txt_extract_params</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="s2">&quot;Exp&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">Name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">Name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_txt_extract_params</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="s2">&quot;Name&quot;</span><span class="p">)</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">&#39;Exp&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">Name</span><span class="p">)]</span> <span class="k">if</span> <span class="n">vv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dparam</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">from_txt_extract_params</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">lc</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;Exp&#39;</span> <span class="ow">in</span> <span class="n">lc</span><span class="p">:</span>
+                <span class="n">Exp</span> <span class="o">=</span> <span class="n">dparam</span><span class="p">[</span><span class="s1">&#39;Exp&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;Name&#39;</span> <span class="ow">in</span> <span class="n">lc</span><span class="p">:</span>
+                <span class="n">Name</span> <span class="o">=</span> <span class="n">dparam</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s2">&quot;dict&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;poly&quot;</span><span class="p">:</span> <span class="n">poly</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">:</span> <span class="n">pos</span><span class="p">,</span> <span class="s2">&quot;extent&quot;</span><span class="p">:</span> <span class="n">extent</span><span class="p">}</span>
@@ -1999,37 +2083,6 @@
                 <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">obj</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_from_txt_extract_params</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
-        <span class="n">p</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
-
-        <span class="c1"># Try from file name</span>
-        <span class="n">lk</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">lind</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lk</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lind</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Several values form </span><span class="si">%s</span><span class="s2"> found in file name:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    file: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">pfe</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">lind</span><span class="p">):</span>
-            <span class="n">paramstr</span> <span class="o">=</span> <span class="n">lk</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">lind</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
-            <span class="n">paramstr</span> <span class="o">=</span> <span class="n">paramstr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">paramstr</span>
-
-        <span class="c1"># try from file content</span>
-        <span class="n">paramstr</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">lout</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">]</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
-            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-                <span class="n">line</span> <span class="o">=</span> <span class="n">fid</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lout</span><span class="p">:</span>
-                        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-                    <span class="n">paramstr</span> <span class="o">=</span> <span class="n">line</span>
-                    <span class="k">break</span>
-                <span class="k">elif</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="k">break</span>
-        <span class="k">return</span> <span class="n">paramstr</span>
 
     <span class="k">def</span> <span class="nf">save_to_imas</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -2423,43 +2476,54 @@
     <span class="c1">###########</span>
 
     <span class="k">def</span> <span class="nf">_checkformat_inputs_Struct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">struct</span><span class="p">,</span> <span class="n">err</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Struct</span><span class="p">)</span>
-        <span class="n">C0</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span>
-        <span class="n">C1</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span>
-        <span class="n">C2</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span><span class="o">.</span><span class="n">isidentifier</span><span class="p">()</span>
-        <span class="n">C2</span> <span class="o">=</span> <span class="n">C2</span> <span class="ow">and</span> <span class="s1">&#39;_&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span>
         <span class="n">msgi</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">C0</span> <span class="ow">and</span> <span class="n">C1</span> <span class="ow">and</span> <span class="n">C2</span><span class="p">):</span>
-            <span class="n">msgi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    - </span><span class="si">{0}</span><span class="s2"> :&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SaveName</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">C0</span><span class="p">:</span>
-                <span class="n">msgi</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">     Exp: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">C1</span><span class="p">:</span>
-                <span class="n">msgi</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">     Type: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">C2</span><span class="p">:</span>
-                <span class="n">msgi</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">     Name: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">err</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Non-conform struct Id:&quot;</span> <span class="o">+</span> <span class="n">msgi</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Struct</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msgi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- Not a struct subclass: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">struct</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">c1</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span>
+            <span class="n">c3</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span><span class="o">.</span><span class="n">isidentifier</span><span class="p">()</span>
+            <span class="n">c4</span> <span class="o">=</span> <span class="n">c3</span> <span class="ow">and</span> <span class="s1">&#39;_&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">c0</span> <span class="ow">and</span> <span class="n">c1</span> <span class="ow">and</span> <span class="n">c2</span> <span class="ow">and</span> <span class="n">c3</span><span class="p">):</span>
+                <span class="n">c1</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span>
+                <span class="n">c2</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span>
+                <span class="n">c3</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span><span class="o">.</span><span class="n">isidentifier</span><span class="p">()</span>
+                <span class="n">c4</span> <span class="o">=</span> <span class="n">c3</span> <span class="ow">and</span> <span class="s1">&#39;_&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span>
+                <span class="n">msgi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- </span><span class="si">{0}</span><span class="s2"> :&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SaveName</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">c1</span><span class="p">:</span>
+                    <span class="n">msgi</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">Exp: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">c2</span><span class="p">:</span>
+                    <span class="n">msgi</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">Type: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">c3</span><span class="p">:</span>
+                    <span class="n">msgi</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">Name: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">msgi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">err</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Non-conform struct:&quot;</span> <span class="o">+</span> <span class="n">msgi</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">msgi</span>
 
-    <span class="k">def</span> <span class="nf">_checkformat_inputs_dStruct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lStruct</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">lStruct</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg lStruct must be&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; a tofu.geom.Struct subclass or a list of such !&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Valid subclasses include:&quot;</span>
-            <span class="n">lsub</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PlasmaDomain&quot;</span><span class="p">,</span> <span class="s2">&quot;Ves&quot;</span><span class="p">,</span> <span class="s2">&quot;PFC&quot;</span><span class="p">,</span> <span class="s2">&quot;CoilPF&quot;</span><span class="p">,</span> <span class="s2">&quot;CoilCS&quot;</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lsub</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    - tf.geom.</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_errmsg_dStruct</span><span class="p">(</span><span class="n">lStruct</span><span class="p">):</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tf.geom.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span>
+              <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;PlasmaDomain&quot;</span><span class="p">,</span> <span class="s2">&quot;Ves&quot;</span><span class="p">,</span> <span class="s2">&quot;PFC&quot;</span><span class="p">,</span> <span class="s2">&quot;CoilPF&quot;</span><span class="p">,</span> <span class="s2">&quot;CoilCS&quot;</span><span class="p">]]</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg lStruct must be &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;a tofu.geom.Struct subclass or list of such!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;Valid subclasses include:</span><span class="se">\n\t</span><span class="s2">- &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lStruct</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">msg</span>
 
-        <span class="n">C0</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lStruct</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lStruct</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
-        <span class="n">C1</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">lStruct</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Struct</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">C0</span> <span class="ow">or</span> <span class="n">C1</span><span class="p">,</span> <span class="n">msg</span>
-        <span class="k">if</span> <span class="n">C0</span><span class="p">:</span>
-            <span class="n">Ci</span> <span class="o">=</span> <span class="p">[</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Struct</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lStruct</span><span class="p">]</span>
-            <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">Ci</span><span class="p">),</span> <span class="n">msg</span>
+    <span class="k">def</span> <span class="nf">_checkformat_inputs_dStruct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lStruct</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">lStruct</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="p">((</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">lStruct</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lStruct</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+              <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Struct</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lStruct</span><span class="p">]))</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">lStruct</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Struct</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">c0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">c1</span> <span class="ow">or</span> <span class="n">c2</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errmsg_dStruct</span><span class="p">(</span><span class="n">lStruct</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">c1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lStruct</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">lStruct</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lStruct</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">c2</span><span class="p">:</span>
             <span class="n">lStruct</span> <span class="o">=</span> <span class="p">[</span><span class="n">lStruct</span><span class="p">]</span>
 
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
@@ -2501,7 +2565,7 @@
     <span class="k">def</span> <span class="nf">_checkformat_inputs_extraval</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">extraval</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">multi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
-        <span class="n">lsimple</span> <span class="o">=</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+        <span class="n">lsimple</span> <span class="o">=</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">]</span>
         <span class="n">C0</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">extraval</span><span class="p">)</span> <span class="ow">in</span> <span class="n">lsimple</span>
         <span class="n">C1</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extraval</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
         <span class="n">C2</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extraval</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
@@ -2510,7 +2574,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">C0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">extraval</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">multi</span> <span class="ow">and</span> <span class="n">C1</span><span class="p">:</span>
-            <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;nStruct&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">size</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;nObj&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">size</span>
             <span class="n">C</span> <span class="o">=</span> <span class="n">extraval</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;nObj&quot;</span><span class="p">],))</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">C</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The value for </span><span class="si">%s</span><span class="s2"> has wrong shape!&quot;</span> <span class="o">%</span> <span class="n">key</span>
@@ -2708,16 +2772,18 @@
         <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">k0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">k1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">dp</span> <span class="o">=</span> <span class="s2">&quot;d&quot;</span> <span class="o">+</span> <span class="n">pp</span>
         <span class="k">if</span> <span class="n">k0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">k1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;nObj&quot;</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="n">k0</span><span class="p">,</span> <span class="n">k1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;lorder&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;nObj&quot;</span><span class="p">],),</span>
+                           <span class="n">dtype</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="p">[</span><span class="n">dp</span><span class="p">][</span><span class="n">k0</span><span class="p">][</span><span class="n">k1</span><span class="p">]))</span>
             <span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;lorder&quot;</span><span class="p">]:</span>
                 <span class="n">k0</span><span class="p">,</span> <span class="n">k1</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
                 <span class="n">val</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="p">[</span><span class="n">dp</span><span class="p">][</span><span class="n">k0</span><span class="p">][</span><span class="n">k1</span><span class="p">]</span>
                 <span class="n">ii</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">elif</span> <span class="n">k1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()),),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span>
-            <span class="p">)</span>
+            <span class="n">k1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;dObj&quot;</span><span class="p">][</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()),),</span>
+                           <span class="n">dtype</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="p">[</span><span class="n">dp</span><span class="p">][</span><span class="n">k0</span><span class="p">][</span><span class="n">k1</span><span class="p">]))</span>
             <span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dStruct</span><span class="p">[</span><span class="s2">&quot;lorder&quot;</span><span class="p">]:</span>
                 <span class="n">k</span><span class="p">,</span> <span class="n">k1</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
@@ -2950,6 +3016,190 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_dextraprop</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s2">&quot;dextraprop&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dsino</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s2">&quot;dsino&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dynamicattr</span><span class="p">()</span>
+
+    <span class="c1">###########</span>
+    <span class="c1"># SOLEDGE3X</span>
+    <span class="c1">###########</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_from_SOLEDGE_extract_dict</span><span class="p">(</span><span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Check input</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+              <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+              <span class="ow">and</span> <span class="n">pfe</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mat&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg pfe must be a valid .mat file!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+
+        <span class="c1"># Open file</span>
+        <span class="kn">import</span> <span class="nn">scipy.io</span> <span class="k">as</span> <span class="nn">scpio</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="n">scpio</span><span class="o">.</span><span class="n">loadmat</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+
+        <span class="c1"># Check conformity of content</span>
+        <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Nwalls&#39;</span><span class="p">,</span> <span class="s1">&#39;coord&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="n">lk0</span> <span class="o">=</span> <span class="p">[</span><span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">dout</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+               <span class="k">if</span> <span class="n">kk</span> <span class="o">==</span> <span class="s1">&#39;walls&#39;</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vv</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)]</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lk0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+              <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;walls&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span>
+              <span class="ow">and</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;walls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="n">lk</span>
+              <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;walls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">lk</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Non-conform .mat file content from SOLEDGE3X:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- file: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- Expected:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">- a unique matlab structure &#39;walls&#39; with 3 fields</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2">- Nwalls: int</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2">- coord: 1xn struct</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t\t</span><span class="s2">- type: 1xn double</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- variables: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lk0</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- 1x</span><span class="si">{}</span><span class="s2"> struct with </span><span class="si">{}</span><span class="s2"> fields&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                       <span class="nb">len</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">lk0</span><span class="p">[</span><span class="mi">0</span><span class="p">]]),</span>
+                       <span class="nb">len</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">lk0</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;walls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Get inside fields &#39;type&#39;, &#39;Nwalls&#39;, &#39;coord&#39;</span>
+        <span class="n">di0</span> <span class="o">=</span> <span class="p">{</span><span class="n">kk</span><span class="p">:</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;walls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">lk</span><span class="p">}</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="n">di0</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                <span class="s1">&#39;Nwalls&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="n">di0</span><span class="p">[</span><span class="s1">&#39;Nwalls&#39;</span><span class="p">]][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]}</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">di0</span><span class="p">[</span><span class="s1">&#39;coord&#39;</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;Rwall&#39;</span><span class="p">,</span> <span class="s1">&#39;Zwall&#39;</span><span class="p">]</span>
+              <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">==</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+              <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">oo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="n">out</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Field </span><span class="si">{}</span><span class="s2"> not conform:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;coord&#39;</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- expected: 1x</span><span class="si">{}</span><span class="s2"> struct &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;with fields (&#39;Rwall&#39;, &#39;Zwall&#39;)</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: 1x</span><span class="si">{}</span><span class="s2"> struct &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
+                   <span class="o">+</span> <span class="s2">&quot;with fields </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;coord&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">out</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">out</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span>
+                         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">dout</span>
+
+<div class="viewcode-block" id="Config.from_SOLEDGE3X"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Config.from_SOLEDGE3X">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_SOLEDGE3X</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># Check input and extract dict from file</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_SOLEDGE_extract_dict</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+        <span class="n">npoly</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Prepare lStruct</span>
+        <span class="n">lcls</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ves</span> <span class="k">if</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">PFC</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npoly</span><span class="p">)]</span>
+        <span class="n">lnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Soledge3X</span><span class="si">{:02.0f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npoly</span><span class="p">)]</span>
+        <span class="n">lS</span> <span class="o">=</span> <span class="p">[</span><span class="n">lcls</span><span class="p">[</span><span class="n">ii</span><span class="p">](</span><span class="n">Poly</span><span class="o">=</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;coord&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">],</span>
+                       <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+                       <span class="n">Name</span><span class="o">=</span><span class="n">lnames</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span>
+                       <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">)</span>
+              <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npoly</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">lStruct</span><span class="o">=</span><span class="n">lS</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_to_SOLEDGE3X_get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">type_extraprop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">matlab_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">matlab_platform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">head</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># Check inputs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">matlab_version</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matlab_version</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg matlab_version must be provided as a str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- example: &#39;5.0&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matlab_version</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># useful ? to be deprecated ?</span>
+        <span class="k">if</span> <span class="n">matlab_platform</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="s1">&#39;which matlab&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">keypath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;bin&#39;</span><span class="p">,</span> <span class="s1">&#39;matlab&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">keypath</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="p">[:</span><span class="n">out</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">keypath</span><span class="p">)],</span> <span class="s1">&#39;etc&#39;</span><span class="p">)</span>
+                <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">ff</span> <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                      <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">ff</span><span class="p">))]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lf</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">matlab_platform</span> <span class="o">=</span> <span class="n">lf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Couldn&#39;t get matlab_platform from &#39;which matlab&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                           <span class="o">+</span> <span class="s2">&quot;  =&gt; Please provide the matlab platform</span><span class="se">\n</span><span class="s2">&quot;</span>
+                           <span class="o">+</span> <span class="s2">&quot;     Should be in </span><span class="si">{}</span><span class="s2">/../etc&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">matlab_platform</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matlab_platform</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg matlab_platform must be provided as a str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- example: &#39;GLNXA64&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matlab_platform</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">matlab_version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">matlab_platform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">dtm</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%a</span><span class="s1"> %b </span><span class="si">%d</span><span class="s1"> %H:%M:%S %Y&#39;</span><span class="p">)</span>
+            <span class="n">head</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;MATLAB </span><span class="si">{}</span><span class="s1"> MAT-file, &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matlab_version</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="s1">&#39;Platform: </span><span class="si">{}</span><span class="s1">, &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matlab_platform</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="s1">&#39;Created on: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">now</span><span class="p">))</span>
+
+        <span class="c1"># Build walls</span>
+        <span class="n">nwall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="bp">self</span><span class="o">.</span><span class="n">nStruct</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># typ (from extraprop if any, else from Ves / Struct)</span>
+        <span class="k">if</span> <span class="n">type_extraprop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_extraprop</span><span class="p">(</span><span class="n">type_extraprop</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">ss</span><span class="o">.</span><span class="n">_InOut</span> <span class="o">==</span> <span class="s1">&#39;in&#39;</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+                             <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lStruct</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="c1"># Get coord</span>
+        <span class="n">coord</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">Poly</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">ss</span><span class="o">.</span><span class="n">Poly</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lStruct</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;Rwall&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Zwall&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">)])],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;Rwall&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Zwall&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">)])</span>
+
+        <span class="c1"># put together</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;walls&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span>
+            <span class="p">(</span><span class="n">nwall</span><span class="p">,</span> <span class="n">coord</span><span class="p">,</span> <span class="n">typ</span><span class="p">)]],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;Nwalls&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;coord&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">)])}</span>
+
+        <span class="c1"># Optinally set header and version</span>
+        <span class="k">if</span> <span class="n">head</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;__header__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">dout</span>
+
+<div class="viewcode-block" id="Config.to_SOLEDGE3X"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Config.to_SOLEDGE3X">[docs]</a>    <span class="k">def</span> <span class="nf">to_SOLEDGE3X</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">type_extraprop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">matlab_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">matlab_platform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># Check inputs</span>
+        <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">verb</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SaveName</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg name must be a str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">!=</span> <span class="s1">&#39;.mat&#39;</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.mat&#39;</span>
+
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Provided path is not a valid dir!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- path: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># Get data in proper shape</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_SOLEDGE3X_get_data</span><span class="p">(</span><span class="n">type_extraprop</span><span class="o">=</span><span class="n">type_extraprop</span><span class="p">,</span>
+                                           <span class="n">matlab_version</span><span class="o">=</span><span class="n">matlab_version</span><span class="p">,</span>
+                                           <span class="n">matlab_platform</span><span class="o">=</span><span class="n">matlab_platform</span><span class="p">)</span>
+        <span class="c1"># save</span>
+        <span class="kn">import</span> <span class="nn">scipy.io</span> <span class="k">as</span> <span class="nn">scpio</span>
+        <span class="n">scpio</span><span class="o">.</span><span class="n">savemat</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">dout</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saved in:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Properties</span>
@@ -5252,6 +5502,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_dchans</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s2">&quot;dchans&quot;</span><span class="p">])</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is2D</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dX12</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s2">&quot;dX12&quot;</span><span class="p">])</span>
+
 
     <span class="c1">###########</span>
     <span class="c1"># properties</span>
@@ -7614,7 +7865,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Jun 04, 2020.<br/>
+      Last updated on Dec 08, 2020.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

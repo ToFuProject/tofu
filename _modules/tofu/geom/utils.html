@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.geom.utils &#8212; Tofu 1.4.6</title>
+    <title>tofu.geom.utils &#8212; Tofu 1.4.7</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.6</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.7</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -761,6 +761,9 @@
 <span class="n">_ExpNSTX</span> <span class="o">=</span> <span class="s1">&#39;NSTX&#39;</span>
 <span class="n">_ExpDEMO</span> <span class="o">=</span> <span class="s1">&#39;DEMO&#39;</span>
 <span class="n">_ExpTOMAS</span> <span class="o">=</span> <span class="s1">&#39;TOMAS&#39;</span>
+<span class="n">_ExpCOMPASS</span> <span class="o">=</span> <span class="s1">&#39;COMPASS&#39;</span>
+<span class="n">_ExpTCV</span> <span class="o">=</span> <span class="s1">&#39;TCV&#39;</span>
+
 <span class="c1"># Default config</span>
 <span class="n">_DEFCONFIG</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
 
@@ -802,6 +805,10 @@
                                 <span class="s1">&#39;BLK16&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK17&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK18&#39;</span><span class="p">,</span>
                                 <span class="s1">&#39;Div1&#39;</span><span class="p">,</span> <span class="s1">&#39;Div2&#39;</span><span class="p">,</span> <span class="s1">&#39;Div3&#39;</span><span class="p">,</span>
                                 <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;ITER-SOLEDGE3XV0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
+                                 <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;SOLEDGE3XV0&#39;</span><span class="p">],</span>
+                                 <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;SOLEDGE3XDivDomeV0&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;SOLEDGE3XDivSupportV0&#39;</span><span class="p">]},</span>
             <span class="s1">&#39;AUG-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpAUG</span><span class="p">,</span>
                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;VESiR&#39;</span><span class="p">],</span>
                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;D2cdome&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cdomL&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cdomR&#39;</span><span class="p">,</span> <span class="s1">&#39;D2ci1&#39;</span><span class="p">,</span>
@@ -822,12 +829,26 @@
             <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpTOMAS</span><span class="p">,</span>
                          <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">],</span>
                          <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;LimiterV0&#39;</span><span class="p">,</span> <span class="s1">&#39;AntennaV0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;COMPASS-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpCOMPASS</span><span class="p">,</span>
+                           <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
+            <span class="s1">&#39;TCV-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpTCV</span><span class="p">,</span>
+                       <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">],</span>
+                       <span class="s1">&#39;CoilPF&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A001&#39;</span><span class="p">,</span> <span class="s1">&#39;B001&#39;</span><span class="p">,</span> <span class="s1">&#39;B002&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;B03A1&#39;</span><span class="p">,</span> <span class="s1">&#39;B03A2&#39;</span><span class="p">,</span> <span class="s1">&#39;B03A3&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;C001&#39;</span><span class="p">,</span> <span class="s1">&#39;C002&#39;</span><span class="p">,</span> <span class="s1">&#39;D001&#39;</span><span class="p">,</span> <span class="s1">&#39;D002&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;E001&#39;</span><span class="p">,</span> <span class="s1">&#39;E002&#39;</span><span class="p">,</span> <span class="s1">&#39;E003&#39;</span><span class="p">,</span> <span class="s1">&#39;E004&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;E005&#39;</span><span class="p">,</span> <span class="s1">&#39;E006&#39;</span><span class="p">,</span> <span class="s1">&#39;E007&#39;</span><span class="p">,</span> <span class="s1">&#39;E008&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;E03A1&#39;</span><span class="p">,</span> <span class="s1">&#39;E03A2&#39;</span><span class="p">,</span> <span class="s1">&#39;E03A3&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;F001&#39;</span><span class="p">,</span> <span class="s1">&#39;F002&#39;</span><span class="p">,</span> <span class="s1">&#39;F003&#39;</span><span class="p">,</span> <span class="s1">&#39;F004&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;F005&#39;</span><span class="p">,</span> <span class="s1">&#39;F006&#39;</span><span class="p">,</span> <span class="s1">&#39;F007&#39;</span><span class="p">,</span> <span class="s1">&#39;F008&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;T03A1&#39;</span><span class="p">,</span> <span class="s1">&#39;T03A2&#39;</span><span class="p">,</span> <span class="s1">&#39;T03A3&#39;</span><span class="p">]},</span>
             <span class="p">}</span>
 
 <span class="c1"># Each config can be called by various names / shortcuts (for benchmark and</span>
 <span class="c1"># retro-compatibility), this table stores, for each shortcut,</span>
 <span class="c1"># the associated unique name it refers to</span>
 <span class="n">_DCONFIG_SHORTCUTS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ITER&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;ITER-SOLEDGE3X&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-SOLEDGE3XV0&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;JET&#39;</span><span class="p">:</span> <span class="s1">&#39;JET-V0&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;WEST&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V1&#39;</span><span class="p">,</span>
@@ -840,7 +861,9 @@
                       <span class="s1">&#39;AUG&#39;</span><span class="p">:</span> <span class="s1">&#39;AUG-V1&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;NSTX&#39;</span><span class="p">:</span> <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;DEMO&#39;</span><span class="p">:</span> <span class="s1">&#39;DEMO-2019&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;TOMAS&#39;</span><span class="p">:</span> <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">}</span>
+                      <span class="s1">&#39;TOMAS&#39;</span><span class="p">:</span> <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;COMPASS&#39;</span><span class="p">:</span> <span class="s1">&#39;COMPASS-V0&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;TCV&#39;</span><span class="p">:</span> <span class="s1">&#39;TCV-V0&#39;</span><span class="p">}</span>
 
 
 <span class="k">def</span> <span class="nf">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">,</span>
@@ -896,22 +919,77 @@
         <span class="k">return</span> <span class="n">msg</span></div>
 
 
-<span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span>
-                            <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span> <span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
-                            <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_create_config_testcase_check_inputs</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dconfig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">_DEFCONFIG</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg config must be a str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">_path_testcases</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg path must be a valid path!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dconfig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dconfig</span> <span class="o">=</span> <span class="n">_DCONFIG</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dconfig</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dconfig must be a dict!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dconfig</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dconfig_shortcuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dconfig_shortcuts</span> <span class="o">=</span> <span class="n">_DCONFIG_SHORTCUTS</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dconfig_shortcuts must be a dict!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dconfig_shortcuts</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">returnas</span> <span class="o">=</span> <span class="nb">object</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg returnas must be either object or dict!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">-Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">returnas</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dconfig</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="n">returnas</span>
+
+
+<span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
+    <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Load the desired test case configuration</span>
 
 <span class="sd">    Choose from one of the reference preset configurations:</span>
 <span class="sd">        {0}</span>
 
 <span class="sd">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;]&#39;</span><span class="p">)</span>
-    <span class="c1"># Check input</span>
-    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">_DEFCONFIG</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">]])</span>
-    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dconfig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
+    <span class="c1"># -----------</span>
+    <span class="c1"># Check input</span>
+    <span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dconfig</span><span class="p">,</span>
+     <span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="n">returnas</span><span class="p">)</span> <span class="o">=</span> <span class="n">_create_config_testcase_check_inputs</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+        <span class="n">dconfig</span><span class="o">=</span><span class="n">dconfig</span><span class="p">,</span>
+        <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">dconfig_shortcuts</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
+     <span class="p">)</span>
+
+    <span class="c1"># --------------------------</span>
     <span class="c1"># Check config is available</span>
     <span class="k">if</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="k">pass</span>
@@ -926,7 +1004,8 @@
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; you provided: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="c1"># Get file names for config</span>
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Get file and build config</span>
     <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span><span class="o">==</span><span class="s1">&#39;.txt&#39;</span><span class="p">]</span>
     <span class="n">lS</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">lcls</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="o">!=</span> <span class="s1">&#39;Exp&#39;</span><span class="p">])</span>
@@ -970,11 +1049,12 @@
         <span class="n">conf</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span> <span class="n">lStruct</span><span class="o">=</span><span class="n">lS</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">conf</span>
 
+
 <div class="viewcode-block" id="create_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_config">[docs]</a><span class="k">def</span> <span class="nf">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
                   <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Bump_posextent</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">],</span>
                   <span class="n">R</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">divlow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">):</span>
+                  <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Create easily a tofu.geom.Config object</span>
 
 <span class="sd">    In tofu, a Config (short for geometrical configuration) refers to the 3D</span>
@@ -1242,7 +1322,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Jun 04, 2020.<br/>
+      Last updated on Dec 08, 2020.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>
