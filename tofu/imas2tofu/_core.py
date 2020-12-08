@@ -1667,7 +1667,7 @@ class MultiIDSLoader(object):
 
         # -------------
         # Trival case
-        if len(dextra) == 0:
+        if dextra in [None, (None, None)] or len(dextra) == 0:
             if fordata:
                 return None
             else:
