@@ -364,14 +364,16 @@ def plasma_checkformat_dsig(dsig=None,
 
     # Convert to dict
     if lc[0]:
-        dsig = {}
-        dsig = {ids: sorted(set(list(dshort[ids].keys())
-                                + list(dcomp[ids].keys())))
-                for ids in lidsok}
+        dsig = dict.fromkeys(lidsok)
     elif lc[1] or lc[2]:
         if lc[1]:
             dsig = [dsig]
-        dsig = {ids: dsig for ids in lidsok}
+        dsig = dict.fromkeys(lidsok.intersection(dsig))
+
+    for ids in dsig.keys():
+        if dsig[ids] is None:
+            dsig[ids] = sorted(set(list(dshort[ids].keys())
+                                   + list(dcomp[ids].keys())))
 
     # Check content
     dout = {}
