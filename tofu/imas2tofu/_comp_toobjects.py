@@ -659,7 +659,8 @@ def data_checkformat_tlim(t, tlim=None,
                + "  You provided: {}".format(tlim))
         if any([isinstance(tt, str) for tt in tlim]):
             msg += '\n\nAvailable events:\n' + str(names)
-        raise Exception(msg)
+        warnings.warn(msg)
+        tlim = False
     if tlim is None:
         tlim = False
 
