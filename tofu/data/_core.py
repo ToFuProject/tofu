@@ -2908,9 +2908,14 @@ class Plasma2D(utils.ToFuObject):
                 c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
                 c1 = not c0 and len(v0['data']) == shape[0]
                 if not (c0 or c1):
-                    msg = (k0 + '\n'
-                           + str([c0, c1, type_, len(v0['data']), shape])
-                           + "\n" + str(v0['data']))
+                    msg = ("Signal {}['data'] should be either:\n".format(k0)
+                           + "\t- dict: a mesh\n"
+                           + "\t- iterable of len() = "
+                           + "{} (shape[0] of ref)\n".format(shape[0])
+                           + "  You provided:\n"
+                           + "\t- type: {}\n".format(type_)
+                           + "\t- len(): {}\n".format(len(v0['data']))
+                           + "\t- {}['data']: {}".format(k0, v0['data']))
                     raise Exception(msg)
             else:
                 assert type(v0['data']) is np.ndarray
@@ -3103,9 +3108,9 @@ class Plasma2D(utils.ToFuObject):
             if group is None or group in lg:
                 return str_, None
             else:
-                msg = "Required data key does not have matching group:\n"
-                msg += "    - ddata[%s]['lgroup'] = %s"%(str_, lg)
-                msg += "    - Expected group:  %s"%group
+                msg = ("Required data key does not have matching group:\n"
+                       + "\t- ddata[{}]['lgroup'] = {}\n".format(str_, lg)
+                       + "\t- Expected group:  {}".format(group))
                 if raise_:
                     raise Exception(msg)
 
@@ -4253,10 +4258,10 @@ class Plasma2D(utils.ToFuObject):
         c0 = type(X) is str
         c1 = type(X) is list and (len(X) == 1 or len(X) == nquant)
         if not (c0 or c1):
-            msg = "X must be specified, either as :\n"
-            msg += "    - a str (name or quant)\n"
-            msg += "    - a list of str\n"
-            msg += "    Provided: %s"%str(X)
+            msg = ("X must be specified, either as :\n"
+                   + "    - a str (name or quant)\n"
+                   + "    - a list of str\n"
+                   + "    Provided: {}".format(X))
             raise Exception(msg)
         if c1 and len(X) == 1:
             X = X[0]

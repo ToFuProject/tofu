@@ -544,7 +544,7 @@ def _check_data(data, pos=None, nan=None, isclose=None, empty=None):
 def _get_data_units(ids=None, sig=None, occ=None,
                     comp=None, indt=None, indch=None,
                     stack=None, isclose=None, flatocc=None,
-                    nan=None, pos=None, empty=None, warn=None,
+                    nan=None, pos=None, empty=None,
                     dids=None, dcomp=None, dshort=None, dall_except=None,
                     data=True, units=True):
     """ Reference method for getting data and units, using shortcuts
@@ -562,8 +562,6 @@ def _get_data_units(ids=None, sig=None, occ=None,
         - checked for NaNs if nan = True
         - checked for positive values if pos = True
         - All occurences are flatened if flatocc = True
-
-    A warning is issued if warn = True
 
     If comp = True, it means the data is not loaded directly from the ids,
     but computed from a combination of signals in the ids.
@@ -599,7 +597,7 @@ def _get_data_units(ids=None, sig=None, occ=None,
                 ddata = get_data_units(
                     dsig={ids: lstr}, occ=occ, indch=indch,
                     data=True, units=False, indt=indt, stack=stack,
-                    flatocc=False, nan=nan, pos=pos, warn=warn,
+                    flatocc=False, nan=nan, pos=pos, warn=False,
                     dids=dids, dcomp=dcomp, dshort=dshort,
                     dall_except=dall_except)[ids]
                 out = [dcomp[ids][sig]['func'](
@@ -657,7 +655,7 @@ def get_data_units(dsig=None, occ=None,
                    indch=None, indt=None, stack=None,
                    isclose=None, flatocc=True,
                    nan=True, pos=None, empty=None, strict=None,
-                   return_all=None, warn=True,
+                   return_all=None, warn=None,
                    dids=None, dshort=None, dcomp=None, dall_except=None):
     """ Return a dict with the data and units (and empty, errors)
 
@@ -675,6 +673,10 @@ def get_data_units(dsig=None, occ=None,
     # ------------------
     # Check format input
 
+    if data is None:
+        data = _DATA
+    if units is None:
+        units = _UNITS
     if strict is None:
         strict = _STRICT
     if warn is None:
@@ -716,7 +718,7 @@ def get_data_units(dsig=None, occ=None,
                     indt=indti, indch=indchi,
                     stack=stack, isclose=isclose_, flatocc=flatocc,
                     data=data, units=units,
-                    nan=nan, pos=pos, empty=empty, warn=warn,
+                    nan=nan, pos=pos, empty=empty,
                     dids=dids, dcomp=dcomp, dshort=dshort,
                     dall_except=dall_except)
 
@@ -737,15 +739,21 @@ def get_data_units(dsig=None, occ=None,
             del dfail[ids]
 
     # Print if any failure
-    if anyfail and warn:
-        msg = "The following data could not be retrieved:"
-        for ids in dfail.keys():
-            nmax = np.max([len(k1) for k1 in dfail[ids].keys()])
-            msg += "\n\t- {}:".format(ids)
-            for sigi, msgi in dfail[ids].items():
-                msg += "\n\t\t{0}:  {1}".format(sigi.ljust(nmax),
-                                                msgi.replace('\n', ' '))
-        warnings.warn(msg)
+    if anyfail:
+        if data is True:
+            for ids in dfail.keys():
+                for sigi in list(dout[ids].keys()):
+                    if dout[ids][sigi]['errdata'] is not None:
+                        del dout[ids][sigi]
+        if warn:
+            msg = "The following data could not be retrieved:"
+            for ids in dfail.keys():
+                nmax = np.max([len(k1) for k1 in dfail[ids].keys()])
+                msg += "\n\t- {}:".format(ids)
+                for sigi, msgi in dfail[ids].items():
+                    msg += "\n\t\t{0}:  {1}".format(sigi.ljust(nmax),
+                                                    msgi.replace('\n', ' '))
+            warnings.warn(msg)
 
     # return
     if return_all:
