@@ -8,6 +8,7 @@
 from libc.math cimport ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround
 from libc.math cimport sqrt as Csqrt
+from libc.math cimport pi as Cpi, cos as Ccos, sin as Csin
 from libc.math cimport isnan as Cisnan
 from libc.math cimport NAN as Cnan
 from libc.math cimport log2 as Clog2
@@ -15,6 +16,7 @@ from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from _basic_geom_tools cimport _VSMALL
+from _basic_geom_tools cimport _TWOPI
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
@@ -31,9 +33,15 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                         double** ldiscret_arr,
                                         double[1] resolution,
                                         long** lindex_arr, long[1] n) nogil:
+    """Discretizes a 1D line defined over [liminmax[0], lminmax[1]] with
+    a discretization step resoultion (out value) computed from dstep which
+    can be given in absolute or relative mode. It is possible to only get a
+    subdomain [dl[0], dl[1]] of the line. lindex_arr indicates the indices
+    of points to take into account depending on the subdomain dl. n indicates
+    the number of points on the discretized subdomain."""
     cdef int[1] nL0
     cdef long[1] nind
-
+    # ..
     first_discretize_line1d_core(lminmax, dstep,
                                  resolution, n, nind, nL0,
                                  dl, lim, mode, margin)
@@ -50,6 +58,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                   nL0[0], resolution[0], nind[0])
     return nind[0]
 
+
 cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double dstep,
                                               double[1] resolution,
@@ -62,8 +71,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double margin) nogil:
     """
     Computes the resolution, the desired limits, and the number of cells when
-    discretising the segmen lminmax with the given parameters. It doesn't do the
-    actual discretization.
+    discretising the segment lminmax with the given parameters. It doesn't do
+    the actual discretization.
     For that part, please refer to: second_discretize_line1d_core
     """
     cdef int nl1, ii, jj
@@ -72,7 +81,7 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     cdef double[2] desired_limits
 
     # .. Computing "real" discretization step, depending on `mode`..............
-    if mode == 1: # absolute
+    if mode == 0: # absolute
         ncells[0] = <int>Cceil((lminmax[1] - lminmax[0]) / dstep)
     else: # relative
         ncells[0] = <int>Cceil(1./dstep)
@@ -148,7 +157,7 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
     cdef double resol
     cdef double first = lminmax[0]
 
-    if mode == 1: # absolute
+    if mode == 0: # absolute
         ncells = <int>Cceil((lminmax[1] - first) / dstep)
     else: # relative
         ncells = <int>Cceil(1./dstep)
@@ -166,10 +175,31 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
         ldiscret_arr[0][ii] = first + resol * ii
     return
 
+# --- Utility function for discretizing line ---
+cdef inline void cythonize_subdomain_dl(DL, double[2] dl_array):
+    # All functions to discretize a line need to get a subdomain of
+    # discretization which can be None for both extremities or only
+    # one or none. However cython doesn't work too well with parameters
+    # that can be an array, a list, none, etc. So this functions will convert
+    # this obscure parameter to something more 'cythonic'
+    if DL is None:
+        dl_array[0] = Cnan
+        dl_array[1] = Cnan
+    else:
+        if DL[0] is None:
+            dl_array[0] = Cnan
+        else:
+            dl_array[0] = DL[0]
+        if DL[1] is None:
+            dl_array[1] = Cnan
+        else:
+            dl_array[1] = DL[1]
+    return
+
+
 # ==============================================================================
 # =  Vessel's poloidal cut discretization
 # ==============================================================================
-
 cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
                                        int mode, double margin, double din,
                                        double[:, ::1] ves_vin,
@@ -565,7 +595,6 @@ cdef inline void middle_rule_abs_var(int nlos,
     return
 
 
-
 cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
@@ -627,6 +656,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
                                &los_coeffs[0][first_index])
     return
 
+
 cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                                      double* los_kmin,
                                      double* los_kmax,
@@ -655,6 +685,7 @@ cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                            num_threads)
     free(los_nraf)
     return
+
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
 cdef inline void left_rule_single(int num_raf,
@@ -991,8 +1022,6 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
     return
 
 
-
-
 cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
@@ -1162,7 +1191,9 @@ cdef inline int get_nb_dmode(str dmode) :
     # gil required...........
     if dmode == 'rel':
         return 1
-    return 0 # absolute
+    if dmode == 'abs':
+        return 0
+    return -1
 
 
 # ==============================================================================
@@ -1267,7 +1298,6 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
 # ==============================================================================
 # == Utility functions for signal computation (LOS_calc_signal)
 # ==============================================================================
-
 # -- anisotropic case ----------------------------------------------------
 cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
                                        double resol,
@@ -1307,14 +1337,17 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
         free(los_coeffs)
     return pts, usbis
 
+
 # -- not anisotropic ------------------------------------------------------
-cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
-                                   double resol,
-                                   int n_dmode, int n_imode,
-                                   double[1] eff_res,
-                                   long[1] nb_rows,
-                                   double[:,::1] ray_orig,
-                                   double[:,::1] ray_vdir):
+cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(
+    double los_kmin,
+    double los_kmax,
+    double resol,
+    int n_dmode, int n_imode,
+    double[1] eff_res,
+    long[1] nb_rows,
+    double[:,::1] ray_orig,
+    double[:,::1] ray_vdir):
     # This function doesn't compute anything new.
     # It's a utility function for LOS_calc_signal to avoid reptitions
     # It samples a LOS and recreates the points on that LOS
@@ -1412,6 +1445,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             return los_ind[nlos-1]
     return -1
 
+
 cdef inline void los_get_sample_core_var_res(int nlos,
                                             double* los_lim_min,
                                             double* los_lim_max,
@@ -1502,4 +1536,379 @@ cdef inline void los_get_sample_pts(int nlos,
             usx[ii] = loc_vx
             usy[ii] = loc_vy
             usz[ii] = loc_vz
+    return
+
+# -- utility for vmesh sub from D ----------------------------------------------
+cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
+                                long* ncells_rphi,
+                                double phistep,
+                                int ncells_rphi0,
+                                double* disc_r,
+                                double* disc_r0,
+                                double* step_rphi,
+                                double[::1] reso_phi_mv,
+                                long* tot_nc_plane,
+                                int ind_loc_r0,
+                                int ncells_r0,
+                                int ncells_z,
+                                int* max_sz_phi,
+                                double min_phi,
+                                double max_phi,
+                                long* sz_phi,
+                                long[:,::1] indi_mv,
+                                double margin,
+                                int num_threads) nogil:
+    cdef int ii, jj
+    cdef int NP
+    cdef int loc_nc_rphi
+    cdef double inv_drphi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
+    cdef double margin_step
+    cdef double abs0, abs1
+    cdef int nphi0, nphi1
+    # .. Initialization Variables ..............................................
+    NP = 0
+    twopi_over_dphi = _TWOPI / phistep
+    min_phi_pi = min_phi + Cpi
+    max_phi_pi = max_phi + Cpi
+    abs0 = Cabs(min_phi_pi)
+    abs1 = Cabs(max_phi_pi)
+    #
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    if min_phi < max_phi:
+        for ii in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
+            ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
+            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            inv_drphi = 1. / step_rphi[ii]
+            reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            tot_nc_plane[ii] = 0 # initialization
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[ii]:
+                    ind_loc_r0 = jj
+                    break
+                else:
+                    ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                    tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            margin_step = margin * step_rphi[ii]
+            if abs0 - step_rphi[ii]*Cfloor(abs0 / step_rphi[ii]) < margin_step:
+                nphi0 = int(Cround(min_phi_pi / step_rphi[ii]))
+            else:
+                nphi0 = int(Cfloor(min_phi_pi / step_rphi[ii]))
+            if abs1-step_rphi[ii]*Cfloor(abs1 / step_rphi[ii]) < margin_step:
+                nphi1 = int(Cround(max_phi_pi / step_rphi[ii])-1)
+            else:
+                nphi1 = int(Cfloor(max_phi_pi / step_rphi[ii]))
+            sz_phi[ii] = nphi1 + 1 - nphi0
+            if max_sz_phi[0] < sz_phi[ii]:
+                max_sz_phi[0] = sz_phi[ii]
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(sz_phi[ii]):
+                    indi_mv[ii,jj] = nphi0 + jj
+            NP += sz_z * sz_phi[ii]
+    else:
+        for ii in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
+            ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
+            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            inv_drphi = 1. / step_rphi[ii]
+            reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            tot_nc_plane[ii] = 0 # initialization
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[ii]:
+                    ind_loc_r0 = jj
+                    break
+                else:
+                    ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                    tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            margin_step = margin*step_rphi[ii]
+            if abs0 - step_rphi[ii]*Cfloor(abs0 / step_rphi[ii]) < margin_step:
+                nphi0 = int(Cround(min_phi_pi / step_rphi[ii]))
+            else:
+                nphi0 = int(Cfloor(min_phi_pi / step_rphi[ii]))
+            if abs1-step_rphi[ii]*Cfloor(abs1 / step_rphi[ii]) < margin_step:
+                nphi1 = int(Cround(max_phi_pi / step_rphi[ii])-1)
+            else:
+                nphi1 = int(Cfloor(max_phi_pi / step_rphi[ii]))
+            sz_phi[ii] = nphi1+1+loc_nc_rphi-nphi0
+            if max_sz_phi[0] < sz_phi[ii]:
+                max_sz_phi[0] = sz_phi[ii]
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(loc_nc_rphi - nphi0):
+                    indi_mv[ii, jj] = nphi0 + jj
+                for jj in prange(loc_nc_rphi - nphi0, sz_phi[ii]):
+                    indi_mv[ii, jj] = jj - (loc_nc_rphi - nphi0)
+            NP += sz_z * sz_phi[ii]
+
+    return NP
+
+cdef inline void vmesh_prepare_tab(long[:,:,::1] lnp,
+                                   int sz_r,
+                                   int sz_z,
+                                   long* sz_phi) nogil:
+    cdef int ii, zz, jj
+    cdef int kk
+    cdef int NP = 0
+    cdef int rem
+    for ii in range(sz_r):
+        for zz in range(sz_z):
+            rem = sz_phi[ii] % 4
+            for jj in range(0, sz_phi[ii]-rem, 4):
+                lnp[ii, zz, jj] = NP
+                lnp[ii, zz, jj + 1] = NP + 1
+                lnp[ii, zz, jj + 2] = NP + 2
+                lnp[ii, zz, jj + 3] = NP + 3
+                NP += 4
+            for kk in range(jj+4, sz_phi[ii]):
+                lnp[ii, zz, kk] = NP
+                NP += 1
+    return
+
+cdef inline void vmesh_double_loop_cart(int ii,
+                                        int sz_z,
+                                        long* lindex_z,
+                                        long* ncells_rphi,
+                                        long* tot_nc_plane,
+                                        double reso_r_z,
+                                        double* step_rphi,
+                                        double* disc_r,
+                                        double* disc_z,
+                                        long[:,:,::1] lnp,
+                                        long* sz_phi,
+                                        long[::1] iii,
+                                        double[::1] dv_mv,
+                                        double[::1] reso_phi_mv,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv) nogil:
+    cdef int zz
+    cdef int jj
+    cdef long zrphi
+    cdef long indiijj
+    cdef double phi
+    cdef long NP
+    # ..
+    for zz in range(sz_z):
+        zrphi = lindex_z[zz] * ncells_rphi[ii]
+        for jj in range(sz_phi[ii]):
+            NP = lnp[ii,zz,jj]
+            indiijj = iii[jj]
+            phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+            pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
+            pts_mv[1,NP] = disc_r[ii]*Csin(phi)
+            pts_mv[2,NP] = disc_z[zz]
+            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+            dv_mv[NP] = reso_r_z*reso_phi_mv[ii]
+    return
+
+cdef inline void vmesh_double_loop_polr(int ii,
+                                        int sz_z,
+                                        long* lindex_z,
+                                        long* ncells_rphi,
+                                        long* tot_nc_plane,
+                                        double reso_r_z,
+                                        double* step_rphi,
+                                        double* disc_r,
+                                        double* disc_z,
+                                        long[:,:,::1] lnp,
+                                        long* sz_phi,
+                                        long[::1] iii,
+                                        double[::1] dv_mv,
+                                        double[::1] reso_phi_mv,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv) nogil:
+    cdef int zz
+    cdef int jj
+    cdef long NP
+    cdef long zrphi
+    cdef long indiijj
+    # ..
+    for zz in range(sz_z):
+        zrphi = lindex_z[zz] * ncells_rphi[ii]
+        for jj in range(sz_phi[ii]):
+            NP = lnp[ii,zz,jj]
+            indiijj = iii[jj]
+            pts_mv[0,NP] = disc_r[ii]
+            pts_mv[1,NP] = disc_z[zz]
+            pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+            dv_mv[NP] = reso_r_z * reso_phi_mv[ii]
+    return
+
+
+
+cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
+                                   long[:,::1] indi_mv,
+                                   bint is_cart,
+                                   int sz_r,
+                                   int sz_z,
+                                   long* lindex_z,
+                                   long* ncells_rphi,
+                                   long* tot_nc_plane,
+                                   double reso_r_z,
+                                   double* step_rphi,
+                                   double* disc_r,
+                                   double* disc_z,
+                                   long[:,:,::1] lnp,
+                                   long* sz_phi,
+                                   double[::1] dv_mv,
+                                   double[::1] reso_phi_mv,
+                                   double[:, ::1] pts_mv,
+                                   long[::1] ind_mv,
+                                   int num_threads) nogil:
+    cdef int ii
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        if is_cart:
+            for ii in prange(sz_r):
+                # To make sure the indices are in increasing order
+                vmesh_double_loop_cart(ii, sz_z, lindex_z,
+                                       ncells_rphi, tot_nc_plane,
+                                       reso_r_z, step_rphi,
+                                       disc_r, disc_z, lnp, sz_phi,
+                                       indi_mv[ii,first_ind_mv[ii]:],
+                                       dv_mv, reso_phi_mv, pts_mv, ind_mv)
+        else:
+            for ii in prange(sz_r):
+                vmesh_double_loop_polr(ii, sz_z, lindex_z,
+                                       ncells_rphi, tot_nc_plane,
+                                       reso_r_z, step_rphi,
+                                       disc_r, disc_z, lnp, sz_phi,
+                                       indi_mv[ii,first_ind_mv[ii]:],
+                                       dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    return
+
+
+# -- utility for vmesh from indices --------------------------------------------
+
+cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
+                                     double* disc_r,
+                                     int sz_r, int sz_z,
+                                     double twopi_over_dphi,
+                                     double[::1] dRPhirRef,
+                                     long* tot_nc_plane,
+                                     double** phi_tab,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int radius_ratio
+    cdef int loc_nc_rphi
+    cdef double* step_rphi = NULL
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    step_rphi    = <double*>malloc(sz_r * sizeof(double))
+    radius_ratio = <int>Cceil(disc_r[sz_r-1]/disc_r[0])
+    # we do first the step 0 to avoid an if in a for loop:
+    loc_nc_rphi = <int>(Cceil(disc_r[0] * twopi_over_dphi))
+    ncells_rphi[0] = loc_nc_rphi
+    step_rphi[0] = _TWOPI / loc_nc_rphi
+    dRPhirRef[0] = disc_r[0] * step_rphi[0]
+    tot_nc_plane[0] = 0
+    phi_tab[0] = <double*>malloc(sz_r * (loc_nc_rphi * radius_ratio + 1)
+                             * sizeof(double))
+    with nogil, parallel(num_threads=num_threads):
+        for jj in prange(loc_nc_rphi):
+            phi_tab[0][jj * sz_r] = -Cpi + (0.5+jj) * step_rphi[0]
+    # now we do the rest of the loop
+    for ii in range(1, sz_r):
+        loc_nc_rphi = <int>(Cceil(disc_r[ii] * twopi_over_dphi))
+        ncells_rphi[ii] = loc_nc_rphi
+        step_rphi[ii] = _TWOPI / loc_nc_rphi
+        dRPhirRef[ii] = disc_r[ii] * step_rphi[ii]
+        tot_nc_plane[ii] = tot_nc_plane[ii-1] + ncells_rphi[ii-1] * sz_z
+        with nogil, parallel(num_threads=num_threads):
+            for jj in range(loc_nc_rphi):
+                phi_tab[0][ii + sz_r * jj] = -Cpi + (0.5+jj) * step_rphi[ii]
+
+    tot_nc_plane[sz_r] = tot_nc_plane[sz_r-1] + ncells_rphi[sz_r-1] * sz_z
+    free(step_rphi)
+    return
+
+
+cdef inline void vmesh_ind_cart_loop(int np,
+                                     int sz_r,
+                                     long[::1] ind,
+                                     long* tot_nc_plane,
+                                     int* ncells_rphi,
+                                     double* phi_tab,
+                                     double* disc_r,
+                                     double* disc_z,
+                                     double[:,::1] pts,
+                                     double[::1] res3d,
+                                     double reso_r_z,
+                                     double[::1] dRPhirRef,
+                                     int[::1] Ru,
+                                     double[::1] dRPhir,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int iiR, iiZ, iiphi
+    cdef double phi
+    # we compute the points coordinates from the indices values
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(np):
+            for jj in range(sz_r+1):
+                if ind[ii]-tot_nc_plane[jj]<0:
+                    break
+            iiR = jj-1
+            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
+            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
+            phi = phi_tab[iiR + sz_r * iiphi]
+            pts[0,ii] = disc_r[iiR] * Ccos(phi)
+            pts[1,ii] = disc_r[iiR] * Csin(phi)
+            pts[2,ii] = disc_z[iiZ]
+            res3d[ii] = reso_r_z * dRPhirRef[iiR]
+            if Ru[iiR]==0:
+                dRPhir[iiR] = dRPhirRef[iiR]
+                Ru[iiR] = 1
+    return
+
+
+cdef inline void vmesh_ind_polr_loop(int np,
+                                     int sz_r,
+                                     long[::1] ind,
+                                     long* tot_nc_plane,
+                                     int* ncells_rphi,
+                                     double* phi_tab,
+                                     double* disc_r,
+                                     double* disc_z,
+                                     double[:,::1] pts,
+                                     double[::1] res3d,
+                                     double reso_r_z,
+                                     double[::1] dRPhirRef,
+                                     int[::1] Ru,
+                                     double[::1] dRPhir,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int iiR, iiZ, iiphi
+    cdef double phi
+    # we compute the points coordinates from the indices values
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(np):
+            for jj in range(sz_r+1):
+                if ind[ii]-tot_nc_plane[jj]<0:
+                    break
+            iiR = jj-1
+            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
+            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
+            pts[0,ii] = disc_r[iiR]
+            pts[1,ii] = disc_z[iiZ]
+            pts[2,ii] = phi_tab[iiR + sz_r * iiphi]
+            res3d[ii] = reso_r_z * dRPhirRef[iiR]
+            if Ru[iiR]==0:
+                dRPhir[iiR] = dRPhirRef[iiR]
+                Ru[iiR] = 1
     return

@@ -113,16 +113,23 @@ def test02_Poly_CLockOrder():
 
     # Test arbitrary 2D polygon
     Poly = np.array([[0.,1.,1.,0.],[0.,0.,1.,1.]])
+
     P = GG.format_poly(Poly, order='C', Clock=False, close=True,
                        Test=True)
+
     assert all([np.allclose(P[:, 0], P[:, -1]), P.shape == (2, 5),
                 not GG.Poly_isClockwise(P), P.flags['C_CONTIGUOUS'],
                 not P.flags['F_CONTIGUOUS']])
+
     P = GG.format_poly(Poly, order='F', Clock=True, close=False,
                        Test=True)
-    assert all([not np.allclose(P[:, 0], P[:, -1]), P.shape == (2, 4),
-                GG.Poly_isClockwise(np.concatenate((P, P[:, 0:1]), axis=1)),
-                not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
+
+    assert not np.allclose(P[:, 0], P[:, -1]), "poly should not be closed"
+    assert P.shape == (2, 4), ("shape of poly should be (2,4), here = "
+                               + str(P.shape) + "\n Poly = " + str(P))
+    assert GG.Poly_isClockwise(np.concatenate((P, P[:, 0:1]), axis=1))
+    assert not P.flags['C_CONTIGUOUS']
+    assert P.flags['F_CONTIGUOUS']
 
     # Test arbitrary 3D polygon
     Poly = np.array([[0., 1., 1., 0.],
@@ -239,7 +246,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     VIn = VIn/np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:]
     dL = 0.01
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL, D1=None,
+    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
+                                                             D1=None,
                                                              D2=None,
                                                              margin=1.e-9,
                                                              DIn=0., VIn=VIn)
@@ -253,8 +261,8 @@ def test06_discretize_vpoly(VPoly=VPoly):
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
     PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
-                                                             D1=[0.,2.],
-                                                             D2=[-2.,0.],
+                                                             D1=[0., 2.],
+                                                             D2=[-2., 0.],
                                                              margin=1.e-9,
                                                              DIn=0.05, VIn=VIn)
     assert np.all(PtsCross[0,:]>=0.) and np.all(PtsCross[0,:]<=2.) and \
@@ -293,8 +301,8 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
             dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
                                                                  RMinMax,
                                                                  ZMinMax,
-                                                                 DR=np.array([0.5,2.]),
-                                                                 DZ=np.array([0.,1.2]),
+                                                                 DR=[0.5, 2.],
+                                                                 DZ=[0., 1.2],
                                                                  DPhi=LDPhi[ii],
                                                                  VPoly=VPoly,
                                                                  Out='(R,Z,Phi)',
@@ -343,9 +351,9 @@ def test08_Ves_Vmesh_Lin(VPoly=VPoly):
     Pts, dV, ind,\
         dXr, dYr, dZr = GG._Ves_Vmesh_Lin_SubFromD_cython(dX, dY, dZ, XMinMax,
                                                           YMinMax, ZMinMax,
-                                                          DX=np.array([8.,15.]),
-                                                          DY=np.array([0.5,2.]),
-                                                          DZ=np.array([0.,1.2]),
+                                                          DX=[8., 15.],
+                                                          DY=[0.5, 2.],
+                                                          DZ=[0., 1.2],
                                                           VPoly=VPoly,
                                                           margin=1.e-9)
     assert Pts.ndim==2 and Pts.shape[0]==3

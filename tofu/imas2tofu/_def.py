@@ -552,7 +552,10 @@ def _events(names, t):
 
 
 def _RZ2array(ptsR, ptsZ):
-    return np.array([ptsR, ptsZ]).T
+    out = np.array([ptsR, ptsZ]).T
+    if out.ndim == 1:
+        out = out[None, :]
+    return out
 
 
 def _losptsRZP(*pt12RZP):
