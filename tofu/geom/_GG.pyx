@@ -1099,7 +1099,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
     indI = np.sort(indI, axis=1)
     indi_mv = indI
-    first_ind_mv = np.argmax(indI > -1, axis=1)
+    first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
     _st.vmesh_double_loop(first_ind_mv, indi_mv,
                           is_cart, sz_r,
                           sz_z, lindex_z,
