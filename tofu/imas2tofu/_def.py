@@ -31,6 +31,28 @@ import numpy as np
 
 # ############################################################################
 #
+#           General imas2tofu parameters
+#
+# ############################################################################
+
+
+# public imas user (used for checking if can be saved)
+_IMAS_USER_PUBLIC = 'imas_public'
+
+# generic imas parameters dict
+_IMAS_DIDD = {
+    'shot': 0,
+    'run': 0,
+    'refshot': -1,
+    'refrun': -1,
+    'user': _IMAS_USER_PUBLIC,
+    'tokamak': 'west',
+    'version': '3',
+}
+
+
+# ############################################################################
+#
 #           shortcuts for imas2tofu interface (MultiIDSLoader class)
 #
 # ############################################################################

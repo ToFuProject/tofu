@@ -63,23 +63,6 @@ __all__ = ['check_units_IMASvsDSHORT',
            '_save_to_imas']
 
 
-# public imas user (used for checking if can be saved)
-_IMAS_USER_PUBLIC = 'imas_public'
-
-# Default IMAS parameters (default for loading)
-_IMAS_USER = 'imas_public'
-_IMAS_SHOT = 0
-_IMAS_RUN = 0
-_IMAS_OCC = 0
-_IMAS_TOKAMAK = 'west'
-_IMAS_VERSION = '3'
-_IMAS_SHOTR = -1
-_IMAS_RUNR = -1
-_IMAS_DIDD = {'shot': _IMAS_SHOT, 'run': _IMAS_RUN,
-              'refshot': _IMAS_SHOTR, 'refrun': _IMAS_RUNR,
-              'user': _IMAS_USER, 'tokamak': _IMAS_TOKAMAK,
-              'version': _IMAS_VERSION}
-
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 _ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
@@ -155,7 +138,7 @@ class MultiIDSLoader(object):
 
     _def = {'isget':False,
             'ids':None, 'occ':0, 'needidd':True}
-    _defidd = _IMAS_DIDD
+    _defidd = dict(_defimas2tofu._IMAS_DIDD)
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
     _lidsk = ['tokamak', 'user', 'version',
@@ -3100,7 +3083,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
                 user=user, tokamak=tokamak, version=version)
     for k, v in didd.items():
         if v is None:
-            didd[k] = _IMAS_DIDD[k]
+            didd[k] = _defimas2tofu._IMAS_DIDD[k]
     didd['shot'] = int(didd['shot'])
     didd['run'] = int(didd['run'])
     assert all([type(didd[ss]) is str for ss in ['user','tokamak','version']])
@@ -3127,7 +3110,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
             print(msg)
         idd.open_env(didd['user'], didd['tokamak'], didd['version'])
     else:
-        if user == _IMAS_USER_PUBLIC:
+        if user == _defimas2tofu._IMAS_USER_PUBLIC:
             msg = "IMAS: required shotfile does not exist\n"
             msg += "      Shotfiles with user=%s are public\n"%didd['user']
             msg += "      They have to be created centrally\n"
