@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>tofu.data._core &#8212; Tofu 1.4.7</title>
+    <title>tofu.data._core &#8212; Tofu 1.4.9</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
@@ -37,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.7</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -3023,9 +3023,14 @@
                 <span class="n">c0</span> <span class="o">=</span> <span class="n">type_</span> <span class="ow">is</span> <span class="nb">dict</span> <span class="ow">and</span> <span class="s1">&#39;mesh&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddata</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;lgroup&#39;</span><span class="p">]</span>
                 <span class="n">c1</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">c0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">c0</span> <span class="ow">or</span> <span class="n">c1</span><span class="p">):</span>
-                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="n">k0</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
-                           <span class="o">+</span> <span class="nb">str</span><span class="p">([</span><span class="n">c0</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]),</span> <span class="n">shape</span><span class="p">])</span>
-                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]))</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Signal </span><span class="si">{}</span><span class="s2">[&#39;data&#39;] should be either:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">)</span>
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- dict: a mesh</span><span class="se">\n</span><span class="s2">&quot;</span>
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- iterable of len() = &quot;</span>
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> (shape[0] of ref)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                           <span class="o">+</span> <span class="s2">&quot;  You provided:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- type: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">type_</span><span class="p">)</span>
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- len(): </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]))</span>
+                           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- </span><span class="si">{}</span><span class="s2">[&#39;data&#39;]: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]))</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -3218,9 +3223,9 @@
             <span class="k">if</span> <span class="n">group</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">lg</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">str_</span><span class="p">,</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Required data key does not have matching group:</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - ddata[</span><span class="si">%s</span><span class="s2">][&#39;lgroup&#39;] = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">str_</span><span class="p">,</span> <span class="n">lg</span><span class="p">)</span>
-                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - Expected group:  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">group</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Required data key does not have matching group:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- ddata[</span><span class="si">{}</span><span class="s2">][&#39;lgroup&#39;] = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">str_</span><span class="p">,</span> <span class="n">lg</span><span class="p">)</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- Expected group:  </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">raise_</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
@@ -4368,10 +4373,10 @@
         <span class="n">c0</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
         <span class="n">c1</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="n">nquant</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">c0</span> <span class="ow">or</span> <span class="n">c1</span><span class="p">):</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;X must be specified, either as :</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - a str (name or quant)</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - a list of str</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    Provided: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;X must be specified, either as :</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - a str (name or quant)</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - a list of str</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;    Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">c1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -4489,7 +4494,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Dec 08, 2020.<br/>
+      Last updated on Dec 10, 2020.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
     </p>
   </div>

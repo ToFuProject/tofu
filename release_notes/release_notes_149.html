@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>What’s new in 1.4.5 &#8212; Tofu 1.4.9</title>
+    <title>What’s new in 1.4.9 &#8212; Tofu 1.4.9</title>
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
@@ -85,13 +85,14 @@
   <ul class="dropdown-menu localtoc"
       role="menu"
       aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">What’s new in 1.4.5</a><ul>
+<li><a class="reference internal" href="#">What’s new in 1.4.9</a><ul>
 <li><a class="reference internal" href="#main-changes">Main changes:</a></li>
 <li><a class="reference internal" href="#detailed-changes">Detailed changes:</a><ul>
-<li><a class="reference internal" href="#installation-portability">Installation / portability:</a></li>
+<li><a class="reference internal" href="#community">Community:</a></li>
 <li><a class="reference internal" href="#scripts">scripts:</a></li>
 <li><a class="reference internal" href="#geometry">Geometry:</a></li>
 <li><a class="reference internal" href="#imas-interfacing">IMAS interfacing:</a></li>
+<li><a class="reference internal" href="#id1">Geometry:</a></li>
 <li><a class="reference internal" href="#documentation">Documentation:</a></li>
 <li><a class="reference internal" href="#miscellaneous">Miscellaneous:</a></li>
 </ul>
@@ -130,66 +131,59 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-5">
-<h1>What’s new in 1.4.5<a class="headerlink" href="#what-s-new-in-1-4-5" title="Permalink to this headline">¶</a></h1>
-<p>tofu 1.4.5 is a minor upgrade from 1.4.4</p>
+  <div class="section" id="what-s-new-in-1-4-9">
+<h1>What’s new in 1.4.9<a class="headerlink" href="#what-s-new-in-1-4-9" title="Permalink to this headline">¶</a></h1>
+<p>tofu 1.4.9 is a minor upgrade from 1.4.8
+It fixes a bug affecting Windows conda packages only.</p>
 <div class="section" id="main-changes">
 <h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>Better portability #378</p></li>
-<li><p>Preparing for conda-forge #388</p></li>
-<li><p>Better documentation #384</p></li>
-<li><p>New bash command to get tofu version # 390</p></li>
-<li><p>More informative error messages</p></li>
-<li><p>Better PEP8 compliance</p></li>
+<li><p>Fixed bug on Windows distributions #432</p></li>
+<li><p>Group all imas2tofu default parameters in imas2tofu/_def.py #434</p></li>
 </ul>
 </div>
 <div class="section" id="detailed-changes">
 <h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="installation-portability">
-<h3>Installation / portability:<a class="headerlink" href="#installation-portability" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="community">
+<h3>Community:<a class="headerlink" href="#community" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>default config txt files are now included in sdist #378</p></li>
-<li><p>License is now included in sdist (preparing for conda-forge) #388</p></li>
+<li></li>
 </ul>
 </div>
 <div class="section" id="scripts">
 <h3>scripts:<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>bash command tofu-version return version of currently installed tofu without
-loading tofu itself (read tofu/version.py, faster) #390</p></li>
-<li><p>More robust tofucalc and tofuplot, with less warnings #393</p></li>
+<li></li>
 </ul>
 </div>
 <div class="section" id="geometry">
 <h3>Geometry:<a class="headerlink" href="#geometry" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>New <strong>DEMO 2019 configuration</strong> available! #391</p></li>
-<li><p>New <strong>TOMAS configuration</strong> available! #391</p></li>
+<li></li>
 </ul>
 </div>
 <div class="section" id="imas-interfacing">
 <h3>IMAS interfacing:<a class="headerlink" href="#imas-interfacing" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>imas2tofu now provides tools for inspecting units from the dd_units tool
-Consequently it checks units when multi.calc_signal() is called to determine
-if a 4pi factor is necessary.
-Also, a user-provided corrective coefficient can be used.
-Also, time limts can be passed and events is usable as ids in tofuplot
-Also, events can be passed as time limits
-Also, a function provides a comparison between tofu and IMAS units #380</p></li>
+<li></li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h3>Geometry:<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li></li>
 </ul>
 </div>
 <div class="section" id="documentation">
 <h3>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>More accurate name, version number and copyright in doc #384</p></li>
+<li></li>
 </ul>
 </div>
 <div class="section" id="miscellaneous">
 <h3>Miscellaneous:<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>Better PEP8 compliance</p></li>
+<li></li>
 </ul>
 </div>
 </div>
@@ -198,14 +192,12 @@ Also, a function provides a comparison between tofu and IMAS units #380</p></li>
 <p>Many thanks to all developpers and contributors:
 - Didier Vezinet (&#64;Didou09)
 - Laura Mendoza (&#64;lasofivec)
-- Florian Le Bourdais  (&#64;flothesof)
-- Riccardo Ragona (&#64;rragona)</p>
+- Florian Le Bourdais  (&#64;flothesof)</p>
 </div>
 <div class="section" id="what-s-next-indicative">
 <h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Migrating from nosetests (ongoing for &#64;lasofivec : issues #95 and #232)</p></li>
-<li><p>Availability via conda-forge (ongoing for &#64;flothesof: issues )</p></li>
 <li><p>Easier binary and source installs from pip and conda for all platforms, including unit tests on all platforms (ongoing for &#64;lasofivec and &#64;flothesof : issue #259)</p></li>
 <li><p>Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing for &#64;lasofivec : Issues #71, #72, #73, #74, #75, #76, #77, #78)</p></li>
 <li><p>Tools and classes to handle 2D Bragg X-Ray crystal spectrometer (ongoing for &#64;Didou09 : Issues #202 and #263)</p></li>
@@ -218,7 +210,7 @@ Also, a function provides a comparison between tofu and IMAS units #380</p></li>
 <div class="section" id="list-of-pr-merged-into-this-release">
 <h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>PR: #378, #380, #384, #388, #390, #391, #393</p></li>
+<li><p>PR: #432, #434</p></li>
 </ul>
 </div>
 </div>
@@ -236,7 +228,7 @@ Also, a function provides a comparison between tofu and IMAS units #380</p></li>
         <br/>
         
 <div id="sourcelink">
-  <a href="../_sources/release_notes/release_notes_145.rst.txt"
+  <a href="../_sources/release_notes/release_notes_149.rst.txt"
      rel="nofollow">Source</a>
 </div>
       
