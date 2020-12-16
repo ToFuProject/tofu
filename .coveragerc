@@ -27,5 +27,4 @@ omit =
      */mag/*
      tofu/openadas2tofu/*
      tofu/imas2tofu/*
-     #scripts
-     */tofu/_*.py
+     tofu/entrypoints/*.py
