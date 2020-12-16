@@ -219,7 +219,7 @@ def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
         raise Exception(msg)
 
 
-def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
+def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
 
     # ------------------------
     # Prepare error message
@@ -231,7 +231,11 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
     c1 = isinstance(indict, str)
     c2 = (isinstance(indict, dict)
           and all([isinstance(k0, str)
-                   and (isinstance(v0, list) or isinstance(v0, str))
+                   and ((isinstance(v0, str) and v0 in keys)
+                        or (isinstance(v0, list)
+                            and all([isinstance(v1, str)
+                                     and v1 in keys
+                                     for v1 in v0])))
                    for k0, v0 in indict.items()]))
     c3 = (isinstance(indict, dict)
           and all([(ss in keys
@@ -244,9 +248,19 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
           and isinstance(indict.get('keys'), list)
           and isinstance(indict.get('ind'), np.ndarray))
     if not any([c0, c1, c2, c3, c4]):
-        msg = ("Wrong input dict!\n"
-               + "\t- lc = {}\n".format([c0, c1, c2, c3, c4])
-               + "\t- indict =\n{}".format(indict))
+        msg = (
+            "dconstraints['{}'] shoud be either:\n".format(k0)
+            + "\t- False ({}): no constraint\n".format(c0)
+            + "\t- str ({}): key from dlines['<lines>'] to be used as criterion\n".format(c1)
+            + "\t- dict ({}): ".format(c2)
+            + "{str: line_keyi or [line_keyi, ..., line_keyj}\n"
+            + "\t- dict ({}): ".format(c3)
+            + "{line_keyi: {'key': str, 'coef': , 'offset': }}\n"
+            + "\t- dict ({}): ".format(c4)
+            + "{'keys': [], 'ind': np.ndarray}\n"
+            + "  Available line_keys:\n{}\n".format(sorted(keys))
+            + "  You provided:\n{}".format(indict)
+        )
         raise Exception(msg)
 
     # ------------------------
@@ -273,7 +287,7 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None):
             if isinstance(v0, str):
                 v0 = [v0]
             if not (len(set(v0)) == len(v0)
-                    and all([k1 in keys and k1 not in lkl for k1 in v0])):
+                    and all([k1 not in lkl for k1 in v0])):
                 msg = ("Inconsistency in indict[{}], either:\n".format(k0)
                        + "\t- v0 not unique: {}\n".format(v0)
                        + "\t- some v0 not in keys: {}\n".format(keys)
@@ -1249,7 +1263,7 @@ def fit1d_dinput(
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]),
                                       keys=lines_keys, nlines=nlines,
-                                      dlines=dlines)
+                                      dlines=dlines, k0=k0)
 
     # ------------------------
     # add mz, symb, ION, keys, lamb
@@ -1341,7 +1355,7 @@ def fit1d_dinput(
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
                                        dinput=dinput)
-    dinput['dx0'] = fit12d_dx0(dinput=dinput)
+    dinput['dx0'] = fit12d_dx0(dinput=dinput)       # TBF
     # dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
@@ -1405,7 +1419,7 @@ def fit2d_dinput(
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]),
                                       keys=lines_keys, nlines=nlines,
-                                      dlines=dlines)
+                                      dlines=dlines, k0=k0)
 
     # ------------------------
     # add mz, symb, ION, keys, lamb
