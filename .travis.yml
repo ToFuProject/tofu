@@ -68,12 +68,6 @@ install:
 - echo $IS_DEPLOY
 
 script:
-- pwd
-- ls
-- ls tofu
-- ls tofu/tests/
-- ls tofu/tests/tests01_geom/
-- ls tofu/tests/tests01_geom/test_03_core_data
 - coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
 - coverage report
 - coverage html
