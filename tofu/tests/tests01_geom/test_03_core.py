@@ -83,35 +83,12 @@ def teardown_module(module):
             os.remove(os.path.join(_here,f))
 
 
-#def my_setup_function():
-#    print ("my_setup_function")
-
-#def my_teardown_function():
-#    print ("my_teardown_function")
-
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_numbers_3_4():
-#    print 'test_numbers_3_4  <============================ actual test code'
-#    assert multiply(3,4) == 12
-
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_strings_a_3():
-#    print 'test_strings_a_3  <============================ actual test code'
-#    assert multiply('a',3) == 'aaa'
-
-
-
-
-
-
 #######################################################
 #
 #   Struct subclasses
 #
 #######################################################
-
-
-path = os.path.join(_here,'test_03_core_data')
+path = os.path.join(_here, 'test_03_core_data')
 lf = os.listdir(path)
 lf = [f for f in lf if all([s in f for s in [_Exp,'.txt']])]
 lCls = sorted(set([f.split('_')[1] for f in lf]))
