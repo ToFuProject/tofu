@@ -69,7 +69,7 @@ install:
 
 script:
 - cd $HOME
-- coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
+- coverage run --source=tofu/ -m pytest tofu/tofu/tests -v --durations=10
 - coverage report
 - coverage html
 - tofu-version
