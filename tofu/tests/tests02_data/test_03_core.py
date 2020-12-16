@@ -10,9 +10,6 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Nose-specific
-from nose import with_setup # optional
-
 # tofu-specific
 from tofu import __version__
 import tofu.utils as tfu
@@ -21,7 +18,7 @@ import tofu.data as tfd
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.data.tests03_core'
+VerbHead = 'tofu.data.test_03_core'
 
 
 #######################################################

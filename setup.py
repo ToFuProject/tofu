@@ -346,7 +346,7 @@ setup(
         "dev": [
             "check-manifest",
             "coverage",
-            "nose==1.3.4",
+            "pytest",
             "sphinx",
             "sphinx-gallery",
             "sphinx_bootstrap_theme",

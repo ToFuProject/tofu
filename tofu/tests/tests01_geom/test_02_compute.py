@@ -8,15 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# Nose-specific
-from nose import with_setup # optional
-
-
-# Importing package tofu.geom
-
-
-#Root = tfpf.Find_Rootpath()
-
 
 #######################################################
 #

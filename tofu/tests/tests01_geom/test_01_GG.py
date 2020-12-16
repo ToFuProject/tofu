@@ -13,8 +13,6 @@ from matplotlib.path import Path
 import matplotlib.gridspec as mplgrid
 from mpl_toolkits.mplot3d import Axes3D
 import tofu as tf
-# Nose-specific
-from nose import with_setup # optional
 
 # ToFu-specific
 import tofu.geom._GG as GG
@@ -23,7 +21,7 @@ import tofu.geom._GG as GG
 
 #Root = tfpf.Find_Rootpath()
 
-VerbHead = 'tofu.geom.tests01_GG'
+VerbHead = 'tofu.geom.test_01_GG'
 
 
 #######################################################

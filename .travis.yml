@@ -55,8 +55,8 @@ install:
 - conda config --append channels conda-forge
 - conda config --append channels tofuproject
 - conda info -a
-- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify nose nose-timer coverage
-  codecov
+- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify coverage codecov
+- pip install pytest
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)
 - echo $REV
@@ -69,7 +69,9 @@ install:
 
 script:
 - cd $HOME
-- nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
+- coverage --source=tofu/ run -m pytest tofu/tests -v --durations=10
+- coverage report
+- coverage html
 - tofu-version
 - tofu-custom
 - tofu --version

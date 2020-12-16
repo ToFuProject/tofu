@@ -11,9 +11,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings as warn
 
-# Nose-specific
-from nose import with_setup # optional
-
 # Importing package tofu.gem
 import tofu as tf
 from tofu import __version__
@@ -24,7 +21,7 @@ import tofu.geom as tfg
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.geom.tests03_core'
+VerbHead = 'tofu.geom.test_03_core'
 keyVers = 'Vers'
 _Exp = 'WEST'
 
@@ -114,7 +111,7 @@ def teardown_module(module):
 #######################################################
 
 
-path = os.path.join(_here,'tests03_core_data')
+path = os.path.join(_here,'test_03_core_data')
 lf = os.listdir(path)
 lf = [f for f in lf if all([s in f for s in [_Exp,'.txt']])]
 lCls = sorted(set([f.split('_')[1] for f in lf]))
