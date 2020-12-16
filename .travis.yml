@@ -68,9 +68,8 @@ install:
 - echo $IS_DEPLOY
 
 script:
-- cd $HOME
 - ls
-- coverage run --source=tofu/ -m pytest tofu.tests -v --durations=10
+- coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
 - coverage report
 - coverage html
 - tofu-version
