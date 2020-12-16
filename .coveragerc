@@ -22,8 +22,10 @@ omit =
      */test_03_core_data/*
      # tutorials
      *tutorials*
-     # not finished dirs
+     # dirs
+     */dust/*
      */mag/*
      tofu/openadas2tofu/*
      tofu/imas2tofu/*
+     #scripts
      */tofu/_*.py
