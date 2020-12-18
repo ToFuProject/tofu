@@ -346,7 +346,7 @@ setup(
         "dev": [
             "check-manifest",
             "coverage",
-            "nose==1.3.4",
+            "pytest",
             "sphinx",
             "sphinx-gallery",
             "sphinx_bootstrap_theme",
@@ -363,7 +363,7 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.tests03_core_data": ["*.py", "*.txt"],
+        "tofu.tests.tests01_geom.test_03_core_data": ["*.py", "*.txt"],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },

@@ -23,7 +23,7 @@ requirements:
     - scipy
     - matplotlib
     - Cython >=0.26
-    - nose
+    - pytest
     - pygments
 
 
@@ -36,12 +36,12 @@ requirements:
     - scipy
     - matplotlib
     - Cython >=0.26
-    - nose
+    - pytest
     - pygments
 
 test:
   requires:
-    - nose
+    - pytest
   imports:
     - tofu.geom
 
