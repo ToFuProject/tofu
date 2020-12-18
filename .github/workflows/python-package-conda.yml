@@ -8,7 +8,7 @@ on:
   pull_request:
     branches-ignore:
       - master
-      -devel
+      - devel
 jobs:
   build-linux:
     runs-on: ubuntu-latest
