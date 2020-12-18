@@ -1517,7 +1517,7 @@ class MultiIDSLoader(object):
             ind = False
         assert ind is False or isinstance(ind, int)
         if t0 is None:
-            t0 = False
+            t0 = _defimas2tofu._T0
         elif t0 != False:
             if type(t0) in [int,float,np.int,np.float]:
                 t0 = float(t0)
