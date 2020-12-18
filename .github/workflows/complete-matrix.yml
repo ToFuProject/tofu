@@ -41,6 +41,4 @@ jobs:
         pip install -e ".[dev]"
     - name: Test with pytest and coverage
       run: |
-        conda install pytest
-        conda install coverage
         coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
