@@ -1460,7 +1460,7 @@ class MultiIDSLoader(object):
         if returnas is None:
             returnas = False
         assert isinstance(verb, bool)
-        assert returnas in [False, list, tuple]
+        assert returnas in [False, list, tuple, str]
 
         # Get events and sort
         dout = self.get_data(
@@ -1487,7 +1487,7 @@ class MultiIDSLoader(object):
         names, times = names[ind], times[ind]
 
         # print and / or return as list / tuple
-        if verb:
+        if verb is True or returnas is str:
             msg = np.array([range(times.size), names, times], dtype='U').T
             length = np.nanmax(np.char.str_len(msg))
             msg = np.char.ljust(msg, length)
@@ -1495,11 +1495,14 @@ class MultiIDSLoader(object):
                    + '  time ({})'.format(tunits).ljust(length)
                    + '\n' + ' '.join(['-'*length for ii in [0, 1, 2]]) + '\n'
                    + '\n'.join([' '.join(aa) for aa in msg]))
+        if verb is True:
             print(msg)
         if returnas is list:
             return list(zip(names, times))
         elif returnas is tuple:
             return names, times
+        elif returnas is str:
+            return msg
 
     #---------------------
     # Methods for exporting to tofu objects
@@ -1517,9 +1520,9 @@ class MultiIDSLoader(object):
             ind = False
         assert ind is False or isinstance(ind, int)
         if t0 is None:
-            t0 = False
+            t0 = _defimas2tofu._T0
         elif t0 != False:
-            if type(t0) in [int,float,np.int,np.float]:
+            if type(t0) in [int, float, np.int_, np.float_]:
                 t0 = float(t0)
             elif type(t0) is str:
                 t0 = t0.strip()
@@ -1541,12 +1544,16 @@ class MultiIDSLoader(object):
                         t0 = float(t0)
                     else:
                         msg = ("Desired event ({}) unavailable!\n".format(t0)
-                               + "    - available events:\n"
-                               + str(events['events_names']))
+                               + "  Please choose from:\n"
+                               + self.get_events(verb=False, returnas=str))
                         raise Exception(msg)
                 elif c0:
                     t0 = float(t0)
                 else:
+                    msg = ("Desired t0 ({}) not loaded".format(t0)
+                           + " because ids 'pulse_schedule' not loaded\n"
+                           + "  => setting t0 = False")
+                    warnings.warn(msg)
                     t0 = False
             else:
                 t0 = False

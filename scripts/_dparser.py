@@ -75,7 +75,7 @@ def _str2boolstr(v):
         else:
             return v
     else:
-        raise argparse.ArgumentTypeError('Boolean or str expected!')
+        raise argparse.ArgumentTypeError('Boolean, None or str expected!')
 
 
 def _str2tlim(v):
@@ -275,7 +275,7 @@ def parser_plot():
     parser.add_argument('-X', '--X', type=str, required=False,
                         help='Quantity from the plasma ids for abscissa',
                         nargs='+', default=None)
-    parser.add_argument('-t0', '--t0', type=str, required=False,
+    parser.add_argument('-t0', '--t0', type=_str2boolstr, required=False,
                         help='Reference time event setting t = 0',
                         default=ddef['t0'])
     parser.add_argument('-t', '--t', type=float, required=False,
@@ -417,7 +417,7 @@ def parser_calc():
     parser.add_argument('-res', '--res', type=float, required=False,
                         help='Space resolution for the LOS-discretization',
                         default=None)
-    parser.add_argument('-t0', '--t0', type=str, required=False,
+    parser.add_argument('-t0', '--t0', type=_str2boolstr, required=False,
                         help='Reference time event setting t = 0',
                         default=ddef['t0'])
     parser.add_argument('-tl', '--tlim', type=_str2tlim,
