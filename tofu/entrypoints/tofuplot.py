@@ -84,11 +84,6 @@ def call_tfloadimas(shot=None, run=None, user=None,
         del kwd[k0]
     del kwd['ddef']
 
-    if isinstance(kwd['t0'], str):
-        if kwd['t0'].lower() == 'none':
-            kwd['t0'] = None
-        elif kwd['t0'].lower() == 'False':
-            kwd['t0'] = False
     if kwd['tlim'] is not None and len(kwd['tlim']) == 1:
         kwd['tlim'] = [kwd['tlim'], None]
     if kwd['tlim'] is not None and len(kwd['tlim']) != 2:

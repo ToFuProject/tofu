@@ -77,7 +77,9 @@ def check_IMAS_version(verb=True, keystr=_KEYSTR):
         raise Exception(msg)
 
     msg = None
-    if lav.index(lcur[0]) != len(lav)-1:
+    c0 = (lav.index(lcur[0]) != len(lav)-1
+          and lcur[0]+'.bak' != lav[-1])
+    if c0:
         msg = ("\nYou do not seem to be using the latest IMAS version:\n"
                + "'module list' vs 'module av IMAS' suggests:\n"
                + "\t- Current version: {}\n".format(lcur[0])

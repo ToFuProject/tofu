@@ -81,7 +81,7 @@ environment.
    (long) <https://www.atlassian.com/git/tutorials>`__ or `this short
    one <https://rogerdudler.github.io/git-guide/>`__
 -  Compile ``python setup.py build_ext --inplace``
--  Make sure tests are running ``nosetests``
+-  Make sure tests are running ``pytest tofu/tests``
 
 
 Where to start?
