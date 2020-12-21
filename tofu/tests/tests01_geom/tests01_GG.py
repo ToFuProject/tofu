@@ -7,11 +7,7 @@ import os
 import sys
 import numpy as np
 import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
 from matplotlib.path import Path
-import matplotlib.gridspec as mplgrid
-from mpl_toolkits.mplot3d import Axes3D
 import tofu as tf
 # Nose-specific
 from nose import with_setup # optional
@@ -19,10 +15,7 @@ from nose import with_setup # optional
 # ToFu-specific
 import tofu.geom._GG as GG
 
-
-
-#Root = tfpf.Find_Rootpath()
-
+# header
 VerbHead = 'tofu.geom.tests01_GG'
 
 

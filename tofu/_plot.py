@@ -1,4 +1,6 @@
 """ Module providing a basic routine for plotting a shot overview """
+# Built-in
+import warnings
 
 # Common
 import numpy as np

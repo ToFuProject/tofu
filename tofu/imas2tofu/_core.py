@@ -649,7 +649,7 @@ class MultiIDSLoader(object):
                              for v0 in dpreset.values()])
             c3 = True and c2
             for k0,v0 in dpreset.items():
-                for v1 in v0.values():
+                for k1, v1 in enumerate(v0.values()):
                     if type(v1) is str:
                         dpreset[k0][k1] = [v1]
                     c3 = c3 and all([ss in self._dshort[k1].keys()
@@ -3009,7 +3009,7 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
                             occ=occ, config=config,
                             description_2d=description_2d, out=out,
                             plot=plot, plot_sig=plot_sig, plot_X=plot_X,
-                            bck=bcki, dextra=dextra)
+                            bck=bck, dextra=dextra)
 
 
 def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
@@ -3415,7 +3415,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
 
         # Add Vessel at the end
         ii = nS
-        if ismobile:
+        if mobile:
             units[ii].outline.resize(1)
             units[ii].outline[0].r = ves.Poly[0, :]
             units[ii].outline[0].z = ves.Poly[1, :]
