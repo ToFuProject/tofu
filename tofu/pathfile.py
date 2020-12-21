@@ -744,13 +744,11 @@ def SelectFromListId(LId, Val=None, Crit='Name',
     return ind
 
 
-
 #def _Id_todict(Id):
 #    IdTxt = {'version':Id._version, 'Cls':Id.Cls, 'Name':Id.Name, 'SaveName':Id.SaveName, 'SavePath':Id.SavePath, 'Diag':Id.Diag, 'Type':Id.Type, 'shot':Id.shot, 'Exp':Id.Exp}
 #    Iddtime = {'dtime':Id.dtime, 'dtFormat':Id._dtFormat}
 #    IdLobjUsr = {'LObj':Id.LObj, 'USRdict':Id.USRdict}
 #    return [IdTxt,Iddtime,IdLobjUsr]
-
 
 
 def _Id_recreateFromdict(IdS):
