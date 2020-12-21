@@ -407,7 +407,7 @@ class DataAbstract(utils.ToFuObject):
                 assert indXlamb.shape == (nch,)
                 assert np.min(indXlamb) >= 0 and np.max(indXlamb) <= nnlamb
         else:
-            assert indtXlamb.shape == (nt,nch)
+            assert indtXlamb.shape == (nt, nch)
             assert np.min(indtXlamb) >= 0 and np.max(indtXlamb) <= nnlamb
 
         # Check consistency X/lamb shapes vs indices
