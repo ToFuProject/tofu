@@ -545,7 +545,7 @@ def CheckSameObj(obj0, obj1, LFields=None):
 
     """
     A = True
-    if LFields is not None and obj0.__class__==obj1.__class__:
+    if LFields is not None and obj0.__class__ == obj1.__class__:
         assert type(LFields) in [str,list]
         if type(LFields) is str:
             LFields = [LFields]
@@ -752,13 +752,14 @@ def SelectFromListId(LId, Val=None, Crit='Name',
 #    return [IdTxt,Iddtime,IdLobjUsr]
 
 
-
-
 def _Id_recreateFromdict(IdS):
-   Id = ID(Cls=IdS[0]['Cls'], Type=IdS[0]['Type'], Exp=IdS[0]['Exp'], Diag=IdS[0]['Diag'], shot=IdS[0]['shot'], Name=IdS[0]['Name'], SaveName=IdS[0]['SaveName'], SavePath=IdS[0]['SavePath'],
-           dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'],
-           LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'], version=IdS[0]['version'])
-   return Id
+    Id = ID(Cls=IdS[0]['Cls'], Type=IdS[0]['Type'], Exp=IdS[0]['Exp'],
+            Diag=IdS[0]['Diag'], shot=IdS[0]['shot'], Name=IdS[0]['Name'],
+            SaveName=IdS[0]['SaveName'], SavePath=IdS[0]['SavePath'],
+            dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'],
+            LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'],
+            version=IdS[0]['version'])
+    return Id
 
 
 

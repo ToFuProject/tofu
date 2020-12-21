@@ -1098,7 +1098,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     lt = [dd.t for dd in lData]
     nt = lData[0].nt
     if nt == 1:
-        Dt = [dd.t[0]-0.001,dd.t[0]+0.001]
+        Dt = [dd.t[0] - 0.001, dd.t[0] + 0.001]
     else:
         Dt = np.array([[np.nanmin(t), np.nanmax(t)] for t in lt])
         Dt = [np.min(Dt[:,0]), np.max(Dt[:,1])]

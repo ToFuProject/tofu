@@ -402,13 +402,13 @@ class DataAbstract(utils.ToFuObject):
         if lC[2]:
             if not lC[0]:
                 assert indtlamb.shape==(nt,)
-                assert np.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
+                assert np.min(indtlamb) >= 0 and np.max(indtlamb) <= nnlamb
             if not lC[1]:
-                assert indXlamb.shape==(nch,)
-                assert np.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
+                assert indXlamb.shape == (nch,)
+                assert np.min(indXlamb) >= 0 and np.max(indXlamb) <= nnlamb
         else:
-            assert indtXlamb.shape==(nt,nch)
-            assert np.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
+            assert indtXlamb.shape == (nt,nch)
+            assert np.min(indtXlamb) >= 0 and np.max(indtXlamb) <= nnlamb
 
         # Check consistency X/lamb shapes vs indices
         if X is not None and indtX is None:
@@ -458,8 +458,8 @@ class DataAbstract(utils.ToFuObject):
         if indtX is None:
             indtX = self._ddataRef['indtX']
         if indtX is not None:
-            assert indtX.shape==(nt,)
-            assert np.argmin(indtX)>=0 and np.argmax(indtX)<=nnch
+            assert indtX.shape == (nt,)
+            assert np.argmin(indtX) >= 0 and np.argmax(indtX) <= nnch
         if indXlamb is None:
             indXlamb = self._ddataRef['indXlamb']
         if indtXlamb is None:

@@ -364,7 +364,7 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
         p0[:] = popt[:]
 
         if plot_debug and ii in [0,1]:
-            fit = func_vect(x, amp[ii,:], p0[ii,:], sigma[ii,:], bck[ii])
+            fit = func_vect(x, amp[ii, :], p0[ii, :], sigma[ii, :], bck[ii])
 
             plt.figure()
             ax0 = plt.subplot(2,1,1)

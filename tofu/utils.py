@@ -784,9 +784,9 @@ def _get_exception(q, ids, qtype='quantity'):
                                     verb=False, return_=True)
     col = ['ids', 'shortcut', 'long version']
     msg = MultiIDSLoader._getcharray(msg, col)
-    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
-    msg += "\n\nAvailable shortcuts are:\n%s"%msg
-    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(q))
+    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s" % ids
+    msg += "\n\nAvailable shortcuts are:\n%s" % msg
+    msg += "\n\nProvided:\n    - %s: %s\n" % (qtype, str(q))
     raise Exception(msg)
 
 
