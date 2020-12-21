@@ -9,14 +9,12 @@ import numpy as np
 import matplotlib
 from matplotlib.path import Path
 import tofu as tf
-# Nose-specific
-from nose import with_setup # optional
 
 # ToFu-specific
 import tofu.geom._GG as GG
 
 # header
-VerbHead = 'tofu.geom.tests01_GG'
+VerbHead = 'tofu.geom.test_01_GG'
 
 
 #######################################################
@@ -37,35 +35,11 @@ def teardown_module(module):
     pass
 
 
-#def my_setup_function():
-#    print ("my_setup_function")
-
-#def my_teardown_function():
-#    print ("my_teardown_function")
-
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_numbers_3_4():
-#    print 'test_numbers_3_4  <============================ actual test code'
-#    assert multiply(3,4) == 12
-
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_strings_a_3():
-#    print 'test_strings_a_3  <============================ actual test code'
-#    assert multiply('a',3) == 'aaa'
-
-
-
-
-
-
 #######################################################
 #
 #     Testing
 #
 #######################################################
-
-
-
 """
 ######################################################
 ######################################################

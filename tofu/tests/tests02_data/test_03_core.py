@@ -10,9 +10,6 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Nose-specific
-from nose import with_setup # optional
-
 # tofu-specific
 from tofu import __version__
 import tofu.utils as tfu
@@ -21,7 +18,7 @@ import tofu.data as tfd
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.data.tests03_core'
+VerbHead = 'tofu.data.test_03_core'
 
 
 #######################################################
@@ -54,27 +51,6 @@ def teardown_module(module):
     for lf in LF:
         os.remove(os.path.join(_here,lf))
     pass
-
-
-#def my_setup_function():
-#    print ("my_setup_function")
-
-#def my_teardown_function():
-#    print ("my_teardown_function")
-
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_numbers_3_4():
-#    print 'test_numbers_3_4  <============================ actual test code'
-#    assert multiply(3,4) == 12
-
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_strings_a_3():
-#    print 'test_strings_a_3  <============================ actual test code'
-#    assert multiply('a',3) == 'aaa'
-
-
-
-
 
 
 #######################################################
