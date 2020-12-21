@@ -38,7 +38,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
-        pip install -e ".[dev]"
+        conda install conda_recipe
     - name: Test with pytest and coverage
       run: |
         coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
