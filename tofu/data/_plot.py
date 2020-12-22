@@ -453,10 +453,12 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     ldata = [dd.data for dd in lData]
     indany = [np.any(~np.isnan(dat)) for dat in ldata]
     if any(indany):
-        vmin = np.min([np.nanmin(dat) for ii, dat in enumerate(ldata)
-                       if indany[ii]])
-        vmax = np.max([np.nanmax(dat) for ii, dat in enumerate(ldata)
-                       if indany[ii]])
+        if vmin is None:
+            vmin = np.min([np.nanmin(dat) for ii, dat in enumerate(ldata)
+                           if indany[ii]])
+        if vmax is None:
+            vmax = np.max([np.nanmax(dat) for ii, dat in enumerate(ldata)
+                           if indany[ii]])
     else:
         vmin, vmax = 0, 1
 
@@ -466,17 +468,22 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                lData[0].dlabels['data']['units'])
     liddata = [id(dat) for dat in ldata]
     if nD == 2:
-        if vmin is None:
-            vmin = np.min([np.nanmin(dd) for dd in ldata])
-        if vmax is None:
-            vmax = np.max([np.nanmax(dd) for dd in ldata])
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         nan2_data = np.full((x2.size,x1.size),np.nan)
 
         if cmap == 'touch':
-            lcols = [dd['lCam'][0]._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck,
-                                                  ind=None)[0] for dd in lData]
+            lcols = [dd['lCam'][0]._get_touchcols(
+                vmin=vmin,
+                vmax=vmax,
+                cdef=cbck,
+                ind=None)[0] for dd in lData]
             # To be finished
+
+    if vmin_map is None:
+        vmin_map = vmin
+    if vmax_map is None:
+        vmax_map = vmax
+
 
     # ---------
     # Extra
