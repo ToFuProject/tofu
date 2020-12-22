@@ -87,8 +87,8 @@ def _plot_shotoverview_init(ns=1, sharet=True, sharey=True, shareRZ=True,
         else:
             laxt[ii] = fig.add_subplot(axarr[ii,:2], sharex=sht, sharey=shy)
             laxc[ii] = fig.add_subplot(axarr[ii,2], sharex=shRZ, sharey=shRZ)
-            # if not shareRZ:
-            #     ax2.set_aspect('equal', adjustable='datalim')
+            if not shareRZ:
+                ax2.set_aspect('equal', adjustable='datalim')
 
     laxc[-1].set_xlabel(r'$R$ ($m$)')
     laxt[-1].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
