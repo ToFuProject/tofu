@@ -19,6 +19,7 @@ jobs:
     os: linux
     dist: xenial
     python: 3.7
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
@@ -26,12 +27,14 @@ jobs:
     os: linux
     dist: xenial
     python: 3.6
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
   - name: osx python 3.7
     os: osx
     language: generic
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
@@ -39,16 +42,20 @@ jobs:
   - name: osx python 3.6
     os: osx
     language: generic
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
     - OS=osx-64
+
 env:
     global:
       - MPLBACKEND=agg
+
 before_install:
-- gcc --version
-- export START=$(pwd)
+    - gcc --version
+    - export START=$(pwd)
+
 install:
 - wget "$REPO" -O miniconda.sh
 - bash miniconda.sh -b -p $HOME/miniconda
