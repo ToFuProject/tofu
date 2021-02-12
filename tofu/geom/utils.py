@@ -651,6 +651,8 @@ _ExpTCV = 'TCV'
 
 # Default config
 _DEFCONFIG = 'ITER'
+# coils taken from:
+# ids=['wall', 'pf_active'],shot=1180, run=17, tokamak='ITER_MD', user='public'
 
 _URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
              + 'tuto_plot_create_geometry.html')
@@ -661,8 +663,6 @@ _URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
 # For each element, a unique txt file containing the geometry will be loaded
 _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                         'Ves': ['V1']},
-            'ITER-V1': {'Exp': _ExpITER,
-                        'Ves': ['V0']},
             'WEST-Sep': {'Exp': _ExpWest,
                          'PlasmaDomain': ['Sep']},
             'WEST-V2': {'Exp': _ExpWest,
@@ -682,6 +682,8 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'RippleV1', 'VDEV0']},
             'JET-V0': {'Exp': _ExpJET,
                        'Ves': ['V0']},
+            'ITER-V1': {'Exp': _ExpITER,
+                        'Ves': ['V0']},
             'ITER-V2': {'Exp': _ExpITER,
                         'Ves': ['V1'],
                         'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
@@ -690,6 +692,18 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
                                 'BLK16', 'BLK17', 'BLK18',
                                 'Div1', 'Div2', 'Div3',
                                 'Div4', 'Div5', 'Div6']},
+            'ITER-V3': {'Exp': _ExpITER,
+                        'Ves': ['InnerV0', 'OuterV0', 'Cryostat'],
+                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
+                                'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10',
+                                'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
+                                'BLK16', 'BLK17', 'BLK18',
+                                'Div1', 'Div2', 'Div3',
+                                'Div4', 'Div5', 'Div6'],
+                        'CoilsPF': ['CS3U', 'CS2U', 'CS1U', 'CS1L', 'CS2L',
+                                    'CS3L', 'PF1', 'PF2', 'PF3',
+                                    'PF4', 'PF5', 'PF6'],
+                       },
             'ITER-SOLEDGE3XV0': {'Exp': _ExpITER,
                                  'Ves': ['SOLEDGE3XV0'],
                                  'PFC': ['SOLEDGE3XDivDomeV0',
@@ -732,7 +746,7 @@ _DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
 # Each config can be called by various names / shortcuts (for benchmark and
 # retro-compatibility), this table stores, for each shortcut,
 # the associated unique name it refers to
-_DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
+_DCONFIG_SHORTCUTS = {'ITER': 'ITER-V3',
                       'ITER-SOLEDGE3X': 'ITER-SOLEDGE3XV0',
                       'JET': 'JET-V0',
                       'WEST': 'WEST-V4',

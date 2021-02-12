@@ -1579,8 +1579,8 @@ def _check_InputsGeneric(ld, tab=0):
     bstr1 = "\n"+"    "*(tab+1) + "Expected: "
     bstr2 = "\n"+"    "*(tab+1) + "Provided: "
 
-    ltypes_f2i = [int,float,np.integer,np.floating]
-    ltypes_i2f = [int,float,np.integer,np.floating]
+    ltypes_f2i = [int, float, np.integer, np.floating]
+    ltypes_i2f = [int, float, np.integer, np.floating]
 
     # Check
     err, msg = False, ''
@@ -1592,10 +1592,11 @@ def _check_InputsGeneric(ld, tab=0):
                 msgk += bstr1 + "class {0}".format(ld[k]['cls'].__name__)
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'NoneOrCls' in ld[k].keys():
-            c = ld[k]['var'] is None or isinstance(ld[k]['var'],ld[k]['cls'])
+            c = ld[k]['var'] is None or isinstance(ld[k]['var'],
+                                                   ld[k]['NoneOrCls'])
             if not c:
                 errk = True
-                msgk += bstr1 + "None or class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr1 + "None or class {0}".format(ld[k]['NoneOrCls'].__name__)
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'in' in ld[k].keys():
             if not ld[k]['var'] in ld[k]['in']:
@@ -1659,6 +1660,17 @@ def _check_InputsGeneric(ld, tab=0):
                 msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
             ld[k]['var'] = None if c0 else int(ld[k]['var'])
+        if 'NoneOrFloatPos' in ld[k].keys():
+            c0 = ld[k]['var'] is None
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var']
+                   and ld[k]['var']>0)
+                  for cc in ltypes_f2i]
+            if not (c0 or any(lc)):
+                errk = True
+                msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = None if c0 else float(ld[k]['var'])
         if '>' in ld[k].keys():
             if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
                 errk = True
