@@ -1596,7 +1596,9 @@ def _check_InputsGeneric(ld, tab=0):
                                                    ld[k]['NoneOrCls'])
             if not c:
                 errk = True
-                msgk += bstr1 + "None or class {0}".format(ld[k]['NoneOrCls'].__name__)
+                msgk += bstr1 + "None or class {0}".format(
+                    ld[k]['NoneOrCls'].__name__
+                )
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'in' in ld[k].keys():
             if not ld[k]['var'] in ld[k]['in']:
@@ -1663,12 +1665,14 @@ def _check_InputsGeneric(ld, tab=0):
         if 'NoneOrFloatPos' in ld[k].keys():
             c0 = ld[k]['var'] is None
             lc = [(issubclass(ld[k]['var'].__class__, cc)
-                   and float(ld[k]['var'])==ld[k]['var']
-                   and ld[k]['var']>0)
+                   and float(ld[k]['var']) == ld[k]['var']
+                   and ld[k]['var'] > 0)
                   for cc in ltypes_f2i]
             if not (c0 or any(lc)):
                 errk = True
-                msgk += bstr1 + "convertible to >0 float from %s"%str(ltypes_f2i)
+                msgk += bstr1 + "convertible to >0 float from {}".format(
+                    ltypes_f2i
+                )
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
             ld[k]['var'] = None if c0 else float(ld[k]['var'])
         if '>' in ld[k].keys():
