@@ -1247,7 +1247,8 @@ class DataAbstract(utils.ToFuObject):
     def _interp_t(data, t, indtX=None,
                   indtlamb=None, indtXlamb=None, interpt=None, kind='linear'):
         f = scpinterp.interp1d(t, data, kind=kind, axis=0, copy=True,
-                         bounds_error=True, fill_value=np.nan, assume_sorted=False)
+                               bounds_error=True, fill_value=np.nan,
+                               assume_sorted=False)
         d = f(data)
 
         lC = [indtX is not None, indtlamb is not None, indtXlamb is not None]
@@ -2055,7 +2056,12 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
-        if type(other) in [int, float, np.int64, np.float64]:
+
+        if other is None:
+            data = opfunc(d0.data)
+            dcom = d0._extract_common_params(d0)
+
+        elif type(other) in [int, float, np.int64, np.float64]:
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
@@ -2086,7 +2092,7 @@ class DataAbstract(utils.ToFuObject):
 
     def __abs__(self):
         opfunc = lambda x: np.abs(x)
-        data = self._recreatefromoperator(self, opfunc)
+        data = self._recreatefromoperator(self, None, opfunc)
         return data
 
     def __sub__(self, other):

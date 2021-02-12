@@ -649,7 +649,7 @@ class MultiIDSLoader(object):
                              for v0 in dpreset.values()])
             c3 = True and c2
             for k0,v0 in dpreset.items():
-                for k1, v1 in enumerate(v0.values()):
+                for k1, v1 in v0.items():
                     if type(v1) is str:
                         dpreset[k0][k1] = [v1]
                     c3 = c3 and all([ss in self._dshort[k1].keys()

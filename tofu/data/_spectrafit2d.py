@@ -164,9 +164,9 @@ def get_func1d_all(n=5, lamb0=None):
         lamb0 = np.zeros((n,), dtype=float)
     assert lamb0.size == n
 
-    def func_vect(x, amp, dlamp, sigma, bck0, lamb0=lamb0, n=n):
+    def func_vect(x, amp, dlamb, sigma, bck0, lamb0=lamb0, n=n):
         y = np.full((n+1, x.size), np.nan)
-        y[:-1, :] = amp[:, None]*np.exp(-(x[None, :]-(lamb0+dlamp)[:, None])**2
+        y[:-1, :] = amp[:, None]*np.exp(-(x[None, :]-(lamb0+dlamb)[:, None])**2
                                         /sigma[:, None]**2)
         y[-1, :] = bck0
         return y
