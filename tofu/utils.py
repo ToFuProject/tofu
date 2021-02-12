@@ -1663,12 +1663,12 @@ def _check_InputsGeneric(ld, tab=0):
         if 'NoneOrFloatPos' in ld[k].keys():
             c0 = ld[k]['var'] is None
             lc = [(issubclass(ld[k]['var'].__class__, cc)
-                   and int(ld[k]['var'])==ld[k]['var']
+                   and float(ld[k]['var'])==ld[k]['var']
                    and ld[k]['var']>0)
                   for cc in ltypes_f2i]
             if not (c0 or any(lc)):
                 errk = True
-                msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
+                msgk += bstr1 + "convertible to >0 float from %s"%str(ltypes_f2i)
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
             ld[k]['var'] = None if c0 else float(ld[k]['var'])
         if '>' in ld[k].keys():

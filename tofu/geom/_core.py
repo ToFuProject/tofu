@@ -2142,10 +2142,16 @@ class CoilPF(StructOut):
 
     @classmethod
     def _checkformat_inputs_dmag(
-        cls, nturns=None, superconducting=None, active=None
+        cls,
+        nturns=None,
+        superconducting=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        active=None,
     ):
         dins = {
-            "nturns": {"var": nturns, "NoneOrIntPos": None},
+            "nturns": {"var": nturns, "NoneOrFloatPos": None},
             "superconducting": {"var": superconducting, "NoneOrCls": bool},
             "active": {"var": active, "NoneOrCls": bool},
             "temperature_nominal": {"var": temperature_nominal,
