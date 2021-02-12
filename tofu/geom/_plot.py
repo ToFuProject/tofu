@@ -644,7 +644,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
     if ax is None:
         ax = _def.Plot_Impact_DefAxes('3D', fs=fs, wintit=wintit)
     handles, labels = ax.get_legend_handles_labels()
-    if isinstance(T,Ves):
+    if T.Id.Cls == "Ves":
         Leg = T.Id.NameLTX
         Theta, pP, pN = T._Imp_EnvTheta, T._Imp_EnvMinMax[0,:], T._Imp_EnvMinMax[1,:]
     else:
@@ -1461,7 +1461,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         if cmap == 'touch':
             cols = cam.get_touch_colors(dElt=dElt)
         else:
-            cols = np.tile(mpl.colors.to_rgba(cmap), (self.nRays,1)).T
+            cols = np.tile(mpl.colors.to_rgba(cmap), (cam.nRays, 1)).T
         cols[-1,:] = 1.-norm(data)
         cols = np.swapaxes(cols[:,indr.T], 0,2)
 

@@ -5618,7 +5618,7 @@ class Rays(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
 
-    def translate_3d(selfi, distance=None, direction=None,
+    def translate_3d(self, distance=None, direction=None,
                      return_copy=None,
                      diag=None, name=None, dchans=None):
         """ Translate the instance in provided direction """

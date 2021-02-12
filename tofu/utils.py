@@ -472,11 +472,6 @@ def get_param_from_file_name(pfe=None, lparams=None, test=True):
     # Check inputs
     if test is True:
         # Check inputs
-        if not c0:
-            msg = ("Provided file does not exist!\n"
-                   + "{}".format(pfe))
-            raise Exception(msg)
-
         c0 = (isinstance(lparams, str)
               or (isinstance(lparams, list)
                   and all([isinstance(pp, str) for pp in lparams])))
@@ -484,7 +479,12 @@ def get_param_from_file_name(pfe=None, lparams=None, test=True):
             msg = ("Arg lparams must be a str of list of str!\n"
                    + "Provided:\n{}".format(lparams))
             raise Exception(msg)
+
         c0 = os.path.isfile(pfe)
+        if not c0:
+            msg = ("Provided file does not exist!\n"
+                   + "{}".format(pfe))
+            raise Exception(msg)
 
     if isinstance(lparams, str):
         lparams = [lparams]
@@ -769,13 +769,25 @@ _DEF_IMAS_PLASMA_SIG = {'core_profiles':{'plot_sig':['1dTe','1dne'],
                                          'other':['t']}}
 
 def _get_exception(q, ids, qtype='quantity'):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        from tofu.imas2tofu import MultiIDSLoader
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
     msg = MultiIDSLoader._shortcuts(ids=ids,
                                     verb=False, return_=True)
     col = ['ids', 'shortcut', 'long version']
     msg = MultiIDSLoader._getcharray(msg, col)
-    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
-    msg += "\n\nAvailable shortcuts are:\n%s"%msg
-    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    msg += "\nArgs quantity and quant_X must be valid shortcuts for ids "
+    msg += " %s" % ids
+    msg += "\n\nAvailable shortcuts are:\n%s" % msg
+    msg += "\n\nProvided:\n    - %s: %s\n" % (qtype, str(q))
     raise Exception(msg)
 
 
@@ -3057,7 +3069,7 @@ class DChans(object):
             size.append(ss)
         nch = int(size[0])
         assert np.all([ss == nch for ss in size])
-        return fd, ch
+        return fd, nch
 
     def _todict(self):
         return self._dchans
@@ -3237,7 +3249,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                     def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[0]))
                 else:
-                    def func(val, ind0=None, refb=refb):
+                    def func(val, ind0=None, refb=ref2):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
@@ -3247,7 +3259,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                 else:
                     refb = 0.5*(ref[1:]+ref[:-1])
                     if Type == 'x':
-                        def func(val, ind0=None, refb=refb):
+                        def func(val, ind0=None, refb=ref2):
                             return np.digitize([val[0]], refb)[0]
                     else:
                         def func(val, ind0=None, refb=refb):

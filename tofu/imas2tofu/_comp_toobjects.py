@@ -638,7 +638,7 @@ def data_checkformat_tlim(t, tlim=None,
         returnas = bool
     if returnas not in [bool, int]:
         msg = ("Arg returnas must be in [bool, int]\n"
-               + "\t- provided: {}".format(retrunas))
+               + "\t- provided: {}".format(returnas))
         raise Exception(msg)
     assert returnas in [bool, int]
     lc = [tlim is None,
