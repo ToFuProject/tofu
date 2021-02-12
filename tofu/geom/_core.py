@@ -208,13 +208,33 @@ class Struct(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, Poly=None, Type=None,
-                 Lim=None, pos=None, extent=None,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 sep=None, SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
+    def __init__(
+        self,
+        Poly=None,
+        Type=None,
+        Lim=None,
+        pos=None,
+        extent=None,
+        Id=None,
+        Name=None,
+        Exp=None,
+        shot=None,
+        sino_RefPt=None,
+        sino_nP=_def.TorNP,
+        Clock=False,
+        arrayorder='C',
+        fromdict=None,
+        sep=None,
+        SavePath=os.path.abspath('./'),
+        SavePath_Include=tfpf.defInclude,
+        color=None,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+    ):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -2083,10 +2103,23 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = "r"
 
-    def __init__(self, nturns=None, superconducting=None, active=None,
-                 **kwdargs):
+    def __init__(
+        self,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        **kwdargs
+    ):
         # super()
-        super(CoilPF, self).__init__(**kwdargs)
+        super(CoilPF, self).__init__(
+            nturns=nturns,
+            superconducting=superconducting,
+            active=active,
+            **kwdargs,
+        )
 
     def _reset(self):
         # super()
@@ -2109,18 +2142,30 @@ class CoilPF(StructOut):
 
     @classmethod
     def _checkformat_inputs_dmag(
-        cls, nturns=None, superconducting=None, active=None
+        cls,
+        nturns=None,
+        superconducting=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        active=None,
     ):
         dins = {
-            "nturn": {"var": nturns, "NoneOrIntPos": None},
+            "nturns": {"var": nturns, "NoneOrFloatPos": None},
             "superconducting": {"var": superconducting, "NoneOrCls": bool},
             "active": {"var": active, "NoneOrCls": bool},
+            "temperature_nominal": {"var": temperature_nominal,
+                                    "NoneOrFloatPos": None},
+            "mag_field_max": {"var": mag_field_max,
+                              "NoneOrFloatPos": None},
+            "current_lim_max": {"var": current_lim_max,
+                                "NoneOrFloatPos": None},
         }
         dins, err, msg = cls._check_InputsGeneric(dins, tab=0)
         if err:
             raise Exception(msg)
-        nturn = dins["nturn"]["var"]
-        return nturn
+        return [dins[dd]['var']
+                for dd in ['nturns', 'superconducting', 'active']]
 
     ###########
     # Get keys of dictionnaries
@@ -2146,14 +2191,14 @@ class CoilPF(StructOut):
     ###########
 
     def set_dmag(self, superconducting=None, nturns=None, active=None):
-        nturns = self._checkformat_inputs_dmag(
+        out = self._checkformat_inputs_dmag(
             nturns=nturns, active=active, superconducting=superconducting
         )
         self._dmag.update(
             {
-                "superconducting": superconducting,
-                "nturns": nturns,
-                "active": active,
+                "nturns": out[0],
+                "superconducting": out[1],
+                "active": out[2],
             }
         )
 
@@ -2229,6 +2274,60 @@ class CoilPF(StructOut):
     ###########
     # public methods
     ###########
+
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build detailed view
+        col0 = [
+            "class",
+            "Name",
+            "SaveName",
+            "nP",
+            "noccur",
+            "nturns",
+            "active",
+            "superconducting",
+        ]
+        ar0 = [
+            self._Id.Cls,
+            self._Id.Name,
+            self._Id.SaveName,
+            str(self._dgeom["nP"]),
+            str(self._dgeom["noccur"]),
+            str(self._dmag['nturns']),
+            str(self._dmag['active']),
+            str(self._dmag['superconducting']),
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
+
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
