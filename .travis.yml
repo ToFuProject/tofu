@@ -19,6 +19,7 @@ jobs:
     os: linux
     dist: xenial
     python: 3.7
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
@@ -26,12 +27,14 @@ jobs:
     os: linux
     dist: xenial
     python: 3.6
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
   - name: osx python 3.7
     os: osx
     language: generic
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
@@ -39,13 +42,20 @@ jobs:
   - name: osx python 3.6
     os: osx
     language: generic
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
     - OS=osx-64
+
+env:
+    global:
+      - MPLBACKEND=agg
+
 before_install:
-- gcc --version
-- export START=$(pwd)
+    - gcc --version
+    - export START=$(pwd)
+
 install:
 - wget "$REPO" -O miniconda.sh
 - bash miniconda.sh -b -p $HOME/miniconda
@@ -55,8 +65,8 @@ install:
 - conda config --append channels conda-forge
 - conda config --append channels tofuproject
 - conda info -a
-- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify nose nose-timer coverage
-  codecov
+- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify coverage codecov
+- pip install pytest
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)
 - echo $REV
@@ -68,8 +78,9 @@ install:
 - echo $IS_DEPLOY
 
 script:
-- cd $HOME
-- nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
+- coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
+- coverage report
+- coverage html
 - tofu-version
 - tofu-custom
 - tofu --version
@@ -94,7 +105,6 @@ deploy:
     distributions: sdist
     username: __token__
     skip_existing: true
-    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test"
@@ -105,7 +115,6 @@ deploy:
     distributions: bdist_wheel
     username: __token__
     skip_existing: true
-    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test" && $OS = osx-64
@@ -116,7 +125,6 @@ deploy:
     distributions: sdist
     username: "Didou09"
     skip_existing: true
-    skip_cleanup: true
     on:
       tags: true
       condition: $IS_MASTER = "master"
@@ -126,7 +134,6 @@ deploy:
     distributions: bdist_wheel
     username: "Didou09"
     skip_existing: true
-    skip_cleanup: true
     on:
       condition: $IS_MASTER = "master" && $OS = osx-64
       tags: true
@@ -134,7 +141,6 @@ deploy:
       secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
   - provider: script
     script: $START/anaconda_upload.sh
-    skip_cleanup: true
     on:
       tags: true
       condition: $IS_MASTER = "master"

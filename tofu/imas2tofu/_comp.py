@@ -306,9 +306,9 @@ def _checkformat_getdata_dsig(
                + "\t         ids1: [short10, ..., short1M],\n"
                + "\t         ids2: short2}\n"
                + "\t    Where the values are shortucts or list of such\n\n"
-               + "  Provided : {}\n".format(ids)
+               + "  Provided : {}\n".format(dids)
                + "  Available: {}\n".format(list(dids.keys()))
-               + "  => Consider using self.add_ids({})".format(str(ids)))
+               + "  => Consider using self.add_ids({})".format(str(dids)))
         raise Exception(msg)
 
     if lc[0]:
