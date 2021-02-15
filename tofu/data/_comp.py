@@ -152,6 +152,7 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet',
     widths = 2.*np.pi*np.linspace(fmin,fs/2.,nw)
     wave = eval('scpsig.%s'%wave)
 
+    lcwt = []
     for ii in range(0,nch):
         cwt = scpsig.cwt(data[:,ii], wave, widths)
         lcwt.append(np.abs(cwt)**2)
@@ -259,12 +260,12 @@ def filter_bandpass_fourier(t, data, method='stft', detrend='linear',
     dt = np.mean(np.diff(t))
     fs = 1./dt
 
-    if method=='rfft':
+    if method == 'rfft':
         data_in, data_out = _filter_bandpass_rfft(data, t, dt, fs, nt, nch,
                                                   df=df, harm=harm,
                                                   df_out=df_out,
                                                   harm_out=harm_out)
-    elif methd=='stft':
+    elif method == 'stft':
         data_in, data_out = _filter_bandpass_stft(data, t, dt, fs, nt, nch,
                                                   df=df, harm=harm,
                                                   df_out=df_out,

@@ -41,6 +41,8 @@ __all__ = ['CrystalBragg']
 _Type = 'Tor'
 _NTHREADS = 16
 
+# rotate / translate instance
+_RETURN_COPY = False
 
 """
 ###############################################################################
@@ -800,7 +802,7 @@ class CrystalBragg(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, shot=shot)
 
-    def translate_3d(selfi, distance=None, direction=None,
+    def translate_3d(self, distance=None, direction=None,
                      return_copy=None,
                      diag=None, name=None, shot=None):
         """ Translate the instance in provided direction """

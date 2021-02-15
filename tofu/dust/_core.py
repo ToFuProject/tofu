@@ -105,7 +105,7 @@ class Dust(object):
         assert C0 or C1 or C2, msg
         assert Ves is not None or LStruct is None, "Ves must be provided !"
 
-        LStruct = [Lstruct] if isinstance(LStruct,tfg.Struct) else LStruct
+        LStruct = [LStruct] if isinstance(LStruct, tfg.Struct) else LStruct
         self._geom = {'Ves':Ves, 'LStruct':LStruct}
         self._sampleV = None
         if res is not None:
