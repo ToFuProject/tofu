@@ -648,7 +648,7 @@ def _get_listconfig(
 
     # Check inputs
     if dconfig is None:
-        dconfig = _def_config._DEFCONFIG
+        dconfig = _def_config._DCONFIG
     if dconfig_shortcuts is None:
         dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
     assert returnas in [dict, str]
@@ -693,15 +693,19 @@ def get_available_config(
         >>> tf.geom.utils.get_available_config()
 
     """
-    msg = ("A config is the geometry of a tokamak\n"
-           + "You can define your own"
-           + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
-           + "tofu also also provides some pre-defined config ready to load\n"
-           + "They are available via their name or via shortcuts\n"
-           + _get_listconfig(dconfig=dconfig,
-                             dconfig_shortcuts=dconfig_shortcuts)
-           + "\n\n  => to get a pre-defined config, call for example:\n"
-           + "\tconfig = tf.geom.utils.create_config('ITER')")
+    msg = (
+        "A config is the geometry of a tokamak\n"
+        + "You can define your own"
+        + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
+        + "tofu also also provides some pre-defined config ready to load\n"
+        + "They are available via their name or via shortcuts\n"
+        + _get_listconfig(dconfig=dconfig,
+                          dconfig_shortcuts=dconfig_shortcuts)
+        + "\n\n  => to get a pre-defined config, call for example:\n"
+        + "\tconfig = tf.geom.utils.create_config('ITER')\n"
+        + "\n => to also load coils add '-coils' to the config name, e.g.:\n"
+        + "\tconfig = tf.geom.utils.create_config('ITER-coils')"
+    )
     if verb is True:
         print(msg)
     if returnas in [None, True, str]:
@@ -925,7 +929,6 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
     elif not any(lc):
         msg = get_available_config(verb=False, returnas=str)
         raise Exception(msg)
-        # case = _DEFCONFIG
 
     # Get config, either from known case or geometrical parameterization
     if case is not None:
