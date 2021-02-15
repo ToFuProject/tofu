@@ -8,7 +8,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+_HERE = os.path.dirname(__file__)
+_TOFU_PATH = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+
+# Import current tofu version
+cwd = os.getcwd()
+os.chdir(_TOFU_PATH)
 import tofu as tf
+os.chdir(_HERE)
 
 
 
@@ -17,7 +24,7 @@ import tofu as tf
 # -----------------------------------------------------------------------------
 
 
-_HERE = os.path.abspath(os.path.dirname(__file__))
+#_HERE = os.path.abspath(os.path.dirname(__file__))
 _PFE = os.path.join(_HERE, 'WEST_Geometry_Rev_Nov2016_V2.xlsx')
 
 # Toroidal width of a sector
@@ -44,26 +51,48 @@ _CASING_POS = np.array(_CASING_POS).T.ravel()
 
 _EXP = 'WEST'
 _DNAMES = {
-    'Baffle': {'name': None},
-    'IVPP HFS': {'name': None},
+    'Baffle': {
+        'name': None,
+    },
+    'LPA': {
+        'name': None,
+    },
+    'VDE': {
+        'name': None,
+    },
+    # Vacuum vessels
+    'Inner VV': {
+        'name': 'InnerV0',
+        'class': 'Ves',
+        'save': True,
+    },
+    'Outer VV': {
+        'name': 'OuterV0',
+        'class': 'Ves',
+        'save': True,
+    },
+    # Thermal shields
+    'IVPP HFS': {
+        'name': 'ThermalShieldHFSV0',
+        'class': 'PFC',
+        'thick': 0.008,
+        'save': True,
+    },
     'IVPP LFS': {
         'name': 'ThermalShieldLFSV0',
         'class': 'PFC',
         'thick': 0.008,
         'save': True,
     },
-    'Inner VV': {
-        'name': 'Inner00V0',
-        'class': 'Ves',
-        'save': True,
+    # Lower divertor
+    'LDiv PFUs': {
+        'name': None,
     },
     'LDiv CasingCover': {
         'name': 'CasingCoverLDivV0',
         'class': 'PFC',
         'save': True,
     },
-    'LDiv PFUs': {'name': None},
-    'LPA': {'name': None},
     'Ldiv Casing': {
         'name': 'CasingLDivV0',
         'class': 'PFC',
@@ -83,17 +112,15 @@ _DNAMES = {
         'class': 'PFC',
         'save': True,
     },
-    'Outer VV': {
-        'name': 'Inner01V0',
-        'class': 'Ves',
-        'save': True,
+    # Upper divertor
+    'UDiv PFUs': {
+        'name': None,
     },
     'UDiv CasingCover': {
         'name': 'CasingCoverUDivV0',
         'class': 'PFC',
         'save': True,
     },
-    'UDiv PFUs': {'name': None},
     'Udiv Casing': {
         'name': 'CasingUDivV0',
         'class': 'PFC',
@@ -104,6 +131,8 @@ _DNAMES = {
     'Udiv Casing PJ': {
         'name': 'CasingPJUDivV0',
         'class': 'PFC',
+        'extent': _PJ_DTHETA,
+        'pos': _PJ_POS,
         'save': True,
     },
     'Udiv PFU Plate': {
@@ -111,15 +140,55 @@ _DNAMES = {
         'class': 'PFC',
         'save': True,
     },
-    'VDE': {'name': None},
 }
 
 
-# -----------------------------------------------------------------------------
-#           Extract and plot geometry
-# -----------------------------------------------------------------------------
+# #############################################################################
+# #############################################################################
+#           Define PEI
+# #############################################################################
 
-def get_all(pfe=None, dnames=None, ax=None, plot=None, save=None):
+
+def get_PEI():
+
+    pts = np.array([
+        [-1681.880, 555.372, 784.274],
+        [-1670.349, 494.641, 778.897],
+        [-1661.932, 444.534, 774.972],
+        [-1652.797, 383.409, 770.712],
+        [-1642.850, 303.089, 766.074],
+        [-1635.270, 223.416, 762.539],
+        [-1630.704, 155.868, 760.410],
+        [-1627.334, 76.573, 758.838],
+        [-1626.250, 2.920, 758.333],
+        [-1627.273, -74.958, 758.810],
+        [-1630.443, -151.695, 760.288],
+        [-1635.199, -222.607, 762.506],
+        [-1641.223, -288.671, 765.315],
+        [-1649.738, -361.293, 769.285],
+        [-1662.010, -445.008, 775.008],
+        [-1670.139, -493.533, 778.799],
+        [-1681.880, -555.372, 784.274],
+    ])
+
+    poly = 1.e-3*np.array([np.hypot(pts[:, 0], pts[:, 2]), pts[:, 1]])
+    return poly
+
+
+# #############################################################################
+# #############################################################################
+#           Extract and plot geometry
+# #############################################################################
+
+
+def get_all(
+    pfe=None,
+    dnames=None,
+    ax=None,
+    plot=None,
+    save=None,
+    return_ax=None,
+):
 
     #--------------
     #   Plot
@@ -131,7 +200,8 @@ def get_all(pfe=None, dnames=None, ax=None, plot=None, save=None):
         plot = True
     if save is None:
         save = False
-
+    if return_ax is None:
+        return_ax = False
 
     #--------------
     #   Extract
@@ -143,10 +213,14 @@ def get_all(pfe=None, dnames=None, ax=None, plot=None, save=None):
         if nn not in dnames.keys():
             continue
         poly = np.array([out[ss]['R (m)'], out[ss]['Z (m)']])
+        if nn == 'IVPP HFS':
+            poly = get_PEI()
         if 'thick' in dnames[nn].keys():
             dv = poly[:, 1:] - poly[:, :-1]
             vout = np.array([dv[1, :], -dv[0, :]])
-            if np.mean(vout[0, :]) < 0:
+            if nn == 'IVPP LFS' and np.nanmean(vout[0, :]) < 0:
+                vout = -vout
+            elif nn == 'IVPP HFS' and np.nanmean(vout[0, :]) > 0:
                 vout = -vout
             vout = np.concatenate((vout[:, 0:1], vout), axis=1)
             vout = vout / np.sqrt(np.sum(vout**2, axis=0))[None, :]
@@ -163,6 +237,8 @@ def get_all(pfe=None, dnames=None, ax=None, plot=None, save=None):
                     Name=dnames[nn]['name'],
                     Poly=dnames[nn]['poly'][:, indok],
                     Exp=_EXP,
+                    pos=dnames[nn].get('pos', None),
+                    extent=dnames[nn].get('extent', None),
                 )
             except Exception as err:
                 msg = (str(err)
@@ -171,25 +247,39 @@ def get_all(pfe=None, dnames=None, ax=None, plot=None, save=None):
 
     #--------------
     #   Plot
+    lobj = [nn for nn in dnames.keys() if dnames[nn].get('obj') is not None]
     if ax is None:
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], aspect='equal')
+        if len(lobj) > 0:
+            lax = None
+            for oo in lobj:
+                lax = dnames[oo]['obj'].plot(
+                    lax=lax,
+                    proj='all',
+                    element='P',
+                    indices=False,
+                    dLeg=None,
+                )
+            ax = lax[0]
+        else:
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], aspect='equal')
 
     for nn in dnames.keys():
         ll, = ax.plot(dnames[nn]['poly'][0, :], dnames[nn]['poly'][1, :],
                       label=nn)
-        if dnames[nn].get('obj') is not None:
-            ax = dnames[nn]['obj'].plot(lax=ax, proj='cross',
-                                        element='P', indices=False)
 
-    ax.legend()
+    ax.legend(loc='upper left', bbox_to_anchor=(1., 1.))
 
     #--------------
     #   save
     if save is True:
         for nn in dnames.keys():
             c0 = (dnames[nn].get('save') is True
-                  and dname[nn].get('obj') is not None)
+                  and dnames[nn].get('obj') is not None)
             if c0:
-                dname[nn]['obj'].save_to_txt(path=_HERE)
-    return dnames, ax
+                dnames[nn]['obj'].save_to_txt(path=_HERE)
+
+    if return_ax is True:
+        return dnames, ax
+    else:
+        return dnames
