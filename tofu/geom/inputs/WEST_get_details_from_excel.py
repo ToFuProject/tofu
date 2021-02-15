@@ -18,13 +18,12 @@ import tofu as tf
 os.chdir(_HERE)
 
 
-
 # -----------------------------------------------------------------------------
 #                   Default parameters
 # -----------------------------------------------------------------------------
 
 
-#_HERE = os.path.abspath(os.path.dirname(__file__))
+# _HERE = os.path.abspath(os.path.dirname(__file__))
 _PFE = os.path.join(_HERE, 'WEST_Geometry_Rev_Nov2016_V2.xlsx')
 
 # Toroidal width of a sector
@@ -190,7 +189,7 @@ def get_all(
     return_ax=None,
 ):
 
-    #--------------
+    # --------------
     #   Plot
     if pfe is None:
         pfe = _PFE
@@ -203,9 +202,9 @@ def get_all(
     if return_ax is None:
         return_ax = False
 
-    #--------------
+    # --------------
     #   Extract
-    out = pd.read_excel(pfe, sheet_name='Main', header=[0,1])
+    out = pd.read_excel(pfe, sheet_name='Main', header=[0, 1])
 
     ls = list(out.columns.levels[0])
     for ss in ls:
@@ -245,7 +244,7 @@ def get_all(
                        + "\ntofu object {} failed".format(nn))
                 warnings.warn(str(err))
 
-    #--------------
+    # --------------
     #   Plot
     lobj = [nn for nn in dnames.keys() if dnames[nn].get('obj') is not None]
     if ax is None:
@@ -270,7 +269,7 @@ def get_all(
 
     ax.legend(loc='upper left', bbox_to_anchor=(1., 1.))
 
-    #--------------
+    # --------------
     #   save
     if save is True:
         for nn in dnames.keys():
