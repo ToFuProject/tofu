@@ -1,6 +1,5 @@
 
 
-
 ###########################################################
 ###########################################################
 #       Define default Experiment names
@@ -259,7 +258,7 @@ _DCONFIG_SHORTCUTS = {
 lout = []
 for k0, v0 in _DCONFIG_SHORTCUTS.items():
     if v0 not in _DCONFIG.keys():
-        lout.append( '{}: {}'.format(k0, v0) )
+        lout.append('{}: {}'.format(k0, v0))
 if len(lout) > 0:
     msg = (
         "\nThe following shortcuts refer to undefined config names:\n"
