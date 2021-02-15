@@ -34,7 +34,7 @@ _PJ_PTS = np.array([[313.728, -988.400, 2255.087],
                     [476.477, -988.400, 2226.390],
                     [313.728, -988.400, 1938.128],
                     [368.071, -988.400, 1928.547]])
-_PJ_THETA = np.arctan2(_PJ_PTS[:, 2], _PJ_PTS[:, 0])
+_PJ_THETA = np.arctan2(-_PJ_PTS[:, 2], _PJ_PTS[:, 0])
 _PJ_DTHETA = np.abs(0.5*((_PJ_THETA[1]-_PJ_THETA[0])
                          + (_PJ_THETA[3]-_PJ_THETA[2])))
 _PJ_POS0 = (0.5*((_PJ_THETA[1]+_PJ_THETA[0])/2 + (_PJ_THETA[3]+_PJ_THETA[2])/2)
@@ -47,7 +47,22 @@ _CASING_POS = [_PJ_POS0 + _DTHETA/2 + np.arange(6)*3*_DTHETA,
 _CASING_DTHETA = np.tile(_CASING_DTHETA, 6)
 _CASING_POS = np.array(_CASING_POS).T.ravel()
 
+# Port plug holes
+_PPLUG_PTS = 1.e-3*np.array([
+    [-895.804, 420.123, 3063.270],
+    [-895.804, -420.123, 3063.270],
+    [-205.919, -420.123, 3184.915],
+    [-205.919, 420.123, 3184.915],
+])
+_PPLUG_THETA = np.arctan2(-_PPLUG_PTS[:, 2], _PPLUG_PTS[:, 0])
+_PPLUG_DTHETA = _PPLUG_THETA.max() - _PPLUG_THETA.min()
+_PPLUG_POS = 0.5*(_PPLUG_THETA.max() + _PPLUG_THETA.min())
+_PPLUG_POS = _PPLUG_POS + _DTHETA*np.r_[0, np.cumsum(np.tile([1, 2], 6))[:-1]]
+_FULL_EXTENT0 = _DTHETA - _PPLUG_DTHETA
+_FULL_EXTENT1 = 2.*_DTHETA - _PPLUG_DTHETA
 
+
+# Default
 _EXP = 'WEST'
 _DNAMES = {
     'Baffle': {
@@ -148,7 +163,7 @@ _DNAMES = {
 # #############################################################################
 
 
-def get_PEI():
+def get_PEI_HFS():
 
     pts = np.array([
         [-1681.880, 555.372, 784.274],
@@ -172,6 +187,52 @@ def get_PEI():
 
     poly = 1.e-3*np.array([np.hypot(pts[:, 0], pts[:, 2]), pts[:, 1]])
     return poly
+
+
+def get_PEI_LFS(poly):
+
+    indsZ = np.argsort(poly[1, :])
+    poly = poly[:, indsZ]
+    poly_pplug = np.array([np.hypot(_PPLUG_PTS[:, 0], -_PPLUG_PTS[:, 2]),
+                           _PPLUG_PTS[:, 1]])
+    _, indspp = np.unique(poly_pplug[1, :], return_index=True)
+    poly_pplug = poly_pplug[:, indspp]
+    poly_pplug[0, :] = np.interp(poly_pplug[1, :], poly[1, :], poly[0, :])
+    ind_insert = np.searchsorted(poly[1, :], poly_pplug[1, :])
+
+    # TBF
+    poly_full = np.insert(poly, ind_insert, poly_pplug, axis=1)
+    pos_full_slim =  _PPLUG_POS[0] + 0.5*_DTHETA + None
+    extent_full = 
+
+    pos_pplug_low = poly_full[:, :ind_insert[0]+1]
+    pos_pplug_up = poly_full[:, ind_insert[1]:]
+
+    dpeilfs = {
+        'full_slim': {
+            'poly': poly_full,
+            'pos': pos_full_slim,
+            'extent': extent_full_slim,
+        },
+        'full_wide': {
+            'poly': poly_full,
+            'pos': pos_full_wide,
+            'extent': extent_full_wide,
+        },
+        'pplug_low': {
+            'poly': poly_pplug_low,
+            'pos': _PPLUG_POS,
+            'extent': _PPLUG_DTHETA,
+        },
+        'pplug_up': {
+            'poly': poly_pplug_up,
+            'pos': _PPLUG_POS,
+            'extent': _PPLUG_DTHETA,
+        },
+    }
+    import pdb; pdb.set_trace()     # DB 
+    return dpeilfs
+
 
 
 # #############################################################################
@@ -213,7 +274,9 @@ def get_all(
             continue
         poly = np.array([out[ss]['R (m)'], out[ss]['Z (m)']])
         if nn == 'IVPP HFS':
-            poly = get_PEI()
+            poly = get_PEI_HFS()
+        elif nn == 'IVPP LFS':
+            poly = get_PEI_LFS(poly)
         if 'thick' in dnames[nn].keys():
             dv = poly[:, 1:] - poly[:, :-1]
             vout = np.array([dv[1, :], -dv[0, :]])
