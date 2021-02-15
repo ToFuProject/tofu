@@ -1,20 +1,16 @@
-# Built-in
+
+# Standard
 import sys
 import os
 import warnings
 import inspect
 
-# Common
+# Third-party
 import numpy as np
 
-# tofu
-import tofu
-try:
-    import tofu.geom._core as _core
-except Exception:
-    from . import _core
-
-
+# Local
+from . import _core
+from . import _def_config
 
 
 __all__ = ['coords_transform',
@@ -30,8 +26,11 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_root = tofu.__path__[0]
-_path_testcases = os.path.join(_root, 'geom', 'inputs')
+_path_testcases = os.path.join(os.path.dirname(__file__), 'inputs')
+
+_URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
+             + 'tuto_plot_create_geometry.html')
+
 
 ###########################################################
 #       COCOS
@@ -634,172 +633,32 @@ _comdoc2 = _comdoc.format('2','/ list',
 _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 
 
-
-###########################################################
+# #############################################################################
+# #############################################################################
 #       Fast creation of config
-###########################################################
-
-_ExpWest = 'WEST'
-_ExpJET = 'JET'
-_ExpITER = 'ITER'
-_ExpAUG = 'AUG'
-_ExpNSTX = 'NSTX'
-_ExpDEMO = 'DEMO'
-_ExpTOMAS = 'TOMAS'
-_ExpCOMPASS = 'COMPASS'
-_ExpTCV = 'TCV'
-
-# Default config
-_DEFCONFIG = 'ITER'
-# coils taken from:
-# ids=['wall', 'pf_active'],shot=1180, run=17, tokamak='ITER_MD', user='public'
-
-_URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
-             + 'tuto_plot_create_geometry.html')
-
-# Dictionnary of unique config names
-# For each config, indicates which structural elements it comprises
-# Elements are sorted by class (Ves, PFC...)
-# For each element, a unique txt file containing the geometry will be loaded
-_DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
-                        'Ves': ['V1']},
-            'WEST-Sep': {'Exp': _ExpWest,
-                         'PlasmaDomain': ['Sep']},
-            'WEST-V2': {'Exp': _ExpWest,
-                        'Ves': ['V2'],
-                        'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'WEST-V3': {'Exp': _ExpWest,
-                        'Ves': ['V2'],
-                        'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
-                                'BumperInnerV1', 'BumperOuterV1',
-                                'IC1V1', 'IC2V1', 'IC3V1']},
-            'WEST-V4': {'Exp': _ExpWest,
-                        'Ves': ['V2'],
-                        'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                                'BumperInnerV3', 'BumperOuterV3',
-                                'IC1V1', 'IC2V1', 'IC3V1',
-                                'LH1V1', 'LH2V1',
-                                'RippleV1', 'VDEV0']},
-            'WEST-V5': {'Exp': _ExpWest,
-                        'Ves': ['InnerV0', 'OuterV0'],
-                        'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                                'BumperInnerV3', 'BumperOuterV3',
-                                'IC1V1', 'IC2V1', 'IC3V1',
-                                'LH1V1', 'LH2V1',
-                                'RippleV1', 'VDEV0',
-                                'ThermalShieldHFSV0', 'ThermalShieldLFSV0',
-                                'CasingCoverLDivV0', 'CasingCoverUDivV0',
-                                'CasingLDivV0', 'CasingUDivV0',
-                                'CasingPFUPlateLDivV0', 'CasingPFUPlateUDivV0',
-                                'CasingPJLDivV0', 'CasingPJUDivV0'],
-                        'CoilPF': ['BlV0', 'BuV0', 'CSV0', 'DivLow1V0',
-                                   'DivLow2V0', 'DivUp1V0', 'DivUp2V0',
-                                   'DlV0', 'DuV0', 'ElV0', 'EuV0',
-                                   'FlV0', 'FuV0']},
-            'WEST-full': {'Exp': _ExpWest,
-                          'Ves': ['V2'],
-                          'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                                  'BumperInnerV3', 'BumperOuterV3',
-                                  'IC1V1', 'IC2V1', 'IC3V1',
-                                  'LH1V1', 'LH2V1',
-                                  'RippleV1', 'VDEV0'],
-                          'CoilPF': ['BlV0', 'BuV0', 'CSV0', 'DivLow1V0',
-                                     'DivLow2V0', 'DivUp1V0', 'DivUp2V0',
-                                     'DlV0', 'DuV0', 'ElV0', 'EuV0',
-                                     'FlV0', 'FuV0']},
-            'JET-V0': {'Exp': _ExpJET,
-                       'Ves': ['V0']},
-            'ITER-V1': {'Exp': _ExpITER,
-                        'Ves': ['V0']},
-            'ITER-V2': {'Exp': _ExpITER,
-                        'Ves': ['V1'],
-                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
-                                'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10',
-                                'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
-                                'BLK16', 'BLK17', 'BLK18',
-                                'Div1', 'Div2', 'Div3',
-                                'Div4', 'Div5', 'Div6']},
-            'ITER-V3': {'Exp': _ExpITER,
-                        'Ves': ['InnerV0', 'OuterV0', 'Cryostat'],
-                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
-                                'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10',
-                                'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
-                                'BLK16', 'BLK17', 'BLK18',
-                                'Div1', 'Div2', 'Div3',
-                                'Div4', 'Div5', 'Div6'],
-                        'CoilPF': ['PF1', 'PF2', 'PF3',
-                                   'PF4', 'PF5', 'PF6'],
-                        'CoilCS': ['CS3U', 'CS2U', 'CS1U',
-                                   'CS1L', 'CS2L', 'CS3L'],
-                       },
-            'ITER-SOLEDGE3XV0': {'Exp': _ExpITER,
-                                 'Ves': ['SOLEDGE3XV0'],
-                                 'PFC': ['SOLEDGE3XDivDomeV0',
-                                         'SOLEDGE3XDivSupportV0']},
-            'AUG-V1': {'Exp': _ExpAUG,
-                       'Ves': ['VESiR'],
-                       'PFC': ['D2cdome', 'D2cdomL', 'D2cdomR', 'D2ci1',
-                               'D2ci2', 'D2cTPib', 'D2cTPic', 'D2cTPi',
-                               'D2dBG2', 'D2dBl1', 'D2dBl2', 'D2dBl3',
-                               'D2dBu1', 'D2dBu2', 'D2dBu3', 'D2dBu4',
-                               'D3BG10', 'D3BG1', 'ICRHa', 'LIM09', 'PClow',
-                               'PCup', 'SBi', 'TPLT1', 'TPLT2', 'TPLT3',
-                               'TPLT4', 'TPLT5', 'TPRT2', 'TPRT3', 'TPRT4',
-                               'TPRT5']},
-            'NSTX-V0': {'Exp': _ExpNSTX,
-                        'Ves': ['V0']},
-            'DEMO-2019': {'Exp': _ExpDEMO,
-                          'Ves': ['V0'],
-                          'PFC': ['LimiterUpperV0', 'LimiterEquatV0',
-                                  'BlanketInnerV0', 'BlanketOuterV0',
-                                  'DivertorV0']},
-            'TOMAS-V0': {'Exp': _ExpTOMAS,
-                         'Ves': ['V0'],
-                         'PFC': ['LimiterV0', 'AntennaV0']},
-            'COMPASS-V0': {'Exp': _ExpCOMPASS,
-                           'Ves': ['V0']},
-            'TCV-V0': {'Exp': _ExpTCV,
-                       'Ves': ['v', 't'],
-                       'CoilPF': ['A001', 'B001', 'B002',
-                                  'B03A1', 'B03A2', 'B03A3',
-                                  'C001', 'C002', 'D001', 'D002',
-                                  'E001', 'E002', 'E003', 'E004',
-                                  'E005', 'E006', 'E007', 'E008',
-                                  'E03A1', 'E03A2', 'E03A3',
-                                  'F001', 'F002', 'F003', 'F004',
-                                  'F005', 'F006', 'F007', 'F008',
-                                  'T03A1', 'T03A2', 'T03A3']},
-            }
-
-# Each config can be called by various names / shortcuts (for benchmark and
-# retro-compatibility), this table stores, for each shortcut,
-# the associated unique name it refers to
-_DCONFIG_SHORTCUTS = {'ITER': 'ITER-V3',
-                      'ITER-SOLEDGE3X': 'ITER-SOLEDGE3XV0',
-                      'JET': 'JET-V0',
-                      'WEST': 'WEST-V5',
-                      'A1': 'WEST-V1',
-                      'A2': 'ITER-V1',
-                      'A3': 'WEST-Sep',
-                      'B1': 'WEST-V2',
-                      'B2': 'WEST-V3',
-                      'B3': 'WEST-V4',
-                      'B4': 'ITER-V2',
-                      'AUG': 'AUG-V1',
-                      'NSTX': 'NSTX-V0',
-                      'DEMO': 'DEMO-2019',
-                      'TOMAS': 'TOMAS-V0',
-                      'COMPASS': 'COMPASS-V0',
-                      'TCV': 'TCV-V0'}
+# #############################################################################
 
 
-def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
-                    returnas=str):
+def _get_listconfig(
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=str
+):
     """ Hidden function generating the config names table as a str or dict """
+
+    # Check inputs
+    if dconfig is None:
+        dconfig = _def_config._DEFCONFIG
+    if dconfig_shortcuts is None:
+        dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
     assert returnas in [dict, str]
+
+    # Get dict of configs
     dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_shortcuts.items()
                              if v1 == k0])
           for k0 in sorted(dconfig.keys())}
+
+    # Return
     if returnas is dict:
         return dc
     else:
@@ -813,9 +672,12 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
         return msg
 
 
-def get_available_config(dconfig=_DCONFIG,
-                         dconfig_shortcuts=_DCONFIG_SHORTCUTS,
-                         verb=True, returnas=False):
+def get_available_config(
+    dconfig=None,
+    dconfig_shortcuts=None,
+    verb=True,
+    returnas=False,
+):
     """ Print a table showing all pre-defined config
 
     Each pre-defined config in tofu can be called by its unique name or
@@ -853,13 +715,15 @@ def _create_config_testcase_check_inputs(
     dconfig_shortcuts=None,
     returnas=None,
 ):
+    # config
     if config is None:
-        config = _DEFCONFIG
+        config = _def_config._DEFCONFIG
     if not isinstance(config, str):
         msg = ("Arg config must be a str!\n"
                + "\tProvided: {}".format(config))
         raise Exception(msg)
 
+    # path
     if path is None:
         path = _path_testcases
     if not isinstance(path, str) or not os.path.isdir(path):
@@ -868,20 +732,23 @@ def _create_config_testcase_check_inputs(
         raise Exception(msg)
     path = os.path.abspath(path)
 
+    # dconfig
     if dconfig is None:
-        dconfig = _DCONFIG
+        dconfig = _def_config._DCONFIG
     if not isinstance(dconfig, dict):
         msg = ("Arg dconfig must be a dict!\n"
                + "\tProvided: {}".format(dconfig))
         raise Exception(msg)
 
+    # dconfig_shortcuts
     if dconfig_shortcuts is None:
-        dconfig_shortcuts = _DCONFIG_SHORTCUTS
+        dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
     if not isinstance(dconfig_shortcuts, dict):
         msg = ("Arg dconfig_shortcuts must be a dict!\n"
                + "\tProvided: {}".format(dconfig_shortcuts))
         raise Exception(msg)
 
+    # return
     if returnas is None:
         returnas = object
     if returnas not in [object, dict]:
@@ -894,16 +761,15 @@ def _create_config_testcase_check_inputs(
 def _create_config_testcase(
     config=None,
     path=None,
-    dconfig=_DCONFIG,
+    dconfig=None,
     dconfig_shortcuts=None,
     returnas=None,
 ):
     """ Load the desired test case configuration
 
-    Choose from one of the reference preset configurations:
-        {0}
+    Choose from one of the reference preset configurations (from dconfig)
 
-    """.format('['+', '.join(dconfig.keys())+']')
+    """
 
     # -----------
     # Check input
@@ -918,6 +784,9 @@ def _create_config_testcase(
 
     # --------------------------
     # Check config is available
+    coils = 'coils' in config
+    if coils is True:
+        config = config.replace('-coils', '')
     if config in dconfig.keys():
         pass
 
@@ -933,9 +802,18 @@ def _create_config_testcase(
 
     # -------------------------
     # Get file and build config
+
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
-    lcls = sorted([k for k in dconfig[config].keys() if k!= 'Exp'])
+    # include / exclude coils
+    if coils is True:
+        lcls = sorted([kk for kk in dconfig[config].keys() if kk != 'Exp'])
+    else:
+        lcls = sorted([
+            kk for kk in dconfig[config].keys()
+            if kk != 'Exp' and 'Coil' not in kk
+        ])
+
     Exp = dconfig[config]['Exp']
     for cc in lcls:
         for ss in dconfig[config][cc]:
