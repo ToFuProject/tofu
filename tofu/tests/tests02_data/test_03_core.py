@@ -27,7 +27,7 @@ VerbHead = 'tofu.data.test_03_core'
 #
 #######################################################
 
-def setup_module(module):
+def setup_module():
     print("") # this is to get a newline after the dots
     LF = os.listdir(_here)
     LF = [lf for lf in LF if all([ss in lf for ss in ['TFD_','Test','.npz']])]
@@ -38,7 +38,7 @@ def setup_module(module):
         os.remove(os.path.join(_here,lf))
     #print("setup_module before anything in this file")
 
-def teardown_module(module):
+def teardown_module():
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
     #print("teardown_module after everything in this file")
