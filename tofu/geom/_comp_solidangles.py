@@ -179,16 +179,18 @@ def calc_solidangle_particle(
     """
     ################
     # Prepare inputs
-    traj, pts, rad, config, approx, aniso, block \
-            = _check_calc_solidangle_particle(
-                traj=traj,
-                pts=pts,
-                rad=rad,
-                config=config,
-                approx=approx,
-                aniso=aniso,
-                block=block,
-            )
+    (
+        traj, pts, rad, config,
+        approx, aniso, block
+    ) = _check_calc_solidangle_particle(
+        traj=traj,
+        pts=pts,
+        rad=rad,
+        config=config,
+        approx=approx,
+        aniso=aniso,
+        block=block,
+    )
 
     ################
     # Main computation
@@ -247,10 +249,3 @@ def calc_solidangle_particle_integ(
 
     # Return sang as (N,nR,nZ) array
     return
-
-
-
-
-
-
-
