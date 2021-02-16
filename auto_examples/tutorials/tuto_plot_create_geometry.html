@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Creating your first Geometry &#8212; Tofu 1.4.9</title>
-    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/gallery-rendered-html.css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Computing a camera image with custom emissivity" href="tuto_plot_custom_emissivity.html" />
@@ -123,7 +126,8 @@
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
-<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py"><span class="std std-ref">here</span></a> to download the full example code</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
 </div>
 <div class="sphx-glr-example-title section" id="creating-your-first-geometry">
 <span id="sphx-glr-auto-examples-tutorials-tuto-plot-create-geometry-py"></span><h1>Creating your first Geometry<a class="headerlink" href="#creating-your-first-geometry" title="Permalink to this headline">¶</a></h1>
@@ -161,7 +165,11 @@ shape at the bottom:</p>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" />
+<img alt="tuto plot create geometry" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" />
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(0.900292944643613, 3.099707055356387, -1.3099829327148826, 1.1096415870125362)
+</pre></div>
+</div>
 <p>Notice that the polygon does not have to be closed, ToFu will anyway check
 that and close it automatically if necessary.
 Now let’s feed this 2D polygon to the appropriate ToFu class and specify that
@@ -209,7 +217,7 @@ polygon):</p>
 <span class="n">lax</span> <span class="o">=</span> <span class="n">ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">element</span><span class="o">=</span><span class="s2">&quot;P&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_002.png" />
+<img alt="tuto plot create geometry" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_002.png" />
 <p>The created vessel instance, plotted in cross-section and horizontal
 projections
 Since the vessel is an important object (it defines where the plasma lives),
@@ -281,7 +289,7 @@ otherwise the type must be specified.</p>
 <span class="c1"># sphinx_gallery_thumbnail_number = 3</span>
 </pre></div>
 </div>
-<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_003.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_003.png" />
+<img alt="test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_003.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/tofu/geom/_core.py:456: UserWarning: PFC instance: double identical points in Poly
   =&gt; 1 points removed
@@ -291,13 +299,13 @@ Saved in :
     /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.9.npz
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.741 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.837 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py">
-<div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/c50060e9baefdaa52d2eec5262fdf4ae/tuto_plot_create_geometry.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry.py</span></code></a></p>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/821737f695d098026bf8ea2b1bfa6101/tuto_plot_create_geometry.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry.py</span></code></a></p>
 </div>
-<div class="sphx-glr-download docutils container">
-<p><a class="reference download internal" download="" href="../../_downloads/dd5b603cd7c2a99ee28137f39d6c5e3c/tuto_plot_create_geometry.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_create_geometry.ipynb</span></code></a></p>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/721ae2bd4e53ca4b2cdb8d4e88f9536a/tuto_plot_create_geometry.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_create_geometry.ipynb</span></code></a></p>
 </div>
 </div>
 <p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
@@ -323,9 +331,9 @@ Saved in :
       
     </p>
     <p>
-        &copy; Copyright 2016-2020, Tofu contributors.<br/>
-      Last updated on Dec 10, 2020.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.<br/>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Feb 16, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
     </p>
   </div>
 </footer>
