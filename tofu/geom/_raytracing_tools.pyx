@@ -1965,7 +1965,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
 # = Checking if points are visible
 # ==============================================================================
 cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
-                                   double[:,::1] pts, int npts,
+                                   double[:, ::1] pts, int npts,
                                    double[:, ::1] ves_poly,
                                    double[:, ::1] ves_norm,
                                    double[::1] ind,
@@ -1993,12 +1993,12 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     cdef int sz_ves_lims
     cdef double min_poly_r
     cdef double* dist_arr = NULL
-    cdef double[:,::1] ray_orig = view.array(shape=(3,npts),
-                                             itemsize=sizeof(double),
-                                             format="d")
-    cdef double[:,::1] ray_vdir = view.array(shape=(3,npts),
-                                             itemsize=sizeof(double),
-                                             format="d")
+    cdef double[:, ::1] ray_orig = view.array(shape=(3,npts),
+                                              itemsize=sizeof(double),
+                                              format="d")
+    cdef double[:, ::1] ray_vdir = view.array(shape=(3,npts),
+                                              itemsize=sizeof(double),
+                                              format="d")
     cdef int npts_poly = ves_norm.shape[1]
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
@@ -2046,7 +2046,7 @@ cdef inline void is_vis_mask(double[::1] ind, double* k,
     return
 
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
-                                     double[:,::1] pts2, int npts2,
+                                     double[:, ::1] pts2, int npts2,
                                      double[:, ::1] ves_poly,
                                      double[:, ::1] ves_norm,
                                      double[:, ::1] ind,
@@ -2070,15 +2070,15 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     cdef np.ndarray[double, ndim=2, mode='c'] ray_orig_arr
     cdef np.ndarray[double, ndim=2, mode='c'] ray_vdir_arr
     cdef np.ndarray[double, ndim=2, mode='c'] dist_arr
-    cdef double[:,::1] ray_orig
-    cdef double[:,::1] ray_vdir
+    cdef double[:, ::1] ray_orig
+    cdef double[:, ::1] ray_vdir
     cdef int ii
     # We compute for each point in the polygon
     for ii in range(npts1):
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
                           ves_poly, ves_norm,
-                          ind[ii,...], k, ves_lims,
+                          ind[ii, ...], k, ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,
