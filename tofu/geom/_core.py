@@ -6054,13 +6054,20 @@ class Rays(utils.ToFuObject):
     def _get_plotL(
         self,
         reflections=True,
-        Lplot="Tot",
-        proj="All",
+        Lplot=None,
+        proj=None,
         ind=None,
         return_pts=False,
         multi=False,
     ):
         """ Get the (R,Z) coordinates of the cross-section projections """
+        # Check inputs
+        if Lplot is None:
+            Lplot = 'tot'
+        if proj is None:
+            proj = 'All'
+
+        # Compute
         ind = self._check_indch(ind)
         if ind.size > 0:
             us = self.u[:, ind]
@@ -7463,6 +7470,7 @@ class Rays(utils.ToFuObject):
         self,
         key=None,
         quant="lengths",
+        Lplot=None,
         invert=None,
         ind=None,
         Bck=True,
@@ -7478,7 +7486,15 @@ class Rays(utils.ToFuObject):
         The associated Config is also plotted
         The plot shows which strutural element is touched by each LOS
 
-        In addition, an extra quantity is plotted, depending on quant:
+        In addition, an extra quantity can be mapped to alpha (transparency)
+
+        Parameters
+        ----------
+        key:        None / str
+            Only relevant if self.dchans was defined
+            key is then a key to sekf.dchans
+        quant:      None / str
+            Flag indicating which extra quantity is used to map alpha:
             - 'lengths' (default): the length of each LOS
             - 'angles' : the angle of incidence of each LOS
                          (with respect to the normal of the surface touched,
@@ -7487,6 +7503,26 @@ class Rays(utils.ToFuObject):
                          (useful for checking numbering)
             - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
+        Lplot:      None / str
+            Flag indicating whether to plot:
+                - 'tot': the full length of the LOS
+                - 'in': only the part that is inside the vessel
+        invert:     None / bool
+            Flag indicating whether to plot 2D camera images inverted (pinhole)
+        ind:        None / np.ndarray
+            Array of bool indices used to select only a subset of the LOS
+        Bck:        None / bool
+            Flag indicating whether to plot the background LOS
+        fs:         None / tuple
+            figure size in inches
+        wintit:     None / str
+            Title for the window
+        tit:        None / str
+            Title for the figure
+        connect:    None / bool
+            Flag indicating to connect interactive actuators
+        draw:       None / bool
+            Flag indicating whether to draw the figure
         """
         out = _plot.Rays_plot_touch(
             self,
@@ -7494,6 +7530,7 @@ class Rays(utils.ToFuObject):
             Bck=Bck,
             quant=quant,
             ind=ind,
+            Lplot=Lplot,
             invert=invert,
             connect=connect,
             fs=fs,
