@@ -58,8 +58,10 @@ _PPLUG_THETA = np.arctan2(-_PPLUG_PTS[:, 2], _PPLUG_PTS[:, 0])
 _PPLUG_DTHETA = _PPLUG_THETA.max() - _PPLUG_THETA.min()
 _PPLUG_POS = 0.5*(_PPLUG_THETA.max() + _PPLUG_THETA.min())
 _PPLUG_POS = _PPLUG_POS + _DTHETA*np.r_[0, np.cumsum(np.tile([1, 2], 6))[:-1]]
-_FULL_EXTENT0 = _DTHETA - _PPLUG_DTHETA
-_FULL_EXTENT1 = 2.*_DTHETA - _PPLUG_DTHETA
+_PPLUG_FULL_EXTENT0 = _DTHETA - _PPLUG_DTHETA
+_PPLUG_FULL_EXTENT1 = 2.*_DTHETA - _PPLUG_DTHETA
+_PPLUG_FULL_POS0 = _PPLUG_POS[0] + _DTHETA*(0.5 + 3*np.r_[0, 1, 2, 3, 4, 5])
+_PPLUG_FULL_POS1 = _PPLUG_POS[1] + _DTHETA*(1 + 3*np.r_[0, 1, 2, 3, 4, 5])
 
 
 # Default
@@ -90,13 +92,15 @@ _DNAMES = {
         'name': 'ThermalShieldHFSV0',
         'class': 'PFC',
         'thick': 0.008,
+        'thickpos': False,
         'save': True,
     },
     'IVPP LFS': {
         'name': 'ThermalShieldLFSV0',
         'class': 'PFC',
         'thick': 0.008,
-        'save': True,
+        'thickpos': True,
+        'save': False,      # Will be replaced by several parts
     },
     # Lower divertor
     'LDiv PFUs': {
@@ -191,7 +195,8 @@ def get_PEI_HFS():
 
 def get_PEI_LFS(poly):
 
-    indsZ = np.argsort(poly[1, :])
+    poly = poly[:, ~np.any(np.isnan(poly), axis=0)]
+    _, indsZ = np.unique(poly[1, :], return_index=True)
     poly = poly[:, indsZ]
     poly_pplug = np.array([np.hypot(_PPLUG_PTS[:, 0], -_PPLUG_PTS[:, 2]),
                            _PPLUG_PTS[:, 1]])
@@ -199,46 +204,114 @@ def get_PEI_LFS(poly):
     poly_pplug = poly_pplug[:, indspp]
     poly_pplug[0, :] = np.interp(poly_pplug[1, :], poly[1, :], poly[0, :])
     ind_insert = np.searchsorted(poly[1, :], poly_pplug[1, :])
-
-    # TBF
     poly_full = np.insert(poly, ind_insert, poly_pplug, axis=1)
-    pos_full_slim =  _PPLUG_POS[0] + 0.5*_DTHETA + None
-    extent_full = 
-
-    pos_pplug_low = poly_full[:, :ind_insert[0]+1]
-    pos_pplug_up = poly_full[:, ind_insert[1]:]
+    ilow = np.nonzero(poly_full[1, :] == poly_pplug[1, 0])[0][0]
+    iup = np.nonzero(poly_full[1, :] == poly_pplug[1, 1])[0][0]
+    poly_low = poly_full[:, :ilow+1]
+    poly_up = poly_full[:, iup:]
 
     dpeilfs = {
         'full_slim': {
+            'name': 'ThermalShieldLFSSlimV0',
+            'class': 'PFC',
             'poly': poly_full,
-            'pos': pos_full_slim,
-            'extent': extent_full_slim,
+            'pos': _PPLUG_FULL_POS0,
+            'extent': _PPLUG_FULL_EXTENT0,
+            'thick': 0.008,
+            'thickpos': True,
+            'save': True,
         },
         'full_wide': {
+            'name': 'ThermalShieldLFSWideV0',
+            'class': 'PFC',
             'poly': poly_full,
-            'pos': pos_full_wide,
-            'extent': extent_full_wide,
+            'pos': _PPLUG_FULL_POS1,
+            'extent': _PPLUG_FULL_EXTENT1,
+            'thick': 0.008,
+            'thickpos': True,
+            'save': True,
         },
         'pplug_low': {
-            'poly': poly_pplug_low,
+            'name': 'ThermalShieldLFSLowV0',
+            'class': 'PFC',
+            'poly': poly_low,
             'pos': _PPLUG_POS,
             'extent': _PPLUG_DTHETA,
+            'thick': 0.008,
+            'thickpos': True,
+            'save': True,
         },
         'pplug_up': {
-            'poly': poly_pplug_up,
+            'name': 'ThermalShieldLFSUpV0',
+            'class': 'PFC',
+            'poly': poly_up,
             'pos': _PPLUG_POS,
             'extent': _PPLUG_DTHETA,
+            'thick': 0.008,
+            'thickpos': True,
+            'save': True,
         },
     }
-    import pdb; pdb.set_trace()     # DB 
     return dpeilfs
-
 
 
 # #############################################################################
 # #############################################################################
 #           Extract and plot geometry
 # #############################################################################
+
+
+def _add_thickness(poly, thick, pos=None, nn=None):
+    dv = poly[:, 1:] - poly[:, :-1]
+    vout = np.array([dv[1, :], -dv[0, :]])
+    if pos and np.nanmean(vout[0, :]) < 0:
+        vout = -vout
+    elif (~pos) and np.nanmean(vout[0, :]) > 0:
+        vout = -vout
+    vout = np.concatenate((vout[:, 0:1], vout), axis=1)
+    vout = vout / np.sqrt(np.sum(vout**2, axis=0))[None, :]
+    poly = np.concatenate(
+        (poly, poly[:, ::-1] + thick*vout[:, ::-1]),
+        axis=1
+    )
+    return poly
+
+
+def _create_poly_obj(dnames=None, out=None, nn=None, ss=None):
+
+    # Create / check poly
+    if dnames[nn].get('poly') is None:
+        poly = np.array([out[ss]['R (m)'], out[ss]['Z (m)']])
+        if nn == 'IVPP HFS':
+            poly = get_PEI_HFS()
+        dnames[nn]['poly'] = poly
+    indok = ~np.any(np.isnan(dnames[nn]['poly']), axis=0)
+    dnames[nn]['poly'] = dnames[nn]['poly'][:, indok]
+    if 'thick' in dnames[nn].keys():
+        dnames[nn]['poly'] = _add_thickness(
+            dnames[nn]['poly'],
+            dnames[nn]['thick'],
+            pos=dnames[nn]['thickpos'],
+            nn=nn,
+        )
+
+    # Create obj
+    if 'class' in dnames[nn].keys():
+        try:
+            obj = getattr(tf.geom, dnames[nn]['class'])(
+                Name=dnames[nn]['name'],
+                Poly=dnames[nn]['poly'],
+                Exp=_EXP,
+                pos=dnames[nn].get('pos', None),
+                extent=dnames[nn].get('extent', None),
+            )
+        except Exception as err:
+            obj = None
+            msg = (str(err)
+                   + "\ntofu object {} failed".format(nn))
+            warnings.warn(str(err))
+        dnames[nn]['obj'] = obj
+    return
 
 
 def get_all(
@@ -255,7 +328,7 @@ def get_all(
     if pfe is None:
         pfe = _PFE
     if dnames is None:
-        dnames = _DNAMES
+        dnames = {kk: dict(vv) for kk, vv in _DNAMES.items()}
     if plot is None:
         plot = True
     if save is None:
@@ -267,45 +340,27 @@ def get_all(
     #   Extract
     out = pd.read_excel(pfe, sheet_name='Main', header=[0, 1])
 
+    # Add split LFS thermal shield
+    dnames.update( get_PEI_LFS(
+        np.array([
+            out['IVPP LFS\n//IVPP_LFS//']['R (m)'],
+            out['IVPP LFS\n//IVPP_LFS//']['Z (m)'],
+        ])
+    ))
+
+    # From out
     ls = list(out.columns.levels[0])
     for ss in ls:
         nn = ss.split('\n')[0]
         if nn not in dnames.keys():
             continue
-        poly = np.array([out[ss]['R (m)'], out[ss]['Z (m)']])
-        if nn == 'IVPP HFS':
-            poly = get_PEI_HFS()
-        elif nn == 'IVPP LFS':
-            poly = get_PEI_LFS(poly)
-        if 'thick' in dnames[nn].keys():
-            dv = poly[:, 1:] - poly[:, :-1]
-            vout = np.array([dv[1, :], -dv[0, :]])
-            if nn == 'IVPP LFS' and np.nanmean(vout[0, :]) < 0:
-                vout = -vout
-            elif nn == 'IVPP HFS' and np.nanmean(vout[0, :]) > 0:
-                vout = -vout
-            vout = np.concatenate((vout[:, 0:1], vout), axis=1)
-            vout = vout / np.sqrt(np.sum(vout**2, axis=0))[None, :]
-            poly = np.concatenate(
-                (poly,
-                 poly[:, ::-1] + dnames[nn]['thick']*vout[:, ::-1]),
-                axis=1
-            )
-        dnames[nn]['poly'] = poly
-        indok = ~np.any(np.isnan(dnames[nn]['poly']), axis=0)
-        if 'class' in dnames[nn].keys():
-            try:
-                dnames[nn]['obj'] = getattr(tf.geom, dnames[nn]['class'])(
-                    Name=dnames[nn]['name'],
-                    Poly=dnames[nn]['poly'][:, indok],
-                    Exp=_EXP,
-                    pos=dnames[nn].get('pos', None),
-                    extent=dnames[nn].get('extent', None),
-                )
-            except Exception as err:
-                msg = (str(err)
-                       + "\ntofu object {} failed".format(nn))
-                warnings.warn(str(err))
+        _create_poly_obj(dnames=dnames, out=out, nn=nn, ss=ss)
+
+    # From dnames
+    for nn in dnames.keys():
+        if 'obj' in dnames[nn].keys():
+            continue
+        _create_poly_obj(dnames=dnames, out=out, nn=nn, ss=None)
 
     # --------------
     #   Plot
