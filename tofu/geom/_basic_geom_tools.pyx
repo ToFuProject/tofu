@@ -1,6 +1,8 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=False
+#
 cimport cython
 
 from cython.parallel import prange
@@ -10,9 +12,12 @@ from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
 from libc.math cimport NAN as Cnan
+from libc.math cimport pi as Cpi
+from libc.stdlib cimport malloc, free
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
+cdef double _TWOPI = 2.0 * Cpi
 
 # ==============================================================================
 # =  Point in path
@@ -123,6 +128,7 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
             sign[ii] = 0
     return
 
+
 # ==============================================================================
 # =  Computing Hypothenus
 # =============================================================================
@@ -139,6 +145,8 @@ cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
         for ii in range(npts):
             ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
+
+
 
 cdef inline double comp_min_hypot(const double[::1] xpts,
                                   const double[::1] ypts,
@@ -253,6 +261,27 @@ cdef inline void tile_3_to_2d(double v0, double v1, double v2,
         res[2,ii] = v2
     return
 
+# ==============================================================================
+# =  Polygon helpers
+# ==============================================================================
+cdef inline int find_ind_lowerright_corner(const double[::1] xpts,
+                                           const double[::1] ypts,
+                                           int npts) nogil:
+    cdef int ii
+    cdef int res = 0
+    cdef double minx = xpts[0]
+    cdef double miny = ypts[0]
+    for ii in range(1,npts):
+        if miny > ypts[ii]:
+            minx = xpts[ii]
+            miny = ypts[ii]
+            res = ii
+        elif miny == ypts[ii]:
+            if minx < xpts[ii]:
+                minx = xpts[ii]
+                miny = ypts[ii]
+                res = ii
+    return res
 
 # ==============================================================================
 # =  Distance
@@ -312,3 +341,46 @@ cdef inline void compute_diff_div(const double[:, ::1] vec1,
         res[1, ii] = (vec1[1,ii] - vec2[1,ii]) * invd
         res[2, ii] = (vec1[2,ii] - vec2[2,ii]) * invd
     return
+
+# ==============================================================================
+# == Matrix sum (np.sum)
+# ==============================================================================
+cdef inline void sum_by_rows(double *orig, double *out,
+                             int n_rows, int n_cols) nogil:
+    cdef int b, i, j
+    cdef int left
+    cdef int max_r = 8
+    cdef int n_blocks = n_rows/max_r
+    cdef double* res
+    # .. initialization
+    res = <double*>malloc(max_r*sizeof(double))
+    for b in prange(n_blocks):
+        for i in range(max_r):
+            res[i] = 0
+        for j in range(n_cols):
+            for i in range(max_r): #calculate sum for max_r-rows simultaniously
+                res[i]+=orig[(b*max_r+i)*n_cols+j]
+        for i in range(max_r):
+            out[b*max_r+i]=res[i]
+    # left_overs:
+    left = n_rows - n_blocks*max_r;
+    for i in prange(max_r):
+        res[i] = 0
+    for j in prange(n_cols):
+        for i in range(left): #calculate sum for left rows simultaniously
+            res[i]+=orig[(n_blocks*max_r)*n_cols+j]
+    for i in prange(left):
+        out[n_blocks*max_r+i]=res[i]
+    free(res)
+    return
+
+
+
+# ...........
+
+cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
+    cdef int ii
+    cdef long out = 0
+    for ii in prange(n_cols):
+        out += orig[ii]
+    return out

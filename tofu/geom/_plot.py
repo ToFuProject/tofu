@@ -8,7 +8,9 @@ import warnings
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon as mPolygon, Wedge as mWedge
+from matplotlib.patches import Polygon as mPolygon
+from matplotlib.patches import Wedge as mWedge
+from matplotlib.patches import  Rectangle as mRectangle
 from matplotlib.axes._axes import Axes
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
@@ -37,27 +39,27 @@ _cbck = (0.8,0.8,0.8)
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 
 # Generic
-def _check_Lax(Lax=None, n=2):
+def _check_Lax(lax=None, n=2):
     assert n in [1,2]
-    C0 = Lax is None
-    C1 = issubclass(Lax.__class__,Axes)
-    C2 = type(Lax) in [list,tuple]
-    if C2:
-        C2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in Lax])
-        C2 = C2 and len(Lax) in [1,2]
+    c0 = lax is None
+    c1 = issubclass(lax.__class__,Axes)
+    c2 = hasattr(lax, '__iter__')
+    if c2:
+        c2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in lax])
+        c2 = c2 and len(lax) in [1,2]
     if n==1:
-        assert C0 or C1, "Arg ax must be None or a plt.Axes instance !"
+        assert c0 or c1, "Arg ax must be None or a plt.Axes instance !"
     else:
-        assert C0 or C1 or C2, "Arg Lax must be an Axes or a list/tuple of such !"
-        if C0:
-            Lax = [None,None]
-        elif C1:
-            Lax = [Lax,None]
-        elif C2 and len(Lax)==1:
-            Lax = [Lax[0],None]
+        assert c0 or c1 or c2, "Arg lax must be an Axes or a list/tuple of such !"
+        if c0:
+            lax = [None,None]
+        elif c1:
+            lax = [lax,None]
+        elif c2 and len(lax)==1:
+            lax = [lax[0],None]
         else:
-            Lax = list(Lax)
-    return Lax, C0, C1, C2
+            lax = list(lax)
+    return lax, c0, c1, c2
 
 
 
@@ -224,7 +226,7 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
     if proj=='all':
         lax[1].autoscale_view()
 
-    if tit is not None:
+    if tit != False:
         lax[0].figure.suptitle(tit)
 
     if not dLeg is None:
@@ -642,7 +644,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
     if ax is None:
         ax = _def.Plot_Impact_DefAxes('3D', fs=fs, wintit=wintit)
     handles, labels = ax.get_legend_handles_labels()
-    if isinstance(T,Ves):
+    if T.Id.Cls == "Ves":
         Leg = T.Id.NameLTX
         Theta, pP, pN = T._Imp_EnvTheta, T._Imp_EnvMinMax[0,:], T._Imp_EnvMinMax[1,:]
     else:
@@ -683,6 +685,76 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 
 
 
+############################################
+#       Phi Theta Prof dist plotting
+############################################
+
+
+def Config_phithetaproj_dist(config, refpt, dist, indStruct,
+                             distonly=False,
+                             cmap=None, vmin=None, vmax=None, invertx=None,
+                             ax=None, fs=None, cbck=(0.8,0.8,0.8,0.8),
+                             tit=None, wintit=None, legend=None, draw=None):
+    if cmap is None:
+        cmap = 'touch'
+    lS = config.lStruct
+    indsu = np.unique(indStruct)
+    if invertx is None:
+        invertx = True
+
+    # set extent
+    ratio = refpt[0] / np.nanmin(dist)
+    extent = np.pi*np.r_[-1., 1., -1.,1.]
+
+    # set colors
+    vmin = np.nanmin(dist) if vmin is None else vmin
+    vmax = np.nanmax(dist) if vmax is None else vmax
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    colshape = (dist.shape[0], dist.shape[1], 4)
+    if cmap == 'touch':
+        cols = np.array(np.broadcast_to(mpl.colors.to_rgba(cbck), colshape))
+        for ii in indsu:
+            ind = indStruct == ii
+            cols[ind,:] = np.r_[mpl.colors.to_rgba(lS[ii].get_color())][None,None,:]
+    else:
+        cols = np.tile(mpl.colors.to_rgba(cmap), colshape)
+    cols[:,:,-1] = 1.-norm(dist)
+
+
+    # Plotting
+    if not distonly or ax is None:
+        fig, dax = _def._Config_phithetaproj_default()
+    if tit is not None:
+        fig.suptitle(tit)
+
+    dax['dist'][0].imshow(cols, extent=extent, aspect='auto',
+                          interpolation='nearest', origin='lower', zorder=-1)
+
+    dax['cross'][0], dax['hor'][0] = config.plot(lax=[dax['cross'][0],
+                                                      dax['hor'][0]],
+                                                 draw=False)
+    dax['dist'][0].set_xlim(np.pi*np.r_[-1.,1.])
+    dax['dist'][0].set_ylim(np.pi*np.r_[-1.,1.])
+    dax['dist'][0].set_aspect(aspect=1./ratio)
+
+
+
+    # legend proxy
+    # if legend != False:
+        # handles, labels = dax['cross'][0].get_legend_handles_labels()
+        # for ii in indsu:
+            # handles.append( mRectangle((0.,0.), 1, 1, fc=lS[ii].get_color()) )
+            # labels.append( '%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) )
+        # dax['cross'][0].legend(handles, labels, frameon=False,
+                               # bbox_to_anchor=(1.01,1.), loc=2, borderaxespad=0.)
+    if invertx is True:
+        dax['dist'][0].invert_xaxis()
+
+    if draw:
+        fig.canvas.draw()
+    return dax
+
+
 
 
 
@@ -699,34 +771,30 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 ############################################
 
 def _LOS_calc_InOutPolProj_Debug(config, Ds, us ,PIns, POuts,
-                                 L=3, Lim=None, Nstep=100,
+                                 L=3, nptstot=None, Lim=None, Nstep=100,
                                  fs=None, wintit=_wintit, draw=True):
     # Preformat
     assert Ds.shape==us.shape==PIns.shape==POuts.shape
     if Ds.ndim==1:
         Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         PIns, POuts = PIns.reshape((3,1)), POuts.reshape((3,1))
-    Ps = Ds + L*us
     nP = Ds.shape[1]
-    l0 = np.array([Ds[0,:], Ps[0,:], np.full((nP,),np.nan)]).T.ravel()
-    l1 = np.array([Ds[1,:], Ps[1,:], np.full((nP,),np.nan)]).T.ravel()
-    l2 = np.array([Ds[2,:], Ps[2,:], np.full((nP,),np.nan)]).T.ravel()
+    pts = (Ds[:,:,None]
+           + np.r_[0., L, np.nan][None,None,:]*us[:,:,None]).reshape((3,nP*3))
 
     # Plot
     ax = config.plot(element='P', proj='3d', Lim=Lim, Nstep=Nstep, dLeg=None,
                      fs=fs, wintit=wintit, draw=False)
-    ax.set_title('_LOS_calc_InOutPolProj / Debugging')
-    ax.plot(l0,l1,l2, c='k', lw=1, ls='-')
-    ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
-    ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
-    #ax.legend(**_def.TorLegd)
+    msg = '_LOS_calc_InOutPolProj - Debugging %s / %s pts'%(str(nP),str(nptstot))
+    ax.set_title(msg)
+    ax.plot(pts[0,:], pts[1,:], pts[2,:], c='k', lw=1, ls='-')
+    # ax.plot(PIns[0,:],PIns[1,:],PIns[2,:],
+    #         c='b', ls='None', marker='o', label=r"PIn")
+    # ax.plot(POuts[0,:],POuts[1,:],POuts[2,:],
+    #         c='r', ls='None', marker='x', label=r"POut")
+    # ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
-
-    print("")
-    print("Debugging...")
-    print("    D, u = ", Ds, us)
-    print("    PIn, POut = ", PIns, POuts)
 
 
 def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,
@@ -793,12 +861,12 @@ def Get_FieldsFrom_LLOS(L,Fields):
 
 
 
-def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
-              element='LDIORP', element_config='P',
+def Rays_plot(GLos, Lax=None, Proj='all', reflections=True,
+              Lplot=_def.LOSLplot, element='LDIORP', element_config='P',
               Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
-              draw=True, fs=None, wintit=None, Test=True, ind=None):
+              draw=True, fs=None, wintit=None, tit=None, Test=True, ind=None):
 
     if Test:
         C = GLos.Id.Cls in ['Rays','CamLOS1D','CamLOS2D']
@@ -824,7 +892,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
     if element_config != '':
         Lax = GLos.config.plot(lax=Lax, element=element_config,
-                               proj=Proj, indices=False, fs=fs, tit=None,
+                               proj=Proj, indices=False, fs=fs, tit=False,
                                draw=False, dLeg=None, wintit=wintit, Test=Test)
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
@@ -849,7 +917,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
     if len(ind)>0 and not element=='':
         if Proj=='3d':
-            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
+            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0],
+                                   reflections=reflections,
+                                   Elt=element, Lplot=Lplot,
                                    Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                    dPtO=dPtO, dPtR=dPtR, dPtP=dPtP, dLeg=None,
                                    multi=multi, ind=ind,
@@ -860,7 +930,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
                                                      fs=fs, wintit=wintit,
                                                      Type=GLos.config.Type))
             if Proj in ['cross','all']:
-                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
+                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0],
+                                          reflections=reflections,
+                                          Elt=element, Lplot=Lplot,
                                           Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                           dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                           dLeg=None, multi=multi, ind=ind,
@@ -868,7 +940,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
                                           Test=Test)
             if Proj in ['hor','all']:
                 ii = 0 if Proj=='hor' else 1
-                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii], Elt=element, Lplot=Lplot,
+                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii],
+                                         reflections=reflections,
+                                         Elt=element, Lplot=Lplot,
                                          Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                          dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                          dLeg=None, multi=multi, ind=ind,
@@ -883,7 +957,8 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
 
 
-def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
+def _Rays_plot_Cross(L,Leg=None, reflections=True,
+                     Lplot='Tot', Elt='LDIORP',ax=None,
                      dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                      dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                      dLeg=_def.TorLegd, multi=False, ind=None,
@@ -896,12 +971,13 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                                        Type=L.Ves.Type)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='Cross', ind=ind, multi=multi)
+        R, Z, _, _, _ = L._get_plotL(Lplot=Lplot, proj='Cross',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
+            for ii in range(0,len(R)):
+                ax.plot(R[ii], Z[ii], label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], label=Leg, **dL)
+            ax.plot(R, Z, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -932,7 +1008,8 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
 
 
 
-def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
+def _Rays_plot_Hor(L, Leg=None, reflections=True,
+                   Lplot='Tot', Elt='LDIORP',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
@@ -945,12 +1022,13 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
         ax = _def.Plot_LOSProj_DefAxes('Hor', fs=fs,
                                        wintit=wintit, Type=L.Ves.Type)
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='hor', ind=ind, multi=multi)
+        _, _, x, y, _ = L._get_plotL(Lplot=Lplot, proj='hor',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
+            for ii in range(0,len(x)):
+                ax.plot(x[ii], y[ii], label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], label=Leg, **dL)
+            ax.plot(x, y, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -977,7 +1055,8 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
 
 
 
-def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
+def  _Rays_plot_3D(L, Leg=None, reflections=True,
+                   Lplot='Tot',Elt='LDIORr',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
@@ -990,13 +1069,14 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='3d', ind=ind, multi=multi)
+        _, _, x, y, z = L._get_plotL(Lplot=Lplot, proj='3d',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], pts[ii][2,:],
+            for ii in range(0,len(x)):
+                ax.plot(x[ii], y[ii], z[ii],
                         label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], pts[2,:], label=Leg, **dL)
+            ax.plot(x, y, z, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -1069,7 +1149,7 @@ def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
                    Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                    Leg=None, dL=_def.LOSMImpd, dVes=_def.TorPFilld,
                    dLeg=_def.TorLegd, ind=None, multi=False,
-                   draw=True, fs=None, wintit=None, Test=True):
+                   draw=True, fs=None, tit=None, wintit=None, Test=True):
     if Test:
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
@@ -1195,7 +1275,7 @@ def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
 
     assert type(quant) in [str,np.ndarray]
     if type(quant) is str:
-        lok = ['lengths','indices','Etendues','Surfaces']
+        lok = ['lengths', 'indices', 'angles', 'Etendues', 'Surfaces']
         if not quant in lok:
             msg = "Valid flags for kwarg quant are:\n"
             msg += "    [" + ", ".join(lok) + "]\n"
@@ -1237,7 +1317,7 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
     elif type(fs) is str and fs.lower()=='a4':
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
     if dmargin is None:
         dmargin = {'left':0.03, 'right':0.99,
@@ -1357,6 +1437,10 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         elif quant == 'indices':
             Dlab = r'index' + r' ($a.u.$)'
             data = np.arange(0,cam.nRays)
+        elif quant == 'angles':
+            Dlab = r'angle of incidence (rad.)'
+            data = np.arccos(-np.sum(cam.u*cam.dgeom['vperp'], axis=0))
+            assert np.all(data >= 0.) and np.all(data <= np.pi/2.)
         else:
             data = getattr(cam, quant)
             Dlab = quant
@@ -1377,7 +1461,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         if cmap == 'touch':
             cols = cam.get_touch_colors(dElt=dElt)
         else:
-            cols = np.tile(mpl.colors.to_rgba(cmap), (self.nRays,1)).T
+            cols = np.tile(mpl.colors.to_rgba(cmap), (cam.nRays, 1)).T
         cols[-1,:] = 1.-norm(data)
         cols = np.swapaxes(cols[:,indr.T], 0,2)
 
@@ -1393,18 +1477,21 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
 
     if tit is None:
         tit = r"%s - %s - %s"%(cam.Id.Exp, cam.Id.Diag, cam.Id.Name)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     # -----------------
     # Plot conf and bck
     if cam.config is not None:
         out = cam.config.plot(lax=[dax['cross'][0], dax['hor'][0]],
-                              element='P', dLeg=None, draw=False)
+                              element='P', tit=False, wintit=False, dLeg=None, draw=False)
         dax['cross'][0], dax['hor'][0] = out
 
     if cam._isLOS():
-        lCross = cam._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-        lHor = cam._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+        lCross = cam._get_plotL(Lplot=Lplot, proj='cross',
+                                return_pts=True, multi=True)
+        lHor = cam._get_plotL(Lplot=Lplot, proj='hor',
+                              return_pts=True, multi=True)
         if Bck and nD == 2:
             crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                         lCross[indbck[2]],nan2,lCross[indbck[3]]]

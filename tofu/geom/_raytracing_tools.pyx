@@ -470,7 +470,7 @@ cdef inline void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
 # ==============================================================================
 cdef inline bint inter_ray_aabb_box(const int[3] sign,
                                     const double[3] inv_direction,
-                                    const double[6] bounds,
+                                    const double* bounds,
                                     const double[3] ds,
                                     const bint countin) nogil:
     """
@@ -1992,7 +1992,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     cdef array ind_inter_out = clone(array('i'), npts * 3, True)
     cdef int sz_ves_lims
     cdef double min_poly_r
-    cdef double* dist_arr
+    cdef double* dist_arr = NULL
     cdef double[:,::1] ray_orig = view.array(shape=(3,npts),
                                              itemsize=sizeof(double),
                                              format="d")

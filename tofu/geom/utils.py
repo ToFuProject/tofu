@@ -1,30 +1,22 @@
 
-# Built-in
+# Standard
 import sys
 import os
 import warnings
-if sys.version[0] == '3':
-    import inspect
-else:
-    # Python 2 back-porting
-    import funcsigs as inspect
+import inspect
 
-# Common
+# Third-party
 import numpy as np
 
-# tofu
-try:
-    import tofu.geom._core as _core
-except Exception:
-    from . import _core
-
-
+# Local
+from . import _core
+from . import _def_config
 
 
 __all__ = ['coords_transform',
            'get_nIne1e2', 'get_X12fromflat',
            'compute_RaysCones',
-           'create_config',
+           'get_available_config', 'create_config',
            'create_CamLOS1D', 'create_CamLOS2D']
 
 
@@ -34,9 +26,11 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_here = os.path.abspath(__file__)
-_root = _here[:_here.rfind('/tofu')]
-_path_testcases = os.path.join(_root,'tofu/geom/inputs')
+_path_testcases = os.path.join(os.path.dirname(__file__), 'inputs')
+
+_URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
+             + 'tuto_plot_create_geometry.html')
+
 
 ###########################################################
 #       COCOS
@@ -241,8 +235,8 @@ def compute_RaysCones(Ds, us, angs=np.pi/90., nP=40):
 ###########################################################
 
 
-def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
-                    divlow=True, divup=True, nP=200):
+def _compute_VesPoly(R=None, r=None, elong=None, Dshape=None,
+                     divlow=None, divup=None, nP=None):
     """ Utility to compute three 2D (R,Z) polygons
 
     One represents a vacuum vessel, one an outer bumper, one a baffle
@@ -257,20 +251,27 @@ def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
 
     Parameters
     ----------
-    R:          int / float
+    R:          None / int / float
         Major radius used as a center of the vessel
-    r :         int / float
+        If None, defaults to 2.4
+    r :         None / int / float
         Minor radius of the vessel
-    elong:      int / float
+        If None, defaults to 1.
+    elong:      None / int / float
         Dimensionless elongation parameter in [-1;1]
-    Dshape:     int / float
+        If None, defaults to 0.
+    Dshape:     None / int / float
         Dimensionless parameter for the D-shape (in-out asymmetry) in [0;1]
-    divlow:     bool
+        If None, defaults to 0.
+    divlow:     None / bool
         Flag indicating whether to incude a lower divertor-like shape
-    divup:      bool
+        If None, defaults to True
+    divup:      None / bool
         Flag indicating whether to incude an upper divertor-like shape
-    nP :        int
+        If None, defaults to True
+    nP :        None / int
         Parameter specifying approximately the number of points of the vessel
+        If None, defaults to 200
 
     Return
     ------
@@ -281,6 +282,22 @@ def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     pbaffle:    np.ndarray
         Closed (2,N) polygon defining the lower baffle
     """
+
+    # Check inputs
+    if R is None:
+        R = 2.4
+    if r is None:
+        r = 1.
+    if elong is None:
+        elong = 0.
+    if Dshape is None:
+        Dshape = 0.
+    if divlow is None:
+        divlow = True
+    if divup is None:
+        divup = True
+    if nP is None:
+        nP = 200
 
     # Basics (center, theta, unit vectors)
     cent = np.r_[R,0.]
@@ -616,84 +633,237 @@ _comdoc2 = _comdoc.format('2','/ list',
 _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 
 
-
-###########################################################
+# #############################################################################
+# #############################################################################
 #       Fast creation of config
-###########################################################
+# #############################################################################
 
-_ExpWest = 'WEST'
 
-_dconfig = {'A1': {'Exp':_ExpWest,
-                   'Ves': ['V1']},
-            'A2': {'Exp':'ITER',
-                   'Ves': ['V0']},
-            'A3': {'Exp':_ExpWest,
-                   'PlasmaDomain': ['Sep']},
-            'B1': {'Exp':_ExpWest,
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'B2': {'Exp':_ExpWest,
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
-                           'BumperInnerV1', 'BumperOuterV1',
-                           'IC1V1', 'IC2V1', 'IC3V1']},
-            'B3': {'Exp':_ExpWest,
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                           'BumperInnerV3', 'BumperOuterV3',
-                           'IC1V1', 'IC2V1', 'IC3V1',
-                           'LH1V1', 'LH2V1',
-                           'RippleV1', 'VDEV0']}}
+def _get_listconfig(
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=str
+):
+    """ Hidden function generating the config names table as a str or dict """
 
-def _create_config_testcase(config='A1', out='object',
-                            path=_path_testcases, dconfig=_dconfig):
-    """ Load the desired test case configuration
+    # Check inputs
+    if dconfig is None:
+        dconfig = _def_config._DCONFIG
+    if dconfig_shortcuts is None:
+        dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
+    assert returnas in [dict, str]
 
-    Choose from one of the reference preset configurations:
-        {0}
+    # Get dict of configs
+    dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_shortcuts.items()
+                             if v1 == k0])
+          for k0 in sorted(dconfig.keys())}
 
-    """.format('['+', '.join(dconfig.keys())+']')
-    assert all([type(ss) is str for ss in [config,path]])
-    assert type(dconfig) is dict
-    if not config in dconfig.keys():
-        msg = "Please a valid config, from one of the following:\n"
-        msg += "["+", ".join(dconfig.keys())+"+]"
+    # Return
+    if returnas is dict:
+        return dc
+    else:
+        l0 = np.max([len(k0) for k0 in dc.keys()] + [len('unique names')])
+        l1 = np.max([len(str(v0)) for v0 in dc.values()] + [len('shortcuts')])
+        msg = ("\n\t" + "unique names".ljust(l0) + "\tshortcuts"
+               + "\n\t" + "-"*l0 + " \t" + "-"*l1
+               + "\n\t- "
+               + "\n\t- ".join(["{}\t{}".format(k0.ljust(l0), v0)
+                                for k0, v0 in dc.items()]))
+        return msg
+
+
+def get_available_config(
+    dconfig=None,
+    dconfig_shortcuts=None,
+    verb=True,
+    returnas=False,
+):
+    """ Print a table showing all pre-defined config
+
+    Each pre-defined config in tofu can be called by its unique name or
+    by a series of shortcuts / alterantive names refereing to the same unique
+    name. this feature is useful for retro-compatibility and for making sure a
+    standard name always refers to the latest (most detailed) available version
+    of the geometry.
+
+    Can also return the table as str
+
+    No input arg needed:
+        >>> import tofu as tf
+        >>> tf.geom.utils.get_available_config()
+
+    """
+    msg = (
+        "A config is the geometry of a tokamak\n"
+        + "You can define your own"
+        + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
+        + "tofu also also provides some pre-defined config ready to load\n"
+        + "They are available via their name or via shortcuts\n"
+        + _get_listconfig(dconfig=dconfig,
+                          dconfig_shortcuts=dconfig_shortcuts)
+        + "\n\n  => to get a pre-defined config, call for example:\n"
+        + "\tconfig = tf.geom.utils.create_config('ITER')\n"
+        + "\n => to also load coils add '-coils' to the config name, e.g.:\n"
+        + "\tconfig = tf.geom.utils.create_config('ITER-coils')"
+    )
+    if verb is True:
+        print(msg)
+    if returnas in [None, True, str]:
+        return msg
+
+
+def _create_config_testcase_check_inputs(
+    config=None,
+    path=None,
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=None,
+):
+    # config
+    if config is None:
+        config = _def_config._DEFCONFIG
+    if not isinstance(config, str):
+        msg = ("Arg config must be a str!\n"
+               + "\tProvided: {}".format(config))
+        raise Exception(msg)
+
+    # path
+    if path is None:
+        path = _path_testcases
+    if not isinstance(path, str) or not os.path.isdir(path):
+        msg = ("Arg path must be a valid path!\n"
+               + "\tProvided: {}".format(path))
         raise Exception(msg)
     path = os.path.abspath(path)
 
-    # Get file names for config
+    # dconfig
+    if dconfig is None:
+        dconfig = _def_config._DCONFIG
+    if not isinstance(dconfig, dict):
+        msg = ("Arg dconfig must be a dict!\n"
+               + "\tProvided: {}".format(dconfig))
+        raise Exception(msg)
+
+    # dconfig_shortcuts
+    if dconfig_shortcuts is None:
+        dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
+    if not isinstance(dconfig_shortcuts, dict):
+        msg = ("Arg dconfig_shortcuts must be a dict!\n"
+               + "\tProvided: {}".format(dconfig_shortcuts))
+        raise Exception(msg)
+
+    # return
+    if returnas is None:
+        returnas = object
+    if returnas not in [object, dict]:
+        msg = ("Arg returnas must be either object or dict!\n"
+               + "\t-Provided: {}".format(returnas))
+        raise Exception(msg)
+    return config, path, dconfig, dconfig_shortcuts, returnas
+
+
+def _create_config_testcase(
+    config=None,
+    path=None,
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=None,
+):
+    """ Load the desired test case configuration
+
+    Choose from one of the reference preset configurations (from dconfig)
+
+    """
+
+    # -----------
+    # Check input
+    (config, path, dconfig,
+     dconfig_shortcuts, returnas) = _create_config_testcase_check_inputs(
+        config=config,
+        path=path,
+        dconfig=dconfig,
+        dconfig_shortcuts=dconfig_shortcuts,
+        returnas=returnas,
+     )
+
+    # --------------------------
+    # Check config is available
+    coils = 'coils' in config
+    if coils is True:
+        config = config.replace('-coils', '')
+    if config in dconfig.keys():
+        pass
+
+    elif config in dconfig_shortcuts.keys():
+        # Get corresponding config
+        config = dconfig_shortcuts[config]
+
+    else:
+        msg = ("\nThe provided config name is not valid.\n"
+               + get_available_config(verb=False, returnas=str)
+               + "\n\n  => you provided: {}\n".format(config))
+        raise Exception(msg)
+
+    # -------------------------
+    # Get file and build config
+
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
-    lcls = sorted([k for k in dconfig[config].keys() if k!= 'Exp'])
+    # include / exclude coils
+    if coils is True:
+        lcls = sorted([kk for kk in dconfig[config].keys() if kk != 'Exp'])
+    else:
+        lcls = sorted([
+            kk for kk in dconfig[config].keys()
+            if kk != 'Exp' and 'Coil' not in kk
+        ])
+
     Exp = dconfig[config]['Exp']
     for cc in lcls:
         for ss in dconfig[config][cc]:
             ff = [f for f in lf
-                  if all([s in f for s in [cc,Exp,ss]])]
-            if not len(ff) == 1:
-                msg = "No / several matching files\n"
+                  if all([s in f for s in [cc, Exp, ss]])]
+            if len(ff) == 0:
+                msg = "No matching files\n"
                 msg += "  Folder: %s\n"%path
                 msg += "    Criteria: [%s, %s]\n"%(cc,ss)
                 msg += "    Matching: "+"\n              ".join(ff)
                 raise Exception(msg)
-            pfe = os.path.join(path,ff[0])
-            obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
-                                             Exp=dconfig[config]['Exp'],
-                                             out=out)
-            if out not in ['object',object]:
-                obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
-            lS.append(obj)
-    if out == 'dict':
+            elif len(ff) > 1:
+                # More demanding criterion
+                ssbis, Expbis = '_'+ss+'.txt', '_Exp'+Exp+'_'
+                ff = [fff for fff in ff if ssbis in fff and Expbis in fff]
+                if len(ff) != 1:
+                    msg = ("No / several matching files\n"
+                           + "  Folder: {}\n".format(path)
+                           + "    Criteria: [{}, {}]\n".format(cc, ss)
+                           + "    Matching: "+"\n              ".join(ff))
+                    raise Exception(msg)
+
+            pfe = os.path.join(path, ff[0])
+            try:
+                obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
+                                                 Exp=dconfig[config]['Exp'],
+                                                 out=returnas)
+                if returnas not in ['object', object]:
+                    obj = ((ss, {'Poly': obj[0],
+                                 'pos': obj[1], 'extent': obj[2]}),)
+                lS.append(obj)
+            except Exception as err:
+                msg = "Could not be loaded: {}".format(ff[0])
+                warnings.warn(msg)
+    if returnas == 'dict':
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
     return conf
 
+
 def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
-                  R=2.4, r=1., elong=0., Dshape=0.,
-                  divlow=True, divup=True, nP=200,
-                  out='object', SavePath='./'):
+                  R=None, r=None, elong=None, Dshape=None,
+                  divlow=None, divup=None, nP=None,
+                  returnas=None, SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -747,13 +917,30 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
             - a dictionary of the polygons and their pos/extent (if any)
     """
 
-    if case is not None:
-        conf = _create_config_testcase(config=case, out=out)
-    else:
-        poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
-                                                divlow=divlow, divup=divup, nP=nP)
+    lp = [R, r, elong, Dshape, divlow, divup, nP]
+    lpstr = '[R, r, elong, Dshape, divlow, divup, nP]'
+    lc = [case is not None,
+          any([pp is not None for pp in lp])]
+    if np.sum(lc) > 1:
+        msg = ("Please provide either:\n"
+               + "\t- case: the name of a pre-defined config\n"
+               + "\t- geometrical parameters {}\n\n".format(lpstr))
+        raise Exception(msg)
+    elif not any(lc):
+        msg = get_available_config(verb=False, returnas=str)
+        raise Exception(msg)
 
-        if out=='dict':
+    # Get config, either from known case or geometrical parameterization
+    if case is not None:
+        conf = _create_config_testcase(config=case,
+                                       returnas=returnas, path=path)
+    else:
+        poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r,
+                                                elong=elong, Dshape=Dshape,
+                                                divlow=divlow, divup=divup,
+                                                nP=nP)
+
+        if returnas == 'dict':
             conf = {'Ves':{'Poly':poly},
                     'Baffle':{'Poly':pbaffle},
                     'Bumper':{'Poly':pbump,
