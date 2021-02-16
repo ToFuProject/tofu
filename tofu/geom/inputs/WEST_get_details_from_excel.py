@@ -341,7 +341,7 @@ def get_all(
     out = pd.read_excel(pfe, sheet_name='Main', header=[0, 1])
 
     # Add split LFS thermal shield
-    dnames.update( get_PEI_LFS(
+    dnames.update(get_PEI_LFS(
         np.array([
             out['IVPP LFS\n//IVPP_LFS//']['R (m)'],
             out['IVPP LFS\n//IVPP_LFS//']['Z (m)'],
