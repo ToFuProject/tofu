@@ -2545,11 +2545,14 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out)
 
 
+# =============================================================================
+# = Tools to know if one or multiple points are visible from other points
+# =============================================================================
 def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     np.ndarray[double, ndim=2,mode='c'] pts2,
                                     double[:, ::1] ves_poly=None,
                                     double[:, ::1] ves_norm=None,
-                                    double[::1] k=None,
+                                    double[:, ::1] k=None,
                                     double[:, ::1] ray_orig=None,
                                     double[:, ::1] ray_vdir=None,
                                     double[::1] ves_lims=None,
