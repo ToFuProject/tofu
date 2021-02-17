@@ -94,22 +94,44 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
     dref can be:
         - dict
     """
+
     # Check conformity
-    lk_opt = ['ldata', 'size', 'group']
+    ngroup = len(dgroup0)
+    if ngroup == 1:
+        groupref = list(dgroup0.keys())[0]
+
+    # Basis
+    # lk_opt = ['ldata', 'size', 'group', 'data']
     c0 = (
         isinstance(dref, dict)
         and all([
             isinstance(k0, str)
             and k0 not in dref0.keys()
+            for k0, v0 in dref.items()
+        ])
+    )
+
+    # Case {ref0: {'group': g0, 'data': d0, ...}, ...}
+    c00 = (
+        c0
+        and ngroup > 1
+        and all([
             and isinstance(v0, dict)
             and all([
                 isinstance(k1, str)
-                k1 in lk_opt
                 for k1, v1 in v0.items()
             ])
             for k0, v0 in dref.items()
         ])
     )
+
+    # Case {ref0: data0, ...}
+    c01 = (
+        c0
+        and ngroup == 1
+        and all([isinstance(v0, np.ndarray) for k0, v0 in dref.items()])
+    )
+
     if len(dgroup0) == 1:
         groupref = list(dgroup0.keys())[0]
         for k0, v0 in dref.items():
@@ -118,9 +140,9 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
     elif len(dgroup0) > 1:
         c0 = c0 and all(['group' in v0.keys() for v0 in dref.values()])
 
-    c0 = c0 and all([v0['group'] in dgroup0.keys() for v0 in self.values()])
+    # c0 = c0 and all([v0['group'] in dgroup0.keys() for v0 in self.values()])
 
-    if not c0:
+    if not (c00 or c01):
         msg = (
             """
             Arg dref must be a dict of the form:
@@ -129,6 +151,14 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
                 'ref1': {'group': str, 'size': int, 'ldata': list},
                 ...
                 'refn': {'group': str, 'size': int, 'ldata': list},
+            }
+
+            or of the form (only if len(dgroup) == 1):
+            {
+                'ref0': data0,
+                'ref1': data1,
+                ...
+                'refn': datan,
             }
 
             Where:
@@ -141,7 +171,39 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
         raise Exception(msg)
 
 
-    # TBF
+    # Convert if necessary
+    if c01:
+        dref = {
+            k0: {'data': v0} for k0, v0 in dref.items()
+        }
+
+    # Add missing groups
+    lgroups = [v0['group'] for v0 in dref.values()
+               if 'group' in v0.keys() and v0['group'] not in dgroup0.keys()]
+    if len(lgroups) > 0:
+        dgroup0.update(_check_dgroup(lgroups, dgroup0=dgroup0))
+
+    # Check groups
+    for k0, v0 in dref.items():
+        if 'group' not in v0.keys():
+            if ngroup == 1:
+                dref[k0]['group'] = groupref
+            else:
+                msg = ("")
+        else:
+            if v0['group'] not in dgroup0.keys():
+                msg = ("")
+                raise Exception(msg)
+
+    # Add data if relevant   TBF
+    for k0, v0 in dref.items():
+        if 'data' in v0.keys():
+            pass
+
+
+    return dref, dgroup0
+
+    # Back-up
 
     # Options:
     #   (A)  - {'group0': {'t0': {'data': t0, 'units': 's'}, 't1':...}}
@@ -149,75 +211,8 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
     #   (C)  - {'t0': {'data': t0, 'units': 's'}, 't1':...}
     #   (D)  - {'t0': t0, 't1': t1, ...}
 
-    cA = all([all([(isinstance(v1, dict) and 'group' not in v1.keys())
-                   or not isinstance(v1, dict)
-                   for v1 in v0.values()])
-              and 'group' not in v0.keys() for v0 in dref.values()])
-    cB = all([isinstance(v0, dict) and isinstance(v0.get('group', None), str)
-              for v0 in dref.values()])
-    cC = (not cA and self._forced_group is not None
-          and all([isinstance(v0, dict) and 'group' not in v0.keys()
-                   for v0 in dref.values()]))
-    cD = (self._forced_group is not None
-          and all([not isinstance(v0, dict) for v0 in dref.values()]))
-    assert np.sum([cA, cB, cC, cD]) <= 1
-    if not (cA or cB or cC or cD):
-        msg = "Provided dref must formatted either as a dict with:\n\n"
-        msg += "    - keys = group, values = {ref: data}:\n"
-        msg += "        {'time':{'t0':{'data':t0, 'units':'s'},\n"
-        msg += "                 't1':{'data':t1, 'units':'h'}},\n"
-        msg += "         'dist':{'x0':{'data':x0, 'units':'m'}}}\n\n"
-        msg += "    - keys = ref, values = {data, group, ...}:\n"
-        msg += "        {'t0':{'data':t0, 'units':'s', 'group':'time'},\n"
-        msg += "         't1':{'data':t1, 'units':'h', 'group':'time'},\n"
-        msg += "         'x0':{'data':x0, 'units':'m', 'group':'dist'}\n\n"
-        msg += "    If self._forced_group is not None, 2 more options:\n"
-        msg += "    - keys = ref, values = {data, ...}:\n"
-        msg += "        {'t0':{'data':t0, 'units':'s'},\n"
-        msg += "         't1':{'data':t1, 'units':'h'},\n"
-        msg += "         'x0':{'data':x0, 'units':'m'}\n"
-        msg += "    - keys = ref, values = data:\n"
-        msg += "        {'t0':t0,\n"
-        msg += "         't1':t1,\n"
-        msg += "         'x0':x0}\n"
-        raise Exception(msg)
-
-    if cA:
-        # Convert to cB
-        drbis = {}
-        for k0, v0 in dref.items():
-            for k1, v1 in v0.items():
-                if isinstance(v1, dict):
-                    drbis[k1] = v1
-                    drbis['group'] = k0
-                else:
-                    drbis[k1] = {'data': v1, 'group': k0}
-        dref = drbis
-
-    # Check cC and cD and convert to cB
-    if cC:
-        # Convert to cB
-        for k0 in dref.keys():
-            dref[k0]['group'] = self._forced_group
-    elif cD:
-        # Convert to cB
-        for k0, v0 in dref.items():
-            dref[k0] = {'data': v0, 'group': self._forced_group}
-
-
     # Check cB = normal case
     for kk, vv in dref.items():
-
-        # Check if new group
-        if vv['group'] not in self._dgroup['lkey']:
-            self._dgroup['dict'][vv['group']] = {}
-            self._dgroup['lkey'].append(vv['group'])
-
-        # Check key unicity
-        if kk in self._ddata['lkey']:
-            msg = "key '%s' already used !\n"%kk
-            msg += "  => each key must be unique !"
-            raise Exception(msg)
 
         # Check data
         c0 = 'data' in vv.keys()
