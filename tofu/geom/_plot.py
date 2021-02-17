@@ -644,7 +644,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
     if ax is None:
         ax = _def.Plot_Impact_DefAxes('3D', fs=fs, wintit=wintit)
     handles, labels = ax.get_legend_handles_labels()
-    if isinstance(T,Ves):
+    if T.Id.Cls == "Ves":
         Leg = T.Id.NameLTX
         Theta, pP, pN = T._Imp_EnvTheta, T._Imp_EnvMinMax[0,:], T._Imp_EnvMinMax[1,:]
     else:
@@ -788,18 +788,13 @@ def _LOS_calc_InOutPolProj_Debug(config, Ds, us ,PIns, POuts,
     msg = '_LOS_calc_InOutPolProj - Debugging %s / %s pts'%(str(nP),str(nptstot))
     ax.set_title(msg)
     ax.plot(pts[0,:], pts[1,:], pts[2,:], c='k', lw=1, ls='-')
-    ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
-    ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
-    #ax.legend(**_def.TorLegd)
+    # ax.plot(PIns[0,:],PIns[1,:],PIns[2,:],
+    #         c='b', ls='None', marker='o', label=r"PIn")
+    # ax.plot(POuts[0,:],POuts[1,:],POuts[2,:],
+    #         c='r', ls='None', marker='x', label=r"POut")
+    # ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
-
-    msg = "\nDebugging %s / %s pts with no visibility:\n"%(str(nP),str(nptstot))
-    msg += "    D = %s\n"%str(Ds)
-    msg += "    u = %s\n"%str(us)
-    msg += "    PIn = %s\n"%str(PIns)
-    msg += "    POut = %s\n"%str(POuts)
-    print(msg)
 
 
 def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,
@@ -1258,7 +1253,7 @@ def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
 
 
 def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
-                    invert=None, Bck=True, cbck=_cbck, Lplot='In',
+                    invert=None, Bck=True, cbck=_cbck, Lplot=None,
                     incch=[1,10], ms=4, cmap='touch', vmin=None, vmax=None,
                     fmt_ch='02.0f', labelpad=_labelpad, dmargin=None,
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
@@ -1377,7 +1372,7 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
 
 
 def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
-                      Bck=True, lcch=_lcch, cbck=_cbck, Lplot='In',
+                      Bck=True, lcch=_lcch, cbck=_cbck, Lplot=None,
                       incch=[1,5], ms=4, plotmethod='imshow',
                       cmap=None, vmin=None, vmax=None,
                       fmt_ch='01.0f', invert=True, Dlab=None,
@@ -1466,7 +1461,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         if cmap == 'touch':
             cols = cam.get_touch_colors(dElt=dElt)
         else:
-            cols = np.tile(mpl.colors.to_rgba(cmap), (self.nRays,1)).T
+            cols = np.tile(mpl.colors.to_rgba(cmap), (cam.nRays, 1)).T
         cols[-1,:] = 1.-norm(data)
         cols = np.swapaxes(cols[:,indr.T], 0,2)
 

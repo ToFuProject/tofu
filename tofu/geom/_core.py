@@ -48,11 +48,18 @@ __all__ = [
 _arrayorder = "C"
 _Clock = False
 _Type = "Tor"
+
+# rotate / translate instance
+_UPDATE_EXTENT = True
+_RETURN_COPY = False
+
+# Parallelization
 _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
 _DREFLECT = {"specular": 0, "diffusive": 1, "ccube": 2}
+
 
 """
 ###############################################################################
@@ -201,13 +208,33 @@ class Struct(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, Poly=None, Type=None,
-                 Lim=None, pos=None, extent=None, mobile=False,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 sep=None, SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
+    def __init__(
+        self,
+        Poly=None,
+        Type=None,
+        Lim=None,
+        pos=None,
+        extent=None,
+        Id=None,
+        Name=None,
+        Exp=None,
+        shot=None,
+        sino_RefPt=None,
+        sino_nP=_def.TorNP,
+        Clock=False,
+        arrayorder='C',
+        fromdict=None,
+        sep=None,
+        SavePath=os.path.abspath('./'),
+        SavePath_Include=tfpf.defInclude,
+        color=None,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+    ):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -281,7 +308,6 @@ class Struct(utils.ToFuObject):
             "Lim",
             "pos",
             "extent",
-            "mobile",
             "Clock",
             "arrayorder",
         ]
@@ -302,7 +328,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dreflect():
-        largs = ["Types", "coefs"]
+        largs = ["Types", "coefs_reflect"]
         return largs
 
     @staticmethod
@@ -406,7 +432,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Type=None,
         Clock=False,
         arrayorder=None,
@@ -424,7 +449,6 @@ class Struct(utils.ToFuObject):
                 "inshape": 2,
             },
             "Clock": {"var": Clock, "cls": bool},
-            "mobile": {"var": mobile, "cls": bool},
             "arrayorder": {"var": arrayorder, "in": ["C", "F"]},
             "Type": {"var": Type, "in": ["Tor", "Lin"]},
         }
@@ -436,19 +460,23 @@ class Struct(utils.ToFuObject):
             Poly = Poly.T
 
         # Elimininate any double identical point
-        ind = np.sum(np.diff(Poly, axis=1) ** 2, axis=0) < 1.0e-12
+        ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
+                             axis=1) ** 2, axis=0) < 1.0e-12
         if np.any(ind):
             npts = Poly.shape[1]
+            Poly = Poly[:, ~ind]
             msg = (
                 "%s instance: double identical points in Poly\n" % cls.__name__
             )
             msg += "  => %s points removed\n" % ind.sum()
             msg += "  => Poly goes from %s to %s points" % (
                 npts,
-                npts - ind.sum(),
+                Poly.shape[1],
             )
             warnings.warn(msg)
-            Poly = Poly[:, ~ind]
+            ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
+                                 axis=1) ** 2, axis=0) < 1.0e-12
+            assert not np.any(ind), ind
 
         lC = [Lim is None, pos is None]
         if not any(lC):
@@ -491,7 +519,7 @@ class Struct(utils.ToFuObject):
             lSymbols = np.asarray(lSymbols, dtype=str)
         return lSymbols
 
-    def _checkformat_inputs_dreflect(self, Types=None, coefs=None):
+    def _checkformat_inputs_dreflect(self, Types=None, coefs_reflect=None):
         if Types is None:
             Types = self._ddef["dreflect"]["Type"]
 
@@ -509,15 +537,15 @@ class Struct(utils.ToFuObject):
                            for vv in self._DREFLECT_DTYPES.values()])
             assert np.all(np.any(lc, axis=0))
 
-        assert coefs is None
-        return Types, coefs
+        assert coefs_reflect is None
+        return Types, coefs_reflect
 
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
             color = mpl.colors.to_rgba(cls._ddef["dmisc"]["color"])
         assert mpl.colors.is_color_like(color)
-        return tuple(mpl.colors.to_rgba(color))
+        return tuple(np.array(mpl.colors.to_rgba(color), dtype=float))
 
     ###########
     # Get keys of dictionnaries
@@ -544,11 +572,13 @@ class Struct(utils.ToFuObject):
             "VolAng",
             "Vect",
             "VIn",
-            "mobile",
             "circ-C",
             "circ-r",
             "Clock",
             "arrayorder",
+            "move",
+            "move_param",
+            "move_kwdargs",
         ]
         return lk
 
@@ -564,7 +594,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dreflect():
-        lk = ["Types", "coefs"]
+        lk = ["Types", "coefs_reflect"]
         return lk
 
     @staticmethod
@@ -583,7 +613,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Clock=_Clock,
         arrayorder=_arrayorder,
         sino_RefPt=None,
@@ -616,7 +645,6 @@ class Struct(utils.ToFuObject):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Clock=False,
         arrayorder="C",
         sino_RefPt=None,
@@ -628,7 +656,6 @@ class Struct(utils.ToFuObject):
             Lim=Lim,
             pos=pos,
             extent=extent,
-            mobile=mobile,
             Type=self.Id.Type,
             Clock=Clock,
         )
@@ -642,8 +669,7 @@ class Struct(utils.ToFuObject):
             Clock=Clock,
         )
         dgeom["arrayorder"] = arrayorder
-        dgeom["mobile"] = mobile
-        self._dgeom = dgeom
+        self._dgeom.update(dgeom)
         if sino:
             self.set_dsino(sino_RefPt, nP=sino_nP)
 
@@ -663,12 +689,12 @@ class Struct(utils.ToFuObject):
         lSymbols = self._checkformat_inputs_dphys(lSymbols)
         self._dphys["lSymbols"] = lSymbols
 
-    def set_dreflect(self, Types=None, coefs=None):
-        Types, coefs = self._checkformat_inputs_dreflect(
-            Types=Types, coefs=coefs
+    def set_dreflect(self, Types=None, coefs_reflect=None):
+        Types, coefs_reflect = self._checkformat_inputs_dreflect(
+            Types=Types, coefs_reflect=coefs_reflect
         )
         self._dreflect["Types"] = Types
-        self._dreflect["coefs"] = coefs
+        self._dreflect["coefs_reflect"] = coefs_reflect
 
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
@@ -685,7 +711,9 @@ class Struct(utils.ToFuObject):
     ###########
 
     def _strip_dgeom(
-        self, lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder"]
+        self,
+        lkeep=["Poly", "pos", "extent", "Clock", "arrayorder",
+               "move", "move_param", "move_kwdargs"]
     ):
         utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -695,7 +723,7 @@ class Struct(utils.ToFuObject):
     def _strip_dphys(self, lkeep=["lSymbols"]):
         utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
 
-    def _strip_dreflect(self, lkeep=["Types", "coefs"]):
+    def _strip_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         utils.ToFuObject._strip_dict(self._dreflect, lkeep=lkeep)
 
     def _strip_dmisc(self, lkeep=["color"]):
@@ -706,7 +734,8 @@ class Struct(utils.ToFuObject):
     ###########
 
     def _rebuild_dgeom(
-        self, lkeep=["Poly", "pos", "extent", "mobile", "Clock", "arrayorder"]
+        self,
+        lkeep=["Poly", "pos", "extent", "Clock", "arrayorder"]
     ):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
@@ -738,14 +767,15 @@ class Struct(utils.ToFuObject):
             )
             self.set_dphys(lSymbols=self.dphys["lSymbols"])
 
-    def _rebuild_dreflect(self, lkeep=["Types", "coefs"]):
+    def _rebuild_dreflect(self, lkeep=["Types", "coefs_reflect"]):
         reset = utils.ToFuObject._test_Rebuild(self._dreflect, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(
                 self._dreflect, lkeep=lkeep, dname="dreflect"
             )
             self.set_dreflect(
-                Types=self.dreflect["Types"], coefs=self.dreflect["coefs"]
+                Types=self.dreflect["Types"],
+                coefs_reflect=self.dreflect["coefs_reflect"]
             )
 
     def _rebuild_dmisc(self, lkeep=["color"]):
@@ -904,8 +934,6 @@ class Struct(utils.ToFuObject):
             "SaveName",
             "nP",
             "noccur",
-            "mobile",
-            "color",
         ]
         ar0 = [
             self._Id.Cls,
@@ -913,8 +941,17 @@ class Struct(utils.ToFuObject):
             self._Id.SaveName,
             str(self._dgeom["nP"]),
             str(self._dgeom["noccur"]),
-            str(self._dgeom["mobile"]),
-            str(self._dmisc["color"])]
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
 
         return self._get_summary(
             [ar0],
@@ -927,7 +964,124 @@ class Struct(utils.ToFuObject):
         )
 
     ###########
-    # public methods
+    # public methods for movement
+    ###########
+
+    def _update_or_copy(self, poly,
+                        pos=None,
+                        update_extent=None,
+                        return_copy=None, name=None):
+        if update_extent is None:
+            update_extent = _UPDATE_EXTENT
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        extent = self.extent
+        if update_extent is True:
+            if extent is not None:
+                ratio = np.nanmin(poly[0, :]) / np.nanmin(self.Poly[0, :])
+                extent = extent*ratio
+        if pos is None:
+            pos = self.pos
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            return self.__class__(Poly=poly,
+                                  extent=extent, pos=pos,
+                                  sino_RefPt=self._dsino['RefPt'],
+                                  sino_nP=self._dsino['nP'],
+                                  color=self._dmisc['color'],
+                                  Exp=self.Id.Exp,
+                                  Name=name,
+                                  shot=self.Id.shot,
+                                  SavePath=self.Id.SavePath,
+                                  Type=self.Id.Type)
+        else:
+            self._set_dgeom(poly, pos=pos, extent=extent,
+                            sino_RefPt=self._dsino['RefPt'],
+                            sino_nP=self._dsino['nP'])
+
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   update_extent=None,
+                                   return_copy=None, name=None):
+        """ Translate the structure in the poloidal plane """
+        poly = self._translate_pts_poloidal_plane_2D(
+            pts_rz=self.Poly,
+            direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(poly, update_extent=update_extent,
+                                    return_copy=return_copy, name=name)
+
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                update_extent=True,
+                                return_copy=None, name=None):
+        """ Rotate the structure in the poloidal plane """
+        poly = self._rotate_pts_vectors_in_poloidal_plane_2D(
+            pts_rz=self.Poly,
+            axis_rz=axis_rz, angle=angle)
+        return self._update_or_copy(poly, update_extent=update_extent,
+                                    return_copy=return_copy, name=name)
+
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None, name=None):
+        """ Rotate the structure in the poloidal plane """
+        if self.Id.Type != 'Tor':
+            msg = "Movement only available for Tor configurations!"
+            raise Exception(msg)
+        pos = self.pos
+        if pos is not None:
+            pos = pos + angle
+        return self._update_or_copy(self.Poly, pos=pos,
+                                    update_extent=False,
+                                    return_copy=return_copy, name=name)
+
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
+
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
+
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
+        """
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
+
+    ###########
+    # Other public methods
     ###########
 
     def set_color(self, col):
@@ -935,27 +1089,6 @@ class Struct(utils.ToFuObject):
 
     def get_color(self):
         return self._dmisc["color"]
-
-    def move(self):
-        """ To be overriden at object-level after instance creation
-
-        To do so:
-            1/ create the instance:
-                >> S = tfg.Struct('test', poly, Exp='Test')
-            2/ Define a moving function f taking the instance as first argument
-                >> def f(self, Delta=1.):
-                       Polynew = self.Poly
-                       Polynew[0,:] = Polynew[0,:] + Delta
-                       self._set_geom(Polynew, Lim=self.Lim)
-            3/ Bound your custom function to the self.move() method
-               using types.MethodType() found in the types module
-                >> import types
-                >> S.move = types.MethodType(f, S)
-
-            See the following page for info and details on method-patching:
-            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
-        """
-        print(self.move.__doc__)
 
     def isInside(self, pts, In="(X,Y,Z)"):
         """ Return an array of booleans indicating whether each point lies
@@ -1064,31 +1197,41 @@ class Struct(utils.ToFuObject):
             Test=Test,
         )
 
-    def get_sampleEdge(self, res=None, DS=None, resMode="abs", offsetIn=0.0):
+    def get_sampleEdge(
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        offsetIn=0.0,
+    ):
         """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
-        Sampling can be limited to a subdomain defined by DS
+        Sampling can be limited to a domain
         """
         if res is None:
             res = _RES
-        pts, dlr, ind = _comp._Ves_get_sampleEdge(
-            self.Poly,
-            res,
-            DS=DS,
-            dLMode=resMode,
-            DIn=offsetIn,
+        return _comp._Ves_get_sampleEdge(
+            self.Poly_closed,
+            res=res,
+            domain=domain,
+            resMode=resMode,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             margin=1.0e-9,
         )
-        return pts, dlr, ind
 
     def get_sampleCross(
-        self, res=None, DS=None, resMode="abs", ind=None, mode="flat"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        mode="flat",
     ):
         """ Sample, with resolution res, the 2D cross-section
 
-        The sampling domain can be limited by DS or ind
+        The sampling domain can be limited by domain or ind
 
         Depending on the value of mode, the method returns:
             - 'flat': (tuned for integrals computing)
@@ -1111,25 +1254,24 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DS=DS, dSMode=resMode, ind=ind, margin=1.0e-9, mode=mode
+            res=res, domain=domain, resMode=resMode, ind=ind,
+            margin=1.0e-9, mode=mode
         )
-        out = _comp._Ves_get_sampleCross(*args, **kwdargs)
-        return out
+        return _comp._Ves_get_sampleCross(*args, **kwdargs)
 
     def get_sampleS(
         self,
         res=None,
-        DS=None,
-        resMode="abs",
+        domain=None,
+        resMode=None,
         ind=None,
         offsetIn=0.0,
-        Out="(X,Y,Z)",
+        returnas="(X,Y,Z)",
         Ind=None,
     ):
-        """ Sample, with resolution res, the surface defined by DS or ind
+        """ Sample, with resolution res, the surface defined by domain or ind
 
         An optionnal offset perpendicular to the surface can be used
         (offsetIn>0 => inwards)
@@ -1142,13 +1284,13 @@ class Struct(utils.ToFuObject):
                 list    : [dl,dXPhi] where:
                     dl      : res. along polygon contours (cross-section)
                     dXPhi   : res. along axis (toroidal/linear direction)
-        DS      :   None / list of 3 lists of 2 floats
+        domain :    None / list of 3 lists of 2 floats
             Limits of the domain in which the sample should be computed
                 None : whole surface of the object
-                list : [D1,D2,D3], where Di is a len()=2 list
+                list : [D1, D2, D3], where Di is a len()=2 list
                        (increasing floats, setting limits along coordinate i)
-                    [DR,DZ,DPhi]: in toroidal geometry (self.Id.Type=='Tor')
-                    [DX,DY,DZ]  : in linear geometry (self.Id.Type=='Lin')
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
         resMode  :   str
             Flag, specifies if res is absolute or relative to element sizes
                 'abs'   :   res is an absolute distance
@@ -1171,7 +1313,7 @@ class Struct(utils.ToFuObject):
             Offset distance from the actual surface of the object
             Inwards if positive
             Useful to avoid numerical errors
-        Out     :   str
+        returnas:   str
             Flag indicating the coordinate system of returned points
             e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
         Ind     :   None / iterable of ints
@@ -1195,27 +1337,98 @@ class Struct(utils.ToFuObject):
         if res is None:
             res = _RES
         kwdargs = dict(
-            DS=DS,
-            dSMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
-            DIn=offsetIn,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             VType=self.Id.Type,
             VLim=np.ascontiguousarray(self.Lim),
             nVLim=self.noccur,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
             Multi=self.dgeom["Multi"],
             Ind=Ind,
         )
-        args = [self.Poly, res]
-        pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
-        return pts, dS, ind, reseff
+        return _comp._Ves_get_sampleS(self.Poly, **kwdargs)
 
     def get_sampleV(
-        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        returnas="(X,Y,Z)",
+        algo="new",
+        num_threads=48
     ):
-        """ Sample, with resolution res, the volume defined by DV or ind """
+        """ Sample, with resolution res, the volume defined by domain or ind
+
+        The 3D volume is sampled in:
+            - the whole volume (domain=None and ind=None)
+            - a sub-domain defined by bounds on each coordinates (domain)
+            - a pre-computed subdomain stored in indices (ind)
+
+        The coordinatesd of the center of each volume elements are returned as
+        pts in choosen coordinates (returnas)
+
+        For a torus, the elementary volume is kept constant, meaning that the
+        toroidal angular step is decreased as R increases
+
+        Parameters
+        ----------
+        res     :   float / list of 3 floats
+            Desired resolution of the surfacic sample
+                float   : same resolution for all directions of the sample
+                list    : [dYR, dZ, dXPhi] where:
+                    dYR     : res. along in radial / Y direction
+                    dZ      : res. along Z direction
+                    dXPhi   : res. along axis (toroidal/linear direction)
+        domain :    None / list of 3 lists of 2 floats
+            Limits of the domain in which the sample should be computed
+                None : whole surface of the object
+                list : [D1, D2, D3], where Di is a len()=2 list
+                       (increasing floats, setting limits along coordinate i)
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
+        resMode  :   str
+            Flag, specifies if res is absolute or relative to element sizes
+                'abs'   :   res is an absolute distance
+                'rel'   :   if res=0.1, each polygon segment is divided in 10,
+                            as is the toroidal/linear length
+        ind     :   None / np.ndarray of int
+            If provided, DS is ignored and the sample points corresponding to
+            the provided indices are returned
+            Example (assuming obj is a Ves object)
+                > # We create a 5x5 cm2 sample of the whole surface
+                > pts, dS, ind, reseff = obj.get_sample(0.05)
+                > # Perform operations, save only the points indices
+                > # (save space)
+                > ...
+                > # Retrieve the points from their indices (requires same res)
+                > pts2, dS2, ind2, reseff2 = obj.get_sample(0.05, ind=ind)
+                > np.allclose(pts,pts2)
+                True
+        returnas:   str
+            Flag indicating the coordinate system of returned points
+            e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+        Ind     :   None / iterable of ints
+            Array of indices of the entities to be considered
+            (only when multiple entities, i.e.: self.nLim>1)
+
+        Returns
+        -------
+        pts     :   np.ndarray / list of np.ndarrays
+            Sample points coordinates, as a (3,N) array.
+            A list is returned if the object has multiple entities
+        dV      :   np.ndarray / list of np.ndarrays
+            The volume (in m^3) associated to each point
+        ind     :   np.ndarray / list of np.ndarrays
+            The index of each point
+        reseff  :   np.ndarray / list of np.ndarrays
+            Effective resolution in both directions after sample computation
+        """
 
         args = [
             self.Poly,
@@ -1223,19 +1436,20 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DV=DV,
-            dVMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
             VType=self.Id.Type,
             VLim=self.Lim,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
+            algo=algo,
+            num_threads=num_threads
         )
-        pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
-        return pts, dV, ind, reseff
+        return _comp._Ves_get_sampleV(*args, **kwdargs)
 
     def _get_phithetaproj(self, refpt=None):
         # Prepare ax
@@ -1678,7 +1892,6 @@ class Struct(utils.ToFuObject):
         Name=None,
         shot=None,
         Type=None,
-        mobile=False,
         color=None,
         SavePath=os.path.abspath("./"),
     ):
@@ -1751,10 +1964,13 @@ class Struct(utils.ToFuObject):
             pos, extent = None, None
 
         # Try reading Exp and Name if not provided
-        if Exp is None:
-            Exp = cls._from_txt_extract_params(pfe, "Exp")
-        if Name is None:
-            Name = cls._from_txt_extract_params(pfe, "Name")
+        lc = [ss for ss, vv in [('Exp', Exp), ('Name', Name)] if vv is None]
+        if len(lc) > 0:
+            dparam = utils.from_txt_extract_params(pfe, lc)
+            if 'Exp' in lc:
+                Exp = dparam['Exp']
+            if 'Name' in lc:
+                Name = dparam['Name']
 
         if out == "dict":
             return {"poly": poly, "pos": pos, "extent": extent}
@@ -1765,7 +1981,6 @@ class Struct(utils.ToFuObject):
                 Exp=Exp,
                 shot=shot,
                 Type=Type,
-                mobile=mobile,
                 Poly=poly,
                 pos=pos,
                 extent=extent,
@@ -1773,37 +1988,6 @@ class Struct(utils.ToFuObject):
                 color=color,
             )
             return obj
-
-    @staticmethod
-    def _from_txt_extract_params(pfe, param):
-        p, name = os.path.split(pfe)
-
-        # Try from file name
-        lk = name.split("_")
-        lind = [param in k for k in lk]
-        if np.sum(lind) > 1:
-            msg = "Several values form %s found in file name:\n"
-            msg += "    file: %s" % pfe
-            raise Exception(msg)
-        if any(lind):
-            paramstr = lk[np.nonzero(lind)[0][0]]
-            paramstr = paramstr.replace(param, "")
-            return paramstr
-
-        # try from file content
-        paramstr = None
-        lout = [param, "#", ":", "=", " ", "\n", "\t"]
-        with open(pfe) as fid:
-            while True:
-                line = fid.readline()
-                if param in line:
-                    for k in lout:
-                        line = line.replace(k, "")
-                    paramstr = line
-                    break
-                elif not line:
-                    break
-        return paramstr
 
     def save_to_imas(
         self,
@@ -1866,7 +2050,6 @@ class StructIn(Struct):
         Lim=None,
         pos=None,
         extent=None,
-        mobile=False,
         Type=None,
         Clock=False,
         arrayorder=None,
@@ -1920,10 +2103,23 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = "r"
 
-    def __init__(self, nturns=None, superconducting=None, active=None,
-                 **kwdargs):
+    def __init__(
+        self,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        **kwdargs
+    ):
         # super()
-        super(CoilPF, self).__init__(mobile=False, **kwdargs)
+        super(CoilPF, self).__init__(
+            nturns=nturns,
+            superconducting=superconducting,
+            active=active,
+            **kwdargs,
+        )
 
     def _reset(self):
         # super()
@@ -1946,18 +2142,30 @@ class CoilPF(StructOut):
 
     @classmethod
     def _checkformat_inputs_dmag(
-        cls, nturns=None, superconducting=None, active=None
+        cls,
+        nturns=None,
+        superconducting=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        active=None,
     ):
         dins = {
-            "nturn": {"var": nturns, "NoneOrIntPos": None},
+            "nturns": {"var": nturns, "NoneOrFloatPos": None},
             "superconducting": {"var": superconducting, "NoneOrCls": bool},
             "active": {"var": active, "NoneOrCls": bool},
+            "temperature_nominal": {"var": temperature_nominal,
+                                    "NoneOrFloatPos": None},
+            "mag_field_max": {"var": mag_field_max,
+                              "NoneOrFloatPos": None},
+            "current_lim_max": {"var": current_lim_max,
+                                "NoneOrFloatPos": None},
         }
         dins, err, msg = cls._check_InputsGeneric(dins, tab=0)
         if err:
             raise Exception(msg)
-        nturn = dins["nturn"]["var"]
-        return nturn
+        return [dins[dd]['var']
+                for dd in ['nturns', 'superconducting', 'active']]
 
     ###########
     # Get keys of dictionnaries
@@ -1983,14 +2191,14 @@ class CoilPF(StructOut):
     ###########
 
     def set_dmag(self, superconducting=None, nturns=None, active=None):
-        nturns = self._checkformat_inputs_dmag(
+        out = self._checkformat_inputs_dmag(
             nturns=nturns, active=active, superconducting=superconducting
         )
         self._dmag.update(
             {
-                "superconducting": superconducting,
-                "nturns": nturns,
-                "active": active,
+                "nturns": out[0],
+                "superconducting": out[1],
+                "active": out[2],
             }
         )
 
@@ -2066,6 +2274,60 @@ class CoilPF(StructOut):
     ###########
     # public methods
     ###########
+
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build detailed view
+        col0 = [
+            "class",
+            "Name",
+            "SaveName",
+            "nP",
+            "noccur",
+            "nturns",
+            "active",
+            "superconducting",
+        ]
+        ar0 = [
+            self._Id.Cls,
+            self._Id.Name,
+            self._Id.SaveName,
+            str(self._dgeom["nP"]),
+            str(self._dgeom["noccur"]),
+            str(self._dmag['nturns']),
+            str(self._dmag['active']),
+            str(self._dmag['superconducting']),
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
+
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
@@ -2198,43 +2460,54 @@ class Config(utils.ToFuObject):
     ###########
 
     def _checkformat_inputs_Struct(self, struct, err=True):
-        assert issubclass(struct.__class__, Struct)
-        C0 = struct.Id.Exp==self.Id.Exp
-        C1 = struct.Id.Type==self.Id.Type
-        C2 = struct.Id.Name.isidentifier()
-        C2 = C2 and '_' not in struct.Id.Name
         msgi = None
-        if not (C0 and C1 and C2):
-            msgi = "\n    - {0} :".format(struct.Id.SaveName)
-            if not C0:
-                msgi += "\n     Exp: {0}".format(struct.Id.Exp)
-            if not C1:
-                msgi += "\n     Type: {0}".format(struct.Id.Type)
-            if not C2:
-                msgi += "\n     Name: {0}".format(struct.Id.Name)
-            if err:
-                msg = "Non-conform struct Id:" + msgi
-                raise Exception(msg)
+        c0 = issubclass(struct.__class__, Struct)
+        if not c0:
+            msgi = "\n\t- Not a struct subclass: {}".format(type(struct))
+        else:
+            c1 = struct.Id.Exp == self.Id.Exp
+            c2 = struct.Id.Type == self.Id.Type
+            c3 = struct.Id.Name.isidentifier()
+            c4 = c3 and '_' not in struct.Id.Name
+            if not (c0 and c1 and c2 and c3):
+                c1 = struct.Id.Exp == self.Id.Exp
+                c2 = struct.Id.Type == self.Id.Type
+                c3 = struct.Id.Name.isidentifier()
+                c4 = c3 and '_' not in struct.Id.Name
+                msgi = "\n\t- {0} :".format(struct.Id.SaveName)
+                if not c1:
+                    msgi += "\n\tExp: {0}".format(struct.Id.Exp)
+                if not c2:
+                    msgi += "\n\tType: {0}".format(struct.Id.Type)
+                if not c3:
+                    msgi += "\n\tName: {0}".format(struct.Id.Name)
+        if msgi is not None and err is True:
+            msg = "Non-conform struct:" + msgi
+            raise Exception(msg)
         return msgi
 
-    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
-        if lStruct is None:
-            msg = "Arg lStruct must be"
-            msg += " a tofu.geom.Struct subclass or a list of such !"
-            msg += "\nValid subclasses include:"
-            lsub = ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]
-            for ss in lsub:
-                msg = "\n    - tf.geom.{0}".format(ss)
-            raise Exception(msg)
+    @staticmethod
+    def _errmsg_dStruct(lStruct):
+        ls = ["tf.geom.{}".format(ss)
+              for ss in ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]]
+        msg = ("Arg lStruct must be "
+               + "a tofu.geom.Struct subclass or list of such!\n"
+               + "Valid subclasses include:\n\t- "
+               + "\n\t- ".join(ls)
+               + "\nYou provided: {}".format(type(lStruct)))
+        return msg
 
-        C0 = isinstance(lStruct, list) or isinstance(lStruct, tuple)
-        C1 = issubclass(lStruct.__class__, Struct)
-        assert C0 or C1, msg
-        if C0:
-            Ci = [issubclass(ss.__class__, Struct) for ss in lStruct]
-            assert all(Ci), msg
+    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
+        c0 = lStruct is not None
+        c1 = ((isinstance(lStruct, list) or isinstance(lStruct, tuple))
+              and all([issubclass(ss.__class__, Struct) for ss in lStruct]))
+        c2 = issubclass(lStruct.__class__, Struct)
+        if not (c0 and (c1 or c2)):
+            raise Exception(self._errmsg_dStruct(lStruct))
+
+        if c1 and isinstance(lStruct, tuple):
             lStruct = list(lStruct)
-        else:
+        elif c2:
             lStruct = [lStruct]
 
         msg = ""
@@ -2276,7 +2549,7 @@ class Config(utils.ToFuObject):
     def _checkformat_inputs_extraval(
         self, extraval, key="", multi=True, size=None
     ):
-        lsimple = [bool, float, int, np.int64, np.float64]
+        lsimple = [bool, float, int, np.int_, np.float_]
         C0 = type(extraval) in lsimple
         C1 = isinstance(extraval, np.ndarray)
         C2 = isinstance(extraval, dict)
@@ -2285,7 +2558,7 @@ class Config(utils.ToFuObject):
         else:
             assert C0, str(type(extraval))
         if multi and C1:
-            size = self._dStruct["nStruct"] if size is None else size
+            size = self._dStruct["nObj"] if size is None else size
             C = extraval.shape == ((self._dStruct["nObj"],))
             if not C:
                 msg = "The value for %s has wrong shape!" % key
@@ -2483,16 +2756,18 @@ class Config(utils.ToFuObject):
         assert not (k0 is None and k1 is not None)
         dp = "d" + pp
         if k0 is None and k1 is None:
-            val = np.zeros((self._dStruct["nObj"],), dtype=bool)
+            k0, k1 = self._dStruct["lorder"][0].split('_')
+            val = np.zeros((self._dStruct["nObj"],),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k0, k1 = k.split("_")
                 val[ii] = self._dextraprop[dp][k0][k1]
                 ii += 1
         elif k1 is None:
-            val = np.zeros(
-                (len(self._dStruct["dObj"][k0].keys()),), dtype=bool
-            )
+            k1 = list(self._dStruct["dObj"][k0].keys())[0]
+            val = np.zeros((len(self._dStruct["dObj"][k0].keys()),),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k, k1 = k.split("_")
@@ -2727,6 +3002,190 @@ class Config(utils.ToFuObject):
         self._dynamicattr()
 
     ###########
+    # SOLEDGE3X
+    ###########
+
+    @staticmethod
+    def _from_SOLEDGE_extract_dict(pfe=None):
+        # Check input
+        c0 = (isinstance(pfe, str)
+              and os.path.isfile(pfe)
+              and pfe[-4:] == '.mat')
+        if not c0:
+            msg = ("Arg pfe must be a valid .mat file!\n"
+                   + "\t- provided: {}".format(pfe))
+            raise Exception(msg)
+        pfe = os.path.abspath(pfe)
+
+        # Open file
+        import scipy.io as scpio
+        dout = scpio.loadmat(pfe)
+
+        # Check conformity of content
+        lk = ['Nwalls', 'coord', 'type']
+        lk0 = [kk for kk, vv in dout.items()
+               if kk == 'walls' and isinstance(vv, np.ndarray)]
+        c0 = (len(lk0) == 1
+              and len(dout['walls']) == 1
+              and sorted(dout['walls'][0].dtype.names) == lk
+              and len(dout['walls'][0][0]) == len(lk))
+        if not c0:
+            msg = ("Non-conform .mat file content from SOLEDGE3X:\n"
+                   + "\t- file: {}\n".format(pfe)
+                   + "\t- Expected:\n"
+                   + "\t\t- a unique matlab structure 'walls' with 3 fields\n"
+                   + "\t\t\t- Nwalls: int\n"
+                   + "\t\t\t- coord: 1xn struct\n"
+                   + "\t\t\t- type: 1xn double\n"
+                   + "Provided:\n"
+                   + "\t- variables: {}\n".format(lk0)
+                   + "\t- 1x{} struct with {} fields".format(
+                       len(dout[lk0[0]]),
+                       len(dout[lk0[0]][0].dtype)))
+            raise Exception(msg)
+        out = dout['walls'][0][0]
+
+        # Get inside fields 'type', 'Nwalls', 'coord'
+        di0 = {kk: dout['walls'][0].dtype.names.index(kk) for kk in lk}
+        dout = {'type': out[di0['type']].ravel(),
+                'Nwalls': out[di0['Nwalls']][0, 0]}
+        out = out[di0['coord']][0]
+        c0 = (sorted(out.dtype.names) == ['Rwall', 'Zwall']
+              and len(out) == dout['type'].size
+              and all([len(oo) == 2 for oo in out]))
+        if not c0:
+            msg = ("Field {} not conform:\n".format('coord')
+                   + "\t- expected: 1x{} struct ".format(dout['type'].size)
+                   + "with fields ('Rwall', 'Zwall')\n"
+                   + "\t- provided: 1x{} struct ".format(len(out))
+                   + "with fields {}".format(out.dtype.names))
+            raise Exception(msg)
+
+        dout['coord'] = [np.array([out[ii][0].ravel(), out[ii][1].ravel()])
+                         for ii in range(dout['type'].size)]
+        return dout
+
+    @classmethod
+    def from_SOLEDGE3X(cls, pfe=None,
+                       Name=None, Exp=None):
+
+        # Check input and extract dict from file
+        dout = cls._from_SOLEDGE_extract_dict(pfe)
+        npoly = len(dout['type'])
+
+        # Prepare lStruct
+        lcls = [Ves if dout['type'][ii] == 1 else PFC for ii in range(npoly)]
+        lnames = ['Soledge3X{:02.0f}'.format(ii) for ii in range(npoly)]
+        lS = [lcls[ii](Poly=dout['coord'][ii],
+                       Type='Tor',
+                       Name=lnames[ii],
+                       pos=None,
+                       Exp=Exp)
+              for ii in range(npoly)]
+        return cls(lStruct=lS, Exp=Exp, Name=Name)
+
+    def _to_SOLEDGE3X_get_data(self,
+                               type_extraprop=None,
+                               matlab_version=None, matlab_platform=None):
+
+        head = None
+        # Check inputs
+        if not (matlab_version is None or isinstance(matlab_version, str)):
+            msg = ("Arg matlab_version must be provided as a str!\n"
+                   + "\t- example: '5.0'\n"
+                   + "\t- provided: {}".format(matlab_version))
+            raise Exception(msg)
+
+        # useful ? to be deprecated ?
+        if matlab_platform is None:
+            out = os.popen('which matlab').read()
+            keypath = os.path.join('bin', 'matlab')
+            if keypath in out:
+                path = os.path.join(out[:out.index(keypath)], 'etc')
+                lf = [ff for ff in os.listdir(path)
+                      if os.path.isdir(os.path.join(path, ff))]
+                if len(lf) == 1:
+                    matlab_platform = lf[0].upper()
+                else:
+                    msg = ("Couldn't get matlab_platform from 'which matlab'\n"
+                           + "  => Please provide the matlab platform\n"
+                           + "     Should be in {}/../etc".format(out))
+                    warnings.warn(msg)
+        if not (matlab_platform is None or isinstance(matlab_platform, str)):
+            msg = ("Arg matlab_platform must be provided as a str!\n"
+                   + "\t- example: 'GLNXA64'\n"
+                   + "\t- provided: {}".format(matlab_platform))
+            raise Exception(msg)
+
+        if matlab_version is not None and matlab_platform is not None:
+            import datetime as dtm
+            now = dtm.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+            head = ('MATLAB {} MAT-file, '.format(matlab_version)
+                    + 'Platform: {}, '.format(matlab_platform)
+                    + 'Created on: {}'.format(now))
+
+        # Build walls
+        nwall = np.array([[self.nStruct]], dtype=int)
+
+        # typ (from extraprop if any, else from Ves / Struct)
+        if type_extraprop is not None:
+            typ = np.array([self._get_extraprop(type_extraprop)], dtype=int)
+        else:
+            typ = np.array([[1 if ss._InOut == 'in' else -1
+                             for ss in self.lStruct]], dtype=int)
+        # Get coord
+        coord = np.array([np.array([
+            (ss.Poly[0:1, :].T, ss.Poly[1:2, :].T) for ss in self.lStruct],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])
+
+        # put together
+        dout = {'walls': np.array([[
+            (nwall, coord, typ)]],
+            dtype=[('Nwalls', 'O'), ('coord', 'O'), ('type', 'O')])}
+
+        # Optinally set header and version
+        if head is not None:
+            dout['__header__'] = head.encode()
+        return dout
+
+    def to_SOLEDGE3X(self, name=None, path=None, verb=None,
+                     type_extraprop=None,
+                     matlab_version=None, matlab_platform=None):
+
+        # Check inputs
+        if verb is None:
+            verb = True
+        if name is None:
+            name = self.Id.SaveName
+        if not isinstance(name, str):
+            msg = ("Arg name must be a str!\n"
+                   + "\t- provided: {}".format(name))
+            raise Exception(msg)
+        if name[-4:] != '.mat':
+            name = name + '.mat'
+
+        if path is None:
+            path = os.path.abspath('.')
+        if not os.path.isdir(path):
+            msg = ("Provided path is not a valid dir!\n"
+                   + "\t- path: {}".format(path))
+            raise Exception(msg)
+        path = os.path.abspath(path)
+
+        pfe = os.path.join(path, name)
+
+        # Get data in proper shape
+        dout = self._to_SOLEDGE3X_get_data(type_extraprop=type_extraprop,
+                                           matlab_version=matlab_version,
+                                           matlab_platform=matlab_platform)
+        # save
+        import scipy.io as scpio
+        scpio.savemat(pfe, dout)
+        if verb is True:
+            print("Saved in:\n\t{}".format(pfe))
+
+    ###########
     # Properties
     ###########
 
@@ -2797,7 +3256,6 @@ class Config(utils.ToFuObject):
         Cls=None,
         Name=None,
         Poly=None,
-        mobile=False,
         shot=None,
         Lim=None,
         Type=None,
@@ -2843,7 +3301,6 @@ class Config(utils.ToFuObject):
                 Name=Name,
                 Lim=Lim,
                 Type=Type,
-                mobile=mobile,
                 shot=shot,
                 Exp=self.Id.Exp,
             )
@@ -2984,7 +3441,7 @@ class Config(utils.ToFuObject):
             "SaveName",
             "nP",
             "noccur",
-            "mobile",
+            "move",
             "color",
         ] + self._dextraprop["lprop"]
         d = self._dStruct["dObj"]
@@ -2992,15 +3449,18 @@ class Config(utils.ToFuObject):
         for k in self._ddef["dStruct"]["order"]:
             if k not in d.keys():
                 continue
+            otemp = self._dStruct["dObj"][k]
             for kk in d[k].keys():
                 lu = [
                     k,
-                    self._dStruct["dObj"][k][kk]._Id._dall["Name"],
-                    self._dStruct["dObj"][k][kk]._Id._dall["SaveName"],
-                    str(self._dStruct["dObj"][k][kk]._dgeom["nP"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["noccur"]),
-                    str(self._dStruct["dObj"][k][kk]._dgeom["mobile"]),
-                    str(self._dStruct["dObj"][k][kk]._dmisc["color"]),
+                    otemp[kk]._Id._dall["Name"],
+                    otemp[kk]._Id._dall["SaveName"],
+                    str(otemp[kk]._dgeom["nP"]),
+                    str(otemp[kk]._dgeom["noccur"]),
+                    str(otemp[kk]._dgeom["move"]),
+                    ('(' + ', '.join(['{:4.2}'.format(cc)
+                                      for cc in otemp[kk]._dmisc["color"]])
+                     + ')'),
                 ]
                 for pp in self._dextraprop["lprop"]:
                     lu.append(self._dextraprop["d" + pp][k][kk])
@@ -3129,7 +3589,6 @@ class Config(utils.ToFuObject):
                                               cmap=cmap, ax=ax, fs=fs,
                                               tit=tit, wintit=wintit,
                                               invertx=invertx, draw=draw)
-
 
     def isInside(self, pts, In="(X,Y,Z)", log="any"):
 
@@ -3591,7 +4050,7 @@ class Rays(utils.ToFuObject):
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None, sep=None, method='optimized',
-                 SavePath=os.path.abspath('./'), color=None, plotdebug=True):
+                 SavePath=os.path.abspath('./'), color=None):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -3724,7 +4183,7 @@ class Rays(utils.ToFuObject):
               if (isinstance(dgeom, self._dcases[k]['type'])
                   and all([kk in dgeom.keys()  # noqa
                            for kk in self._dcases[k]['lk']]))]
-        if not len(lC)==1:
+        if not len(lC) == 1:
             lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
             msg += "  - dict with keys:\n"
@@ -3898,20 +4357,31 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _checkformat_inputs_dconfig(config=None):
-        C0 = isinstance(config, Config)
-        msg = "Arg config must be a Config instance !"
-        msg += "\n    expected : {0}".format(str(Config))
-        msg += "\n    obtained : {0}".format(str(config.__class__))
-        assert C0, msg
+        # Check config has proper class
+        if not isinstance(config, Config):
+            msg = ("Arg config must be a Config instance!\n"
+                   + "\t- expected: {}".format(str(Config))
+                   + "\t- provided: {}".format(str(config.__class__)))
+            raise Exception(msg)
+
+        # Check all structures
         lS = config.lStruct
-        lC = [
-            hasattr(ss, "_InOut") and ss._InOut in ["in", "out"] for ss in lS
-        ]
-        msg = "All Struct in config must have self._InOut in ['in','out']"
-        assert all(lC), msg
+        lC = [hasattr(ss, "_InOut") and ss._InOut in ["in", "out"]
+              for ss in lS]
+        if not all(lC):
+            msg = "All Struct in config must have self._InOut in ['in','out']"
+            raise Exception(msg)
+
+        # Check there is at least one struct which is a subclass of StructIn
         lSIn = [ss for ss in lS if ss._InOut == "in"]
-        msg = "Arg config must have at least a StructIn subclass !"
-        assert len(lSIn) > 0, msg
+        if len(lSIn) == 0:
+            lclsnames = ['{}; {}'.format(ss.Id.Name, ss.Id.Cls, ss._InOut)
+                         for ss in lS]
+            msg = ("Config {} is missing a StructIn!\n".format(config.Id.Name)
+                   + "\t- " + "\n\t- ".join(lclsnames))
+            raise Exception(msg)
+
+        # Add 'compute' parameter if not present
         if "compute" not in config._dextraprop["lprop"]:
             config = config.copy()
             config.add_extraprop("compute", True)
@@ -3967,6 +4437,9 @@ class Rays(utils.ToFuObject):
             "Surfaces",
             "dX12",
             "dreflect",
+            "move",
+            "move_param",
+            "move_kwdargs",
         ]
         return lk
 
@@ -4137,7 +4610,8 @@ class Rays(utils.ToFuObject):
                     k = np.sum(DDb*(u - np.sqrt(sca2)*dgeom['u'][:, 1:]),
                                axis=0)
                     k = k / (1.0-sca2)
-                    if k[0] > 0 and np.allclose(k, k[0], atol=1.e-3, rtol=1.e-6):
+                    if k[0] > 0 and np.allclose(k, k[0], atol=1.e-3,
+                                                rtol=1.e-6):
                         pinhole = dgeom['D'][:, 0] + k[0]*u[:, 0]
                         dgeom['pinhole'] = pinhole
 
@@ -4296,29 +4770,42 @@ class Rays(utils.ToFuObject):
 
         # Get reference: lS
         if indStruct is None:
-            indStruct = self.indStruct_computeInOut
-        lS = [
-            ss for ii, ss in enumerate(self.config.lStruct) if ii in indStruct
-        ]
+            indIn, indOut = self.get_indStruct_computeInOut(unique_In=True)
+            indStruct = np.r_[indIn, indOut]
+        else:
+            indIn = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "in"
+            ]
+            if len(indIn) > 1:
+                ind = np.argmin([
+                    self.config.lStruct[ii].dgeom['Surf']
+                    for ii in indIn
+                ])
+                indStruct = [ii for ii in indStruct
+                             if ii not in indIn or ii == ind]
+                indIn = [indIn[ind]]
+            indOut = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "out"
+            ]
 
-        lSIn = [ss for ss in lS if ss._InOut == "in"]
-        if len(lSIn) == 0:
+        if len(indIn) == 0:
             msg = "self.config must have at least a StructIn subclass !"
-            assert len(lSIn) > 0, msg
-        iref = np.argmin([ss.dgeom["Surf"] for ss in lSIn])
-        S = lSIn[iref]
+            raise Exception(msg)
 
+        S = self.config.lStruct[indIn[0]]
         VPoly = S.Poly_closed
         VVIn = S.dgeom["VIn"]
         largs = [D, u, VPoly, VVIn]
 
+        lS = [self.config.lStruct[ii] for ii in indOut]
         if self._method == "ref":
 
             Lim = S.Lim
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
             for ss in lS:
                 lSPoly.append(ss.Poly_closed)
@@ -4352,7 +4839,6 @@ class Rays(utils.ToFuObject):
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPolyx, lSVInx = [], []
             lSPolyy, lSVIny = [], []
             lSLim, lSnLim = [], []
@@ -4432,10 +4918,20 @@ class Rays(utils.ToFuObject):
         indout[0, :] = indStruct[indout[0, :]]
         return kIn, kOut, vperp, indout, indStruct
 
-    def compute_dgeom(self, extra=True, plotdebug=True):
+    def compute_dgeom(self, extra=True, show_debug_plot=True):
+        """ Compute dictionnary of geometrical attributes (dgeom)
+
+        Parameters
+        ----------
+        show_debug_plot:    bool
+            In case some lines of sight have no visibility inside the tokamak,
+            they will be considered invalid. tofu will issue a warning with
+            their indices and if show_debug_plot is True, try to plot a 3d
+            figure to help understand why these los have no visibility
+        """
         # Can only be computed if config if provided
         if self._dconfig["Config"] is None:
-            msg = "Attribute dgeom cannot be computed without a config !"
+            msg = "Attribute dgeom cannot be computed without a config!"
             warnings.warn(msg)
             return
 
@@ -4446,36 +4942,39 @@ class Rays(utils.ToFuObject):
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout, indStruct = self._compute_kInOut()
 
-        # Clean up (in case of nans)
+        # Check for LOS that have no visibility inside the plasma domain (nan)
         ind = np.isnan(kIn)
         kIn[ind] = 0.0
         ind = np.isnan(kOut) | np.isinf(kOut)
         if np.any(ind):
-            kOut[ind] = np.nan
-            msg = "Some LOS have no visibility inside the plasma domain !\n"
-            msg += "Nb. of LOS concerned: %s out of %s\n" % (
-                str(ind.sum()),
-                str(kOut.size),
-            )
-            msg += "Indices of LOS ok:\n"
-            msg += repr((~ind).nonzero()[0])
-            msg += "\nIndices of LOS with no visibility:\n"
-            msg += repr(ind.nonzero()[0])
-            warnings.warn(msg)
-            if plotdebug:
+            msg = ("Some LOS have no visibility inside the plasma domain!\n"
+                   + "Nb. of LOS concerned: {} / {}\n".format(ind.sum(),
+                                                              kOut.size)
+                   + "Indices of LOS ok:\n"
+                   + repr((~ind).nonzero()[0])
+                   + "\nIndices of LOS with no visibility:\n"
+                   + repr(ind.nonzero()[0]))
+            if show_debug_plot is True:
                 PIn = self.D[:, ind] + kIn[None, ind] * self.u[:, ind]
                 POut = self.D[:, ind] + kOut[None, ind] * self.u[:, ind]
-                # To be updated
-                _plot._LOS_calc_InOutPolProj_Debug(
-                    self.config,
-                    self.D[:, ind],
-                    self.u[:, ind],
-                    PIn,
-                    POut,
-                    nptstot=kOut.size,
-                    Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
-                    Nstep=50,
-                )
+                msg2 = ("\n\tD = {}\n".format(self.D[:, ind])
+                        + "\tu = {}\n".format(self.u[:, ind])
+                        + "\tPIn = {}\n".format(PIn)
+                        + "\tPOut = {}".format(POut))
+                warnings.warn(msg2)
+                # plot 3d debug figure
+                # _plot._LOS_calc_InOutPolProj_Debug(
+                # self.config,
+                # self.D[:, ind],
+                # self.u[:, ind],
+                # PIn,
+                # POut,
+                # nptstot=kOut.size,
+                # Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
+                # Nstep=50,
+                # )
+            kOut[ind] = np.nan
+            raise Exception(msg)
 
         # Handle particular cases with kIn > kOut
         ind = np.zeros(kIn.shape, dtype=bool)
@@ -4850,6 +5349,9 @@ class Rays(utils.ToFuObject):
                     "isImage",
                     "dX12",
                     "dreflect",
+                    "move",
+                    "move_param",
+                    "move_kwdargs",
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip["strip"] <= 1 and strip >= 2:
@@ -4868,6 +5370,9 @@ class Rays(utils.ToFuObject):
                     "isImage",
                     "dX12",
                     "dreflect",
+                    "move",
+                    "move_param",
+                    "move_kwdargs",
                 ]
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -4994,6 +5499,7 @@ class Rays(utils.ToFuObject):
         if self._is2D():
             self._dX12.update(**fd["dX12"])
 
+
     ###########
     # properties
     ###########
@@ -5011,9 +5517,24 @@ class Rays(utils.ToFuObject):
         return self._dsino
 
     @property
+    def lOptics(self):
+        return [self._dOptics['dobj'][k0][k1]
+                for (k0, k1) in map(lambda x: str.split(x, '_'),
+                                    self._dOptics['lorder'])]
+
+    @property
     def isPinhole(self):
         c0 = "pinhole" in self._dgeom.keys()
         return c0 and self._dgeom["pinhole"] is not None
+
+    @property
+    def isInPoloidalPlane(self):
+        phiD = np.arctan2(self.D[1, :], self.D[0, :])
+        if self.nRays > 1 and not np.allclose(phiD[0], phiD[1:]):
+            return False
+        phiD = phiD[0]
+        ephi = np.array([-np.sin(phiD), np.cos(phiD), 0.])[:, None]
+        return np.allclose(np.sum(self.u*ephi, axis=0), 0.)
 
     @property
     def nRays(self):
@@ -5029,8 +5550,8 @@ class Rays(utils.ToFuObject):
 
     @property
     def u(self):
-        if (self._dgeom['u'] is not None
-            and self._dgeom['u'].shape[1] == self._dgeom['nRays']):
+        if self._dgeom['u'] is not None \
+          and self._dgeom['u'].shape[1] == self._dgeom['nRays']:
             u = self._dgeom['u']
         elif self.isPinhole:
             u = self._dgeom['pinhole'][:, None] - self._dgeom['D']
@@ -5049,19 +5570,6 @@ class Rays(utils.ToFuObject):
     @property
     def config(self):
         return self._dconfig["Config"]
-
-    @property
-    def indStruct_computeInOut(self):
-        compute = self.config.get_compute()
-        lS = self.config.lStruct
-        iI, iO = [], []
-        for ii in range(0, len(lS)):
-            if compute[ii]:
-                if lS[ii]._InOut == "in":
-                    iI.append(ii)
-                elif lS[ii]._InOut == "out":
-                    iO.append(ii)
-        return np.r_[iI + iO]
 
     @property
     def Etendues(self):
@@ -5117,13 +5625,236 @@ class Rays(utils.ToFuObject):
         return c0
 
     ###########
+    # Movement methods
+    ###########
+
+    def _update_or_copy(self, D, u, pinhole=None,
+                        return_copy=None,
+                        name=None, diag=None, dchans=None):
+        if return_copy is None:
+            return_copy = _RETURN_COPY
+        if self.isPinhole is True:
+            dgeom = {'pinhole': pinhole,
+                     'D': D}
+        else:
+            dgeom = (D, u)
+        if return_copy is True:
+            if name is None:
+                name = self.Id.Name + 'copy'
+            if diag is None:
+                diag = self.Id.Diag
+            if dchans is None:
+                dchans = self.dchans
+            return self.__class__(dgeom=dgeom,
+                                  lOptics=self.lOptics,
+                                  Etendues=self.Etendues,
+                                  Surfaces=self.Surfaces,
+                                  config=self.config,
+                                  sino_RefPt=self._dsino['RefPt'],
+                                  color=self._dmisc['color'],
+                                  dchans=dchans,
+                                  Exp=self.Id.Exp,
+                                  Diag=diag,
+                                  Name=name,
+                                  shot=self.Id.shot,
+                                  SavePath=self.Id.SavePath)
+        else:
+            dgeom0 = ((self.D, self.pinhole)
+                      if self.isPinhole is True else (self.D, self.u))
+            try:
+                self._set_dgeom(dgeom=dgeom,
+                                Etendues=self.Etendues,
+                                Surfaces=self.Surfaces,
+                                sino_RefPt=self._dsino['RefPt'],
+                                extra=True,
+                                sino=True)
+            except Exception as err:
+                # Make sure instance does not move
+                self._set_dgeom(dgeom=dgeom0,
+                                Etendues=self.Etendues,
+                                Surfaces=self.Surfaces,
+                                sino_RefPt=self._dsino['RefPt'],
+                                extra=True,
+                                sino=True)
+                msg = (str(err)
+                       + "\nAn exception occured during updating\n"
+                       + "  => instance unmoved")
+                raise Exception(msg)
+
+    def _rotate_DPinholeu(self, func, **kwdargs):
+        pinhole, u = None, None
+        if self.isPinhole is True:
+            D = np.concatenate((self.D, self._dgeom['pinhole'][:, None]),
+                               axis=1)
+            D = func(pts=D, **kwdargs)
+            D, pinhole = D[:, :-1], D[:, -1]
+        elif 'rotate' in func.__name__:
+            D, u = func(pts=self.D, vect=self.u, **kwdargs)
+        else:
+            D = func(pts=self.D, **kwdargs)
+            u = self.u
+        return D, pinhole, u
+
+    def translate_in_cross_section(self, distance=None, direction_rz=None,
+                                   phi=None,
+                                   return_copy=None,
+                                   diag=None, name=None, dchans=None):
+        """ Translate the instance in the cross-section """
+        if phi is None:
+            if self.isInPoloidalPlane:
+                phi = np.arctan2(*self.D[1::-1, 0])
+            elif self.isPinhole:
+                phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
+            else:
+                msg = ("Instance not associated to a specific poloidal plane\n"
+                       + "\tPlease specify which poloidal plane (phi) to use")
+                raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._translate_pts_poloidal_plane,
+            phi=phi, direction_rz=direction_rz, distance=distance)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def translate_3d(self, distance=None, direction=None,
+                     return_copy=None,
+                     diag=None, name=None, dchans=None):
+        """ Translate the instance in provided direction """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._translate_pts_3d,
+            direction=direction, distance=distance)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_in_cross_section(self, angle=None, axis_rz=None,
+                                phi=None,
+                                return_copy=None,
+                                diag=None, name=None, dchans=None):
+        """ Rotate the instance in the cross-section """
+        if phi is None:
+            if self.isInPoloidalPlane:
+                phi = np.arctan2(*self.D[1::-1, 0])
+            elif self.isPinhole:
+                phi = np.arctan2(*self._dgeom['pinhole'][1::-1])
+            else:
+                msg = ("Camera not associated to a specific poloidal plane\n"
+                       + "\tPlease specify which poloidal plane (phi) to use")
+                raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_in_poloidal_plane,
+            axis_rz=axis_rz, angle=angle, phi=phi)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_around_torusaxis(self, angle=None,
+                                return_copy=None,
+                                diag=None, name=None, dchans=None):
+        """ Rotate the instance around the torus axis """
+        if self.config is not None and self.config.Id.Type != 'Tor':
+            msg = "Movement only available for Tor configurations!"
+            raise Exception(msg)
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_around_torusaxis,
+            angle=angle)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def rotate_around_3daxis(self, angle=None, axis=None,
+                             return_copy=None,
+                             diag=None, name=None, dchans=None):
+        """ Rotate the instance around the provided 3d axis """
+        D, pinhole, u = self._rotate_DPinholeu(
+            self._rotate_pts_vectors_around_3daxis,
+            axis=axis, angle=angle)
+        return self._update_or_copy(D, u, pinhole,
+                                    return_copy=return_copy,
+                                    diag=diag, name=name, dchans=dchans)
+
+    def set_move(self, move=None, param=None, **kwdargs):
+        """ Set the default movement parameters
+
+        A default movement can be set for the instance, it can be any of the
+        pre-implemented movement (rotations or translations)
+        This default movement is the one that will be called when using
+        self.move()
+
+        Specify the type of movement via the name of the method (passed as a
+        str to move)
+
+        Specify, for the geometry of the instance at the time of defining this
+        default movement, the current value of the associated movement
+        parameter (angle / distance). This is used to set an arbitrary
+        difference for user who want to use absolute position values
+        The desired incremental movement to be performed when calling self.move
+        will be deduced by substracting the stored param value to the provided
+        param value. Just set the current param value to 0 if you don't care
+        about a custom absolute reference.
+
+        kwdargs must be a parameters relevant to the chosen method (axis,
+        direction...)
+
+        e.g.:
+            self.set_move(move='rotate_around_3daxis',
+                          param=0.,
+                          axis=([0.,0.,0.], [1.,0.,0.]))
+            self.set_move(move='translate_3d',
+                          param=0.,
+                          direction=[0.,1.,0.])
+        """
+        move, param, kwdargs = self._checkformat_set_move(move, param, kwdargs)
+        self._dgeom['move'] = move
+        self._dgeom['move_param'] = param
+        if isinstance(kwdargs, dict) and len(kwdargs) == 0:
+            kwdargs = None
+        self._dgeom['move_kwdargs'] = kwdargs
+
+    def move(self, param):
+        """ Set new position to desired param according to default movement
+
+        Can only be used if default movement was set before
+        See self.set_move()
+        """
+        param = self._move(param, dictname='_dgeom')
+        self._dgeom['move_param'] = param
+
+    ###########
     # public methods
     ###########
+
+    def get_indStruct_computeInOut(self, unique_In=None):
+        """ The indices of structures with compute = True
+
+        The indidces refer to self.config.lStruct
+            - The first array corresponds to Struct of type In
+            - The second array corresponds to Struct of type Out
+        """
+        if unique_In is None:
+            unique_In = False
+
+        compute = self.config.get_compute()
+        indIn = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "in"
+        ], dtype=int)
+        if unique_In is True and indIn.size > 1:
+            iind = np.argmin([
+                self.config.lStruct[ii].dgeom['Surf'] for ii in indIn
+            ])
+            indIn = np.r_[indIn[iind]]
+
+        indOut = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "out"
+        ], dtype=int)
+        return indIn, indOut
 
     def _check_indch(self, ind, out=int):
         if ind is not None:
             ind = np.asarray(ind)
-            assert ind.ndim==1
+            assert ind.ndim == 1
             assert ind.dtype in [np.int64, np.bool_, np.long]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
@@ -5323,13 +6054,20 @@ class Rays(utils.ToFuObject):
     def _get_plotL(
         self,
         reflections=True,
-        Lplot="Tot",
-        proj="All",
+        Lplot=None,
+        proj=None,
         ind=None,
         return_pts=False,
         multi=False,
     ):
         """ Get the (R,Z) coordinates of the cross-section projections """
+        # Check inputs
+        if Lplot is None:
+            Lplot = 'tot'
+        if proj is None:
+            proj = 'All'
+
+        # Compute
         ind = self._check_indch(ind)
         if ind.size > 0:
             us = self.u[:, ind]
@@ -5570,17 +6308,17 @@ class Rays(utils.ToFuObject):
         if type(lPoly) is list:
             for ii in range(nPoly):
                 # Check closed and anti-clockwise
-                if _GG.Poly_isClockwise(lPoly[ii]):
-                    lPoly[ii] = lPoly[ii][:, ::-1]
                 if not np.allclose(lPoly[ii][:, 0], lPoly[ii][:, -1]):
                     lPoly[ii] = np.concatenate(
                         (lPoly[ii], lPoly[ii][:, 0:1]), axis=-1
                     )
+                try:
+                    if _GG.Poly_isClockwise(lPoly[ii]):
+                        lPoly[ii] = lPoly[ii][:, ::-1]
+                except Exception as excp:
+                    print("For structure ", ii, " : ", excp)
         else:
-            for ii in range(nPoly):
-                # Check closed and anti-clockwise
-                if _GG.Poly_isClockwise(lPoly[ii]):
-                    lPoly[ii] = lPoly[ii][:, ::-1]
+            # Check closed and anti-clockwise
             d = np.sum((lPoly[:, :, 0]-lPoly[:, :, -1])**2, axis=1)
             if np.allclose(d, 0.):
                 pass
@@ -5589,6 +6327,12 @@ class Rays(utils.ToFuObject):
             else:
                 msg = "All poly in lPoly should be closed or all non-closed!"
                 raise Exception(msg)
+            for ii in range(nPoly):
+                try:
+                    if _GG.Poly_isClockwise(lPoly[ii]):
+                        lPoly[ii] = lPoly[ii][:, ::-1]
+                except Exception as excp:
+                    print("For structure ", ii, " : ", excp)
 
         # Check lVIn
         if lVIn is None:
@@ -5659,14 +6403,14 @@ class Rays(utils.ToFuObject):
 
         # Compute intersections
         assert(self._method in ['ref', 'optimized'])
-        if self._method=='ref':
+        if self._method == 'ref':
             for ii in range(0, nPoly):
                 largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
                 kIn[ii, :], kOut[ii, :] = out[2], out[3]
-        elif self._method=="optimized":
+        elif self._method == "optimized":
             for ii in range(0, nPoly):
                 largs, dkwd = self._kInOut_Isoflux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
@@ -6029,6 +6773,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6125,8 +6870,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6134,7 +6879,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    s += coefs * _GG.LOS_calc_signal(
+                    s += coefs_reflect * _GG.LOS_calc_signal(
                         func,
                         Dsi,
                         usi,
@@ -6188,6 +6933,15 @@ class Rays(utils.ToFuObject):
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
 
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
+
         # Format output
         return self._calc_signal_postformat(
             sig,
@@ -6230,6 +6984,7 @@ class Rays(utils.ToFuObject):
         num_threads=16,
         reflections=True,
         coefs=None,
+        coefs_reflect=None,
         ind=None,
         returnas=object,
         plot=True,
@@ -6325,8 +7080,8 @@ class Rays(utils.ToFuObject):
                 and self._dgeom["dreflect"].get("nb", 0) > 0
             )
             if c0:
-                if coefs is None:
-                    coefs = 1.0
+                if coefs_reflect is None:
+                    coefs_reflect = 1.0
                 for ii in range(self._dgeom["dreflect"]["nb"]):
                     Dsi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["Ds"][:, :, ii]
@@ -6334,7 +7089,7 @@ class Rays(utils.ToFuObject):
                     usi = np.ascontiguousarray(
                         self._dgeom["dreflect"]["us"][:, :, ii]
                     )
-                    sig += coefs * _GG.LOS_calc_signal(
+                    sig += coefs_reflect * _GG.LOS_calc_signal(
                         funcbis,
                         Dsi,
                         usi,
@@ -6393,6 +7148,15 @@ class Rays(utils.ToFuObject):
             # (cf. https://stackoverflow.com/questions/59079141)
             sig = np.add.reduceat(val, np.r_[0, indpts],
                                   axis=-1)*reseff[None, :]
+
+        # Apply user-provided coefs
+        if coefs is not None:
+            if hasattr(coefs, '__iter__'):
+                coefs = np.atleast_1d(coefs).ravel()
+                assert coefs.shape == (sig.shape[-1],)
+                if sig.ndim == 2:
+                    coefs = coefs[None, :]
+            sig *= coefs
 
         # Format output
         # this is the secod slowest step (~0.75 s)
@@ -6655,8 +7419,8 @@ class Rays(utils.ToFuObject):
         dElt = {}
         lS = self.config.lStruct
         ind = self._check_indch(ind, out=bool)
-        for ii in self.indStruct_computeInOut:
-            kn = "%s_%s" % (lS[ii].__class__.__name__, lS[ii].Id.Name)
+        for ii in np.r_[self.get_indStruct_computeInOut(unique_In=True)]:
+            kn = "{}_{}".format(lS[ii].__class__.__name__, lS[ii].Id.Name)
             indtouch = self.select(touch=kn, out=bool)
             if np.any(indtouch):
                 indok = indtouch & ind
@@ -6673,8 +7437,13 @@ class Rays(utils.ToFuObject):
         return dElt
 
     def get_touch_colors(
-        self, ind=None, dElt=None, cbck=(0.8, 0.8, 0.8), rgba=True
+        self,
+        ind=None,
+        dElt=None,
+        cbck=(0.8, 0.8, 0.8),
+        rgba=True,
     ):
+        """ Get array of colors per LOS (color set by the touched Struct) """
         if dElt is None:
             dElt = self.get_touch_dict(ind=None, out=bool)
         else:
@@ -6701,6 +7470,7 @@ class Rays(utils.ToFuObject):
         self,
         key=None,
         quant="lengths",
+        Lplot=None,
         invert=None,
         ind=None,
         Bck=True,
@@ -6716,7 +7486,15 @@ class Rays(utils.ToFuObject):
         The associated Config is also plotted
         The plot shows which strutural element is touched by each LOS
 
-        In addition, an extra quantity is plotted, depending on quant:
+        In addition, an extra quantity can be mapped to alpha (transparency)
+
+        Parameters
+        ----------
+        key:        None / str
+            Only relevant if self.dchans was defined
+            key is then a key to sekf.dchans
+        quant:      None / str
+            Flag indicating which extra quantity is used to map alpha:
             - 'lengths' (default): the length of each LOS
             - 'angles' : the angle of incidence of each LOS
                          (with respect to the normal of the surface touched,
@@ -6725,6 +7503,26 @@ class Rays(utils.ToFuObject):
                          (useful for checking numbering)
             - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
+        Lplot:      None / str
+            Flag indicating whether to plot:
+                - 'tot': the full length of the LOS
+                - 'in': only the part that is inside the vessel
+        invert:     None / bool
+            Flag indicating whether to plot 2D camera images inverted (pinhole)
+        ind:        None / np.ndarray
+            Array of bool indices used to select only a subset of the LOS
+        Bck:        None / bool
+            Flag indicating whether to plot the background LOS
+        fs:         None / tuple
+            figure size in inches
+        wintit:     None / str
+            Title for the window
+        tit:        None / str
+            Title for the figure
+        connect:    None / bool
+            Flag indicating to connect interactive actuators
+        draw:       None / bool
+            Flag indicating whether to draw the figure
         """
         out = _plot.Rays_plot_touch(
             self,
@@ -6732,6 +7530,7 @@ class Rays(utils.ToFuObject):
             Bck=Bck,
             quant=quant,
             ind=ind,
+            Lplot=Lplot,
             invert=invert,
             connect=connect,
             fs=fs,
@@ -6780,6 +7579,10 @@ class CamLOS1D(Rays):
             "{:.2f}".format(np.nanmin(angles)),
             "{:.2f}".format(np.nanmax(angles)),
         ]
+        if self._dgeom['move'] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom['move'],
+                    str(round(self._dgeom['move_param'], ndigits=4))]
 
         # ar1
         col1 = ["los index", "length", "touch", "angle (rad)"]
@@ -6896,7 +7699,7 @@ class CamLOS2D(Rays):
         # Prepare
         kout = self._dgeom["kOut"]
         indout = self._dgeom["indout"]
-        lS = self._dconfig["Config"].lStruct
+        # lS = self._dconfig["Config"].lStruct
         angles = np.arccos(-np.sum(self.u*self.dgeom['vperp'], axis=0))
 
         # ar0
@@ -6912,6 +7715,10 @@ class CamLOS2D(Rays):
             "{:.2f}".format(np.nanmin(angles)),
             "{:.2f}".format(np.nanmax(angles)),
         ]
+        if self._dgeom['move'] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom['move'],
+                    str(round(self._dgeom['move_param'], ndigits=4))]
 
         # call base method
         return self._get_summary(

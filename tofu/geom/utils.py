@@ -1,20 +1,16 @@
-# Built-in
+
+# Standard
 import sys
 import os
 import warnings
 import inspect
 
-# Common
+# Third-party
 import numpy as np
 
-# tofu
-import tofu
-try:
-    import tofu.geom._core as _core
-except Exception:
-    from . import _core
-
-
+# Local
+from . import _core
+from . import _def_config
 
 
 __all__ = ['coords_transform',
@@ -30,8 +26,11 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_root = tofu.__path__[0]
-_path_testcases = os.path.join(_root, 'geom', 'inputs')
+_path_testcases = os.path.join(os.path.dirname(__file__), 'inputs')
+
+_URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
+             + 'tuto_plot_create_geometry.html')
+
 
 ###########################################################
 #       COCOS
@@ -634,83 +633,32 @@ _comdoc2 = _comdoc.format('2','/ list',
 _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 
 
-
-###########################################################
+# #############################################################################
+# #############################################################################
 #       Fast creation of config
-###########################################################
-
-_ExpWest = 'WEST'
-_ExpJET = 'JET'
-_ExpITER = 'ITER'
-_ExpNSTX = 'NSTX'
-# Default config
-_DEFCONFIG = 'ITER'
-
-_URL_TUTO = ('https://tofuproject.github.io/tofu/auto_examples/tutorials/'
-             + 'tuto_plot_create_geometry.html')
-
-# Dictionnary of unique config names
-# For each config, indicates which structural elements it comprises
-# Elements are sorted by class (Ves, PFC...)
-# For each element, a unique txt file containing the geometry will be loaded
-_DCONFIG = {'WEST-V1': {'Exp': _ExpWest,
-                        'Ves': ['V1']},
-            'ITER-V1': {'Exp': _ExpITER,
-                        'Ves': ['V0']},
-            'WEST-Sep': {'Exp': _ExpWest,
-                         'PlasmaDomain': ['Sep']},
-            'WEST-V2': {'Exp': _ExpWest,
-                        'Ves': ['V2'],
-                        'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'WEST-V3': {'Exp': _ExpWest,
-                        'Ves': ['V2'],
-                        'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
-                                'BumperInnerV1', 'BumperOuterV1',
-                                'IC1V1', 'IC2V1', 'IC3V1']},
-            'WEST-V4': {'Exp': _ExpWest,
-                        'Ves': ['V2'],
-                        'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                                'BumperInnerV3', 'BumperOuterV3',
-                                'IC1V1', 'IC2V1', 'IC3V1',
-                                'LH1V1', 'LH2V1',
-                                'RippleV1', 'VDEV0']},
-            'JET-V0': {'Exp': _ExpJET,
-                       'Ves': ['V0']},
-            'ITER-V2': {'Exp': _ExpITER,
-                        'Ves': ['V1'],
-                        'PFC': ['BLK01', 'BLK02', 'BLK03', 'BLK04', 'BLK05',
-                                'BLK06', 'BLK07', 'BLK08', 'BLK09', 'BLK10',
-                                'BLK11', 'BLK12', 'BLK13', 'BLK14', 'BLK15',
-                                'BLK16', 'BLK17', 'BLK18',
-                                'Div1', 'Div2', 'Div3',
-                                'Div4', 'Div5', 'Div6']},
-            'NSTX-V0': {'Exp': _ExpNSTX,
-                        'Ves': ['V0']}
-            }
-
-# Each config can be called by various names / shortcuts (for benchmark and
-# retro-compatibility), this table stores, for each shortcut,
-# the associated unique name it refers to
-_DCONFIG_SHORTCUTS = {'ITER': 'ITER-V2',
-                      'JET': 'JET-V0',
-                      'WEST': 'WEST-V4',
-                      'A1': 'WEST-V1',
-                      'A2': 'ITER-V1',
-                      'A3': 'WEST-Sep',
-                      'B1': 'WEST-V2',
-                      'B2': 'WEST-V3',
-                      'B3': 'WEST-V4',
-                      'B4': 'ITER-V2',
-                      'NSTX': 'NSTX-V0'}
+# #############################################################################
 
 
-def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
-                    returnas=str):
+def _get_listconfig(
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=str
+):
     """ Hidden function generating the config names table as a str or dict """
+
+    # Check inputs
+    if dconfig is None:
+        dconfig = _def_config._DCONFIG
+    if dconfig_shortcuts is None:
+        dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
     assert returnas in [dict, str]
+
+    # Get dict of configs
     dc = {k0: [k0] + sorted([k1 for k1, v1 in dconfig_shortcuts.items()
                              if v1 == k0])
           for k0 in sorted(dconfig.keys())}
+
+    # Return
     if returnas is dict:
         return dc
     else:
@@ -724,9 +672,12 @@ def _get_listconfig(dconfig=_DCONFIG, dconfig_shortcuts=_DCONFIG_SHORTCUTS,
         return msg
 
 
-def get_available_config(dconfig=_DCONFIG,
-                         dconfig_shortcuts=_DCONFIG_SHORTCUTS,
-                         verb=True, returnas=False):
+def get_available_config(
+    dconfig=None,
+    dconfig_shortcuts=None,
+    verb=True,
+    returnas=False,
+):
     """ Print a table showing all pre-defined config
 
     Each pre-defined config in tofu can be called by its unique name or
@@ -742,38 +693,104 @@ def get_available_config(dconfig=_DCONFIG,
         >>> tf.geom.utils.get_available_config()
 
     """
-    msg = ("A config is the geometry of a tokamak\n"
-           + "You can define your own"
-           + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
-           + "tofu also also provides some pre-defined config ready to load\n"
-           + "They are available via their name or via shortcuts\n"
-           + _get_listconfig(dconfig=dconfig,
-                             dconfig_shortcuts=dconfig_shortcuts)
-           + "\n\n  => to get a pre-defined config, call for example:\n"
-           + "\tconfig = tf.geom.utils.create_config('ITER')")
+    msg = (
+        "A config is the geometry of a tokamak\n"
+        + "You can define your own"
+        + ", see online tutorial at:\n\t{}\n".format(_URL_TUTO)
+        + "tofu also also provides some pre-defined config ready to load\n"
+        + "They are available via their name or via shortcuts\n"
+        + _get_listconfig(dconfig=dconfig,
+                          dconfig_shortcuts=dconfig_shortcuts)
+        + "\n\n  => to get a pre-defined config, call for example:\n"
+        + "\tconfig = tf.geom.utils.create_config('ITER')\n"
+        + "\n => to also load coils add '-coils' to the config name, e.g.:\n"
+        + "\tconfig = tf.geom.utils.create_config('ITER-coils')"
+    )
     if verb is True:
         print(msg)
     if returnas in [None, True, str]:
         return msg
 
 
-def _create_config_testcase(config=None, returnas='object',
-                            path=_path_testcases, dconfig=_DCONFIG,
-                            dconfig_shortcuts=_DCONFIG_SHORTCUTS):
-    """ Load the desired test case configuration
-
-    Choose from one of the reference preset configurations:
-        {0}
-
-    """.format('['+', '.join(dconfig.keys())+']')
-    # Check input
+def _create_config_testcase_check_inputs(
+    config=None,
+    path=None,
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=None,
+):
+    # config
     if config is None:
-        config = _DEFCONFIG
-    assert all([type(ss) is str for ss in [config, path]])
-    assert type(dconfig) is dict
+        config = _def_config._DEFCONFIG
+    if not isinstance(config, str):
+        msg = ("Arg config must be a str!\n"
+               + "\tProvided: {}".format(config))
+        raise Exception(msg)
+
+    # path
+    if path is None:
+        path = _path_testcases
+    if not isinstance(path, str) or not os.path.isdir(path):
+        msg = ("Arg path must be a valid path!\n"
+               + "\tProvided: {}".format(path))
+        raise Exception(msg)
     path = os.path.abspath(path)
 
+    # dconfig
+    if dconfig is None:
+        dconfig = _def_config._DCONFIG
+    if not isinstance(dconfig, dict):
+        msg = ("Arg dconfig must be a dict!\n"
+               + "\tProvided: {}".format(dconfig))
+        raise Exception(msg)
+
+    # dconfig_shortcuts
+    if dconfig_shortcuts is None:
+        dconfig_shortcuts = _def_config._DCONFIG_SHORTCUTS
+    if not isinstance(dconfig_shortcuts, dict):
+        msg = ("Arg dconfig_shortcuts must be a dict!\n"
+               + "\tProvided: {}".format(dconfig_shortcuts))
+        raise Exception(msg)
+
+    # return
+    if returnas is None:
+        returnas = object
+    if returnas not in [object, dict]:
+        msg = ("Arg returnas must be either object or dict!\n"
+               + "\t-Provided: {}".format(returnas))
+        raise Exception(msg)
+    return config, path, dconfig, dconfig_shortcuts, returnas
+
+
+def _create_config_testcase(
+    config=None,
+    path=None,
+    dconfig=None,
+    dconfig_shortcuts=None,
+    returnas=None,
+):
+    """ Load the desired test case configuration
+
+    Choose from one of the reference preset configurations (from dconfig)
+
+    """
+
+    # -----------
+    # Check input
+    (config, path, dconfig,
+     dconfig_shortcuts, returnas) = _create_config_testcase_check_inputs(
+        config=config,
+        path=path,
+        dconfig=dconfig,
+        dconfig_shortcuts=dconfig_shortcuts,
+        returnas=returnas,
+     )
+
+    # --------------------------
     # Check config is available
+    coils = 'coils' in config
+    if coils is True:
+        config = config.replace('-coils', '')
     if config in dconfig.keys():
         pass
 
@@ -787,39 +804,66 @@ def _create_config_testcase(config=None, returnas='object',
                + "\n\n  => you provided: {}\n".format(config))
         raise Exception(msg)
 
-    # Get file names for config
+    # -------------------------
+    # Get file and build config
+
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
-    lcls = sorted([k for k in dconfig[config].keys() if k!= 'Exp'])
+    # include / exclude coils
+    if coils is True:
+        lcls = sorted([kk for kk in dconfig[config].keys() if kk != 'Exp'])
+    else:
+        lcls = sorted([
+            kk for kk in dconfig[config].keys()
+            if kk != 'Exp' and 'Coil' not in kk
+        ])
+
     Exp = dconfig[config]['Exp']
     for cc in lcls:
         for ss in dconfig[config][cc]:
             ff = [f for f in lf
-                  if all([s in f for s in [cc,Exp,ss]])]
-            if not len(ff) == 1:
-                msg = "No / several matching files\n"
+                  if all([s in f for s in [cc, Exp, ss]])]
+            if len(ff) == 0:
+                msg = "No matching files\n"
                 msg += "  Folder: %s\n"%path
                 msg += "    Criteria: [%s, %s]\n"%(cc,ss)
                 msg += "    Matching: "+"\n              ".join(ff)
                 raise Exception(msg)
-            pfe = os.path.join(path,ff[0])
-            obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
-                                             Exp=dconfig[config]['Exp'],
-                                             out=returnas)
-            if returnas not in ['object', object]:
-                obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
-            lS.append(obj)
+            elif len(ff) > 1:
+                # More demanding criterion
+                ssbis, Expbis = '_'+ss+'.txt', '_Exp'+Exp+'_'
+                ff = [fff for fff in ff if ssbis in fff and Expbis in fff]
+                if len(ff) != 1:
+                    msg = ("No / several matching files\n"
+                           + "  Folder: {}\n".format(path)
+                           + "    Criteria: [{}, {}]\n".format(cc, ss)
+                           + "    Matching: "+"\n              ".join(ff))
+                    raise Exception(msg)
+
+            pfe = os.path.join(path, ff[0])
+            try:
+                obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
+                                                 Exp=dconfig[config]['Exp'],
+                                                 out=returnas)
+                if returnas not in ['object', object]:
+                    obj = ((ss, {'Poly': obj[0],
+                                 'pos': obj[1], 'extent': obj[2]}),)
+                lS.append(obj)
+            except Exception as err:
+                msg = "Could not be loaded: {}".format(ff[0])
+                warnings.warn(msg)
     if returnas == 'dict':
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
     return conf
 
+
 def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=None, r=None, elong=None, Dshape=None,
                   divlow=None, divup=None, nP=None,
-                  returnas='object', SavePath='./', path=_path_testcases):
+                  returnas=None, SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -885,7 +929,6 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
     elif not any(lc):
         msg = get_available_config(verb=False, returnas=str)
         raise Exception(msg)
-        # case = _DEFCONFIG
 
     # Get config, either from known case or geometrical parameterization
     if case is not None:

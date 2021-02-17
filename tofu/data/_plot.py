@@ -396,6 +396,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
     if nD == 1:
         if nch == 1:
+            X = lData[0].X
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])
@@ -451,25 +452,39 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # ---------
     # Check data
     ldata = [dd.data for dd in lData]
-    vmin = np.min([np.nanmin(dat) for dat in ldata])
-    vmax = np.max([np.nanmax(dat) for dat in ldata])
-    Dlim = [min(0.,vmin), max(0.,vmax)]
+    indany = [np.any(~np.isnan(dat)) for dat in ldata]
+    if any(indany):
+        if vmin is None:
+            vmin = np.min([np.nanmin(dat) for ii, dat in enumerate(ldata)
+                           if indany[ii]])
+        if vmax is None:
+            vmax = np.max([np.nanmax(dat) for ii, dat in enumerate(ldata)
+                           if indany[ii]])
+    else:
+        vmin, vmax = 0, 1
+
+    Dlim = [min(0., vmin), max(0., vmax)]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
     Dlab = r"{0} ({1})".format(lData[0].dlabels['data']['name'],
                                lData[0].dlabels['data']['units'])
     liddata = [id(dat) for dat in ldata]
     if nD == 2:
-        if vmin is None:
-            vmin = np.min([np.nanmin(dd) for dd in ldata])
-        if vmax is None:
-            vmax = np.max([np.nanmax(dd) for dd in ldata])
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         nan2_data = np.full((x2.size,x1.size),np.nan)
 
         if cmap == 'touch':
-            lcols = [dd['lCam'][0]._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck,
-                                                  ind=None)[0] for dd in lData]
+            lcols = [dd['lCam'][0]._get_touchcols(
+                vmin=vmin,
+                vmax=vmax,
+                cdef=cbck,
+                ind=None)[0] for dd in lData]
             # To be finished
+
+    if vmin_map is None:
+        vmin_map = vmin
+    if vmax_map is None:
+        vmax_map = vmax
+
 
     # ---------
     # Extra
@@ -495,7 +510,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
-        if lData[ii].dextra is not None:
+        if lData[ii].dextra not in [None, False]:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
 
@@ -539,11 +554,11 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     fig  = dax['t'][0].figure
     if tit is None:
         tit = []
-        if lData[0].Id.Exp is not None:
+        if lData[0].Id.Exp not in [None, False]:
             tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
+        if lData[0].Id.Diag not in [None, False]:
             tit.append(lData[0].Id.Diag)
-        if lData[0].Id.shot is not None:
+        if lData[0].Id.shot not in [None, False]:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
     if tit != False:
@@ -552,8 +567,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # -----------------
     # Plot conf and bck
-    c0 = lData[0]._dgeom['config'] is not None
-    c1 = c0 and lData[0]._dgeom['lCam'] is not None
+    c0 = (lData[0]._dgeom['config'] is not None
+          and lData[0]._dgeom['config'] is not False)
+    c1 = (c0 and lData[0]._dgeom['lCam'] is not None
+          and lData[0]._dgeom['lCam'] is not False)
     if c0:
         out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
                                              element='P',
@@ -612,7 +629,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # Static extra (time traces)
     for ii in range(0,nDat):
-        if lData[ii].dextra is not None:
+        if lData[ii].dextra not in [None, False]:
             lk = [k for k in lData[ii].dextra.keys() if k not in lkEqmap]
             for kk in lk:
                 dd = lData[ii].dextra[kk]
@@ -683,19 +700,19 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     ddat = dict([(liddata[ii], {'val':ldata[ii], 'refids':[lidt[ii],lidX[ii]]})
                  for ii in range(0,nDat)])
     ddat[idchans] = {'val':dchans, 'refids':[lidX[0]]}
-    if lCross is not None:
+    if lCross not in [None, False]:
         ddat[idlCross] = {'val':lCross, 'refids':[lidX[0]]}
         ddat[idlHor] = {'val':lHor, 'refids':[lidX[0]]}
     if nD == 2:
         ddat[idx12] = {'val':(x1,x2), 'refids':[lidX[0]]}
 
-    if dlextra['map'][0] is not None:
+    if dlextra['map'][0] not in [None, False]:
         ddat[dlextra['map'][0]['id']] = {'val':dlextra['map'][0]['data2D'],
                                          'refids':[dlextra['map'][0]['idt']]}
 
     for ii in range(0,nDat):
         for k in set(lkEq).intersection(dlextra.keys()):
-            if dlextra[k][ii] is not None:
+            if dlextra[k][ii] not in [None, False]:
                 ddat[dlextra[k][ii]['id']] = {'val':dlextra[k][ii]['data2D'],
                                               'refids':[dlextra[k][ii]['idt']]}
 
@@ -733,7 +750,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # -------------
     # One-shot and one-time 2D map
-    if dlextra['map'][0] is not None:
+    if dlextra['map'][0] not in [None, False]:
         map_ = dlextra['map'][0]['data2D']
         if normt_map:
             map_ = map_ / np.nanmax(map_,axis=0)[np.newaxis,:,:]
@@ -804,20 +821,20 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
                                                 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
-                if lXother[ii] is not None:
+                if lXother[ii] not in [None, False]:
                     dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                     'lrid':[lXother[ii]]}
             else:
-                im = dax['X'][ii*ntMax+jj].imshow(nan2_data, extent=extent, aspect='equal',
-                                         interpolation='nearest', origin='lower',
-                                         zorder=-1, norm=norm,
-                                         cmap=cmap)
+                im = dax['X'][ii*ntMax+jj].imshow(
+                    nan2_data, extent=extent, aspect='equal',
+                    interpolation='nearest', origin='lower',
+                    zorder=-1, norm=norm, cmap=cmap)
                 dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
                                                        'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
 
             # Time equilibrium and map
-            if lData[ii].dextra is not None:
+            if lData[ii].dextra not in [None, False]:
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
@@ -960,7 +977,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
         else:
             laxp = [fig.add_subplot(gs1[9:,2:-1], fc='w', sharey=shy)]
 
-    if laxp is not None and nD == 2:
+    if laxp not in [None, False] and nD == 2:
         laxp[0].set_aspect('equal', adjustable='datalim')
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         ax_divider = make_axes_locatable(laxp[0])
@@ -1036,7 +1053,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
 
     # Format all axes
     for kk in dax.keys():
-        if dax[kk] is not None:
+        if dax[kk] not in [None, False]:
             for ii in range(0,len(dax[kk])):
                 dax[kk][ii].tick_params(labelsize=fontsize)
                 if 'txt' in kk:
@@ -1088,7 +1105,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     lt = [dd.t for dd in lData]
     nt = lData[0].nt
     if nt == 1:
-        Dt = [t[0]-0.001,t[0]+0.001]
+        Dt = [lt[0] - 0.001, lt[0] + 0.001]
     else:
         Dt = np.array([[np.nanmin(t), np.nanmax(t)] for t in lt])
         Dt = [np.min(Dt[:,0]), np.max(Dt[:,1])]
@@ -1109,6 +1126,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
     if nD == 1:
         if nch == 1:
+            X = lData[0].X
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])
@@ -1247,7 +1265,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
-        if lData[ii].dextra is not None:
+        if lData[ii].dextra not in [None, False]:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
 
@@ -1293,11 +1311,11 @@ def _DataCam12D_plot_spectral(lData, key=None,
     fig  = dax['t'][0].figure
     if tit is None:
         tit = []
-        if lData[0].Id.Exp is not None:
+        if lData[0].Id.Exp not in [None, False]:
             tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
+        if lData[0].Id.Diag not in [None, False]:
             tit.append(lData[0].Id.Diag)
-        if lData[0].Id.shot is not None:
+        if lData[0].Id.shot not in [None, False]:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
     if tit != False:
@@ -1306,11 +1324,15 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
     # -----------------
     # Plot conf and bck
-    c0 = lData[0]._dgeom['config'] is not None
-    c1 = c0 and lData[0]._dgeom['lCam'] is not None
+    c0 = (lData[0]._dgeom['config'] is not None
+          and lData[0]._dgeom['config'] is not False)
+    c1 = (c0 and lData[0]._dgeom['lCam'] is not None
+          and lData[0]._dgeom['lCam'] is not False)
     if c0:
-        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
+        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0],
+                                                  dax['hor'][0]],
+                                             element='P', dLeg=None,
+                                             tit=False, draw=False)
         dax['cross'][0], dax['hor'][0] = out
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
@@ -1329,12 +1351,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
                     dax['cross'][0].plot(crossbck[0,:], crossbck[1,:],
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
-                                         c=cbck, ls='-', lw=1.)
+                                       c=cbck, ls='-', lw=1.)
                 elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
-                                  dLeg=None, draw=False)
+                                  dLeg=None, tit=False, draw=False)
                     dax['cross'][0], dax['hor'][0] = out
 
             lHor = np.stack(lHor)
@@ -1350,7 +1372,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     # Background (optional)
     if bck:
         if nD == 1:
-            if lData[0].ddata['nnch'] == 1 and dax['X'] is not None:
+            if lData[0].ddata['nnch'] == 1 and dax['X'] not in [None, False]:
                 env = [np.nanmin(ldataint[0],axis=0), np.nanmax(ldataint[0],axis=0)]
                 dax['X'][0].fill_between(lX[0].ravel(), env[0], env[1], facecolor=cbck)
             tbck = np.tile(np.r_[lt[0], np.nan], nch)
@@ -1363,7 +1385,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
     # Static extra (time traces)
     for ii in range(0,nDat):
-        if lData[ii].dextra is not None:
+        if lData[ii].dextra not in [None, False]:
             lk = [k for k in lData[ii].dextra.keys() if k not in lkEqmap]
             for kk in lk:
                 dd = lData[ii].dextra[kk]
@@ -1407,7 +1429,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     dgroup = {'time':      {'nMax':ntMax, 'key':'f1',
                             'defid':lidt[0], 'defax':dax['t'][1]}}
 
-    if dax['X'] is not None:
+    if dax['X'] not in [None, False]:
         dgroup['channel'] = {'nMax':nchMax, 'key':'f2',
                              'defid':lidX[0], 'defax':dax['X'][0]}
 
@@ -1451,19 +1473,19 @@ def _DataCam12D_plot_spectral(lData, key=None,
                  for ii in range(0,nDat)]))
     ddat[idchans] = {'val':dchans, 'refids':[lidX[0]]}
 
-    if lCross is not None:
+    if lCross not in [None, False]:
         ddat[idlCross] = {'val':lCross, 'refids':[lidX[0]]}
         ddat[idlHor] = {'val':lHor, 'refids':[lidX[0]]}
     if nD == 2:
         ddat[idx12] = {'val':(x1,x2), 'refids':[lidX[0]]}
 
-    if dlextra['map'][0] is not None:
+    if dlextra['map'][0] not in [None, False]:
         ddat[dlextra['map'][0]['id']] = {'val':dlextra['map'][0]['data2D'],
                                          'refids':[dlextra['map'][0]['idt']]}
 
     for ii in range(0,nDat):
         for k in set(lkEq).intersection(dlextra.keys()):
-            if dlextra[k][ii] is not None:
+            if dlextra[k][ii] not in [None, False]:
                 ddat[dlextra[k][ii]['id']] = {'val':dlextra[k][ii]['data2D'],
                                               'refids':[dlextra[k][ii]['idt']]}
 
@@ -1490,7 +1512,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                          'graph':{lidlamb[0]:'x'}})
                       for ii in range(0,len(dax['lamb']))]))
 
-    if nD == 1 and dax['X'] is not None:
+    if nD == 1 and dax['X'] not in [None, False]:
         dax2.update({dax['X'][0]: {'ref':dict([(idX,'x') for idX in lidX]),
                                    'graph':{lidX[0]:'x'}}})
     elif nD == 2:
@@ -1509,7 +1531,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
     # -------------
     # One-shot and one-time 2D map
-    if dlextra['map'][0] is not None:
+    if dlextra['map'][0] not in [None, False]:
         map_ = dlextra['map'][0]['data2D']
         if normt_map:
             map_ = map_ / np.nanmax(map_,axis=0)[np.newaxis,:,:]
@@ -1604,7 +1626,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                     dobj[l0] = {'dupdate':{'ydata':{'id':liddataint[ii],
                                                     'lrid':[lidt[ii]]}},
                                 'drefid':{lidt[ii]:jj}}
-                    if lXother[ii] is not None:
+                    if lXother[ii] not in [None, False]:
                         dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                         'lrid':[lXother[ii]]}
                 else:
@@ -1617,7 +1639,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                 'drefid':{lidt[ii]:jj}}
 
             # Time equilibrium and map
-            if lData[ii].dextra is not None:
+            if lData[ii].dextra not in [None, False]:
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
@@ -1815,7 +1837,7 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
     # Format all axes
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
-            if dax[kk][ii] is not None:
+            if dax[kk][ii] not in [None, False]:
                 dax[kk][ii].tick_params(labelsize=fontsize)
                 if 'txt' in kk:
                     dax[kk][ii].patch.set_alpha(0.)
@@ -1850,7 +1872,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     if not indref==0:
         lData[0], lData[indref] = lData[indref], lData[0]
     nDat = len(lData)
-
 
     # ---------
     # Get time
@@ -1890,10 +1911,10 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     lx1, lx2, lindr, lextent = zip(*[lData[ii].get_X12plot('imshow') if lis2D[ii]
                                      else (None, None, None, None)
                                      for ii in range(0,nDat)])
-    lidx12 = [id((x1,x2)) if x1 is not None else None
-              for x1,x2 in zip(lx1,lx2)]
-    ln12 = [(x1.size,x2.size) if x1 is not None else None
-            for x1,x2 in zip(lx1,lx2)]
+    lidx12 = [id((x1, x2)) if x1 is not None else None
+              for x1, x2 in zip(lx1, lx2)]
+    ln12 = [(x1.size, x2.size) if x1 is not None else None
+            for x1, x2 in zip(lx1, lx2)]
 
 
     # dchans
@@ -1938,14 +1959,15 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dmarker[lkEq_temp[0]] = str(dmarker[k0])
                 del dmarker[k0]
 
-    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    lkEq = sorted([vv for vv in dEq_corres.values()
+                   if vv not in [None, False]])
     kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
 
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
-        if lData[ii].dextra is not None:
+        if lData[ii].dextra not in [None, False]:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
 
@@ -1988,24 +2010,26 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                    lis2D=lis2D, fldict=fldict, sharex=sharex)
     fig  = dax['t'][0].figure
     if tit is None:
-        tit = [str(getattr(lData[0].Id,aa)) for aa in ['Exp','Diag','shot']
-               if getattr(lData[0].Id,aa) is not None]
+        tit = [str(getattr(lData[0].Id, aa)) for aa in ['Exp', 'Diag', 'shot']
+               if getattr(lData[0].Id, aa) not in [None, False]]
         tit = ' - '.join(tit)
     if tit != False:
         fig.suptitle(tit)
-
 
     # -----------------
     # Plot ref dextra and ref conf H
 
     # conf
-    c0 = lData[0]._dgeom['config'] is not None
+    c0 = (lData[0]._dgeom['config'] is not None
+          and lData[0]._dgeom['config'] is not False)
     if c0:
-        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0], proj='hor',
-                                                       element='P', dLeg=None, draw=False)
+        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0],
+                                                       proj='hor', element='P',
+                                                       tit=False, dLeg=None,
+                                                       draw=False)
 
     # dextra
-    if lData[0].dextra is not None:
+    if lData[0].dextra not in [None, False]:
         lk = [k for k in lData[0].dextra.keys() if k not in lkEqmap]
         for kk in lk:
             dd = lData[0].dextra[kk]
@@ -2031,14 +2055,17 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     for ii in range(0,nDat):
 
         # cross config
-        c0 = lData[0]._dgeom['config'] is not None
+        c0 = (lData[0]._dgeom['config'] is not None
+              and lData[0]._dgeom['config'] is not False)
         if c0:
             dax['cross'][ii] = lData[ii].config.plot(lax=dax['cross'][ii],
                                                      element='P', dLeg=None,
-                                                     proj='cross', draw=False)
+                                                     proj='cross', tit=False,
+                                                     draw=False)
 
         # los
-        c1 = lData[ii]._dgeom['lCam'] is not None
+        c1 = (lData[ii]._dgeom['lCam'] is not None
+              and lData[ii]._dgeom['lCam'] is not False)
         c2 = c1 and lData[ii]._isLOS
         if c2:
             llCross[ii] = [None for jj in range(0,len(lData[ii]._dgeom['lCam']))]
@@ -2084,7 +2111,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             tbck = np.tile(np.r_[lt[ii], np.nan], lnch[ii])
             dbck = np.vstack((ldata[ii], np.full((1,lnch[ii]),np.nan))).T.ravel()
             dax['t'][ii+1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
-
 
 
     # ---------------
@@ -2149,18 +2175,18 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         ddat[liddata[ii]] = {'val':ldata[ii], 'refids':[lidt[ii],lidX[ii]]}
         ddat[lidchans[ii]] = {'val':ldchans[ii], 'refids':[lidX[ii]]}
 
-        if llCross[ii] is not None:
+        if llCross[ii] not in [None, False]:
             ddat[lidCross[ii]] = {'val':llCross[ii], 'refids':[lidX[ii]]}
             ddat[lidHor[ii]] = {'val':llHor[ii], 'refids':[lidX[ii]]}
         if lis2D[ii]:
             ddat[lidx12[ii]] = {'val':(lx1[ii],lx2[ii]), 'refids':[lidX[ii]]}
 
-        if dlextra['map'][ii] is not None:
+        if dlextra['map'][ii] not in [None, False]:
             ddat[dlextra['map'][ii]['id']] = {'val':dlextra['map'][ii]['data2D'],
                                               'refids':[dlextra['map'][ii]['idt']]}
 
         for k in set(lkEq).intersection(dlextra.keys()):
-            if dlextra[k][ii] is not None:
+            if dlextra[k][ii] not in [None, False]:
                 ddat[dlextra[k][ii]['id']] = {'val':dlextra[k][ii]['data2D'],
                                               'refids':[dlextra[k][ii]['idt']]}
 
@@ -2183,14 +2209,13 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     dobj = {}
 
 
-
     ##################
     # Populating dobj
 
     # -------------
     # One-shot and one-time 2D map
     for ii in range(0,nDat):
-        if dlextra['map'][ii] is not None:
+        if dlextra['map'][ii] not in [None, False]:
             map_ = dlextra['map'][ii]['data2D']
             if normt_map:
                 map_ = map_ / np.nanmax(map_,axis=0)[np.newaxis,:,:]
@@ -2249,7 +2274,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                       'bstr':'{0:%s} s'%fmt_t}},
                     'drefid':{lidt[0]:jj}}
 
-
     # -------------
     # Data-specific
     for ii in range(0,nDat):
@@ -2279,12 +2303,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
                                                 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
-                if lXother[ii] is not None:
+                if lXother[ii] not in [None, False]:
                     dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                     'lrid':[lXother[ii]]}
 
             # Time equilibrium and map
-            if lData[ii].dextra is not None:
+            if lData[ii].dextra not in [None, False]:
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
@@ -2622,19 +2646,21 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     if tit is None:
         tit = []
-        if Data.Id.Exp is not None:
+        if Data.Id.Exp not in [None, False]:
             tit.append(Data.Id.Exp)
-        if Data.Id.Diag is not None:
+        if Data.Id.Diag not in [None, False]:
             tit.append(Data.Id.Diag)
-        if Data.Id.shot is not None:
+        if Data.Id.shot not in [None, False]:
             tit.append(r"{0:05.0f}".format(Data.Id.shot))
         tit = ' - '.join(tit)
     if tit != False:
         fig.suptitle(tit)
 
     # Plot vessel
-    c0 = Data._dgeom['config'] is not None
-    c1 = c0 and Data._dgeom['lCam'] is not None
+    c0 = (Data._dgeom['config'] is not None
+          and Data._dgeom['config'] is not False)
+    c1 = (c0 and Data._dgeom['lCam'] is not None
+          and Data._dgeom['lCam'] is not False)
     if c0:
         out = Data._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
                                          element='P', dLeg=None, draw=False)
@@ -2773,7 +2799,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             idlpsd_norm: {'val':lpsd_norm, 'refids':[idX,idf,idtf]},
             idlang: {'val':lang, 'refids':[idX,idf,idtf]},
             idchans:{'val':dchans, 'refids':[idX]}}
-    if lCross is not None:
+    if lCross not in [None, False]:
         ddat[idlCross] = {'val':lCross, 'refids':[idX]}
         ddat[idlHor] = {'val':lHor, 'refids':[idX]}
     if nD == 2:
@@ -2886,7 +2912,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                    c=lct[jj], ls='-', lw=1.)
             dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
                         'drefid':{idt:jj}}
-            if Xother is not None:
+            if Xother not in [None, False]:
                 dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
 
             # lpsd and ang profiles
@@ -2900,7 +2926,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                 dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
                             'drefid':{idtf:jj, idf:ii}}
 
-                if Xother is not None:
+                if Xother not in [None, False]:
                     dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
                     dobj[l0]['drefid'][Xother] = jj
                     dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
@@ -3276,11 +3302,11 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
 
     if tit is None:
         tit = []
-        if Data.Id.Exp is not None:
+        if Data.Id.Exp not in [None, False]:
             tit.append(Data.Id.Exp)
-        if Data.Id.Diag is not None:
+        if Data.Id.Diag not in [None, False]:
             tit.append(Data.Id.Diag)
-        if Data.Id.shot is not None:
+        if Data.Id.shot not in [None, False]:
             tit.append(r"{0:05.0f}".format(Data.Id.shot))
         tit = ' - '.join(tit)
     if tit != False:
@@ -3291,8 +3317,10 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     ############
 
     # Config and LOS
-    c0 = Data._dgeom['config'] is not None
-    c1 = c0 and Data._dgeom['lCam'] is not None
+    c0 = (Data._dgeom['config'] is not None
+          and Data._dgeom['config'] is not False)
+    c1 = (c0 and Data._dgeom['lCam'] is not None
+          and Data._dgeom['lCam'] is not False)
     if c0:
         out = Data._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
                                          element='P', dLeg=None, draw=False)
@@ -3431,7 +3459,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
             idchans:{'val':dchans, 'refids':[idX]},
             idchronos: {'val':chronos.T, 'refids':[idm]},
             idtopos: {'val':topos, 'refids':[idm]}}
-    if lCross is not None:
+    if lCross not in [None, False]:
         ddat[idlCross] = {'val':lCross, 'refids':[idX]}
         ddat[idlHor] = {'val':lHor, 'refids':[idX]}
     if nD == 2:
@@ -3527,7 +3555,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                    c=lct[jj], ls='-', lw=1.)
             dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
                         'drefid':{idt:jj}}
-            if Xother is not None:
+            if Xother not in [None, False]:
                 dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
 
         else:
@@ -3566,7 +3594,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                    c=lcm[jj%2], ls='-', lw=1.)
             dobj[l0] = {'dupdate':{'ydata':{'id':idtopos, 'lrid':[idm]}},
                         'drefid':{idm:jj}}
-            if Xother is not None:
+            if Xother not in [None, False]:
                 dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
 
         else:

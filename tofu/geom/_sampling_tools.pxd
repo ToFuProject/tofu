@@ -36,10 +36,12 @@ cdef void simple_discretize_line1d(double[2] LMinMax, double dstep,
                                    double** ldiscret_arr,
                                    double[1] resolution,
                                    long[1] N) nogil
+
+cdef void cythonize_subdomain_dl(DL, double[2] dl_array) # uses gil
+
 # ==============================================================================
 # =  Vessel's poloidal cut discretization
 # ==============================================================================
-
 cdef void discretize_vpoly_core(double[:, ::1] VPoly, double dstep,
                                 int mode, double margin, double DIn,
                                 double[:, ::1] VIn,
@@ -128,3 +130,90 @@ cdef void los_get_sample_pts(int nlos,
                              double* coeff_ptr,
                              long* los_ind,
                              int num_threads) nogil
+
+# -- Vmesh utility functions --------------------------------------------------
+cdef int  vmesh_disc_phi(int sz_r, int sz_z,
+                         long* ncells_rphi,
+                         double phistep,
+                         int ncells_rphi0,
+                         double* disc_r,
+                         double* disc_r0,
+                         double* step_rphi,
+                         double[::1] reso_phi_mv,
+                         long* tot_nc_plane,
+                         int ind_loc_r0,
+                         int ncells_r0,
+                         int ncells_z,
+                         int* max_sz_phi,
+                         double min_phi,
+                         double max_phi,
+                         long* sz_phi,
+                         long[:,::1] indi_mv,
+                         double margin,
+                         int num_threads) nogil
+
+cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
+                            int sz_r,
+                            int sz_z,
+                            long* sz_phi) nogil
+
+cdef void vmesh_double_loop(long[::1] first_ind_mv,
+                            long[:,::1] indi_mv,
+                            bint is_cart,
+                            int sz_r,
+                            int sz_z,
+                            long* lindex_z,
+                            long* ncells_rphi,
+                            long* tot_nc_plane,
+                            double reso_r_z,
+                            double* step_rphi,
+                            double* disc_r,
+                            double* disc_z,
+                            long[:,:,::1] lnp,
+                            long* phin,
+                            double[::1] dv_mv,
+                            double[::1] r_on_phi_mv,
+                            double[:, ::1] pts_mv,
+                            long[::1] ind_mv,
+                            int num_threads) nogil
+
+cdef void vmesh_ind_init_tabs(int* ncells_rphi,
+                              double* disc_r,
+                              int sz_r, int sz_z,
+                              double twopi_over_dphi,
+                              double[::1] dRPhirRef,
+                              long* tot_nc_plane,
+                              double** phi_mv,
+                              int num_threads) nogil
+
+cdef void vmesh_ind_cart_loop(int np,
+                              int sz_r,
+                              long[::1] ind,
+                              long* tot_nc_plane,
+                              int* ncells_rphi,
+                              double* phi_tab,
+                              double* disc_r,
+                              double* disc_z,
+                              double[:,::1] pts,
+                              double[::1] res3d,
+                              double reso_r_z,
+                              double[::1] dRPhirRef,
+                              int[::1] Ru,
+                              double[::1] dRPhir,
+                              int num_threads) nogil
+
+cdef void vmesh_ind_polr_loop(int np,
+                              int sz_r,
+                              long[::1] ind,
+                              long* tot_nc_plane,
+                              int* ncells_rphi,
+                              double* phi_tab,
+                              double* disc_r,
+                              double* disc_z,
+                              double[:,::1] pts,
+                              double[::1] res3d,
+                              double reso_r_z,
+                              double[::1] dRPhirRef,
+                              int[::1] Ru,
+                              double[::1] dRPhir,
+                              int num_threads) nogil

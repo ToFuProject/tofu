@@ -1,6 +1,8 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=False
+#
 cimport cython
 
 from cython.parallel import prange
@@ -10,10 +12,12 @@ from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
 from libc.math cimport NAN as Cnan
+from libc.math cimport pi as Cpi
 from libc.stdlib cimport malloc, free
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
+cdef double _TWOPI = 2.0 * Cpi
 
 # ==============================================================================
 # =  Point in path
@@ -124,6 +128,7 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
             sign[ii] = 0
     return
 
+
 # ==============================================================================
 # =  Computing Hypothenus
 # =============================================================================
@@ -140,6 +145,8 @@ cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
         for ii in range(npts):
             ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
+
+
 
 cdef inline double comp_min_hypot(const double[::1] xpts,
                                   const double[::1] ypts,

@@ -14,14 +14,10 @@ from codecs import open
 from setuptools import setup, find_packages
 from setuptools import Extension
 # ... packages that need to be in pyproject.toml
-import Cython as cth
 from Cython.Distutils import build_ext
 import numpy as np
-# ...
-# Remove _updateversion import due to build-time dependency
-#   => updateversion defined in here for commodity
-#   => find a cleaner solution later
-# import _updateversion as up
+# ... local script
+import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
@@ -35,6 +31,7 @@ if platform.system() == "Windows":
 # === Setting clean command ===================================================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tofu.setup")
+
 
 class CleanCommand(Clean):
     description = "Remove build artifacts from the source tree"
@@ -136,6 +133,7 @@ def check_for_openmp(cc_var):
     shutil.rmtree(tmpdir)
     return result
 
+
 # ....... Using function
 if is_platform_windows:
     openmp_installed = False
@@ -148,24 +146,6 @@ else:
 _HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-def updateversion(path=_HERE):
-    # Fetch version from git tags, and write to version.py
-    # Also, when git is not available (PyPi package), use stored version.py
-    version_py = os.path.join(path, 'tofu', 'version.py')
-    try:
-        version_git = subprocess.check_output(["git",
-                                               "describe"]).rstrip().decode()
-    except Exception as err:
-        with open(version_py, 'r') as fh:
-            version_git = fh.read().strip().split("=")[-1].replace("'", '')
-    version_git = version_git.lower().replace('v', '')
-
-    version_msg = "# Do not edit, pipeline versioning governed by git tags!"
-    with open(version_py, "w") as fh:
-        msg = "{0}__version__ = '{1}'{0}".format(os.linesep, version_git)
-        fh.write(version_msg + msg)
-    return version_git
-
 def get_version_tofu(path=_HERE):
 
     # Try from git
@@ -177,7 +157,6 @@ def get_version_tofu(path=_HERE):
                     [
                         "git",
                         "rev-parse",
-                        "--symbolic-full-name",
                         "--abbrev-ref",
                         "HEAD",
                     ]
@@ -185,8 +164,9 @@ def get_version_tofu(path=_HERE):
                 .rstrip()
                 .decode()
             )
-            if git_branch in ["master"]:
-                version_tofu = updateversion()
+            deploy_branches = ["master", "deploy-test"]
+            if (git_branch in deploy_branches or "TRAVIS_TAG" in os.environ):
+                version_tofu = up.updateversion()
             else:
                 isgit = False
         except Exception:
@@ -198,14 +178,16 @@ def get_version_tofu(path=_HERE):
         with open(version_tofu, "r") as fh:
             version_tofu = fh.read().strip().split("=")[-1].replace("'", "")
 
-    version_tofu = version_tofu.lower().replace("v", "")
+    version_tofu = version_tofu.lower().replace("v", "").replace(" ", "")
     return version_tofu
+
 
 version_tofu = get_version_tofu(path=_HERE)
 
 print("")
 print("Version for setup.py : ", version_tofu)
 print("")
+
 # =============================================================================
 
 # =============================================================================
@@ -298,7 +280,7 @@ setup(
     # The project's main homepage.
     url="https://github.com/ToFuProject/tofu",
     # Author details
-    author="Didier VEZINET",
+    author="Didier VEZINET and Laura MENDOZA",
     author_email="didier.vezinet@gmail.com",
 
     # Choose your license
@@ -364,7 +346,7 @@ setup(
         "dev": [
             "check-manifest",
             "coverage",
-            "nose==1.3.4",
+            "pytest",
             "sphinx",
             "sphinx-gallery",
             "sphinx_bootstrap_theme",
@@ -381,8 +363,9 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.tests03core_data": ["*.py", "*.txt"],
+        "tofu.tests.tests01_geom.test_03_core_data": ["*.py", "*.txt"],
         "tofu.geom.inputs": ["*.txt"],
+        "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
     include_package_data=True,
 
@@ -392,14 +375,29 @@ setup(
     # installing-additional-files # noqa
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     # data_files=[('my_data', ['data/data_file'])],
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    # entry_points={
-    #    'console_scripts': [
-    #        'sample=sample:main',
-    #    ],
-    # },
+
+    # executable scripts can be declared here
+    # They can be python or non-python scripts
+    # scripts=[
+    # ],
+
+    # entry_points point to functions in the package
+    # Theye are generally preferable over scripts because they provide
+    # cross-platform support and allow pip to create the appropriate form
+    # of executable for the target platform.
+   entry_points={
+        'console_scripts': [
+            'tofuplot=tofu.entrypoints.tofuplot:main',
+            'tofucalc=tofu.entrypoints.tofucalc:main',
+            'tofu-version=scripts.tofuversion:main',
+            'tofu-custom=scripts.tofucustom:main',
+            'tofu=scripts.tofu_bash:main',
+        ],
+    },
+
+    py_modules=['_updateversion'],
+
+    # Extensions and commands
     ext_modules=extensions,
     cmdclass={"build_ext": build_ext,
               "clean": CleanCommand},

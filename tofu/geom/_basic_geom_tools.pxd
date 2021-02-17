@@ -1,6 +1,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=False
 #
 ################################################################################
 # Utility functions for basic geometry :
@@ -17,6 +18,7 @@ from cpython.array cimport array, clone
 # Values defined in the *.pyx file
 cdef double _VSMALL
 cdef double _SMALL
+cdef double _TWOPI
 
 # ==============================================================================
 # == Redifinition of functions

@@ -4,16 +4,12 @@ package:
 
 source:
   git_url: https://github.com/ToFuProject/tofu.git
-  #git_branch: {{ environ['TRAVIS_BRANCH'] }}
   git_rev: {{ environ['REV'] }}
-  # "patches:" might be the answer for clang compilers ?
 
 build:
   script_env:
-    #   - REV
-    - VERSION
+    - PKG_REAL
     - TRAVIS_BRANCH
-    - CONDA_BLD_PATH
 
 requirements:
 
@@ -21,13 +17,13 @@ requirements:
   # here same as run, as we are using cython
   build:
     - python
-    - setuptools
+    - setuptools >=40.8.0
     - setuptools_scm
     - numpy
     - scipy
     - matplotlib
     - Cython >=0.26
-    - nose
+    - pytest
     - pygments
 
 
@@ -40,12 +36,12 @@ requirements:
     - scipy
     - matplotlib
     - Cython >=0.26
-    - nose
+    - pytest
     - pygments
 
 test:
   requires:
-    - nose
+    - pytest
   imports:
     - tofu.geom
 

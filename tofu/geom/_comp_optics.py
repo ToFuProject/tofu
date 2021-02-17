@@ -76,7 +76,7 @@ def CrystBragg_sample_outline_Rays(center, nout, e1, e2,
                                                            psi, theta)
     # Deduce D, u
     D = center[:, None] + rcurve*vout
-    u = (-np.sin(bragg)*vect
+    u = (-np.sin(bragg)*vout
          + np.cos(bragg)*(np.cos(phi)*ve1 + np.sin(phi)*ve2))
     return D, u
 

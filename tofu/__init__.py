@@ -54,18 +54,13 @@ import sys
 import warnings
 from .version import __version__
 
-# For tests without display with nosetests
-if 'matplotlib.pyplot' not in sys.modules.keys():
-    import matplotlib
-    matplotlib.use('agg')
-    del matplotlib
-
 import tofu.pathfile as pathfile
 import tofu.utils as utils
 
 from tofu.utils import save, load, load_from_imas, calc_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
+from tofu.geom.utils import create_config as load_config
 import tofu.data as data
 
 
@@ -74,7 +69,7 @@ import tofu.data as data
 # -------------------------------------
 
 msg = None
-dsub = dict.fromkeys(['imas2tofu', 'mag'])
+dsub = dict.fromkeys(['imas2tofu', 'openadas2tofu', 'mag'])
 for sub in dsub.keys():
     try:
         exec('import tofu.{0} as {0}'.format(sub))

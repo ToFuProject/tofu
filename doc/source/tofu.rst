@@ -15,9 +15,19 @@ Subpackages
    tofu.dumpro
    tofu.dust
    tofu.geom
+   tofu.scripts
+   tofu.tests
 
 Submodules
 ----------
+
+tofu.\_physics module
+---------------------
+
+.. automodule:: tofu._physics
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 tofu.\_plot module
 ------------------

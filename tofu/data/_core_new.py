@@ -11,7 +11,7 @@ import inspect
 
 # Common
 import numpy as np
-# import scipy.interpolate as scpinterp
+import scipy.interpolate as scpinterp
 # import matplotlib.pyplot as plt
 # from matplotlib.tri import Triangulation as mplTri
 
@@ -26,14 +26,14 @@ try:
     import tofu.data._plot_new as _plot_new
     import tofu.data._plot as _plot
     import tofu.data._def as _def
-    import tofu.data._physics as _physics
+    import tofu._physics as _physics
 except Exception:
     from . import _comp as _comp
     from . import _comp_new as _comp_new
     from . import _plot_new as _plot_new
     from . import _plot as _plot
     from . import _def as _def
-    from . import _physics as _physics
+    from .. import _physics as _physics
 
 __all__ = ['DataCollection', 'TimeTraceCollection']
 
