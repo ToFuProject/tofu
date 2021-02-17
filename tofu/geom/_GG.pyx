@@ -2553,8 +2553,6 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     double[:, ::1] ves_poly=None,
                                     double[:, ::1] ves_norm=None,
                                     double[:, ::1] k=None,
-                                    double[:, ::1] ray_orig=None,
-                                    double[:, ::1] ray_vdir=None,
                                     double[::1] ves_lims=None,
                                     long[::1] lstruct_nlim=None,
                                     double[::1] lstruct_polyx=None,
@@ -2574,10 +2572,10 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     bint test=True,
                                     int num_threads=16):
     """
-    Return an array of booleans indicating whether each point in pts is
-    visible from the point P = [pt0, pt1, pt2] considering vignetting a given
+    Return an array of booleans indicating whether each point in pts1 is
+    visible from each point in pts2 considering vignetting a given
     configuration.
-        `k` optional argument : distance between points and P
+        `k` optional argument : distance between the points pts1, pts2
         ray_orig = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
         ray_vdir = (pts-ray_orig)/k
     """
