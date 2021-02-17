@@ -17,23 +17,16 @@ import scipy.interpolate as scpinterp
 
 
 # tofu
-from tofu import __version__ as __version__
+# from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
-try:
-    import tofu.data._comp as _comp
-    import tofu.data._comp_new as _comp_new
-    import tofu.data._plot_new as _plot_new
-    import tofu.data._plot as _plot
-    import tofu.data._def as _def
-    import tofu._physics as _physics
-except Exception:
-    from . import _comp as _comp
-    from . import _comp_new as _comp_new
-    from . import _plot_new as _plot_new
-    from . import _plot as _plot
-    from . import _def as _def
-    from .. import _physics as _physics
+from . import _check_inputs
+from . import _comp
+from . import _comp_new
+from . import _plot_new
+from . import _plot
+from . import _def
+from .. import _physics
 
 __all__ = ['DataCollection', 'TimeTraceCollection']
 
@@ -170,124 +163,7 @@ class DataCollection(utils.ToFuObject):
         return dparams
 
     def _checkformat_dref(self, dref):
-        c0 = (isinstance(dref, dict)
-              and all([isinstance(kk, str) for kk in dref.keys()]))
-        if not c0:
-            msg = "Provided dref must be dict !\n"
-            msg += "All its keys must be str !\n"
-            raise Exception(msg)
-
-        # Two options:
-        #   (A)  - {'group0':{'t0':{'data':t0, 'units':'s'}, 't1':...}}
-        #   (B)  - {'t0':{'data':t0, 'units':'s', 'group':'group0'}, 't1':...}
-        #   (C)  - {'t0':{'data':t0, 'units':'s'}, 't1':...}
-        #   (D)  - {'t0':t0, 't1':t1, ...}
-
-        cA = all([all([(isinstance(v1, dict) and 'group' not in v1.keys())
-                       or not isinstance(v1, dict)
-                       for v1 in v0.values()])
-                  and 'group' not in v0.keys() for v0 in dref.values()])
-        cB = all([isinstance(v0, dict) and isinstance(v0.get('group', None), str)
-                  for v0 in dref.values()])
-        cC = (not cA and self._forced_group is not None
-              and all([isinstance(v0, dict) and 'group' not in v0.keys()
-                       for v0 in dref.values()]))
-        cD = (self._forced_group is not None
-              and all([not isinstance(v0, dict) for v0 in dref.values()]))
-        assert np.sum([cA, cB, cC, cD]) <= 1
-        if not (cA or cB or cC or cD):
-            msg = "Provided dref must formatted either as a dict with:\n\n"
-            msg += "    - keys = group, values = {ref: data}:\n"
-            msg += "        {'time':{'t0':{'data':t0, 'units':'s'},\n"
-            msg += "                 't1':{'data':t1, 'units':'h'}},\n"
-            msg += "         'dist':{'x0':{'data':x0, 'units':'m'}}}\n\n"
-            msg += "    - keys = ref, values = {data, group, ...}:\n"
-            msg += "        {'t0':{'data':t0, 'units':'s', 'group':'time'},\n"
-            msg += "         't1':{'data':t1, 'units':'h', 'group':'time'},\n"
-            msg += "         'x0':{'data':x0, 'units':'m', 'group':'dist'}\n\n"
-            msg += "    If self._forced_group is not None, 2 more options:\n"
-            msg += "    - keys = ref, values = {data, ...}:\n"
-            msg += "        {'t0':{'data':t0, 'units':'s'},\n"
-            msg += "         't1':{'data':t1, 'units':'h'},\n"
-            msg += "         'x0':{'data':x0, 'units':'m'}\n"
-            msg += "    - keys = ref, values = data:\n"
-            msg += "        {'t0':t0,\n"
-            msg += "         't1':t1,\n"
-            msg += "         'x0':x0}\n"
-            raise Exception(msg)
-
-        if cA:
-            # Convert to cB
-            drbis = {}
-            for k0, v0 in dref.items():
-                for k1, v1 in v0.items():
-                    if isinstance(v1, dict):
-                        drbis[k1] = v1
-                        drbis['group'] = k0
-                    else:
-                        drbis[k1] = {'data': v1, 'group': k0}
-            dref = drbis
-
-        # Check cC and cD and convert to cB
-        if cC:
-            # Convert to cB
-            for k0 in dref.keys():
-                dref[k0]['group'] = self._forced_group
-        elif cD:
-            # Convert to cB
-            for k0, v0 in dref.items():
-                dref[k0] = {'data': v0, 'group': self._forced_group}
-
-
-        # Check cB = normal case
-        for kk, vv in dref.items():
-
-            # Check if new group
-            if vv['group'] not in self._dgroup['lkey']:
-                self._dgroup['dict'][vv['group']] = {}
-                self._dgroup['lkey'].append(vv['group'])
-
-            # Check key unicity
-            if kk in self._ddata['lkey']:
-                msg = "key '%s' already used !\n"%kk
-                msg += "  => each key must be unique !"
-                raise Exception(msg)
-
-            # Check data
-            c0 = 'data' in vv.keys()
-            data = vv['data']
-            if not isinstance(data, np.ndarray):
-                if isinstance(data, list) or isinstance(data, tuple):
-                    try:
-                        data = np.atleast_1d(data).ravel()
-                        size = data.size
-                    except Exception as err:
-                        c0 = False
-                else:
-                    size = data.__class__.__name__
-            else:
-                if data.ndim != 1:
-                    data = np.atleast_1d(data).ravel()
-                size = data.size
-
-            if not c0:
-                msg = "dref[%s]['data'] must be array-convertible\n"%kk
-                msg += "The following array conversion failed:\n"
-                msg += "    - np.atleast_1d(dref[%s]['data']).ravel()"%kk
-                raise Exception(msg)
-
-            # Fill self._dref
-            self._dref['dict'][kk] = {'size': size, 'group': vv['group']}
-            self._dref['lkey'].append(kk)
-
-            # Extract and check parameters
-            dparams = self._extract_known_params(kk, vv, ref=True,
-                                                 group=vv['group'])
-
-            # Fill self._ddata
-            self._ddata['dict'][kk] = dict(data=data, refs=(kk,),
-                                           shape=(size,), **dparams)
-            self._ddata['lkey'].append(kk)
+        _check_inputs._check_dref(dref)
 
     def _checkformat_ddata(self, ddata):
         c0 = isinstance(ddata, dict)
@@ -482,40 +358,118 @@ class DataCollection(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def _set_dref(self, dref, complement=True):
-        self._checkformat_dref(dref)
+    def _set_dgroup(self, dgroup=None, complement=None):
+        """ Can be used to add / set group / groups / drgoup
+
+        Will update existing attribute with new dict
+        """
+        # Check and set
+        dgroup = _check_inputs._check_dgroup(
+            dgroup=group,
+            dgroup0=self._dgroup
+        )
+        self._dgroup.update(dgroup)
+
+        # Complement
+        if complement is None:
+            complement = True
+        if complement is True:
+            _check_input._complement_dgrouprefdata(
+                dgroup=self._dgroup,
+                dref=self._dref,
+                ddata=self._ddata,
+            )
+
+    def _set_dref(self, dref=None, complement=True):
+        """ Can be used to add / set group / groups / dref
+
+        Will update existing attribute with new dict
+        """
+        # Check and set
+        dref = _check_inputs._check_dref(
+            dref=dref,
+            dref0=self._dref,
+            dgroup0=self._dgroup,
+        )
+
+        # Complement
+        if complement is None:
+            complement = True
         if complement:
-            self._complement_dgrouprefdata()
+            _check_input._complement_dgrouprefdata(
+                dgroup=self._dgroup,
+                dref=self._dref,
+                ddata=self._ddata,
+            )
 
-    def _set_ddata(self, ddata):
-        self._checkformat_ddata(ddata)
-        self._complement_dgrouprefdata()
+    # TBF
+    def _set_ddata(self, ddata=None):
+        """ Can be used to add / set group / groups / dref
+
+        Will update existing attribute with new dict
+        """
+        ddata= _check_inputs._check_ddata(
+            ddata=ddata, ddata0=self._ddata,
+            dref0=self._dref, dgroup0=self._dgroup,
+        )
+        _check_input._complement_dgrouprefdata(
+            dgroup=self._dgroup,
+            dref=self._dref,
+            ddata=self._ddata,
+        )
 
     # ---------------------
-    # Methods for adding ref / quantities
+    # Methods for adding / removing group / ref / quantities
     # ---------------------
 
-    def add_ref(self, key, data=None, group=None, **kwdargs):
+    def _add_group(self, group=None):
+        """ Add a group (or list of groups) """
+        if group is None:
+            return
+        self._set_dgroup(dgroup=group)
+
+    def _remove_group(self, group=None):
+        """ Remove a group (or list of groups) and all associated ref, data """
+        if group is None:
+            return
+        group = _check_inputs._check_remove_group(
+            group=group, dgroup=self._dgroup
+        )
+        # TBF
+        lkref = []
+        lkdata = []
+        for kk in lkdata:
+            del self._ddata[kk]
+        for kk in lkref:
+            del self._dref[kk]
+        del self._dgroup[group]
+
+
+    def _add_ref(self, ref, data=None, group=None, **kwdargs):
         """ Add a reference """
+        if ref is None:
+            return
         self._set_dref({key: dict(data=data, group=group, **kwdargs)})
 
-    def remove_ref(self, key):
-        """ Remove a reference (all data depending on it are removed too) """
-        assert key in self._dref['lkey']
-        lkdata = self._dref['dict'][key]['ldata']
-        del self._dref['dict'][key]
-        self._dref['lkey'].remove(key)
-        for kk in lkdata:
-            if key in self._ddata['dict'][kk]['refs']:
-                del self._ddata['dict'][kk]
-                self._ddata['lkey'].remove(kk)
+    def _remove_ref(self, ref=None, propagate=None):
+        """ Remove a ref (or list of refs) and all associated data """
+        if ref is None:
+            return
+        ref = _check_inputs._check_remove_ref(
+            ref=ref, dref=self._dref
+        )
+        for kk in self._dref[ref]['ldata']:
+            del self._ddata[kk]
+        del self._dref[ref]
+        if propagate is True:
+            pass
         self._complement_dgrouprefdata()
 
-    def add_data(self, key, data=None, refs=None, **kwdargs):
+    def _add_data(self, key, data=None, refs=None, **kwdargs):
         """ Add a data (all associated ref must be added first)) """
         self._set_ddata({key: dict(data=data, refs=refs, **kwdargs)})
 
-    def remove_data(self, key, propagate=True):
+    def _remove_data(self, key, propagate=True):
         """ Remove a data
 
         Any associated ref reated to this data only is removed too (useless)
@@ -592,7 +546,7 @@ class DataCollection(utils.ToFuObject):
 
     @property
     def lgroup(self):
-        """ The dict of groups """
+        """ The array of groups """
         return np.array(self._dgroup['lkey'])
 
     @property
@@ -602,7 +556,7 @@ class DataCollection(utils.ToFuObject):
 
     @property
     def lref(self):
-        """ the dict of references """
+        """ the array of references """
         return np.array(self._dref['lkey'])
 
     @property
@@ -612,12 +566,12 @@ class DataCollection(utils.ToFuObject):
 
     @property
     def ldata(self):
-        """ the dict of data """
+        """ the array of data """
         return np.array(self._ddata['lkey'])
 
     @property
     def lparam(self):
-        """ the dict of data """
+        """ the array of param """
         return np.array(self._ddata['lparam'])
 
     # ---------------------
