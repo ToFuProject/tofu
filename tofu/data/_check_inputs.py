@@ -95,6 +95,7 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
         - dict
     """
 
+    # ----------------
     # Check conformity
     ngroup = len(dgroup0)
     if ngroup == 1:
@@ -140,8 +141,7 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
     elif len(dgroup0) > 1:
         c0 = c0 and all(['group' in v0.keys() for v0 in dref.values()])
 
-    # c0 = c0 and all([v0['group'] in dgroup0.keys() for v0 in self.values()])
-
+    # Raise exception if non-conformity
     if not (c00 or c01):
         msg = (
             """
@@ -170,7 +170,7 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
         )
         raise Exception(msg)
 
-
+    # ----------------
     # Convert if necessary
     if c01:
         dref = {
@@ -184,16 +184,26 @@ def _check_dref(dref=None, dref0=None, dgroup0=None):
         dgroup0.update(_check_dgroup(lgroups, dgroup0=dgroup0))
 
     # Check groups
-    for k0, v0 in dref.items():
-        if 'group' not in v0.keys():
-            if ngroup == 1:
-                dref[k0]['group'] = groupref
-            else:
-                msg = ("")
-        else:
-            if v0['group'] not in dgroup0.keys():
-                msg = ("")
-                raise Exception(msg)
+    lnogroup = [k0 for k0, v0 in dref.items() if 'group' not in v0.keys()]
+    if ngroup == 1:
+        for k0 in lnogroup:
+            dref[k0]['group'] = groupref
+
+    else:
+        if len(lnogroup) > 0:
+            msg = (
+                """
+                The following refs have no assigned group:
+                {}
+
+                The available groups are:
+                {}
+                """.format(
+                    '\t- ' + '\n\t- '.join(lnogroup),
+                    '\t- ' + '\n\t- '.join(sorted(dgroup0.keys())),
+                )
+            )
+            raise Exception(msg)
 
     # Add data if relevant   TBF
     for k0, v0 in dref.items():
