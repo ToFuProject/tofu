@@ -1811,8 +1811,8 @@ def test24_is_visible(debug=2):
                      shot=0,
                      Lim=SL2)
         config = tfg.Config(Name="test",
-                        Exp="Misc",
-                        lStruct=[ves, s1, s2, s3])
+                            Exp="Misc",
+                            lStruct=[ves, s1, s2, s3])
         config.set_colors_random()  # to see different colors
         fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
@@ -1824,7 +1824,7 @@ def test24_is_visible(debug=2):
         markers = ["o", "*", "^", "s", "p", "v"]
         for ii in range(npts):
             _ = ax2.plot(others[0, ii], others[1, ii],
-                        markers[ii], label="pt"+str(ii), ms=5)
+                         markers[ii], label="pt"+str(ii), ms=5)
             _ = ax.plot(np.sqrt(others[0, ii]**2 + others[1, ii]**2),
                         others[2, ii], markers[ii], ms=5, label="pt"+str(ii))
             # plotting rays for better viz
@@ -1838,7 +1838,6 @@ def test24_is_visible(debug=2):
                     markers[ii], ms=5, label="pointt")
         ax.legend()
         fig.savefig("test2")
-        assert(1==2)
 
     pt_x = np.r_[2, 6.0, -.5, 4.0, -.5, 6.5]
     pt_y = np.r_[7, 2.0, 7.4, 3.5, 6.5, 6.5]
@@ -1850,7 +1849,7 @@ def test24_is_visible(debug=2):
     pts2[2, :] = pt_z
     others = np.zeros((3, 4))
     others[:, 0:2] = pts2[:, 0:2]
-    others[:, 2:]  = pts2[:, 3:5]
+    others[:, 2:] = pts2[:, 3:5]
 
     are_vis = GG.LOS_areVis_PtsFromPts_VesStruct(pts2,
                                                  others,
@@ -1868,11 +1867,11 @@ def test24_is_visible(debug=2):
                                                  lstruct_normy=lsviny,
                                               ves_type='Tor', test=True)
     assert np.allclose(are_vis, [[True, False, False, True],
-                                 [False, True, False, False],
-                                 [True, False, False, False],
-                                 [True, False, True, True],
-                                 [True, False, False, True],
-                                 [True, True, True, True]])
+                                [False, True, False, False],
+                                [True, False, False, False],
+                                [True, False, True, True],
+                                [True, False, False, True],
+                                [True, True, True, True]])
     assert(np.shape(are_vis) == (npts2, 4))
 
     dist = np.zeros((npts2, 4))
@@ -1881,11 +1880,11 @@ def test24_is_visible(debug=2):
             xdiff = (pts2[0, i] - others[0, j])**2
             ydiff = (pts2[1, i] - others[1, j])**2
             zdiff = (pts2[2, i] - others[2, j])**2
-            dist[i,j] = np.sqrt(xdiff + ydiff + zdiff)
+            dist[i, j] = np.sqrt(xdiff + ydiff + zdiff)
 
     are_vis = GG.LOS_areVis_PtsFromPts_VesStruct(pts2,
                                                  others,
-                                                 dist = dist,
+                                                 dist=dist,
                                                  ves_poly=VP,
                                                  ves_norm=VIn,
                                                  ves_lims=None,
@@ -1913,9 +1912,9 @@ def test24_is_visible(debug=2):
         markers = ["o", "*", "^", "s", "p", "v"]
         for ii in range(npts2):
             _ = ax2.plot(pts2[0, ii], pts2[1, ii],
-                        markers[ii], label="pt"+str(ii), ms=5)
+                         markers[ii], label="pt"+str(ii), ms=5)
             _ = ax.plot(np.sqrt(pts2[0, ii]**2 + pts2[1, ii]**2), pts2[2, ii],
-                         markers[ii], ms=5, label="pt"+str(ii))
+                        markers[ii], ms=5, label="pt"+str(ii))
         _ = ax2.plot([pts2[0, 0], pts2[0, 1]],
                      [pts2[1, 0], pts2[1, 1]])
         _ = ax.plot([np.sqrt(pts2[0, 0]**2 + pts2[1, 0]**2),
