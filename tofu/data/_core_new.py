@@ -54,9 +54,6 @@ class DataCollection(utils.ToFuObject):
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
-             'dgroup': ['lref'],
-             'dref':   ['group', 'size', 'ldata'],
-             'ddata':  ['refs', 'shape', 'groups', 'data'],
              'params': {'origin': (str, 'unknown'),
                         'dim':    (str, 'unknown'),
                         'quant':  (str, 'unknown'),
@@ -69,9 +66,12 @@ class DataCollection(utils.ToFuObject):
         _allowed_groups = None
     _dallowed_params = None
 
-    _reserved_all = _ddef['dgroup'] + _ddef['dref'] + _ddef['ddata']
     _show_in_summary_core = ['shape', 'refs', 'groups']
     _show_in_summary = 'all'
+
+    _dgroup = {}
+    _dref = {}
+    _ddata = {}
 
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
@@ -83,14 +83,20 @@ class DataCollection(utils.ToFuObject):
         # cls._dplot = copy.deepcopy(Struct._dplot)
         # cls._set_color_ddef(cls._color)
 
-    def __init__(self, dref=None, ddata=None,
-                 Id=None, Name=None,
-                 fromdict=None, SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude):
+    def __init__(
+        self,
+        dgroup=None,
+        dref=None,
+        ddata=None,
+        Id=None,
+        Name=None,
+        fromdict=None,
+        SavePath=os.path.abspath('./'),
+        SavePath_Include=tfpf.defInclude
+    ):
 
         # Create a dplot at instance level
         # self._dplot = copy.deepcopy(self.__class__._dplot)
-
         kwdargs = locals()
         del kwdargs['self']
         # super()
@@ -100,9 +106,9 @@ class DataCollection(utils.ToFuObject):
         # Run by the parent class __init__()
         # super()
         super(DataCollection, self)._reset()
-        self._dgroup = {kd[0]: kd[1] for kd in self._get_keys_dgroup()}
-        self._dref = {kd[0]: kd[1] for kd in self._get_keys_dref()}
-        self._ddata = {kd[0]: kd[1] for kd in self._get_keys_ddata()}
+        self._dgroup = {}
+        self._dref = {}
+        self._ddata = {}
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -117,378 +123,59 @@ class DataCollection(utils.ToFuObject):
         return kwdargs
 
     ###########
-    # Get largs
-    ###########
-
-    @staticmethod
-    def _get_largs_dref():
-        largs = ['dref']
-        return largs
-
-    @staticmethod
-    def _get_largs_ddata():
-        largs = ['ddata']
-        return largs
-
-    ###########
     # Get check and format inputs
     ###########
-
-    # ---------------------
-    # Methods for checking and formatting inputs
-    # ---------------------
-
-    def _extract_known_params(self, key, dd, ref=False, group=None):
-        # Extract relevant parameters
-        dparams = {kk: vv for kk, vv in dd.items()
-                   if kk not in self._reserved_all}
-
-        if ref and group is not None and self._dallowed_params is not None:
-            defpars = self._dallowed_params[group]
-        else:
-            defpars = self._ddef['params']
-
-        # Add minimum default parameters if not already included
-        for kk, vv in defpars.items():
-            if kk not in dparams.keys():
-                dparams[kk] = vv[1]
-            else:
-                # Check type if already included
-                if not isinstance(dparams[kk], vv[0]):
-                    vtyp = str(type(vv[0]))
-                    msg = "A parameter for %s has the wrong type:\n"%key
-                    msg += "    - Provided: type(%s) = %s\n"%(kk, vtyp)
-                    msg += "    - Expected %s"%str(self._ddef['params'][kk][0])
-                    raise Exception(msg)
-        return dparams
-
-    def _checkformat_dref(self, dref):
-        _check_inputs._check_dref(dref)
-
-    def _checkformat_ddata(self, ddata):
-        c0 = isinstance(ddata, dict)
-        c0 = c0 and all([isinstance(kk, str) for kk in ddata.keys()])
-        if not c0:
-            msg = "Provided ddata must be dict !\n"
-            msg += "All its keys must be str !"
-            raise Exception(msg)
-
-        # Start check on each key
-        for kk, vv in ddata.items():
-
-            # Check key unicity
-            if kk in self._ddata['lkey']:
-                msg = "key '%s' already used !\n"%kk
-                msg += "  => each key must be unique !"
-                raise Exception(msg)
-
-            # Check value is a dict with proper keys
-            if not isinstance(vv, dict):
-                vv = {'data': vv}
-            if 'data' not in vv.keys():
-                msg = "ddata must contain dict with at least the keys:\n"
-                msg += "    - 'refs': a tuple indicating refs dependencies\n"
-                msg += "    - 'data': a 1d array containing the data"
-                raise Exception(msg)
-
-            # Extract data and shape
-            data = vv['data']
-            if not isinstance(data, np.ndarray):
-                if isinstance(data, list) or isinstance(data, tuple):
-                    try:
-                        data = np.asarray(data)
-                        shape = data.shape
-                    except Exception as err:
-                        assert type(data) in [list, tuple]
-                        shape = (len(data),)
-                else:
-                    shape = data.__class__.__name__
-            else:
-                data = np.atleast_1d(np.squeeze(data))
-                shape = data.shape
-
-            # Check if refs, or try to identify
-            c0 = 'refs' in vv.keys() and isinstance(vv['refs'], tuple)
-            if not c0:
-                lr = [(rr, shape.index(vr['size']))
-                      for rr, vr in self._dref['dict'].items()
-                      if vr['size'] in shape]
-                if len(lr) == len(shape):
-                    order = np.argsort([rr[1] for rr in lr])
-                    vv['refs'] = tuple(lr[order[ii]][0] for ii in range(len(lr)))
-                else:
-                    msg = "The refs of ddata[%s] not found automatically\n"%kk
-                    msg += "  => Too many / not enough refs with good size\n"
-                    msg += "    - shape  = %s\n"%str(shape)
-                    msg += "    - available ref sizes:"
-                    msg += "\n        "
-                    msg += "\n        ".join([rr + ': ' + str(vv['size'])
-                                              for rr, vv
-                                              in self._dref['dict'].items()])
-                    raise Exception(msg)
-
-            # Check proper ref (existence and shape / size)
-            for ii, rr in enumerate(vv['refs']):
-                if rr not in self._dref['lkey']:
-                    msg = "ddata[%s] depends on an unknown ref !\n"%kk
-                    msg += "    - ddata[%s]['refs'] = %s\n"%(kk, rr)
-                    msg += "  => %s not in self.dref !\n"%rr
-                    msg += "  => self.add_ref( %s ) first !"%rr
-                    raise Exception(msg)
-            shaprf = tuple(self._dref['dict'][rr]['size'] for rr in vv['refs'])
-            if not shape == shaprf:
-                msg = "Inconsistency between data shape and ref size !\n"
-                msg += "    - ddata[%s]['data'] shape: %s\n"%(kk, str(shape))
-                msg += "    - sizes of refs: %s"%(str(shaprf))
-                raise Exception(msg)
-
-            # Extract params and set self._ddata
-            dparams = self._extract_known_params(kk, vv)
-            self._ddata['dict'][kk] = dict(data=data, refs=vv['refs'],
-                                           shape=shape, **dparams)
-            self._ddata['lkey'].append(kk)
-
-    def _complement_dgrouprefdata(self):
-
-        # --------------
-        # ddata
-        assert len(self._ddata['lkey']) == len(self._ddata['dict'].keys())
-        for k0 in self._ddata['lkey']:
-            v0 = self._ddata['dict'][k0]
-
-            # Check all ref are in dref
-            lrefout = [ii for ii in v0['refs'] if ii not in self._dref['lkey']]
-            if len(lrefout) != 0:
-                msg = "ddata[%s]['refs'] has keys not in dref:\n"%k0
-                msg += "    - " + "\n    - ".join(lrefout)
-                raise Exception(msg)
-
-            # set group
-            grps = tuple(self._dref['dict'][rr]['group'] for rr in v0['refs'])
-            gout = [gg for gg in grps if gg not in self._dgroup['lkey']]
-            if len(gout) > 0:
-                lg = self._dgroup['lkey']
-                msg = "Inconsistent grps from self.ddata[%s]['refs']:\n"%k0
-                msg += "    - grps = %s\n"%str(grps)
-                msg += "    - self._dgroup['lkey'] = %s\n"%str(lg)
-                msg += "    - self.dgroup.keys() = %s"%str(self.dgroup.keys())
-                raise Exception(msg)
-            self._ddata['dict'][k0]['groups'] = grps
-
-        # --------------
-        # dref
-        for k0 in self._dref['lkey']:
-            ldata = [kk for kk in self._ddata['lkey']
-                     if k0 in self._ddata['dict'][kk]['refs']]
-            self._dref['dict'][k0]['ldata'] = ldata
-            assert self._dref['dict'][k0]['group'] in self._dgroup['lkey']
-
-        # --------------
-        # dgroup
-        for gg in self._dgroup['lkey']:
-            vg = self._dgroup['dict'][gg]
-            lref = [rr for rr in self._dref['lkey']
-                    if self._dref['dict'][rr]['group'] == gg]
-            ldata = [dd for dd in self._ddata['lkey']
-                     if any([dd in self._dref['dict'][vref]['ldata']
-                             for vref in lref])]
-            # assert vg['depend'] in lidindref
-            self._dgroup['dict'][gg]['lref'] = lref
-            self._dgroup['dict'][gg]['ldata'] = ldata
-
-        if self._forced_group is not None:
-            if len(self.lgroup) != 1 or self.lgroup[0] != self._forced_group:
-                msg = "The only allowed group is %s"%self._forced_group
-                raise Exception(msg)
-        if self._allowed_groups is not None:
-            if any([gg not in self._allowed_groups for gg in self.lgroup]):
-                msg = "Some groups are not allowed:\n"
-                msg += "    - provided: %s\n"%str(self.lgroup)
-                msg += "    - allowed:  %s"%str(self._allowed_groups)
-                raise Exception(msg)
-
-        # --------------
-        # params
-        lparam = self._ddata['lparam']
-        for kk in self._ddata['lkey']:
-            for pp in self._ddata['dict'][kk].keys():
-                if pp not in self._reserved_all and pp not in lparam:
-                    lparam.append(pp)
-
-        for kk in self._ddata['lkey']:
-            for pp in lparam:
-                if pp not in self._ddata['dict'][kk].keys():
-                    self._ddata['dict'][kk][pp] = None
-        self._ddata['lparam'] = lparam
-
-    ###########
-    # Get keys of dictionnaries
-    ###########
-
-    @staticmethod
-    def _get_keys_dgroup():
-        lk = [('lkey', []), ('dict', {})]
-        return lk
-
-    @staticmethod
-    def _get_keys_dref():
-        lk = [('lkey', []), ('dict', {})]
-        return lk
-
-    @staticmethod
-    def _get_keys_ddata():
-        lk = [('lkey', []), ('dict', {}), ('lparam', [])]
-        return lk
 
     ###########
     # _init
     ###########
 
-    def _init(self, dref=None, ddata=None, **kwargs):
-        kwdargs = dict(dref=dref, ddata=ddata, **kwargs)
-        largs = self._get_largs_dref()
-        kwddref = self._extract_kwdargs(kwdargs, largs)
-        self._set_dref(complement=False, **kwddref)
-        largs = self._get_largs_ddata()
-        kwddata = self._extract_kwdargs(kwdargs, largs)
-        self._set_ddata(**kwddata)
+    def _init(self, dgroup=None, dref=None, ddata=None, **kwargs):
+        self._setadd_all(dgroup=dgroup, dref=dref, ddata=ddata)
         self._dstrip['strip'] = 0
 
     ###########
     # set dictionaries
     ###########
 
-    def _set_dgroup(self, dgroup=None, complement=None):
-        """ Can be used to add / set group / groups / drgoup
+    def _setadd_all(self, ddata=None, dref=None, dgroup=None):
+        """ Can be used to set/add data/ref/group
 
         Will update existing attribute with new dict
         """
-        # Check and set
-        dgroup = _check_inputs._check_dgroup(
-            dgroup=group,
-            dgroup0=self._dgroup
-        )
-        self._dgroup.update(dgroup)
-
-        # Complement
-        if complement is None:
-            complement = True
-        if complement is True:
-            _check_input._complement_dgrouprefdata(
-                dgroup=self._dgroup,
-                dref=self._dref,
-                ddata=self._ddata,
-            )
-
-    def _set_dref(self, dref=None, complement=True):
-        """ Can be used to add / set group / groups / dref
-
-        Will update existing attribute with new dict
-        """
-        # Check and set
-        dref = _check_inputs._check_dref(
-            dref=dref,
-            dref0=self._dref,
-            dgroup0=self._dgroup,
-        )
-
-        # Complement
-        if complement is None:
-            complement = True
-        if complement:
-            _check_input._complement_dgrouprefdata(
-                dgroup=self._dgroup,
-                dref=self._dref,
-                ddata=self._ddata,
-            )
-
-    # TBF
-    def _set_ddata(self, ddata=None):
-        """ Can be used to add / set group / groups / dref
-
-        Will update existing attribute with new dict
-        """
-        ddata= _check_inputs._check_ddata(
+        # Check consistency
+        self._dgroup, self._dref, self._ddata = _check_inputs._consistency(
             ddata=ddata, ddata0=self._ddata,
-            dref0=self._dref, dgroup0=self._dgroup,
-        )
-        _check_input._complement_dgrouprefdata(
-            dgroup=self._dgroup,
-            dref=self._dref,
-            ddata=self._ddata,
+            dref=dref, ddata0=self._dref,
+            dgroup=dgroup, ddata0=self._dgroup,
         )
 
     # ---------------------
     # Methods for adding / removing group / ref / quantities
     # ---------------------
 
-    def _add_group(self, group=None):
-        """ Add a group (or list of groups) """
-        if group is None:
-            return
-        self._set_dgroup(dgroup=group)
-
     def _remove_group(self, group=None):
         """ Remove a group (or list of groups) and all associated ref, data """
-        if group is None:
-            return
-        group = _check_inputs._check_remove_group(
-            group=group, dgroup=self._dgroup
+        self._dgroup, self._dref, self._ddata = _check_inputs._remove_group(
+            group=group,
+            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
         )
-        # TBF
-        lkref = []
-        lkdata = []
-        for kk in lkdata:
-            del self._ddata[kk]
-        for kk in lkref:
-            del self._dref[kk]
-        del self._dgroup[group]
 
-
-    def _add_ref(self, ref, data=None, group=None, **kwdargs):
-        """ Add a reference """
-        if ref is None:
-            return
-        self._set_dref({key: dict(data=data, group=group, **kwdargs)})
-
-    def _remove_ref(self, ref=None, propagate=None):
+    def _remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
-        if ref is None:
-            return
-        ref = _check_inputs._check_remove_ref(
-            ref=ref, dref=self._dref
+        self._dgroup, self._dref, self._ddata = _check_inputs._remove_ref(
+            key=key,
+            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+            propagate=propagate,
         )
-        for kk in self._dref[ref]['ldata']:
-            del self._ddata[kk]
-        del self._dref[ref]
-        if propagate is True:
-            pass
-        self._complement_dgrouprefdata()
-
-    def _add_data(self, key, data=None, refs=None, **kwdargs):
-        """ Add a data (all associated ref must be added first)) """
-        self._set_ddata({key: dict(data=data, refs=refs, **kwdargs)})
 
     def _remove_data(self, key, propagate=True):
-        """ Remove a data
-
-        Any associated ref reated to this data only is removed too (useless)
-
-        """
-        if key in self._dref.keys():
-            self.remove_ref(key)
-        else:
-            assert key in self._ddata['dict'].keys()
-            if propagate:
-                # Check if associated ref shall be removed too
-                lref = self._ddata['dict'][key]['refs']
-                for kref in lref:
-                    # Remove if key was the only associated data
-                    if self._dref['dict'][kref]['ldata'] == [key]:
-                        self.remove_ref(kref)
-            del self._ddata['dict'][key]
-            self._ddata['lkey'].remove(key)
-        self._complement_dgrouprefdata()
+        """ Remove a data (or list of data) """
+        self._dgroup, self._dref, self._ddata = _check_inputs._remove_data(
+            key=key,
+            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+            propagate=propagate,
+        )
 
     ###########
     # strip dictionaries
@@ -535,44 +222,24 @@ class DataCollection(utils.ToFuObject):
     ###########
 
     @property
-    def dconfig(self):
-        """ The dict of configs """
-        return self._dconfig
-
-    @property
     def dgroup(self):
         """ The dict of groups """
-        return self._dgroup['dict']
-
-    @property
-    def lgroup(self):
-        """ The array of groups """
-        return np.array(self._dgroup['lkey'])
+        return self._dgroup
 
     @property
     def dref(self):
         """ the dict of references """
-        return self._dref['dict']
-
-    @property
-    def lref(self):
-        """ the array of references """
-        return np.array(self._dref['lkey'])
+        return self._dref
 
     @property
     def ddata(self):
         """ the dict of data """
-        return self._ddata['dict']
+        return self._ddata
 
     @property
-    def ldata(self):
-        """ the array of data """
-        return np.array(self._ddata['lkey'])
-
-    @property
-    def lparam(self):
-        """ the array of param """
-        return np.array(self._ddata['lparam'])
+    def dparams(self):
+        """ Return a dict of params """
+        return _check_inputs._get_dparams(ddata0=self._ddata)
 
     # ---------------------
     # Add / remove params
