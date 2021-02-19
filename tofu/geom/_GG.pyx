@@ -1099,7 +1099,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
     indI = np.sort(indI, axis=1)
     indi_mv = indI
-    first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
+    first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
     _st.vmesh_double_loop(first_ind_mv, indi_mv,
                           is_cart, sz_r,
                           sz_z, lindex_z,
@@ -1501,7 +1501,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         ptsCross, dLr, indL, Rref = ptsCross[:,indin], dLr[indin], \
           indL[indin], Rref[indin]
         Ln = indin.sum()
-        Indin = indin.nonzero()[0].astype(np.long)
+        Indin = indin.nonzero()[0].astype(int)
 
         dRPhir, dPhir = np.empty((Ln,)), np.empty((Ln,))
         Phin = np.zeros((Ln,),dtype=int)
@@ -1588,7 +1588,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     ind[NP] = NRPhi0[ii] + indiijj
                     dS[NP] = dLr[ii]*dRPhir[ii]
                     NP += 1
-        indok = (~np.isnan(ind)).nonzero()[0].astype(np.long)
+        indok = (~np.isnan(ind)).nonzero()[0].astype(int)
         ind = ind[indok]
         dS = dS[indok]
         if len(indok)==1:
@@ -2120,7 +2120,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
     LPts, LdS = [], []
     # First face
-    ii = (ind<NY0*NZ0).nonzero()[0].astype(np.long)
+    ii = (ind<NY0*NZ0).nonzero()[0].astype(int)
     nii = len(ii)
     if nii>0:
         indZ0 = ind[ii] // NY0
@@ -2132,7 +2132,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         LdS.append( dY0r*dZ0r*np.ones((nii,)) )
 
     # Cylinder
-    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(np.long)
+    ii = ((ind>=NY0*NZ0) & (ind<NY0*NZ0+NX*Ln)).nonzero()[0].astype(int)
     nii = len(ii)
     if nii>0:
         indX = (ind[ii]-NY0*NZ0) // Ln
@@ -2145,7 +2145,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
             LdS.append( dXr*dLr[indL] )
 
     # End face
-    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(np.long)
+    ii = (ind >= NY0*NZ0+NX*Ln).nonzero()[0].astype(int)
     nii = len(ii)
     if nii>0:
         indZ0 = (ind[ii]-NY0*NZ0-NX*Ln) // NY0
@@ -2552,7 +2552,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     np.ndarray[double, ndim=2,mode='c'] pts2,
                                     double[:, ::1] ves_poly=None,
                                     double[:, ::1] ves_norm=None,
-                                    double[:, ::1] k=None,
+                                    double[:, ::1] dist=None,
                                     double[::1] ves_lims=None,
                                     long[::1] lstruct_nlim=None,
                                     double[::1] lstruct_polyx=None,
@@ -2575,16 +2575,28 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     Return an array of booleans indicating whether each point in pts1 is
     visible from each point in pts2 considering vignetting a given
     configuration.
-        `k` optional argument : distance between the points pts1, pts2
-        ray_orig = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
-        ray_vdir = (pts-ray_orig)/k
+        pts1 : (3, npts) cartesian coordinates of viewing points
+        pts2 : (3, npts) cartesian coordinates of points to check if viewable
+        dist : optional argument : distance between the points pts1, pts2
+        ves_* : vessel descriptors (poly, norm, limits)
+        lstruct_* : config's structure descriptors (poly, limits, norms,
+                    number of structures, ...)
+        eps_* : values of precision in each direction
+        forbid : boolean if true forbids checking "behind" the tokamak
+        test : boolean check if input is valid or not
+        num_threads : number of threads for parallelization
+    Output:
+        are_seen: (npts1, npts2) array of ints indicating if viewing points pts1
+                  can see the other points pts2.
+                  are_seen[i,j] = 1 if pts1[i] sees point pts2[j]
+                                  0 else
     """
     cdef str msg
     cdef int npts1=pts1.shape[1]
     cdef int npts2=pts2.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[double, ndim=2, mode='c'] ind  = np.empty((npts1, npts2),
-                                                              dtype=float)
+    cdef np.ndarray[double, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
+                                                                  dtype=float)
     # == Testing inputs ========================================================
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
@@ -2608,7 +2620,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
-                            ind, k, ves_lims,
+                            are_seen, dist, ves_lims,
                             lstruct_nlim,
                             lstruct_polyx, lstruct_polyy,
                             lstruct_lims,
@@ -2617,14 +2629,14 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                             rmin, eps_uz, eps_a, eps_vz, eps_b,
                             eps_plane, ves_type.lower(),
                             forbid, test, num_threads)
-    return ind
+    return are_seen
 
 
 def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                   np.ndarray[double, ndim=2,mode='c'] pts,
+                                  double[::1] dist=None,
                                   double[:, ::1] ves_poly=None,
                                   double[:, ::1] ves_norm=None,
-                                  double[::1] k=None,
                                   double[::1] ves_lims=None,
                                   long[::1] lstruct_nlim=None,
                                   double[::1] lstruct_polyx=None,
@@ -2646,14 +2658,28 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     Return an array of booleans indicating whether each point in pts is
     visible from the point P = [pt0, pt1, pt2] considering vignetting a given
     configuration.
-        `k` optional argument : distance between points and P
-        ray_orig = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
-        ray_vdir = (pts-ray_orig)/k
+        pt0 : x - coordinate of the viewing point P
+        pt1 : y - coordinate of the viewing point P
+        pt2 : z - coordinate of the viewing point P
+        pts : (3, npts) cartesian coordinates of points to check if viewable
+        dist : optional argument : distance between points and P
+        ves_* : vessel descriptors (poly, norm, limits)
+        lstruct_* : config's structure descriptors (poly, limits, norms,
+                    number of structures, ...)
+        eps_* : values of precision in each direction
+        forbid : boolean if true forbids checking "behind" the tokamak
+        test : boolean check if input is valid or not
+        num_threads : number of threads for parallelization
+    Output:
+        is_seen: (npts1) array of ints indicating if viewing point P
+                 can see the other points pts.
+                 is_seen[i] = 1 if P sees point pts[i]
+                              0 else
     """
     cdef str msg
     cdef int npts=pts.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[double, ndim=1, mode='c'] ind = np.empty((npts),
+    cdef np.ndarray[double, ndim=1, mode='c'] is_seen = np.empty((npts),
                                                              dtype=float)
     # == Testing inputs ========================================================
     if test:
@@ -2678,7 +2704,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
-                          ind, k, ves_lims,
+                          is_seen, dist, ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,
@@ -2687,7 +2713,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                           rmin, eps_uz, eps_a, eps_vz, eps_b,
                           eps_plane, ves_type.lower(),
                           forbid, test, num_threads)
-    return ind
+    return is_seen
 
 # ==============================================================================
 #
