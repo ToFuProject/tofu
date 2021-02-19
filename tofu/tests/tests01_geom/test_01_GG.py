@@ -1706,14 +1706,15 @@ def test23_vignetting():
     assert np.allclose(out, [False, True, False, False,  True,
                              True, False, True, False, False])
 
+
 def test24_is_visible(debug=2):
     from matplotlib import pyplot as plt
     import tofu.geom as tfg
 
-    # -- Vessel creation -------------------------------------------------------
+    # -- Vessel creation ------------------------------------------------------
     VP = np.array([[6., 8., 8., 6., 6.], [6., 6., 8., 8., 6.]])
     VIn = np.array([[0., -1., 0., 1.], [1., 0., -1., 0.]])
-    # -- Structures ------------------------------------------------------------
+    # -- Structures -----------------------------------------------------------
     SP0x = [6., 6.5, 6.5, 6., 6.]
     SP0y = [6., 6., 6.5, 6.5, 6.]
     SP1x = [7.5, 8., 8., 7.5, 7.5]
@@ -1721,7 +1722,7 @@ def test24_is_visible(debug=2):
     SP2x = [6.75, 7.25, 7.25, 6.75, 6.75]
     SP2y = [6.75, 6.75, 7.25, 7.25, 6.75]
     nstruct_lim = 3
-    nstruct_tot = 1 + 2 + 1 # structs: limitless, 2 limits, 1 limit
+    nstruct_tot = 1 + 2 + 1  # structs: limitless, 2 limits, 1 limit
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
     lnvert = np.cumsum(np.ones(nstruct_tot, dtype=int)*5)
@@ -1733,7 +1734,7 @@ def test24_is_visible(debug=2):
     SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]])
     SL2 = np.asarray([np.array([0.5,3./2.])*np.pi])
     lstruct_nlim = np.array([0, 2, 1])
-    # -- Points ----------------------------------------------------------------
+    # -- Points ---------------------------------------------------------------
     # First point (in the center of poloidal plane
     pt0 = 8.
     pt1 = -2.
@@ -1748,7 +1749,7 @@ def test24_is_visible(debug=2):
     others[0,:] = other_x
     others[1,:] = other_y
     others[2,:] = other_z
-    point = np.r_[pt0,pt1,pt2]
+    point = np.r_[pt0, pt1, pt2]
     is_vis = GG.LOS_isVis_PtFromPts_VesStruct(pt0, pt1, pt2,
                                               others,
                                               ves_poly=VP,
@@ -1760,13 +1761,13 @@ def test24_is_visible(debug=2):
                                               lstruct_polyx=lspolyx,
                                               lstruct_polyy=lspolyy,
                                               lstruct_nlim=lstruct_nlim,
-                                              lstruct_lims=[SL0,SL1,SL2],
+                                              lstruct_lims=[SL0, SL1, SL2],
                                               lstruct_normx=lsvinx,
                                               lstruct_normy=lsviny,
                                               ves_type='Tor', test=True)
     assert np.allclose(is_vis, [False, True, True, False])
     distance = np.sqrt(np.sum((others - np.tile(point,
-                                                (npts,1)).T)**2,
+                                                (npts, 1)).T)**2,
                               axis=0))
     is_vis = GG.LOS_isVis_PtFromPts_VesStruct(pt0, pt1, pt2,
                                               others,
@@ -1780,7 +1781,7 @@ def test24_is_visible(debug=2):
                                               lstruct_polyx=lspolyx,
                                               lstruct_polyy=lspolyy,
                                               lstruct_nlim=lstruct_nlim,
-                                              lstruct_lims=[SL0,SL1,SL2],
+                                              lstruct_lims=[SL0, SL1, SL2],
                                               lstruct_normx=lsvinx,
                                               lstruct_normy=lsviny,
                                               ves_type='Tor', test=True)
@@ -1790,22 +1791,22 @@ def test24_is_visible(debug=2):
         # Visualisation:
         ves = tfg.Ves(
             Name="DebugVessel",
-            Poly=VP[:,:-1],
+            Poly=VP[:, :-1],
             Type="Tor",
             Exp="Misc",
             shot=0
         )
         s1 = tfg.PFC(Name="S1",
-                     Poly=[SP0x,SP0y],
+                     Poly=[SP0x, SP0y],
                      Exp="Misc",
                      shot=0)
         s2 = tfg.PFC(Name="S2",
-                     Poly=[SP1x,SP1y],
+                     Poly=[SP1x, SP1y],
                      Exp="Misc",
                      shot=0,
                      Lim=SL1)
         s3 = tfg.PFC(Name="S3",
-                     Poly=[SP2x,SP2y],
+                     Poly=[SP2x, SP2y],
                      Exp="Misc",
                      shot=0,
                      Lim=SL2)
@@ -1813,7 +1814,7 @@ def test24_is_visible(debug=2):
                         Exp="Misc",
                         lStruct=[ves, s1, s2, s3])
         config.set_colors_random()  # to see different colors
-        fig = plt.figure(figsize=(14,8))
+        fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
         config.plot(lax=ax, proj='cross')
         ax2 = plt.subplot(122)
@@ -1822,16 +1823,16 @@ def test24_is_visible(debug=2):
     if debug == 1:
         markers = ["o", "*", "^", "s", "p", "v"]
         for ii in range(npts):
-            _ = ax2.plot(others[0,ii], others[1,ii],
+            _ = ax2.plot(others[0, ii], others[1, ii],
                         markers[ii], label="pt"+str(ii), ms=5)
-            _ = ax.plot(np.sqrt(others[0,ii]**2 + others[1,ii]**2), others[2,ii],
-                         markers[ii], ms=5, label="pt"+str(ii))
+            _ = ax.plot(np.sqrt(others[0, ii]**2 + others[1, ii]**2),
+                        others[2, ii], markers[ii], ms=5, label="pt"+str(ii))
             # plotting rays for better viz
-            _ = ax2.plot([point[0], others[0,ii]],
-                         [point[1], others[1,ii]])
+            _ = ax2.plot([point[0], others[0, ii]],
+                         [point[1], others[1, ii]])
             _ = ax.plot([np.sqrt(point[0]**2 + point[1]**2),
-                         np.sqrt(others[0,ii]**2 + others[1,ii]**2)],
-                        [point[2], others[2,ii]])
+                         np.sqrt(others[0, ii]**2 + others[1, ii]**2)],
+                        [point[2], others[2, ii]])
         _ = ax2.plot(point[0], point[1], markers[ii], label="pointt", ms=5)
         _ = ax.plot(np.sqrt(point[0]**2 + point[1]**2), point[2],
                     markers[ii], ms=5, label="pointt")
@@ -1844,9 +1845,9 @@ def test24_is_visible(debug=2):
     pt_z = np.r_[7, 7.5, 6.5, 3.0, 7.5, 6.5]
     npts2 = len(pt_x)
     pts2 = np.zeros((3, npts2))
-    pts2[0,:] = pt_x
-    pts2[1,:] = pt_y
-    pts2[2,:] = pt_z
+    pts2[0, :] = pt_x
+    pts2[1, :] = pt_y
+    pts2[2, :] = pt_z
     others = np.zeros((3, 4))
     others[:, 0:2] = pts2[:, 0:2]
     others[:, 2:]  = pts2[:, 3:5]
@@ -1872,7 +1873,7 @@ def test24_is_visible(debug=2):
                                  [True, False, True, True],
                                  [True, False, False, True],
                                  [True, True, True, True]])
-    assert(np.shape(are_vis) == (npts2,4))
+    assert(np.shape(are_vis) == (npts2, 4))
 
     dist = np.zeros((npts2, 4))
     for i in range(npts2):
@@ -1904,22 +1905,22 @@ def test24_is_visible(debug=2):
                                  [True, False, True, True],
                                  [True, False, False, True],
                                  [True, True, True, True]])
-    assert(np.shape(are_vis) == (npts2,4))
+    assert(np.shape(are_vis) == (npts2, 4))
 
     if debug == 2:
         print(pts2)
         print(others)
         markers = ["o", "*", "^", "s", "p", "v"]
         for ii in range(npts2):
-            _ = ax2.plot(pts2[0,ii], pts2[1,ii],
+            _ = ax2.plot(pts2[0, ii], pts2[1, ii],
                         markers[ii], label="pt"+str(ii), ms=5)
-            _ = ax.plot(np.sqrt(pts2[0,ii]**2 + pts2[1,ii]**2), pts2[2,ii],
+            _ = ax.plot(np.sqrt(pts2[0, ii]**2 + pts2[1, ii]**2), pts2[2, ii],
                          markers[ii], ms=5, label="pt"+str(ii))
-        _ = ax2.plot([pts2[0,0], pts2[0,1]],
-                     [pts2[1,0], pts2[1,1]])
-        _ = ax.plot([np.sqrt(pts2[0,0]**2 + pts2[1,0]**2),
-                     np.sqrt(pts2[0,1]**2 + pts2[1,1]**2)],
-                    [pts2[2,0],pts2[2,1]])
+        _ = ax2.plot([pts2[0, 0], pts2[0, 1]],
+                     [pts2[1, 0], pts2[1, 1]])
+        _ = ax.plot([np.sqrt(pts2[0, 0]**2 + pts2[1, 0]**2),
+                     np.sqrt(pts2[0, 1]**2 + pts2[1, 1]**2)],
+                    [pts2[2, 0],pts2[2, 1]])
         ax.legend()
         fig.savefig("test2")
 
