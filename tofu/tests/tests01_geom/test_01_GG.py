@@ -1865,13 +1865,13 @@ def test24_is_visible(debug=2):
                                                  lstruct_lims=[SL0, SL1, SL2],
                                                  lstruct_normx=lsvinx,
                                                  lstruct_normy=lsviny,
-                                              ves_type='Tor', test=True)
+                                                 ves_type='Tor', test=True)
     assert np.allclose(are_vis, [[True, False, False, True],
-                                [False, True, False, False],
-                                [True, False, False, False],
-                                [True, False, True, True],
-                                [True, False, False, True],
-                                [True, True, True, True]])
+                                 [False, True, False, False],
+                                 [True, False, False, False],
+                                 [True, False, True, True],
+                                 [True, False, False, True],
+                                 [True, True, True, True]])
     assert(np.shape(are_vis) == (npts2, 4))
 
     dist = np.zeros((npts2, 4))
@@ -1919,7 +1919,7 @@ def test24_is_visible(debug=2):
                      [pts2[1, 0], pts2[1, 1]])
         _ = ax.plot([np.sqrt(pts2[0, 0]**2 + pts2[1, 0]**2),
                      np.sqrt(pts2[0, 1]**2 + pts2[1, 1]**2)],
-                    [pts2[2, 0],pts2[2, 1]])
+                    [pts2[2, 0], pts2[2, 1]])
         ax.legend()
         fig.savefig("test2")
 
