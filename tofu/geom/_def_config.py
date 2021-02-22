@@ -221,7 +221,7 @@ _DCONFIG = {
     # TCV
     'TCV-V0': {
         'Exp': _ExpTCV,
-        'Ves': ['v', 't'],
+        'Ves': ['vIn', 'vOut', 't'],
         'CoilPF': [
             'A001', 'B001', 'B002',
             'B03A1', 'B03A2', 'B03A3',
