@@ -1285,7 +1285,7 @@ def calc_solidangle_particle(
         kwdargs = config._get_kwdargs_LOS_isVis()
         # TODO : modify this function along issue #102
         indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            traj, pts, k=len_v, vis=False, **kwdargs
+            traj, pts, dist=len_v, vis=False, **kwdargs
         )
         sang[indnan] = 0.0
         vect[indnan, :] = np.nan
