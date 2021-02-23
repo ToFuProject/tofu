@@ -123,8 +123,8 @@ def _check_calc_solidangle_particle(
 
 
 def calc_solidangle_particle(
-    traj=None,
     pts=None,
+    traj=None,
     rad=None,
     config=None,
     approx=None,
@@ -214,7 +214,7 @@ def calc_solidangle_particle(
         kwdargs = config.get_kwdargs_LOS_isVis()
         # Issue 471: k=len_v is a 2d array, _GG only takes 1d array...
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            traj, pts, k=None, **kwdargs
+            traj, pts, dist=len_v, **kwdargs
         )
         # Because indvis is an array of int (cf. issue 471)
         iout = indvis == 0
