@@ -149,7 +149,7 @@ def flatten_dict(d, parent_key='', sep=None, deep='ref',
                 elif deep=='copy':
                     v = v.copy(deep='copy')
             new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, collections.MutableMapping):
+            if isinstance(v, collections.abc.MutableMapping):
                 items.extend(flatten_dict(v, new_key,
                                           deep=deep, sep=sep).items())
             else:
