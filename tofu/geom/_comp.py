@@ -706,8 +706,8 @@ def _Ves_get_sampleV(
                     DR=domain[0],
                     DZ=domain[1],
                     DPhi=domain[2],
-                    VPoly=VPoly,
-                    Out=returnas,
+                    limit_vpoly=VPoly,
+                    out_format=returnas,
                     margin=margin,
                     num_threads=num_threads,
                 )
@@ -743,7 +743,7 @@ def _Ves_get_sampleV(
                 DX=domain[0],
                 DY=domain[1],
                 DZ=domain[2],
-                VPoly=VPoly,
+                limit_vpoly=VPoly,
                 margin=margin,
             )
     else:

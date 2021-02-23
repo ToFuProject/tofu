@@ -271,8 +271,8 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
                                                                  DR=[0.5, 2.],
                                                                  DZ=[0., 1.2],
                                                                  DPhi=LDPhi[ii],
-                                                                 VPoly=VPoly,
-                                                                 Out='(R,Z,Phi)',
+                                                                 limit_vpoly=VPoly,
+                                                                 out_format='(R,Z,Phi)',
                                                                  margin=1.e-9)
         assert Pts.ndim==2 and Pts.shape[0]==3
         assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and \
@@ -321,7 +321,7 @@ def test08_Ves_Vmesh_Lin(VPoly=VPoly):
                                                           DX=[8., 15.],
                                                           DY=[0.5, 2.],
                                                           DZ=[0., 1.2],
-                                                          VPoly=VPoly,
+                                                          limit_vpoly=VPoly,
                                                           margin=1.e-9)
     assert Pts.ndim==2 and Pts.shape[0]==3
     assert np.all(Pts[0,:]>=8.) and np.all(Pts[0,:]<=10.) and\
