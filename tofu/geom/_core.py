@@ -3930,7 +3930,7 @@ class Config(utils.ToFuObject):
 
         The particle has radius r, and trajectory (array of points) traj
         It is observed from pts (array of points)
-        Taking into account blocking of the field of view by structural elements
+        Takes into account blocking of the field of view by structural elements
 
         traj and pts are (3, N) and (3, M) arrays of cartesian coordinates
 
@@ -3947,25 +3947,22 @@ class Config(utils.ToFuObject):
             Array of (3, N) pts coordinates (X, Y, Z) representing the particle
             positions
         pts:        np.ndarray
-            Array of (3, M) pts coordinates (X, Y, Z) representing the points from
+            Array of (3, M) pts coordinates (X, Y, Z) representing points from
             which the particle is observed
         rad:        float / np.ndarray
             Unique of multiple values for the radius of the spherical particle
                 if multiple, rad is a np.ndarray of shape (N,)
-        config:     None / tf.geom.Config
-            if block = True, solid angles are non-zero only if the field of view is
-            not blocked bya structural element in teh chamber
         approx:     None / bool
-            Flag indicating whether to compute the solid angle using an 1st-order
-            series development (in whichcase the solid angle becomes proportional
-            to the radius of the particle, see Notes_Upgrades/)
+            Flag indicating whether to compute the solid angle using a
+            1st-order series development (in which case the solid angle becomes
+            proportional to the radius of the particle, see Notes_Upgrades/)
         aniso:      None / bool
-            Flag indicating whether to consider anisotropic emissivity, meaning the
-            routine must also compute and return the unit vector directing the flux
-            from each pts to each position on the trajectory of the particle
+            Flag indicating whether to consider anisotropic emissivity,
+            meaning the routine must also compute and return the unit vector
+            directing the flux from each pts to each position on the trajectory
         block:      None / bool
-            Flag indicating whether to check for vignetting by structural elements
-            provided by config
+            Flag indicating whether to check for vignetting by structural
+            elements provided by config
 
         Return:
         -------
