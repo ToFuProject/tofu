@@ -889,11 +889,10 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
 # ==============================================================================
 def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                    double[::1] RMinMax, double[::1] ZMinMax,
-                                   list DR=None,
-                                   list DZ=None,
-                                   DPhi=None,
-                                   double[:,::1] VPoly=None,
-                                   str Out='(X,Y,Z)', double margin=_VSMALL,
+                                   list DR=None, list DZ=None, DPhi=None,
+                                   double[:,::1] limit_vpoly=None,
+                                   str out_format='(X,Y,Z)',
+                                   double margin=_VSMALL,
                                    int num_threads=48):
     """Returns the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi).
@@ -907,8 +906,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         DR: array specifying the actual sub-volume limits to get in `r`
         DZ: array specifying the actual sub-volume limits to get in `z`
         DPhi: array specifying the actual sub-volume limits to get in `phi`
-        VPoly: array-like defining the `(R,Z)` coordinates of the poloidal cut
-            of the vessel
+        limit_vpoly: array-like defining the `(R,Z)` coordinates of the poloidal
+                     cut of the limiting flux surface
         Out(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
             coordinates
         margin(double): tolerance error.
@@ -920,7 +919,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef int r_ratio
     cdef int ind_loc_r0
     cdef int[1] max_sz_phi
-    cdef str out_low = Out.lower()
+    cdef str out_low = out_format.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
     cdef double min_phi, max_phi
     cdef double min_phi_pi
@@ -1109,15 +1108,16 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           dv_mv, reso_phi_mv, pts_mv, ind_mv,
                           num_threads)
     # If we only want to discretize the volume inside a certain flux surface
-    # describe by a VPoly:
-    if VPoly is not None:
-        npts_vpoly = VPoly.shape[1] - 1
+    # describe by a limit_vpoly:
+    if limit_vpoly is not None:
+        npts_vpoly = limit_vpoly.shape[1] - 1
         # we make sure it is closed
-        if not(abs(VPoly[0,0] - VPoly[0,npts_vpoly]) < _VSMALL
-                and abs(VPoly[1,0] - VPoly[1,npts_vpoly]) < _VSMALL):
-            poly_mv = np.concatenate((VPoly,VPoly[:,0:1]),axis=1)
+        if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
+                and abs(limit_vpoly[1, 0]
+                        - limit_vpoly[1, npts_vpoly]) < _VSMALL):
+            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
         else:
-            poly_mv = VPoly
+            poly_mv = limit_vpoly
         # initializations:
         res_x = <double**> malloc(sizeof(double*))
         res_y = <double**> malloc(sizeof(double*))
@@ -1261,10 +1261,8 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
 def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                    double[::1] XMinMax, double[::1] YMinMax,
                                    double[::1] ZMinMax,
-                                   list DX=None,
-                                   list DY=None,
-                                   list DZ=None,
-                                   VPoly=None,
+                                   list DX=None, list DY=None, list DZ=None,
+                                   limit_vpoly=None,
                                    double margin=_VSMALL):
     """ Return the desired submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dY,dZ)
@@ -1293,9 +1291,10 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
       np.tile(indX,(Yn*Zn,1)).flatten()
     res3d = dXr*dYr*reso_z
 
-    if VPoly is not None:
-        indin = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None,
-                                              radius=0.0)
+    if limit_vpoly is not None:
+        indin = Path(limit_vpoly.T).contains_points(pts[1:,:].T,
+                                                    transform=None,
+                                                    radius=0.0)
         pts, ind = pts[:,indin], ind[indin]
 
     return pts, res3d, ind.astype(int), dXr, dYr, reso_z
@@ -2549,7 +2548,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     np.ndarray[double, ndim=2,mode='c'] pts2,
                                     double[:, ::1] ves_poly=None,
                                     double[:, ::1] ves_norm=None,
-                                    double[::1] k=None,
+                                    double[:, ::1] dist=None,
                                     double[:, ::1] ray_orig=None,
                                     double[:, ::1] ray_vdir=None,
                                     double[::1] ves_lims=None,
@@ -2574,9 +2573,9 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     Return an array of booleans indicating whether each point in pts is
     visible from the point P = [pt0, pt1, pt2] considering vignetting a given
     configuration.
-        `k` optional argument : distance between points and P
+        `dist` optional argument : distance between points and P
         ray_orig = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
-        ray_vdir = (pts-ray_orig)/k
+        ray_vdir = (pts-ray_orig)/dist
     """
     cdef str msg
     cdef int npts1=pts1.shape[1]
@@ -2607,7 +2606,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
-                            ind, k, ves_lims,
+                            ind, dist, ves_lims,
                             lstruct_nlim,
                             lstruct_polyx, lstruct_polyy,
                             lstruct_lims,
@@ -2615,7 +2614,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                             lnvert, nstruct_tot, nstruct_lim,
                             rmin, eps_uz, eps_a, eps_vz, eps_b,
                             eps_plane, ves_type.lower(),
-                            forbid, test, num_threads)
+                            forbid, num_threads)
     return ind
 
 
@@ -2623,7 +2622,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                   np.ndarray[double, ndim=2,mode='c'] pts,
                                   double[:, ::1] ves_poly=None,
                                   double[:, ::1] ves_norm=None,
-                                  double[::1] k=None,
+                                  double[::1] dist=None,
                                   double[::1] ves_lims=None,
                                   long[::1] lstruct_nlim=None,
                                   double[::1] lstruct_polyx=None,
@@ -2645,9 +2644,9 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     Return an array of booleans indicating whether each point in pts is
     visible from the point P = [pt0, pt1, pt2] considering vignetting a given
     configuration.
-        `k` optional argument : distance between points and P
+        `dist` optional argument : distance between points and P
         ray_orig = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
-        ray_vdir = (pts-ray_orig)/k
+        ray_vdir = (pts-ray_orig)/dist
     """
     cdef str msg
     cdef int npts=pts.shape[1]
@@ -2677,7 +2676,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
-                          ind, k, ves_lims,
+                          ind, dist, ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,
@@ -2685,7 +2684,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                           lnvert, nstruct_tot, nstruct_lim,
                           rmin, eps_uz, eps_a, eps_vz, eps_b,
                           eps_plane, ves_type.lower(),
-                          forbid, test, num_threads)
+                          forbid, num_threads)
     return ind
 
 # ==============================================================================
@@ -4493,3 +4492,339 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
                 dRPhir[iiR] = dRPhirRef[iiR]
                 Ru[iiR] = 1.
     return Pts, dV, reso_r, reso_z, np.asarray(dRPhir)[~np.isnan(dRPhir)]
+
+
+# ==============================================================================
+#
+#                       Solid Angle Computation
+#                        subtended by a sphere
+#
+# ==============================================================================
+def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
+                            double[:,::1] view_coords,
+                            double rstep, double zstep, double phistep,
+                            double[::1] RMinMax, double[::1] ZMinMax,
+                            list DR=None, list DZ=None, DPhi=None,
+                            double[:, ::1] dist=None,
+                            double[:,::1] limit_vpoly=None,
+                            bint block=False,
+                            double[:, ::1] ves_poly=None,
+                            double[:, ::1] ves_norm=None,
+                            double[::1] ves_lims=None,
+                            long[::1] lstruct_nlim=None,
+                            double[::1] lstruct_polyx=None,
+                            double[::1] lstruct_polyy=None,
+                            list lstruct_lims=None,
+                            double[::1] lstruct_normx=None,
+                            double[::1] lstruct_normy=None,
+                            long[::1] lnvert=None,
+                            int nstruct_tot=0,
+                            int nstruct_lim=0,
+                            double rmin=-1, bint forbid=True,
+                            str Out='(X,Y,Z)',
+                            double eps_uz=_SMALL, double eps_a=_VSMALL,
+                            double eps_vz=_VSMALL, double eps_b=_VSMALL,
+                            double eps_plane=_VSMALL, str ves_type='Tor',
+                            double margin=_VSMALL, int num_threads=48):
+    """
+    Computes the 2D map of the integrated solid angles subtended by each of
+    the sz_p particles P of radius part_r at the position part_X, part_Y,
+    part_Z viewed by the sz_m points M at the position view_X, view_Y, view_Z
+    Args:
+        part_coords: (3, sz_p) array of the cartesian coordinates of P particles
+        part_r: sz_p array of the radii of the P particles
+        view_coords: (3, sz_m) array of the coordinates of M viewing points
+        dist: (sz_p, sz_m) array of distance between M and P points
+        block: bool, check if particles are viewable from viewing points
+        rstep (double): refinement along radius `r`
+        zstep (double): refinement along height `z`
+        phistep (double): refinement along toroidal direction `phi`
+        RMinMax: array specifying the limits min and max in `r`
+        ZMinMax: array specifying the limits min and max in `z`
+        DR: array specifying the actual sub-volume limits to get in `r`
+        DZ: array specifying the actual sub-volume limits to get in `z`
+        DPhi: array specifying the actual sub-volume limits to get in `phi`
+        limit_vpoly: (3, npts) double array, if we only want to discretize the
+                     volume inside a certain flux surface. Defines the `(R,Z)`
+                     coords of the poloidal cut of the limiting flux surface
+        Out(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
+            coordinates
+        margin(double): tolerance error.
+            Defaults to |_VSMALL|
+    """
+    cdef int ii, jj, zz
+    cdef int sz_m, sz_p
+    cdef int NP = 0
+    cdef int sz_r, sz_z
+    cdef int r_ratio
+    cdef int ind_loc_r0
+    cdef int[1] max_sz_phi
+    cdef str out_low = Out.lower()
+    cdef bint is_cart = out_low == '(x,y,z)'
+    cdef double min_phi, max_phi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
+    cdef double abs0, abs1
+    cdef double reso_r_z
+    cdef double twopi_over_dphi
+    cdef long[1] ncells_r0, ncells_r, ncells_z
+    cdef long[1] sz_rphi
+    cdef long[::1] ind_mv
+    cdef long[::1] indR0, indR, indZ
+    cdef double[2] limits_dl
+    cdef double[1] reso_r0, reso_r, reso_z
+    cdef double[::1] dv_mv
+    cdef double[::1] reso_phi_mv, hypot
+    cdef double[:, ::1] poly_mv
+    cdef double[:, ::1] pts_mv
+    cdef double[:, ::1] are_vis
+    cdef long[:, ::1] indi_mv
+    cdef long[:, :, ::1] lnp
+    cdef long*  ncells_rphi  = NULL
+    cdef long*  tot_nc_plane = NULL
+    cdef long*  lindex   = NULL
+    cdef long*  lindex_z = NULL
+    cdef long*  sz_phi = NULL
+    cdef long** res_lind = NULL
+    cdef double* disc_r0 = NULL
+    cdef double* disc_r  = NULL
+    cdef double* disc_z  = NULL
+    cdef double* step_rphi = NULL
+    cdef double** res_x  = NULL
+    cdef double** res_y  = NULL
+    cdef double** res_z  = NULL
+    cdef double** res_vres = NULL
+    cdef double** res_rphi = NULL
+    cdef long[::1] first_ind_mv
+    cdef np.ndarray[long, ndim=2] indI
+    cdef np.ndarray[long, ndim=1] ind
+    cdef np.ndarray[double,ndim=1] reso_phi
+    cdef np.ndarray[double,ndim=2] pts
+    cdef np.ndarray[double,ndim=1] res3d
+    cdef np.ndarray[double,ndim=4] sa_map
+    #
+    # .. Getting size of arrays ................................................
+    sz_p = part_coords.shape[1]
+    sz_m = view_coords.shape[1]
+    # .. Computing distance between M points and P .............................
+    if dist is None:
+        dist = np.empty((sz_p, sz_m))
+        _bgt.compute_dist_vec_vec(sz_p, sz_m, part_coords, view_coords, dist)
+    # .. Check if points are visible ...........................................
+    are_vis = np.ones((sz_m, sz_p))
+    if block:
+        _rt.are_visible_vec_vec(view_coords, sz_m,
+                                part_coords, sz_p,
+                                ves_poly, ves_norm,
+                                are_vis, dist, ves_lims,
+                                lstruct_nlim,
+                                lstruct_polyx, lstruct_polyy,
+                                lstruct_lims,
+                                lstruct_normx, lstruct_normy,
+                                lnvert, nstruct_tot, nstruct_lim,
+                                rmin, eps_uz, eps_a, eps_vz, eps_b,
+                                eps_plane, ves_type.lower(),
+                                forbid, num_threads)
+    # Get the actual R and Z resolutions and mesh elements
+    # .. First we discretize R without limits ..................................
+    _st.cythonize_subdomain_dl(None, limits_dl) # no limits
+    _ = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+                                   True, 0, # discretize in absolute mode
+                                   margin, &disc_r0, reso_r0, &lindex,
+                                   ncells_r0)
+    free(lindex) # getting rid of things we dont need
+    lindex = NULL
+    # .. Now the actual R limited  .............................................
+    _st.cythonize_subdomain_dl(DR, limits_dl)
+    sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_r, reso_r, &lindex,
+                                      ncells_r)
+    free(lindex) # getting rid of things we dont need
+    # .. Now Z .................................................................
+    _st.cythonize_subdomain_dl(DZ, limits_dl)
+    sz_z = _st.discretize_line1d_core(&ZMinMax[0], zstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_z, reso_z, &lindex_z,
+                                      ncells_z)
+    # .. Preparing for phi: get the limits if any and make sure to replace them
+    # .. in the proper quadrants ...............................................
+    if DPhi is None:
+        min_phi = -Cpi
+        max_phi = Cpi
+    else:
+        min_phi = DPhi[0] # to avoid conversions
+        min_phi = Catan2(Csin(min_phi), Ccos(min_phi))
+        max_phi = DPhi[1] # to avoid conversions
+        max_phi = Catan2(Csin(max_phi), Ccos(max_phi))
+    # .. Initialization ........................................................
+    sz_phi = <long*>malloc(sz_r*sizeof(long))
+    tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
+    ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
+    step_rphi    = <double*>malloc(sz_r*sizeof(double))
+    reso_phi = np.empty((sz_r,)) # we create the numpy array
+    reso_phi_mv = reso_phi # and its associated memoryview
+    r_ratio = <int>(Cceil(disc_r[sz_r - 1] / disc_r[0]))
+    twopi_over_dphi = _TWOPI / phistep
+    ind_loc_r0 = 0
+    ncells_rphi0 = 0
+    min_phi_pi = min_phi + Cpi
+    max_phi_pi = max_phi + Cpi
+    abs0 = Cabs(min_phi_pi)
+    abs1 = Cabs(max_phi_pi)
+    # ... doing 0 loop before
+    if min_phi < max_phi:
+        # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+        ncells_rphi[0] = <int>Cceil(twopi_over_dphi * disc_r[0])
+        loc_nc_rphi = ncells_rphi[0]
+        step_rphi[0] = _TWOPI / ncells_rphi[0]
+        inv_drphi = 1. / step_rphi[0]
+        reso_phi_mv[0] = step_rphi[0] * disc_r[0]
+        tot_nc_plane[0] = 0 # initialization
+        # Get index and cumulated indices from background
+        for jj in range(ind_loc_r0, ncells_r0[0]):
+            if disc_r0[jj]==disc_r[0]:
+                ind_loc_r0 = jj
+                break
+            else:
+                ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                tot_nc_plane[0] = ncells_rphi0 * ncells_z[0]
+        # Get indices of phi
+        # Get the extreme indices of the mesh elements that really need to
+        # be created within those limits
+        if abs0 - step_rphi[0]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[0]:
+            nphi0 = int(Cround((min_phi + Cpi) * inv_drphi))
+        else:
+            nphi0 = int(Cfloor((min_phi +Cpi) * inv_drphi))
+        if abs1-step_rphi[0]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[0]:
+            nphi1 = int(Cround((max_phi+Cpi) * inv_drphi)-1)
+        else:
+            nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
+        sz_phi[0] = nphi1 + 1 - nphi0
+        max_sz_phi[0] = sz_phi[0]
+        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = indI
+        for jj in range(sz_phi[0]):
+            indi_mv[0, jj] = nphi0 + jj
+        NP += sz_z * sz_phi[0]
+    else:
+        # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+        ncells_rphi[0] = <int>Cceil(twopi_over_dphi * disc_r[0])
+        loc_nc_rphi = ncells_rphi[0]
+        step_rphi[0] = _TWOPI / ncells_rphi[0]
+        inv_drphi = 1. / step_rphi[0]
+        reso_phi_mv[0] = step_rphi[0] * disc_r[0]
+        tot_nc_plane[0] = 0 # initialization
+        # Get index and cumulated indices from background
+        for jj in range(ind_loc_r0, ncells_r0[0]):
+            if disc_r0[jj]==disc_r[0]:
+                ind_loc_r0 = jj
+                break
+            else:
+                ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                tot_nc_plane[0] = ncells_rphi0 * ncells_z[0]
+        # Get indices of phi
+        # Get the extreme indices of the mesh elements that really need to
+        # be created within those limits
+        if abs0 - step_rphi[0]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[0]:
+            nphi0 = int(Cround((min_phi + Cpi) * inv_drphi))
+        else:
+            nphi0 = int(Cfloor((min_phi + Cpi) * inv_drphi))
+        if abs1-step_rphi[0]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[0]:
+            nphi1 = int(Cround((max_phi+Cpi) * inv_drphi)-1)
+        else:
+            nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
+        sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
+        max_sz_phi[0] = sz_phi[0]
+        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = indI
+        for jj in range(loc_nc_rphi - nphi0):
+            indi_mv[0, jj] = nphi0 + jj
+        for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
+            indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
+        NP += sz_z * sz_phi[0]
+    # ... doing the others
+    NP += _st.vmesh_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
+                             ncells_rphi0,
+                             disc_r, disc_r0, step_rphi,
+                             reso_phi_mv, tot_nc_plane, ind_loc_r0,
+                             ncells_r0[0], ncells_z[0], &max_sz_phi[0],
+                             min_phi, max_phi, sz_phi, indi_mv,
+                             margin, num_threads)
+    sa_map = np.zeros((sz_r, sz_z, sz_m, sz_p))
+    pts = np.empty((3,NP))
+    ind = np.empty((NP,), dtype=int)
+    res3d  = np.empty((NP,))
+    pts_mv = pts
+    ind_mv = ind
+    dv_mv  = res3d
+    reso_r_z = reso_r[0]*reso_z[0]
+    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
+    _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
+    indI = np.sort(indI, axis=1)
+    indi_mv = indI
+    first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
+    _st.sa_double_loop(dist, part_r,
+                       sa_map, first_ind_mv, indi_mv,
+                       is_cart, sz_m, sz_p, sz_r, sz_z, lindex_z,
+                       ncells_rphi, tot_nc_plane,
+                       reso_r_z, step_rphi,
+                       disc_r, disc_z, lnp, sz_phi,
+                       dv_mv, reso_phi_mv, pts_mv, ind_mv,
+                       num_threads)
+    # If we only want to discretize the volume inside a certain flux surface
+    # describe by a limit_vpoly:
+    if limit_vpoly is not None:
+        npts_vpoly = limit_vpoly.shape[1] - 1
+        # we make sure it is closed
+        if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
+                and abs(limit_vpoly[1, 0]
+                        - limit_vpoly[1, npts_vpoly]) < _VSMALL):
+            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
+        else:
+            poly_mv = limit_vpoly
+        # initializations:
+        res_x = <double**> malloc(sizeof(double*))
+        res_y = <double**> malloc(sizeof(double*))
+        res_z = <double**> malloc(sizeof(double*))
+        res_vres = <double**> malloc(sizeof(double*))
+        res_rphi = <double**> malloc(sizeof(double*))
+        res_lind = <long**>   malloc(sizeof(long*))
+        res_lind[0] = NULL
+        # .. Calling main function
+        # this is now the bottleneck taking over 2/3 of the time....
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv,
+                                                pts_mv, dv_mv, reso_phi_mv,
+                                                disc_r, ind_mv,
+                                                res_x, res_y, res_z,
+                                                res_vres, res_rphi, res_lind,
+                                                &sz_rphi[0], num_threads)
+        pts = np.empty((3,nb_in_poly))
+        ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
+        res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
+        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
+        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
+        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
+        reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
+        # freeing the memory
+        free(res_x[0])
+        free(res_y[0])
+        free(res_z[0])
+        free(res_vres[0])
+        free(res_rphi[0])
+        free(res_lind[0])
+        free(res_x)
+        free(res_y)
+        free(res_z)
+        free(res_vres)
+        free(res_rphi)
+        free(res_lind)
+    free(disc_r)
+    free(disc_z)
+    free(disc_r0)
+    free(sz_phi)
+    free(lindex_z)
+    free(step_rphi)
+    free(ncells_rphi)
+    free(tot_nc_plane)
+    return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi

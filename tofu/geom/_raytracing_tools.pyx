@@ -1985,7 +1985,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                    double eps_vz, double eps_b,
                                    double eps_plane, str ves_type,
                                    bint forbid,
-                                   bint test, int num_threads):
+                                   int num_threads):
     cdef array vperp_out = clone(array('d'), npts * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), npts, True)
     cdef array coeff_inter_out = clone(array('d'), npts, True)
@@ -2050,7 +2050,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double[:, ::1] ves_poly,
                                      double[:, ::1] ves_norm,
                                      double[:, ::1] ind,
-                                     double[::1] k,
+                                     double[:, ::1] dist,
                                      double[::1] ves_lims,
                                      long[::1] lstruct_nlim,
                                      double[::1] lstruct_polyx,
@@ -2066,7 +2066,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double eps_vz, double eps_b,
                                      double eps_plane, str ves_type,
                                      bint forbid,
-                                     bint test, int num_threads):
+                                     int num_threads):
     cdef np.ndarray[double, ndim=2, mode='c'] ray_orig_arr
     cdef np.ndarray[double, ndim=2, mode='c'] ray_vdir_arr
     cdef np.ndarray[double, ndim=2, mode='c'] dist_arr
@@ -2078,7 +2078,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
                           ves_poly, ves_norm,
-                          ind[ii,...], k, ves_lims,
+                          ind[ii,...], dist[ii], ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,
@@ -2086,5 +2086,5 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                           lnvert, nstruct_tot, nstruct_lim,
                           rmin, eps_uz, eps_a, eps_vz, eps_b,
                           eps_plane, ves_type,
-                          forbid, test, num_threads)
+                          forbid, num_threads)
     return

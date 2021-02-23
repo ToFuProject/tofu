@@ -302,8 +302,9 @@ cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
                          + (pt2 - vec[2, ii])*(pt2 - vec[2, ii]))
     return
 
-cdef inline void compute_dist_vec_vec(const double[:, ::1] vec1, const int npts1,
-                                      const double[:, ::1] vec2, const int npts2,
+cdef inline void compute_dist_vec_vec(const int npts1, const int npts2,
+                                      const double[:, ::1] vec1,
+                                      const double[:, ::1] vec2,
                                       double[:, ::1] dist) nogil:
     """
     Compute the distance between each point P_i and each point

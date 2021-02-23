@@ -131,6 +131,10 @@ cdef void los_get_sample_pts(int nlos,
                              long* los_ind,
                              int num_threads) nogil
 
+# ==============================================================================
+# == Vmesh sampling
+# ==============================================================================
+
 # -- Vmesh utility functions --------------------------------------------------
 cdef int  vmesh_disc_phi(int sz_r, int sz_z,
                          long* ncells_rphi,
@@ -217,3 +221,30 @@ cdef void vmesh_ind_polr_loop(int np,
                               int[::1] Ru,
                               double[::1] dRPhir,
                               int num_threads) nogil
+
+
+# ==============================================================================
+# == Solid Angles
+# ==============================================================================
+cdef void sa_double_loop(double[:, ::1] part_dist,
+                         double[::1] part_rad,
+                         double[:, :,:,::1] sa_map,
+                         long[::1] first_ind_mv,
+                         long[:,::1] indi_mv,
+                         bint is_cart,
+                         int sz_m, int sz_p,
+                         int sz_r, int sz_z,
+                         long* lindex_z,
+                         long* ncells_rphi,
+                         long* tot_nc_plane,
+                         double reso_r_z,
+                         double* step_rphi,
+                         double* disc_r,
+                         double* disc_z,
+                         long[:,:,::1] lnp,
+                         long* phin,
+                         double[::1] dv_mv,
+                         double[::1] r_on_phi_mv,
+                         double[:, ::1] pts_mv,
+                         long[::1] ind_mv,
+                         int num_threads) nogil
