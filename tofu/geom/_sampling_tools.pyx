@@ -1999,11 +1999,11 @@ cdef inline void sa_double_loop_cart(int ii,
                 loc_rad2 = part_rad[mm] * part_rad[mm]
                 for pp in range(sz_p):
                     if are_vis[mm, pp] :
-                        sa_map[ii, zz, mm, pp] += (loc_rad2
+                        sa_map[zz, mm, pp] += (loc_rad2
                                                    / part_dist[mm, pp]**2) \
                                                    * vol * Cpi
                     else:
-                        sa_map[ii, zz, mm, pp] = Cnan
+                        sa_map[zz, mm, pp] = Cnan
     return
 
 

@@ -1707,7 +1707,7 @@ def test23_vignetting():
                              True, False, True, False, False])
 
 
-def test24_is_visible(debug=2):
+def test24_is_visible(debug=0):
     from matplotlib import pyplot as plt
     import tofu.geom as tfg
 
@@ -1925,3 +1925,22 @@ def test24_is_visible(debug=2):
 
         print(are_vis)
         print(np.shape(are_vis))
+
+
+def test25_sa_integ_map(ves_poly=VPoly, debug=1):
+    import tofu.geom as tfg
+
+    if debug > 0:
+        # Visualisation:
+        ves = tfg.Ves(
+            Name="DebugVessel",
+            Poly=VPoly,
+            Type="Tor",
+            Exp="Misc",
+            shot=0
+        )
+        lax = ves.plot()
+    view = np.r_[np.r_[2.5, 2., 0.], np.r_[-3,0,0]]
+    part = np.r_[np.r_[2.0, 2., 0.], np.r_[1.5,0,0], np.r_[2.5,0,0]]
+    part_rad = np.r_[0.1, 0.1, 0.1]
+    GG.compute_solid_angle_map(part,

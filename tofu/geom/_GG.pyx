@@ -4601,7 +4601,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] indR0, indR, indZ
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
-    cdef double[::1] dv_mv
     cdef double[::1] reso_phi_mv, hypot
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
@@ -4628,7 +4627,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=1] res3d
     cdef np.ndarray[double,ndim=4] sa_map
     #
     # .. Getting size of arrays ................................................
@@ -4783,10 +4781,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     sa_map = np.zeros((sz_r, sz_z, sz_m, sz_p))
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
-    res3d  = np.empty((NP,))
     pts_mv = pts
     ind_mv = ind
-    dv_mv  = res3d
     reso_r_z = reso_r[0]*reso_z[0]
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
@@ -4799,7 +4795,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        ncells_rphi, tot_nc_plane,
                        reso_r_z, step_rphi,
                        disc_r, disc_z, lnp, sz_phi,
-                       dv_mv, reso_phi_mv, pts_mv, ind_mv,
+                       reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
     # # If we only want to discretize the volume inside a certain flux surface
     # # describe by a limit_vpoly:
@@ -4830,7 +4826,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     #                                             &sz_rphi[0], num_threads)
     #     pts = np.empty((3,nb_in_poly))
     #     ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-    #     res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
     #     pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
     #     pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
     #     pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0

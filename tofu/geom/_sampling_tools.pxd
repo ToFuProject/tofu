@@ -228,6 +228,7 @@ cdef void vmesh_ind_polr_loop(int np,
 # ==============================================================================
 cdef void sa_double_loop(double[:, ::1] part_dist,
                          double[::1] part_rad,
+                         double[:, ::1] are_vis,
                          double[:, :,:,::1] sa_map,
                          long[::1] first_ind_mv,
                          long[:,::1] indi_mv,
