@@ -993,7 +993,25 @@ _dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
 
 
 
-_createCamstr = """ Create a pinhole CamLOS{0}D
+_createCamstr = """
+    Create a pinhole CamLOS{0}D
+
+    Typical use case:
+        >>> import tofu as tf
+        >>> conf = tf.load_config('WEST')
+        >>> cam1d = tf.geom.utils.create_CamLOS1D(
+            pinhole=[],
+            focal=,
+            npix=,
+            size=,
+            angles=[],
+            config=conf,
+            Etendues=,
+            Surfaces=,
+            Exp='WEST',
+            Diag='Bolo',
+            Name='Cam1',
+        )
 
     In tofu, a CamLOS is a camera described as a set of Lines of Sight (LOS),
     as opposed to a Cam, where the Volume of Sight (VOS) of all pixels are
@@ -1030,7 +1048,7 @@ _createCamstr = """ Create a pinhole CamLOS{0}D
 
     Return
     ------
-                """
+    """
 
 _createCamerr = """ Arg out, specifying the output, must be either:
         - object   : return a tofu object
@@ -1038,12 +1056,31 @@ _createCamerr = """ Arg out, specifying the output, must be either:
         - 'pinhole': return the starting points (D), pinhole (P) and the coordinates of D in the camera frame
         """
 
-def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
-                   dchans=None, Exp=None, Diag=None, Name=None, color=None,
-                   P=None, F=0.1, D12=0.1, N12=100, method=None,
-                   angs=[-np.pi,0.,0.], nIn=None, VType='Tor', dcam=_dcam,
-                   defRY=None, Lim=None, config=None, out=object,
-                   SavePath='./'):
+def _create_CamLOS(
+    case=None,
+    nD=1,
+    Etendues=None,
+    Surfaces=None,
+    dchans=None,
+    Exp=None,
+    Diag=None,
+    Name=None,
+    color=None,
+    P=None,
+    F=0.1,
+    D12=0.1,
+    N12=100,
+    method=None,
+    angs=[-np.pi,0.,0.],
+    nIn=None,
+    VType='Tor',
+    dcam=_dcam,
+    defRY=None,
+    Lim=None,
+    config=None,
+    out=object,
+    SavePath='./',
+):
     assert nD in [1,2]
     if not out in [object,'object','Du','dict',dict]:
         msg = _createCamerr.format('1')
