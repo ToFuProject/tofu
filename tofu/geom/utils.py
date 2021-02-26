@@ -1000,17 +1000,30 @@ _createCamstr = """
         >>> import tofu as tf
         >>> conf = tf.load_config('WEST')
         >>> cam1d = tf.geom.utils.create_CamLOS1D(
-            pinhole=[],
-            focal=,
-            npix=,
-            size=,
-            angles=[],
-            config=conf,
-            Etendues=,
-            Surfaces=,
-            Exp='WEST',
-            Diag='Bolo',
-            Name='Cam1',
+            pinhole=[3., 0., 0.],       # pinhole position [X, Y, Z] [m]
+            focal=0.1,                  # pinhole-sensors distance [m]
+            sensor_nb=100,              # number of sensors on sensor plane
+            sensor_size=0.1,            # size of sensor plane [m]
+            orientation=[np.pi, 0., 0.],# 3 angles orienting whole camera [rad]
+            config=conf,                # configuration (for computing LOS)
+            Etendues=None,              # Etendues (optional)
+            Surfaces=None,              # Surfaces (optional) [m^2]
+            Exp='WEST',                 # Experiment
+            Diag='Bolo',                # Diagnostic
+            Name='Cam1',                # Name of this particular camera
+        )
+        >>> cam2d = tf.geom.utils.create_CamLOS2D(
+            pinhole=[3., 0., 0.],       # pinhole position [X, Y, Z] [m]
+            focal=0.1,                  # pinhole-sensors distance [m]
+            sensor_nb=[100, 100],       # number of sensors on sensor plane
+            sensor_size=[0.1, 0.1],     # size of sensor plane [m]
+            orientation=[np.pi, 0., 0.],# 3 angles orienting whole camera [rad]
+            config=conf,                # configuration (for computing LOS)
+            Etendues=None,              # Etendues (optional)
+            Surfaces=None,              # Surfaces (optional) [m^2]
+            Exp='WEST',                 # Experiment
+            Diag='Bolo',                # Diagnostic
+            Name='Cam1',                # Name of this particular camera
         )
 
     In tofu, a CamLOS is a camera described as a set of Lines of Sight (LOS),
@@ -1030,9 +1043,9 @@ _createCamstr = """
     Here, you simply need to provide, either:
         - the name of a standard test case
         - a set of geometrical parameters:
-            - P: pinhole, throught the camera axis passes
-            - F: focal length
-            - D12 : dimensiosn perpendicular to the camera axis
+            - pinhole: throught which the camera axis passes
+            - focal: distance between pinhole and sensor plane
+            - size: dimensions of the sensor planendicular to the camera axis
             - N12 : number of pixels (LOS)
             - angs: 3 angles defining the orientation of the camera
 
@@ -1056,86 +1069,223 @@ _createCamerr = """ Arg out, specifying the output, must be either:
         - 'pinhole': return the starting points (D), pinhole (P) and the coordinates of D in the camera frame
         """
 
-def _create_CamLOS(
+
+def _create_CamLOS_check_inputs(
     case=None,
-    nD=1,
-    Etendues=None,
-    Surfaces=None,
-    dchans=None,
-    Exp=None,
-    Diag=None,
+    pinhole=None,
+    P=None,         # Deprecated
+    focal=None,
+    F=None,         # Deprecated
+    sensor_nb=None,
+    N12=None,       # Deprecated
+    sensor_size=None,
+    D12=None,       # Deprecated
+    orientation=None,
+    angs=None,      # Deprecated
+    config=None,
     Name=None,
-    color=None,
-    P=None,
-    F=0.1,
-    D12=0.1,
-    N12=100,
-    method=None,
-    angs=[-np.pi,0.,0.],
+    nD=None,
     nIn=None,
     VType='Tor',
-    dcam=_dcam,
     defRY=None,
     Lim=None,
-    config=None,
-    out=object,
-    SavePath='./',
+    returnas=object,
 ):
-    assert nD in [1,2]
-    if not out in [object,'object','Du','dict',dict]:
-        msg = _createCamerr.format('1')
+
+    # D
+    if nD is None:
+        nD = 1
+    if not nD in [1, 2]:
+        msg = (
+            """
+            Arg nD must be 1 or 2
+              You provided:
+            {}
+            """.format(nD)
+        )
         raise Exception(msg)
 
+    # config
     if config is not None:
         Lim = config.Lim
         VType = config.Id.Type
         lS = config.lStructIn
-        if len(lS)==0:
+        if len(lS) == 0:
             lS = config.lStruct
         defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
 
     # Get parameters for test case if any
     if case is not None and nD == 2:
         if case not in dcam.keys():
-            msg = "%s is not a known test case !\n"
-            msg += "Available test cases include:\n"
-            msg += "    " + str(list(dcam.keys()))
+            msg = (
+                """
+                {} is not a known test case!\n"
+                Available test cases include:\n"
+                {}
+                """.format(
+                    case,
+                    '\t- ' + '\n\t- '.join(sorted(dcam.keys()))
+                )
+            )
             raise Exception(msg)
 
         # Extract pinhole, focal length, width, nb. of pix., unit vector
-        P, F = dcam[case]['P'], dcam[case]['F']
-        D12, N12, nIn = dcam[case]['D12'], dcam[case]['N12'], dcam[case]['nIn']
+        pinhole, focal = dcam[case]['P'], dcam[case]['F']
+        size, npixels = dcam[case]['D12'], dcam[case]['N12']
+        nIn = dcam[case]['nIn']
         nIn = nIn / np.linalg.norm(nIn)
 
         # Compute the LOS starting points and unit vectors
-        nD, VType, Lim, angs = 2, 'Tor', None, None
+        nD, VType, Lim, angles = 2, 'Tor', None, None
         Name = case
 
-    kwdargs = dict(P=P, F=F, D12=D12, N12=N12, angs=angs, nIn=nIn,
-                   VType=VType, defRY=defRY, Lim=Lim)
-    if nD == 1:
-        Ds, P, d2 = _compute_CamLOS1D_pinhole(**kwdargs)
-    else:
-        Ds, P, d1, d2, indflat2img, indimg2flat = _compute_CamLOS2D_pinhole(**kwdargs)
+    # Deprecated args
+    dprecate = {
+        'pinhole': [pinhole, P, 'P'],
+        'focal': [focal, F, 'F'],
+        'sensor_size': [sensor_size, D12, 'D12'],
+        'sensor_nb': [sensor_nb, N12, 'N12'],
+        'orientation': [orientation, angs, 'angs'],
+    }
+    ldprec = sorted([
+        '{}  ->  {}'.format(vv[2], ss) for ss, vv in dprecate.items()
+        if vv[1] is not None
+    ])
+    if len(ldprec) > 0:
+        msg = (
+            """
+            The following arguments (left column) are deprecated:
+            {}
+            Please use the new forms (right column)
+            They are equivalent, but more explicit
+            Old forms will not work in future versions
+            """.format(
+                '\t- ' + '\n\t- '.join(ldprec),
+            )
+        )
+        raise DeprecationWarning(msg)
 
-    if out in ['dict',dict]:
-        dout = {'D':Ds, 'pinhole':P}
-        if nD==2:
-            dout.update({'x1':d1,'x2':d2,
-                         'indflat2img':indflat2img, 'indimg2flat':indimg2flat})
+        for ss in ldprec:
+            if ldprec[ss][0] is None:
+                ldprec[ss][0] = ldprec[ss][1]
+        pinhole = ldprec['pinhole'][0]
+        focal = ldprec['focal'][0]
+        sensor_size = ldprec['sensor_size'][0]
+        sensor_nb = ldprec['sensor_nb'][0]
+        orientation = ldprec['orientation'][0]
+
+    # returnas
+    c0 = returnas in ['Du', dict, object]
+    if not c0:
+        msg = (
+            """
+            Arg returnas must be:
+                - 'Du': return tuple (D, us)
+                - dict: return a dict
+                - object: return a tofu instance
+            You provided:
+                {}
+            """.format(returnas)
+        )
+        raise Exception(msg)
+
+    # Return
+    out = [
+        nD, Lim, VType, defRY,
+        pinhole, focal, sensor_size, sensor_nb, orientation, nIn, Name,
+    ]
+
+    return out
+
+
+def _create_CamLOS(
+    case=None,
+    pinhole=None,
+    P=None,         # Deprecated
+    focal=None,
+    F=None,         # Deprecated
+    sensor_nb=None,
+    N12=None,       # Deprecated
+    sensor_size=None,
+    D12=None,       # Deprecated
+    orientation=None,
+    angs=None,      # Deprecated
+    config=None,
+    Etendues=None,
+    Surfaces=None,
+    Exp=None,
+    Diag=None,
+    Name=None,
+    nD=None,
+    dchans=None,
+    color=None,
+    method=None,
+    nIn=None,
+    VType='Tor',
+    dcam=_dcam,
+    defRY=None,
+    Lim=None,
+    returnas=object,
+    SavePath='./',
+):
+    # -------------
+    # Check inputs
+    (
+        nD, Lim, VType, defRY,
+        pinhole, focal, sensor_size, sensor_nb, orientation, nIn, Name,
+    ) = _create_CamLOS_check_inputs(
+        case=case,
+        pinhole=pinhole, P=P,
+        focal=focal, F=F,
+        sensor_nb=sensor_nb, N12=N12,
+        sensor_size=sensor_size, D12=D12,
+        orientation=orientation, angs=angs,
+        config=config,
+        Name=Name,
+        nD=nD,
+        nIn=nIn,
+        VType=VType,
+        defRY=defRY,
+        Lim=Lim,
+        returnas=returnas,
+    )
+
+    # -------------
+    # Create
+    kwdargs = dict(
+        P=pinhole, F=focal, D12=sensor_size, N12=sensor_nb, angs=orientation,
+        nIn=nIn, VType=VType, defRY=defRY, Lim=Lim,
+    )
+    if nD == 1:
+        Ds, pinhole, d2 = _compute_CamLOS1D_pinhole(**kwdargs)
+    else:
+        (Ds, pinhole, d1, d2,
+         indflat2img, indimg2flat) = _compute_CamLOS2D_pinhole(**kwdargs)
+
+    # -------------
+    # Return
+    if returnas is dict:
+        dout = {'D': Ds, 'pinhole': pinhole}
+        if nD == 2:
+            dout.update({
+                'x1': d1,'x2': d2,
+                'indflat2img': indflat2img, 'indimg2flat': indimg2flat
+            })
         return dout
 
-    elif out=='Du':
-        us = P[:,np.newaxis]-Ds
-        us = us / np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
+    elif returnas == 'Du':
+        us = P[:, None] - Ds
+        us = us / np.sqrt(np.sum(us**2, axis=0))[None, :]
         return Ds, us
 
     else:
         cls = eval('_core.CamLOS{0:01.0f}D'.format(nD))
-        cam = cls(Name=Name, Exp=Exp, Diag=Diag,
-                  dgeom={'pinhole':P, 'D':Ds}, method=method,
-                  Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
-                  color=color, config=config, SavePath=SavePath)
+        cam = cls(
+            Name=Name, Exp=Exp, Diag=Diag,
+            dgeom={'pinhole': pinhole, 'D': Ds}, method=method,
+            Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+            color=color, config=config, SavePath=SavePath
+        )
         return cam
 
 
