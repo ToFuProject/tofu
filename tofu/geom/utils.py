@@ -1148,31 +1148,31 @@ def _create_CamLOS_check_inputs(
         'orientation': [orientation, angs, 'angs'],
     }
     ldprec = sorted([
-        '{}  ->  {}'.format(vv[2], ss) for ss, vv in dprecate.items()
+        (ss, '{}  ->  {}'.format(vv[2], ss)) for ss, vv in dprecate.items()
         if vv[1] is not None
     ])
     if len(ldprec) > 0:
         msg = (
             """
-            The following arguments (left column) are deprecated:
-            {}
-            Please use the new forms (right column)
-            They are equivalent, but more explicit
-            Old forms will not work in future versions
+    The following arguments (left column) are deprecated:
+    {}
+    Please use the new forms (right column)
+    They are equivalent, but more explicit
+    Old forms will not work in future versions
             """.format(
-                '\t- ' + '\n\t- '.join(ldprec),
+                '\t- ' + '\n\t- '.join([ll[1] for ll in ldprec]),
             )
         )
-        raise DeprecationWarning(msg)
+        warnings.warn(msg, DeprecationWarning)
 
-        for ss in ldprec:
-            if ldprec[ss][0] is None:
-                ldprec[ss][0] = ldprec[ss][1]
-        pinhole = ldprec['pinhole'][0]
-        focal = ldprec['focal'][0]
-        sensor_size = ldprec['sensor_size'][0]
-        sensor_nb = ldprec['sensor_nb'][0]
-        orientation = ldprec['orientation'][0]
+        for ss, _ in ldprec:
+            if dprecate[ss][0] is None:
+                dprecate[ss][0] = dprecate[ss][1]
+        pinhole = dprecate['pinhole'][0]
+        focal = dprecate['focal'][0]
+        sensor_size = dprecate['sensor_size'][0]
+        sensor_nb = dprecate['sensor_nb'][0]
+        orientation = dprecate['orientation'][0]
 
     # returnas
     c0 = returnas in ['Du', dict, object]
