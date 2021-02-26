@@ -992,7 +992,6 @@ _dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
          'testV': {'P':_P, 'F':_testF, 'D12':_D12, 'nIn':_nIn,'N12':[1600,625]}}
 
 
-
 _createCamstr = """
     Create a pinhole CamLOS{0}D
 
@@ -1095,7 +1094,7 @@ def _create_CamLOS_check_inputs(
     # D
     if nD is None:
         nD = 1
-    if not nD in [1, 2]:
+    if nD not in [1, 2]:
         msg = (
             """
             Arg nD must be 1 or 2
@@ -1268,8 +1267,8 @@ def _create_CamLOS(
         dout = {'D': Ds, 'pinhole': pinhole}
         if nD == 2:
             dout.update({
-                'x1': d1,'x2': d2,
-                'indflat2img': indflat2img, 'indimg2flat': indimg2flat
+                'x1': d1, 'x2': d2,
+                'indflat2img': indflat2img, 'indimg2flat': indimg2flat,
             })
         return dout
 
