@@ -937,7 +937,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[::1] reso_phi_mv, hypot
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
-    cdef long[:,::1] indi_mv
+    cdef long[:, ::1] indi_mv
     cdef long[:, :, ::1] lnp
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
@@ -4851,4 +4851,4 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    return sa_map
+    return pts, sa_map

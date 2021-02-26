@@ -1929,6 +1929,7 @@ def test24_is_visible(debug=0):
 
 def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     import tofu.geom as tfg
+    import matplotlib.pyplot as plt
 
     if debug > 0:
         # Visualisation:
@@ -1939,8 +1940,31 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
             Exp="Misc",
             shot=0
         )
-        lax = ves.plot()
-    view = np.r_[np.r_[2.5, 2., 0.], np.r_[-3,0,0]]
-    part = np.r_[np.r_[2.0, 2., 0.], np.r_[1.5,0,0], np.r_[2.5,0,0]]
+        if debug > 2:
+            lax = ves.plot()
+    view = np.array([[2.5, 2., 0.], [-3, 0, 0]], order='F').T
+    part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
     part_rad = np.r_[0.1, 0.1, 0.1]
-    GG.compute_solid_angle_map(part,
+    rstep = zstep = phistep = 0.5
+    RMinMax = np.array([np.min(VPoly[0,:]), np.max(VPoly[0,:])])
+    ZMinMax = np.array([np.min(VPoly[1,:]), np.max(VPoly[1,:])])
+
+    res = GG.compute_solid_angle_map(part, part_rad, view,
+                                     rstep, zstep, phistep,
+                                     RMinMax, ZMinMax,
+                                     )
+    pts, sa_map = res
+    print(np.shape(sa_map))
+    # check size r,z,m,p
+    d1, d2, d3, d4 = np.shape(sa_map)
+    assert d1 == 4, "Wrong 1st dim of sa_map: " + str(d1)
+    assert d2 == 4, "Wrong 2nd dim of sa_map: " + str(d2)
+    assert d3 == np.shape(view)[1], "Wrong 3rd dim of sa_map: " + str(d3)
+    assert d4 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
+    # ...
+    fig = plt.figure(figsize=(14, 8))
+    ax = plt.subplot(121)
+    ax.plot(pts[0, :], pts[1, :], '.b')
+    ax2 = plt.subplot(122)
+    ax2.plot(pts[0, :]*np.cos(pts[2, :]),
+             pts[0, :]*np.sin(pts[2, :]), '.r')
