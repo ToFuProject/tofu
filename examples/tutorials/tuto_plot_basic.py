@@ -29,7 +29,7 @@ import tofu as tf
 # structures. `tofu` provides pre-defined ones for your to try, so we're going
 # to do just that:
 
-configB2 = tf.load_config_config("B2")
+configB2 = tf.load_config("B2")
 
 ###############################################################################
 # The configuration can easily be visualized using the `.plot()` method:
