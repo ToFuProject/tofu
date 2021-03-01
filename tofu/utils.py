@@ -367,9 +367,9 @@ def _save_npzmat_dict(dd, sep=None):
             # None will be recreated at load time
             pass
         elif (type(dd[k]) in [int,float,bool,str]
-              or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)
-              or issubclass(dd[k].__class__,np.bool_)):
+              or issubclass(dd[k].__class__, int)
+              or issubclass(dd[k].__class__, float)
+              or issubclass(dd[k].__class__, np.bool_)):
             dnpzmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
             dnpzmat[k] = np.asarray(dd[k])
@@ -2143,8 +2143,11 @@ class ToFuObjectBase(object):
                         if eqk:
                             eqk = d0[k].dtype == d1[k].dtype
                             if eqk:
-                                if (issubclass(d0[k].dtype.type, np.int)
-                                    or issubclass(d0[k].dtype.type, np.float)):
+                                c0 = (
+                                    issubclass(d0[k].dtype.type, int)
+                                    or issubclass(d0[k].dtype.type, float)
+                                )
+                                if c0:
                                     eqk = np.allclose(d0[k],d1[k], equal_nan=True)
                                 else:
                                     eqk = np.all(d0[k]==d1[k])
@@ -2800,7 +2803,7 @@ class ID(ToFuObjectBase):
         return self._dall['Name']
     @property
     def NameLTX(self):
-        return r"$"+self.Name.replace('_','\_')+r"$"
+        return r"$" + self.Name.replace('_', '\_') + r"$"
     @property
     def Exp(self):
         return self._dall['Exp']

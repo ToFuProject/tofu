@@ -3107,21 +3107,21 @@ class Plasma2D(utils.ToFuObject):
             out = ind, lid
         return out
 
-    def _get_keyingroup(self, str_, group=None, msgstr=None, raise_=False):
+    def _get_keyingroup(self, key, group=None, msgstr=None, raise_=False):
 
-        if str_ in self._ddata.keys():
-            lg = self._ddata[str_]['lgroup']
+        if key in self._ddata.keys():
+            lg = self._ddata[key]['lgroup']
             if group is None or group in lg:
-                return str_, None
+                return key, None
             else:
                 msg = ("Required data key does not have matching group:\n"
-                       + "\t- ddata[{}]['lgroup'] = {}\n".format(str_, lg)
+                       + "\t- ddata[{}]['lgroup'] = {}\n".format(key, lg)
                        + "\t- Expected group:  {}".format(group))
                 if raise_:
                     raise Exception(msg)
 
-        ind, akeys = self._get_ldata(dim=str_, quant=str_, name=str_, units=str_,
-                                     origin=str_, group=group, log='raw',
+        ind, akeys = self._get_ldata(dim=key, quant=key, name=key, units=key,
+                                     origin=key, group=group, log='raw',
                                      return_key=False)
         # Remove indref and group
         ind = ind[:5,:] & ind[-1,:]
@@ -3136,13 +3136,13 @@ class Plasma2D(utils.ToFuObject):
                 key = akeys[indkey][0]
             else:
                 lstr = "[dim,quant,name,units,origin]"
-                msg = "Several possible unique matches in %s for %s"(lstr,str_)
+                msg = "Several possible matches in {} for {}".format(lstr, key)
         else:
             lstr = "[dim,quant,name,units,origin]"
-            msg = "No unique match in %s for %s in group %s"%(lstr,str_,group)
+            msg = "No match in {} for {} in group {}".format(lstr, key, group)
 
         if msg is not None:
-            msg += "\n\nRequested %s could not be identified !\n"%msgstr
+            msg += "\n\nRequested {} could not be identified!\n".format(msgstr)
             msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
             msg += self.get_summary(verb=False, return_='msg')
             if raise_:
