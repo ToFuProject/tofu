@@ -1968,3 +1968,5 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     ax2 = plt.subplot(122)
     ax2.plot(pts[0, :]*np.cos(pts[2, :]),
              pts[0, :]*np.sin(pts[2, :]), '.r')
+    return
+
