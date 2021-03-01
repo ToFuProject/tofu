@@ -4932,7 +4932,7 @@ class Rays(utils.ToFuObject):
                 else:
                     num_tot_structs += len(ss.Lim)
 
-            lsnvert = np.asarray(lsnvert, dtype=np.long)
+            lsnvert = np.asarray(lsnvert, dtype=int)
             lSPolyx = np.asarray(lSPolyx)
             lSPolyy = np.asarray(lSPolyy)
             lSVInx = np.asarray(lSVInx)
@@ -4944,7 +4944,7 @@ class Rays(utils.ToFuObject):
                         lstruct_polyx=lSPolyx,
                         lstruct_polyy=lSPolyy,
                         lstruct_lims=lSLim,
-                        lstruct_nlim=np.asarray(lSnLim, dtype=np.long),
+                        lstruct_nlim=np.asarray(lSnLim, dtype=int),
                         lstruct_normx=lSVInx,
                         lstruct_normy=lSVIny,
                         lnvert=lsnvert,
@@ -5919,7 +5919,7 @@ class Rays(utils.ToFuObject):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim == 1
-            assert ind.dtype in [np.int64, np.bool_, np.long]
+            assert ind.dtype in [np.int64, np.bool_, int]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
                 if out is int:
