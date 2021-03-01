@@ -1918,9 +1918,12 @@ cdef inline void vmesh_ind_polr_loop(int np,
 # ==============================================================================
 # == Solid Angle Computation
 # ==============================================================================
-
 cdef inline void sa_double_loop_polr(int ii,
-                                     int sz_z,
+                                     double[:, ::1] part_dist,
+                                     double[::1] part_rad,
+                                     double[:, ::1] are_vis,
+                                     int sz_m, int sz_p, int sz_z,
+                                     double[:, :, ::1] sa_map,
                                      long* lindex_z,
                                      long* ncells_rphi,
                                      long* tot_nc_plane,
@@ -1940,6 +1943,7 @@ cdef inline void sa_double_loop_polr(int ii,
     cdef long zrphi
     cdef long indiijj
     cdef double vol
+    cdef double loc_rad2
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
@@ -1951,6 +1955,16 @@ cdef inline void sa_double_loop_polr(int ii,
             pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             vol = reso_r_z * reso_phi_mv[ii]
+            for mm in range(sz_m):
+                loc_rad2 = part_rad[mm] * part_rad[mm]
+                for pp in range(sz_p):
+                    if are_vis[mm, pp] :
+                        sa_map[zz, mm, pp] += (loc_rad2
+                                               / part_dist[mm, pp]**2) \
+                                               * vol * Cpi
+                    else:
+                        sa_map[zz, mm, pp] = Cnan
+
     return
 
 
@@ -2045,7 +2059,9 @@ cdef inline void sa_double_loop(double[:, ::1] part_dist,
                                     reso_phi_mv, pts_mv, ind_mv)
         else:
             for ii in prange(sz_r):
-                sa_double_loop_polr(ii, sz_z, lindex_z,
+                sa_double_loop_polr(ii, part_dist, part_rad, are_vis,
+                                    sz_m, sz_p, sz_z,
+                                    sa_map[ii], lindex_z,
                                     ncells_rphi, tot_nc_plane,
                                     reso_r_z, step_rphi,
                                     disc_r, disc_z, lnp, sz_phi,
