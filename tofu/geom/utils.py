@@ -1081,6 +1081,10 @@ def _create_CamLOS_check_inputs(
     D12=None,       # Deprecated
     orientation=None,
     angs=None,      # Deprecated
+    etendues=None,
+    Etendues=None,  # Deprecated
+    surfaces=None,
+    Surfaces=None,  # Deprecated
     config=None,
     Name=None,
     nD=None,
@@ -1145,6 +1149,8 @@ def _create_CamLOS_check_inputs(
         'sensor_size': [sensor_size, D12, 'D12'],
         'sensor_nb': [sensor_nb, N12, 'N12'],
         'orientation': [orientation, angs, 'angs'],
+        'etendues': [etendues, Etendues, 'Etendues'],
+        'surfaces': [surfaces, Surfaces, 'Surfaces'],
     }
     ldprec = sorted([
         (ss, '{}  ->  {}'.format(vv[2], ss)) for ss, vv in dprecate.items()
@@ -1192,6 +1198,7 @@ def _create_CamLOS_check_inputs(
     out = [
         nD, Lim, VType, defRY,
         pinhole, focal, sensor_size, sensor_nb, orientation, nIn, Name,
+        etendues, surfaces,
     ]
 
     return out
@@ -1210,8 +1217,10 @@ def _create_CamLOS(
     orientation=None,
     angs=None,      # Deprecated
     config=None,
-    Etendues=None,
-    Surfaces=None,
+    Etendues=None,  # Deprecated
+    etendues=None,
+    Surfaces=None,  # Deprecated
+    surfaces=None,
     Exp=None,
     Diag=None,
     Name=None,
@@ -1232,6 +1241,7 @@ def _create_CamLOS(
     (
         nD, Lim, VType, defRY,
         pinhole, focal, sensor_size, sensor_nb, orientation, nIn, Name,
+        etendues, surfaces,
     ) = _create_CamLOS_check_inputs(
         case=case,
         pinhole=pinhole, P=P,
@@ -1239,6 +1249,8 @@ def _create_CamLOS(
         sensor_nb=sensor_nb, N12=N12,
         sensor_size=sensor_size, D12=D12,
         orientation=orientation, angs=angs,
+        Etendues=Etendues, etendues=etendues,
+        Surfaces=Surfaces, surfaces=surfaces,
         config=config,
         Name=Name,
         nD=nD,
@@ -1282,7 +1294,7 @@ def _create_CamLOS(
         cam = cls(
             Name=Name, Exp=Exp, Diag=Diag,
             dgeom={'pinhole': pinhole, 'D': Ds}, method=method,
-            Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+            Etendues=etendues, Surfaces=surfaces, dchans=dchans,
             color=color, config=config, SavePath=SavePath
         )
         return cam
