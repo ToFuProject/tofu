@@ -2143,8 +2143,11 @@ class ToFuObjectBase(object):
                         if eqk:
                             eqk = d0[k].dtype == d1[k].dtype
                             if eqk:
-                                if (issubclass(d0[k].dtype.type, int)
-                                    or issubclass(d0[k].dtype.type, float)):
+                                c0 = (
+                                    issubclass(d0[k].dtype.type, int)
+                                    or issubclass(d0[k].dtype.type, float)
+                                )
+                                if c0:
                                     eqk = np.allclose(d0[k],d1[k], equal_nan=True)
                                 else:
                                     eqk = np.all(d0[k]==d1[k])
