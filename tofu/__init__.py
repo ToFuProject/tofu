@@ -54,18 +54,13 @@ import sys
 import warnings
 from .version import __version__
 
-# For tests without display with nosetests
-if 'matplotlib.pyplot' not in sys.modules.keys():
-    import matplotlib
-    matplotlib.use('agg')
-    del matplotlib
-
 import tofu.pathfile as pathfile
 import tofu.utils as utils
 
 from tofu.utils import save, load, load_from_imas, calc_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
+from tofu.geom.utils import create_config as load_config
 import tofu.data as data
 
 

@@ -402,13 +402,13 @@ class DataAbstract(utils.ToFuObject):
         if lC[2]:
             if not lC[0]:
                 assert indtlamb.shape==(nt,)
-                assert inp.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
+                assert np.min(indtlamb) >= 0 and np.max(indtlamb) <= nnlamb
             if not lC[1]:
-                assert indXlamb.shape==(nch,)
-                assert inp.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
+                assert indXlamb.shape == (nch,)
+                assert np.min(indXlamb) >= 0 and np.max(indXlamb) <= nnlamb
         else:
-            assert indtXlamb.shape==(nt,nch)
-            assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
+            assert indtXlamb.shape == (nt, nch)
+            assert np.min(indtXlamb) >= 0 and np.max(indtXlamb) <= nnlamb
 
         # Check consistency X/lamb shapes vs indices
         if X is not None and indtX is None:
@@ -458,8 +458,8 @@ class DataAbstract(utils.ToFuObject):
         if indtX is None:
             indtX = self._ddataRef['indtX']
         if indtX is not None:
-            assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnch
+            assert indtX.shape == (nt,)
+            assert np.argmin(indtX) >= 0 and np.argmax(indtX) <= nnch
         if indXlamb is None:
             indXlamb = self._ddataRef['indXlamb']
         if indtXlamb is None:
@@ -795,7 +795,7 @@ class DataAbstract(utils.ToFuObject):
                             (unless available in the current console:"""
                         msg += "\n    - {0}".format(pfe)
                         if force:
-                            warning.warn(msg)
+                            warnings.warn(msg)
                         else:
                             raise Exception(msg)
                     lpfe.append(pfe)
@@ -820,7 +820,7 @@ class DataAbstract(utils.ToFuObject):
                         (unless available in the current console:"""
                     msg += "\n    - {0}".format(pfe)
                     if force:
-                        warning.warn(msg)
+                        warnings.warn(msg)
                     else:
                         raise Exception(msg)
                 self._dgeom['config'] = pfe
@@ -1246,8 +1246,9 @@ class DataAbstract(utils.ToFuObject):
     @staticmethod
     def _interp_t(data, t, indtX=None,
                   indtlamb=None, indtXlamb=None, interpt=None, kind='linear'):
-        f = scp.interp1d(t, data, kind=kind, axis=0, copy=True,
-                         bounds_error=True, fill_value=np.nan, assume_sorted=False)
+        f = scpinterp.interp1d(t, data, kind=kind, axis=0, copy=True,
+                               bounds_error=True, fill_value=np.nan,
+                               assume_sorted=False)
         d = f(data)
 
         lC = [indtX is not None, indtlamb is not None, indtXlamb is not None]
@@ -2055,7 +2056,12 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
-        if type(other) in [int, float, np.int64, np.float64]:
+
+        if other is None:
+            data = opfunc(d0.data)
+            dcom = d0._extract_common_params(d0)
+
+        elif type(other) in [int, float, np.int64, np.float64]:
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
@@ -2086,7 +2092,7 @@ class DataAbstract(utils.ToFuObject):
 
     def __abs__(self):
         opfunc = lambda x: np.abs(x)
-        data = self._recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, None, opfunc)
         return data
 
     def __sub__(self, other):
@@ -2589,7 +2595,7 @@ class Plasma2D(utils.ToFuObject):
                                 undsh = nodesu.shape
                                 msg += (
                                     "  Duplicate nodes: {}\n".format(ndup)
-                                    + "\t- nodes.shape: {}\n".format(nodsh)
+                                    + "\t- nodes.shape: {}\n".format(ndsh)
                                     + "\t- unique shape: {}\n".format(undsh))
                             if lc[1]:
                                 ndup = str(nfaces - facesu.shape[0])
@@ -2985,7 +2991,7 @@ class Plasma2D(utils.ToFuObject):
                         (unless available in the current console:"""
                     msg += "\n    - {0}".format(pfe)
                     if force:
-                        warning.warn(msg)
+                        warnings.warn(msg)
                     else:
                         raise Exception(msg)
                 self._dgeom['config'] = pfe
@@ -3101,21 +3107,21 @@ class Plasma2D(utils.ToFuObject):
             out = ind, lid
         return out
 
-    def _get_keyingroup(self, str_, group=None, msgstr=None, raise_=False):
+    def _get_keyingroup(self, key, group=None, msgstr=None, raise_=False):
 
-        if str_ in self._ddata.keys():
-            lg = self._ddata[str_]['lgroup']
+        if key in self._ddata.keys():
+            lg = self._ddata[key]['lgroup']
             if group is None or group in lg:
-                return str_, None
+                return key, None
             else:
                 msg = ("Required data key does not have matching group:\n"
-                       + "\t- ddata[{}]['lgroup'] = {}\n".format(str_, lg)
+                       + "\t- ddata[{}]['lgroup'] = {}\n".format(key, lg)
                        + "\t- Expected group:  {}".format(group))
                 if raise_:
                     raise Exception(msg)
 
-        ind, akeys = self._get_ldata(dim=str_, quant=str_, name=str_, units=str_,
-                                     origin=str_, group=group, log='raw',
+        ind, akeys = self._get_ldata(dim=key, quant=key, name=key, units=key,
+                                     origin=key, group=group, log='raw',
                                      return_key=False)
         # Remove indref and group
         ind = ind[:5,:] & ind[-1,:]
@@ -3130,13 +3136,13 @@ class Plasma2D(utils.ToFuObject):
                 key = akeys[indkey][0]
             else:
                 lstr = "[dim,quant,name,units,origin]"
-                msg = "Several possible unique matches in %s for %s"(lstr,str_)
+                msg = "Several possible matches in {} for {}".format(lstr, key)
         else:
             lstr = "[dim,quant,name,units,origin]"
-            msg = "No unique match in %s for %s in group %s"%(lstr,str_,group)
+            msg = "No match in {} for {} in group {}".format(lstr, key, group)
 
         if msg is not None:
-            msg += "\n\nRequested %s could not be identified !\n"%msgstr
+            msg += "\n\nRequested {} could not be identified!\n".format(msgstr)
             msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
             msg += self.get_summary(verb=False, return_='msg')
             if raise_:
@@ -4192,7 +4198,7 @@ class Plasma2D(utils.ToFuObject):
                                              method=method, ind=ind, out=out,
                                              pot=plot, dataname=dataname,
                                              fs=fs, dmargin=dmargin,
-                                             wintit=wintit, invert=intert,
+                                             wintit=wintit, invert=invert,
                                              units=units, draw=draw,
                                              connect=connect)
 

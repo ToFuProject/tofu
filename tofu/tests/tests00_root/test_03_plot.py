@@ -10,9 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings as warn
 
-# Nose-specific
-from nose import with_setup # optional
-
 
 # Importing package tofu.geom
 import tofu as tf
@@ -20,7 +17,7 @@ from tofu import __version__
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.tests03_plot'
+VerbHead = 'tofu.test_03_plot'
 keyVers = 'Vers'
 _Exp = 'WEST'
 

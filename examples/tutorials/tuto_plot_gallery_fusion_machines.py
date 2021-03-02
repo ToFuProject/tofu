@@ -21,7 +21,7 @@ import tofu as tf
 # components is printed. This allows inspecting the component names, number
 # of sections, color or visibility.
 
-config = tf.geom.utils.create_config("ITER")  # create ITER configuration
+config = tf.load_config("ITER")  # create ITER configuration
 print(config)
 
 ###############################################################################
@@ -36,5 +36,5 @@ print(tf.geom.utils.get_available_config())
 
 for fusion_machine in ['ITER', 'WEST', 'JET', 'NSTX', 'AUG', 'DEMO', 'TOMAS',
                        'COMPASS', 'TCV']:
-    config = tf.geom.utils.create_config(fusion_machine)
+    config = tf.load_config(fusion_machine)
     config.plot()

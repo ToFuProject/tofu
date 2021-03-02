@@ -11,7 +11,7 @@ import inspect
 
 # Common
 import numpy as np
-# import scipy.interpolate as scpinterp
+import scipy.interpolate as scpinterp
 # import matplotlib.pyplot as plt
 # from matplotlib.tri import Triangulation as mplTri
 
@@ -607,7 +607,7 @@ class DataHolder(utils.ToFuObject):
             key = self._ind_tofrom_key(ind=ind, key=key, out='key')
             assert len(key) == len(values)
             for kk in range(len(key)):
-                self._ddata['dict'][key[ii]][param] = values[ii]
+                self._ddata['dict'][key[kk]][param] = values[kk]
 
     def add_param(self, param, values=None):
         assert isinstance(param, str)
