@@ -1968,8 +1968,8 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                    double[:, ::1] pts, int npts,
                                    double[:, ::1] ves_poly,
                                    double[:, ::1] ves_norm,
-                                   double[::1] ind,
-                                   double[::1] k,
+                                   double[::1] is_vis,
+                                   double[::1] dist,
                                    double[::1] ves_lims,
                                    long[::1] lstruct_nlim,
                                    double[::1] lstruct_polyx,
@@ -2003,12 +2003,12 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
     _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
-    if k == None:
+    if dist == None:
         dist_arr = <double*> malloc(npts*sizeof(double))
         _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
         _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
     else:
-        _bgt.compute_diff_div(pts, ray_orig, &k[0], npts, ray_vdir)
+        _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
     # --------------------------------------------------------------------------
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
@@ -2028,28 +2028,28 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                       ind_inter_out)
     # --------------------------------------------------------------------------
     # Get ind
-    if k == None:
-        is_vis_mask(ind, dist_arr, coeff_inter_out, npts)
+    if dist == None:
+        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts)
         free(dist_arr)
     else:
-        is_vis_mask(ind, &k[0], coeff_inter_out, npts)
+        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts)
     return
 
-cdef inline void is_vis_mask(double[::1] ind, double* k,
+cdef inline void is_vis_mask(double[::1] is_vis, double* dist,
                              double[::1] coeff_inter_out,
                              int npts) nogil:
     cdef int ii
     for ii in range(npts):
-        ind[ii] = 1
-        if k[ii] > coeff_inter_out[ii]:
-            ind[ii] = 0
+        is_vis[ii] = 1
+        if dist[ii] > coeff_inter_out[ii]:
+            is_vis[ii] = 0
     return
 
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double[:, ::1] pts2, int npts2,
                                      double[:, ::1] ves_poly,
                                      double[:, ::1] ves_norm,
-                                     double[:, ::1] ind,
+                                     double[:, ::1] is_vis,
                                      double[:, ::1] dist,
                                      double[::1] ves_lims,
                                      long[::1] lstruct_nlim,
@@ -2078,7 +2078,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
                           ves_poly, ves_norm,
-                          ind[ii,...], dist[ii], ves_lims,
+                          is_vis[ii,...], dist[ii], ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,

@@ -4529,11 +4529,9 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
 #
 # ==============================================================================
 def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
-                            double[:,::1] view_coords,
                             double rstep, double zstep, double phistep,
                             double[::1] RMinMax, double[::1] ZMinMax,
                             list DR=None, list DZ=None, DPhi=None,
-                            double[:, ::1] dist=None,
                             double[:,::1] limit_vpoly=None,
                             bint block=False,
                             double[:, ::1] ves_poly=None,
@@ -4556,13 +4554,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             double margin=_VSMALL, int num_threads=48):
     """
     Computes the 2D map of the integrated solid angles subtended by each of
-    the sz_p particles P of radius part_r at the position part_X, part_Y,
-    part_Z viewed by the sz_m points M at the position view_X, view_Y, view_Z
+    the sz_p particles P of radius part_r at the position part_coords
+    in the sampled volume
     Args:
         part_coords: (3, sz_p) array of the cartesian coordinates of P particles
         part_r: sz_p array of the radii of the P particles
-        view_coords: (3, sz_m) array of the coordinates of M viewing points
-        dist: (sz_p, sz_m) array of distance between M and P points
         block: bool, check if particles are viewable from viewing points
         rstep (double): refinement along radius `r`
         zstep (double): refinement along height `z`
@@ -4579,7 +4575,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
              or polar coordinates
         margin(double): tolerance error. Defaults to |_VSMALL|
      Output:
-        sa_map: (sz_r, sz_z, sz_m, sz_p) approx solid angle integrated
+        sa_map: (sz_r, sz_z, sz_p) approx solid angle integrated
     """
     cdef int ii, jj, zz
     cdef int sz_m, sz_p
@@ -4602,10 +4598,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] indR0, indR, indZ
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
-    cdef double[::1] reso_phi_mv, hypot
+    cdef double[::1] reso_phi_mv
+    cdef double[::1] is_vis
+    cdef double[::1] dist
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
-    cdef double[:, ::1] are_vis
     cdef long[:, ::1] indi_mv
     cdef long[:, :, ::1] lnp
     cdef long*  ncells_rphi  = NULL
@@ -4628,30 +4625,25 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double,ndim=1] reso_phi
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=4] sa_map
+    cdef np.ndarray[double,ndim=3] sa_map
     #
     # .. Getting size of arrays ................................................
     sz_p = part_coords.shape[1]
-    sz_m = view_coords.shape[1]
-    # .. Computing distance between M points and P .............................
-    if dist is None:
-        dist = np.empty((sz_p, sz_m))
-        _bgt.compute_dist_vec_vec(sz_p, sz_m, part_coords, view_coords, dist)
-    # .. Check if points are visible ...........................................
-    are_vis = np.ones((sz_m, sz_p))
-    if block:
-        _rt.are_visible_vec_vec(view_coords, sz_m,
-                                part_coords, sz_p,
-                                ves_poly, ves_norm,
-                                are_vis, dist, ves_lims,
-                                lstruct_nlim,
-                                lstruct_polyx, lstruct_polyy,
-                                lstruct_lims,
-                                lstruct_normx, lstruct_normy,
-                                lnvert, nstruct_tot, nstruct_lim,
-                                rmin, eps_uz, eps_a, eps_vz, eps_b,
-                                eps_plane, ves_type.lower(),
-                                forbid, num_threads)
+    # # .. Check if points are visible ...........................................
+    # are_vis = np.ones((sz_m, sz_p))
+    # if block:
+    #     _rt.are_visible_vec_vec(view_coords, sz_m,
+    #                             part_coords, sz_p,
+    #                             ves_poly, ves_norm,
+    #                             are_vis, dist, ves_lims,
+    #                             lstruct_nlim,
+    #                             lstruct_polyx, lstruct_polyy,
+    #                             lstruct_lims,
+    #                             lstruct_normx, lstruct_normy,
+    #                             lnvert, nstruct_tot, nstruct_lim,
+    #                             rmin, eps_uz, eps_a, eps_vz, eps_b,
+    #                             eps_plane, ves_type.lower(),
+    #                             forbid, num_threads)
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -4779,9 +4771,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
     # .. preparing for actual discretization ...................................
-    sa_map = np.zeros((sz_r, sz_z, sz_m, sz_p))
-    pts = np.empty((3,NP))
-    ind = np.empty((NP,), dtype=int)
+    sa_map = np.zeros((sz_r, sz_z, sz_p))
+    pts = np.empty((3, NP))
+    ind = np.empty((NP, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
     reso_r_z = reso_r[0]*reso_z[0]
@@ -4790,9 +4782,27 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     indI = np.sort(indI, axis=1)
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
-    _st.sa_double_loop(dist, part_r, are_vis,
-                       sa_map, first_ind_mv, indi_mv,
-                       is_cart, sz_m, sz_p, sz_r, sz_z, lindex_z,
+    # initializing utilitary arrays
+    is_vis = np.zeros(sz_p)
+    dist = np.zeros(sz_p)
+    _st.sa_double_loop(part_coords, part_r,
+                       sa_map,
+                       ves_poly, ves_norm,
+                       is_vis, dist,
+                       ves_lims,
+                       lstruct_nlim,
+                       lstruct_polyx,
+                       lstruct_polyy,
+                       lstruct_lims,
+                       lstruct_normx,
+                       lstruct_normy,
+                       lnvert, nstruct_tot, nstruct_lim,
+                       rmin,
+                       eps_uz, eps_a,
+                       eps_vz, eps_b, eps_plane,
+                       ves_type, forbid,
+                       first_ind_mv, indi_mv,
+                       is_cart, sz_p, sz_r, sz_z, lindex_z,
                        ncells_rphi, tot_nc_plane,
                        reso_r_z, step_rphi,
                        disc_r, disc_z, lnp, sz_phi,
@@ -4852,4 +4862,4 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    return sa_map
+    return pts, sa_map

@@ -1942,24 +1942,22 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         )
         if debug > 2:
             lax = ves.plot()
-    view = np.array([[2.5, 2., 0.], [-3, 0, 0]], order='F').T
     part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
     part_rad = np.r_[0.1, 0.1, 0.1]
-    rstep = zstep = phistep = 0.5
+    rstep = zstep = phistep = 0.05
     RMinMax = np.array([np.min(VPoly[0,:]), np.max(VPoly[0,:])])
     ZMinMax = np.array([np.min(VPoly[1,:]), np.max(VPoly[1,:])])
 
-    res = GG.compute_solid_angle_map(part, part_rad, view,
+    res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      RMinMax, ZMinMax,
                                      )
-    sa_map = res
+    pts, sa_map = res
     print(np.shape(sa_map))
     # check size r,z,m,p
-    d1, d2, d3, d4 = np.shape(sa_map)
+    d1, d2, d3 = np.shape(sa_map)
     assert d1 == 4, "Wrong 1st dim of sa_map: " + str(d1)
     assert d2 == 4, "Wrong 2nd dim of sa_map: " + str(d2)
-    assert d3 == np.shape(view)[1], "Wrong 3rd dim of sa_map: " + str(d3)
     assert d4 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
     # ...
     fig = plt.figure(figsize=(14, 8))
@@ -1969,4 +1967,3 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     ax2.plot(part[0, :]*np.cos(part[2, :]),
              part[0, :]*np.sin(part[2, :]), '.r')
     return
-

@@ -22,7 +22,7 @@ import numpy as np
 cimport numpy as cnp
 # tofu libs
 cimport _basic_geom_tools as _bgt
-
+cimport _raytracing_tools as _rt
 
 # ==============================================================================
 # =  LINEAR MESHING
@@ -1703,6 +1703,7 @@ cdef inline void vmesh_double_loop_cart(int ii,
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
+        # faire le vignetting a ce stade la (R,Z) dans le poly ?
         for jj in range(sz_phi[ii]):
             NP = lnp[ii,zz,jj]
             indiijj = iii[jj]
@@ -1919,11 +1920,29 @@ cdef inline void vmesh_ind_polr_loop(int np,
 # == Solid Angle Computation
 # ==============================================================================
 cdef inline void sa_double_loop_polr(int ii,
-                                     double[:, ::1] part_dist,
+                                     double[:, ::1] part_coords,
                                      double[::1] part_rad,
-                                     double[:, ::1] are_vis,
-                                     int sz_m, int sz_p, int sz_z,
-                                     double[:, :, ::1] sa_map,
+                                     int sz_p, int sz_z,
+                                     double[:, ::1] sa_map,
+                                     double[:, ::1] ves_poly,
+                                     double[:, ::1] ves_norm,
+                                     double[::1] is_vis, double[::1] dist,
+                                     double[::1] ves_lims,
+                                     long[::1] lstruct_nlim,
+                                     double[::1] lstruct_polyx,
+                                     double[::1] lstruct_polyy,
+                                     list lstruct_lims,
+                                     double[::1] lstruct_normx,
+                                     double[::1] lstruct_normy,
+                                     long[::1] lnvert,
+                                     int nstruct_tot,
+                                     int nstruct_lim,
+                                     double rmin,
+                                     double eps_uz, double eps_a,
+                                     double eps_vz, double eps_b,
+                                     double eps_plane, str ves_type,
+                                     bint forbid,
+                                     int num_threads,
                                      long* lindex_z,
                                      long* ncells_rphi,
                                      long* tot_nc_plane,
@@ -1936,7 +1955,7 @@ cdef inline void sa_double_loop_polr(int ii,
                                      long[::1] iii,
                                      double[::1] reso_phi_mv,
                                      double[:, ::1] pts_mv,
-                                     long[::1] ind_mv) nogil:
+                                     long[::1] ind_mv):
     cdef int zz
     cdef int jj
     cdef long NP
@@ -1944,6 +1963,7 @@ cdef inline void sa_double_loop_polr(int ii,
     cdef long indiijj
     cdef double vol
     cdef double loc_rad2
+    cdef double volpi
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
@@ -1955,25 +1975,63 @@ cdef inline void sa_double_loop_polr(int ii,
             pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             vol = reso_r_z * reso_phi_mv[ii]
-            for mm in range(sz_m):
-                loc_rad2 = part_rad[mm] * part_rad[mm]
-                for pp in range(sz_p):
-                    if are_vis[mm, pp] :
-                        sa_map[zz, mm, pp] += (loc_rad2
-                                               / part_dist[mm, pp]**2) \
-                                               * vol * Cpi
-                    else:
-                        sa_map[zz, mm, pp] = Cnan
-
+                        # computing distance ....
+            _bgt.compute_dist_pt_vec(pts_mv[0, NP],
+                                     pts_mv[1, NP],
+                                     pts_mv[2, NP],
+                                     sz_p, part_coords,
+                                     &dist[0])
+            # checking if visible .....
+            _rt.is_visible_pt_vec(pts_mv[0, NP],
+                                  pts_mv[1, NP],
+                                  pts_mv[2, NP],
+                                  part_coords,
+                                  sz_p,
+                                  ves_poly, ves_norm,
+                                  is_vis, dist,
+                                  ves_lims,
+                                  lstruct_nlim,
+                                  lstruct_polyx,
+                                  lstruct_polyy,
+                                  lstruct_lims,
+                                  lstruct_normx,
+                                  lstruct_normy,
+                                  lnvert, nstruct_tot, nstruct_lim,
+                                  rmin,
+                                  eps_uz, eps_a,
+                                  eps_vz, eps_b, eps_plane,
+                                  ves_type, forbid, num_threads)
+            volpi = vol * Cpi
+            for pp in range(sz_p):
+                if is_vis[pp] :
+                    sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
     return
 
 
 cdef inline void sa_double_loop_cart(int ii,
-                                     double[:, ::1] part_dist,
+                                     double[:, ::1] part_coords,
                                      double[::1] part_rad,
-                                     double[:, ::1] are_vis,
-                                     int sz_m, int sz_p, int sz_z,
-                                     double[:, :, ::1] sa_map,
+                                     int sz_p, int sz_z,
+                                     double[:, ::1] sa_map,
+                                     double[:, ::1] ves_poly,
+                                     double[:, ::1] ves_norm,
+                                     double[::1] is_vis, double[::1] dist,
+                                     double[::1] ves_lims,
+                                     long[::1] lstruct_nlim,
+                                     double[::1] lstruct_polyx,
+                                     double[::1] lstruct_polyy,
+                                     list lstruct_lims,
+                                     double[::1] lstruct_normx,
+                                     double[::1] lstruct_normy,
+                                     long[::1] lnvert,
+                                     int nstruct_tot,
+                                     int nstruct_lim,
+                                     double rmin,
+                                     double eps_uz, double eps_a,
+                                     double eps_vz, double eps_b,
+                                     double eps_plane, str ves_type,
+                                     bint forbid,
+                                     int num_threads,
                                      long* lindex_z,
                                      long* ncells_rphi,
                                      long* tot_nc_plane,
@@ -1986,7 +2044,7 @@ cdef inline void sa_double_loop_cart(int ii,
                                      long[::1] iii,
                                      double[::1] reso_phi_mv,
                                      double[:, ::1] pts_mv,
-                                     long[::1] ind_mv) nogil:
+                                     long[::1] ind_mv):
     cdef int zz
     cdef int jj
     cdef int mm
@@ -1997,6 +2055,7 @@ cdef inline void sa_double_loop_cart(int ii,
     cdef double phi
     cdef double vol
     cdef double loc_rad2
+    cdef double volpi
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
@@ -2009,26 +2068,66 @@ cdef inline void sa_double_loop_cart(int ii,
             pts_mv[2, NP] = disc_z[zz]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             vol = reso_r_z*reso_phi_mv[ii]
-            for mm in range(sz_m):
-                loc_rad2 = part_rad[mm] * part_rad[mm]
-                for pp in range(sz_p):
-                    if are_vis[mm, pp] :
-                        sa_map[zz, mm, pp] += (loc_rad2
-                                                   / part_dist[mm, pp]**2) \
-                                                   * vol * Cpi
-                    else:
-                        sa_map[zz, mm, pp] = Cnan
+            # computing distance ....
+            _bgt.compute_dist_pt_vec(pts_mv[0, NP],
+                                     pts_mv[1, NP],
+                                     pts_mv[2, NP],
+                                     sz_p, part_coords,
+                                     &dist[0])
+            # checking if visible .....
+            _rt.is_visible_pt_vec(pts_mv[0, NP],
+                                  pts_mv[1, NP],
+                                  pts_mv[2, NP],
+                                  part_coords,
+                                  sz_p,
+                                  ves_poly, ves_norm,
+                                  is_vis, dist,
+                                  ves_lims,
+                                  lstruct_nlim,
+                                  lstruct_polyx,
+                                  lstruct_polyy,
+                                  lstruct_lims,
+                                  lstruct_normx,
+                                  lstruct_normy,
+                                  lnvert, nstruct_tot, nstruct_lim,
+                                  rmin,
+                                  eps_uz, eps_a,
+                                  eps_vz, eps_b, eps_plane,
+                                  ves_type, forbid, num_threads)
+            # TODO : quel nombre de threads choisir ici ???
+            volpi = vol * Cpi
+            for pp in range(sz_p):
+                if is_vis[pp] :
+                    sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
     return
 
 
-cdef inline void sa_double_loop(double[:, ::1] part_dist,
+cdef inline void sa_double_loop(double[:, ::1] part_coords,
                                 double[::1] part_rad,
-                                double[:, ::1] are_vis,
-                                double[:, :, :, ::1] sa_map,
+                                double[:, :, ::1] sa_map,
+                                double[:, ::1] ves_poly,
+                                double[:, ::1] ves_norm,
+                                double[::1] is_vis,
+                                double[::1] dist,
+                                double[::1] ves_lims,
+                                long[::1] lstruct_nlim,
+                                double[::1] lstruct_polyx,
+                                double[::1] lstruct_polyy,
+                                list lstruct_lims,
+                                double[::1] lstruct_normx,
+                                double[::1] lstruct_normy,
+                                long[::1] lnvert,
+                                int nstruct_tot,
+                                int nstruct_lim,
+                                double rmin,
+                                double eps_uz, double eps_a,
+                                double eps_vz, double eps_b,
+                                double eps_plane, str ves_type,
+                                bint forbid,
                                 long[::1] first_ind_mv,
                                 long[:,::1] indi_mv,
                                 bint is_cart,
-                                int sz_m, int sz_p,
+                                int sz_p,
                                 int sz_r, int sz_z,
                                 long* lindex_z,
                                 long* ncells_rphi,
@@ -2042,29 +2141,60 @@ cdef inline void sa_double_loop(double[:, ::1] part_dist,
                                 double[::1] reso_phi_mv,
                                 double[:, ::1] pts_mv,
                                 long[::1] ind_mv,
-                                int num_threads) nogil:
+                                int num_threads):
     cdef int ii
     # ...
-    with nogil, parallel(num_threads=num_threads):
-        if is_cart:
-            for ii in prange(sz_r):
-                # To make sure the indices are in increasing order
-                sa_double_loop_cart(ii, part_dist, part_rad, are_vis,
-                                    sz_m, sz_p, sz_z,
-                                    sa_map[ii], lindex_z,
-                                    ncells_rphi, tot_nc_plane,
-                                    reso_r_z, step_rphi,
-                                    disc_r, disc_z, lnp, sz_phi,
-                                    indi_mv[ii,first_ind_mv[ii]:],
-                                    reso_phi_mv, pts_mv, ind_mv)
-        else:
-            for ii in prange(sz_r):
-                sa_double_loop_polr(ii, part_dist, part_rad, are_vis,
-                                    sz_m, sz_p, sz_z,
-                                    sa_map[ii], lindex_z,
-                                    ncells_rphi, tot_nc_plane,
-                                    reso_r_z, step_rphi,
-                                    disc_r, disc_z, lnp, sz_phi,
-                                    indi_mv[ii,first_ind_mv[ii]:],
-                                    reso_phi_mv, pts_mv, ind_mv)
+    # with nogil, parallel(num_threads=num_threads):
+    # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! go back to par (prange in the following loops) !!!!!!
+    if is_cart:
+        for ii in range(sz_r):
+            # To make sure the indices are in increasing order
+            sa_double_loop_cart(ii, part_coords, part_rad,
+                                sz_p, sz_z,
+                                sa_map[ii],
+                                ves_poly, ves_norm,
+                                is_vis, dist,
+                                ves_lims,
+                                lstruct_nlim,
+                                lstruct_polyx,
+                                lstruct_polyy,
+                                lstruct_lims,
+                                lstruct_normx,
+                                lstruct_normy,
+                                lnvert, nstruct_tot, nstruct_lim,
+                                rmin,
+                                eps_uz, eps_a,
+                                eps_vz, eps_b, eps_plane,
+                                ves_type, forbid, num_threads,
+                                lindex_z,
+                                ncells_rphi, tot_nc_plane,
+                                reso_r_z, step_rphi,
+                                disc_r, disc_z, lnp, sz_phi,
+                                indi_mv[ii, first_ind_mv[ii]:],
+                                reso_phi_mv, pts_mv, ind_mv)
+    else:
+        for ii in range(sz_r):
+            sa_double_loop_polr(ii, part_coords, part_rad,
+                                sz_p, sz_z,
+                                sa_map[ii],
+                                ves_poly, ves_norm,
+                                is_vis, dist,
+                                ves_lims,
+                                lstruct_nlim,
+                                lstruct_polyx,
+                                lstruct_polyy,
+                                lstruct_lims,
+                                lstruct_normx,
+                                lstruct_normy,
+                                lnvert, nstruct_tot, nstruct_lim,
+                                rmin,
+                                eps_uz, eps_a,
+                                eps_vz, eps_b, eps_plane,
+                                ves_type, forbid, num_threads,
+                                lindex_z,
+                                ncells_rphi, tot_nc_plane,
+                                reso_r_z, step_rphi,
+                                disc_r, disc_z, lnp, sz_phi,
+                                indi_mv[ii, first_ind_mv[ii]:],
+                                reso_phi_mv, pts_mv, ind_mv)
     return
