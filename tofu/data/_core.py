@@ -3286,7 +3286,7 @@ class Plasma2D(utils.ToFuObject):
                        and 1 in out[0][limat[0]].shape))
             if not c0:
                 msg = (
-                    "The struct store in {} should contain:\n".format(pfe)
+                    "The struct stored in {} should contain:\n".format(pfe)
                     + "\t- at least a (1, N) matrice\n"
                     + "\t- optionally, the following char str:\n"
                     + "\t\t- key: unique identifier\n"
@@ -3391,7 +3391,30 @@ class Plasma2D(utils.ToFuObject):
     def add_quantity(self, key=None, data=None, depend=None,
                      dim=None, quant=None, units=None,
                      origin=None, name=None):
-        """ Add a quantity """
+        """ Add a quantity
+
+        The data is contained in data, which can be:
+            - np.array: a 1d or 2d array
+            - dict: for mesh
+            - str:  absolute path to a file, holding a 1d or 2d profile
+
+        Please also provide (if not included in file if data is a str):
+            - key: unique str identifying the data
+            - depend: a tuple indicating the reference for each dimension
+        If data is a str to a file, key and group (and others) can be included
+        in the file
+
+        Parameters dim, quant, units, origin and name are optional
+        Parameters comments and delimiter and only used if data is the path to
+        a .txt file (fed to np.loadtxt)
+        """
+        # Check inputs
+        (data, key, group, units,
+         dim, quant, origin, name) = self._checkformat_addref(
+             data=data, key=key, depend=depend, group=group, units=units,
+             dim=dim, quant=quant, origin=origin, name=name,
+             comments=comments, delimiter=delimiter)
+
         c0 = type(key) is str and key not in self._ddata.keys()
         if not c0:
             msg = "key must be a str not already in self.ddata.keys()!\n"
