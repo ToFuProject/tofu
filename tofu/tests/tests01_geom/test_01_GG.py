@@ -1953,7 +1953,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                      rstep, zstep, phistep,
                                      RMinMax, ZMinMax,
                                      )
-    pts, sa_map = res
+    sa_map = res
     print(np.shape(sa_map))
     # check size r,z,m,p
     d1, d2, d3, d4 = np.shape(sa_map)
@@ -1964,9 +1964,9 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     # ...
     fig = plt.figure(figsize=(14, 8))
     ax = plt.subplot(121)
-    ax.plot(pts[0, :], pts[1, :], '.b')
+    ax.plot(part[0, :], part[1, :], '.b')
     ax2 = plt.subplot(122)
-    ax2.plot(pts[0, :]*np.cos(pts[2, :]),
-             pts[0, :]*np.sin(pts[2, :]), '.r')
+    ax2.plot(part[0, :]*np.cos(part[2, :]),
+             part[0, :]*np.sin(part[2, :]), '.r')
     return
 

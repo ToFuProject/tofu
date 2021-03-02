@@ -4549,7 +4549,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             int nstruct_tot=0,
                             int nstruct_lim=0,
                             double rmin=-1, bint forbid=True,
-                            str Out='(X,Y,Z)',
+                            str out_format='(X,Y,Z)',
                             double eps_uz=_SMALL, double eps_a=_VSMALL,
                             double eps_vz=_VSMALL, double eps_b=_VSMALL,
                             double eps_plane=_VSMALL, str ves_type='Tor',
@@ -4573,12 +4573,13 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         DZ: array specifying the actual sub-volume limits to get in `z`
         DPhi: array specifying the actual sub-volume limits to get in `phi`
         limit_vpoly: (3, npts) double array, if we only want to discretize the
-                     volume inside a certain flux surface. Defines the `(R,Z)`
-                     coords of the poloidal cut of the limiting flux surface
-        Out(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
-            coordinates
-        margin(double): tolerance error.
-            Defaults to |_VSMALL|
+            volume inside a certain flux surface. Defines the `(R,Z)`
+            coords of the poloidal cut of the limiting flux surface
+        out_format(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian
+             or polar coordinates
+        margin(double): tolerance error. Defaults to |_VSMALL|
+     Output:
+        sa_map: (sz_r, sz_z, sz_m, sz_p) approx solid angle integrated
     """
     cdef int ii, jj, zz
     cdef int sz_m, sz_p
@@ -4587,7 +4588,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef int r_ratio
     cdef int ind_loc_r0
     cdef int[1] max_sz_phi
-    cdef str out_low = Out.lower()
+    cdef str out_low = out_format.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
     cdef double min_phi, max_phi
     cdef double min_phi_pi
@@ -4851,4 +4852,4 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    return pts, sa_map
+    return sa_map
