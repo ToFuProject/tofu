@@ -138,11 +138,11 @@ received by a camera using this emissivity.</p>
 
 <span class="n">cam2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span>
     <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
-    <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">focal</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
     <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -202,7 +202,7 @@ We can plot its profile in the (0, X, Z) plane.</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading=&#39;flat&#39; when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading=&#39;auto&#39;, &#39;nearest&#39; or &#39;gouraud&#39;, or set rcParams[&#39;pcolor.shading&#39;].  This will become an error two minor releases later.
   ax.pcolormesh(Y, Z, emissivity_vals)
 
-&lt;matplotlib.legend.Legend object at 0x7fa492717790&gt;
+&lt;matplotlib.legend.Legend object at 0x7f9c28c2f130&gt;
 </pre></div>
 </div>
 <p>Finally, we compute an image using the 2D camera and this emissivity.
@@ -227,13 +227,13 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 <img alt="-" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>No handles with labels found to put in legend.
-/home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
+/home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.057 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  4.782 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py">
 <div class="sphx-glr-download sphx-glr-download-python docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/e2798ac0f164c4954f702fbc6d882178/tuto_plot_custom_emissivity.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_custom_emissivity.py</span></code></a></p>
@@ -265,8 +265,8 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

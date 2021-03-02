@@ -260,7 +260,7 @@
     <span class="c1"># get initial guesses</span>
     <span class="n">amp</span> <span class="o">=</span> <span class="p">[</span><span class="n">yflat</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanargmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">lamb</span><span class="p">))]</span> <span class="k">for</span> <span class="n">lamb</span> <span class="ow">in</span> <span class="n">lamb0</span><span class="p">]</span>
     <span class="n">sigma</span> <span class="o">=</span> <span class="p">[</span><span class="n">Dx</span><span class="o">/</span><span class="n">nmax</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmax</span><span class="p">)]</span>
-    <span class="n">p0</span> <span class="o">=</span> <span class="n">A</span> <span class="o">+</span> <span class="n">sigma</span> <span class="o">+</span> <span class="p">[</span><span class="n">bck</span><span class="p">]</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">amp</span> <span class="o">+</span> <span class="n">sigma</span> <span class="o">+</span> <span class="p">[</span><span class="n">bck</span><span class="p">]</span>
 
     <span class="c1"># Get bounding boxes</span>
     <span class="n">bamp</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nmax</span><span class="p">,),</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nmax</span><span class="p">,),</span><span class="mf">3.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">y</span><span class="p">)))</span>
@@ -282,7 +282,7 @@
         <span class="n">lamb0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">lamb0</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">n</span>
 
-    <span class="k">def</span> <span class="nf">func_vect</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">dlamp</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">bck0</span><span class="p">,</span> <span class="n">lamb0</span><span class="o">=</span><span class="n">lamb0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">func_vect</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">dlamb</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">bck0</span><span class="p">,</span> <span class="n">lamb0</span><span class="o">=</span><span class="n">lamb0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">):</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
         <span class="n">y</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">amp</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span><span class="o">-</span><span class="p">(</span><span class="n">lamb0</span><span class="o">+</span><span class="n">dlamb</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
                                         <span class="o">/</span><span class="n">sigma</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
@@ -402,8 +402,8 @@
 
     <span class="c1"># Get fit vector, scalar and jacobian functions</span>
     <span class="k">if</span> <span class="n">forcelamb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="n">func_vect</span><span class="p">,</span> <span class="n">func_sca</span><span class="p">,</span> <span class="n">func_sca_jac</span> <span class="o">=</span> <span class="n">get_func1d_lambfix</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">nmax</span><span class="p">,</span>
-                                                               <span class="n">lamb0</span><span class="o">=</span><span class="n">lamb0</span><span class="p">)</span>
+        <span class="n">func_vect</span><span class="p">,</span> <span class="n">func_sca</span><span class="p">,</span> <span class="n">func_sca_jac</span> <span class="o">=</span> <span class="n">get_func1d_lamb0fix</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">nmax</span><span class="p">,</span>
+                                                                <span class="n">lamb0</span><span class="o">=</span><span class="n">lamb0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">func_vect</span><span class="p">,</span> <span class="n">func_sca</span><span class="p">,</span> <span class="n">func_sca_jac</span> <span class="o">=</span> <span class="n">get_func1d_all</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">nmax</span><span class="p">,</span>
                                                            <span class="n">lamb0</span><span class="o">=</span><span class="n">lamb0</span><span class="p">)</span>
@@ -482,7 +482,7 @@
         <span class="n">p0</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">popt</span><span class="p">[:]</span>
 
         <span class="k">if</span> <span class="n">plot_debug</span> <span class="ow">and</span> <span class="n">ii</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="n">fit</span> <span class="o">=</span> <span class="n">func_vect</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">amp</span><span class="p">[</span><span class="n">ii</span><span class="p">,:],</span> <span class="n">x0</span><span class="p">[</span><span class="n">ii</span><span class="p">,:],</span> <span class="n">sigma</span><span class="p">[</span><span class="n">ii</span><span class="p">,:],</span> <span class="n">bck0</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="n">fit</span> <span class="o">=</span> <span class="n">func_vect</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">amp</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="p">:],</span> <span class="n">p0</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="p">:],</span> <span class="n">sigma</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="p">:],</span> <span class="n">bck</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
 
             <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
             <span class="n">ax0</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
@@ -552,8 +552,8 @@
     <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dindx</span><span class="p">[</span><span class="s1">&#39;nall&#39;</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">x01d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Get average spectral width and separation</span>
-        <span class="n">lamb0_Delta</span> <span class="o">=</span> <span class="n">lamb0</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">lamb0</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-        <span class="n">nlamb0</span> <span class="o">=</span> <span class="n">lamb0</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">lamb0_Delta</span> <span class="o">=</span> <span class="n">lamb</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">lamb</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="n">nlamb0</span> <span class="o">=</span> <span class="n">lamb</span><span class="o">.</span><span class="n">size</span>
         <span class="n">lamb0_delta</span> <span class="o">=</span> <span class="n">lamb0_Delta</span> <span class="o">/</span> <span class="n">nlamb0</span>
 
         <span class="n">nbs</span> <span class="o">=</span> <span class="n">dindx</span><span class="p">[</span><span class="s1">&#39;nbs&#39;</span><span class="p">]</span>
@@ -1617,8 +1617,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

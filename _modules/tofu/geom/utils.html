@@ -116,23 +116,19 @@
     <div class="body col-md-12 content" role="main">
       
   <h1>Source code for tofu.geom.utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Built-in</span>
+<span></span>
+<span class="c1"># Standard</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 
-<span class="c1"># Common</span>
+<span class="c1"># Third-party</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="c1"># tofu</span>
-<span class="kn">import</span> <span class="nn">tofu</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">tofu.geom._core</span> <span class="k">as</span> <span class="nn">_core</span>
-<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_core</span>
-
-
+<span class="c1"># Local</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_core</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def_config</span>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;coords_transform&#39;</span><span class="p">,</span>
@@ -148,8 +144,11 @@
 <span class="n">_lok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">)</span>
 <span class="n">_lok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_lok</span><span class="p">,</span> <span class="n">_lok</span><span class="o">+</span><span class="mi">10</span><span class="p">])</span>
 
-<span class="n">_root</span> <span class="o">=</span> <span class="n">tofu</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">_path_testcases</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_root</span><span class="p">,</span> <span class="s1">&#39;geom&#39;</span><span class="p">,</span> <span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
+<span class="n">_path_testcases</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
+
+<span class="n">_URL_TUTO</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;https://tofuproject.github.io/tofu/auto_examples/tutorials/&#39;</span>
+             <span class="o">+</span> <span class="s1">&#39;tuto_plot_create_geometry.html&#39;</span><span class="p">)</span>
+
 
 <span class="c1">###########################################################</span>
 <span class="c1">#       COCOS</span>
@@ -752,130 +751,32 @@
 <span class="n">_compute_CamLOS2D_pinhole</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">_comdoc2</span>
 
 
-
-<span class="c1">###########################################################</span>
+<span class="c1"># #############################################################################</span>
+<span class="c1"># #############################################################################</span>
 <span class="c1">#       Fast creation of config</span>
-<span class="c1">###########################################################</span>
-
-<span class="n">_ExpWest</span> <span class="o">=</span> <span class="s1">&#39;WEST&#39;</span>
-<span class="n">_ExpJET</span> <span class="o">=</span> <span class="s1">&#39;JET&#39;</span>
-<span class="n">_ExpITER</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
-<span class="n">_ExpAUG</span> <span class="o">=</span> <span class="s1">&#39;AUG&#39;</span>
-<span class="n">_ExpNSTX</span> <span class="o">=</span> <span class="s1">&#39;NSTX&#39;</span>
-<span class="n">_ExpDEMO</span> <span class="o">=</span> <span class="s1">&#39;DEMO&#39;</span>
-<span class="n">_ExpTOMAS</span> <span class="o">=</span> <span class="s1">&#39;TOMAS&#39;</span>
-<span class="n">_ExpCOMPASS</span> <span class="o">=</span> <span class="s1">&#39;COMPASS&#39;</span>
-<span class="n">_ExpTCV</span> <span class="o">=</span> <span class="s1">&#39;TCV&#39;</span>
-
-<span class="c1"># Default config</span>
-<span class="n">_DEFCONFIG</span> <span class="o">=</span> <span class="s1">&#39;ITER&#39;</span>
-
-<span class="n">_URL_TUTO</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;https://tofuproject.github.io/tofu/auto_examples/tutorials/&#39;</span>
-             <span class="o">+</span> <span class="s1">&#39;tuto_plot_create_geometry.html&#39;</span><span class="p">)</span>
-
-<span class="c1"># Dictionnary of unique config names</span>
-<span class="c1"># For each config, indicates which structural elements it comprises</span>
-<span class="c1"># Elements are sorted by class (Ves, PFC...)</span>
-<span class="c1"># For each element, a unique txt file containing the geometry will be loaded</span>
-<span class="n">_DCONFIG</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;WEST-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;ITER-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;WEST-Sep&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                         <span class="s1">&#39;PlasmaDomain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Sep&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;WEST-V2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
-                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV0&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;WEST-V3&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
-                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV2&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;BumperInnerV1&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV1&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;WEST-V4&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpWest</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V2&#39;</span><span class="p">],</span>
-                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BaffleV2&#39;</span><span class="p">,</span> <span class="s1">&#39;DivUpV3&#39;</span><span class="p">,</span> <span class="s1">&#39;DivLowITERV3&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;BumperInnerV3&#39;</span><span class="p">,</span> <span class="s1">&#39;BumperOuterV3&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;IC1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC2V1&#39;</span><span class="p">,</span> <span class="s1">&#39;IC3V1&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;LH1V1&#39;</span><span class="p">,</span> <span class="s1">&#39;LH2V1&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;RippleV1&#39;</span><span class="p">,</span> <span class="s1">&#39;VDEV0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;JET-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpJET</span><span class="p">,</span>
-                       <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;ITER-V2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V1&#39;</span><span class="p">],</span>
-                        <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;BLK01&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK02&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK03&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK04&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK05&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;BLK06&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK07&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK08&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK09&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK10&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;BLK11&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK12&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK13&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK14&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK15&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;BLK16&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK17&#39;</span><span class="p">,</span> <span class="s1">&#39;BLK18&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;Div1&#39;</span><span class="p">,</span> <span class="s1">&#39;Div2&#39;</span><span class="p">,</span> <span class="s1">&#39;Div3&#39;</span><span class="p">,</span>
-                                <span class="s1">&#39;Div4&#39;</span><span class="p">,</span> <span class="s1">&#39;Div5&#39;</span><span class="p">,</span> <span class="s1">&#39;Div6&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;ITER-SOLEDGE3XV0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpITER</span><span class="p">,</span>
-                                 <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;SOLEDGE3XV0&#39;</span><span class="p">],</span>
-                                 <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;SOLEDGE3XDivDomeV0&#39;</span><span class="p">,</span>
-                                         <span class="s1">&#39;SOLEDGE3XDivSupportV0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;AUG-V1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpAUG</span><span class="p">,</span>
-                       <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;VESiR&#39;</span><span class="p">],</span>
-                       <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;D2cdome&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cdomL&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cdomR&#39;</span><span class="p">,</span> <span class="s1">&#39;D2ci1&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;D2ci2&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cTPib&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cTPic&#39;</span><span class="p">,</span> <span class="s1">&#39;D2cTPi&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;D2dBG2&#39;</span><span class="p">,</span> <span class="s1">&#39;D2dBl1&#39;</span><span class="p">,</span> <span class="s1">&#39;D2dBl2&#39;</span><span class="p">,</span> <span class="s1">&#39;D2dBl3&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;D2dBu1&#39;</span><span class="p">,</span> <span class="s1">&#39;D2dBu2&#39;</span><span class="p">,</span> <span class="s1">&#39;D2dBu3&#39;</span><span class="p">,</span> <span class="s1">&#39;D2dBu4&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;D3BG10&#39;</span><span class="p">,</span> <span class="s1">&#39;D3BG1&#39;</span><span class="p">,</span> <span class="s1">&#39;ICRHa&#39;</span><span class="p">,</span> <span class="s1">&#39;LIM09&#39;</span><span class="p">,</span> <span class="s1">&#39;PClow&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;PCup&#39;</span><span class="p">,</span> <span class="s1">&#39;SBi&#39;</span><span class="p">,</span> <span class="s1">&#39;TPLT1&#39;</span><span class="p">,</span> <span class="s1">&#39;TPLT2&#39;</span><span class="p">,</span> <span class="s1">&#39;TPLT3&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;TPLT4&#39;</span><span class="p">,</span> <span class="s1">&#39;TPLT5&#39;</span><span class="p">,</span> <span class="s1">&#39;TPRT2&#39;</span><span class="p">,</span> <span class="s1">&#39;TPRT3&#39;</span><span class="p">,</span> <span class="s1">&#39;TPRT4&#39;</span><span class="p">,</span>
-                               <span class="s1">&#39;TPRT5&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpNSTX</span><span class="p">,</span>
-                        <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;DEMO-2019&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpDEMO</span><span class="p">,</span>
-                          <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">],</span>
-                          <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;LimiterUpperV0&#39;</span><span class="p">,</span> <span class="s1">&#39;LimiterEquatV0&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;BlanketInnerV0&#39;</span><span class="p">,</span> <span class="s1">&#39;BlanketOuterV0&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;DivertorV0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpTOMAS</span><span class="p">,</span>
-                         <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">],</span>
-                         <span class="s1">&#39;PFC&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;LimiterV0&#39;</span><span class="p">,</span> <span class="s1">&#39;AntennaV0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;COMPASS-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpCOMPASS</span><span class="p">,</span>
-                           <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;V0&#39;</span><span class="p">]},</span>
-            <span class="s1">&#39;TCV-V0&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span> <span class="n">_ExpTCV</span><span class="p">,</span>
-                       <span class="s1">&#39;Ves&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">],</span>
-                       <span class="s1">&#39;CoilPF&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A001&#39;</span><span class="p">,</span> <span class="s1">&#39;B001&#39;</span><span class="p">,</span> <span class="s1">&#39;B002&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;B03A1&#39;</span><span class="p">,</span> <span class="s1">&#39;B03A2&#39;</span><span class="p">,</span> <span class="s1">&#39;B03A3&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;C001&#39;</span><span class="p">,</span> <span class="s1">&#39;C002&#39;</span><span class="p">,</span> <span class="s1">&#39;D001&#39;</span><span class="p">,</span> <span class="s1">&#39;D002&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;E001&#39;</span><span class="p">,</span> <span class="s1">&#39;E002&#39;</span><span class="p">,</span> <span class="s1">&#39;E003&#39;</span><span class="p">,</span> <span class="s1">&#39;E004&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;E005&#39;</span><span class="p">,</span> <span class="s1">&#39;E006&#39;</span><span class="p">,</span> <span class="s1">&#39;E007&#39;</span><span class="p">,</span> <span class="s1">&#39;E008&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;E03A1&#39;</span><span class="p">,</span> <span class="s1">&#39;E03A2&#39;</span><span class="p">,</span> <span class="s1">&#39;E03A3&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;F001&#39;</span><span class="p">,</span> <span class="s1">&#39;F002&#39;</span><span class="p">,</span> <span class="s1">&#39;F003&#39;</span><span class="p">,</span> <span class="s1">&#39;F004&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;F005&#39;</span><span class="p">,</span> <span class="s1">&#39;F006&#39;</span><span class="p">,</span> <span class="s1">&#39;F007&#39;</span><span class="p">,</span> <span class="s1">&#39;F008&#39;</span><span class="p">,</span>
-                                  <span class="s1">&#39;T03A1&#39;</span><span class="p">,</span> <span class="s1">&#39;T03A2&#39;</span><span class="p">,</span> <span class="s1">&#39;T03A3&#39;</span><span class="p">]},</span>
-            <span class="p">}</span>
-
-<span class="c1"># Each config can be called by various names / shortcuts (for benchmark and</span>
-<span class="c1"># retro-compatibility), this table stores, for each shortcut,</span>
-<span class="c1"># the associated unique name it refers to</span>
-<span class="n">_DCONFIG_SHORTCUTS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ITER&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;ITER-SOLEDGE3X&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-SOLEDGE3XV0&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;JET&#39;</span><span class="p">:</span> <span class="s1">&#39;JET-V0&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;WEST&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;A1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V1&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;A2&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V1&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;A3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-Sep&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;B1&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V2&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V3&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;B3&#39;</span><span class="p">:</span> <span class="s1">&#39;WEST-V4&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;B4&#39;</span><span class="p">:</span> <span class="s1">&#39;ITER-V2&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;AUG&#39;</span><span class="p">:</span> <span class="s1">&#39;AUG-V1&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;NSTX&#39;</span><span class="p">:</span> <span class="s1">&#39;NSTX-V0&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;DEMO&#39;</span><span class="p">:</span> <span class="s1">&#39;DEMO-2019&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;TOMAS&#39;</span><span class="p">:</span> <span class="s1">&#39;TOMAS-V0&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;COMPASS&#39;</span><span class="p">:</span> <span class="s1">&#39;COMPASS-V0&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;TCV&#39;</span><span class="p">:</span> <span class="s1">&#39;TCV-V0&#39;</span><span class="p">}</span>
+<span class="c1"># #############################################################################</span>
 
 
-<span class="k">def</span> <span class="nf">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">,</span>
-                    <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_get_listconfig</span><span class="p">(</span>
+    <span class="n">dconfig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Hidden function generating the config names table as a str or dict &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">dconfig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dconfig</span> <span class="o">=</span> <span class="n">_def_config</span><span class="o">.</span><span class="n">_DCONFIG</span>
+    <span class="k">if</span> <span class="n">dconfig_shortcuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dconfig_shortcuts</span> <span class="o">=</span> <span class="n">_def_config</span><span class="o">.</span><span class="n">_DCONFIG_SHORTCUTS</span>
     <span class="k">assert</span> <span class="n">returnas</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+
+    <span class="c1"># Get dict of configs</span>
     <span class="n">dc</span> <span class="o">=</span> <span class="p">{</span><span class="n">k0</span><span class="p">:</span> <span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k1</span> <span class="k">for</span> <span class="n">k1</span><span class="p">,</span> <span class="n">v1</span> <span class="ow">in</span> <span class="n">dconfig_shortcuts</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                              <span class="k">if</span> <span class="n">v1</span> <span class="o">==</span> <span class="n">k0</span><span class="p">])</span>
           <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span>
+
+    <span class="c1"># Return</span>
     <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">dc</span>
     <span class="k">else</span><span class="p">:</span>
@@ -889,9 +790,12 @@
         <span class="k">return</span> <span class="n">msg</span>
 
 
-<div class="viewcode-block" id="get_available_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.get_available_config">[docs]</a><span class="k">def</span> <span class="nf">get_available_config</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
-                         <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">_DCONFIG_SHORTCUTS</span><span class="p">,</span>
-                         <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_available_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.get_available_config">[docs]</a><span class="k">def</span> <span class="nf">get_available_config</span><span class="p">(</span>
+    <span class="n">dconfig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Print a table showing all pre-defined config</span>
 
 <span class="sd">    Each pre-defined config in tofu can be called by its unique name or</span>
@@ -907,15 +811,19 @@
 <span class="sd">        &gt;&gt;&gt; tf.geom.utils.get_available_config()</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;A config is the geometry of a tokamak</span><span class="se">\n</span><span class="s2">&quot;</span>
-           <span class="o">+</span> <span class="s2">&quot;You can define your own&quot;</span>
-           <span class="o">+</span> <span class="s2">&quot;, see online tutorial at:</span><span class="se">\n\t</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_URL_TUTO</span><span class="p">)</span>
-           <span class="o">+</span> <span class="s2">&quot;tofu also also provides some pre-defined config ready to load</span><span class="se">\n</span><span class="s2">&quot;</span>
-           <span class="o">+</span> <span class="s2">&quot;They are available via their name or via shortcuts</span><span class="se">\n</span><span class="s2">&quot;</span>
-           <span class="o">+</span> <span class="n">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">dconfig</span><span class="p">,</span>
-                             <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">dconfig_shortcuts</span><span class="p">)</span>
-           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; to get a pre-defined config, call for example:</span><span class="se">\n</span><span class="s2">&quot;</span>
-           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">config = tf.geom.utils.create_config(&#39;ITER&#39;)&quot;</span><span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;A config is the geometry of a tokamak</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;You can define your own&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;, see online tutorial at:</span><span class="se">\n\t</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_URL_TUTO</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot;tofu also also provides some pre-defined config ready to load</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;They are available via their name or via shortcuts</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="n">_get_listconfig</span><span class="p">(</span><span class="n">dconfig</span><span class="o">=</span><span class="n">dconfig</span><span class="p">,</span>
+                          <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">dconfig_shortcuts</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; to get a pre-defined config, call for example:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">config = tf.geom.utils.create_config(&#39;ITER&#39;)</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> =&gt; to also load coils add &#39;-coils&#39; to the config name, e.g.:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">config = tf.geom.utils.create_config(&#39;ITER-coils&#39;)&quot;</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">returnas</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
@@ -929,13 +837,15 @@
     <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
+    <span class="c1"># config</span>
     <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">_DEFCONFIG</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">_def_config</span><span class="o">.</span><span class="n">_DEFCONFIG</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg config must be a str!</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
+    <span class="c1"># path</span>
     <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">_path_testcases</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -944,20 +854,23 @@
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
+    <span class="c1"># dconfig</span>
     <span class="k">if</span> <span class="n">dconfig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">dconfig</span> <span class="o">=</span> <span class="n">_DCONFIG</span>
+        <span class="n">dconfig</span> <span class="o">=</span> <span class="n">_def_config</span><span class="o">.</span><span class="n">_DCONFIG</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dconfig</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dconfig must be a dict!</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dconfig</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
+    <span class="c1"># dconfig_shortcuts</span>
     <span class="k">if</span> <span class="n">dconfig_shortcuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">dconfig_shortcuts</span> <span class="o">=</span> <span class="n">_DCONFIG_SHORTCUTS</span>
+        <span class="n">dconfig_shortcuts</span> <span class="o">=</span> <span class="n">_def_config</span><span class="o">.</span><span class="n">_DCONFIG_SHORTCUTS</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dconfig_shortcuts must be a dict!</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dconfig_shortcuts</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
+    <span class="c1"># return</span>
     <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">returnas</span> <span class="o">=</span> <span class="nb">object</span>
     <span class="k">if</span> <span class="n">returnas</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
@@ -970,16 +883,15 @@
 <span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span>
     <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dconfig</span><span class="o">=</span><span class="n">_DCONFIG</span><span class="p">,</span>
+    <span class="n">dconfig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Load the desired test case configuration</span>
 
-<span class="sd">    Choose from one of the reference preset configurations:</span>
-<span class="sd">        {0}</span>
+<span class="sd">    Choose from one of the reference preset configurations (from dconfig)</span>
 
-<span class="sd">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;]&#39;</span><span class="p">)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># -----------</span>
     <span class="c1"># Check input</span>
@@ -994,6 +906,9 @@
 
     <span class="c1"># --------------------------</span>
     <span class="c1"># Check config is available</span>
+    <span class="n">coils</span> <span class="o">=</span> <span class="s1">&#39;coils&#39;</span> <span class="ow">in</span> <span class="n">config</span>
+    <span class="k">if</span> <span class="n">coils</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-coils&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="k">pass</span>
 
@@ -1009,9 +924,18 @@
 
     <span class="c1"># -------------------------</span>
     <span class="c1"># Get file and build config</span>
+
     <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span><span class="o">==</span><span class="s1">&#39;.txt&#39;</span><span class="p">]</span>
     <span class="n">lS</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">lcls</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="o">!=</span> <span class="s1">&#39;Exp&#39;</span><span class="p">])</span>
+    <span class="c1"># include / exclude coils</span>
+    <span class="k">if</span> <span class="n">coils</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">lcls</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">kk</span> <span class="o">!=</span> <span class="s1">&#39;Exp&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lcls</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span>
+            <span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">kk</span> <span class="o">!=</span> <span class="s1">&#39;Exp&#39;</span> <span class="ow">and</span> <span class="s1">&#39;Coil&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kk</span>
+        <span class="p">])</span>
+
     <span class="n">Exp</span> <span class="o">=</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">lcls</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="n">cc</span><span class="p">]:</span>
@@ -1123,7 +1047,6 @@
     <span class="k">elif</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">get_available_config</span><span class="p">(</span><span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="c1"># case = _DEFCONFIG</span>
 
     <span class="c1"># Get config, either from known case or geometrical parameterization</span>
     <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1187,8 +1110,38 @@
          <span class="s1">&#39;testV&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span><span class="n">_P</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span><span class="n">_testF</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">:</span><span class="n">_D12</span><span class="p">,</span> <span class="s1">&#39;nIn&#39;</span><span class="p">:</span><span class="n">_nIn</span><span class="p">,</span><span class="s1">&#39;N12&#39;</span><span class="p">:[</span><span class="mi">1600</span><span class="p">,</span><span class="mi">625</span><span class="p">]}}</span>
 
 
+<span class="n">_createCamstr</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Create a pinhole CamLOS</span><span class="si">{0}</span><span class="s2">D</span>
 
-<span class="n">_createCamstr</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; Create a pinhole CamLOS</span><span class="si">{0}</span><span class="s2">D</span>
+<span class="s2">    Typical use case:</span>
+<span class="s2">        &gt;&gt;&gt; import tofu as tf</span>
+<span class="s2">        &gt;&gt;&gt; conf = tf.load_config(&#39;WEST&#39;)</span>
+<span class="s2">        &gt;&gt;&gt; cam1d = tf.geom.utils.create_CamLOS1D(</span>
+<span class="s2">            pinhole=[3., 0., 0.],       # pinhole position [X, Y, Z] [m]</span>
+<span class="s2">            focal=0.1,                  # pinhole-sensors distance [m]</span>
+<span class="s2">            sensor_nb=100,              # number of sensors on sensor plane</span>
+<span class="s2">            sensor_size=0.1,            # size of sensor plane [m]</span>
+<span class="s2">            orientation=[np.pi, 0., 0.],# 3 angles orienting whole camera [rad]</span>
+<span class="s2">            config=conf,                # configuration (for computing LOS)</span>
+<span class="s2">            Etendues=None,              # Etendues (optional)</span>
+<span class="s2">            Surfaces=None,              # Surfaces (optional) [m^2]</span>
+<span class="s2">            Exp=&#39;WEST&#39;,                 # Experiment</span>
+<span class="s2">            Diag=&#39;Bolo&#39;,                # Diagnostic</span>
+<span class="s2">            Name=&#39;Cam1&#39;,                # Name of this particular camera</span>
+<span class="s2">        )</span>
+<span class="s2">        &gt;&gt;&gt; cam2d = tf.geom.utils.create_CamLOS2D(</span>
+<span class="s2">            pinhole=[3., 0., 0.],       # pinhole position [X, Y, Z] [m]</span>
+<span class="s2">            focal=0.1,                  # pinhole-sensors distance [m]</span>
+<span class="s2">            sensor_nb=[100, 100],       # number of sensors on sensor plane</span>
+<span class="s2">            sensor_size=[0.1, 0.1],     # size of sensor plane [m]</span>
+<span class="s2">            orientation=[np.pi, 0., 0.],# 3 angles orienting whole camera [rad]</span>
+<span class="s2">            config=conf,                # configuration (for computing LOS)</span>
+<span class="s2">            Etendues=None,              # Etendues (optional)</span>
+<span class="s2">            Surfaces=None,              # Surfaces (optional) [m^2]</span>
+<span class="s2">            Exp=&#39;WEST&#39;,                 # Experiment</span>
+<span class="s2">            Diag=&#39;Bolo&#39;,                # Diagnostic</span>
+<span class="s2">            Name=&#39;Cam1&#39;,                # Name of this particular camera</span>
+<span class="s2">        )</span>
 
 <span class="s2">    In tofu, a CamLOS is a camera described as a set of Lines of Sight (LOS),</span>
 <span class="s2">    as opposed to a Cam, where the Volume of Sight (VOS) of all pixels are</span>
@@ -1207,9 +1160,9 @@
 <span class="s2">    Here, you simply need to provide, either:</span>
 <span class="s2">        - the name of a standard test case</span>
 <span class="s2">        - a set of geometrical parameters:</span>
-<span class="s2">            - P: pinhole, throught the camera axis passes</span>
-<span class="s2">            - F: focal length</span>
-<span class="s2">            - D12 : dimensiosn perpendicular to the camera axis</span>
+<span class="s2">            - pinhole: throught which the camera axis passes</span>
+<span class="s2">            - focal: distance between pinhole and sensor plane</span>
+<span class="s2">            - size: dimensions of the sensor planendicular to the camera axis</span>
 <span class="s2">            - N12 : number of pixels (LOS)</span>
 <span class="s2">            - angs: 3 angles defining the orientation of the camera</span>
 
@@ -1225,7 +1178,7 @@
 
 <span class="s2">    Return</span>
 <span class="s2">    ------</span>
-<span class="s2">                &quot;&quot;&quot;</span>
+<span class="s2">    &quot;&quot;&quot;</span>
 
 <span class="n">_createCamerr</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; Arg out, specifying the output, must be either:</span>
 <span class="s2">        - object   : return a tofu object</span>
@@ -1233,67 +1186,235 @@
 <span class="s2">        - &#39;pinhole&#39;: return the starting points (D), pinhole (P) and the coordinates of D in the camera frame</span>
 <span class="s2">        &quot;&quot;&quot;</span>
 
-<span class="k">def</span> <span class="nf">_create_CamLOS</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nD</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span> <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">dcam</span><span class="o">=</span><span class="n">_dcam</span><span class="p">,</span>
-                   <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
-                   <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="n">nD</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">out</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">object</span><span class="p">,</span><span class="s1">&#39;object&#39;</span><span class="p">,</span><span class="s1">&#39;Du&#39;</span><span class="p">,</span><span class="s1">&#39;dict&#39;</span><span class="p">,</span><span class="nb">dict</span><span class="p">]:</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="n">_createCamerr</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_create_CamLOS_check_inputs</span><span class="p">(</span>
+    <span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>         <span class="c1"># Deprecated</span>
+    <span class="n">focal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">F</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>         <span class="c1"># Deprecated</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">N12</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>       <span class="c1"># Deprecated</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">D12</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>       <span class="c1"># Deprecated</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">angs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>      <span class="c1"># Deprecated</span>
+    <span class="n">etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Deprecated</span>
+    <span class="n">surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Deprecated</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nD</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+    <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># D</span>
+    <span class="k">if</span> <span class="n">nD</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nD</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">nD</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Arg nD must be 1 or 2</span>
+<span class="sd">              You provided:</span>
+<span class="sd">            {}</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nD</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
+    <span class="c1"># config</span>
     <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">Lim</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Lim</span>
         <span class="n">VType</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span>
         <span class="n">lS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">lStructIn</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lS</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lS</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">lS</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">lStruct</span>
         <span class="n">defRY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;P1Max&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
 
     <span class="c1"># Get parameters for test case if any</span>
     <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">case</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dcam</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not a known test case !</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Available test cases include:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dcam</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                {} is not a known test case!\n&quot;</span>
+<span class="sd">                Available test cases include:\n&quot;</span>
+<span class="sd">                {}</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">case</span><span class="p">,</span>
+                    <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">- &#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\t</span><span class="s1">- &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">dcam</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="c1"># Extract pinhole, focal length, width, nb. of pix., unit vector</span>
-        <span class="n">P</span><span class="p">,</span> <span class="n">F</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;P&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;F&#39;</span><span class="p">]</span>
-        <span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="p">,</span> <span class="n">nIn</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;D12&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;N12&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;nIn&#39;</span><span class="p">]</span>
+        <span class="n">pinhole</span><span class="p">,</span> <span class="n">focal</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;P&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;F&#39;</span><span class="p">]</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">npixels</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;D12&#39;</span><span class="p">],</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;N12&#39;</span><span class="p">]</span>
+        <span class="n">nIn</span> <span class="o">=</span> <span class="n">dcam</span><span class="p">[</span><span class="n">case</span><span class="p">][</span><span class="s1">&#39;nIn&#39;</span><span class="p">]</span>
         <span class="n">nIn</span> <span class="o">=</span> <span class="n">nIn</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">nIn</span><span class="p">)</span>
 
         <span class="c1"># Compute the LOS starting points and unit vectors</span>
-        <span class="n">nD</span><span class="p">,</span> <span class="n">VType</span><span class="p">,</span> <span class="n">Lim</span><span class="p">,</span> <span class="n">angs</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">nD</span><span class="p">,</span> <span class="n">VType</span><span class="p">,</span> <span class="n">Lim</span><span class="p">,</span> <span class="n">angles</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Tor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="n">Name</span> <span class="o">=</span> <span class="n">case</span>
 
-    <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="n">D12</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">N12</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="n">angs</span><span class="p">,</span> <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span>
-                   <span class="n">VType</span><span class="o">=</span><span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="n">defRY</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">Ds</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">_compute_CamLOS1D_pinhole</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">Ds</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">indflat2img</span><span class="p">,</span> <span class="n">indimg2flat</span> <span class="o">=</span> <span class="n">_compute_CamLOS2D_pinhole</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+    <span class="c1"># Deprecated args</span>
+    <span class="n">dprecate</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;pinhole&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">pinhole</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;focal&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">focal</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;sensor_size&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">sensor_size</span><span class="p">,</span> <span class="n">D12</span><span class="p">,</span> <span class="s1">&#39;D12&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;sensor_nb&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">sensor_nb</span><span class="p">,</span> <span class="n">N12</span><span class="p">,</span> <span class="s1">&#39;N12&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;orientation&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">orientation</span><span class="p">,</span> <span class="n">angs</span><span class="p">,</span> <span class="s1">&#39;angs&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;etendues&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">etendues</span><span class="p">,</span> <span class="n">Etendues</span><span class="p">,</span> <span class="s1">&#39;Etendues&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;surfaces&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">surfaces</span><span class="p">,</span> <span class="n">Surfaces</span><span class="p">,</span> <span class="s1">&#39;Surfaces&#39;</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="n">ldprec</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span>
+        <span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">  -&gt;  </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">ss</span><span class="p">))</span> <span class="k">for</span> <span class="n">ss</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">dprecate</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ldprec</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The following arguments (left column) are deprecated:</span>
+<span class="sd">    {}</span>
+<span class="sd">    Please use the new forms (right column)</span>
+<span class="sd">    They are equivalent, but more explicit</span>
+<span class="sd">    Old forms will not work in future versions</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">- &#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\t</span><span class="s1">- &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="n">ldprec</span><span class="p">]),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">out</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;dict&#39;</span><span class="p">,</span><span class="nb">dict</span><span class="p">]:</span>
-        <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;D&#39;</span><span class="p">:</span><span class="n">Ds</span><span class="p">,</span> <span class="s1">&#39;pinhole&#39;</span><span class="p">:</span><span class="n">P</span><span class="p">}</span>
-        <span class="k">if</span> <span class="n">nD</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
-            <span class="n">dout</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;x1&#39;</span><span class="p">:</span><span class="n">d1</span><span class="p">,</span><span class="s1">&#39;x2&#39;</span><span class="p">:</span><span class="n">d2</span><span class="p">,</span>
-                         <span class="s1">&#39;indflat2img&#39;</span><span class="p">:</span><span class="n">indflat2img</span><span class="p">,</span> <span class="s1">&#39;indimg2flat&#39;</span><span class="p">:</span><span class="n">indimg2flat</span><span class="p">})</span>
+        <span class="k">for</span> <span class="n">ss</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ldprec</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dprecate</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dprecate</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">dprecate</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">pinhole</span> <span class="o">=</span> <span class="n">dprecate</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">focal</span> <span class="o">=</span> <span class="n">dprecate</span><span class="p">[</span><span class="s1">&#39;focal&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">sensor_size</span> <span class="o">=</span> <span class="n">dprecate</span><span class="p">[</span><span class="s1">&#39;sensor_size&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">sensor_nb</span> <span class="o">=</span> <span class="n">dprecate</span><span class="p">[</span><span class="s1">&#39;sensor_nb&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">orientation</span> <span class="o">=</span> <span class="n">dprecate</span><span class="p">[</span><span class="s1">&#39;orientation&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># returnas</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">returnas</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Du&#39;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Arg returnas must be:</span>
+<span class="sd">                - &#39;Du&#39;: return tuple (D, us)</span>
+<span class="sd">                - dict: return a dict</span>
+<span class="sd">                - object: return a tofu instance</span>
+<span class="sd">            You provided:</span>
+<span class="sd">                {}</span>
+<span class="sd">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">returnas</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Return</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">nD</span><span class="p">,</span> <span class="n">Lim</span><span class="p">,</span> <span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="p">,</span>
+        <span class="n">pinhole</span><span class="p">,</span> <span class="n">focal</span><span class="p">,</span> <span class="n">sensor_size</span><span class="p">,</span> <span class="n">sensor_nb</span><span class="p">,</span> <span class="n">orientation</span><span class="p">,</span> <span class="n">nIn</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span>
+        <span class="n">etendues</span><span class="p">,</span> <span class="n">surfaces</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_create_CamLOS</span><span class="p">(</span>
+    <span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">P</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>         <span class="c1"># Deprecated</span>
+    <span class="n">focal</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">F</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>         <span class="c1"># Deprecated</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">N12</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>       <span class="c1"># Deprecated</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">D12</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>       <span class="c1"># Deprecated</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">angs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>      <span class="c1"># Deprecated</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Deprecated</span>
+    <span class="n">etendues</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Deprecated</span>
+    <span class="n">surfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nD</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">nIn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">VType</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+    <span class="n">dcam</span><span class="o">=</span><span class="n">_dcam</span><span class="p">,</span>
+    <span class="n">defRY</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
+    <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># -------------</span>
+    <span class="c1"># Check inputs</span>
+    <span class="p">(</span>
+        <span class="n">nD</span><span class="p">,</span> <span class="n">Lim</span><span class="p">,</span> <span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="p">,</span>
+        <span class="n">pinhole</span><span class="p">,</span> <span class="n">focal</span><span class="p">,</span> <span class="n">sensor_size</span><span class="p">,</span> <span class="n">sensor_nb</span><span class="p">,</span> <span class="n">orientation</span><span class="p">,</span> <span class="n">nIn</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span>
+        <span class="n">etendues</span><span class="p">,</span> <span class="n">surfaces</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_create_CamLOS_check_inputs</span><span class="p">(</span>
+        <span class="n">case</span><span class="o">=</span><span class="n">case</span><span class="p">,</span>
+        <span class="n">pinhole</span><span class="o">=</span><span class="n">pinhole</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+        <span class="n">focal</span><span class="o">=</span><span class="n">focal</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="n">F</span><span class="p">,</span>
+        <span class="n">sensor_nb</span><span class="o">=</span><span class="n">sensor_nb</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">N12</span><span class="p">,</span>
+        <span class="n">sensor_size</span><span class="o">=</span><span class="n">sensor_size</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="n">D12</span><span class="p">,</span>
+        <span class="n">orientation</span><span class="o">=</span><span class="n">orientation</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="n">angs</span><span class="p">,</span>
+        <span class="n">Etendues</span><span class="o">=</span><span class="n">Etendues</span><span class="p">,</span> <span class="n">etendues</span><span class="o">=</span><span class="n">etendues</span><span class="p">,</span>
+        <span class="n">Surfaces</span><span class="o">=</span><span class="n">Surfaces</span><span class="p">,</span> <span class="n">surfaces</span><span class="o">=</span><span class="n">surfaces</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span>
+        <span class="n">nD</span><span class="o">=</span><span class="n">nD</span><span class="p">,</span>
+        <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span>
+        <span class="n">VType</span><span class="o">=</span><span class="n">VType</span><span class="p">,</span>
+        <span class="n">defRY</span><span class="o">=</span><span class="n">defRY</span><span class="p">,</span>
+        <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># -------------</span>
+    <span class="c1"># Create</span>
+    <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">P</span><span class="o">=</span><span class="n">pinhole</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="n">focal</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="n">sensor_size</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">sensor_nb</span><span class="p">,</span> <span class="n">angs</span><span class="o">=</span><span class="n">orientation</span><span class="p">,</span>
+        <span class="n">nIn</span><span class="o">=</span><span class="n">nIn</span><span class="p">,</span> <span class="n">VType</span><span class="o">=</span><span class="n">VType</span><span class="p">,</span> <span class="n">defRY</span><span class="o">=</span><span class="n">defRY</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="n">Lim</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">Ds</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">_compute_CamLOS1D_pinhole</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">Ds</span><span class="p">,</span> <span class="n">pinhole</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span>
+         <span class="n">indflat2img</span><span class="p">,</span> <span class="n">indimg2flat</span><span class="p">)</span> <span class="o">=</span> <span class="n">_compute_CamLOS2D_pinhole</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+
+    <span class="c1"># -------------</span>
+    <span class="c1"># Return</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="n">Ds</span><span class="p">,</span> <span class="s1">&#39;pinhole&#39;</span><span class="p">:</span> <span class="n">pinhole</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">nD</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">dout</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;x1&#39;</span><span class="p">:</span> <span class="n">d1</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">:</span> <span class="n">d2</span><span class="p">,</span>
+                <span class="s1">&#39;indflat2img&#39;</span><span class="p">:</span> <span class="n">indflat2img</span><span class="p">,</span> <span class="s1">&#39;indimg2flat&#39;</span><span class="p">:</span> <span class="n">indimg2flat</span><span class="p">,</span>
+            <span class="p">})</span>
         <span class="k">return</span> <span class="n">dout</span>
 
-    <span class="k">elif</span> <span class="n">out</span><span class="o">==</span><span class="s1">&#39;Du&#39;</span><span class="p">:</span>
-        <span class="n">us</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">-</span><span class="n">Ds</span>
-        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">us</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,:]</span>
+    <span class="k">elif</span> <span class="n">returnas</span> <span class="o">==</span> <span class="s1">&#39;Du&#39;</span><span class="p">:</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">P</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">Ds</span>
+        <span class="n">us</span> <span class="o">=</span> <span class="n">us</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">us</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
         <span class="k">return</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="bp">cls</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;_core.CamLOS</span><span class="si">{0:01.0f}</span><span class="s1">D&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nD</span><span class="p">))</span>
-        <span class="n">cam</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="n">Diag</span><span class="p">,</span>
-                  <span class="n">dgeom</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;pinhole&#39;</span><span class="p">:</span><span class="n">P</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span><span class="n">Ds</span><span class="p">},</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
-                  <span class="n">Etendues</span><span class="o">=</span><span class="n">Etendues</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="n">Surfaces</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">,</span>
-                  <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+        <span class="n">cam</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="n">Diag</span><span class="p">,</span>
+            <span class="n">dgeom</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;pinhole&#39;</span><span class="p">:</span> <span class="n">pinhole</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="n">Ds</span><span class="p">},</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">Etendues</span><span class="o">=</span><span class="n">etendues</span><span class="p">,</span> <span class="n">Surfaces</span><span class="o">=</span><span class="n">surfaces</span><span class="p">,</span> <span class="n">dchans</span><span class="o">=</span><span class="n">dchans</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">cam</span>
 
 
@@ -1325,8 +1446,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

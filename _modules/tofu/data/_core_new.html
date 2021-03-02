@@ -129,7 +129,7 @@
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="c1"># import scipy.interpolate as scpinterp</span>
+<span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
 <span class="c1"># import matplotlib.pyplot as plt</span>
 <span class="c1"># from matplotlib.tri import Triangulation as mplTri</span>
 
@@ -725,7 +725,7 @@
             <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ind_tofrom_key</span><span class="p">(</span><span class="n">ind</span><span class="o">=</span><span class="n">ind</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;key&#39;</span><span class="p">)</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="s1">&#39;dict&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">[</span><span class="n">ii</span><span class="p">]][</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="s1">&#39;dict&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">[</span><span class="n">kk</span><span class="p">]][</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="DataHolder.add_param"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core_new.DataHolder.add_param">[docs]</a>    <span class="k">def</span> <span class="nf">add_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
@@ -1271,8 +1271,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

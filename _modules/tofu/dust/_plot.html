@@ -116,10 +116,7 @@
     <div class="body col-md-12 content" role="main">
       
   <h1>Source code for tofu.dust._plot</h1><div class="highlight"><pre>
-<span></span>
-
-
-<span class="c1"># Common</span>
+<span></span><span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
@@ -130,9 +127,9 @@
 <div class="viewcode-block" id="plot"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._plot.plot">[docs]</a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="n">dust</span><span class="p">,</span> <span class="n">lax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="s1">&#39;All&#39;</span><span class="p">):</span>
 
     <span class="k">if</span> <span class="n">dust</span><span class="o">.</span><span class="n">Ves</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">lax</span> <span class="o">=</span> <span class="n">Ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">lax</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="n">Proj</span><span class="p">)</span>
+        <span class="n">lax</span> <span class="o">=</span> <span class="n">dust</span><span class="o">.</span><span class="n">Ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">lax</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="n">Proj</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">dust</span><span class="o">.</span><span class="n">LStruct</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">LStruct</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dust</span><span class="o">.</span><span class="n">LStruct</span><span class="p">:</span>
             <span class="n">lax</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">lax</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="n">Proj</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">dust</span><span class="o">.</span><span class="n">traj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -173,8 +170,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

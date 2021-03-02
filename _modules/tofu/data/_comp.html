@@ -270,6 +270,7 @@
     <span class="n">widths</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">fmin</span><span class="p">,</span><span class="n">fs</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span><span class="n">nw</span><span class="p">)</span>
     <span class="n">wave</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;scpsig.</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">wave</span><span class="p">)</span>
 
+    <span class="n">lcwt</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nch</span><span class="p">):</span>
         <span class="n">cwt</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">cwt</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="n">ii</span><span class="p">],</span> <span class="n">wave</span><span class="p">,</span> <span class="n">widths</span><span class="p">)</span>
         <span class="n">lcwt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">cwt</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
@@ -377,12 +378,12 @@
     <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
     <span class="n">fs</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">dt</span>
 
-    <span class="k">if</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;rfft&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;rfft&#39;</span><span class="p">:</span>
         <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span> <span class="o">=</span> <span class="n">_filter_bandpass_rfft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span>
                                                   <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">harm</span><span class="o">=</span><span class="n">harm</span><span class="p">,</span>
                                                   <span class="n">df_out</span><span class="o">=</span><span class="n">df_out</span><span class="p">,</span>
                                                   <span class="n">harm_out</span><span class="o">=</span><span class="n">harm_out</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">methd</span><span class="o">==</span><span class="s1">&#39;stft&#39;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;stft&#39;</span><span class="p">:</span>
         <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span> <span class="o">=</span> <span class="n">_filter_bandpass_stft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span>
                                                   <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">harm</span><span class="o">=</span><span class="n">harm</span><span class="p">,</span>
                                                   <span class="n">df_out</span><span class="o">=</span><span class="n">df_out</span><span class="p">,</span>
@@ -857,8 +858,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

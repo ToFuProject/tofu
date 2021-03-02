@@ -1311,132 +1311,6 @@
     <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;romb&quot;</span><span class="p">:</span>
         <span class="n">Int</span> <span class="o">=</span> <span class="n">scpintg</span><span class="o">.</span><span class="n">romb</span><span class="p">(</span><span class="n">Vals</span><span class="p">,</span> <span class="n">dx</span><span class="o">=</span><span class="n">dLr</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">Int</span></div>
-
-
-<span class="c1"># ==============================================================================</span>
-<span class="c1"># =  Solid Angle particle</span>
-<span class="c1"># ==============================================================================</span>
-
-
-<div class="viewcode-block" id="calc_solidangle_particle"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp.calc_solidangle_particle">[docs]</a><span class="k">def</span> <span class="nf">calc_solidangle_particle</span><span class="p">(</span>
-    <span class="n">traj</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">approx</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">aniso</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Compute the solid angle subtended by a particle along a trajectory</span>
-
-<span class="sd">    The particle has radius r, and trajectory (array of points) traj</span>
-<span class="sd">    It is observed from pts (array of points)</span>
-
-<span class="sd">    traj and pts are (3,N) and (3,M) arrays of cartesian coordinates</span>
-
-<span class="sd">    approx = True =&gt; use approximation</span>
-<span class="sd">    aniso = True =&gt; return also unit vector of emission</span>
-<span class="sd">    block = True consider LOS collisions (with Ves, Struct...)</span>
-
-<span class="sd">    if block:</span>
-<span class="sd">        config = config used for LOS collisions</span>
-
-<span class="sd">    Return:</span>
-<span class="sd">    -------</span>
-<span class="sd">    sang: np.ndarray</span>
-<span class="sd">        (N,M) Array of floats, solid angles</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1">################</span>
-    <span class="c1"># Prepare inputs</span>
-    <span class="n">traj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">r</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-
-    <span class="c1"># Check booleans</span>
-    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">approx</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span>
-    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">aniso</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span>
-    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span>
-
-    <span class="c1"># Check config</span>
-    <span class="k">assert</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">config</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Config&quot;</span>
-    <span class="k">assert</span> <span class="n">block</span> <span class="o">==</span> <span class="p">(</span><span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
-
-    <span class="c1"># Check pts, traj and r are array of good shape</span>
-    <span class="k">assert</span> <span class="n">traj</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span> <span class="ow">and</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span>
-    <span class="k">if</span> <span class="n">traj</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">traj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="n">traj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">T</span>
-    <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
-
-    <span class="c1"># get npart</span>
-    <span class="n">ntraj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">nr</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span>
-
-    <span class="n">npart</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">ntraj</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">nr</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">npart</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="n">ntraj</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">npart</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">nr</span> <span class="o">&lt;</span> <span class="n">npart</span><span class="p">:</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">npart</span><span class="p">,),</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="k">if</span> <span class="n">ntraj</span> <span class="o">&lt;</span> <span class="n">npart</span><span class="p">:</span>
-        <span class="n">traj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">npart</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="c1">################</span>
-    <span class="c1"># Main computation</span>
-
-    <span class="c1"># traj2pts vector, with length (3d array (3,N,M))</span>
-    <span class="n">vect</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">traj</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
-    <span class="n">len_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vect</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-
-    <span class="c1"># If aniso or block, normalize</span>
-    <span class="k">if</span> <span class="n">aniso</span> <span class="ow">or</span> <span class="n">block</span><span class="p">:</span>
-        <span class="n">vect</span> <span class="o">=</span> <span class="n">vect</span> <span class="o">/</span> <span class="n">len_v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
-
-    <span class="c1"># Solid angle</span>
-    <span class="k">if</span> <span class="n">approx</span><span class="p">:</span>
-        <span class="n">sang</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">len_v</span> <span class="o">**</span> <span class="mi">2</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">sang</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">r</span> <span class="o">**</span> <span class="mi">2</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">len_v</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
-
-    <span class="c1"># block</span>
-    <span class="k">if</span> <span class="n">block</span><span class="p">:</span>
-        <span class="n">kwdargs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">_get_kwdargs_LOS_isVis</span><span class="p">()</span>
-        <span class="c1"># TODO : modify this function along issue #102</span>
-        <span class="n">indnan</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_areVis_PtsFromPts_VesStruct</span><span class="p">(</span>
-            <span class="n">traj</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">len_v</span><span class="p">,</span> <span class="n">vis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span>
-        <span class="p">)</span>
-        <span class="n">sang</span><span class="p">[</span><span class="n">indnan</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">vect</span><span class="p">[</span><span class="n">indnan</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-
-    <span class="c1">################</span>
-    <span class="c1"># Return</span>
-
-    <span class="k">if</span> <span class="n">aniso</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">sang</span><span class="p">,</span> <span class="n">vect</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">sang</span></div>
-
-
-<div class="viewcode-block" id="calc_solidangle_particle_integ"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp.calc_solidangle_particle_integ">[docs]</a><span class="k">def</span> <span class="nf">calc_solidangle_particle_integ</span><span class="p">(</span>
-    <span class="n">traj</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">approx</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="mf">0.01</span>
-<span class="p">):</span>
-
-    <span class="c1"># step0: if block : generate kwdargs from config</span>
-
-    <span class="c1"># step 1: sample cross-section</span>
-
-    <span class="c1"># step 2: loop on R of  pts of cross-section (parallelize ?)</span>
-    <span class="c1"># =&gt; fix nb. of phi for the rest of the loop</span>
-
-    <span class="c1"># loop of Z</span>
-
-    <span class="c1"># step 3: loop phi</span>
-    <span class="c1"># Check visibility (if block = True) for each phi (LOS collision)</span>
-    <span class="c1"># If visible =&gt; compute solid angle</span>
-    <span class="c1"># integrate (sum * res) on each phi the solid angle</span>
-
-    <span class="c1"># Return sang as (N,nR,nZ) array</span>
-    <span class="k">return</span></div>
 </pre></div>
 
     </div>
@@ -1454,8 +1328,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

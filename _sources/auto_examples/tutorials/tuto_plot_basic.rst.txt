@@ -78,7 +78,7 @@ to do just that:
 .. code-block:: default
 
 
-    configB2 = tf.geom.utils.create_config("B2")
+    configB2 = tf.load_config("B2")
 
 
 
@@ -113,7 +113,7 @@ The configuration can easily be visualized using the `.plot()` method:
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7fa4928e1e80>, <matplotlib.axes._axes.Axes object at 0x7fa4928c8370>]
+    [<matplotlib.axes._axes.Axes object at 0x7f9c29784d60>, <matplotlib.axes._axes.Axes object at 0x7f9c296eba90>]
 
 
 
@@ -129,11 +129,11 @@ output.
 
     cam1d = tf.geom.utils.create_CamLOS1D(
         config=configB2,
-        P=[3.4, 0, 0],
-        N12=100,
-        F=0.1,
-        D12=0.1,
-        angs=[np.pi, 0, 0],
+        pinhole=[3.4, 0, 0],
+        sensor_nb=100,
+        focal=0.1,
+        sensor_size=0.1,
+        orientation=[np.pi, 0, 0],
         Name="",
         Exp="",
         Diag="",
@@ -156,12 +156,12 @@ output.
 
  .. code-block:: none
 
-    /home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
+    /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7fa492949fa0>
+    <tofu.utils.KeyHandler_mpl object at 0x7f9c28877280>
 
 
 
@@ -176,11 +176,11 @@ The principle is similar for 2D cameras.
 
     cam2d = tf.geom.utils.create_CamLOS2D(
         config=configB2,
-        P=[3.4, 0, 0],
-        N12=100,
-        F=0.1,
-        D12=0.1,
-        angs=[np.pi, 0, 0],
+        pinhole=[3.4, 0, 0],
+        sensor_nb=100,
+        focal=0.1,
+        sensor_size=0.1,
+        orientation=[np.pi, 0, 0],
         Name="",
         Exp="",
         Diag="",
@@ -201,12 +201,12 @@ The principle is similar for 2D cameras.
 
  .. code-block:: none
 
-    /home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
+    /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7fa488667c40>
+    <tofu.utils.KeyHandler_mpl object at 0x7f9c20399a30>
 
 
 
@@ -221,7 +221,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.307 seconds)
+   **Total running time of the script:** ( 0 minutes  8.380 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:

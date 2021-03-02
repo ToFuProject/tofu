@@ -41,11 +41,11 @@ We start by loading a built-in `tofu` configuration and define a 2D camera.
 
     cam2d = tf.geom.utils.create_CamLOS2D(
         config=configB2,
-        P=[3.4, 0, 0],
-        N12=100,
-        F=0.1,
-        D12=0.1,
-        angs=[np.pi, np.pi/6, 0],
+        pinhole=[3.4, 0, 0],
+        sensor_nb=100,
+        focal=0.1,
+        sensor_size=0.1,
+        orientation=[np.pi, np.pi/6, 0],
         Name="",
         Exp="",
         Diag="",
@@ -131,7 +131,7 @@ We can plot its profile in the (0, X, Z) plane.
     /home/lasofivec/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading='flat' when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading='auto', 'nearest' or 'gouraud', or set rcParams['pcolor.shading'].  This will become an error two minor releases later.
       ax.pcolormesh(Y, Z, emissivity_vals)
 
-    <matplotlib.legend.Legend object at 0x7fa492717790>
+    <matplotlib.legend.Legend object at 0x7f9c28c2f130>
 
 
 
@@ -175,7 +175,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
  .. code-block:: none
 
     No handles with labels found to put in legend.
-    /home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
+    /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -186,7 +186,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.057 seconds)
+   **Total running time of the script:** ( 0 minutes  4.782 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_custom_emissivity.py:

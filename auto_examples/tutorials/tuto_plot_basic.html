@@ -149,7 +149,7 @@ be missing on the machine you are working on. This can be ignored safely.</p>
 In <cite>tofu</cite> speak, a configuration is the geometry of the device and its
 structures. <cite>tofu</cite> provides pre-defined ones for your to try, so we’re going
 to do just that:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">configB2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="s2">&quot;B2&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">configB2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;B2&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The configuration can easily be visualized using the <cite>.plot()</cite> method:</p>
@@ -158,18 +158,18 @@ to do just that:</p>
 </div>
 <img alt="WEST-V3" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_basic_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7fa4928e1e80&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7fa4928c8370&gt;]
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7f9c29784d60&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f9c296eba90&gt;]
 </pre></div>
 </div>
 <p>Since <cite>tofu</cite> is all about tomography, let’s create a 1D camera and plot its
 output.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span>
     <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
-    <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">focal</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
     <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -181,22 +181,22 @@ output.</p>
 </div>
 <img alt="-  -" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_basic_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
 
-&lt;tofu.utils.KeyHandler_mpl object at 0x7fa492949fa0&gt;
+&lt;tofu.utils.KeyHandler_mpl object at 0x7f9c28877280&gt;
 </pre></div>
 </div>
 <p>The principle is similar for 2D cameras.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span>
     <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
-    <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">focal</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
     <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -206,12 +206,12 @@ output.</p>
 </div>
 <img alt="-  -" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_basic_003.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/tofu/utils.py:3422: UserWarning: Not interactive backend!:
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
 
-&lt;tofu.utils.KeyHandler_mpl object at 0x7fa488667c40&gt;
+&lt;tofu.utils.KeyHandler_mpl object at 0x7f9c20399a30&gt;
 </pre></div>
 </div>
 <p>What comes next is up to you!
@@ -219,7 +219,7 @@ You could now play with the function parameters (change the cameras
 direction, refinement, aperture),
 with the plots (many are interactive) or create you own tomographic
 configuration.</p>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.307 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  8.380 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-basic-py">
 <div class="sphx-glr-download sphx-glr-download-python docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/dfd620612c263f27595ef0dc852ec1a7/tuto_plot_basic.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_basic.py</span></code></a></p>
@@ -251,8 +251,8 @@ configuration.</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>

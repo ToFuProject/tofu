@@ -511,7 +511,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Name</span>
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">NameLTX</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="sa">r</span><span class="s2">&quot;$&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">Name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="s1">&#39;\_&#39;</span><span class="p">)</span><span class="o">+</span><span class="sa">r</span><span class="s2">&quot;$&quot;</span>
+        <span class="k">return</span> <span class="sa">r</span><span class="s2">&quot;$&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;\_&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;$&quot;</span>
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">Exp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Exp</span>
@@ -643,7 +643,7 @@
 <div class="viewcode-block" id="CheckSameObj"><a class="viewcode-back" href="../../tofu.html#tofu.pathfile.CheckSameObj">[docs]</a><span class="k">def</span> <span class="nf">CheckSameObj</span><span class="p">(</span><span class="n">obj0</span><span class="p">,</span> <span class="n">obj1</span><span class="p">,</span> <span class="n">LFields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Check if two variables are the same instance of a ToFu class</span>
 
-<span class="sd">    Checks a list of attributes, provided by LField</span>
+<span class="sd">    Checks a list of attributes, provided by LFields</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -659,11 +659,11 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    A :     bool</span>
-<span class="sd">        True only is LField is None or a list of attributes that all match</span>
+<span class="sd">        True only is LFields is None or a list of attributes that all match</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">A</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">if</span> <span class="n">LField</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">obj0</span><span class="o">.</span><span class="vm">__class__</span><span class="o">==</span><span class="n">obj1</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">LFields</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">obj0</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="n">obj1</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
         <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">LFields</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">LFields</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
             <span class="n">LFields</span> <span class="o">=</span> <span class="p">[</span><span class="n">LFields</span><span class="p">]</span>
@@ -862,7 +862,6 @@
     <span class="k">return</span> <span class="n">ind</span></div>
 
 
-
 <span class="c1">#def _Id_todict(Id):</span>
 <span class="c1">#    IdTxt = {&#39;version&#39;:Id._version, &#39;Cls&#39;:Id.Cls, &#39;Name&#39;:Id.Name, &#39;SaveName&#39;:Id.SaveName, &#39;SavePath&#39;:Id.SavePath, &#39;Diag&#39;:Id.Diag, &#39;Type&#39;:Id.Type, &#39;shot&#39;:Id.shot, &#39;Exp&#39;:Id.Exp}</span>
 <span class="c1">#    Iddtime = {&#39;dtime&#39;:Id.dtime, &#39;dtFormat&#39;:Id._dtFormat}</span>
@@ -870,13 +869,14 @@
 <span class="c1">#    return [IdTxt,Iddtime,IdLobjUsr]</span>
 
 
-
-
-<span class="c1">#def _Id_recreateFromdict(IdS):</span>
-<span class="c1">#    Id = ID(Cls=IdS[0][&#39;Cls&#39;], Type=IdS[0][&#39;Type&#39;], Exp=IdS[0][&#39;Exp&#39;], Diag=IdS[0][&#39;Diag&#39;], shot=IdS[0][&#39;shot&#39;], Name=IdS[0][&#39;Name&#39;], SaveName=IdS[0][&#39;SaveName&#39;], SavePath=IdS[0][&#39;SavePath&#39;],</span>
-<span class="c1">#            dtime=IdS[1][&#39;dtime&#39;], dtFormat=IdS[1][&#39;dtFormat&#39;],</span>
-<span class="c1">#            LObj=IdS[2][&#39;LObj&#39;], USRdict=IdS[2][&#39;USRdict&#39;], version=IdS[0][&#39;version&#39;])</span>
-<span class="c1">#    return Id</span>
+<span class="k">def</span> <span class="nf">_Id_recreateFromdict</span><span class="p">(</span><span class="n">IdS</span><span class="p">):</span>
+    <span class="n">Id</span> <span class="o">=</span> <span class="n">ID</span><span class="p">(</span><span class="n">Cls</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Cls&#39;</span><span class="p">],</span> <span class="n">Type</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Type&#39;</span><span class="p">],</span> <span class="n">Exp</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span>
+            <span class="n">Diag</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Diag&#39;</span><span class="p">],</span> <span class="n">shot</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;shot&#39;</span><span class="p">],</span> <span class="n">Name</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Name&#39;</span><span class="p">],</span>
+            <span class="n">SaveName</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;SaveName&#39;</span><span class="p">],</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;SavePath&#39;</span><span class="p">],</span>
+            <span class="n">dtime</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;dtime&#39;</span><span class="p">],</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;dtFormat&#39;</span><span class="p">],</span>
+            <span class="n">LObj</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;LObj&#39;</span><span class="p">],</span> <span class="n">USRdict</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;USRdict&#39;</span><span class="p">],</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">IdS</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">Id</span>
 
 
 
@@ -1746,8 +1746,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Feb 16, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.1.<br/>
+      Last updated on Mar 02, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
 </footer>
