@@ -4815,7 +4815,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        disc_r, disc_z, lnp, sz_phi,
                        reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
-    print("============================ here 3")
     # # If we only want to discretize the volume inside a certain flux surface
     # # describe by a limit_vpoly:
     # if limit_vpoly is not None:

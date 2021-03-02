@@ -1962,9 +1962,9 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     print(np.shape(sa_map))
     # check size r,z,m,p
     d1, d2, d3 = np.shape(sa_map)
-    assert d1 == 4, "Wrong 1st dim of sa_map: " + str(d1)
-    assert d2 == 4, "Wrong 2nd dim of sa_map: " + str(d2)
-    assert d4 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
+    assert d1 == 40, "Wrong 1st dim of sa_map: " + str(d1)
+    assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
+    assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
     # ...
     fig = plt.figure(figsize=(14, 8))
     ax = plt.subplot(121)

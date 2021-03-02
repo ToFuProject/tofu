@@ -2068,14 +2068,12 @@ cdef inline void sa_double_loop_cart(int ii,
             pts_mv[2, NP] = disc_z[zz]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             vol = reso_r_z*reso_phi_mv[ii]
-            print("============================ here 21")
             # computing distance ....
             _bgt.compute_dist_pt_vec(pts_mv[0, NP],
                                      pts_mv[1, NP],
                                      pts_mv[2, NP],
                                      sz_p, part_coords,
                                      &dist[0])
-            print("============================ here 22")
             # checking if visible .....
             _rt.is_visible_pt_vec(pts_mv[0, NP],
                                   pts_mv[1, NP],
@@ -2096,13 +2094,11 @@ cdef inline void sa_double_loop_cart(int ii,
                                   eps_uz, eps_a,
                                   eps_vz, eps_b, eps_plane,
                                   ves_type, forbid, num_threads)
-            print("============================ here 23")
             # TODO : quel nombre de threads choisir ici ???
             volpi = vol * Cpi
             for pp in range(sz_p):
                 if is_vis[pp] :
                     sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
-            print("============================ here 24")
     return
 
 
@@ -2151,7 +2147,6 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
     # with nogil, parallel(num_threads=num_threads):
     # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! go back to par (prange in the following loops) !!!!!!
     if is_cart:
-        print("============================ here 2")
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
             sa_double_loop_cart(ii, part_coords, part_rad,

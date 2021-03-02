@@ -1493,7 +1493,6 @@ cdef inline void compute_inout_tot(const int num_los,
                                    double[::1] coeff_inter_in,
                                    double[::1] vperp_out,
                                    int[::1] ind_inter_out) :
-    print("...")
     cdef int ii, jj, kk
     cdef int ind_struct = 0
     cdef int len_lim
@@ -1513,11 +1512,8 @@ cdef inline void compute_inout_tot(const int num_los,
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
     cdef long[::1] lstruct_nlim
-    print("...")
-    print("checking type", ves_type)
     # ==========================================================================
     if ves_type == 'tor':
-        print("============================ here 2221")
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None or sz_ves_lims == 0:
             are_limited = False
@@ -1531,7 +1527,6 @@ cdef inline void compute_inout_tot(const int num_los,
             llim_ves[0] = 0
         # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
-        print("============================ here 2222")
         if rmin < 0.:
             rmin = 0.95*min(min_poly_r,
                             _bgt.comp_min_hypot(ray_orig[0, ...],
@@ -1544,7 +1539,6 @@ cdef inline void compute_inout_tot(const int num_los,
         else:
             forbid0, forbidbis = 0, 0
         # -- Computing intersection between LOS and Vessel ---------------------
-        print("============================ here 2223")
         raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                     coeff_inter_out, coeff_inter_in,
                                     vperp_out, None, ind_inter_out,
@@ -1558,10 +1552,8 @@ cdef inline void compute_inout_tot(const int num_los,
                                     &ves_norm[1][0],
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
-        print("============================ here 2224")
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
-            print("============================ here 2225")
             ind_struct = 0
             llimits = <int *>malloc(nstruct_tot * sizeof(int))
             lsz_lim = <long *>malloc(nstruct_lim * sizeof(long))
@@ -1613,7 +1605,6 @@ cdef inline void compute_inout_tot(const int num_los,
                     ind_struct = 1 + ind_struct
             # end loops over structures
             # -- Computing intersection between structures and LOS -------------
-            print("============================ here 2226")
             raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                         coeff_inter_out, coeff_inter_in,
                                         vperp_out, lstruct_nlim,
@@ -1634,7 +1625,6 @@ cdef inline void compute_inout_tot(const int num_los,
             free(lsz_lim)
             free(llimits)
     else:
-        print("============================ here is cylindrical")
         # -- Cylindrical case --------------------------------------------------
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None  or sz_ves_lims == 0:
@@ -2010,7 +2000,6 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                               itemsize=sizeof(double),
                                               format="d")
     cdef int npts_poly = ves_norm.shape[1]
-    print("============================ here 221")
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
     _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
@@ -2020,15 +2009,9 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
         _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
     else:
         _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
-    print("============================ here 222")
     # --------------------------------------------------------------------------
     sz_ves_lims = np.size(ves_lims)
-    print("sz_ves_lim", sz_ves_lims)
-    print(npts_poly-1)
-    print(ves_poly[0, 0])
-    print(ves_poly[0, npts_poly-2])
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
-    print("computing min done")
     compute_inout_tot(npts, npts_poly,
                       ray_orig, ray_vdir,
                       ves_poly, ves_norm,
@@ -2043,7 +2026,6 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                       forbid, num_threads,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
-    print("============================ here 223")
     # --------------------------------------------------------------------------
     # Get ind
     if dist == None:
