@@ -4551,7 +4551,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             double eps_uz=_SMALL, double eps_a=_VSMALL,
                             double eps_vz=_VSMALL, double eps_b=_VSMALL,
                             double eps_plane=_VSMALL, str ves_type='Tor',
-                            double margin=_VSMALL, int num_threads=48):
+                            double margin=_VSMALL, int num_threads=48,
+                            bint test=True):
     """
     Computes the 2D map of the integrated solid angles subtended by each of
     the sz_p particles P of radius part_r at the position part_coords
@@ -4627,23 +4628,29 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=3] sa_map
     #
+    # == Testing inputs ========================================================
+    if test:
+        msg = "ves_poly and ves_norm are not optional arguments"
+        assert ves_poly is not None and ves_norm is not None, msg
+        bool1 = (ves_poly.shape[0]==2 and ves_norm.shape[0]==2
+              and ves_norm.shape[1]==ves_poly.shape[1]-1)
+        msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
+        assert bool1, msg
+        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normx)
+        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
+        msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims, lstruct_normx,"\
+              + " lstruct_normy, must be None or lists of same len()!"
+        assert bool1 and bool2, msg
+        msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
+        assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
+                                          eps_vz, eps_b,
+                                          eps_plane]]), msg
+        msg = "ves_type must be a str in ['Tor','Lin']!"
+        assert ves_type.lower() in ['tor', 'lin'], msg
+    # ...
     # .. Getting size of arrays ................................................
     sz_p = part_coords.shape[1]
     # # .. Check if points are visible ...........................................
-    # are_vis = np.ones((sz_m, sz_p))
-    # if block:
-    #     _rt.are_visible_vec_vec(view_coords, sz_m,
-    #                             part_coords, sz_p,
-    #                             ves_poly, ves_norm,
-    #                             are_vis, dist, ves_lims,
-    #                             lstruct_nlim,
-    #                             lstruct_polyx, lstruct_polyy,
-    #                             lstruct_lims,
-    #                             lstruct_normx, lstruct_normy,
-    #                             lnvert, nstruct_tot, nstruct_lim,
-    #                             rmin, eps_uz, eps_a, eps_vz, eps_b,
-    #                             eps_plane, ves_type.lower(),
-    #                             forbid, num_threads)
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -4808,6 +4815,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        disc_r, disc_z, lnp, sz_phi,
                        reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
+    print("============================ here 3")
     # # If we only want to discretize the volume inside a certain flux surface
     # # describe by a limit_vpoly:
     # if limit_vpoly is not None:

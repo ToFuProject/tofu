@@ -1931,11 +1931,15 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     import tofu.geom as tfg
     import matplotlib.pyplot as plt
 
+    ves_norm = ves_poly[:, 1:] - ves_poly[:, :-1]
+    ves_norm = np.array([-ves_norm[1, :], ves_norm[0, :]])
+    ves_norm = ves_norm / np.sqrt(np.sum(ves_norm**2, axis=0))[np.newaxis, :]
+
     if debug > 0:
         # Visualisation:
         ves = tfg.Ves(
             Name="DebugVessel",
-            Poly=VPoly,
+            Poly=ves_poly,
             Type="Tor",
             Exp="Misc",
             shot=0
@@ -1945,12 +1949,14 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
     part_rad = np.r_[0.1, 0.1, 0.1]
     rstep = zstep = phistep = 0.05
-    RMinMax = np.array([np.min(VPoly[0,:]), np.max(VPoly[0,:])])
-    ZMinMax = np.array([np.min(VPoly[1,:]), np.max(VPoly[1,:])])
+    RMinMax = np.array([np.min(ves_poly[0, :]), np.max(ves_poly[0, :])])
+    ZMinMax = np.array([np.min(ves_poly[1, :]), np.max(ves_poly[1, :])])
 
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      RMinMax, ZMinMax,
+                                     ves_poly=ves_poly,
+                                     ves_norm=ves_norm,
                                      )
     pts, sa_map = res
     print(np.shape(sa_map))
