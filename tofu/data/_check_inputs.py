@@ -647,7 +647,7 @@ def _consistency(
 
 
 
-
+"""
     # --------------
     # ddata
     for k0, v0 in ddata.items():
@@ -716,6 +716,7 @@ def _consistency(
             if pp not in self._ddata['dict'][kk].keys():
                 self._ddata['dict'][kk][pp] = None
     self._ddata['lparam'] = lparam
+"""
 
 
 # #############################################################################
@@ -724,7 +725,7 @@ def _consistency(
 # #############################################################################
 
 
-def _get_lparams(data0i, lkeys=None, reserved_keys=None):
+def _get_lparams(data0, lkeys=None, reserved_keys=None):
     if reserved_keys is None:
         reserved_keys = _DRESERVED_KEYS['ddata']
 
