@@ -116,7 +116,7 @@ before_deploy:
       ls $START
       cd $START
       echo "BEFORE DEPLOY END.........."
-    fi
+    fi # to be run only once then
 deploy:
   - provider: pypi
     distributions: sdist
