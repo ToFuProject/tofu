@@ -122,6 +122,7 @@ deploy:
     distributions: sdist
     username: __token__
     skip_existing: true
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test"
@@ -132,6 +133,7 @@ deploy:
     distributions: bdist_wheel
     username: __token__
     skip_existing: true
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test" && $OS = osx-64
@@ -142,6 +144,7 @@ deploy:
     distributions: sdist
     username: "Didou09"
     skip_existing: true
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_MASTER = "master"
@@ -151,6 +154,7 @@ deploy:
     distributions: bdist_wheel
     username: "Didou09"
     skip_existing: true
+    skip_cleanup: true
     on:
       condition: $IS_MASTER = "master" && $OS = osx-64
       tags: true
