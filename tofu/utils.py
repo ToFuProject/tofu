@@ -149,7 +149,7 @@ def flatten_dict(d, parent_key='', sep=None, deep='ref',
                 elif deep=='copy':
                     v = v.copy(deep='copy')
             new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, collections.MutableMapping):
+            if isinstance(v, collections.abc.MutableMapping):
                 items.extend(flatten_dict(v, new_key,
                                           deep=deep, sep=sep).items())
             else:
@@ -367,9 +367,9 @@ def _save_npzmat_dict(dd, sep=None):
             # None will be recreated at load time
             pass
         elif (type(dd[k]) in [int,float,bool,str]
-              or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)
-              or issubclass(dd[k].__class__,np.bool_)):
+              or issubclass(dd[k].__class__, int)
+              or issubclass(dd[k].__class__, float)
+              or issubclass(dd[k].__class__, np.bool_)):
             dnpzmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
             dnpzmat[k] = np.asarray(dd[k])
@@ -472,11 +472,6 @@ def get_param_from_file_name(pfe=None, lparams=None, test=True):
     # Check inputs
     if test is True:
         # Check inputs
-        if not c0:
-            msg = ("Provided file does not exist!\n"
-                   + "{}".format(pfe))
-            raise Exception(msg)
-
         c0 = (isinstance(lparams, str)
               or (isinstance(lparams, list)
                   and all([isinstance(pp, str) for pp in lparams])))
@@ -484,7 +479,12 @@ def get_param_from_file_name(pfe=None, lparams=None, test=True):
             msg = ("Arg lparams must be a str of list of str!\n"
                    + "Provided:\n{}".format(lparams))
             raise Exception(msg)
+
         c0 = os.path.isfile(pfe)
+        if not c0:
+            msg = ("Provided file does not exist!\n"
+                   + "{}".format(pfe))
+            raise Exception(msg)
 
     if isinstance(lparams, str):
         lparams = [lparams]
@@ -769,13 +769,25 @@ _DEF_IMAS_PLASMA_SIG = {'core_profiles':{'plot_sig':['1dTe','1dne'],
                                          'other':['t']}}
 
 def _get_exception(q, ids, qtype='quantity'):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        from tofu.imas2tofu import MultiIDSLoader
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
     msg = MultiIDSLoader._shortcuts(ids=ids,
                                     verb=False, return_=True)
     col = ['ids', 'shortcut', 'long version']
     msg = MultiIDSLoader._getcharray(msg, col)
-    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
-    msg += "\n\nAvailable shortcuts are:\n%s"%msg
-    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    msg += "\nArgs quantity and quant_X must be valid shortcuts for ids "
+    msg += " %s" % ids
+    msg += "\n\nAvailable shortcuts are:\n%s" % msg
+    msg += "\n\nProvided:\n    - %s: %s\n" % (qtype, str(q))
     raise Exception(msg)
 
 
@@ -1579,8 +1591,8 @@ def _check_InputsGeneric(ld, tab=0):
     bstr1 = "\n"+"    "*(tab+1) + "Expected: "
     bstr2 = "\n"+"    "*(tab+1) + "Provided: "
 
-    ltypes_f2i = [int,float,np.integer,np.floating]
-    ltypes_i2f = [int,float,np.integer,np.floating]
+    ltypes_f2i = [int, float, np.integer, np.floating]
+    ltypes_i2f = [int, float, np.integer, np.floating]
 
     # Check
     err, msg = False, ''
@@ -1592,10 +1604,13 @@ def _check_InputsGeneric(ld, tab=0):
                 msgk += bstr1 + "class {0}".format(ld[k]['cls'].__name__)
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'NoneOrCls' in ld[k].keys():
-            c = ld[k]['var'] is None or isinstance(ld[k]['var'],ld[k]['cls'])
+            c = ld[k]['var'] is None or isinstance(ld[k]['var'],
+                                                   ld[k]['NoneOrCls'])
             if not c:
                 errk = True
-                msgk += bstr1 + "None or class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr1 + "None or class {0}".format(
+                    ld[k]['NoneOrCls'].__name__
+                )
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'in' in ld[k].keys():
             if not ld[k]['var'] in ld[k]['in']:
@@ -1659,6 +1674,19 @@ def _check_InputsGeneric(ld, tab=0):
                 msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
             ld[k]['var'] = None if c0 else int(ld[k]['var'])
+        if 'NoneOrFloatPos' in ld[k].keys():
+            c0 = ld[k]['var'] is None
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and float(ld[k]['var']) == ld[k]['var']
+                   and ld[k]['var'] > 0)
+                  for cc in ltypes_f2i]
+            if not (c0 or any(lc)):
+                errk = True
+                msgk += bstr1 + "convertible to >0 float from {}".format(
+                    ltypes_f2i
+                )
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = None if c0 else float(ld[k]['var'])
         if '>' in ld[k].keys():
             if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
                 errk = True
@@ -2115,8 +2143,11 @@ class ToFuObjectBase(object):
                         if eqk:
                             eqk = d0[k].dtype == d1[k].dtype
                             if eqk:
-                                if (issubclass(d0[k].dtype.type, np.int)
-                                    or issubclass(d0[k].dtype.type, np.float)):
+                                c0 = (
+                                    issubclass(d0[k].dtype.type, int)
+                                    or issubclass(d0[k].dtype.type, float)
+                                )
+                                if c0:
                                     eqk = np.allclose(d0[k],d1[k], equal_nan=True)
                                 else:
                                     eqk = np.all(d0[k]==d1[k])
@@ -2772,7 +2803,7 @@ class ID(ToFuObjectBase):
         return self._dall['Name']
     @property
     def NameLTX(self):
-        return r"$"+self.Name.replace('_','\_')+r"$"
+        return r"$" + self.Name.replace('_', '\_') + r"$"
     @property
     def Exp(self):
         return self._dall['Exp']
@@ -3057,7 +3088,7 @@ class DChans(object):
             size.append(ss)
         nch = int(size[0])
         assert np.all([ss == nch for ss in size])
-        return fd, ch
+        return fd, nch
 
     def _todict(self):
         return self._dchans
@@ -3237,7 +3268,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                     def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[0]))
                 else:
-                    def func(val, ind0=None, refb=refb):
+                    def func(val, ind0=None, refb=ref2):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
@@ -3247,7 +3278,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                 else:
                     refb = 0.5*(ref[1:]+ref[:-1])
                     if Type == 'x':
-                        def func(val, ind0=None, refb=refb):
+                        def func(val, ind0=None, refb=ref2):
                             return np.digitize([val[0]], refb)[0]
                     else:
                         def func(val, ind0=None, refb=refb):

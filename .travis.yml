@@ -19,6 +19,7 @@ jobs:
     os: linux
     dist: xenial
     python: 3.7
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
@@ -26,12 +27,14 @@ jobs:
     os: linux
     dist: xenial
     python: 3.6
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
   - name: "osx python 3.7"
     os: osx
     language: generic
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
@@ -39,30 +42,37 @@ jobs:
   - name: "osx python 3.6"
     os: osx
     language: generic
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
     - OS=osx-64
-  - name: "Windows python 3.5"
-    os: windows
-    language: shell  # 'language: python' is an error on Travis CI Windows
-    before_install:
-      - choco install python --version 3.5.4
-      - python --version
-      - python -m pip install --upgrade pip
-      - pip3 install --upgrade pytest
-      - pip3 install codecov
-    env:
-    - PATH=/c/Python35:/c/Python35/Scripts:$PATH
-    - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
-  allow_failures:
-    - os: windows
-    - os: osx
-    - os: linux
-      dist: xenial
+  # - name: "Windows python 3.5"
+  #   os: windows
+  #   language: shell  # 'language: python' is an error on Travis CI Windows
+  #   before_install:
+  #     - choco install python --version 3.5.4
+  #     - python --version
+  #     - python -m pip install --upgrade pip
+  #     - pip3 install --upgrade pytest
+  #     - pip3 install codecov
+  #   env:
+  #   - PATH=/c/Python35:/c/Python35/Scripts:$PATH
+  #   - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
+  # allow_failures:
+  #   - os: windows
+  #   - os: osx
+  #   - os: linux
+  #     dist: xenial
+
+env:
+    global:
+      - MPLBACKEND=agg
+
 before_install:
-- gcc --version
-- export START=$(pwd)
+    - gcc --version
+    - export START=$(pwd)
+
 install:
 - wget "$REPO" -O miniconda.sh
 - bash miniconda.sh -b -p $HOME/miniconda
@@ -72,8 +82,8 @@ install:
 - conda config --append channels conda-forge
 - conda config --append channels tofuproject
 - conda info -a
-- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify nose nose-timer coverage
-  codecov
+- conda install -q python="$TRAVIS_PYTHON_VERSION" conda-verify coverage codecov
+- pip install pytest
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)
 - echo $REV
@@ -85,8 +95,9 @@ install:
 - echo $IS_DEPLOY
 
 script:
-- cd $HOME
-- nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
+- coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
+- coverage report
+- coverage html
 - tofu-version
 - tofu-custom
 - tofu --version
