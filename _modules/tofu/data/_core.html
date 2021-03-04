@@ -2274,18 +2274,18 @@
 
 <div class="viewcode-block" id="DataCam1D"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam1D">[docs]</a><span class="k">class</span> <span class="nc">DataCam1D</span><span class="p">(</span><span class="n">DataAbstract</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Data object used for 1D cameras or list of 1D cameras  &quot;&quot;&quot;</span>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">False</span>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_is2D</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>        <span class="k">return</span> <span class="kc">False</span></div>
+<div class="viewcode-block" id="DataCam1D._isSpectral"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam1D._isSpectral">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">False</span></div>
+<div class="viewcode-block" id="DataCam1D._is2D"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam1D._is2D">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_is2D</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>        <span class="k">return</span> <span class="kc">False</span></div></div>
 
 <span class="n">lp</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;lamb&#39;</span><span class="p">,</span><span class="s1">&#39;dX12&#39;</span><span class="p">]]</span>
 <span class="n">DataCam1D</span><span class="o">.</span><span class="n">__signature__</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">lp</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DataCam1DSpectral"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam1DSpectral">[docs]</a><span class="k">class</span> <span class="nc">DataCam1DSpectral</span><span class="p">(</span><span class="n">DataCam1D</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Data object used for 1D cameras or list of 1D cameras  &quot;&quot;&quot;</span>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">True</span>
+<div class="viewcode-block" id="DataCam1DSpectral._isSpectral"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam1DSpectral._isSpectral">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">True</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">lamb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2301,12 +2301,12 @@
 <div class="viewcode-block" id="DataCam2D"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2D">[docs]</a><span class="k">class</span> <span class="nc">DataCam2D</span><span class="p">(</span><span class="n">DataAbstract</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Data object used for 2D cameras or list of 2D cameras  &quot;&quot;&quot;</span>
 
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">False</span>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_is2D</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>        <span class="k">return</span> <span class="kc">True</span>
+<div class="viewcode-block" id="DataCam2D._isSpectral"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2D._isSpectral">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">False</span></div>
+<div class="viewcode-block" id="DataCam2D._is2D"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2D._is2D">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_is2D</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>        <span class="k">return</span> <span class="kc">True</span></div>
 
-    <span class="k">def</span> <span class="nf">_checkformat_dX12</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dX12</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DataCam2D._checkformat_dX12"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2D._checkformat_dX12">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_dX12</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dX12</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dX12</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dX12</span> <span class="o">==</span> <span class="s1">&#39;geom&#39;</span> <span class="ow">or</span> <span class="n">dX12</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;from&#39;</span><span class="p">:</span><span class="s1">&#39;geom&#39;</span><span class="p">},</span>
               <span class="nb">isinstance</span><span class="p">(</span><span class="n">dX12</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dX12</span> <span class="o">!=</span> <span class="p">{</span><span class="s1">&#39;from&#39;</span><span class="p">:</span><span class="s1">&#39;geom&#39;</span><span class="p">}]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -2340,7 +2340,7 @@
                                                     <span class="n">n1</span><span class="o">=</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="o">=</span><span class="n">n2</span><span class="p">)</span>
             <span class="n">dX12</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x1&#39;</span><span class="p">:</span><span class="n">x1</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">:</span><span class="n">x2</span><span class="p">,</span> <span class="s1">&#39;n1&#39;</span><span class="p">:</span><span class="n">n1</span><span class="p">,</span> <span class="s1">&#39;n2&#39;</span><span class="p">:</span><span class="n">n2</span><span class="p">,</span>
                     <span class="s1">&#39;ind1&#39;</span><span class="p">:</span><span class="n">ind1</span><span class="p">,</span> <span class="s1">&#39;ind2&#39;</span><span class="p">:</span><span class="n">ind2</span><span class="p">,</span> <span class="s1">&#39;indr&#39;</span><span class="p">:</span><span class="n">indr</span><span class="p">,</span> <span class="s1">&#39;from&#39;</span><span class="p">:</span><span class="s1">&#39;self&#39;</span><span class="p">}</span>
-        <span class="k">return</span> <span class="n">dX12</span>
+        <span class="k">return</span> <span class="n">dX12</span></div>
 
 <div class="viewcode-block" id="DataCam2D.set_dX12"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2D.set_dX12">[docs]</a>    <span class="k">def</span> <span class="nf">set_dX12</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dX12</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">dX12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_dX12</span><span class="p">(</span><span class="n">dX12</span><span class="p">)</span>
@@ -2374,8 +2374,8 @@
 
 <div class="viewcode-block" id="DataCam2DSpectral"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2DSpectral">[docs]</a><span class="k">class</span> <span class="nc">DataCam2DSpectral</span><span class="p">(</span><span class="n">DataCam2D</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Data object used for 1D cameras or list of 1D cameras  &quot;&quot;&quot;</span>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">True</span>
+<div class="viewcode-block" id="DataCam2DSpectral._isSpectral"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.DataCam2DSpectral._isSpectral">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_isSpectral</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="k">return</span> <span class="kc">True</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">lamb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2436,15 +2436,15 @@
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Plasma2D</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._reset"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._reset">[docs]</a>    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Plasma2D</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dgroup</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dgroup</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dindref</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dindref</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_ddata</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dgeom</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dgeom</span><span class="p">())</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Plasma2D._checkformat_inputs_Id"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._checkformat_inputs_Id">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_inputs_Id</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
@@ -2465,21 +2465,21 @@
                 <span class="n">include</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;shot&#39;</span><span class="p">)</span>
         <span class="n">kwdargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span><span class="n">Name</span><span class="p">,</span> <span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">Exp</span><span class="p">,</span> <span class="s1">&#39;shot&#39;</span><span class="p">:</span><span class="n">shot</span><span class="p">,</span>
                         <span class="s1">&#39;include&#39;</span><span class="p">:</span><span class="n">include</span><span class="p">})</span>
-        <span class="k">return</span> <span class="n">kwdargs</span>
+        <span class="k">return</span> <span class="n">kwdargs</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get largs</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_largs_dindrefdatagroup"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_largs_dindrefdatagroup">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dindrefdatagroup</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dtime&#39;</span><span class="p">,</span> <span class="s1">&#39;dradius&#39;</span><span class="p">,</span> <span class="s1">&#39;dmesh&#39;</span><span class="p">,</span> <span class="s1">&#39;d0d&#39;</span><span class="p">,</span> <span class="s1">&#39;d1d&#39;</span><span class="p">,</span> <span class="s1">&#39;d2d&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_largs_dgeom"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_largs_dgeom">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dgeom</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get check and format inputs</span>
@@ -2489,7 +2489,7 @@
     <span class="c1"># Methods for checking and formatting inputs</span>
     <span class="c1">#---------------------</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._extract_dnd"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._extract_dnd">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_extract_dnd</span><span class="p">(</span><span class="n">dnd</span><span class="p">,</span> <span class="n">k0</span><span class="p">,</span>
                      <span class="n">dim_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">origin_</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units_</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2516,9 +2516,9 @@
         <span class="n">units</span> <span class="o">=</span> <span class="n">dnd</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">units</span> <span class="o">=</span> <span class="n">units_</span>
-        <span class="k">return</span> <span class="n">dim</span><span class="p">,</span> <span class="n">quant</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">units</span>
+        <span class="k">return</span> <span class="n">dim</span><span class="p">,</span> <span class="n">quant</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">units</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._checkformat_dtrm"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._checkformat_dtrm">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_dtrm</span><span class="p">(</span><span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">d0d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d2d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -2782,44 +2782,44 @@
         <span class="n">dtime</span><span class="p">,</span> <span class="n">dradius</span><span class="p">,</span> <span class="n">dmesh</span> <span class="o">=</span> <span class="n">dd</span><span class="p">[</span><span class="s1">&#39;dtime&#39;</span><span class="p">],</span> <span class="n">dd</span><span class="p">[</span><span class="s1">&#39;dradius&#39;</span><span class="p">],</span> <span class="n">dd</span><span class="p">[</span><span class="s1">&#39;dmesh&#39;</span><span class="p">]</span>
         <span class="n">d0d</span><span class="p">,</span> <span class="n">d1d</span><span class="p">,</span> <span class="n">d2d</span> <span class="o">=</span> <span class="n">dd</span><span class="p">[</span><span class="s1">&#39;d0d&#39;</span><span class="p">],</span> <span class="n">dd</span><span class="p">[</span><span class="s1">&#39;d1d&#39;</span><span class="p">],</span> <span class="n">dd</span><span class="p">[</span><span class="s1">&#39;d2d&#39;</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">dradius</span><span class="p">,</span> <span class="n">dmesh</span><span class="p">,</span> <span class="n">d0d</span><span class="p">,</span> <span class="n">d1d</span><span class="p">,</span> <span class="n">d2d</span>
+        <span class="k">return</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">dradius</span><span class="p">,</span> <span class="n">dmesh</span><span class="p">,</span> <span class="n">d0d</span><span class="p">,</span> <span class="n">d1d</span><span class="p">,</span> <span class="n">d2d</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_checkformat_inputs_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._checkformat_inputs_dgeom"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._checkformat_inputs_dgeom">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_inputs_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">config</span>
+        <span class="k">return</span> <span class="n">config</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get keys of dictionnaries</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_keys_dgroup"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_keys_dgroup">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dgroup</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;radius&#39;</span><span class="p">,</span> <span class="s1">&#39;mesh&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_keys_dindref"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_keys_dindref">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dindref</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_keys_ddata"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_keys_ddata">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_ddata</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_keys_dgeom"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_keys_dgeom">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dgeom</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
 
     <span class="c1">###########</span>
     <span class="c1"># _init</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._init"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._init">[docs]</a>    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">d0d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
@@ -2830,14 +2830,14 @@
         <span class="n">kwdgeom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_kwdargs</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">,</span> <span class="n">largs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_dindrefdatagroup</span><span class="p">(</span><span class="o">**</span><span class="n">kwdindrefdatagroup</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_dgeom</span><span class="p">(</span><span class="o">**</span><span class="n">kwdgeom</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;strip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;strip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 
     <span class="c1">###########</span>
     <span class="c1"># set dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._find_lref"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._find_lref">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_find_lref</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">k0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">dindref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lrefname</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">,</span><span class="s1">&#39;radius&#39;</span><span class="p">]):</span>
         <span class="k">if</span> <span class="s1">&#39;depend&#39;</span> <span class="ow">in</span> <span class="n">dd</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -2858,12 +2858,12 @@
             <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - shape: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - lref:  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">lref</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">lref</span>
+        <span class="k">return</span> <span class="n">lref</span></div>
 
 
 
 
-    <span class="k">def</span> <span class="nf">_set_dindrefdatagroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._set_dindrefdatagroup"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._set_dindrefdatagroup">[docs]</a>    <span class="k">def</span> <span class="nf">_set_dindrefdatagroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                               <span class="n">d0d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d2d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="c1"># Check dtime is not None</span>
@@ -3009,9 +3009,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_dindref</span> <span class="o">=</span> <span class="n">dindref</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span> <span class="o">=</span> <span class="n">ddata</span>
         <span class="c1"># Complement</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_complement</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_complement</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">_complement</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._complement"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._complement">[docs]</a>    <span class="k">def</span> <span class="nf">_complement</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="c1"># --------------</span>
         <span class="c1"># ddata</span>
@@ -3062,7 +3062,7 @@
                              <span class="k">for</span> <span class="n">vref</span> <span class="ow">in</span> <span class="n">lindref</span><span class="p">])]</span>
             <span class="c1">#assert vg[&#39;depend&#39;] in lidindref</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="n">gg</span><span class="p">][</span><span class="s1">&#39;lindref&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lindref</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="n">gg</span><span class="p">][</span><span class="s1">&#39;ldata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ldata</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="n">gg</span><span class="p">][</span><span class="s1">&#39;ldata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ldata</span></div>
 
 
 <div class="viewcode-block" id="Plasma2D.set_dgeom"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.set_dgeom">[docs]</a>    <span class="k">def</span> <span class="nf">set_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -3074,11 +3074,11 @@
     <span class="c1"># strip dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_strip_ddata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="Plasma2D._strip_ddata"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._strip_ddata">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_ddata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_strip_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._strip_dgeom"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._strip_dgeom">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;strip&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">strip</span><span class="p">:</span>
             <span class="k">return</span>
 
@@ -3112,13 +3112,13 @@
                         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pfe</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pfe</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># _strip and get/from dict</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Plasma2D._strip_init"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._strip_init">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_strip_init</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">nMax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">])</span>
@@ -3126,27 +3126,27 @@
 <span class="s2">                 1: dgeom pathfiles</span>
 <span class="s2">                 &quot;&quot;&quot;</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObjectBase</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span><span class="n">nMax</span><span class="p">)</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span></div>
 
 <div class="viewcode-block" id="Plasma2D.strip"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.strip">[docs]</a>    <span class="k">def</span> <span class="nf">strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Plasma2D</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dgeom</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+<div class="viewcode-block" id="Plasma2D._strip"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._strip">[docs]</a>    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dgeom</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._to_dict"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dgroup&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgroup</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;dindref&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dindref</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;ddata&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;dgeom&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">}}</span>
-        <span class="k">return</span> <span class="n">dout</span>
+        <span class="k">return</span> <span class="n">dout</span></div>
 
-    <span class="k">def</span> <span class="nf">_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._from_dict"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dgroup</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;dgroup&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dindref</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;dindref&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;ddata&#39;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;dgeom&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;dgeom&#39;</span><span class="p">])</span></div>
 
 
     <span class="c1">###########</span>
@@ -3190,7 +3190,7 @@
         <span class="n">lq</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lq1</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">lq2</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">lq</span>
 
-    <span class="k">def</span> <span class="nf">_get_ldata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._get_ldata"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_ldata">[docs]</a>    <span class="k">def</span> <span class="nf">_get_ldata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">indref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">return_key</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">log</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">,</span><span class="s1">&#39;any&#39;</span><span class="p">,</span><span class="s1">&#39;raw&#39;</span><span class="p">]</span>
@@ -3223,9 +3223,9 @@
                 <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">ind</span><span class="p">,</span> <span class="n">lid</span>
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="n">out</span></div>
 
-    <span class="k">def</span> <span class="nf">_get_keyingroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">msgstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raise_</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._get_keyingroup"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_keyingroup">[docs]</a>    <span class="k">def</span> <span class="nf">_get_keyingroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">msgstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raise_</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">lg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;lgroup&#39;</span><span class="p">]</span>
@@ -3265,7 +3265,7 @@
             <span class="n">msg</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_summary</span><span class="p">(</span><span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_</span><span class="o">=</span><span class="s1">&#39;msg&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">raise_</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">msg</span></div>
 
 
     <span class="c1">#---------------------</span>
@@ -3312,7 +3312,7 @@
     <span class="c1"># Methods for adding ref / quantities</span>
     <span class="c1">#---------------------</span>
 
-    <span class="k">def</span> <span class="nf">_checkformat_addref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._checkformat_addref"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._checkformat_addref">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_addref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">origin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">comments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -3353,9 +3353,9 @@
                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- available groups: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dgroups</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">quant</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">name</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">quant</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">name</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._add_ref_from_file"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._add_ref_from_file">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_add_ref_from_file</span><span class="p">(</span><span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">origin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -3453,7 +3453,7 @@
                                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">]))</span>
                         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;units&#39;</span><span class="p">],</span>
-                <span class="n">din</span><span class="p">[</span><span class="s1">&#39;quant&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;dim&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+                <span class="n">din</span><span class="p">[</span><span class="s1">&#39;quant&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;dim&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;origin&#39;</span><span class="p">],</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="Plasma2D.add_ref"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.add_ref">[docs]</a>    <span class="k">def</span> <span class="nf">add_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -3585,7 +3585,7 @@
                 <span class="n">tref</span> <span class="o">=</span> <span class="n">lt</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">lres</span><span class="p">)]</span>
         <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">dtu</span><span class="p">,</span> <span class="n">tref</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_time_common_arrays"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_time_common_arrays">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_time_common_arrays</span><span class="p">(</span><span class="n">dins</span><span class="p">,</span> <span class="n">choose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">dout</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">dins</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="n">dtu</span> <span class="o">=</span> <span class="p">{}</span>
@@ -3627,9 +3627,9 @@
                 <span class="n">choose</span>  <span class="o">=</span> <span class="s1">&#39;min&#39;</span>
             <span class="k">if</span> <span class="n">choose</span> <span class="o">==</span> <span class="s1">&#39;min&#39;</span><span class="p">:</span>
                 <span class="n">tref</span> <span class="o">=</span> <span class="n">lt</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">lres</span><span class="p">)]</span>
-        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">dtu</span><span class="p">,</span> <span class="n">tref</span>
+        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">dtu</span><span class="p">,</span> <span class="n">tref</span></div>
 
-    <span class="k">def</span> <span class="nf">_interp_on_common_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeys</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._interp_on_common_time"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._interp_on_common_time">[docs]</a>    <span class="k">def</span> <span class="nf">_interp_on_common_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeys</span><span class="p">,</span>
                                <span class="n">choose</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Return a dict of time-interpolated data &quot;&quot;&quot;</span>
@@ -3662,9 +3662,9 @@
             <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">dtu</span><span class="p">[</span><span class="n">tref</span><span class="p">][</span><span class="s1">&#39;ldata&#39;</span><span class="p">]:</span>
                  <span class="n">dout</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">tref</span>
+        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">tref</span></div>
 
-    <span class="k">def</span> <span class="nf">_interp_on_common_time_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dins</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._interp_on_common_time_arrays"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._interp_on_common_time_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">_interp_on_common_time_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dins</span><span class="p">,</span>
                                       <span class="n">choose</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                       <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Return a dict of time-interpolated data &quot;&quot;&quot;</span>
@@ -3691,7 +3691,7 @@
                                                      <span class="n">kind</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                                                      <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                                      <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">)(</span><span class="n">tr</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">tref</span>
+        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">tref</span></div>
 
 <div class="viewcode-block" id="Plasma2D.interp_t"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.interp_t">[docs]</a>    <span class="k">def</span> <span class="nf">interp_t</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dkeys</span><span class="p">,</span>
                  <span class="n">choose</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -3784,7 +3784,7 @@
     <span class="c1">#---------------------</span>
 
 
-    <span class="k">def</span> <span class="nf">_fill_dins</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dins</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._fill_dins"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._fill_dins">[docs]</a>    <span class="k">def</span> <span class="nf">_fill_dins</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dins</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dins</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;val&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;val&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
@@ -3793,9 +3793,9 @@
                 <span class="k">assert</span> <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;t&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                 <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;t&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;t&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
                 <span class="k">assert</span> <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;t&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">dins</span>
+        <span class="k">return</span> <span class="n">dins</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._checkformat_shapes"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._checkformat_shapes">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_shapes</span><span class="p">(</span><span class="n">dins</span><span class="p">):</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dins</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -3832,7 +3832,7 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">assert</span> <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;shape&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">shape</span>
                 <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dins</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;val&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">return</span> <span class="n">dins</span>
+        <span class="k">return</span> <span class="n">dins</span></div>
 
 
 
@@ -3913,7 +3913,7 @@
     <span class="c1">#---------------------</span>
 
 
-    <span class="k">def</span> <span class="nf">_get_quantrefkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qq</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._get_quantrefkeys"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_quantrefkeys">[docs]</a>    <span class="k">def</span> <span class="nf">_get_quantrefkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qq</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="c1"># Get relevant lists</span>
         <span class="n">kq</span><span class="p">,</span> <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keyingroup</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span> <span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="n">msgstr</span><span class="o">=</span><span class="s1">&#39;quant&#39;</span><span class="p">,</span> <span class="n">raise_</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -3951,10 +3951,10 @@
                 <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - ref2d (</span><span class="si">%s</span><span class="s2">):   </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ref2d</span><span class="p">,</span> <span class="n">q2d</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">kq</span><span class="p">,</span> <span class="n">k1d</span><span class="p">,</span> <span class="n">k2d</span>
+        <span class="k">return</span> <span class="n">kq</span><span class="p">,</span> <span class="n">k1d</span><span class="p">,</span> <span class="n">k2d</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_get_indtmult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._get_indtmult"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_indtmult">[docs]</a>    <span class="k">def</span> <span class="nf">_get_indtmult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="c1"># Get time vectors and bins</span>
         <span class="n">idtq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="n">idquant</span><span class="p">][</span><span class="s1">&#39;depend&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
@@ -4002,9 +4002,9 @@
                 <span class="n">indtr2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">ntall</span> <span class="o">=</span> <span class="n">tall</span><span class="o">.</span><span class="n">size</span>
-        <span class="k">return</span> <span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="p">,</span> <span class="n">ntall</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span>
+        <span class="k">return</span> <span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="p">,</span> <span class="n">ntall</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Plasma2D._get_indtu"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_indtu">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">indtr1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -4027,7 +4027,7 @@
                 <span class="k">assert</span> <span class="n">indtr2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                 <span class="n">indtr2</span> <span class="o">=</span> <span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">]</span>
         <span class="n">ntall</span> <span class="o">=</span> <span class="n">tall</span><span class="o">.</span><span class="n">size</span>
-        <span class="k">return</span> <span class="n">tall</span><span class="p">,</span> <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span>
+        <span class="k">return</span> <span class="n">tall</span><span class="p">,</span> <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span></div>
 
 <div class="viewcode-block" id="Plasma2D.get_tcommon"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.get_tcommon">[docs]</a>    <span class="k">def</span> <span class="nf">get_tcommon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lq</span><span class="p">,</span> <span class="n">prefer</span><span class="o">=</span><span class="s1">&#39;finer&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Check if common t, else choose according to prefer</span>
@@ -4055,17 +4055,17 @@
             <span class="n">ind</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">return</span> <span class="n">t</span><span class="p">[</span><span class="n">ind</span><span class="p">],</span> <span class="n">t</span></div>
 
-    <span class="k">def</span> <span class="nf">_get_tcom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._get_tcom"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_tcom">[docs]</a>    <span class="k">def</span> <span class="nf">_get_tcom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">idquant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indtmult</span><span class="p">(</span><span class="n">idquant</span><span class="o">=</span><span class="n">idquant</span><span class="p">,</span>
                                      <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indtmult</span><span class="p">(</span><span class="n">idquant</span><span class="o">=</span><span class="n">idq2dR</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="n">out</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_get_finterp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._get_finterp"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_finterp">[docs]</a>    <span class="k">def</span> <span class="nf">_get_finterp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">idq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -4145,10 +4145,10 @@
                                                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span>
                                                <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">func</span>
+        <span class="k">return</span> <span class="n">func</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_checkformat_qr12RPZ</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="Plasma2D._checkformat_qr12RPZ"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._checkformat_qr12RPZ">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_qr12RPZ</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                              <span class="n">q2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lc0</span> <span class="o">=</span> <span class="p">[</span><span class="n">quant</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ref1d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
         <span class="n">lc1</span> <span class="o">=</span> <span class="p">[</span><span class="n">q2dR</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">q2dPhi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">q2dZ</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
@@ -4181,7 +4181,7 @@
                                               <span class="n">raise_</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
             <span class="n">ani</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span> <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span> <span class="n">ani</span>
+        <span class="k">return</span> <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span> <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span> <span class="n">ani</span></div>
 
 
 <div class="viewcode-block" id="Plasma2D.get_finterp2d"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.get_finterp2d">[docs]</a>    <span class="k">def</span> <span class="nf">get_finterp2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

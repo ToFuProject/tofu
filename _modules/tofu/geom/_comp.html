@@ -164,7 +164,7 @@
 <span class="c1"># ==============================================================================</span>
 <span class="c1"># = Ves sub-functions</span>
 <span class="c1"># ==============================================================================</span>
-<span class="k">def</span> <span class="nf">_Struct_set_Poly</span><span class="p">(</span>
+<div class="viewcode-block" id="_Struct_set_Poly"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Struct_set_Poly">[docs]</a><span class="k">def</span> <span class="nf">_Struct_set_Poly</span><span class="p">(</span>
     <span class="n">Poly</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s2">&quot;Tor&quot;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Compute geometrical attributes of a Struct object &quot;&quot;&quot;</span>
@@ -253,10 +253,10 @@
         <span class="s2">&quot;circ-r&quot;</span><span class="p">:</span> <span class="n">circr</span><span class="p">,</span>
         <span class="s2">&quot;Clock&quot;</span><span class="p">:</span> <span class="n">Clock</span><span class="p">,</span>
     <span class="p">}</span>
-    <span class="k">return</span> <span class="n">dout</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Ves_get_InsideConvexPoly</span><span class="p">(</span>
+<div class="viewcode-block" id="_Ves_get_InsideConvexPoly"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Ves_get_InsideConvexPoly">[docs]</a><span class="k">def</span> <span class="nf">_Ves_get_InsideConvexPoly</span><span class="p">(</span>
     <span class="n">Poly</span><span class="p">,</span>
     <span class="n">P2Min</span><span class="p">,</span>
     <span class="n">P2Max</span><span class="p">,</span>
@@ -336,7 +336,7 @@
             <span class="sa">r</span><span class="s2">&quot;R (m)&quot;</span>
         <span class="p">),</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Z (m)&quot;</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">Poly</span>
+    <span class="k">return</span> <span class="n">Poly</span></div>
 
 
 <span class="c1"># ==============================================================================</span>
@@ -344,7 +344,7 @@
 <span class="c1"># ==============================================================================</span>
 
 
-<span class="k">def</span> <span class="nf">_Ves_get_sample_checkinputs</span><span class="p">(</span>
+<div class="viewcode-block" id="_Ves_get_sample_checkinputs"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Ves_get_sample_checkinputs">[docs]</a><span class="k">def</span> <span class="nf">_Ves_get_sample_checkinputs</span><span class="p">(</span>
     <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">resMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -436,10 +436,10 @@
         <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;  You provided:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">resMode</span><span class="p">,</span> <span class="n">ind</span>
+    <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">resMode</span><span class="p">,</span> <span class="n">ind</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Ves_get_sampleEdge</span><span class="p">(</span>
+<div class="viewcode-block" id="_Ves_get_sampleEdge"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Ves_get_sampleEdge">[docs]</a><span class="k">def</span> <span class="nf">_Ves_get_sampleEdge</span><span class="p">(</span>
     <span class="n">VPoly</span><span class="p">,</span>
     <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -478,10 +478,10 @@
         <span class="n">DIn</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">offsetIn</span><span class="p">),</span>
         <span class="n">VIn</span><span class="o">=</span><span class="n">VIn</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">Pts</span><span class="p">,</span> <span class="n">reseff</span><span class="p">,</span> <span class="n">ind</span>
+    <span class="k">return</span> <span class="n">Pts</span><span class="p">,</span> <span class="n">reseff</span><span class="p">,</span> <span class="n">ind</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Ves_get_sampleCross</span><span class="p">(</span>
+<div class="viewcode-block" id="_Ves_get_sampleCross"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Ves_get_sampleCross">[docs]</a><span class="k">def</span> <span class="nf">_Ves_get_sampleCross</span><span class="p">(</span>
     <span class="n">VPoly</span><span class="p">,</span>
     <span class="n">Min1</span><span class="p">,</span>
     <span class="n">Max1</span><span class="p">,</span>
@@ -562,10 +562,10 @@
             <span class="n">margin</span><span class="o">=</span><span class="n">margin</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="p">(</span><span class="n">Pts</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="p">(</span><span class="n">d1r</span><span class="p">,</span> <span class="n">d2r</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">out</span>
+    <span class="k">return</span> <span class="n">out</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Ves_get_sampleS</span><span class="p">(</span>
+<div class="viewcode-block" id="_Ves_get_sampleS"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Ves_get_sampleS">[docs]</a><span class="k">def</span> <span class="nf">_Ves_get_sampleS</span><span class="p">(</span>
     <span class="n">VPoly</span><span class="p">,</span>
     <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -770,10 +770,10 @@
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">VLim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">pts</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reseff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span>
+    <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Ves_get_sampleV</span><span class="p">(</span>
+<div class="viewcode-block" id="_Ves_get_sampleV"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Ves_get_sampleV">[docs]</a><span class="k">def</span> <span class="nf">_Ves_get_sampleV</span><span class="p">(</span>
     <span class="n">VPoly</span><span class="p">,</span>
     <span class="n">Min1</span><span class="p">,</span>
     <span class="n">Max1</span><span class="p">,</span>
@@ -909,7 +909,7 @@
                  <span class="n">ind</span><span class="p">,</span>
                  <span class="n">margin</span><span class="o">=</span><span class="n">margin</span>
              <span class="p">)</span>
-    <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dV</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span>
+    <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dV</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">reseff</span></div>
 
 
 <span class="c1"># ==============================================================================</span>
@@ -917,7 +917,7 @@
 <span class="c1"># ==============================================================================</span>
 
 
-<span class="k">def</span> <span class="nf">_Struct_get_phithetaproj</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">poly_closed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noccur</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="_Struct_get_phithetaproj"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._Struct_get_phithetaproj">[docs]</a><span class="k">def</span> <span class="nf">_Struct_get_phithetaproj</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">poly_closed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noccur</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 
     <span class="c1"># phi = toroidal angle</span>
     <span class="k">if</span> <span class="n">noccur</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -942,10 +942,10 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">ntheta</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="k">return</span> <span class="n">nphi</span><span class="p">,</span> <span class="n">Dphi</span><span class="p">,</span> <span class="n">ntheta</span><span class="p">,</span> <span class="n">Dtheta</span>
+    <span class="k">return</span> <span class="n">nphi</span><span class="p">,</span> <span class="n">Dphi</span><span class="p">,</span> <span class="n">ntheta</span><span class="p">,</span> <span class="n">Dtheta</span></div>
 
 
-<span class="k">def</span> <span class="nf">_get_phithetaproj_dist</span><span class="p">(</span>
+<div class="viewcode-block" id="_get_phithetaproj_dist"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._get_phithetaproj_dist">[docs]</a><span class="k">def</span> <span class="nf">_get_phithetaproj_dist</span><span class="p">(</span>
     <span class="n">poly_closed</span><span class="p">,</span>
     <span class="n">ax</span><span class="p">,</span>
     <span class="n">Dtheta</span><span class="p">,</span>
@@ -1020,7 +1020,7 @@
     <span class="n">indok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">inddet</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">disttheta</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">k</span><span class="p">[:,</span> <span class="n">indok</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">disttheta</span><span class="p">,</span> <span class="n">indphi</span>
+    <span class="k">return</span> <span class="n">disttheta</span><span class="p">,</span> <span class="n">indphi</span></div>
 
 
 <span class="c1"># ==============================================================================</span>

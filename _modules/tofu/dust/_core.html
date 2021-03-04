@@ -293,7 +293,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_check_trajpts</span><span class="p">(</span><span class="n">pts</span><span class="p">):</span>
+<div class="viewcode-block" id="_check_trajpts"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core._check_trajpts">[docs]</a><span class="k">def</span> <span class="nf">_check_trajpts</span><span class="p">(</span><span class="n">pts</span><span class="p">):</span>
     <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
@@ -302,13 +302,13 @@
     <span class="k">assert</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
         <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
-    <span class="k">return</span> <span class="n">pts</span>
+    <span class="k">return</span> <span class="n">pts</span></div>
 
-<span class="k">def</span> <span class="nf">_check_trajt</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">npts</span><span class="p">):</span>
+<div class="viewcode-block" id="_check_trajt"><a class="viewcode-back" href="../../../tofu.dust.html#tofu.dust._core._check_trajt">[docs]</a><span class="k">def</span> <span class="nf">_check_trajt</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">npts</span><span class="p">):</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="n">npts</span>
-    <span class="k">return</span> <span class="n">t</span>
+    <span class="k">return</span> <span class="n">t</span></div>
 </pre></div>
 
     </div>

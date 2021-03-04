@@ -235,9 +235,9 @@
         <span class="bp">cls</span><span class="o">.</span><span class="n">_dplot</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">CrystalBragg</span><span class="o">.</span><span class="n">_dplot</span><span class="p">)</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_set_color_ddef</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_color</span><span class="p">)</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._set_color_ddef"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._set_color_ddef">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_set_color_ddef</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s1">&#39;dmisc&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s1">&#39;dmisc&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dbragg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -258,16 +258,16 @@
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CrystalBragg</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._reset"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._reset">[docs]</a>    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CrystalBragg</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dgeom</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dmat</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dbragg</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dmisc</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dmisc</span><span class="p">())</span></div>
         <span class="c1">#self._dplot = copy.deepcopy(self.__class__._ddef[&#39;dplot&#39;])</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_inputs_Id"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_inputs_Id">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_inputs_Id</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -299,37 +299,37 @@
         <span class="n">kwdargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span><span class="n">Name</span><span class="p">,</span> <span class="s1">&#39;shot&#39;</span><span class="p">:</span><span class="n">shot</span><span class="p">,</span>
                         <span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="n">Exp</span><span class="p">,</span> <span class="s1">&#39;Diag&#39;</span><span class="p">:</span><span class="n">Diag</span><span class="p">,</span> <span class="s1">&#39;Type&#39;</span><span class="p">:</span><span class="n">Type</span><span class="p">,</span>
                         <span class="s1">&#39;include&#39;</span><span class="p">:</span><span class="n">include</span><span class="p">})</span>
-        <span class="k">return</span> <span class="n">kwdargs</span>
+        <span class="k">return</span> <span class="n">kwdargs</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get largs</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_largs_dgeom"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_largs_dgeom">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dgeom</span><span class="p">(</span><span class="n">sino</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dgeom&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_largs_dmat"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_largs_dmat">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dmat</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dmat&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_largs_dbragg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_largs_dbragg">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dbragg</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dbragg&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_largs_dmisc"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_largs_dmisc">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dmisc</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get check and format inputs</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_dgeom"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_dgeom">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_dgeom</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dgeom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dgeom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
@@ -386,9 +386,9 @@
                 <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;e2&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;nin&#39;</span><span class="p">]))</span> <span class="o">&lt;</span> <span class="mf">1.e-12</span>
                 <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;e1&#39;</span><span class="p">],</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;e2&#39;</span><span class="p">])</span>
                                       <span class="o">+</span> <span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;nin&#39;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">1.e-12</span>
-        <span class="k">return</span> <span class="n">dgeom</span>
+        <span class="k">return</span> <span class="n">dgeom</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_dmat"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_dmat">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_dmat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dmat</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dmat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
@@ -411,9 +411,9 @@
         <span class="k">if</span> <span class="n">dmat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cut&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dmat</span><span class="p">[</span><span class="s1">&#39;cut&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">dmat</span><span class="p">[</span><span class="s1">&#39;cut&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
             <span class="k">assert</span> <span class="n">dmat</span><span class="p">[</span><span class="s1">&#39;cut&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">4</span>
-        <span class="k">return</span> <span class="n">dmat</span>
+        <span class="k">return</span> <span class="n">dmat</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_dbragg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_dbragg">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_dbragg</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dbragg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dbragg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
@@ -481,48 +481,48 @@
                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> &#39;value&#39;: np.ndarray,</span><span class="se">\n</span><span class="s2">&quot;</span>
                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2"> &#39;source&#39;: str}&quot;</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">dbragg</span>
+        <span class="k">return</span> <span class="n">dbragg</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_inputs_dmisc"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_inputs_dmisc">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_inputs_dmisc</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">color</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ddef</span><span class="p">[</span><span class="s1">&#39;dmisc&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">])</span>
         <span class="k">assert</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">is_color_like</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">))</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get keys of dictionnaries</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_keys_dgeom"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_keys_dgeom">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dgeom</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Type&#39;</span><span class="p">,</span> <span class="s1">&#39;Typeoutline&#39;</span><span class="p">,</span>
               <span class="s1">&#39;summit&#39;</span><span class="p">,</span> <span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="s1">&#39;extenthalf&#39;</span><span class="p">,</span> <span class="s1">&#39;surface&#39;</span><span class="p">,</span>
               <span class="s1">&#39;nin&#39;</span><span class="p">,</span> <span class="s1">&#39;nout&#39;</span><span class="p">,</span> <span class="s1">&#39;e1&#39;</span><span class="p">,</span> <span class="s1">&#39;e2&#39;</span><span class="p">,</span> <span class="s1">&#39;rcurve&#39;</span><span class="p">,</span>
               <span class="s1">&#39;move&#39;</span><span class="p">,</span> <span class="s1">&#39;move_param&#39;</span><span class="p">,</span> <span class="s1">&#39;move_kwdargs&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_keys_dmat"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_keys_dmat">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dmat</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;formula&#39;</span><span class="p">,</span> <span class="s1">&#39;density&#39;</span><span class="p">,</span> <span class="s1">&#39;symmetry&#39;</span><span class="p">,</span>
               <span class="s1">&#39;lengths&#39;</span><span class="p">,</span> <span class="s1">&#39;angles&#39;</span><span class="p">,</span> <span class="s1">&#39;cut&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_keys_dbragg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_keys_dbragg">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dbragg</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;rockingcurve&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._get_keys_dmisc"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._get_keys_dmisc">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dmisc</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># _init</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dbragg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="CrystalBragg._init"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._init">[docs]</a>    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dbragg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="n">allkwds</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">locals</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_largs_dgeom</span><span class="p">()</span>
@@ -537,7 +537,7 @@
         <span class="n">largs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_largs_dmisc</span><span class="p">()</span>
         <span class="n">kwds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_kwdargs</span><span class="p">(</span><span class="n">allkwds</span><span class="p">,</span> <span class="n">largs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_dmisc</span><span class="p">(</span><span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;strip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;strip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># set dictionaries</span>
@@ -580,75 +580,75 @@
         <span class="n">dbragg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_dbragg</span><span class="p">(</span><span class="n">dbragg</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span> <span class="o">=</span> <span class="n">dbragg</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._set_color"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._set_color">[docs]</a>    <span class="k">def</span> <span class="nf">_set_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_inputs_dmisc</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dplot</span><span class="p">[</span><span class="s1">&#39;cross&#39;</span><span class="p">][</span><span class="s1">&#39;dP&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dplot</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="s1">&#39;dP&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dplot</span><span class="p">[</span><span class="s1">&#39;hor&#39;</span><span class="p">][</span><span class="s1">&#39;dP&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span></div>
         <span class="c1"># self._dplot[&#39;3d&#39;][&#39;dP&#39;][&#39;color&#39;] = color</span>
 
-    <span class="k">def</span> <span class="nf">_set_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_set_color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+<div class="viewcode-block" id="CrystalBragg._set_dmisc"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._set_dmisc">[docs]</a>    <span class="k">def</span> <span class="nf">_set_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># strip dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_strip_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._strip_dgeom"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._strip_dgeom">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lkeep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dgeom</span><span class="p">()</span>
-        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_strip_dmat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._strip_dmat"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._strip_dmat">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_dmat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lkeep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dmat</span><span class="p">()</span>
-        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_strip_dbragg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._strip_dbragg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._strip_dbragg">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_dbragg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lkeep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dbragg</span><span class="p">()</span>
-        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_strip_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]):</span>
-        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
+<div class="viewcode-block" id="CrystalBragg._strip_dmisc"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._strip_dmisc">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]):</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_strip_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># rebuild dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_rebuild_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._rebuild_dgeom"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._rebuild_dgeom">[docs]</a>    <span class="k">def</span> <span class="nf">_rebuild_dgeom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lkeep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dgeom</span><span class="p">()</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_test_Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_check_Fields4Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span>
                                                    <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">,</span> <span class="n">dname</span><span class="o">=</span><span class="s1">&#39;dgeom&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_set_dgeom</span><span class="p">(</span><span class="n">dgeom</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_dgeom</span><span class="p">(</span><span class="n">dgeom</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_rebuild_dmat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._rebuild_dmat"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._rebuild_dmat">[docs]</a>    <span class="k">def</span> <span class="nf">_rebuild_dmat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lkeep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dmat</span><span class="p">()</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_test_Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_check_Fields4Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">,</span>
                                                    <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">,</span> <span class="n">dname</span><span class="o">=</span><span class="s1">&#39;dmat&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">set_dmat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_dmat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_rebuild_dbragg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._rebuild_dbragg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._rebuild_dbragg">[docs]</a>    <span class="k">def</span> <span class="nf">_rebuild_dbragg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lkeep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dbragg</span><span class="p">()</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_test_Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_check_Fields4Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">,</span>
                                                    <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">,</span> <span class="n">dname</span><span class="o">=</span><span class="s1">&#39;dbragg&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">set_dbragg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_dbragg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_rebuild_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]):</span>
+<div class="viewcode-block" id="CrystalBragg._rebuild_dmisc"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._rebuild_dmisc">[docs]</a>    <span class="k">def</span> <span class="nf">_rebuild_dmisc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]):</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_test_Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
             <span class="n">utils</span><span class="o">.</span><span class="n">ToFuObject</span><span class="o">.</span><span class="n">_check_Fields4Rebuild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">,</span>
                                                    <span class="n">lkeep</span><span class="o">=</span><span class="n">lkeep</span><span class="p">,</span> <span class="n">dname</span><span class="o">=</span><span class="s1">&#39;dmisc&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_set_dmisc</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dmisc</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_dmisc</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dmisc</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">])</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># _strip and get/from dict</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CrystalBragg._strip_init"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._strip_init">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_strip_init</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">nMax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">])</span>
@@ -658,13 +658,13 @@
         <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;2&#39;</span><span class="p">:</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__func__</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span></div>
 
 <div class="viewcode-block" id="CrystalBragg.strip"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg.strip">[docs]</a>    <span class="k">def</span> <span class="nf">strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CrystalBragg</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._strip"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._strip">[docs]</a>    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">strip</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_dgeom</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_dmat</span><span class="p">()</span>
@@ -674,22 +674,22 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dgeom</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dmat</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dbragg</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dmisc</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_strip_dmisc</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._to_dict"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dgeom&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;dmat&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;dbragg&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;dmisc&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                 <span class="s1">&#39;dplot&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_dplot</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">}}</span>
-        <span class="k">return</span> <span class="n">dout</span>
+        <span class="k">return</span> <span class="n">dout</span></div>
 
-    <span class="k">def</span> <span class="nf">_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._from_dict"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dgeom&#39;</span><span class="p">,</span> <span class="p">{}))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dmat</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dmat&#39;</span><span class="p">,</span> <span class="p">{}))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dbragg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dbragg&#39;</span><span class="p">,</span> <span class="p">{}))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dmisc</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dmisc&#39;</span><span class="p">,</span> <span class="p">{}))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dplot</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dplot&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dplot</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dplot&#39;</span><span class="p">,</span> <span class="p">{}))</span></div>
 
     <span class="c1"># -----------</span>
     <span class="c1"># Properties</span>
@@ -812,7 +812,7 @@
     <span class="c1"># methods for moving</span>
     <span class="c1"># -----------------</span>
 
-    <span class="k">def</span> <span class="nf">_update_or_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="p">,</span> <span class="n">pinhole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="CrystalBragg._update_or_copy"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._update_or_copy">[docs]</a>    <span class="k">def</span> <span class="nf">_update_or_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgeom</span><span class="p">,</span> <span class="n">pinhole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">return_copy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">return_copy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -846,9 +846,9 @@
                 <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">An exception occured during updating</span><span class="se">\n</span><span class="s2">&quot;</span>
                        <span class="o">+</span> <span class="s2">&quot;  =&gt; instance unmoved&quot;</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_rotate_or_translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._rotate_or_translate"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._rotate_or_translate">[docs]</a>    <span class="k">def</span> <span class="nf">_rotate_or_translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;summit&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;center&#39;</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
         <span class="k">if</span> <span class="s1">&#39;rotate&#39;</span> <span class="ow">in</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
             <span class="n">vect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;nout&#39;</span><span class="p">],</span>
@@ -859,7 +859,7 @@
                     <span class="s1">&#39;e1&#39;</span><span class="p">:</span> <span class="n">vect</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;e2&#39;</span><span class="p">:</span> <span class="n">vect</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]}</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">pts</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pts</span><span class="o">=</span><span class="n">pts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;summit&#39;</span><span class="p">:</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;center&#39;</span><span class="p">:</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]}</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;summit&#39;</span><span class="p">:</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;center&#39;</span><span class="p">:</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]}</span></div>
 
 <div class="viewcode-block" id="CrystalBragg.translate_in_cross_section"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg.translate_in_cross_section">[docs]</a>    <span class="k">def</span> <span class="nf">translate_in_cross_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1059,7 +1059,7 @@
     <span class="c1"># methods for surface and contour sampling</span>
     <span class="c1"># -----------------</span>
 
-    <span class="k">def</span> <span class="nf">_checkformat_bragglamb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bragg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_bragglamb"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_bragglamb">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_bragglamb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bragg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">lamb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bragg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
             <span class="n">lamb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEFLAMB</span>
@@ -1070,9 +1070,9 @@
                                              <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">bragg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">bragg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">bragg</span>
+        <span class="k">return</span> <span class="n">bragg</span></div>
 
-    <span class="k">def</span> <span class="nf">_checkformat_get_Rays_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bragg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_get_Rays_from"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_get_Rays_from">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_get_Rays_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bragg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">phi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">assert</span> <span class="n">bragg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">bragg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">bragg</span><span class="p">)</span>
@@ -1088,7 +1088,7 @@
                 <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;   phi.shape:        </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">phi</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;   bragg/lamb.shape: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">bragg</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">bragg</span>
+        <span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">bragg</span></div>
 
 <div class="viewcode-block" id="CrystalBragg.get_Rays_from_summit"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg.get_Rays_from_summit">[docs]</a>    <span class="k">def</span> <span class="nf">get_Rays_from_summit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bragg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                              <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1380,7 +1380,7 @@
             <span class="n">ax</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">bragg</span><span class="p">,</span> <span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">xi</span><span class="p">,</span> <span class="n">xj</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_pts"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_pts">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_pts</span><span class="p">(</span><span class="n">pts</span><span class="p">):</span>
         <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -1390,9 +1390,9 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
-        <span class="k">return</span> <span class="n">pts</span>
+        <span class="k">return</span> <span class="n">pts</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_xixj"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_xixj">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_xixj</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">):</span>
         <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span>
         <span class="n">xj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">xj</span><span class="p">)</span>
@@ -1400,9 +1400,9 @@
         <span class="k">if</span> <span class="n">xi</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">xj</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">,</span> <span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">)</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CrystalBragg._checkformat_psidtheta"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg._checkformat_psidtheta">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_psidtheta</span><span class="p">(</span><span class="n">psi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtheta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                <span class="n">psi_def</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">dtheta_def</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">psi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1413,7 +1413,7 @@
         <span class="n">dtheta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">dtheta</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">psi</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">dtheta</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;psi and dtheta must be 1d arrays fo same size!&quot;</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CrystalBragg.calc_phibragg_from_xixj"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core_optics.CrystalBragg.calc_phibragg_from_xixj">[docs]</a>    <span class="k">def</span> <span class="nf">calc_phibragg_from_xixj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xi</span><span class="p">,</span> <span class="n">xj</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

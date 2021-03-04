@@ -131,7 +131,7 @@ We can plot its profile in the (0, X, Z) plane.
     /home/lasofivec/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading='flat' when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading='auto', 'nearest' or 'gouraud', or set rcParams['pcolor.shading'].  This will become an error two minor releases later.
       ax.pcolormesh(Y, Z, emissivity_vals)
 
-    <matplotlib.legend.Legend object at 0x7f0eb743ba60>
+    <matplotlib.legend.Legend object at 0x7f71fca73070>
 
 
 

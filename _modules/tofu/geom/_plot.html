@@ -157,7 +157,7 @@
 <span class="n">_lcch</span> <span class="o">=</span> <span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">tab20</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">11</span><span class="p">]]</span>
 
 <span class="c1"># Generic</span>
-<span class="k">def</span> <span class="nf">_check_Lax</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+<div class="viewcode-block" id="_check_Lax"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._check_Lax">[docs]</a><span class="k">def</span> <span class="nf">_check_Lax</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">c0</span> <span class="o">=</span> <span class="n">lax</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="n">c1</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">lax</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span><span class="n">Axes</span><span class="p">)</span>
@@ -177,7 +177,7 @@
             <span class="n">lax</span> <span class="o">=</span> <span class="p">[</span><span class="n">lax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="kc">None</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">lax</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lax</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">lax</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span>
+    <span class="k">return</span> <span class="n">lax</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span></div>
 
 
 
@@ -195,7 +195,7 @@
 <span class="c1">############################################</span>
 
 
-<span class="k">def</span> <span class="nf">_Struct_plot_format</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+<div class="viewcode-block" id="_Struct_plot_format"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Struct_plot_format">[docs]</a><span class="k">def</span> <span class="nf">_Struct_plot_format</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
 
     <span class="c1"># Local default</span>
     <span class="n">defplot</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;cross&#39;</span><span class="p">:{</span><span class="s1">&#39;Elt&#39;</span><span class="p">:</span><span class="s1">&#39;PIBsBvV&#39;</span><span class="p">,</span>
@@ -256,7 +256,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">dout</span><span class="p">[</span><span class="n">pp</span><span class="p">][</span><span class="n">dnk</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span> <span class="o">=</span> <span class="n">v</span>
 
-    <span class="k">return</span> <span class="n">dout</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
 
 
 
@@ -361,7 +361,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_Plot_CrossProj_Ves</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;PIBsBvV&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="_Plot_CrossProj_Ves"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Plot_CrossProj_Ves">[docs]</a><span class="k">def</span> <span class="nf">_Plot_CrossProj_Ves</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;PIBsBvV&#39;</span><span class="p">,</span>
                         <span class="n">Pdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorPd</span><span class="p">,</span> <span class="n">Idict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorId</span><span class="p">,</span> <span class="n">Bsdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorBsd</span><span class="p">,</span>
                         <span class="n">Bvdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorBvd</span><span class="p">,</span> <span class="n">Vdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorVind</span><span class="p">,</span>
                         <span class="n">LegDict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorLegd</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -440,12 +440,12 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">relim</span><span class="p">()</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">autoscale_view</span><span class="p">()</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
 
 
-<span class="k">def</span> <span class="nf">_Plot_HorProj_Ves</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;PI&#39;</span><span class="p">,</span> <span class="n">Nstep</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorNTheta</span><span class="p">,</span>
+<div class="viewcode-block" id="_Plot_HorProj_Ves"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Plot_HorProj_Ves">[docs]</a><span class="k">def</span> <span class="nf">_Plot_HorProj_Ves</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;PI&#39;</span><span class="p">,</span> <span class="n">Nstep</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorNTheta</span><span class="p">,</span>
                       <span class="n">Pdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorPd</span><span class="p">,</span> <span class="n">Idict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorITord</span><span class="p">,</span>
                       <span class="n">Bsdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorBsTord</span><span class="p">,</span> <span class="n">Bvdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorBvTord</span><span class="p">,</span>
                       <span class="n">LegDict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorLegd</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -572,11 +572,11 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">relim</span><span class="p">()</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">autoscale_view</span><span class="p">()</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
 
-<span class="k">def</span> <span class="nf">_Plot_3D_plt_Ves</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="_Plot_3D_plt_Ves"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Plot_3D_plt_Ves">[docs]</a><span class="k">def</span> <span class="nf">_Plot_3D_plt_Ves</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">Nstep</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">Tor3DThetamin</span><span class="p">,</span> <span class="n">Pdict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorP3Dd</span><span class="p">,</span>
                      <span class="n">LegDict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorLegd</span><span class="p">,</span>
                      <span class="n">draw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="n">_wintit</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -621,7 +621,7 @@
         <span class="n">proxy</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Rectangle</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="n">fc</span><span class="o">=</span><span class="n">Pdict</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">])</span>
         <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proxy</span><span class="p">)</span>
         <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">NameLTX</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">def Plot_3D_mlab_Tor(T,fig=&#39;None&#39;,thetaLim=(np.pi/2,2*np.pi),Tdict=Dict_3D_mlab_Tor_Def,LegDict=LegDict_Def):</span>
@@ -888,7 +888,7 @@
 <span class="c1">#       Utility functions</span>
 <span class="c1">############################################</span>
 
-<span class="k">def</span> <span class="nf">_LOS_calc_InOutPolProj_Debug</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span> <span class="p">,</span><span class="n">PIns</span><span class="p">,</span> <span class="n">POuts</span><span class="p">,</span>
+<div class="viewcode-block" id="_LOS_calc_InOutPolProj_Debug"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._LOS_calc_InOutPolProj_Debug">[docs]</a><span class="k">def</span> <span class="nf">_LOS_calc_InOutPolProj_Debug</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">Ds</span><span class="p">,</span> <span class="n">us</span> <span class="p">,</span><span class="n">PIns</span><span class="p">,</span> <span class="n">POuts</span><span class="p">,</span>
                                  <span class="n">L</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">nptstot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Nstep</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
                                  <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="n">_wintit</span><span class="p">,</span> <span class="n">draw</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="c1"># Preformat</span>
@@ -912,10 +912,10 @@
     <span class="c1">#         c=&#39;r&#39;, ls=&#39;None&#39;, marker=&#39;x&#39;, label=r&quot;POut&quot;)</span>
     <span class="c1"># ax.legend(**_def.TorLegd)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span></div>
 
 
-<span class="k">def</span> <span class="nf">_get_LLOS_Leg</span><span class="p">(</span><span class="n">GLLOS</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="_get_LLOS_Leg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._get_LLOS_Leg">[docs]</a><span class="k">def</span> <span class="nf">_get_LLOS_Leg</span><span class="p">(</span><span class="n">GLLOS</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">PostExp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="s1">&#39;any&#39;</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="s1">&#39;In&#39;</span><span class="p">):</span>
 
     <span class="c1"># Get Legend</span>
@@ -935,7 +935,7 @@
         <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">Val</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">PreExp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">PostExp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
             <span class="n">ind</span> <span class="o">=</span> <span class="n">GLLOS</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">Crit</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="n">PreExp</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="n">PostExp</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="n">Log</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="n">InOut</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">GLLOS</span> <span class="o">=</span> <span class="p">[</span><span class="n">GLLOS</span><span class="o">.</span><span class="n">LLOS</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">GLLOS</span><span class="p">,</span> <span class="n">Leg</span>
+    <span class="k">return</span> <span class="n">GLLOS</span><span class="p">,</span> <span class="n">Leg</span></div>
 
 
 <div class="viewcode-block" id="Get_FieldsFrom_LLOS"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot.Get_FieldsFrom_LLOS">[docs]</a><span class="k">def</span> <span class="nf">Get_FieldsFrom_LLOS</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">Fields</span><span class="p">):</span>
@@ -1075,7 +1075,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_Rays_plot_Cross</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<div class="viewcode-block" id="_Rays_plot_Cross"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Rays_plot_Cross">[docs]</a><span class="k">def</span> <span class="nf">_Rays_plot_Cross</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                      <span class="n">Lplot</span><span class="o">=</span><span class="s1">&#39;Tot&#39;</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;LDIORP&#39;</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">dL</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSLd</span><span class="p">,</span> <span class="n">dPtD</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtI</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span>
                      <span class="n">dPtO</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtR</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtP</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span>
@@ -1122,11 +1122,11 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">**</span><span class="n">dLeg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
 
-<span class="k">def</span> <span class="nf">_Rays_plot_Hor</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<div class="viewcode-block" id="_Rays_plot_Hor"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Rays_plot_Hor">[docs]</a><span class="k">def</span> <span class="nf">_Rays_plot_Hor</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">Lplot</span><span class="o">=</span><span class="s1">&#39;Tot&#39;</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;LDIORP&#39;</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">dL</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSLd</span><span class="p">,</span> <span class="n">dPtD</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtI</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span>
                    <span class="n">dPtO</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtR</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtP</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span>
@@ -1169,11 +1169,11 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">**</span><span class="n">dLeg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
 
-<span class="k">def</span>  <span class="nf">_Rays_plot_3D</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<div class="viewcode-block" id="_Rays_plot_3D"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Rays_plot_3D">[docs]</a><span class="k">def</span>  <span class="nf">_Rays_plot_3D</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">Leg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reflections</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">Lplot</span><span class="o">=</span><span class="s1">&#39;Tot&#39;</span><span class="p">,</span><span class="n">Elt</span><span class="o">=</span><span class="s1">&#39;LDIORr&#39;</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">dL</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSLd</span><span class="p">,</span> <span class="n">dPtD</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtI</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span>
                    <span class="n">dPtO</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtR</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span> <span class="n">dPtP</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMd</span><span class="p">,</span>
@@ -1212,7 +1212,7 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">**</span><span class="n">dLeg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
 
@@ -1311,7 +1311,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_Plot_Sinogram_CrossProj</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Leg</span> <span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Ang</span><span class="o">=</span><span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">AngUnit</span><span class="o">=</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="_Plot_Sinogram_CrossProj"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Plot_Sinogram_CrossProj">[docs]</a><span class="k">def</span> <span class="nf">_Plot_Sinogram_CrossProj</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Leg</span> <span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Ang</span><span class="o">=</span><span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">AngUnit</span><span class="o">=</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span>
                              <span class="n">Sketch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dL</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMImpd</span><span class="p">,</span> <span class="n">LegDict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorLegd</span><span class="p">,</span>
                              <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">multi</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                              <span class="n">draw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="n">_wintit</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -1334,10 +1334,10 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">**</span><span class="n">LegDict</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Plot_Sinogram_3D</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">Leg</span> <span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Ang</span><span class="o">=</span><span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">AngUnit</span><span class="o">=</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="_Plot_Sinogram_3D"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Plot_Sinogram_3D">[docs]</a><span class="k">def</span> <span class="nf">_Plot_Sinogram_3D</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">Leg</span> <span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">Ang</span><span class="o">=</span><span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">AngUnit</span><span class="o">=</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span>
                       <span class="n">dL</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">LOSMImpd</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">multi</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                       <span class="n">draw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wintit</span><span class="o">=</span><span class="n">_wintit</span><span class="p">,</span> <span class="n">LegDict</span><span class="o">=</span><span class="n">_def</span><span class="o">.</span><span class="n">TorLegd</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span><span class="n">plt</span><span class="o">.</span><span class="n">Axes</span><span class="p">),</span> <span class="s1">&#39;Arg ax should be Axes instance !&#39;</span>
@@ -1358,7 +1358,7 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">**</span><span class="n">LegDict</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">ax</span>
+    <span class="k">return</span> <span class="n">ax</span></div>
 
 
 
@@ -1425,7 +1425,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_Cam12D_plot_touch_init</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmargin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+<div class="viewcode-block" id="_Cam12D_plot_touch_init"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Cam12D_plot_touch_init">[docs]</a><span class="k">def</span> <span class="nf">_Cam12D_plot_touch_init</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmargin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
                             <span class="n">wintit</span><span class="o">=</span><span class="n">_wintit</span><span class="p">,</span> <span class="n">nchMax</span><span class="o">=</span><span class="n">_nchMax</span><span class="p">,</span> <span class="n">nD</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 
     <span class="c1"># Figure</span>
@@ -1486,10 +1486,10 @@
                 <span class="n">dax</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([]),</span> <span class="n">dax</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
                 <span class="n">dax</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span>  <span class="n">dax</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">dax</span>
+    <span class="k">return</span> <span class="n">dax</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Cam12D_plottouch</span><span class="p">(</span><span class="n">cam</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="s1">&#39;lengths&#39;</span><span class="p">,</span> <span class="n">nchMax</span><span class="o">=</span><span class="n">_nchMax</span><span class="p">,</span>
+<div class="viewcode-block" id="_Cam12D_plottouch"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._plot._Cam12D_plottouch">[docs]</a><span class="k">def</span> <span class="nf">_Cam12D_plottouch</span><span class="p">(</span><span class="n">cam</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quant</span><span class="o">=</span><span class="s1">&#39;lengths&#39;</span><span class="p">,</span> <span class="n">nchMax</span><span class="o">=</span><span class="n">_nchMax</span><span class="p">,</span>
                       <span class="n">Bck</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lcch</span><span class="o">=</span><span class="n">_lcch</span><span class="p">,</span> <span class="n">cbck</span><span class="o">=</span><span class="n">_cbck</span><span class="p">,</span> <span class="n">Lplot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">incch</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span> <span class="n">ms</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">plotmethod</span><span class="o">=</span><span class="s1">&#39;imshow&#39;</span><span class="p">,</span>
                       <span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1790,7 +1790,7 @@
         <span class="n">kh</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">draw</span><span class="p">:</span>
         <span class="n">can</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">kh</span>
+    <span class="k">return</span> <span class="n">kh</span></div>
 </pre></div>
 
     </div>

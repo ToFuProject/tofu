@@ -275,7 +275,7 @@
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">items</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_reshape_dict</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">vv</span><span class="p">,</span> <span class="n">dinit</span><span class="o">=</span><span class="p">{},</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_reshape_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils._reshape_dict">[docs]</a><span class="k">def</span> <span class="nf">_reshape_dict</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">vv</span><span class="p">,</span> <span class="n">dinit</span><span class="o">=</span><span class="p">{},</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">sep</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sep</span> <span class="o">=</span> <span class="n">_SEP</span>
     <span class="n">ls</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
@@ -292,7 +292,7 @@
         <span class="n">_reshape_dict</span><span class="p">(</span><span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ls</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">vv</span><span class="p">,</span> <span class="n">dinit</span><span class="o">=</span><span class="n">dinit</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dinit</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-        <span class="n">dinit</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">vv</span>
+        <span class="n">dinit</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">vv</span></div>
 
 
 <div class="viewcode-block" id="reshape_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.reshape_dict">[docs]</a><span class="k">def</span> <span class="nf">reshape_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lcls</span><span class="o">=</span><span class="p">[]):</span>
@@ -342,7 +342,7 @@
 <span class="c1">#       Miscellaneous</span>
 <span class="c1">#############################################</span>
 
-<span class="k">def</span> <span class="nf">_set_arrayorder</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_set_arrayorder"><a class="viewcode-back" href="../../tofu.html#tofu.utils._set_arrayorder">[docs]</a><span class="k">def</span> <span class="nf">_set_arrayorder</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Set the memory order of all np.ndarrays in a tofu object &quot;&quot;&quot;</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg arrayorder must be in [&#39;C&#39;,&#39;F&#39;]&quot;</span>
     <span class="k">assert</span> <span class="n">arrayorder</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;C&#39;</span><span class="p">,</span><span class="s1">&#39;F&#39;</span><span class="p">],</span> <span class="n">msg</span>
@@ -361,7 +361,7 @@
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
                 <span class="n">account</span><span class="p">[</span><span class="s1">&#39;Failed&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">d</span><span class="p">,</span> <span class="n">account</span>
+    <span class="k">return</span> <span class="n">d</span><span class="p">,</span> <span class="n">account</span></div>
 
 
 <span class="c1">#############################################</span>
@@ -468,7 +468,7 @@
         <span class="k">return</span> <span class="n">pathfileext</span></div>
 
 
-<span class="k">def</span> <span class="nf">_save_npzmat_dict</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_save_npzmat_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils._save_npzmat_dict">[docs]</a><span class="k">def</span> <span class="nf">_save_npzmat_dict</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;dId</span><span class="si">{0}</span><span class="s1">dall</span><span class="si">{0}</span><span class="s1">SaveName&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;How to deal with:&quot;</span>
     <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> SaveName : </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
@@ -499,19 +499,19 @@
     <span class="k">if</span> <span class="n">err</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">dnpzmat</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">dt</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">dnpzmat</span>
+    <span class="k">return</span> <span class="n">dnpzmat</span></div>
 
 
-<span class="k">def</span> <span class="nf">_save_npz</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">pathfileext</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="_save_npz"><a class="viewcode-back" href="../../tofu.html#tofu.utils._save_npz">[docs]</a><span class="k">def</span> <span class="nf">_save_npz</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">pathfileext</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="n">func</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span> <span class="k">if</span> <span class="n">compressed</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">savez</span>
     <span class="n">dsave</span> <span class="o">=</span> <span class="n">_save_npzmat_dict</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
-    <span class="n">func</span><span class="p">(</span><span class="n">pathfileext</span><span class="p">,</span> <span class="o">**</span><span class="n">dsave</span><span class="p">)</span>
+    <span class="n">func</span><span class="p">(</span><span class="n">pathfileext</span><span class="p">,</span> <span class="o">**</span><span class="n">dsave</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_save_mat</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">pathfileext</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="_save_mat"><a class="viewcode-back" href="../../tofu.html#tofu.utils._save_mat">[docs]</a><span class="k">def</span> <span class="nf">_save_mat</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">pathfileext</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># Create intermediate dict to make sure to get rid of None values</span>
     <span class="n">dsave</span> <span class="o">=</span> <span class="n">_save_npzmat_dict</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
-    <span class="n">scpio</span><span class="o">.</span><span class="n">savemat</span><span class="p">(</span><span class="n">pathfileext</span><span class="p">,</span> <span class="n">dsave</span><span class="p">,</span> <span class="n">do_compression</span><span class="o">=</span><span class="n">compressed</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;5&#39;</span><span class="p">)</span>
+    <span class="n">scpio</span><span class="o">.</span><span class="n">savemat</span><span class="p">(</span><span class="n">pathfileext</span><span class="p">,</span> <span class="n">dsave</span><span class="p">,</span> <span class="n">do_compression</span><span class="o">=</span><span class="n">compressed</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;5&#39;</span><span class="p">)</span></div>
 
 
 
@@ -521,7 +521,7 @@
 <span class="c1">#       loading routines</span>
 <span class="c1">###################################</span>
 
-<span class="k">def</span> <span class="nf">_filefind</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lmodes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;.npz&#39;</span><span class="p">,</span><span class="s1">&#39;.mat&#39;</span><span class="p">]):</span>
+<div class="viewcode-block" id="_filefind"><a class="viewcode-back" href="../../tofu.html#tofu.utils._filefind">[docs]</a><span class="k">def</span> <span class="nf">_filefind</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lmodes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;.npz&#39;</span><span class="p">,</span><span class="s1">&#39;.mat&#39;</span><span class="p">]):</span>
     <span class="n">c0</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
     <span class="n">c1</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">name</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">c0</span> <span class="ow">or</span> <span class="n">c1</span><span class="p">):</span>
@@ -572,7 +572,7 @@
     <span class="n">name</span> <span class="o">=</span> <span class="n">nameext</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
     <span class="n">mode</span> <span class="o">=</span> <span class="n">lmodes</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">indend</span><span class="p">)]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">nameext</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">pfe</span>
+    <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">pfe</span></div>
 
 
 <div class="viewcode-block" id="get_param_from_file_name"><a class="viewcode-back" href="../../tofu.html#tofu.utils.get_param_from_file_name">[docs]</a><span class="k">def</span> <span class="nf">get_param_from_file_name</span><span class="p">(</span><span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lparams</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -695,7 +695,7 @@
     <span class="k">return</span> <span class="n">obj</span></div>
 
 
-<span class="k">def</span> <span class="nf">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;npz&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="p">[]):</span>
+<div class="viewcode-block" id="_get_load_npzmat_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils._get_load_npzmat_dict">[docs]</a><span class="k">def</span> <span class="nf">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;npz&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="p">[]):</span>
 
     <span class="n">C</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dId&#39;</span> <span class="ow">in</span> <span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -755,10 +755,10 @@
         <span class="n">msg</span> <span class="o">+=</span> <span class="n">msgi</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">dout</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
 
 
-<span class="k">def</span> <span class="nf">_load_npz</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_load_npz"><a class="viewcode-back" href="../../tofu.html#tofu.utils._load_npz">[docs]</a><span class="k">def</span> <span class="nf">_load_npz</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">allow_pickle</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">allow_pickle</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -770,10 +770,10 @@
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">err</span>
 
-    <span class="k">return</span> <span class="n">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;npz&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="p">[])</span>
+    <span class="k">return</span> <span class="n">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;npz&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="p">[])</span></div>
 
 
-<span class="k">def</span> <span class="nf">_load_mat</span><span class="p">(</span><span class="n">pfe</span><span class="p">):</span>
+<div class="viewcode-block" id="_load_mat"><a class="viewcode-back" href="../../tofu.html#tofu.utils._load_mat">[docs]</a><span class="k">def</span> <span class="nf">_load_mat</span><span class="p">(</span><span class="n">pfe</span><span class="p">):</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">scpio</span><span class="o">.</span><span class="n">loadmat</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
@@ -781,7 +781,7 @@
         <span class="k">raise</span> <span class="n">err</span>
 
     <span class="n">lsmat</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;__header__&#39;</span><span class="p">,</span> <span class="s1">&#39;__globals__&#39;</span><span class="p">,</span> <span class="s1">&#39;__version__&#39;</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;mat&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="n">lsmat</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_get_load_npzmat_dict</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;mat&#39;</span><span class="p">,</span> <span class="n">exclude_keys</span><span class="o">=</span><span class="n">lsmat</span><span class="p">)</span></div>
 
 
 <span class="c1">###############################################</span>
@@ -859,7 +859,7 @@
 <span class="c1">#######</span>
 
 
-<span class="k">def</span> <span class="nf">_load_from_txt</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_load_from_txt"><a class="viewcode-back" href="../../tofu.html#tofu.utils._load_from_txt">[docs]</a><span class="k">def</span> <span class="nf">_load_from_txt</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
     <span class="c1"># Extract class</span>
     <span class="n">lk</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
@@ -875,7 +875,7 @@
     <span class="c1"># Recreate object</span>
     <span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">mod</span>
     <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">from_txt</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">obj</span>
+    <span class="k">return</span> <span class="n">obj</span></div>
 
 
 <span class="c1">#######</span>
@@ -886,7 +886,7 @@
                                          <span class="s1">&#39;plot_X&#39;</span><span class="p">:[</span><span class="s1">&#39;1drhotn&#39;</span><span class="p">],</span>
                                          <span class="s1">&#39;other&#39;</span><span class="p">:[</span><span class="s1">&#39;t&#39;</span><span class="p">]}}</span>
 
-<span class="k">def</span> <span class="nf">_get_exception</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">qtype</span><span class="o">=</span><span class="s1">&#39;quantity&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="_get_exception"><a class="viewcode-back" href="../../tofu.html#tofu.utils._get_exception">[docs]</a><span class="k">def</span> <span class="nf">_get_exception</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">qtype</span><span class="o">=</span><span class="s1">&#39;quantity&#39;</span><span class="p">):</span>
     <span class="c1"># -------------------</span>
     <span class="c1"># import imas2tofu</span>
     <span class="k">try</span><span class="p">:</span>
@@ -906,7 +906,7 @@
     <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ids</span>
     <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">Available shortcuts are:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">msg</span>
     <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">Provided:</span><span class="se">\n</span><span class="s2">    - </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">qtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
-    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="load_from_imas"><a class="viewcode-back" href="../../tofu.html#tofu.utils.load_from_imas">[docs]</a><span class="k">def</span> <span class="nf">load_from_imas</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tokamak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1697,12 +1697,12 @@
 <span class="c1">#       Generic tofu object</span>
 <span class="c1">#############################################</span>
 
-<span class="k">def</span> <span class="nf">_check_notNone</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">lk</span><span class="p">):</span>
+<div class="viewcode-block" id="_check_notNone"><a class="viewcode-back" href="../../tofu.html#tofu.utils._check_notNone">[docs]</a><span class="k">def</span> <span class="nf">_check_notNone</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">lk</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lk</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> should not be None !&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> should not be None !&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)</span></div>
 
-<span class="k">def</span> <span class="nf">_check_InputsGeneric</span><span class="p">(</span><span class="n">ld</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="_check_InputsGeneric"><a class="viewcode-back" href="../../tofu.html#tofu.utils._check_InputsGeneric">[docs]</a><span class="k">def</span> <span class="nf">_check_InputsGeneric</span><span class="p">(</span><span class="n">ld</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 
     <span class="c1"># Prepare</span>
     <span class="n">bstr0</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span><span class="s2">&quot;    &quot;</span><span class="o">*</span><span class="n">tab</span> <span class="o">+</span> <span class="s2">&quot;Error on arg </span><span class="si">%s</span><span class="s2">:&quot;</span>
@@ -1834,13 +1834,13 @@
         <span class="k">if</span> <span class="n">errk</span><span class="p">:</span>
             <span class="n">err</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="n">msgk</span>
-    <span class="k">return</span> <span class="n">ld</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">msg</span>
+    <span class="k">return</span> <span class="n">ld</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">msg</span></div>
 
-<span class="k">def</span> <span class="nf">_get_attrdictfromobj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">dd</span><span class="p">):</span>
+<div class="viewcode-block" id="_get_attrdictfromobj"><a class="viewcode-back" href="../../tofu.html#tofu.utils._get_attrdictfromobj">[docs]</a><span class="k">def</span> <span class="nf">_get_attrdictfromobj</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">dd</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">dd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">dd</span>
+    <span class="k">return</span> <span class="n">dd</span></div>
 
 
 <div class="viewcode-block" id="ToFuObjectBase"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase">[docs]</a><span class="k">class</span> <span class="nc">ToFuObjectBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -1869,40 +1869,40 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_Done</span> <span class="o">=</span> <span class="kc">True</span>
 
 
-    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._reset"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._reset">[docs]</a>    <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; To be overloaded &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_Id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+<div class="viewcode-block" id="ToFuObjectBase._set_Id"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._set_Id">[docs]</a>    <span class="k">def</span> <span class="nf">_set_Id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; To be overloaded &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div>
 
-    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._init"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._init">[docs]</a>    <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; To be overloaded &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._strip_init"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._strip_init">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_strip_init</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; To be overloaded &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+        <span class="k">pass</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._get_largs_Id"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._get_largs_Id">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_Id</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Id&#39;</span><span class="p">,</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span><span class="s1">&#39;Type&#39;</span><span class="p">,</span><span class="s1">&#39;Deg&#39;</span><span class="p">,</span><span class="s1">&#39;Exp&#39;</span><span class="p">,</span><span class="s1">&#39;Diag&#39;</span><span class="p">,</span><span class="s1">&#39;shot&#39;</span><span class="p">,</span>
                  <span class="s1">&#39;SaveName&#39;</span><span class="p">,</span><span class="s1">&#39;SavePath&#39;</span><span class="p">,</span><span class="s1">&#39;usr&#39;</span><span class="p">,</span><span class="s1">&#39;dUSR&#39;</span><span class="p">,</span><span class="s1">&#39;lObj&#39;</span><span class="p">,</span><span class="s1">&#39;include&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._extract_kwdargs"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._extract_kwdargs">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_extract_kwdargs</span><span class="p">(</span><span class="n">din</span><span class="p">,</span> <span class="n">largs</span><span class="p">):</span>
         <span class="n">dout</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">largs</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">din</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="n">dout</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">din</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">dout</span>
+        <span class="k">return</span> <span class="n">dout</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_arrayorder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="ToFuObjectBase._set_arrayorder"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._set_arrayorder">[docs]</a>    <span class="k">def</span> <span class="nf">_set_arrayorder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">d</span><span class="p">,</span> <span class="n">account</span> <span class="o">=</span> <span class="n">_set_arrayorder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="n">arrayorder</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">account</span><span class="p">[</span><span class="s1">&#39;Failed&#39;</span><span class="p">])</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;All np.ndarrays were not set to </span><span class="si">{0}</span><span class="s2"> :</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arrayorder</span><span class="p">)</span>
@@ -1911,34 +1911,34 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_dextra</span><span class="p">[</span><span class="s1">&#39;arrayorder&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">arrayorder</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dextra</span><span class="p">[</span><span class="s1">&#39;arrayorder&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">arrayorder</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._strip_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._strip_dict">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_strip_dict</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[]):</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lkeep</span><span class="p">:</span>
-                <span class="n">dd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">dd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._test_Rebuild"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._test_Rebuild">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_test_Rebuild</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[]):</span>
         <span class="n">reset</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">dd</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lkeep</span><span class="p">:</span>
                 <span class="n">reset</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="k">break</span>
-        <span class="k">return</span> <span class="n">reset</span>
+        <span class="k">return</span> <span class="n">reset</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._check_Fields4Rebuild"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._check_Fields4Rebuild">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_check_Fields4Rebuild</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[],</span> <span class="n">dname</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">lkeep</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">kk</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">dd</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Rebuilding </span><span class="si">{0}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dname</span><span class="p">)</span>
                 <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Field &#39;</span><span class="si">{0}</span><span class="s2">&#39; is missing !&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._check_InputsGeneric"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._check_InputsGeneric">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_check_InputsGeneric</span><span class="p">(</span><span class="n">ld</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_check_InputsGeneric</span><span class="p">(</span><span class="n">ld</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">tab</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_check_InputsGeneric</span><span class="p">(</span><span class="n">ld</span><span class="p">,</span> <span class="n">tab</span><span class="o">=</span><span class="n">tab</span><span class="p">)</span></div>
 
 
     <span class="c1">#############################</span>
@@ -1946,7 +1946,7 @@
     <span class="c1">#############################</span>
 
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._getcharray"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._getcharray">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_getcharray</span><span class="p">(</span><span class="n">ar</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">just</span><span class="o">=</span><span class="s1">&#39;l&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 
         <span class="n">c0</span> <span class="o">=</span> <span class="n">ar</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
@@ -1982,10 +1982,10 @@
 
         <span class="k">if</span> <span class="n">msg</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="n">out</span></div>
 
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObjectBase._get_summary"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._get_summary">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_get_summary</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">lar</span><span class="p">,</span> <span class="n">lcol</span><span class="p">,</span>
                      <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">just</span><span class="o">=</span><span class="s1">&#39;l&#39;</span><span class="p">,</span> <span class="n">table_sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -2012,7 +2012,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">lok</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;msg&#39;</span><span class="p">,</span> <span class="s1">&#39;array&#39;</span><span class="p">]</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Valid return_ values are: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="nb">str</span><span class="p">(</span><span class="n">lok</span><span class="p">))</span>
-            <span class="k">return</span> <span class="n">out</span>
+            <span class="k">return</span> <span class="n">out</span></div>
 
 
     <span class="c1"># def get_summary(self, sep=&#39;  &#39;, line=&#39;-&#39;, just=&#39;l&#39;,</span>
@@ -2130,9 +2130,9 @@
         <span class="n">dout</span> <span class="o">=</span> <span class="n">flatten_dict</span><span class="p">(</span><span class="n">dout</span><span class="p">,</span> <span class="n">parent_key</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="n">deep</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">dout</span></div>
 
-    <span class="k">def</span> <span class="nf">_get_dId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="ToFuObjectBase._get_dId"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase._get_dId">[docs]</a>    <span class="k">def</span> <span class="nf">_get_dId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; To be overloaded &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;dict&#39;</span><span class="p">:{}}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;dict&#39;</span><span class="p">:{}}</span></div>
 
 <div class="viewcode-block" id="ToFuObjectBase.from_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObjectBase.from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Populate the instances attributes using an input dict</span>
@@ -2331,7 +2331,7 @@
         <span class="c1"># super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ToFuObject</span><span class="p">,</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_set_Id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="ToFuObject._set_Id"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._set_Id">[docs]</a>    <span class="k">def</span> <span class="nf">_set_Id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">dUSR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lObj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_largs_Id</span><span class="p">()</span>
@@ -2339,7 +2339,7 @@
         <span class="n">dId</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkformat_inputs_Id</span><span class="p">(</span><span class="o">**</span><span class="n">dId</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">Id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">Id</span> <span class="o">=</span> <span class="n">ID</span><span class="p">(</span><span class="n">Cls</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="o">**</span><span class="n">dId</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span> <span class="o">=</span> <span class="n">Id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span> <span class="o">=</span> <span class="n">Id</span></div>
 
 
     <span class="nd">@property</span>
@@ -2362,15 +2362,15 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span>
 
-    <span class="k">def</span> <span class="nf">_get_dId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)}</span>
+<div class="viewcode-block" id="ToFuObject._get_dId"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._get_dId">[docs]</a>    <span class="k">def</span> <span class="nf">_get_dId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)}</span></div>
 
-    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ToFuObject._reset"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._reset">[docs]</a>    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s1">&#39;_Id&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_set_dlObj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lObj</span><span class="p">,</span> <span class="n">din</span><span class="o">=</span><span class="p">{}):</span>
+<div class="viewcode-block" id="ToFuObject._set_dlObj"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._set_dlObj">[docs]</a>    <span class="k">def</span> <span class="nf">_set_dlObj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lObj</span><span class="p">,</span> <span class="n">din</span><span class="o">=</span><span class="p">{}):</span>
 
         <span class="c1"># Make sure to kill the link to the mutable being provided</span>
         <span class="n">nObj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lObj</span><span class="p">)</span>
@@ -2412,9 +2412,9 @@
                     <span class="n">din</span><span class="p">[</span><span class="s1">&#39;dObj&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">din</span><span class="p">[</span><span class="s1">&#39;dObj&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;strip&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">din</span><span class="p">[</span><span class="s1">&#39;dObj&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">din</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;nObj&#39;</span><span class="p">:</span><span class="n">nObj</span><span class="p">,</span> <span class="s1">&#39;lorder&#39;</span><span class="p">:</span><span class="n">lorder</span><span class="p">,</span> <span class="s1">&#39;lCls&#39;</span><span class="p">:</span><span class="n">lCls</span><span class="p">})</span>
+        <span class="n">din</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;nObj&#39;</span><span class="p">:</span><span class="n">nObj</span><span class="p">,</span> <span class="s1">&#39;lorder&#39;</span><span class="p">:</span><span class="n">lorder</span><span class="p">,</span> <span class="s1">&#39;lCls&#39;</span><span class="p">:</span><span class="n">lCls</span><span class="p">})</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObject._get_ind12r_n12"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._get_ind12r_n12">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_ind12r_n12</span><span class="p">(</span><span class="n">ind1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ind2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">c0</span> <span class="o">=</span> <span class="n">ind1</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ind2</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="n">c1</span> <span class="o">=</span> <span class="n">n1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2431,9 +2431,9 @@
         <span class="n">indr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n2</span><span class="p">,</span><span class="n">n1</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ind1</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
             <span class="n">indr</span><span class="p">[</span><span class="n">ind2</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span><span class="n">ind1</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ii</span>
-        <span class="k">return</span> <span class="n">ind1</span><span class="p">,</span> <span class="n">ind2</span><span class="p">,</span> <span class="n">indr</span>
+        <span class="k">return</span> <span class="n">ind1</span><span class="p">,</span> <span class="n">ind2</span><span class="p">,</span> <span class="n">indr</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObject._checkformat_Narray"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._checkformat_Narray">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_Narray</span><span class="p">(</span><span class="n">aa</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;aa&#39;</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                             <span class="n">extramsg</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">aa</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2456,9 +2456,9 @@
                     <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aa</span><span class="p">)</span>
                     <span class="o">+</span> <span class="n">extramsg</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">aa</span>
+        <span class="k">return</span> <span class="n">aa</span></div>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ToFuObject._checkformat_scalar"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._checkformat_scalar">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_scalar</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ss&#39;</span><span class="p">,</span> <span class="n">extramsg</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">ss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">]:</span>
@@ -2466,9 +2466,9 @@
                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">))</span>
                        <span class="o">+</span> <span class="n">extramsg</span><span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">ss</span>
+        <span class="k">return</span> <span class="n">ss</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._rotate_pts_vectors_around_3daxis"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._rotate_pts_vectors_around_3daxis">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_rotate_pts_vectors_around_3daxis</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                           <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -2521,17 +2521,17 @@
                      <span class="o">+</span> <span class="n">vr</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ang2</span><span class="p">)</span><span class="o">*</span><span class="n">ax_ex</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ang2</span><span class="p">)</span><span class="o">*</span><span class="n">ax_ey</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">pts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">vect2</span>
-        <span class="k">return</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">vect2</span>
+        <span class="k">return</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">vect2</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._rotate_pts_vectors_around_torusaxis"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._rotate_pts_vectors_around_torusaxis">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_rotate_pts_vectors_around_torusaxis</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                              <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_rotate_pts_vectors_around_3daxis</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="p">,</span>
                                                      <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span>
                                                      <span class="n">axis</span><span class="o">=</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
-                                                           <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]))</span>
+                                                           <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]))</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._rotate_pts_vectors_in_poloidal_plane"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._rotate_pts_vectors_in_poloidal_plane">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_rotate_pts_vectors_in_poloidal_plane</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                               <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                               <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2543,9 +2543,9 @@
         <span class="n">ax_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="mf">0.</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_rotate_pts_vectors_around_3daxis</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="p">,</span>
                                                      <span class="n">angle</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span>
-                                                     <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="n">ax_pt</span><span class="p">,</span> <span class="n">ax_v</span><span class="p">))</span>
+                                                     <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="n">ax_pt</span><span class="p">,</span> <span class="n">ax_v</span><span class="p">))</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._rotate_pts_vectors_in_poloidal_plane_2D"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._rotate_pts_vectors_in_poloidal_plane_2D">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_rotate_pts_vectors_in_poloidal_plane_2D</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                                  <span class="n">vect_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                                  <span class="n">angle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2578,9 +2578,9 @@
                                 <span class="n">rad</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ang</span><span class="o">+</span><span class="n">angle</span><span class="p">)])</span>
             <span class="k">if</span> <span class="n">pts_rz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">vectrz2</span>
-        <span class="k">return</span> <span class="n">ptsrz2</span><span class="p">,</span> <span class="n">vectrz2</span>
+        <span class="k">return</span> <span class="n">ptsrz2</span><span class="p">,</span> <span class="n">vectrz2</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._translate_pts_3d"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._translate_pts_3d">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_translate_pts_3d</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">direction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">pts</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_checkformat_Narray</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pts&#39;</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -2588,9 +2588,9 @@
         <span class="n">direction</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_checkformat_Narray</span><span class="p">(</span><span class="n">direction</span><span class="p">,</span>
                                             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;direction&#39;</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">direction</span> <span class="o">=</span> <span class="n">direction</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pts</span> <span class="o">+</span> <span class="n">distance</span><span class="o">*</span><span class="n">direction</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">pts</span> <span class="o">+</span> <span class="n">distance</span><span class="o">*</span><span class="n">direction</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._translate_pts_poloidal_plane"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._translate_pts_poloidal_plane">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_translate_pts_poloidal_plane</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                       <span class="n">direction_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">phi</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_checkformat_scalar</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;phi&#39;</span><span class="p">)</span>
@@ -2608,9 +2608,9 @@
 
         <span class="n">direction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">direction_rz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span>
                               <span class="n">direction_rz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span> <span class="n">direction_rz</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_translate_pts_3d</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_translate_pts_3d</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ToFuObject._translate_pts_poloidal_plane_2D"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._translate_pts_poloidal_plane_2D">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_translate_pts_poloidal_plane_2D</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                          <span class="n">direction_rz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">direction_rz</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_checkformat_Narray</span><span class="p">(</span><span class="n">direction_rz</span><span class="p">,</span>
@@ -2619,9 +2619,9 @@
         <span class="n">pts_rz</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_checkformat_Narray</span><span class="p">(</span><span class="n">pts_rz</span><span class="p">,</span>
                                          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pts_rz&#39;</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">distance</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_checkformat_scalar</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pts_rz</span> <span class="o">+</span> <span class="n">distance</span><span class="o">*</span><span class="n">direction_rz</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">pts_rz</span> <span class="o">+</span> <span class="n">distance</span><span class="o">*</span><span class="n">direction_rz</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span></div>
 
-    <span class="k">def</span> <span class="nf">_checkformat_set_move</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span><span class="p">):</span>
+<div class="viewcode-block" id="ToFuObject._checkformat_set_move"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._checkformat_set_move">[docs]</a>    <span class="k">def</span> <span class="nf">_checkformat_set_move</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span><span class="p">):</span>
         <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">move</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
               <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">move</span><span class="p">)</span>
               <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">move</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rotate&#39;</span><span class="p">,</span> <span class="s1">&#39;translate&#39;</span><span class="p">]]))</span>
@@ -2651,9 +2651,9 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">kk</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">vv</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">vv</span>
                    <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">kwdargs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-        <span class="k">return</span> <span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span>
+        <span class="k">return</span> <span class="n">move</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kwdargs</span></div>
 
-    <span class="k">def</span> <span class="nf">_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">dictname</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="ToFuObject._move"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject._move">[docs]</a>    <span class="k">def</span> <span class="nf">_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">dictname</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dictname</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;move&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Default movement not defined</span><span class="se">\n</span><span class="s2">&quot;</span>
                    <span class="o">+</span> <span class="s2">&quot;  =&gt; use self.set_move()&quot;</span><span class="p">)</span>
@@ -2666,7 +2666,7 @@
         <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">move</span><span class="p">)</span>
         <span class="n">dparam</span> <span class="o">=</span> <span class="n">param</span> <span class="o">-</span> <span class="n">param0</span>
         <span class="n">func</span><span class="p">(</span><span class="n">dparam</span><span class="p">,</span> <span class="n">return_copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">param</span>
+        <span class="k">return</span> <span class="n">param</span></div>
 
 <div class="viewcode-block" id="ToFuObject.save"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ToFuObject.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">strip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;npz&#39;</span><span class="p">,</span>
@@ -2742,25 +2742,25 @@
         <span class="c1">#super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ID</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dall</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dall</span><span class="p">())</span>
+<div class="viewcode-block" id="ID._reset"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._reset">[docs]</a>    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dall</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_keys_dall</span><span class="p">())</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get largs</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ID._get_largs_dall"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._get_largs_dall">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_largs_dall</span><span class="p">():</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Cls&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Type&#39;</span><span class="p">,</span> <span class="s1">&#39;Deg&#39;</span><span class="p">,</span>
                  <span class="s1">&#39;Exp&#39;</span><span class="p">,</span> <span class="s1">&#39;Diag&#39;</span><span class="p">,</span> <span class="s1">&#39;shot&#39;</span><span class="p">,</span> <span class="s1">&#39;SaveName&#39;</span><span class="p">,</span>
                  <span class="s1">&#39;SavePath&#39;</span><span class="p">,</span> <span class="s1">&#39;usr&#39;</span><span class="p">,</span> <span class="s1">&#39;dUSR&#39;</span><span class="p">,</span> <span class="s1">&#39;lObj&#39;</span><span class="p">,</span> <span class="s1">&#39;include&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">largs</span>
+        <span class="k">return</span> <span class="n">largs</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get check and format inputs</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ID._checkformat_inputs_dall"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._checkformat_inputs_dall">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_inputs_dall</span><span class="p">(</span><span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2802,36 +2802,36 @@
 
         <span class="n">dout</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
         <span class="k">del</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;ls&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">dout</span>
+        <span class="k">return</span> <span class="n">dout</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Get keys of dictionnaries</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ID._get_keys_dall"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._get_keys_dall">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_keys_dall</span><span class="p">():</span>
         <span class="n">lk</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Mod&#39;</span><span class="p">,</span> <span class="s1">&#39;Cls&#39;</span><span class="p">,</span> <span class="s1">&#39;Type&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;SaveName&#39;</span><span class="p">,</span>
               <span class="s1">&#39;SavePath&#39;</span><span class="p">,</span> <span class="s1">&#39;Exp&#39;</span><span class="p">,</span> <span class="s1">&#39;Diag&#39;</span><span class="p">,</span> <span class="s1">&#39;shot&#39;</span><span class="p">,</span> <span class="s1">&#39;Deg&#39;</span><span class="p">,</span>
               <span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="s1">&#39;usr&#39;</span><span class="p">,</span> <span class="s1">&#39;dUSR&#39;</span><span class="p">,</span> <span class="s1">&#39;lObj&#39;</span><span class="p">,</span> <span class="s1">&#39;SaveName-usr&#39;</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">lk</span>
+        <span class="k">return</span> <span class="n">lk</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># _init</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="ID._init"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._init">[docs]</a>    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">lObj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dUSR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="n">largs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_largs_dall</span><span class="p">()</span>
         <span class="n">kwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_kwdargs</span><span class="p">(</span><span class="nb">locals</span><span class="p">(),</span> <span class="n">largs</span><span class="p">)</span>
-        <span class="n">largs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_dall</span><span class="p">(</span><span class="o">**</span><span class="n">kwd</span><span class="p">)</span>
+        <span class="n">largs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_dall</span><span class="p">(</span><span class="o">**</span><span class="n">kwd</span><span class="p">)</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># set dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_set_dall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="ID._set_dall"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._set_dall">[docs]</a>    <span class="k">def</span> <span class="nf">_set_dall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">lObj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dUSR</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2854,54 +2854,54 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">set_Name</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="n">SaveName</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="n">include</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">set_lObj</span><span class="p">(</span><span class="n">lObj</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_dUSR</span><span class="p">(</span><span class="n">dUSR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_dUSR</span><span class="p">(</span><span class="n">dUSR</span><span class="p">)</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># strip dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_strip_dall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[]):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="ID._strip_dall"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._strip_dall">[docs]</a>    <span class="k">def</span> <span class="nf">_strip_dall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="k">pass</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># rebuild dictionaries</span>
     <span class="c1">###########</span>
 
-    <span class="k">def</span> <span class="nf">_rebuild_dall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[]):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="ID._rebuild_dall"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._rebuild_dall">[docs]</a>    <span class="k">def</span> <span class="nf">_rebuild_dall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lkeep</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="k">pass</span></div>
 
 
     <span class="c1">###########</span>
     <span class="c1"># _strip and get/from dict</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ID._strip_init"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._strip_init">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_strip_init</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">nMax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">])</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="n">ToFuObjectBase</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span><span class="n">nMax</span><span class="p">)</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">strip</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span></div>
 
 <div class="viewcode-block" id="ID.strip"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID.strip">[docs]</a>    <span class="k">def</span> <span class="nf">strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="c1">#super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ID</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="ID._strip"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._strip">[docs]</a>    <span class="k">def</span> <span class="nf">_strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
-    <span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ID._to_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dall&#39;</span><span class="p">:{</span><span class="s1">&#39;dict&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">dall</span><span class="p">,</span> <span class="s1">&#39;lexcept&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">}}</span>
-        <span class="k">return</span> <span class="n">dout</span>
+        <span class="k">return</span> <span class="n">dout</span></div>
 
-    <span class="k">def</span> <span class="nf">_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+<div class="viewcode-block" id="ID._from_dict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dall</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;dall&#39;</span><span class="p">])</span>
         <span class="k">if</span> <span class="s1">&#39;version&#39;</span> <span class="ow">in</span> <span class="n">fd</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">fd</span><span class="p">[</span><span class="s1">&#39;version&#39;</span><span class="p">]</span><span class="o">!=</span><span class="n">__version__</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The object was created with a different tofu version !&quot;</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  object: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;SaveName&#39;</span><span class="p">])</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    original : tofu </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">fd</span><span class="p">[</span><span class="s1">&#39;version&#39;</span><span class="p">]</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    current  : tofu </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">__version__</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
     <span class="c1">###########</span>
     <span class="c1"># Properties</span>
@@ -2960,7 +2960,7 @@
     <span class="c1"># semi-public methods</span>
     <span class="c1">###########</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ID._extract_ModClsFrom_class"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID._extract_ModClsFrom_class">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_extract_ModClsFrom_class</span><span class="p">(</span><span class="n">Cls</span><span class="p">):</span>
         <span class="n">strc</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Cls</span><span class="p">)</span>
         <span class="n">ind0</span> <span class="o">=</span> <span class="n">strc</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;tofu.&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">5</span>
@@ -2970,7 +2970,7 @@
         <span class="n">Mod</span> <span class="o">=</span> <span class="n">strc</span><span class="p">[:</span><span class="n">indp</span><span class="p">]</span>
         <span class="n">strc</span> <span class="o">=</span> <span class="n">strc</span><span class="p">[</span><span class="n">indp</span><span class="o">+</span><span class="mi">1</span><span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="c1">#cls = strc[:strc.index(&#39;.&#39;)][::-1]</span>
-        <span class="k">return</span> <span class="n">Mod</span><span class="p">,</span> <span class="n">Cls</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">return</span> <span class="n">Mod</span><span class="p">,</span> <span class="n">Cls</span><span class="o">.</span><span class="vm">__name__</span></div>
 
 <div class="viewcode-block" id="ID.SaveName_Conv"><a class="viewcode-back" href="../../tofu.html#tofu.utils.ID.SaveName_Conv">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">SaveName_Conv</span><span class="p">(</span><span class="n">Mod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -3194,7 +3194,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_fromdict</span><span class="p">(</span><span class="n">fromdict</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_check_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+<div class="viewcode-block" id="DChans._check_inputs"><a class="viewcode-back" href="../../tofu.html#tofu.utils.DChans._check_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">_check_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
         <span class="n">size</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">fd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -3206,16 +3206,16 @@
             <span class="n">size</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span>
         <span class="n">nch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">ss</span> <span class="o">==</span> <span class="n">nch</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">size</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">fd</span><span class="p">,</span> <span class="n">nch</span>
+        <span class="k">return</span> <span class="n">fd</span><span class="p">,</span> <span class="n">nch</span></div>
 
-    <span class="k">def</span> <span class="nf">_todict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dchans</span>
+<div class="viewcode-block" id="DChans._todict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.DChans._todict">[docs]</a>    <span class="k">def</span> <span class="nf">_todict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dchans</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_fromdict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
+<div class="viewcode-block" id="DChans._fromdict"><a class="viewcode-back" href="../../tofu.html#tofu.utils.DChans._fromdict">[docs]</a>    <span class="k">def</span> <span class="nf">_fromdict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fd</span><span class="p">):</span>
         <span class="n">fd</span><span class="p">,</span> <span class="n">nch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dchans</span> <span class="o">=</span> <span class="n">fd</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_nch</span> <span class="o">=</span> <span class="n">nch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nch</span> <span class="o">=</span> <span class="n">nch</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">dchans</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3550,7 +3550,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_dBck</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dax</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="KeyHandler_mpl._get_dcur_init"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._get_dcur_init">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_dcur_init</span><span class="p">(</span><span class="n">dgroup</span><span class="p">,</span> <span class="n">dax</span><span class="p">,</span> <span class="n">groupinit</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">groupinit</span> <span class="ow">in</span> <span class="n">dgroup</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg groupinit must be a valid key of dgroup !</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -3560,9 +3560,9 @@
         <span class="n">refid</span> <span class="o">=</span> <span class="n">dgroup</span><span class="p">[</span><span class="n">groupinit</span><span class="p">][</span><span class="s1">&#39;defid&#39;</span><span class="p">]</span>
         <span class="n">ax</span> <span class="o">=</span> <span class="n">dgroup</span><span class="p">[</span><span class="n">groupinit</span><span class="p">][</span><span class="s1">&#39;defax&#39;</span><span class="p">]</span>
         <span class="n">dcur</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;refid&#39;</span><span class="p">:</span><span class="n">refid</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">:</span><span class="n">groupinit</span><span class="p">,</span> <span class="s1">&#39;ax&#39;</span><span class="p">:</span><span class="n">ax</span><span class="p">}</span>
-        <span class="k">return</span> <span class="n">dcur</span>
+        <span class="k">return</span> <span class="n">dcur</span></div>
 
-    <span class="k">def</span> <span class="nf">_warn_ifnotInteractive</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyHandler_mpl._warn_ifnotInteractive"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._warn_ifnotInteractive">[docs]</a>    <span class="k">def</span> <span class="nf">_warn_ifnotInteractive</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">warn</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">isinteractive</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Not interactive backend!:</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -3570,9 +3570,9 @@
             <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    - canvas  : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">can</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">warn</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="n">warn</span>
+        <span class="k">return</span> <span class="n">warn</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="KeyHandler_mpl._get_dmovkeys"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._get_dmovkeys">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_get_dmovkeys</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">Type</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ltypesref</span>
         <span class="k">if</span> <span class="n">Type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span>
@@ -3587,9 +3587,9 @@
                         <span class="s1">&#39;right&#39;</span><span class="p">:{</span><span class="kc">False</span><span class="p">:</span><span class="n">sig</span><span class="o">*</span><span class="n">inc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">True</span><span class="p">:</span><span class="n">sig</span><span class="o">*</span><span class="n">inc</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
                         <span class="s1">&#39;down&#39;</span><span class="p">:{</span><span class="kc">False</span><span class="p">:</span><span class="o">-</span><span class="n">sig</span><span class="o">*</span><span class="n">inc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">True</span><span class="p">:</span><span class="o">-</span><span class="n">sig</span><span class="o">*</span><span class="n">inc</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
                         <span class="s1">&#39;up&#39;</span><span class="p">:{</span><span class="kc">False</span><span class="p">:</span><span class="n">sig</span><span class="o">*</span><span class="n">inc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">True</span><span class="p">:</span><span class="n">sig</span><span class="o">*</span><span class="n">inc</span><span class="p">[</span><span class="mi">1</span><span class="p">]}}</span>
-        <span class="k">return</span> <span class="n">dmovkeys</span>
+        <span class="k">return</span> <span class="n">dmovkeys</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="KeyHandler_mpl._checkformat_dgrouprefaxobj"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._checkformat_dgrouprefaxobj">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_checkformat_dgrouprefaxobj</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dgroup</span><span class="p">,</span> <span class="n">dref</span><span class="p">,</span> <span class="n">dobj</span><span class="p">,</span> <span class="n">dax</span><span class="p">,</span> <span class="n">ddata</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">dd</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="p">[</span><span class="n">dgroup</span><span class="p">,</span> <span class="n">dref</span><span class="p">,</span> <span class="n">dobj</span><span class="p">,</span> <span class="n">dax</span><span class="p">]])</span>
 
@@ -3896,10 +3896,10 @@
             <span class="n">indncurind</span> <span class="o">=</span> <span class="n">get_indncurind</span><span class="p">(</span><span class="n">dind</span><span class="p">,</span> <span class="n">lrefid</span><span class="p">)</span>
             <span class="n">dobj</span><span class="p">[</span><span class="n">oo</span><span class="p">][</span><span class="s1">&#39;indncurind&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">indncurind</span>
 
-        <span class="k">return</span> <span class="n">dgroup</span><span class="p">,</span> <span class="n">dref</span><span class="p">,</span> <span class="n">dax</span><span class="p">,</span> <span class="n">dobj</span><span class="p">,</span> <span class="n">dind</span><span class="p">,</span> <span class="n">ddata</span>
+        <span class="k">return</span> <span class="n">dgroup</span><span class="p">,</span> <span class="n">dref</span><span class="p">,</span> <span class="n">dax</span><span class="p">,</span> <span class="n">dobj</span><span class="p">,</span> <span class="n">dind</span><span class="p">,</span> <span class="n">ddata</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_get_dkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyHandler_mpl._get_dkeys"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._get_dkeys">[docs]</a>    <span class="k">def</span> <span class="nf">_get_dkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">dkeys</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;shift&#39;</span><span class="p">:{</span><span class="s1">&#39;val&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span><span class="s1">&#39;generic&#39;</span><span class="p">},</span>
                  <span class="s1">&#39;control&#39;</span><span class="p">:{</span><span class="s1">&#39;val&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span><span class="s1">&#39;generic&#39;</span><span class="p">},</span>
                  <span class="s1">&#39;ctrl&#39;</span><span class="p">:{</span><span class="s1">&#39;val&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span><span class="s1">&#39;generic&#39;</span><span class="p">},</span>
@@ -3915,7 +3915,7 @@
         <span class="n">nMax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;nMax&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
         <span class="n">dkeys</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="nb">str</span><span class="p">(</span><span class="n">ii</span><span class="p">),{</span><span class="s1">&#39;ind&#39;</span><span class="p">:</span><span class="n">ii</span><span class="p">,</span> <span class="s1">&#39;val&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;action&#39;</span><span class="p">:</span><span class="s1">&#39;indices&#39;</span><span class="p">})</span>
                           <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nMax</span><span class="p">)]))</span>
-        <span class="k">return</span> <span class="n">dkeys</span>
+        <span class="k">return</span> <span class="n">dkeys</span></div>
 
 <div class="viewcode-block" id="KeyHandler_mpl.disconnect_old"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl.disconnect_old">[docs]</a>    <span class="k">def</span> <span class="nf">disconnect_old</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warn_ifnotInteractive</span><span class="p">():</span>
@@ -3966,7 +3966,7 @@
 <div class="viewcode-block" id="KeyHandler_mpl.resize"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl.resize">[docs]</a>    <span class="k">def</span> <span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_dBck</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dax</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_dBck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lax</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyHandler_mpl._set_dBck"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._set_dBck">[docs]</a>    <span class="k">def</span> <span class="nf">_set_dBck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lax</span><span class="p">):</span>
         <span class="c1"># Make all invisible</span>
         <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">lax</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dax</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="s1">&#39;lobj&#39;</span><span class="p">]:</span>
@@ -3983,7 +3983,7 @@
             <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dax</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="s1">&#39;lobj&#39;</span><span class="p">]:</span>
                 <span class="n">obj</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s1">&#39;vis&#39;</span><span class="p">])</span>
                 <span class="c1">#ax.draw(self.can.renderer)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">can</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">can</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="KeyHandler_mpl.init"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl.init">[docs]</a>    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dgroup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ngroup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dobj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">pass</span></div>
@@ -3993,7 +3993,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_dref</span><span class="p">(</span><span class="n">excluderef</span><span class="o">=</span><span class="n">excluderef</span><span class="p">)</span>    <span class="c1"># 0.1 ms</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_dobj</span><span class="p">()</span> <span class="c1"># 0.2 s</span></div>
 
-    <span class="k">def</span> <span class="nf">_update_dcur</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyHandler_mpl._update_dcur"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._update_dcur">[docs]</a>    <span class="k">def</span> <span class="nf">_update_dcur</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dcur</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span>
         <span class="n">refid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dcur</span><span class="p">[</span><span class="s1">&#39;refid&#39;</span><span class="p">]</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">dref</span><span class="p">[</span><span class="n">refid</span><span class="p">][</span><span class="s1">&#39;group&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">group</span>
@@ -4008,10 +4008,10 @@
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="n">group</span><span class="p">][</span><span class="s1">&#39;lobj&#39;</span><span class="p">]:</span>
             <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dind</span><span class="p">[</span><span class="s1">&#39;anMaxcur&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s1">&#39;indncurind&#39;</span><span class="p">]]</span>
             <span class="n">a1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s1">&#39;aindvis&#39;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s1">&#39;vis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span> <span class="n">a0</span> <span class="o">&gt;=</span> <span class="n">a1</span> <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s1">&#39;vis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span> <span class="n">a0</span> <span class="o">&gt;=</span> <span class="n">a1</span> <span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_update_dref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">excluderef</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyHandler_mpl._update_dref"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._update_dref">[docs]</a>    <span class="k">def</span> <span class="nf">_update_dref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">excluderef</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dcur</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span>
         <span class="n">ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="n">group</span><span class="p">][</span><span class="s1">&#39;indcur&#39;</span><span class="p">]</span>
         <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="n">group</span><span class="p">][</span><span class="s1">&#39;valind&#39;</span><span class="p">][</span><span class="n">ind</span><span class="p">,:]</span>
@@ -4064,10 +4064,10 @@
             <span class="n">rid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dind</span><span class="p">[</span><span class="s1">&#39;lrefid&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span>
             <span class="n">i0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dind</span><span class="p">[</span><span class="s1">&#39;cumsum0&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span>
             <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dgroup</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dref</span><span class="p">[</span><span class="n">rid</span><span class="p">][</span><span class="s1">&#39;group&#39;</span><span class="p">]][</span><span class="s1">&#39;nMax&#39;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dind</span><span class="p">[</span><span class="s1">&#39;arefind&#39;</span><span class="p">][</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dref</span><span class="p">[</span><span class="n">rid</span><span class="p">][</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dind</span><span class="p">[</span><span class="s1">&#39;arefind&#39;</span><span class="p">][</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dref</span><span class="p">[</span><span class="n">rid</span><span class="p">][</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_update_dobj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KeyHandler_mpl._update_dobj"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl._update_dobj">[docs]</a>    <span class="k">def</span> <span class="nf">_update_dobj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="c1"># --- Prepare ----- 2 us</span>
         <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dcur</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span>
@@ -4094,7 +4094,7 @@
 
         <span class="c1"># ---- blit axes ------ 5 ms</span>
         <span class="k">for</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">lax</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">can</span><span class="o">.</span><span class="n">blit</span><span class="p">(</span><span class="n">aa</span><span class="o">.</span><span class="n">bbox</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">can</span><span class="o">.</span><span class="n">blit</span><span class="p">(</span><span class="n">aa</span><span class="o">.</span><span class="n">bbox</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="KeyHandler_mpl.mouseclic"><a class="viewcode-back" href="../../tofu.html#tofu.utils.KeyHandler_mpl.mouseclic">[docs]</a>    <span class="k">def</span> <span class="nf">mouseclic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">event</span><span class="p">):</span>
 
