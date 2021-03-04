@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.tests.tests01_geom.test_03_core_data package &#8212; Tofu 1.4.9</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="_static/gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/gallery-rendered-html.css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="tofu.tests.tests02_data package" href="tofu.tests.tests02_data.html" />
+    <link rel="prev" title="tofu.tests.tests01_geom package" href="tofu.tests.tests01_geom.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">tofu.tests.tests01_geom.test_03_core_data package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes module</a></li>
+<li><a class="reference internal" href="#tofu-tests-tests01-geom-test-03-core-data-west-plasmadomain-standard-notes-module">tofu.tests.tests01_geom.test_03_core_data.WEST_PlasmaDomain_Standard_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes module</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes module</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data">
+<span id="tofu-tests-tests01-geom-test-03-core-data-package"></span><h1>tofu.tests.tests01_geom.test_03_core_data package<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-coilpf-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_CoilPF_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd><p>By convention : D is a length of the element, d is a gap</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_CoilPF_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-baffle-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_Baffle_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_Baffle_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-bumperinner-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes._get_inter">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.</code><code class="sig-name descname">_get_inter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">D0</span></em>, <em class="sig-param"><span class="n">u0</span></em>, <em class="sig-param"><span class="n">D1</span></em>, <em class="sig-param"><span class="n">u1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperInner_Notes.html#_get_inter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes._get_inter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperInner_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperInner_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-bumperouter-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes._get_intersect">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.</code><code class="sig-name descname">_get_intersect</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">D0</span></em>, <em class="sig-param"><span class="n">u0</span></em>, <em class="sig-param"><span class="n">D1</span></em>, <em class="sig-param"><span class="n">u1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperOuter_Notes.html#_get_intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes._get_intersect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperOuter_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperOuter_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-divlowgc-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes._get_inter">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.</code><code class="sig-name descname">_get_inter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">D0</span></em>, <em class="sig-param"><span class="n">u0</span></em>, <em class="sig-param"><span class="n">D1</span></em>, <em class="sig-param"><span class="n">u1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowGC_Notes.html#_get_inter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes._get_inter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowGC_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd><p>By convention : D is a length of the element, d is a gap</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowGC_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-divlowiter-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowITER_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd><p>By convention : D is a length of the element, d is a gap</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowITER_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-divup-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivUp_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivUp_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-ic1-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC1_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC1_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-ic2-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC2_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC2_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-ic3-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC3_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC3_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-lh1-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH1_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.get_notes2">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.</code><code class="sig-name descname">get_notes2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH1_Notes.html#get_notes2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.get_notes2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH1_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-lh2-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH2_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.get_notes2">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.</code><code class="sig-name descname">get_notes2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH2_Notes.html#get_notes2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.get_notes2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH2_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-pfc-ripple-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_Ripple_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd><p>By convention : D is a length of the element, d is a gap</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_Ripple_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="tofu-tests-tests01-geom-test-03-core-data-west-plasmadomain-standard-notes-module">
+<h2>tofu.tests.tests01_geom.test_03_core_data.WEST_PlasmaDomain_Standard_Notes module<a class="headerlink" href="#tofu-tests-tests01-geom-test-03-core-data-west-plasmadomain-standard-notes-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-ves-vesin-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_Ves_VesIn_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_Ves_VesIn_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes">
+<span id="tofu-tests-tests01-geom-test-03-core-data-west-ves-vesout-notes-module"></span><h2>tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes module<a class="headerlink" href="#module-tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes.get_notes">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes.</code><code class="sig-name descname">get_notes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_Ves_VesOut_Notes.html#get_notes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes.get_notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes.make_Poly">
+<code class="sig-prename descclassname">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes.</code><code class="sig-name descname">make_Poly</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">save</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">path</span><span class="o">=</span><span class="default_value">'/home/lasofivec/tofu/tofu/tests/tests01_geom/test_03_core_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests01_geom/test_03_core_data/WEST_Ves_VesOut_Notes.html#make_Poly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes.make_Poly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="_sources/tofu.tests.tests01_geom.test_03_core_data.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Mar 04, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

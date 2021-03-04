@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.tests.tests02_data.test_03_core &#8212; Tofu 1.4.9</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery-rendered-html.css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../../installation.html">Installation</a></li>
+                <li><a href="../../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../../aboutus.html">About</a></li>
+                <li><a href="../../../../releases.html">Releases</a></li>
+                <li><a href="../../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.tests.tests02_data.test_03_core</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains tests for tofu.geom in its structured version</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="c1"># Standard</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1"># tofu-specific</span>
+<span class="kn">from</span> <span class="nn">tofu</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">tfu</span>
+<span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+<span class="kn">import</span> <span class="nn">tofu.data</span> <span class="k">as</span> <span class="nn">tfd</span>
+
+
+<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">VerbHead</span> <span class="o">=</span> <span class="s1">&#39;tofu.data.test_03_core&#39;</span>
+
+
+<span class="c1">#######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#     Setup and Teardown</span>
+<span class="c1">#</span>
+<span class="c1">#######################################################</span>
+
+<div class="viewcode-block" id="setup_module"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.setup_module">[docs]</a><span class="k">def</span> <span class="nf">setup_module</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="c1"># this is to get a newline after the dots</span>
+    <span class="n">LF</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">_here</span><span class="p">)</span>
+    <span class="n">LF</span> <span class="o">=</span> <span class="p">[</span><span class="n">lf</span> <span class="k">for</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">LF</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">lf</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;TFD_&#39;</span><span class="p">,</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span><span class="s1">&#39;.npz&#39;</span><span class="p">]])]</span>
+    <span class="n">LF</span> <span class="o">=</span> <span class="p">[</span><span class="n">lf</span> <span class="k">for</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">LF</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">lf</span><span class="p">[</span><span class="n">lf</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;_Vv&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">:</span><span class="n">lf</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;_U&#39;</span><span class="p">)]</span><span class="o">==</span><span class="n">__version__</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing the following previous test files:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">LF</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">LF</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_here</span><span class="p">,</span><span class="n">lf</span><span class="p">))</span></div>
+    <span class="c1">#print(&quot;setup_module before anything in this file&quot;)</span>
+
+<div class="viewcode-block" id="teardown_module"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.teardown_module">[docs]</a><span class="k">def</span> <span class="nf">teardown_module</span><span class="p">():</span>
+    <span class="c1">#os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + &#39;.npz&#39;)</span>
+    <span class="c1">#os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + &#39;.npz&#39;)</span>
+    <span class="c1">#print(&quot;teardown_module after everything in this file&quot;)</span>
+    <span class="c1">#print(&quot;&quot;) # this is to get a newline</span>
+    <span class="n">LF</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">_here</span><span class="p">)</span>
+    <span class="n">LF</span> <span class="o">=</span> <span class="p">[</span><span class="n">lf</span> <span class="k">for</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">LF</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">lf</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;TFD_&#39;</span><span class="p">,</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span><span class="s1">&#39;.npz&#39;</span><span class="p">]])]</span>
+    <span class="n">LF</span> <span class="o">=</span> <span class="p">[</span><span class="n">lf</span> <span class="k">for</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">LF</span> <span class="k">if</span> <span class="n">lf</span><span class="p">[</span><span class="n">lf</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;_Vv&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">:</span><span class="n">lf</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;_U&#39;</span><span class="p">)]</span><span class="o">==</span><span class="n">__version__</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing the following test files:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">LF</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">LF</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_here</span><span class="p">,</span><span class="n">lf</span><span class="p">))</span>
+    <span class="k">pass</span></div>
+
+
+<span class="c1">#######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#     Creating Ves objects and testing methods</span>
+<span class="c1">#</span>
+<span class="c1">#######################################################</span>
+
+<div class="viewcode-block" id="emiss"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.emiss">[docs]</a><span class="k">def</span> <span class="nf">emiss</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">R</span><span class="o">-</span><span class="mf">2.4</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+    <span class="n">e0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mf">0.25</span><span class="p">)</span>
+    <span class="n">e1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">e2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">r</span><span class="o">-</span><span class="mf">0.4</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">emiss</span> <span class="o">=</span> <span class="n">e0</span> <span class="o">+</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">e1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">emiss</span> <span class="o">=</span> <span class="p">(</span><span class="n">e0</span><span class="p">[</span><span class="kc">None</span><span class="p">,:]</span>
+                 <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">t</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">e1</span><span class="p">[</span><span class="kc">None</span><span class="p">,:]</span>
+                 <span class="o">+</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">t</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">e2</span><span class="p">[</span><span class="kc">None</span><span class="p">,:])</span>
+    <span class="k">return</span> <span class="n">emiss</span></div>
+
+
+
+
+<div class="viewcode-block" id="Test01_DataCam12D"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D">[docs]</a><span class="k">class</span> <span class="nc">Test01_DataCam12D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+
+<div class="viewcode-block" id="Test01_DataCam12D._create_cams"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D._create_cams">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_create_cams</span><span class="p">(</span><span class="n">nch</span><span class="p">,</span> <span class="n">lconf</span><span class="p">,</span> <span class="n">ld</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">):</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">4.5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">N12</span><span class="o">=</span><span class="n">nch</span><span class="p">,</span> <span class="n">D12</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+                                       <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">10.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span>
+                                       <span class="n">config</span><span class="o">=</span><span class="n">lconf</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                       <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+                                       <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span><span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">4.5</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                                       <span class="n">N12</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="mf">1.5</span><span class="o">*</span><span class="n">nch</span><span class="p">),</span><span class="n">nch</span><span class="p">],</span>
+                                       <span class="n">D12</span><span class="o">=</span><span class="p">[</span><span class="mf">0.075</span><span class="p">,</span><span class="mf">0.05</span><span class="p">],</span>
+                                       <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">10.</span><span class="p">,</span><span class="mf">0.</span><span class="p">],</span>
+                                       <span class="n">config</span><span class="o">=</span><span class="n">lconf</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                       <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+                                       <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">c0</span><span class="p">,</span> <span class="n">c1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.setup_class"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.setup_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setup_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">nch</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">nt</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="c1"># time vector</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">nt</span><span class="p">)</span>
+
+        <span class="c1"># Configs</span>
+        <span class="n">conf0</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="s1">&#39;B2&#39;</span><span class="p">)</span>
+        <span class="n">conf1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="s1">&#39;B3&#39;</span><span class="p">)</span>
+
+        <span class="c1"># dchans and cams</span>
+        <span class="n">d0</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;C0-</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nch</span><span class="p">)])</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;C1-</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nch</span><span class="p">)])</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_cams</span><span class="p">(</span><span class="n">nch</span><span class="p">,</span> <span class="p">[</span><span class="n">conf0</span><span class="p">,</span> <span class="n">conf1</span><span class="p">],</span> <span class="p">[</span><span class="n">d0</span><span class="p">,</span> <span class="n">d1</span><span class="p">],</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+
+        <span class="c1"># -------</span>
+        <span class="c1"># dextra</span>
+        <span class="n">nteq</span> <span class="o">=</span> <span class="n">nt</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">teq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">t</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">nteq</span><span class="p">)</span>
+        <span class="n">teq2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">teq</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.01</span>
+        <span class="n">Ax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.4</span><span class="o">+</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">teq2</span><span class="p">),</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">teq2</span><span class="p">)])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">Ax2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.4</span><span class="o">+</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">teq2</span><span class="o">/</span><span class="mf">2.</span><span class="p">),</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">teq2</span><span class="o">/</span><span class="mf">2.</span><span class="p">)])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">Sep</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ax</span><span class="p">[:,:,</span><span class="kc">None</span><span class="p">]</span>
+               <span class="o">+</span> <span class="mf">0.4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]])[</span><span class="kc">None</span><span class="p">,:,:])</span>
+        <span class="n">Sep2</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ax2</span><span class="p">[:,:,</span><span class="kc">None</span><span class="p">]</span>
+                <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]])[</span><span class="kc">None</span><span class="p">,:,:])</span>
+
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">60</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">n1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="n">n2</span><span class="p">)</span>
+        <span class="n">dx1</span><span class="p">,</span> <span class="n">dx2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="p">(</span><span class="n">x2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">dx1</span><span class="p">,</span> <span class="n">x1</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">dx1</span><span class="p">,</span> <span class="n">x2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">dx2</span><span class="p">,</span> <span class="n">x2</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">dx2</span><span class="p">)</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span><span class="n">n2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n1</span><span class="o">*</span><span class="n">n2</span><span class="p">,)),</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span><span class="n">n1</span><span class="p">)])</span>
+        <span class="n">emis</span> <span class="o">=</span> <span class="n">emiss</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">teq2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nteq</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">n1</span><span class="p">)</span>
+        <span class="n">dextra0</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pouet&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">teq</span><span class="p">),</span>
+                            <span class="s1">&#39;units&#39;</span><span class="p">:</span><span class="s1">&#39;a.u.&#39;</span> <span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s1">&#39;pouet&#39;</span><span class="p">},</span>
+                   <span class="s1">&#39;Ax&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Ax</span><span class="p">},</span>
+                   <span class="s1">&#39;Sep&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Sep</span><span class="p">},</span>
+                   <span class="s1">&#39;map&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">emis</span><span class="p">,</span> <span class="s1">&#39;extent&#39;</span><span class="p">:</span><span class="n">extent</span><span class="p">}}</span>
+        <span class="n">dextra1</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pouet&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">teq</span><span class="p">),</span>
+                            <span class="s1">&#39;units&#39;</span><span class="p">:</span><span class="s1">&#39;a.u.&#39;</span> <span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s1">&#39;pouet&#39;</span><span class="p">},</span>
+                   <span class="s1">&#39;Ax&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Ax2</span><span class="p">},</span>
+                   <span class="s1">&#39;Sep&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Sep2</span><span class="p">}}</span>
+
+        <span class="c1"># -------</span>
+        <span class="c1"># signal as Data from lcams</span>
+        <span class="n">lm</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;simps&#39;</span><span class="p">]</span>
+        <span class="n">lData</span> <span class="o">=</span> <span class="p">[</span><span class="n">lc</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">calc_signal</span><span class="p">(</span><span class="n">emiss</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
+                                    <span class="n">res</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">lm</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="p">))]</span>
+
+        <span class="c1"># Adding concatenated sig / data and without lcam</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">dd</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">lData</span><span class="p">[:</span><span class="mi">2</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">lData</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tfd</span><span class="o">.</span><span class="n">DataCam1D</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">sig</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;All&#39;</span><span class="p">,</span>
+                                <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">conf0</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">conf0</span><span class="p">)]</span>
+        <span class="n">dX12</span> <span class="o">=</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dX12</span>
+        <span class="n">lData</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tfd</span><span class="o">.</span><span class="n">DataCam2D</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">lData</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dX12</span><span class="o">=</span><span class="n">dX12</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;c1nocam&#39;</span><span class="p">,</span>
+                                <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">conf0</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">)]</span>
+
+        <span class="c1"># Setting dchans</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lData</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_dchans</span><span class="p">({</span><span class="s1">&#39;Name&#39;</span><span class="p">:[</span><span class="s1">&#39;c</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">jj</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span>
+                                              <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">nch</span><span class="p">)]})</span>
+
+        <span class="c1"># Setting dextra</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lData</span><span class="p">)):</span>
+            <span class="n">de</span> <span class="o">=</span> <span class="n">dextra0</span> <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">dextra1</span>
+            <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_dextra</span><span class="p">(</span><span class="n">dextra</span><span class="o">=</span><span class="n">de</span><span class="p">)</span>
+
+        <span class="c1"># Storing</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">lobj</span> <span class="o">=</span> <span class="n">lData</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span>
+
+        <span class="c1"># Saving for intermediate use</span>
+        <span class="n">lpfe</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">lpfe</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">return_pfe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                      <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span> <span class="p">)</span>
+            <span class="k">if</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]:</span>
+                    <span class="n">lpfe</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">cc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">return_pfe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span> <span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">lpfe</span> <span class="o">=</span> <span class="n">lpfe</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.setup"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.setup">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+<div class="viewcode-block" id="Test01_DataCam12D.teardown"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.teardown">[docs]</a>    <span class="k">def</span> <span class="nf">teardown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.teardown_class"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.teardown_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">teardown_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">pfe</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">lpfe</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test01_set_dchans"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test01_set_dchans">[docs]</a>    <span class="k">def</span> <span class="nf">test01_set_dchans</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">)):</span>
+            <span class="n">oo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="n">out0</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">dchans</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">out0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">out0</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+                <span class="n">lk</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">out0</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lk</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                    <span class="n">out1</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">dchans</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">lk</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">out1</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+                    <span class="n">dch2</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dch2&#39;</span><span class="p">:[</span><span class="s1">&#39;abc&#39;</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">])]}</span>
+                    <span class="n">oo</span><span class="o">.</span><span class="n">set_dchans</span><span class="p">(</span><span class="n">dch2</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">out0</span><span class="p">[</span><span class="n">ss</span><span class="p">])</span><span class="o">==</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lk</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test02_set_dextra"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test02_set_dextra">[docs]</a>    <span class="k">def</span> <span class="nf">test02_set_dextra</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">)):</span>
+            <span class="n">oo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="n">out0</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">dextra</span>
+            <span class="k">if</span> <span class="n">out0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">out0</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pouet&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">t</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span><span class="n">t</span><span class="p">,</span>
+                                <span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s1">&#39;pouet&#39;</span><span class="p">,</span> <span class="s1">&#39;units&#39;</span><span class="p">:</span><span class="s1">&#39;pouet units&#39;</span><span class="p">}}</span>
+                <span class="n">oo</span><span class="o">.</span><span class="n">set_dextra</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test03_select_t"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test03_select_t">[docs]</a>    <span class="k">def</span> <span class="nf">test03_select_t</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">select_t</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">==</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nt&#39;</span><span class="p">]</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">select_t</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">select_t</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">oo</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">&gt;=</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">&lt;=</span><span class="mi">4</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test04_select_ch"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test04_select_ch">[docs]</a>    <span class="k">def</span> <span class="nf">test04_select_ch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">oo</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ii</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span>
+                        <span class="nb">enumerate</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dStruct</span><span class="p">[</span><span class="s1">&#39;lorder&#39;</span><span class="p">])</span>
+                        <span class="k">if</span> <span class="s1">&#39;Ves&#39;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">or</span> <span class="s1">&#39;PlasmaDomain&#39;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">]</span>
+                <span class="c1"># assert len(name) == 1  # There can be several Ves now</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">select_ch</span><span class="p">(</span><span class="n">touch</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">ind</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">ind</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="n">oo</span><span class="o">.</span><span class="n">select_ch</span><span class="p">(</span><span class="n">touch</span><span class="o">=</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                                                     <span class="n">out</span><span class="o">=</span><span class="nb">bool</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">dchans</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">select_ch</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;c0&#39;</span><span class="p">,</span><span class="s1">&#39;c10&#39;</span><span class="p">],</span>
+                                   <span class="n">log</span><span class="o">=</span><span class="s1">&#39;any&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">ind</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">ind</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test05_set_dtreat_indt"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test05_set_dtreat_indt">[docs]</a>    <span class="k">def</span> <span class="nf">test05_set_dtreat_indt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indt</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">oo</span><span class="o">.</span><span class="n">t</span><span class="o">&gt;=</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">t</span><span class="o">&lt;=</span><span class="mi">3</span><span class="p">))</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indt</span><span class="p">(</span><span class="n">indt</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">min</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nt&#39;</span><span class="p">]))))</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">nt</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">or</span> <span class="n">oo</span><span class="o">.</span><span class="n">nt</span><span class="o">==</span><span class="mi">1</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indt</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">nt</span> <span class="o">==</span> <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nt&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test06_set_dtreat_indch"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test06_set_dtreat_indch">[docs]</a>    <span class="k">def</span> <span class="nf">test06_set_dtreat_indch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indch</span><span class="p">(</span><span class="n">indch</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;indch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">10</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test07_set_dtreat_mask"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test07_set_dtreat_mask">[docs]</a>    <span class="k">def</span> <span class="nf">test07_set_dtreat_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="c1"># Re-initialise</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indch</span><span class="p">()</span>
+            <span class="c1"># set mask</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">],</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_mask</span><span class="p">(</span><span class="n">ind</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">nbnan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="n">nbnan</span> <span class="o">&gt;=</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="p">[</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">],</span> <span class="n">nbnan</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test08_dtreat_set_data0"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test08_dtreat_set_data0">[docs]</a>    <span class="k">def</span> <span class="nf">test08_dtreat_set_data0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="c1"># Re-initialise</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indt</span><span class="p">()</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_mask</span><span class="p">()</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">(</span> <span class="n">data0</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-indt&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-Dt&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="mf">0.</span><span class="p">),</span> <span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">(</span><span class="n">indt</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-indt&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">5</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">]</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">(</span><span class="n">Dt</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-Dt&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">2.</span> <span class="ow">and</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-Dt&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">3.</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">]</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-data&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test09_dtreat_set_interp_indt"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test09_dtreat_set_interp_indt">[docs]</a>    <span class="k">def</span> <span class="nf">test09_dtreat_set_interp_indt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">nt</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interp_indt</span><span class="p">(</span> <span class="n">ind</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dtreat</span><span class="p">[</span><span class="s1">&#39;interp-indt&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">ind</span><span class="o">.</span><span class="n">size</span>
+
+            <span class="n">ind</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">ii</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">nt</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">nch</span><span class="p">,</span><span class="mi">3</span><span class="p">)])</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interp_indt</span><span class="p">(</span> <span class="n">ind</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">_dtreat</span><span class="p">[</span><span class="s1">&#39;interp-indt&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interp_indt</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dtreat</span><span class="p">[</span><span class="s1">&#39;interp-indt&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test10_dtreat_set_interp_indch"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test10_dtreat_set_interp_indch">[docs]</a>    <span class="k">def</span> <span class="nf">test10_dtreat_set_interp_indch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">oo</span><span class="o">.</span><span class="n">nch</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interp_indch</span><span class="p">(</span> <span class="n">ind</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dtreat</span><span class="p">[</span><span class="s1">&#39;interp-indch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">ind</span><span class="o">.</span><span class="n">size</span>
+
+            <span class="n">ind</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([(</span><span class="n">ii</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">nch</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">oo</span><span class="o">.</span><span class="n">nt</span><span class="p">,</span><span class="mi">3</span><span class="p">)])</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interp_indch</span><span class="p">(</span> <span class="n">ind</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">_dtreat</span><span class="p">[</span><span class="s1">&#39;interp-indch&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interp_indch</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dtreat</span><span class="p">[</span><span class="s1">&#39;interp-indch&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test11_streat_set_dfit"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test11_streat_set_dfit">[docs]</a>    <span class="k">def</span> <span class="nf">test11_streat_set_dfit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_dfit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test12_streat_set_interpt"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test12_streat_set_interpt">[docs]</a>    <span class="k">def</span> <span class="nf">test12_streat_set_interpt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_interpt</span><span class="p">(</span><span class="n">t</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test13_clear_ddata"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test13_clear_ddata">[docs]</a>    <span class="k">def</span> <span class="nf">test13_clear_ddata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">ii</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">clear_ddata</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test14_clear_dtreat"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test14_clear_dtreat">[docs]</a>    <span class="k">def</span> <span class="nf">test14_clear_dtreat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">ii</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">clear_dtreat</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Test01_DataCam12D.test15_plot"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test15_plot">[docs]</a>    <span class="k">def</span> <span class="nf">test15_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">kh</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntMax</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">nchMax</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">dmargin</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mf">0.06</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
+                         <span class="n">wintit</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">tit</span><span class="o">=</span><span class="s1">&#39;AHAH&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test16_compare"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test16_compare">[docs]</a>    <span class="k">def</span> <span class="nf">test16_compare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">kh</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">plot_compare</span><span class="p">(</span><span class="n">oo</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test17_plot_combine"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test17_plot_combine">[docs]</a>    <span class="k">def</span> <span class="nf">test17_plot_combine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">)):</span>
+            <span class="n">kh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">plot_combine</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="n">ii</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test18_spectrogram"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test18_spectrogram">[docs]</a>    <span class="k">def</span> <span class="nf">test18_spectrogram</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">kh</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">plot_spectrogram</span><span class="p">(</span><span class="n">warn</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test19_plot_svd"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test19_plot_svd">[docs]</a>    <span class="k">def</span> <span class="nf">test19_plot_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">kh</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">plot_svd</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test20_copy_equal"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test20_copy_equal">[docs]</a>    <span class="k">def</span> <span class="nf">test20_copy_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">obj</span> <span class="o">==</span> <span class="n">oo</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test21_get_nbytes"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test21_get_nbytes">[docs]</a>    <span class="k">def</span> <span class="nf">test21_get_nbytes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">nb</span><span class="p">,</span> <span class="n">dnb</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">get_nbytes</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test22_strip_nbytes"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test22_strip_nbytes">[docs]</a>    <span class="k">def</span> <span class="nf">test22_strip_nbytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">lok</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_dstrip</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">]</span>
+        <span class="n">nb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">lok</span><span class="p">),),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">lok</span><span class="p">:</span>
+                <span class="n">oo</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+                <span class="n">nb</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">get_nbytes</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">nb</span><span class="p">)</span><span class="o">&lt;=</span><span class="mf">0.</span><span class="p">),</span> <span class="n">nb</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">lok</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">oo</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test01_DataCam12D.test23_saveload"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test23_saveload">[docs]</a>    <span class="k">def</span> <span class="nf">test23_saveload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="n">pfe</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">return_pfe</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">tfu</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
+            <span class="c1"># Just to check the loaded version works fine</span>
+            <span class="k">assert</span> <span class="n">oo</span> <span class="o">==</span> <span class="n">obj</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span></div></div>
+
+
+
+
+
+<div class="viewcode-block" id="Test02_DataCam12DSpectral"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral">[docs]</a><span class="k">class</span> <span class="nc">Test02_DataCam12DSpectral</span><span class="p">(</span><span class="n">Test01_DataCam12D</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Test02_DataCam12DSpectral.setup_class"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.setup_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setup_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">nch</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">nt</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="c1"># time vector</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">nt</span><span class="p">)</span>
+
+        <span class="c1"># Configs</span>
+        <span class="n">conf0</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="s1">&#39;B2&#39;</span><span class="p">)</span>
+        <span class="n">conf1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="s1">&#39;B3&#39;</span><span class="p">)</span>
+
+        <span class="c1"># dchans and cams</span>
+        <span class="n">d0</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;C0-</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nch</span><span class="p">)])</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;C1-</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nch</span><span class="p">)])</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_cams</span><span class="p">(</span><span class="n">nch</span><span class="p">,</span> <span class="p">[</span><span class="n">conf0</span><span class="p">,</span> <span class="n">conf1</span><span class="p">],</span> <span class="p">[</span><span class="n">d0</span><span class="p">,</span> <span class="n">d1</span><span class="p">],</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+
+        <span class="c1"># -------</span>
+        <span class="c1"># dextra</span>
+        <span class="n">nteq</span> <span class="o">=</span> <span class="n">nt</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">teq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">t</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">nteq</span><span class="p">)</span>
+        <span class="n">teq2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">teq</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.01</span>
+        <span class="n">Ax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.4</span><span class="o">+</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">teq2</span><span class="p">),</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">teq2</span><span class="p">)])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">Ax2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.4</span><span class="o">+</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">teq2</span><span class="o">/</span><span class="mf">2.</span><span class="p">),</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">teq2</span><span class="o">/</span><span class="mf">2.</span><span class="p">)])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">Sep</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ax</span><span class="p">[:,:,</span><span class="kc">None</span><span class="p">]</span>
+               <span class="o">+</span> <span class="mf">0.4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]])[</span><span class="kc">None</span><span class="p">,:,:])</span>
+        <span class="n">Sep2</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ax2</span><span class="p">[:,:,</span><span class="kc">None</span><span class="p">]</span>
+                <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]])[</span><span class="kc">None</span><span class="p">,:,:])</span>
+
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">60</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">n1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.8</span><span class="p">,</span><span class="mf">0.8</span><span class="p">,</span><span class="n">n2</span><span class="p">)</span>
+        <span class="n">dx1</span><span class="p">,</span> <span class="n">dx2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="p">(</span><span class="n">x2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">dx1</span><span class="p">,</span> <span class="n">x1</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">dx1</span><span class="p">,</span> <span class="n">x2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">dx2</span><span class="p">,</span> <span class="n">x2</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">dx2</span><span class="p">)</span>
+        <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span><span class="n">n2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n1</span><span class="o">*</span><span class="n">n2</span><span class="p">,)),</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span><span class="n">n1</span><span class="p">)])</span>
+        <span class="n">emis</span> <span class="o">=</span> <span class="n">emiss</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">teq2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nteq</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">n1</span><span class="p">)</span>
+        <span class="n">dextra0</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pouet&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">teq</span><span class="p">),</span>
+                            <span class="s1">&#39;units&#39;</span><span class="p">:</span><span class="s1">&#39;a.u.&#39;</span> <span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s1">&#39;pouet&#39;</span><span class="p">},</span>
+                   <span class="s1">&#39;Ax&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Ax</span><span class="p">},</span>
+                   <span class="s1">&#39;Sep&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Sep</span><span class="p">},</span>
+                   <span class="s1">&#39;map&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">emis</span><span class="p">,</span> <span class="s1">&#39;extent&#39;</span><span class="p">:</span><span class="n">extent</span><span class="p">}}</span>
+        <span class="n">dextra1</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pouet&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">teq</span><span class="p">),</span>
+                            <span class="s1">&#39;units&#39;</span><span class="p">:</span><span class="s1">&#39;a.u.&#39;</span> <span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="s1">&#39;pouet&#39;</span><span class="p">},</span>
+                   <span class="s1">&#39;Ax&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Ax2</span><span class="p">},</span>
+                   <span class="s1">&#39;Sep&#39;</span><span class="p">:{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span><span class="n">teq2</span><span class="p">,</span> <span class="s1">&#39;data2D&#39;</span><span class="p">:</span><span class="n">Sep2</span><span class="p">}}</span>
+
+        <span class="c1"># lamb</span>
+        <span class="n">nlamb</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">lamb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="n">nlamb</span><span class="p">)</span>
+        <span class="n">flamb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">lamb</span><span class="o">-</span><span class="mi">12</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mf">0.1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">lamb</span><span class="o">-</span><span class="mi">16</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mf">0.5</span><span class="p">)</span>
+
+        <span class="c1"># -------</span>
+        <span class="c1"># signal as Data from lcams</span>
+        <span class="n">lm</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;simps&#39;</span><span class="p">]</span>
+        <span class="n">lData</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="p">))]</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="p">)):</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">lc</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">calc_signal</span><span class="p">(</span><span class="n">emiss</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">lm</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span>
+                                     <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span><span class="p">[:,:,</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">flamb</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">,:]</span>
+            <span class="n">cla</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;tfd.DataCam</span><span class="si">%s</span><span class="s1">DSpectral&#39;</span><span class="o">%</span><span class="p">(</span><span class="s1">&#39;2&#39;</span> <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">_is2D</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;1&#39;</span><span class="p">))</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">cla</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">sig</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;All&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+                       <span class="n">Exp</span><span class="o">=</span><span class="n">conf0</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span><span class="p">,</span> <span class="n">lCam</span><span class="o">=</span><span class="n">lc</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
+                       <span class="n">lamb</span><span class="o">=</span><span class="n">lamb</span><span class="p">)</span>
+            <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="c1"># Setting dchans</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lData</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_dchans</span><span class="p">({</span><span class="s1">&#39;Name&#39;</span><span class="p">:[</span><span class="s1">&#39;c</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">jj</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span>
+                                              <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">nch</span><span class="p">)]})</span>
+
+        <span class="c1"># Setting dextra</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lData</span><span class="p">)):</span>
+            <span class="n">de</span> <span class="o">=</span> <span class="n">dextra0</span> <span class="k">if</span> <span class="n">ii</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">dextra1</span>
+            <span class="n">lData</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">set_dextra</span><span class="p">(</span><span class="n">dextra</span><span class="o">=</span><span class="n">de</span><span class="p">)</span>
+
+        <span class="c1"># Storing</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">lobj</span> <span class="o">=</span> <span class="n">lData</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span>
+
+        <span class="c1"># Saving for intermediate use</span>
+        <span class="n">lpfe</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">lpfe</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;config&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">return_pfe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                      <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span> <span class="p">)</span>
+            <span class="k">if</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">oo</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;lCam&#39;</span><span class="p">]:</span>
+                    <span class="n">lpfe</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">cc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">return_pfe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span> <span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">lpfe</span> <span class="o">=</span> <span class="n">lpfe</span></div>
+
+<div class="viewcode-block" id="Test02_DataCam12DSpectral.test08_dtreat_set_data0"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test08_dtreat_set_data0">[docs]</a>    <span class="k">def</span> <span class="nf">test08_dtreat_set_data0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">oo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lobj</span><span class="p">:</span>
+            <span class="c1"># Re-initialise</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_indt</span><span class="p">()</span>
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_mask</span><span class="p">()</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">(</span> <span class="n">data0</span> <span class="o">=</span> <span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:]</span> <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-indt&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-Dt&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:],</span><span class="mf">0.</span><span class="p">),</span> <span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,:,:]</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">(</span><span class="n">indt</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-indt&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">5</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">],</span>
+                                                     <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nlamb&#39;</span><span class="p">])</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">(</span><span class="n">Dt</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-Dt&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">2.</span> <span class="ow">and</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-Dt&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">3.</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nch&#39;</span><span class="p">],</span>
+                                                     <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;nlamb&#39;</span><span class="p">])</span>
+
+            <span class="n">oo</span><span class="o">.</span><span class="n">set_dtreat_data0</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="n">oo</span><span class="o">.</span><span class="n">dtreat</span><span class="p">[</span><span class="s1">&#39;data0-data&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">oo</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">oo</span><span class="o">.</span><span class="n">ddataRef</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Test02_DataCam12DSpectral.test17_plot_combine"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test17_plot_combine">[docs]</a>    <span class="k">def</span> <span class="nf">test17_plot_combine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test02_DataCam12DSpectral.test18_spectrogram"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test18_spectrogram">[docs]</a>    <span class="k">def</span> <span class="nf">test18_spectrogram</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test02_DataCam12DSpectral.test19_plot_svd"><a class="viewcode-back" href="../../../../tofu.tests.tests02_data.html#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test19_plot_svd">[docs]</a>    <span class="k">def</span> <span class="nf">test19_plot_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div></div>
+
+
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    def test12_operators(self):</span>
+<span class="sd">        o0 = self.lobj[-1]</span>
+<span class="sd">        o1 = 100.*(o0-0.1*o0)</span>
+
+<span class="sd">    def test15_combine(self):</span>
+<span class="sd">        if self.__class__ is Test02_Data2D:</span>
+<span class="sd">            return</span>
+<span class="sd">        connect = (hasattr(plt.get_current_fig_manager(),&#39;toolbar&#39;)</span>
+<span class="sd">                   and plt.get_current_fig_manager().toolbar is not None)</span>
+<span class="sd">        o0 = self.lobj[0]</span>
+<span class="sd">        for ii in range(1,len(self.lobj)):</span>
+<span class="sd">            oo = self.lobj[ii]</span>
+<span class="sd">            KH = oo.plot_combine(o0, connect=connect)</span>
+<span class="sd">        plt.close(&#39;all&#39;)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">class Test02_Data2D(Test01_Data1D):</span>
+<span class="sd">    @classmethod</span>
+<span class="sd">    def setup_class(cls):</span>
+<span class="sd">        thet = np.linspace(0,2.*np.pi,100)</span>
+<span class="sd">        P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])</span>
+<span class="sd">        V = tfg.Ves(Name=&#39;Test&#39;, Poly=P, Exp=&#39;Dummy&#39;, SavePath=here)</span>
+<span class="sd">        N = 5</span>
+<span class="sd">        Ds, us = tfg.utils.compute_CamLOS2D_pinhole([3.5,0.,0.], 0.1,</span>
+<span class="sd">                                                    (0.05,0.05), (N,N),</span>
+<span class="sd">                                                    angs=None,</span>
+<span class="sd">                                                    nIn=[-1,0.,0.],</span>
+<span class="sd">                                                    VType=&#39;Tor&#39;,</span>
+<span class="sd">                                                    return_Du=True)</span>
+<span class="sd">        d0 = dict(Name=[&#39;C0-{0}&#39;.format(ii) for ii in range(0,N**2)])</span>
+<span class="sd">        d1 = dict(Name=[&#39;C1-{0}&#39;.format(ii) for ii in range(0,N**2)])</span>
+<span class="sd">        config = tfg.Config(Name=&quot;Conf&quot;, lStruct=[V])</span>
+<span class="sd">        C0 = tfg.CamLOS2D(Name=&quot;Dummy&quot;, dgeom=(Ds,us), config=config,</span>
+<span class="sd">                          Exp=config.Id.Exp, Diag=&#39;Test&#39;, dchans=d0, SavePath=here)</span>
+<span class="sd">        V.save()</span>
+<span class="sd">        C0.save()</span>
+<span class="sd">        t = np.linspace(0,10,20)</span>
+<span class="sd">        sig00 = C0.calc_signal(emiss, t=None, res=0.01, method=&#39;sum&#39;,</span>
+<span class="sd">                               plot=False)</span>
+<span class="sd">        sig01 = C0.calc_signal(emiss, t=t, res=0.01, method=&#39;sum&#39;,</span>
+<span class="sd">                               plot=False)</span>
+<span class="sd">        cls.lobj = [tfd.Data2D(sig00, Id=&#39;0&#39;, SavePath=here),</span>
+<span class="sd">                    tfd.Data2D(sig01, t=t, Id=&#39;1&#39;, SavePath=here),</span>
+<span class="sd">                    tfd.Data2D(sig01, t=t, Ves=V, LStruct=C0.LStruct,</span>
+<span class="sd">                               Id=&#39;1&#39;, SavePath=here),</span>
+<span class="sd">                    tfd.Data2D(sig00, LCam=C0, Id=&#39;2&#39;, SavePath=here),</span>
+<span class="sd">                    tfd.Data2D(sig01, t=t, LCam=C0, Id=&#39;3&#39;, SavePath=here)]</span>
+
+<span class="sd">    def test08_plot(self):</span>
+<span class="sd">        for ii in range(0,len(self.lobj)):</span>
+<span class="sd">            oo = self.lobj[ii]</span>
+<span class="sd">            if oo._X12 is not None and oo.geom is not None:</span>
+<span class="sd">                oo.set_indch()</span>
+<span class="sd">                KH = oo.plot(key=None, Max=None, fs=None,</span>
+<span class="sd">                             invert=True, vmin=0, wintit=&#39;test&#39;, tit=&#39;AHAH&#39;,</span>
+<span class="sd">                             dmargin=dict(left=0.05,right=0.9))</span>
+<span class="sd">                KH = oo.plot(key=&#39;Name&#39;, Max=2, fs=(13,5),</span>
+<span class="sd">                             normt=True, dmargin=None)</span>
+<span class="sd">        plt.close(&#39;all&#39;)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Mar 04, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
