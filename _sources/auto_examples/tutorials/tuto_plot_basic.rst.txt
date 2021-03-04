@@ -113,7 +113,7 @@ The configuration can easily be visualized using the `.plot()` method:
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7f71fcf0ae20>, <matplotlib.axes._axes.Axes object at 0x7f71fcedfa60>]
+    [<matplotlib.axes._axes.Axes object at 0x7fda4d254e20>, <matplotlib.axes._axes.Axes object at 0x7fda4d226a60>]
 
 
 
@@ -161,7 +161,7 @@ output.
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7f71fc061700>
+    <tofu.utils.KeyHandler_mpl object at 0x7fda4c3aa700>
 
 
 
@@ -206,7 +206,7 @@ The principle is similar for 2D cameras.
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7f71e43a8310>
+    <tofu.utils.KeyHandler_mpl object at 0x7fda2c6e7310>
 
 
 
@@ -221,7 +221,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  5.885 seconds)
+   **Total running time of the script:** ( 0 minutes  5.898 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:
