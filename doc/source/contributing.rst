@@ -157,7 +157,7 @@ using this new version for building its wheels, will encounter the error below:
 So we recommend using the latest version of ``NumPy (>= 1.20)``.
 If that's not possible for whatever reasons, there are still some workarounds
 you can try (see `this post for example
-<https://github.com/scikit-learn-contrib/hdbscan/issues/457#issuecomment-773671043>`_.
+<https://github.com/scikit-learn-contrib/hdbscan/issues/457#issuecomment-773671043>`_).
 The one that has worked best for us is using the following line
 to compile ``tofu``
 
