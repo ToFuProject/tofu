@@ -99,6 +99,10 @@
 <li><a class="reference internal" href="#continuous-integration">Continuous integration</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#known-bugs">Known bugs</a><ul>
+<li><a class="reference internal" href="#numpy-ndarayy-size-changed"><code class="docutils literal notranslate"><span class="pre">numpy.ndarayy</span> <span class="pre">size</span> <span class="pre">changed</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -144,6 +148,7 @@ of the librairies (<strong>tofu</strong>, python, etc.) you are using, any confi
 information that might be helpful to us (OS, server, how you installed
 <strong>tofu</strong>), a minimal example to recreate the bug (if possible), and the log
 files or errors you might have got.</p>
+<p>For known bugs, <a class="reference internal" href="#knownbugs"><span class="std std-ref">scroll down to the last section</span></a>.</p>
 </div>
 <div class="section" id="developping-in-the-code">
 <h2>Developping in the code<a class="headerlink" href="#developping-in-the-code" title="Permalink to this headline">¶</a></h2>
@@ -243,6 +248,30 @@ check your coding style.</p>
 <img alt="_images/pep8speaks.png" src="_images/pep8speaks.png" />
 </div>
 </div>
+<div class="section" id="known-bugs">
+<span id="knownbugs"></span><h2>Known bugs<a class="headerlink" href="#known-bugs" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="numpy-ndarayy-size-changed">
+<h3><code class="docutils literal notranslate"><span class="pre">numpy.ndarayy</span> <span class="pre">size</span> <span class="pre">changed</span></code><a class="headerlink" href="#numpy-ndarayy-size-changed" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://numpy.org/devdocs/release/1.20.0-notes.html#the-pyarray-descrcheck-macro-is-modified">NumPy 1.20</a>
+introduced a different ABI (application binary interface, basically changing the
+binary size of its objects), Cython librairies compiled with older version but
+using this new version for building its wheels, will encounter the error below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ne">ValueError</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span> <span class="n">size</span> <span class="n">changed</span><span class="p">,</span> <span class="n">may</span> <span class="n">indicate</span> <span class="n">binary</span> <span class="n">incompatibility</span><span class="o">.</span> <span class="n">Expected</span> <span class="mi">88</span> <span class="kn">from</span> <span class="nn">C</span> <span class="n">header</span><span class="p">,</span> <span class="n">got</span> <span class="mi">80</span> <span class="kn">from</span> <span class="nn">PyObject</span>
+</pre></div>
+</div>
+<p>So we recommend using the latest version of <code class="docutils literal notranslate"><span class="pre">NumPy</span> <span class="pre">(&gt;=</span> <span class="pre">1.20)</span></code>.
+If that’s not possible for whatever reasons, there are still some workarounds
+you can try (see <a class="reference external" href="https://github.com/scikit-learn-contrib/hdbscan/issues/457#issuecomment-773671043">this post for example</a>.
+The one that has worked best for us is using the following line
+to compile <code class="docutils literal notranslate"><span class="pre">tofu</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">tofu</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">build</span><span class="o">-</span><span class="n">isolation</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">cache</span><span class="o">-</span><span class="nb">dir</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">binary</span> <span class="p">:</span><span class="nb">all</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>If you still encounter this issue, if you have questions, or want to
+suggests other solutions, you can comment in the issue opened on github
+for this matter: <a class="reference external" href="https://github.com/ToFuProject/tofu/issues/483">here</a>.</p>
+</div>
+</div>
 </div>
 
 
@@ -265,7 +294,7 @@ check your coding style.</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Mar 02, 2021.<br/>
+      Last updated on Mar 04, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
     </p>
   </div>
