@@ -5,15 +5,16 @@ tofu.tests.tests02\_data package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
 
-tofu.tests.tests02\_data.tests03\_core module
----------------------------------------------
+tofu.tests.tests02\_data.test\_03\_core module
+----------------------------------------------
 
-.. automodule:: tofu.tests.tests02_data.tests03_core
+.. automodule:: tofu.tests.tests02_data.test_03_core
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:
