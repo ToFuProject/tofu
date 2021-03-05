@@ -335,7 +335,13 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=["numpy", "scipy", "matplotlib", "cython>=0.26"],
+    install_requires=[
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "requests",
+        "cython>=0.26",
+    ],
     python_requires=">=3.6",
 
     # List additional groups of dependencies here (e.g. development
@@ -346,7 +352,7 @@ setup(
         "dev": [
             "check-manifest",
             "coverage",
-            "nose==1.3.4",
+            "pytest",
             "sphinx",
             "sphinx-gallery",
             "sphinx_bootstrap_theme",
@@ -363,7 +369,7 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.tests03_core_data": ["*.py", "*.txt"],
+        "tofu.tests.tests01_geom.test_03_core_data": ["*.py", "*.txt"],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },

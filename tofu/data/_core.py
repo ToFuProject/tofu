@@ -198,7 +198,10 @@ class DataAbstract(utils.ToFuObject):
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
-            assert isinstance(Id,utils.ID)
+            if not isinstance(Id, utils.ID):
+                msg = ("Arg Id must be a utils.ID instance!\n"
+                       + "\t- provided: {}".format(Id))
+                raise Exception(msg)
             Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
         assert type(Name) is str, Name
         assert type(Diag) is str, Diag
@@ -399,13 +402,13 @@ class DataAbstract(utils.ToFuObject):
         if lC[2]:
             if not lC[0]:
                 assert indtlamb.shape==(nt,)
-                assert inp.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
+                assert np.min(indtlamb) >= 0 and np.max(indtlamb) <= nnlamb
             if not lC[1]:
-                assert indXlamb.shape==(nch,)
-                assert inp.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
+                assert indXlamb.shape == (nch,)
+                assert np.min(indXlamb) >= 0 and np.max(indXlamb) <= nnlamb
         else:
-            assert indtXlamb.shape==(nt,nch)
-            assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
+            assert indtXlamb.shape == (nt, nch)
+            assert np.min(indtXlamb) >= 0 and np.max(indtXlamb) <= nnlamb
 
         # Check consistency X/lamb shapes vs indices
         if X is not None and indtX is None:
@@ -455,8 +458,8 @@ class DataAbstract(utils.ToFuObject):
         if indtX is None:
             indtX = self._ddataRef['indtX']
         if indtX is not None:
-            assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnch
+            assert indtX.shape == (nt,)
+            assert np.argmin(indtX) >= 0 and np.argmax(indtX) <= nnch
         if indXlamb is None:
             indXlamb = self._ddataRef['indXlamb']
         if indtXlamb is None:
@@ -792,7 +795,7 @@ class DataAbstract(utils.ToFuObject):
                             (unless available in the current console:"""
                         msg += "\n    - {0}".format(pfe)
                         if force:
-                            warning.warn(msg)
+                            warnings.warn(msg)
                         else:
                             raise Exception(msg)
                     lpfe.append(pfe)
@@ -817,7 +820,7 @@ class DataAbstract(utils.ToFuObject):
                         (unless available in the current console:"""
                     msg += "\n    - {0}".format(pfe)
                     if force:
-                        warning.warn(msg)
+                        warnings.warn(msg)
                     else:
                         raise Exception(msg)
                 self._dgeom['config'] = pfe
@@ -1243,8 +1246,9 @@ class DataAbstract(utils.ToFuObject):
     @staticmethod
     def _interp_t(data, t, indtX=None,
                   indtlamb=None, indtXlamb=None, interpt=None, kind='linear'):
-        f = scp.interp1d(t, data, kind=kind, axis=0, copy=True,
-                         bounds_error=True, fill_value=np.nan, assume_sorted=False)
+        f = scpinterp.interp1d(t, data, kind=kind, axis=0, copy=True,
+                               bounds_error=True, fill_value=np.nan,
+                               assume_sorted=False)
         d = f(data)
 
         lC = [indtX is not None, indtlamb is not None, indtXlamb is not None]
@@ -2052,7 +2056,12 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
-        if type(other) in [int, float, np.int64, np.float64]:
+
+        if other is None:
+            data = opfunc(d0.data)
+            dcom = d0._extract_common_params(d0)
+
+        elif type(other) in [int, float, np.int64, np.float64]:
             data = opfunc(d0.data, other)
             dcom = d0._extract_common_params(d0)
 
@@ -2083,7 +2092,7 @@ class DataAbstract(utils.ToFuObject):
 
     def __abs__(self):
         opfunc = lambda x: np.abs(x)
-        data = self._recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, None, opfunc)
         return data
 
     def __sub__(self, other):
@@ -2183,13 +2192,13 @@ class DataCam2D(DataAbstract):
         lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
               isinstance(dX12, dict) and dX12 != {'from':'geom'}]
         if not np.sum(lc) == 1:
-            msg = "dX12 must be either:\n"
-            msg += "    - None\n"
-            msg += "    - 'geom' : will be derived from the cam geometry\n"
-            msg += "    - dict : containing {'x1'  : array of coords.,\n"
-            msg += "                         'x2'  : array of coords.,\n"
-            msg += "                         'ind1': array of int indices,\n"
-            msg += "                         'ind2': array of int indices}"
+            msg = ("dX12 must be either:\n"
+                   + "\t- None\n"
+                   + "\t- 'geom' : will be derived from the cam geometry\n"
+                   + "\t- dict : containing {'x1'  : array of coords.,\n"
+                   + "\t                     'x2'  : array of coords.,\n"
+                   + "\t                     'ind1': array of int indices,\n"
+                   + "\t                     'ind2': array of int indices}")
             raise Exception(msg)
 
         if lc[1]:
@@ -2287,7 +2296,7 @@ class Plasma2D(utils.ToFuObject):
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
         # Python 2
-        super(Plasma2D,cls).__init_subclass__(**kwdargs)
+        super(Plasma2D, cls).__init_subclass__(**kwdargs)
         # Python 3
         # super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Plasma2D._ddef)
@@ -2586,7 +2595,7 @@ class Plasma2D(utils.ToFuObject):
                                 undsh = nodesu.shape
                                 msg += (
                                     "  Duplicate nodes: {}\n".format(ndup)
-                                    + "\t- nodes.shape: {}\n".format(nodsh)
+                                    + "\t- nodes.shape: {}\n".format(ndsh)
                                     + "\t- unique shape: {}\n".format(undsh))
                             if lc[1]:
                                 ndup = str(nfaces - facesu.shape[0])
@@ -2871,11 +2880,11 @@ class Plasma2D(utils.ToFuObject):
         # dgroup
         dgroup = {}
         if len(dtime) > 0:
-            dgroup['time'] = {'dref':list(dtime.keys())[0]}
+            dgroup['time'] = {'dref': list(dtime.keys())[0]}
         if len(dradius) > 0:
-            dgroup['radius'] = {'dref':list(dradius.keys())[0]}
+            dgroup['radius'] = {'dref': list(dradius.keys())[0]}
         if len(dmesh) > 0:
-            dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
+            dgroup['mesh'] = {'dref': list(dmesh.keys())[0]}
 
         # Update dict
         self._dgroup = dgroup
@@ -2884,8 +2893,6 @@ class Plasma2D(utils.ToFuObject):
         # Complement
         self._complement()
 
-
-
     def _complement(self):
 
         # --------------
@@ -2893,8 +2900,8 @@ class Plasma2D(utils.ToFuObject):
         for k0, v0 in self.ddata.items():
             lindout = [ii for ii in v0['depend'] if ii not in self.dindref.keys()]
             if not len(lindout) == 0:
-                msg = "ddata[%s]['depend'] has keys not in dindref:\n"%k0
-                msg += "    - " + "\n    - ".join(lindout)
+                msg = ("ddata[{}]['depend'] keys not in dindref:\n".format(k0)
+                       + "    - " + "\n    - ".join(lindout))
                 raise Exception(msg)
 
             self.ddata[k0]['lgroup'] = [self.dindref[ii]['group']
@@ -2907,9 +2914,15 @@ class Plasma2D(utils.ToFuObject):
                 c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
                 c1 = not c0 and len(v0['data']) == shape[0]
                 if not (c0 or c1):
-                    msg = k0+'\n'
-                    msg += str([c0, c1, type_, len(v0['data']), shape])
-                    msg += "\n" + str(v0['data'])
+                    msg = ("Signal {}['data'] should be either:\n".format(k0)
+                           + "\t- dict: a mesh\n"
+                           + "\t- iterable of len() = "
+                           + "{} (shape[0] of ref)\n".format(shape[0])
+                           + "  You provided:\n"
+                           + "\t- type: {}\n".format(type_)
+                           + "\t- len(): {}\n".format(len(v0['data']))
+                           + "\t- {}['data']: {}".format(k0, v0['data']))
+                    raise Exception(msg)
             else:
                 assert type(v0['data']) is np.ndarray
                 assert v0['data'].shape == shape
@@ -2978,7 +2991,7 @@ class Plasma2D(utils.ToFuObject):
                         (unless available in the current console:"""
                     msg += "\n    - {0}".format(pfe)
                     if force:
-                        warning.warn(msg)
+                        warnings.warn(msg)
                     else:
                         raise Exception(msg)
                 self._dgeom['config'] = pfe
@@ -3094,21 +3107,21 @@ class Plasma2D(utils.ToFuObject):
             out = ind, lid
         return out
 
-    def _get_keyingroup(self, str_, group=None, msgstr=None, raise_=False):
+    def _get_keyingroup(self, key, group=None, msgstr=None, raise_=False):
 
-        if str_ in self._ddata.keys():
-            lg = self._ddata[str_]['lgroup']
+        if key in self._ddata.keys():
+            lg = self._ddata[key]['lgroup']
             if group is None or group in lg:
-                return str_, None
+                return key, None
             else:
-                msg = "Required data key does not have matching group:\n"
-                msg += "    - ddata[%s]['lgroup'] = %s"%(str_, lg)
-                msg += "    - Expected group:  %s"%group
+                msg = ("Required data key does not have matching group:\n"
+                       + "\t- ddata[{}]['lgroup'] = {}\n".format(key, lg)
+                       + "\t- Expected group:  {}".format(group))
                 if raise_:
                     raise Exception(msg)
 
-        ind, akeys = self._get_ldata(dim=str_, quant=str_, name=str_, units=str_,
-                                     origin=str_, group=group, log='raw',
+        ind, akeys = self._get_ldata(dim=key, quant=key, name=key, units=key,
+                                     origin=key, group=group, log='raw',
                                      return_key=False)
         # Remove indref and group
         ind = ind[:5,:] & ind[-1,:]
@@ -3123,13 +3136,13 @@ class Plasma2D(utils.ToFuObject):
                 key = akeys[indkey][0]
             else:
                 lstr = "[dim,quant,name,units,origin]"
-                msg = "Several possible unique matches in %s for %s"(lstr,str_)
+                msg = "Several possible matches in {} for {}".format(lstr, key)
         else:
             lstr = "[dim,quant,name,units,origin]"
-            msg = "No unique match in %s for %s in group %s"%(lstr,str_,group)
+            msg = "No match in {} for {} in group {}".format(lstr, key, group)
 
         if msg is not None:
-            msg += "\n\nRequested %s could not be identified !\n"%msgstr
+            msg += "\n\nRequested {} could not be identified!\n".format(msgstr)
             msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
             msg += self.get_summary(verb=False, return_='msg')
             if raise_:
@@ -3177,32 +3190,202 @@ class Plasma2D(utils.ToFuObject):
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
 
-
     #---------------------
     # Methods for adding ref / quantities
     #---------------------
 
+    def _checkformat_addref(self, key=None, data=None, group=None,
+                            dim=None, quant=None, units=None,
+                            origin=None, name=None,
+                            comments=None, delimiter=None):
+        # Check data
+        lc = [isinstance(data, np.ndarray),
+              isinstance(data, dict),
+              isinstance(data, str) and os.path.isfile(data)]
+        if not any(lc):
+            msg = ("Arg data must be either:\n"
+                   + "\t- np.ndarray: a 1d array\n"
+                   + "\t- dict:       a dict containing a 2d mesh\n"
+                   + "\t- str:        an absolute path to an existing file\n"
+                   + "You provided:\n{}".format(data))
+            raise Exception(msg)
+
+        # If file: check content and extract data
+        if lc[2] is True:
+            data = os.path.abspath(data)
+            (data, key, group, units,
+             quant, dim, origin, name) = self._add_ref_from_file(
+                 pfe=data,
+                 key=key, group=group,
+                 dim=dim, quant=quant, units=units, origin=origin, name=name,
+                 comments=comments, delimiter=delimiter)
+
+        # Check key
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = ("Arg key must be a str not already in self.ddata.keys()\n"
+                   + "\t- key: {}\n".format(key))
+            raise Exception(msg)
+
+        # Check group
+        c0 = group in self._dgroup.keys()
+        if not c0:
+            msg = ("Arg group must be str in self.dgroup.keys()\n"
+                   + "\t- group: {}".format(group)
+                   + "\t- available groups: {}".format(self.dgroups.keys()))
+            raise Exception(msg)
+
+        return data, key, group, units, dim, quant, origin, name
+
+    @staticmethod
+    def _add_ref_from_file(pfe=None, key=None, group=None,
+                           dim=None, quant=None, units=None,
+                           origin=None, name=None,
+                           comments=None, delimiter=None):
+        if comments is None:
+            comments = '#'
+
+        lf = ['.mat', '.txt']
+        c0 = pfe[-4:] in lf
+        if not c0:
+            msg = ("Only the following file formats are supported:\n"
+                   + "\n\t- " + "\n\t- ".join(lf) + "\n"
+                   + "You provided: {}".format(pfe))
+            raise Exception(msg)
+
+        # Extract data
+        if pfe[-4:] == '.mat':
+            # load and check only one 1x1 struct
+            import scipy.io as scpio
+            out = scpio.loadmat(pfe)
+            ls = [ss for ss in out.keys() if '__' not in ss]
+            c0 = (len(ls) == 1
+                  and isinstance(out[ls[0]], np.ndarray)
+                  and len(out[ls[0]]) == 1)
+            if not c0:
+                msg = ("The file should contain a 1x1 matlab struct only!\n"
+                       + "file contains: {}".format(ls))
+                raise Exception(msg)
+
+            # Get into unique struct and get key / value pairs
+            out = out[ls[0]][0]
+            nk = len(out.dtype)
+            if nk != len(out[0]):
+                msg = ("Non-conform file!\n"
+                       + "\tlen(out.dtype) = {}\n".format(nk)
+                       + "\tlen(out[0] = {}".format(len(out[0])))
+                raise Exception(msg)
+
+            lvi = [ii for ii in range(nk)
+                   if (out[0][ii].dtype.char == 'U'
+                       and out[0][ii].shape == (1,))]
+            limat = [ii for ii in range(nk) if ii not in lvi]
+
+            c0 = ((len(limat) == 1 and nk >= 1)
+                  and (out[0][limat[0]].ndim == 2
+                       and 1 in out[0][limat[0]].shape))
+            if not c0:
+                msg = (
+                    "The struct store in {} should contain:\n".format(pfe)
+                    + "\t- at least a (1, N) matrice\n"
+                    + "\t- optionally, the following char str:\n"
+                    + "\t\t- key: unique identifier\n"
+                    + "\t\t- group: 'time', 'radius', 'mesh', ...\n"
+                    + "\t\t- dim: physical dimension (e.g.: 'B flux',)\n"
+                    + "\t\t- quant: 'psi', 'phi, ...\n"
+                    + "\t\t- units: 'Wb', ...\n"
+                    + "\t\t- origin: 'NICE', 'CHEASE'..."
+                    + "\t\t\tby the default the file name\n"
+                    + "\t\t- name: short identifier (e.g.: 1dpsiNICE)\n\n"
+                    + "You provided:\n{}".format(out))
+                raise Exception(msg)
+            dout = {out.dtype.names[ii]: out[0][ii][0] for ii in lvi}
+            data = out[0][limat[0]].ravel()
+
+        elif pfe[-4:] == '.txt':
+            # data array
+            data = np.loadtxt(pfe, comments=comments, delimiter=delimiter)
+            if not data.ndim == 1:
+                msg = ("data stored in {} is not a 1d array!\n".format(pfe)
+                       + "\t- data.shape = {}".format(data.shape))
+                raise Exception(msg)
+
+            # params
+            dout = utils.from_txt_extract_params(
+                pfe=pfe,
+                lparams=['key', 'group', 'units',
+                         'dim', 'quant', 'origin', 'name'],
+                comments=comments)
+
+        if 'origin' in dout.keys() and dout['origin'] is None:
+            del dout['origin']
+
+        # Get default values
+        din = {'key': key, 'group': group, 'dim': dim, 'quant': quant,
+               'units': units, 'origin': origin, 'name': name}
+        for k0, v0 in din.items():
+            if v0 is None:
+                din[k0] = dout.get(k0, pfe) if k0 == 'origin' else dout.get(k0)
+            else:
+                if dout.get(k0) is not None:
+                    if din[k0] != dout[k0]:
+                        msg = ("Non-matching values of {}:\n".format(k0)
+                               + "{}\n".format(pfe)
+                               + "\t- kwdarg: {}\n".format(din[k0])
+                               + "\t- file: {}".format(dout[k0]))
+                        warnings.warn(msg)
+        return (data, din['key'], din['group'], din['units'],
+                din['quant'], din['dim'], din['origin'], din['name'])
+
     def add_ref(self, key=None, data=None, group=None,
-                dim=None, quant=None, units=None, origin=None, name=None):
-        """ Add a reference """
-        assert type(key) is str and key not in self._ddata.keys()
-        assert type(data) in [np.ndarray, dict]
-        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
-                                 'units':units, 'origin':origin}}, key)
+                dim=None, quant=None, units=None, origin=None, name=None,
+                comments=None, delimiter=None):
+        """ Add a reference
+
+        The reference data is contained in data, which can be:
+            - np.array: a 1d profile
+            - dict: for mesh
+            - str:  absolute path to a file, holding a 1d profile
+
+        Please also provide (if not included in file if data is a str):
+            - key: unique str identifying the data
+            - group: str identifying the reference group (self.dgroup.keys())
+        If data is a str to a file, key and group (and others) can be included
+        in the file
+
+        Parameters dim, quant, units, origin and name are optional
+        Parameters comments and delimiter and only used if data is the path to
+        a .txt file (fed to np.loadtxt)
+        """
+        # Check inputs
+        (data, key, group, units,
+         dim, quant, origin, name) = self._checkformat_addref(
+             data=data, key=key, group=group, units=units,
+             dim=dim, quant=quant, origin=origin, name=name,
+             comments=comments, delimiter=delimiter)
+
+        # Format inputs
+        out = self._extract_dnd({key: {
+            'dim': dim, 'quant': quant, 'name': name,
+            'units': units, 'origin': origin
+        }},
+            key)
         dim, quant, origin, name, units = out
-        assert group in self._dgroup.keys()
         if type(data) is np.ndarray:
             size = data.shape[0]
         else:
-            assert data['ftype'] in [0,1]
+            assert data['ftype'] in [0, 1]
             size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
 
-        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+        # Update attributes
+        self._dindref[key] = {'group': group, 'size': size, 'ldata': [key]}
 
-        self._ddata[key] = {'data':data,
-                            'dim':dim, 'quant':quant, 'units':units,
-                            'origin':origin, 'name':name,
-                            'depend':(key,), 'lgroup':[group]}
+        self._ddata[key] = {'data': data,
+                            'dim': dim, 'quant': quant, 'units': units,
+                            'origin': origin, 'name': name,
+                            'depend': (key,), 'lgroup': [group]}
+
+        # Run global consistency check and complement if necessary
         self._complement()
 
     def add_quantity(self, key=None, data=None, depend=None,
@@ -4015,7 +4198,7 @@ class Plasma2D(utils.ToFuObject):
                                              method=method, ind=ind, out=out,
                                              pot=plot, dataname=dataname,
                                              fs=fs, dmargin=dmargin,
-                                             wintit=wintit, invert=intert,
+                                             wintit=wintit, invert=invert,
                                              units=units, draw=draw,
                                              connect=connect)
 
@@ -4081,10 +4264,10 @@ class Plasma2D(utils.ToFuObject):
         c0 = type(X) is str
         c1 = type(X) is list and (len(X) == 1 or len(X) == nquant)
         if not (c0 or c1):
-            msg = "X must be specified, either as :\n"
-            msg += "    - a str (name or quant)\n"
-            msg += "    - a list of str\n"
-            msg += "    Provided: %s"%str(X)
+            msg = ("X must be specified, either as :\n"
+                   + "    - a str (name or quant)\n"
+                   + "    - a list of str\n"
+                   + "    Provided: {}".format(X))
             raise Exception(msg)
         if c1 and len(X) == 1:
             X = X[0]

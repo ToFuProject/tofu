@@ -25,11 +25,13 @@ try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
+    import tofu.geom._comp_solidangles as _comp_solidangles
     import tofu.geom._plot as _plot
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
     from . import _comp as _comp
+    from . import _comp_solidangles
     from . import _plot as _plot
 
 __all__ = [
@@ -208,13 +210,33 @@ class Struct(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, Poly=None, Type=None,
-                 Lim=None, pos=None, extent=None,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 sep=None, SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
+    def __init__(
+        self,
+        Poly=None,
+        Type=None,
+        Lim=None,
+        pos=None,
+        extent=None,
+        Id=None,
+        Name=None,
+        Exp=None,
+        shot=None,
+        sino_RefPt=None,
+        sino_nP=_def.TorNP,
+        Clock=False,
+        arrayorder='C',
+        fromdict=None,
+        sep=None,
+        SavePath=os.path.abspath('./'),
+        SavePath_Include=tfpf.defInclude,
+        color=None,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+    ):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -1177,31 +1199,41 @@ class Struct(utils.ToFuObject):
             Test=Test,
         )
 
-    def get_sampleEdge(self, res=None, DS=None, resMode="abs", offsetIn=0.0):
+    def get_sampleEdge(
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        offsetIn=0.0,
+    ):
         """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
-        Sampling can be limited to a subdomain defined by DS
+        Sampling can be limited to a domain
         """
         if res is None:
             res = _RES
-        pts, dlr, ind = _comp._Ves_get_sampleEdge(
-            self.Poly,
-            res,
-            DS=DS,
-            dLMode=resMode,
-            DIn=offsetIn,
+        return _comp._Ves_get_sampleEdge(
+            self.Poly_closed,
+            res=res,
+            domain=domain,
+            resMode=resMode,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             margin=1.0e-9,
         )
-        return pts, dlr, ind
 
     def get_sampleCross(
-        self, res=None, DS=None, resMode="abs", ind=None, mode="flat"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        mode="flat",
     ):
         """ Sample, with resolution res, the 2D cross-section
 
-        The sampling domain can be limited by DS or ind
+        The sampling domain can be limited by domain or ind
 
         Depending on the value of mode, the method returns:
             - 'flat': (tuned for integrals computing)
@@ -1224,25 +1256,24 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DS=DS, dSMode=resMode, ind=ind, margin=1.0e-9, mode=mode
+            res=res, domain=domain, resMode=resMode, ind=ind,
+            margin=1.0e-9, mode=mode
         )
-        out = _comp._Ves_get_sampleCross(*args, **kwdargs)
-        return out
+        return _comp._Ves_get_sampleCross(*args, **kwdargs)
 
     def get_sampleS(
         self,
         res=None,
-        DS=None,
-        resMode="abs",
+        domain=None,
+        resMode=None,
         ind=None,
         offsetIn=0.0,
-        Out="(X,Y,Z)",
+        returnas="(X,Y,Z)",
         Ind=None,
     ):
-        """ Sample, with resolution res, the surface defined by DS or ind
+        """ Sample, with resolution res, the surface defined by domain or ind
 
         An optionnal offset perpendicular to the surface can be used
         (offsetIn>0 => inwards)
@@ -1255,13 +1286,13 @@ class Struct(utils.ToFuObject):
                 list    : [dl,dXPhi] where:
                     dl      : res. along polygon contours (cross-section)
                     dXPhi   : res. along axis (toroidal/linear direction)
-        DS      :   None / list of 3 lists of 2 floats
+        domain :    None / list of 3 lists of 2 floats
             Limits of the domain in which the sample should be computed
                 None : whole surface of the object
-                list : [D1,D2,D3], where Di is a len()=2 list
+                list : [D1, D2, D3], where Di is a len()=2 list
                        (increasing floats, setting limits along coordinate i)
-                    [DR,DZ,DPhi]: in toroidal geometry (self.Id.Type=='Tor')
-                    [DX,DY,DZ]  : in linear geometry (self.Id.Type=='Lin')
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
         resMode  :   str
             Flag, specifies if res is absolute or relative to element sizes
                 'abs'   :   res is an absolute distance
@@ -1284,7 +1315,7 @@ class Struct(utils.ToFuObject):
             Offset distance from the actual surface of the object
             Inwards if positive
             Useful to avoid numerical errors
-        Out     :   str
+        returnas:   str
             Flag indicating the coordinate system of returned points
             e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
         Ind     :   None / iterable of ints
@@ -1308,27 +1339,98 @@ class Struct(utils.ToFuObject):
         if res is None:
             res = _RES
         kwdargs = dict(
-            DS=DS,
-            dSMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
-            DIn=offsetIn,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             VType=self.Id.Type,
             VLim=np.ascontiguousarray(self.Lim),
             nVLim=self.noccur,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
             Multi=self.dgeom["Multi"],
             Ind=Ind,
         )
-        args = [self.Poly, res]
-        pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
-        return pts, dS, ind, reseff
+        return _comp._Ves_get_sampleS(self.Poly, **kwdargs)
 
     def get_sampleV(
-        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        returnas="(X,Y,Z)",
+        algo="new",
+        num_threads=48
     ):
-        """ Sample, with resolution res, the volume defined by DV or ind """
+        """ Sample, with resolution res, the volume defined by domain or ind
+
+        The 3D volume is sampled in:
+            - the whole volume (domain=None and ind=None)
+            - a sub-domain defined by bounds on each coordinates (domain)
+            - a pre-computed subdomain stored in indices (ind)
+
+        The coordinatesd of the center of each volume elements are returned as
+        pts in choosen coordinates (returnas)
+
+        For a torus, the elementary volume is kept constant, meaning that the
+        toroidal angular step is decreased as R increases
+
+        Parameters
+        ----------
+        res     :   float / list of 3 floats
+            Desired resolution of the surfacic sample
+                float   : same resolution for all directions of the sample
+                list    : [dYR, dZ, dXPhi] where:
+                    dYR     : res. along in radial / Y direction
+                    dZ      : res. along Z direction
+                    dXPhi   : res. along axis (toroidal/linear direction)
+        domain :    None / list of 3 lists of 2 floats
+            Limits of the domain in which the sample should be computed
+                None : whole surface of the object
+                list : [D1, D2, D3], where Di is a len()=2 list
+                       (increasing floats, setting limits along coordinate i)
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
+        resMode  :   str
+            Flag, specifies if res is absolute or relative to element sizes
+                'abs'   :   res is an absolute distance
+                'rel'   :   if res=0.1, each polygon segment is divided in 10,
+                            as is the toroidal/linear length
+        ind     :   None / np.ndarray of int
+            If provided, DS is ignored and the sample points corresponding to
+            the provided indices are returned
+            Example (assuming obj is a Ves object)
+                > # We create a 5x5 cm2 sample of the whole surface
+                > pts, dS, ind, reseff = obj.get_sample(0.05)
+                > # Perform operations, save only the points indices
+                > # (save space)
+                > ...
+                > # Retrieve the points from their indices (requires same res)
+                > pts2, dS2, ind2, reseff2 = obj.get_sample(0.05, ind=ind)
+                > np.allclose(pts,pts2)
+                True
+        returnas:   str
+            Flag indicating the coordinate system of returned points
+            e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+        Ind     :   None / iterable of ints
+            Array of indices of the entities to be considered
+            (only when multiple entities, i.e.: self.nLim>1)
+
+        Returns
+        -------
+        pts     :   np.ndarray / list of np.ndarrays
+            Sample points coordinates, as a (3,N) array.
+            A list is returned if the object has multiple entities
+        dV      :   np.ndarray / list of np.ndarrays
+            The volume (in m^3) associated to each point
+        ind     :   np.ndarray / list of np.ndarrays
+            The index of each point
+        reseff  :   np.ndarray / list of np.ndarrays
+            Effective resolution in both directions after sample computation
+        """
 
         args = [
             self.Poly,
@@ -1336,19 +1438,20 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DV=DV,
-            dVMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
             VType=self.Id.Type,
             VLim=self.Lim,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
+            algo=algo,
+            num_threads=num_threads
         )
-        pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
-        return pts, dV, ind, reseff
+        return _comp._Ves_get_sampleV(*args, **kwdargs)
 
     def _get_phithetaproj(self, refpt=None):
         # Prepare ax
@@ -1863,10 +1966,13 @@ class Struct(utils.ToFuObject):
             pos, extent = None, None
 
         # Try reading Exp and Name if not provided
-        if Exp is None:
-            Exp = cls._from_txt_extract_params(pfe, "Exp")
-        if Name is None:
-            Name = cls._from_txt_extract_params(pfe, "Name")
+        lc = [ss for ss, vv in [('Exp', Exp), ('Name', Name)] if vv is None]
+        if len(lc) > 0:
+            dparam = utils.from_txt_extract_params(pfe, lc)
+            if 'Exp' in lc:
+                Exp = dparam['Exp']
+            if 'Name' in lc:
+                Name = dparam['Name']
 
         if out == "dict":
             return {"poly": poly, "pos": pos, "extent": extent}
@@ -1884,37 +1990,6 @@ class Struct(utils.ToFuObject):
                 color=color,
             )
             return obj
-
-    @staticmethod
-    def _from_txt_extract_params(pfe, param):
-        p, name = os.path.split(pfe)
-
-        # Try from file name
-        lk = name.split("_")
-        lind = [param in k for k in lk]
-        if np.sum(lind) > 1:
-            msg = "Several values form %s found in file name:\n"
-            msg += "    file: %s" % pfe
-            raise Exception(msg)
-        if any(lind):
-            paramstr = lk[np.nonzero(lind)[0][0]]
-            paramstr = paramstr.replace(param, "")
-            return paramstr
-
-        # try from file content
-        paramstr = None
-        lout = [param, "#", ":", "=", " ", "\n", "\t"]
-        with open(pfe) as fid:
-            while True:
-                line = fid.readline()
-                if param in line:
-                    for k in lout:
-                        line = line.replace(k, "")
-                    paramstr = line
-                    break
-                elif not line:
-                    break
-        return paramstr
 
     def save_to_imas(
         self,
@@ -2030,10 +2105,23 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = "r"
 
-    def __init__(self, nturns=None, superconducting=None, active=None,
-                 **kwdargs):
+    def __init__(
+        self,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        **kwdargs
+    ):
         # super()
-        super(CoilPF, self).__init__(**kwdargs)
+        super(CoilPF, self).__init__(
+            nturns=nturns,
+            superconducting=superconducting,
+            active=active,
+            **kwdargs,
+        )
 
     def _reset(self):
         # super()
@@ -2056,18 +2144,30 @@ class CoilPF(StructOut):
 
     @classmethod
     def _checkformat_inputs_dmag(
-        cls, nturns=None, superconducting=None, active=None
+        cls,
+        nturns=None,
+        superconducting=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        active=None,
     ):
         dins = {
-            "nturn": {"var": nturns, "NoneOrIntPos": None},
+            "nturns": {"var": nturns, "NoneOrFloatPos": None},
             "superconducting": {"var": superconducting, "NoneOrCls": bool},
             "active": {"var": active, "NoneOrCls": bool},
+            "temperature_nominal": {"var": temperature_nominal,
+                                    "NoneOrFloatPos": None},
+            "mag_field_max": {"var": mag_field_max,
+                              "NoneOrFloatPos": None},
+            "current_lim_max": {"var": current_lim_max,
+                                "NoneOrFloatPos": None},
         }
         dins, err, msg = cls._check_InputsGeneric(dins, tab=0)
         if err:
             raise Exception(msg)
-        nturn = dins["nturn"]["var"]
-        return nturn
+        return [dins[dd]['var']
+                for dd in ['nturns', 'superconducting', 'active']]
 
     ###########
     # Get keys of dictionnaries
@@ -2093,14 +2193,14 @@ class CoilPF(StructOut):
     ###########
 
     def set_dmag(self, superconducting=None, nturns=None, active=None):
-        nturns = self._checkformat_inputs_dmag(
+        out = self._checkformat_inputs_dmag(
             nturns=nturns, active=active, superconducting=superconducting
         )
         self._dmag.update(
             {
-                "superconducting": superconducting,
-                "nturns": nturns,
-                "active": active,
+                "nturns": out[0],
+                "superconducting": out[1],
+                "active": out[2],
             }
         )
 
@@ -2176,6 +2276,60 @@ class CoilPF(StructOut):
     ###########
     # public methods
     ###########
+
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build detailed view
+        col0 = [
+            "class",
+            "Name",
+            "SaveName",
+            "nP",
+            "noccur",
+            "nturns",
+            "active",
+            "superconducting",
+        ]
+        ar0 = [
+            self._Id.Cls,
+            self._Id.Name,
+            self._Id.SaveName,
+            str(self._dgeom["nP"]),
+            str(self._dgeom["noccur"]),
+            str(self._dmag['nturns']),
+            str(self._dmag['active']),
+            str(self._dmag['superconducting']),
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
+
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
@@ -3763,6 +3917,68 @@ class Config(utils.ToFuObject):
         )
         return dkwd
 
+    def calc_solidangle_particle(
+        self,
+        pts=None,
+        traj=None,
+        rad=None,
+        approx=None,
+        aniso=None,
+        block=None,
+    ):
+        """ Compute the solid angle subtended by a particle along a trajectory
+
+        The particle has radius r, and trajectory (array of points) traj
+        It is observed from pts (array of points)
+        Takes into account blocking of the field of view by structural elements
+
+        traj and pts are (3, N) and (3, M) arrays of cartesian coordinates
+
+        approx = True => use approximation
+        aniso = True => return also unit vector of emission
+        block = True consider LOS collisions (with Ves, Struct...)
+
+        if block:
+            config used for LOS collisions
+
+        Parameters
+        ----------
+        traj:       np.ndarray
+            Array of (3, N) pts coordinates (X, Y, Z) representing the particle
+            positions
+        pts:        np.ndarray
+            Array of (3, M) pts coordinates (X, Y, Z) representing points from
+            which the particle is observed
+        rad:        float / np.ndarray
+            Unique of multiple values for the radius of the spherical particle
+                if multiple, rad is a np.ndarray of shape (N,)
+        approx:     None / bool
+            Flag indicating whether to compute the solid angle using a
+            1st-order series development (in which case the solid angle becomes
+            proportional to the radius of the particle, see Notes_Upgrades/)
+        aniso:      None / bool
+            Flag indicating whether to consider anisotropic emissivity,
+            meaning the routine must also compute and return the unit vector
+            directing the flux from each pts to each position on the trajectory
+        block:      None / bool
+            Flag indicating whether to check for vignetting by structural
+            elements provided by config
+
+        Return:
+        -------
+        sang: np.ndarray
+            (N, M) Array of floats, solid angles
+
+        """
+        return _comp_solidangles.calc_solidangle_particle(
+            pts=pts,
+            traj=traj,
+            rad=rad,
+            config=self,
+            approx=approx,
+            aniso=aniso,
+            block=block,
+        )
 
 """
 ###############################################################################
@@ -4618,29 +4834,42 @@ class Rays(utils.ToFuObject):
 
         # Get reference: lS
         if indStruct is None:
-            indStruct = self.indStruct_computeInOut
-        lS = [
-            ss for ii, ss in enumerate(self.config.lStruct) if ii in indStruct
-        ]
+            indIn, indOut = self.get_indStruct_computeInOut(unique_In=True)
+            indStruct = np.r_[indIn, indOut]
+        else:
+            indIn = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "in"
+            ]
+            if len(indIn) > 1:
+                ind = np.argmin([
+                    self.config.lStruct[ii].dgeom['Surf']
+                    for ii in indIn
+                ])
+                indStruct = [ii for ii in indStruct
+                             if ii not in indIn or ii == ind]
+                indIn = [indIn[ind]]
+            indOut = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "out"
+            ]
 
-        lSIn = [ss for ss in lS if ss._InOut == "in"]
-        if len(lSIn) == 0:
+        if len(indIn) == 0:
             msg = "self.config must have at least a StructIn subclass !"
-            assert len(lSIn) > 0, msg
-        iref = np.argmin([ss.dgeom["Surf"] for ss in lSIn])
-        S = lSIn[iref]
+            raise Exception(msg)
 
+        S = self.config.lStruct[indIn[0]]
         VPoly = S.Poly_closed
         VVIn = S.dgeom["VIn"]
         largs = [D, u, VPoly, VVIn]
 
+        lS = [self.config.lStruct[ii] for ii in indOut]
         if self._method == "ref":
 
             Lim = S.Lim
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
             for ss in lS:
                 lSPoly.append(ss.Poly_closed)
@@ -4674,7 +4903,6 @@ class Rays(utils.ToFuObject):
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPolyx, lSVInx = [], []
             lSPolyy, lSVIny = [], []
             lSLim, lSnLim = [], []
@@ -4704,7 +4932,7 @@ class Rays(utils.ToFuObject):
                 else:
                     num_tot_structs += len(ss.Lim)
 
-            lsnvert = np.asarray(lsnvert, dtype=np.long)
+            lsnvert = np.asarray(lsnvert, dtype=int)
             lSPolyx = np.asarray(lSPolyx)
             lSPolyy = np.asarray(lSPolyy)
             lSVInx = np.asarray(lSVInx)
@@ -4716,7 +4944,7 @@ class Rays(utils.ToFuObject):
                         lstruct_polyx=lSPolyx,
                         lstruct_polyy=lSPolyy,
                         lstruct_lims=lSLim,
-                        lstruct_nlim=np.asarray(lSnLim, dtype=np.long),
+                        lstruct_nlim=np.asarray(lSnLim, dtype=int),
                         lstruct_normx=lSVInx,
                         lstruct_normy=lSVIny,
                         lnvert=lsnvert,
@@ -5408,19 +5636,6 @@ class Rays(utils.ToFuObject):
         return self._dconfig["Config"]
 
     @property
-    def indStruct_computeInOut(self):
-        compute = self.config.get_compute()
-        lS = self.config.lStruct
-        iI, iO = [], []
-        for ii in range(0, len(lS)):
-            if compute[ii]:
-                if lS[ii]._InOut == "in":
-                    iI.append(ii)
-                elif lS[ii]._InOut == "out":
-                    iO.append(ii)
-        return np.r_[iI + iO]
-
-    @property
     def Etendues(self):
         if self._dgeom["Etendues"] is None:
             E = None
@@ -5565,7 +5780,7 @@ class Rays(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
 
-    def translate_3d(selfi, distance=None, direction=None,
+    def translate_3d(self, distance=None, direction=None,
                      return_copy=None,
                      diag=None, name=None, dchans=None):
         """ Translate the instance in provided direction """
@@ -5673,11 +5888,38 @@ class Rays(utils.ToFuObject):
     # public methods
     ###########
 
+    def get_indStruct_computeInOut(self, unique_In=None):
+        """ The indices of structures with compute = True
+
+        The indidces refer to self.config.lStruct
+            - The first array corresponds to Struct of type In
+            - The second array corresponds to Struct of type Out
+        """
+        if unique_In is None:
+            unique_In = False
+
+        compute = self.config.get_compute()
+        indIn = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "in"
+        ], dtype=int)
+        if unique_In is True and indIn.size > 1:
+            iind = np.argmin([
+                self.config.lStruct[ii].dgeom['Surf'] for ii in indIn
+            ])
+            indIn = np.r_[indIn[iind]]
+
+        indOut = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "out"
+        ], dtype=int)
+        return indIn, indOut
+
     def _check_indch(self, ind, out=int):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim == 1
-            assert ind.dtype in [np.int64, np.bool_, np.long]
+            assert ind.dtype in [np.int64, np.bool_, int]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
                 if out is int:
@@ -5876,13 +6118,20 @@ class Rays(utils.ToFuObject):
     def _get_plotL(
         self,
         reflections=True,
-        Lplot="Tot",
-        proj="All",
+        Lplot=None,
+        proj=None,
         ind=None,
         return_pts=False,
         multi=False,
     ):
         """ Get the (R,Z) coordinates of the cross-section projections """
+        # Check inputs
+        if Lplot is None:
+            Lplot = 'tot'
+        if proj is None:
+            proj = 'All'
+
+        # Compute
         ind = self._check_indch(ind)
         if ind.size > 0:
             us = self.u[:, ind]
@@ -7234,8 +7483,8 @@ class Rays(utils.ToFuObject):
         dElt = {}
         lS = self.config.lStruct
         ind = self._check_indch(ind, out=bool)
-        for ii in self.indStruct_computeInOut:
-            kn = "%s_%s" % (lS[ii].__class__.__name__, lS[ii].Id.Name)
+        for ii in np.r_[self.get_indStruct_computeInOut(unique_In=True)]:
+            kn = "{}_{}".format(lS[ii].__class__.__name__, lS[ii].Id.Name)
             indtouch = self.select(touch=kn, out=bool)
             if np.any(indtouch):
                 indok = indtouch & ind
@@ -7252,8 +7501,13 @@ class Rays(utils.ToFuObject):
         return dElt
 
     def get_touch_colors(
-        self, ind=None, dElt=None, cbck=(0.8, 0.8, 0.8), rgba=True
+        self,
+        ind=None,
+        dElt=None,
+        cbck=(0.8, 0.8, 0.8),
+        rgba=True,
     ):
+        """ Get array of colors per LOS (color set by the touched Struct) """
         if dElt is None:
             dElt = self.get_touch_dict(ind=None, out=bool)
         else:
@@ -7280,6 +7534,7 @@ class Rays(utils.ToFuObject):
         self,
         key=None,
         quant="lengths",
+        Lplot=None,
         invert=None,
         ind=None,
         Bck=True,
@@ -7295,7 +7550,15 @@ class Rays(utils.ToFuObject):
         The associated Config is also plotted
         The plot shows which strutural element is touched by each LOS
 
-        In addition, an extra quantity is plotted, depending on quant:
+        In addition, an extra quantity can be mapped to alpha (transparency)
+
+        Parameters
+        ----------
+        key:        None / str
+            Only relevant if self.dchans was defined
+            key is then a key to sekf.dchans
+        quant:      None / str
+            Flag indicating which extra quantity is used to map alpha:
             - 'lengths' (default): the length of each LOS
             - 'angles' : the angle of incidence of each LOS
                          (with respect to the normal of the surface touched,
@@ -7304,6 +7567,26 @@ class Rays(utils.ToFuObject):
                          (useful for checking numbering)
             - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
+        Lplot:      None / str
+            Flag indicating whether to plot:
+                - 'tot': the full length of the LOS
+                - 'in': only the part that is inside the vessel
+        invert:     None / bool
+            Flag indicating whether to plot 2D camera images inverted (pinhole)
+        ind:        None / np.ndarray
+            Array of bool indices used to select only a subset of the LOS
+        Bck:        None / bool
+            Flag indicating whether to plot the background LOS
+        fs:         None / tuple
+            figure size in inches
+        wintit:     None / str
+            Title for the window
+        tit:        None / str
+            Title for the figure
+        connect:    None / bool
+            Flag indicating to connect interactive actuators
+        draw:       None / bool
+            Flag indicating whether to draw the figure
         """
         out = _plot.Rays_plot_touch(
             self,
@@ -7311,6 +7594,7 @@ class Rays(utils.ToFuObject):
             Bck=Bck,
             quant=quant,
             ind=ind,
+            Lplot=Lplot,
             invert=invert,
             connect=connect,
             fs=fs,

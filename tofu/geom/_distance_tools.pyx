@@ -666,7 +666,7 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                                         &list_vpoly_x[ind_pol],
                                         &list_vpoly_y[ind_pol],
                                         &list_npts[ind_pol],
-                                        1, # mode = absolute
+                                        0, # mode = absolute
                                         _VSMALL)
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):

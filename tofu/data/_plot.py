@@ -396,6 +396,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
     if nD == 1:
         if nch == 1:
+            X = lData[0].X
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])
@@ -451,25 +452,39 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # ---------
     # Check data
     ldata = [dd.data for dd in lData]
-    vmin = np.min([np.nanmin(dat) for dat in ldata])
-    vmax = np.max([np.nanmax(dat) for dat in ldata])
-    Dlim = [min(0.,vmin), max(0.,vmax)]
+    indany = [np.any(~np.isnan(dat)) for dat in ldata]
+    if any(indany):
+        if vmin is None:
+            vmin = np.min([np.nanmin(dat) for ii, dat in enumerate(ldata)
+                           if indany[ii]])
+        if vmax is None:
+            vmax = np.max([np.nanmax(dat) for ii, dat in enumerate(ldata)
+                           if indany[ii]])
+    else:
+        vmin, vmax = 0, 1
+
+    Dlim = [min(0., vmin), max(0., vmax)]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
     Dlab = r"{0} ({1})".format(lData[0].dlabels['data']['name'],
                                lData[0].dlabels['data']['units'])
     liddata = [id(dat) for dat in ldata]
     if nD == 2:
-        if vmin is None:
-            vmin = np.min([np.nanmin(dd) for dd in ldata])
-        if vmax is None:
-            vmax = np.max([np.nanmax(dd) for dd in ldata])
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         nan2_data = np.full((x2.size,x1.size),np.nan)
 
         if cmap == 'touch':
-            lcols = [dd['lCam'][0]._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck,
-                                                  ind=None)[0] for dd in lData]
+            lcols = [dd['lCam'][0]._get_touchcols(
+                vmin=vmin,
+                vmax=vmax,
+                cdef=cbck,
+                ind=None)[0] for dd in lData]
             # To be finished
+
+    if vmin_map is None:
+        vmin_map = vmin
+    if vmax_map is None:
+        vmax_map = vmax
+
 
     # ---------
     # Extra
@@ -810,10 +825,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                     dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                     'lrid':[lXother[ii]]}
             else:
-                im = dax['X'][ii*ntMax+jj].imshow(nan2_data, extent=extent, aspect='equal',
-                                         interpolation='nearest', origin='lower',
-                                         zorder=-1, norm=norm,
-                                         cmap=cmap)
+                im = dax['X'][ii*ntMax+jj].imshow(
+                    nan2_data, extent=extent, aspect='equal',
+                    interpolation='nearest', origin='lower',
+                    zorder=-1, norm=norm, cmap=cmap)
                 dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
                                                        'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
@@ -1090,7 +1105,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     lt = [dd.t for dd in lData]
     nt = lData[0].nt
     if nt == 1:
-        Dt = [t[0]-0.001,t[0]+0.001]
+        Dt = [lt[0] - 0.001, lt[0] + 0.001]
     else:
         Dt = np.array([[np.nanmin(t), np.nanmax(t)] for t in lt])
         Dt = [np.min(Dt[:,0]), np.max(Dt[:,1])]
@@ -1111,6 +1126,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
     if nD == 1:
         if nch == 1:
+            X = lData[0].X
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])

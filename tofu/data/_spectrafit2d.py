@@ -142,7 +142,7 @@ def get_p0bounds_lambfix(x, y, nmax=None, lamb0=None):
     # get initial guesses
     amp = [yflat[np.nanargmin(np.abs(x-lamb))] for lamb in lamb0]
     sigma = [Dx/nmax for ii in range(nmax)]
-    p0 = A + sigma + [bck]
+    p0 = amp + sigma + [bck]
 
     # Get bounding boxes
     bamp = (np.zeros(nmax,), np.full((nmax,),3.*np.nanmax(y)))
@@ -164,7 +164,7 @@ def get_func1d_all(n=5, lamb0=None):
         lamb0 = np.zeros((n,), dtype=float)
     assert lamb0.size == n
 
-    def func_vect(x, amp, dlamp, sigma, bck0, lamb0=lamb0, n=n):
+    def func_vect(x, amp, dlamb, sigma, bck0, lamb0=lamb0, n=n):
         y = np.full((n+1, x.size), np.nan)
         y[:-1, :] = amp[:, None]*np.exp(-(x[None, :]-(lamb0+dlamb)[:, None])**2
                                         /sigma[:, None]**2)
@@ -284,8 +284,8 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
 
     # Get fit vector, scalar and jacobian functions
     if forcelamb is True:
-        func_vect, func_sca, func_sca_jac = get_func1d_lambfix(n=nmax,
-                                                               lamb0=lamb0)
+        func_vect, func_sca, func_sca_jac = get_func1d_lamb0fix(n=nmax,
+                                                                lamb0=lamb0)
     else:
         func_vect, func_sca, func_sca_jac = get_func1d_all(n=nmax,
                                                            lamb0=lamb0)
@@ -364,7 +364,7 @@ def multiplegaussianfit1d(x, spectra, nmax=None,
         p0[:] = popt[:]
 
         if plot_debug and ii in [0,1]:
-            fit = func_vect(x, amp[ii,:], x0[ii,:], sigma[ii,:], bck0[ii])
+            fit = func_vect(x, amp[ii, :], p0[ii, :], sigma[ii, :], bck[ii])
 
             plt.figure()
             ax0 = plt.subplot(2,1,1)
@@ -434,8 +434,8 @@ def get_x0_bounds(x01d=None, dlines=None, dindx=None,
     x0 = np.zeros((dindx['nall'],), dtype=float)
     if x01d is None:
         # Get average spectral width and separation
-        lamb0_Delta = lamb0.max() - lamb0.min()
-        nlamb0 = lamb0.size
+        lamb0_Delta = lamb.max() - lamb.min()
+        nlamb0 = lamb.size
         lamb0_delta = lamb0_Delta / nlamb0
 
         nbs = dindx['nbs']

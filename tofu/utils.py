@@ -149,7 +149,7 @@ def flatten_dict(d, parent_key='', sep=None, deep='ref',
                 elif deep=='copy':
                     v = v.copy(deep='copy')
             new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, collections.MutableMapping):
+            if isinstance(v, collections.abc.MutableMapping):
                 items.extend(flatten_dict(v, new_key,
                                           deep=deep, sep=sep).items())
             else:
@@ -367,9 +367,9 @@ def _save_npzmat_dict(dd, sep=None):
             # None will be recreated at load time
             pass
         elif (type(dd[k]) in [int,float,bool,str]
-              or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)
-              or issubclass(dd[k].__class__,np.bool_)):
+              or issubclass(dd[k].__class__, int)
+              or issubclass(dd[k].__class__, float)
+              or issubclass(dd[k].__class__, np.bool_)):
             dnpzmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
             dnpzmat[k] = np.asarray(dd[k])
@@ -455,6 +455,63 @@ def _filefind(name, path=None, lmodes=['.npz','.mat']):
     mode = lmodes[np.argmax(indend)].replace('.','')
     pfe = os.path.join(path,nameext)
     return name, mode, pfe
+
+
+def get_param_from_file_name(pfe=None, lparams=None, test=True):
+    """ Try to extract desired parameter from file name
+
+    tofu typically saves files with names formatted as:
+        XXX_Key0param0_Key1param1_Key2param2...
+
+    Where:
+        - XXX corresponds to the sub-package that created the file
+        - Keyiparami are (key, value) parameter pairs, when possible
+
+    """
+
+    # Check inputs
+    if test is True:
+        # Check inputs
+        c0 = (isinstance(lparams, str)
+              or (isinstance(lparams, list)
+                  and all([isinstance(pp, str) for pp in lparams])))
+        if not c0:
+            msg = ("Arg lparams must be a str of list of str!\n"
+                   + "Provided:\n{}".format(lparams))
+            raise Exception(msg)
+
+        c0 = os.path.isfile(pfe)
+        if not c0:
+            msg = ("Provided file does not exist!\n"
+                   + "{}".format(pfe))
+            raise Exception(msg)
+
+    if isinstance(lparams, str):
+        lparams = [lparams]
+
+    # Get params
+    path, name = os.path.split(os.path.abspath(pfe))
+
+    # First, try from file name
+    dout = dict.fromkeys(lparams)
+    lk = name.split("_")
+    nk = len(lk)
+    for pp in lparams:
+        lind = [ii for ii in range(nk) if '_'+pp in '_'+lk[ii]]
+        if len(lind) == 1:
+            dout[pp] = lk[lind[0]].replace(pp, '')
+            if dout[pp].isnumeric():
+                dout[pp] = int(dout[pp])
+            elif '.' in dout[pp]:
+                try:
+                    dout[pp] = float(dout[pp])
+                except Exception as err:
+                    pass
+        elif len(lind) > 1:
+            msg = ("Several values for key {} found in file:\n"
+                   + "    file: {}".format(pfe))
+            warnings.warn(msg)
+    return dout
 
 
 def load(name, path=None, strip=None, verb=True, allow_pickle=None):
@@ -609,9 +666,80 @@ def _load_mat(pfe):
     return _get_load_npzmat_dict(out, pfe, mode='mat', exclude_keys=lsmat)
 
 
+###############################################
+#       Getting parameters from txt files
+###############################################
+
+
+def from_txt_extract_params(pfe=None, lparams=None, comments=None):
+    """ Extract key parameters stored as commented lines at top of file
+
+    tofu saves some data to txt files with the following formatting:
+        - a series of commented (#) lines, each with format:
+            # key: value
+        - a 1d or 2d np.ndarray
+
+    This routine extracts the desired parameters from the commented lines
+
+    """
+
+    # Check inputs
+    if comments is None:
+        comments = '#'
+
+    c0 = os.path.isfile(pfe)
+    if not c0:
+        msg = ("Provided file does not exist!\n"
+               + "{}".format(pfe))
+        raise Exception(msg)
+
+    c0 = (isinstance(lparams, str)
+          or (isinstance(lparams, list)
+              and all([isinstance(pp, str) for pp in lparams])))
+    if not c0:
+        msg = ("Arg lparams must be a str of list of str!\n"
+               + "Provided:\n{}".format(lparams))
+        raise Exception(msg)
+    if isinstance(lparams, str):
+        lparams = [lparams]
+
+    # First, try from file name
+    dout = get_param_from_file_name(pfe=pfe, lparams=lparams, test=False)
+
+    # Then try from file content (overwrite but warn)
+    lout = lparams + [comments, ":", "=", " ", "\n", "\t"]
+    with open(pfe) as fid:
+        for pp in lparams:
+            while True:
+                line = fid.readline()
+                if pp in line:
+                    for kk in lout:
+                        line = line.replace(kk, "")
+                    if line.isnumeric():
+                        line = int(line)
+                    elif '.' in line:
+                        try:
+                            line = float(line)
+                        except Exception as err:
+                            pass
+                    if dout.get(pp) is not None and dout[pp] != line:
+                        msg = ("Inconsistency between file name and content\n"
+                               + "\t- file: {}\n".format(pfe)
+                               + "\t- parameter: {}\n".format(pp)
+                               + "\t- from name: {}\n".format(dout[pp])
+                               + "\t- from content: {}\n".format(line))
+                        warnings.warn(msg)
+                    dout[pp] = line
+                    break
+                elif not line:
+                    break
+    return dout
+
+
 #######
 #   tf.geom.Struct - specific
 #######
+
 
 def _load_from_txt(name, pfe, Name=None, Exp=None):
 
@@ -641,13 +769,25 @@ _DEF_IMAS_PLASMA_SIG = {'core_profiles':{'plot_sig':['1dTe','1dne'],
                                          'other':['t']}}
 
 def _get_exception(q, ids, qtype='quantity'):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        from tofu.imas2tofu import MultiIDSLoader
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
     msg = MultiIDSLoader._shortcuts(ids=ids,
                                     verb=False, return_=True)
     col = ['ids', 'shortcut', 'long version']
     msg = MultiIDSLoader._getcharray(msg, col)
-    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
-    msg += "\n\nAvailable shortcuts are:\n%s"%msg
-    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    msg += "\nArgs quantity and quant_X must be valid shortcuts for ids "
+    msg += " %s" % ids
+    msg += "\n\nAvailable shortcuts are:\n%s" % msg
+    msg += "\n\nProvided:\n    - %s: %s\n" % (qtype, str(q))
     raise Exception(msg)
 
 
@@ -859,14 +999,15 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                              equi.ddata['equilibrium.sep'][
                              'data'][equi_ind_t][1],
                              linestyle='-.', color='k', alpha=0.8)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike0']['data'][
-                             equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike0']['data'][
-                             equi_ind_t][1], '+', color='k', markersize=10)
-        dax['cross'][0].plot(multi.get_data('equilibrium')['strike1']['data'][
-                             equi_ind_t][0],
-                             multi.get_data('equilibrium')['strike1']['data'][
-                             equi_ind_t][1], '+', color='k', markersize=10)
+
+        s01 = multi.get_data(dsig={'equilibrium': ['strike0', 'strike1']},
+                             return_all=False)['equilibrium']
+        dax['cross'][0].plot(s01['strike0']['data'][equi_ind_t][0],
+                             s01['strike0']['data'][equi_ind_t][1],
+                             '+', color='k', markersize=10)
+        dax['cross'][0].plot(s01['strike1']['data'][equi_ind_t][0],
+                             s01['strike1']['data'][equi_ind_t][1],
+                             '+', color='k', markersize=10)
         dax['t'][0].figure.suptitle('Shot {0}, t = {1:6.3f} s'
                                     .format(shot[0], t[0]))
         return dax
@@ -1379,7 +1520,10 @@ def calc_from_imas(
             multi.add_ids('equilibrium', get=True)
             plasma = multi.to_Plasma2D()
             lf = ['t', 'rhotn', 'brem']
-            lamb = multi.get_data('bremsstrahlung_visible', sig='lamb')['lamb']
+            lamb = multi.get_data(
+                dsig={'bremsstrahlung_visible': 'lamb'},
+                return_all=False
+            )['bremsstrahlung_visible']['lamb']
             dout = imas2tofu.get_data_from_matids(input_file,
                                                   return_fields=lf,
                                                   lamb=lamb[0])
@@ -1447,8 +1591,8 @@ def _check_InputsGeneric(ld, tab=0):
     bstr1 = "\n"+"    "*(tab+1) + "Expected: "
     bstr2 = "\n"+"    "*(tab+1) + "Provided: "
 
-    ltypes_f2i = [int,float,np.integer,np.floating]
-    ltypes_i2f = [int,float,np.integer,np.floating]
+    ltypes_f2i = [int, float, np.integer, np.floating]
+    ltypes_i2f = [int, float, np.integer, np.floating]
 
     # Check
     err, msg = False, ''
@@ -1460,10 +1604,13 @@ def _check_InputsGeneric(ld, tab=0):
                 msgk += bstr1 + "class {0}".format(ld[k]['cls'].__name__)
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'NoneOrCls' in ld[k].keys():
-            c = ld[k]['var'] is None or isinstance(ld[k]['var'],ld[k]['cls'])
+            c = ld[k]['var'] is None or isinstance(ld[k]['var'],
+                                                   ld[k]['NoneOrCls'])
             if not c:
                 errk = True
-                msgk += bstr1 + "None or class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr1 + "None or class {0}".format(
+                    ld[k]['NoneOrCls'].__name__
+                )
                 msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
         if 'in' in ld[k].keys():
             if not ld[k]['var'] in ld[k]['in']:
@@ -1527,6 +1674,19 @@ def _check_InputsGeneric(ld, tab=0):
                 msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
             ld[k]['var'] = None if c0 else int(ld[k]['var'])
+        if 'NoneOrFloatPos' in ld[k].keys():
+            c0 = ld[k]['var'] is None
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and float(ld[k]['var']) == ld[k]['var']
+                   and ld[k]['var'] > 0)
+                  for cc in ltypes_f2i]
+            if not (c0 or any(lc)):
+                errk = True
+                msgk += bstr1 + "convertible to >0 float from {}".format(
+                    ltypes_f2i
+                )
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = None if c0 else float(ld[k]['var'])
         if '>' in ld[k].keys():
             if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
                 errk = True
@@ -1983,8 +2143,11 @@ class ToFuObjectBase(object):
                         if eqk:
                             eqk = d0[k].dtype == d1[k].dtype
                             if eqk:
-                                if (issubclass(d0[k].dtype.type, np.int)
-                                    or issubclass(d0[k].dtype.type, np.float)):
+                                c0 = (
+                                    issubclass(d0[k].dtype.type, int)
+                                    or issubclass(d0[k].dtype.type, float)
+                                )
+                                if c0:
                                     eqk = np.allclose(d0[k],d1[k], equal_nan=True)
                                 else:
                                     eqk = np.all(d0[k]==d1[k])
@@ -2640,7 +2803,7 @@ class ID(ToFuObjectBase):
         return self._dall['Name']
     @property
     def NameLTX(self):
-        return r"$"+self.Name.replace('_','\_')+r"$"
+        return r"$" + self.Name.replace('_', '\_') + r"$"
     @property
     def Exp(self):
         return self._dall['Exp']
@@ -2925,7 +3088,7 @@ class DChans(object):
             size.append(ss)
         nch = int(size[0])
         assert np.all([ss == nch for ss in size])
-        return fd, ch
+        return fd, nch
 
     def _todict(self):
         return self._dchans
@@ -3105,7 +3268,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                     def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[0]))
                 else:
-                    def func(val, ind0=None, refb=refb):
+                    def func(val, ind0=None, refb=ref2):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
@@ -3115,7 +3278,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                 else:
                     refb = 0.5*(ref[1:]+ref[:-1])
                     if Type == 'x':
-                        def func(val, ind0=None, refb=refb):
+                        def func(val, ind0=None, refb=ref2):
                             return np.digitize([val[0]], refb)[0]
                     else:
                         def func(val, ind0=None, refb=refb):
