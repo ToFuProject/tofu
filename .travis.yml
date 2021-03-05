@@ -47,23 +47,18 @@ jobs:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
     - OS=osx-64
-  # - name: "Windows python 3.5"
-  #   os: windows
-  #   language: shell  # 'language: python' is an error on Travis CI Windows
-  #   before_install:
-  #     - choco install python --version 3.5.4
-  #     - python --version
-  #     - python -m pip install --upgrade pip
-  #     - pip3 install --upgrade pytest
-  #     - pip3 install codecov
-  #   env:
-  #   - PATH=/c/Python35:/c/Python35/Scripts:$PATH
-  #   - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
-  # allow_failures:
-  #   - os: windows
-  #   - os: osx
-  #   - os: linux
-  #     dist: xenial
+  - name: "Windows python 3.5"
+    os: windows
+    language: shell  # 'language: python' is an error on Travis CI Windows
+    before_install:
+      - choco install python --version 3.5.4
+      - python --version
+      - python -m pip install --upgrade pip
+      - pip3 install --upgrade pytest
+      - pip3 install codecov
+    env:
+    - PATH=/c/Python35:/c/Python35/Scripts:$PATH
+    - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
 
 env:
     global:
