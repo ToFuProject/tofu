@@ -326,7 +326,7 @@ By construction, we have:
 
 
 
-\chapter{Circular coil}
+\chapter{Circular coil - discretized}
 \label{chap:CircularCoil}
 
 The magnetic field produced at any point in 3D space by a planar circular coil
@@ -617,8 +617,171 @@ Increasing $n$, we see that:
 
 
 
+\chapter{Circular coil - exact}
+\label{chap:CircularCoilExact}
+
+The magnetic field produced at any point in 3D space by a planar circular coil
+can be writen (but not solved) analytically:
+
+Let's consider a point $M$ $(x, y, z)$ in space and a point $P$ on the spire.
+
+The elementary magnetic field produced at $M$ by current element $\ud{dj}
+=IRd\theta\ud{e}_{\theta}$ is:
+
+$$
+d\ud{B}(\ud{M}, \ud{A}) = \frac{\mu_0}{4\pi}
+\frac{IRd\theta\ud{e}_{\theta}\wedge\ud{AM}}
+{\| \ud{AM} \|^3}
+$$
+
+The problem is anti-symmetric regarding the magnetic field around the $(C, M,
+\ud{e}_z)$ plane, hence the total magnetic field at $M$ will be contained
+inside the symmetry plane.
+
+Considering $\theta' = \theta - \theta_{M}$ as the angular reference, we can
+define:
+
+$$                                                                              
+\ud{CM} = R_M\ud{e}_r(\theta'=0) + (Z_M-Z_C)\ud{e}_z\\
+$$
+
+And:
+$$
+\begin{array}{ll}
+    \ud{CA}
+    & = R\ud{e}_r(\theta')\\
+    & = R(\cos(\theta')\ud{e}_r(0) + \sin(\theta')\ud{e}_{\theta'}(0))
+\end{array}
+$$ 
+
+In this context:
+$$
+\begin{array}{ll}
+    \ud{AM}
+    & = \ud{AC} + \ud{CM}\\
+    & = -R\ud{e}_r(\theta') + \ud{CM}
+\end{array}
+$$
+
+Hence the total magnetic field:
+$$
+\begin{array}{ll}
+    \ud{B}
+    & = \frac{\mu_0}{4\pi}IR
+    \int_{-\pi}^{\pi}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'\\
+\end{array}
+$$
+
+Noticing that:
+$$
+\begin{array}{ll}
+    \ud{e}_{\theta}(\theta')\wedge\ud{AM}
+    & = R\ud{e}_z + \ud{e}_{\theta}(\theta')\wedge\ud{CM}\\
+    & = R\ud{e}_z
+    + R_M\left(-\sin(\theta')\ud{e}_r(0) + \cos(\theta')\ud{e}_{\theta}(0)\right)
+    \wedge\ud{e}_r(0)
+    + \left(Z_M-Z_C\right)\ud{e}_r(\theta')\\
+    & = R\ud{e}_z
+    - R_M\cos(\theta')\ud{e}_z
+    + \left(Z_M-Z_C\right)\ud{e}_r(\theta')\\
+    & = (R-R_M\cos(\theta'))\ud{e}_z
+    + \left(Z_M-Z_C\right)(\cos(\theta')\ud{e}_r(0) + \sin(\theta')\ud{e}_{\theta}(0))\\
+    & = (R-R_M\cos(\theta'))\ud{e}_z
+    + \Delta Z\cos(\theta')\ud{e}_r(0) + \Delta Z\sin(\theta')\ud{e}_{\theta}(0)\\
+\end{array}
+$$
 
 
+Introducing $\theta''=-\theta'$
+and noticing that $\cos(\theta')=\cos(\theta'')$
+and $\sin(\theta')=-\sin(\theta'')$ we can write:
+$$
+\begin{array}{ll}
+    \ud{e}_{\theta}(\theta')\wedge\ud{AM}
+    & = (R-R_M\cos(\theta'))\ud{e}_z
+    + \Delta Z\cos(\theta')\ud{e}_r(0) + \Delta Z\sin(\theta')\ud{e}_{\theta}(0)\\
+    & = (R-R_M\cos(\theta''))\ud{e}_z
+    + \Delta Z\cos(\theta'')\ud{e}_r(0) - \Delta Z\sin(\theta'')\ud{e}_{\theta}(0)\\
+    & = \ud{e}_{\theta}(\theta'')\wedge\ud{AM} - 2\Delta Z\sin(\theta'')\ud{e}_{\theta}(0)
+\end{array}
+$$
+
+Hence, splitting the integral in halves:
+
+
+$$
+\begin{array}{ll}
+    \ud{B}
+    & = \frac{\mu_0}{4\pi}IR\left(
+    \int_{-\pi}^{0}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'
+    + \int_{0}^{\pi}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'
+    \right)\\
+    & = \frac{\mu_0}{4\pi}IR\left(
+    -\int_{0}^{-\pi}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'
+    + \int_{0}^{\pi}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'
+    \right)\\
+    & = \frac{\mu_0}{4\pi}IR\left(
+    \int_{0}^{\pi}
+    \frac{\ud{e}_{\theta}(\theta'')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta''
+    - 2\Delta Z\int_{0}^{\pi}\frac{\sin(\theta'')}{\| \ud{AM} \|^3}d\theta''\ud{e}_{\theta}(0)
+    + \int_{0}^{\pi}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'
+    \right)\\
+    & = 2\frac{\mu_0}{4\pi}IR\left(
+    \int_{0}^{\pi}
+    \frac{\ud{e}_{\theta}(\theta')\wedge\ud{AM}}{\| \ud{AM} \|^3}d\theta'
+    - \Delta Z\int_{0}^{\pi}\frac{\sin(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_{\theta}(0)
+    \right)\\
+    & = 2\frac{\mu_0}{4\pi}IR\left(
+    \int_{0}^{\pi}
+    \frac{(R-R_M\cos(\theta'))\ud{e}_z + \Delta Z\cos(\theta')\ud{e}_r(0)}{\| \ud{AM} \|^3}d\theta'
+    + (1-1)\Delta Z\int_{0}^{\pi}\frac{\sin(\theta')}{\| \ud{AM} \|^3}d\theta''\ud{e}_{\theta}(0)
+    \right)\\
+    & = 2\frac{\mu_0}{4\pi}IR\left(
+    R\int_{0}^{\pi}\frac{1-a_M\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_z
+    + \Delta Z\int_{0}^{\pi}\frac{\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_r(0)
+    \right)\\
+\end{array}
+$$
+
+
+Now, writing:
+$$
+\begin{array}{ll}
+    \|\ud{AM}\|^2
+    & = \left(-R\ud{e}_r(\theta') + \ud{CM}\right)^2\\
+    & = R^2 - 2R\ud{e}_r(\theta')\cdot\ud{CM} + \|\ud{CM}\|^2\\
+    & = R^2 - 2RR_M\cos(\theta') + R_M^2 + \Delta Z^2\\
+    & = R^2\left(1 + a_M^2 + \left(\frac{\Delta Z}{R}\right)^2
+    - 2a_M\cos(\theta')\right)\\
+\end{array}
+$$
+
+Hence:
+$$
+\begin{array}{ll}
+    \ud{B}
+    & = 2\frac{\mu_0}{4\pi}IR\left(
+    R\int_{0}^{\pi}\frac{1-a_M\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_z
+    + \Delta Z\int_{0}^{\pi}\frac{\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_r(0)
+    \right)\\
+    & = 2\frac{\mu_0}{4\pi}\frac{I}{R}\left(
+    \int_{0}^{\pi}\frac{1-a_M\cos(\theta')}
+    {\left(1 + a_M^2 + \left(\frac{\Delta Z}{R}\right)^2
+    - 2a_M\cos(\theta')\right)^{3/2}}
+    d\theta'\ud{e}_z
+    + \frac{\Delta Z}{R}\int_{0}^{\pi}\frac{\cos(\theta')}
+    {\left(1 + a_M^2 + \left(\frac{\Delta Z}{R}\right)^2
+    - 2a_M\cos(\theta')\right)^{3/2}}
+    d\theta'\ud{e}_r(0)
+    \right)\\
+\end{array}
+$$
 
 
 
