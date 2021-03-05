@@ -3,7 +3,7 @@
 Installing tofu
 ================
 
-As of October 2019, `tofu` is still under heavy development. Therefore, installation
+As of March 2021, `tofu` is still under development. Therefore, installation
 instructions are provided officialy for Linux and ITER users. However, instructions
 for other platforms are also provided since they have been known to work out for some users.
 If installation fails for your use-case, please open an issue over
@@ -15,6 +15,9 @@ at `Github. <https://github.com/ToFuProject/tofu/>`__ so that we can try adressi
 -  :ref:`iter-users`
 -  :ref:`installing-as-a-developer`
 
+.. note::
+   If you encounter problems during the installation, check our list of
+   :ref:`known bugs <Knownbugs>` or `open an issue. <https://github.com/ToFuProject/tofu/issues>`__.
 
 .. _installing-tofu-on-linux:
 
