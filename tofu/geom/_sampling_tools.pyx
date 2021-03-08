@@ -1975,7 +1975,7 @@ cdef inline void sa_double_loop_polr(int ii,
             pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             vol = reso_r_z * reso_phi_mv[ii]
-                        # computing distance ....
+            # computing distance ....
             _bgt.compute_dist_pt_vec(pts_mv[0, NP],
                                      pts_mv[1, NP],
                                      pts_mv[2, NP],
@@ -2000,7 +2000,7 @@ cdef inline void sa_double_loop_polr(int ii,
                                   rmin,
                                   eps_uz, eps_a,
                                   eps_vz, eps_b, eps_plane,
-                                  ves_type, forbid, num_threads)
+                                  ves_type=='tor', forbid, num_threads)
             volpi = vol * Cpi
             for pp in range(sz_p):
                 if is_vis[pp] :
@@ -2093,7 +2093,7 @@ cdef inline void sa_double_loop_cart(int ii,
                                   rmin,
                                   eps_uz, eps_a,
                                   eps_vz, eps_b, eps_plane,
-                                  ves_type, forbid, num_threads)
+                                  ves_type=='tor', forbid, num_threads)
             # TODO : quel nombre de threads choisir ici ???
             volpi = vol * Cpi
             for pp in range(sz_p):

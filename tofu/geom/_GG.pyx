@@ -2276,6 +2276,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef array coeff_inter_in  = clone(array('d'), nlos, True)
     cdef array coeff_inter_out = clone(array('d'), nlos, True)
     cdef array ind_inter_out = clone(array('i'), nlos * 3, True)
+    cdef long[::1] lstruct_nlim_copy
+    cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
         error_message = "ray_orig and ray_vdir must have the same shape: "\
@@ -2344,20 +2346,29 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
-    if lstruct_lims == None:
+    if lstruct_lims is None:
         lstruct_lims_np = np.array([Cnan])
     else:
+        flat_list = []
         for ele in lstruct_lims:
-             if ele == None:
-                 flat_list += [None]
-             else:
-                 for elele in ele:
-                     flat_list += elele
+            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+                for elele in ele:
+                    if type(elele) is list:
+                        flat_list += elele
+                    else:
+                        flat_list += elele.flatten().tolist()
+            else:
+                flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
+
+    if lstruct_nlim is None:
+        lstruct_nlim_copy = None
+    else:
+        lstruct_nlim_copy = lstruct_nlim.copy()
     _rt.compute_inout_tot(nlos, npts_poly,
                           ray_orig, ray_vdir,
                           ves_poly, ves_norm,
-                          lstruct_nlim.copy(), ves_lims,
+                          lstruct_nlim_copy, ves_lims,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims_np, lstruct_normx,
                           lstruct_normy, lnvert,
@@ -2606,6 +2617,8 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     cdef bint bool1, bool2
     cdef np.ndarray[double, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
                                                                   dtype=float)
+    cdef long[::1] lstruct_nlim_copy
+    cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
@@ -2626,22 +2639,30 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
-    if lstruct_lims == None:
-        lstruct_lims_np = np.array([None])
+    if lstruct_lims is None:
+        lstruct_lims_np = np.array([Cnan])
     else:
+        flat_list = []
         for ele in lstruct_lims:
-             if ele == None:
-                 flat_list += [None]
-             else:
-                 for elele in ele:
-                     flat_list += elele
+            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+                for elele in ele:
+                    if type(elele) is list:
+                        flat_list += elele
+                    else:
+                        flat_list += elele.flatten().tolist()
+            else:
+                flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
 
+    if lstruct_nlim is None:
+        lstruct_nlim_copy = None
+    else:
+        lstruct_nlim_copy = lstruct_nlim.copy()
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
                             are_seen, dist, ves_lims,
-                            lstruct_nlim.copy(),
+                            lstruct_nlim_copy,
                             lstruct_polyx, lstruct_polyy,
                             lstruct_lims_np,
                             lstruct_normx, lstruct_normy,
@@ -2701,6 +2722,8 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     cdef bint bool1, bool2
     cdef np.ndarray[double, ndim=1, mode='c'] is_seen = np.empty((npts),
                                                              dtype=float)
+    cdef long[::1] lstruct_nlim_copy
+    cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
@@ -2721,22 +2744,31 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
-    if lstruct_lims == None:
-        lstruct_lims_np = np.array([None])
+    if lstruct_lims is None:
+        lstruct_lims_np = np.array([Cnan])
     else:
+        flat_list = []
         for ele in lstruct_lims:
-             if ele == None:
-                 flat_list += [None]
-             else:
-                 for elele in ele:
-                     flat_list += elele
+            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+                for elele in ele:
+                    if type(elele) is list:
+                        flat_list += elele
+                    else:
+                        flat_list += elele.flatten().tolist()
+            else:
+                flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
+
+    if lstruct_nlim is None:
+        lstruct_nlim_copy = None
+    else:
+        lstruct_nlim_copy = lstruct_nlim.copy()
 
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
                           is_seen, dist, ves_lims,
-                          lstruct_nlim.copy(),
+                          lstruct_nlim_copy,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims_np,
                           lstruct_normx, lstruct_normy,

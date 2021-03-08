@@ -1685,7 +1685,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                                 coeff_inter_in,
                                                 coeff_inter_out,
                                                 vperp_out, ind_inter_out,
-                                                eps_plane, ii+1, jj)
+                                                eps_plane, ii+1, 0)
                     lsl_ind += 1
                 elif len_lim == 1:
                     lbounds_ves[0] = lstruct_lims[lsl_ind]
@@ -1702,7 +1702,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                                 coeff_inter_in,
                                                 coeff_inter_out,
                                                 vperp_out, ind_inter_out,
-                                                eps_plane, ii+1, jj)
+                                                eps_plane, ii+1, 0)
 
                 else:
                     # and loop over the limits (one continous structure)
@@ -2034,6 +2034,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     cdef int sz_ves_lims
     cdef double min_poly_r
     cdef double* dist_arr = NULL
+    cdef long[::1] lstruct_nlim_copy
     cdef double[:, ::1] ray_orig = view.array(shape=(3,npts),
                                               itemsize=sizeof(double),
                                               format="d")
@@ -2054,10 +2055,14 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
+    if lstruct_nlim is None:
+        lstruct_nlim_copy = None
+    else:
+        lstruct_nlim_copy = lstruct_nlim.copy()
     compute_inout_tot(npts, npts_poly,
                       ray_orig, ray_vdir,
                       ves_poly, ves_norm,
-                      lstruct_nlim, ves_lims,
+                      lstruct_nlim_copy, ves_lims,
                       lstruct_polyx, lstruct_polyy,
                       lstruct_lims, lstruct_normx,
                       lstruct_normy, lnvert,
