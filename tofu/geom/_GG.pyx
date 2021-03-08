@@ -2344,17 +2344,27 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
+    if lstruct_lims == None:
+        lstruct_lims_np = np.array([Cnan])
+    else:
+        for ele in lstruct_lims:
+             if ele == None:
+                 flat_list += [None]
+             else:
+                 for elele in ele:
+                     flat_list += elele
+        lstruct_lims_np = np.array(flat_list)
     _rt.compute_inout_tot(nlos, npts_poly,
                           ray_orig, ray_vdir,
                           ves_poly, ves_norm,
-                          lstruct_nlim, ves_lims,
+                          lstruct_nlim.copy(), ves_lims,
                           lstruct_polyx, lstruct_polyy,
-                          lstruct_lims, lstruct_normx,
+                          lstruct_lims_np, lstruct_normx,
                           lstruct_normy, lnvert,
                           nstruct_tot, nstruct_lim,
                           sz_ves_lims, min_poly_r, rmin,
                           eps_uz, eps_a, eps_vz, eps_b,
-                          eps_plane, vt_lower,
+                          eps_plane, vt_lower=='tor',
                           forbid, num_threads,
                           coeff_inter_out, coeff_inter_in, vperp_out,
                           ind_inter_out)
@@ -2616,17 +2626,28 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
+    if lstruct_lims == None:
+        lstruct_lims_np = np.array([None])
+    else:
+        for ele in lstruct_lims:
+             if ele == None:
+                 flat_list += [None]
+             else:
+                 for elele in ele:
+                     flat_list += elele
+        lstruct_lims_np = np.array(flat_list)
+
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
                             are_seen, dist, ves_lims,
-                            lstruct_nlim,
+                            lstruct_nlim.copy(),
                             lstruct_polyx, lstruct_polyy,
-                            lstruct_lims,
+                            lstruct_lims_np,
                             lstruct_normx, lstruct_normy,
                             lnvert, nstruct_tot, nstruct_lim,
                             rmin, eps_uz, eps_a, eps_vz, eps_b,
-                            eps_plane, ves_type.lower(),
+                            eps_plane, ves_type.lower()=='tor',
                             forbid, num_threads)
     return are_seen
 
@@ -2700,17 +2721,28 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
+    if lstruct_lims == None:
+        lstruct_lims_np = np.array([None])
+    else:
+        for ele in lstruct_lims:
+             if ele == None:
+                 flat_list += [None]
+             else:
+                 for elele in ele:
+                     flat_list += elele
+        lstruct_lims_np = np.array(flat_list)
+
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
                           is_seen, dist, ves_lims,
-                          lstruct_nlim,
+                          lstruct_nlim.copy(),
                           lstruct_polyx, lstruct_polyy,
-                          lstruct_lims,
+                          lstruct_lims_np,
                           lstruct_normx, lstruct_normy,
                           lnvert, nstruct_tot, nstruct_lim,
                           rmin, eps_uz, eps_a, eps_vz, eps_b,
-                          eps_plane, ves_type.lower(),
+                          eps_plane, ves_type.lower()=='tor',
                           forbid, num_threads)
     return is_seen
 

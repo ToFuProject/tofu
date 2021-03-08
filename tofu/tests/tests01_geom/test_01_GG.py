@@ -1966,10 +1966,10 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
     assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
     # ...
-    fig = plt.figure(figsize=(14, 8))
-    ax = plt.subplot(121)
-    ax.plot(part[0, :], part[1, :], '.b')
-    ax2 = plt.subplot(122)
-    ax2.plot(part[0, :]*np.cos(part[2, :]),
-             part[0, :]*np.sin(part[2, :]), '.r')
+    # fig = plt.figure(figsize=(14, 8))
+    # ax = plt.subplot(121)
+    # ax.plot(part[0, :], part[1, :], '.b')
+    # ax2 = plt.subplot(122)
+    # ax2.plot(part[0, :]*np.cos(part[2, :]),
+    #          part[0, :]*np.sin(part[2, :]), '.r')
     return
