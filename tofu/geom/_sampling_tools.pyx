@@ -2176,8 +2176,8 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
     cdef int ii
     # ...
     if is_cart:
-        with nogil, parallel(num_threads=num_threads):
-            for ii in prange(sz_r):
+        with nogil:
+            for ii in range(sz_r):
                 # To make sure the indices are in increasing order
                 sa_double_loop_cart(ii, part_coords, part_rad,
                                     sz_p, sz_z,
@@ -2207,8 +2207,8 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
                                     indi_mv[ii, first_ind_mv[ii]:],
                                     reso_phi_mv, pts_mv, ind_mv)
     else:
-        with nogil, parallel(num_threads=num_threads):
-            for ii in prange(sz_r):
+        with nogil:
+            for ii in range(sz_r):
                 sa_double_loop_polr(ii, part_coords, part_rad,
                                     sz_p, sz_z,
                                     sa_map[ii],
