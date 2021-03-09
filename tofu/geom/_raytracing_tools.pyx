@@ -2127,10 +2127,12 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     # Get ind
     if dist is None:
-        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts, 4)
+        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts,
+                    min(npts//4, num_threads))
         free(dist_arr)
     else:
-        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts, 4)
+        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts,
+                    min(npts//4, num_threads))
     return
 
 
@@ -2139,7 +2141,7 @@ cdef inline void is_vis_mask(double[::1] is_vis, double* dist,
                              int npts,
                              int num_threads) nogil:
     cdef int ii
-    with nogil, parallel(num_threads=num_threads):
+    with nogil, parallel():
         for ii in prange(npts):
             is_vis[ii] = 1
             if dist[ii] > coeff_inter_out[ii]:
@@ -2170,7 +2172,18 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      int num_threads):
     cdef int ii
     cdef long[::1] lstruct_nlim_copy
-
+    cdef array vperp_out = clone(array('d'), npts2 * 3, True)
+    cdef array coeff_inter_in  = clone(array('d'), npts2, True)
+    cdef array coeff_inter_out = clone(array('d'), npts2, True)
+    cdef array ind_inter_out = clone(array('i'), npts2 * 3, True)
+    cdef int sz_ves_lims = np.size(ves_lims)
+    cdef int npts_poly = ves_norm.shape[1]
+    cdef double[:, ::1] ray_orig = view.array(shape=(3,npts2),
+                                              itemsize=sizeof(double),
+                                              format="d")
+    cdef double[:, ::1] ray_vdir = view.array(shape=(3,npts2),
+                                              itemsize=sizeof(double),
+                                              format="d")
     # We compute for each point in the polygon
     for ii in range(npts1):
         # ... copying tab that will be changed
@@ -2178,16 +2191,20 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
             lstruct_nlim_copy = None
         else:
             lstruct_nlim_copy = lstruct_nlim.copy()
-        is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
-                          pts2, npts2,
-                          ves_poly, ves_norm,
-                          is_vis[ii,...], dist[ii], ves_lims,
-                          lstruct_nlim_copy,
-                          lstruct_polyx, lstruct_polyy,
-                          lstruct_lims,
-                          lstruct_normx, lstruct_normy,
-                          lnvert, nstruct_tot, nstruct_lim,
-                          rmin, eps_uz, eps_a, eps_vz, eps_b,
-                          eps_plane, is_tor,
-                          forbid, num_threads)
+        is_visible_pt_vec_core(pts1[0,ii], pts1[1,ii], pts1[2,ii],
+                               pts2, npts2,
+                               ves_poly, ves_norm,
+                               is_vis[ii,...], dist[ii], ves_lims,
+                               lstruct_nlim_copy,
+                               lstruct_polyx, lstruct_polyy,
+                               lstruct_lims,
+                               lstruct_normx, lstruct_normy,
+                               lnvert, vperp_out,
+                               coeff_inter_in, coeff_inter_out,
+                               ind_inter_out, sz_ves_lims,
+                               ray_orig, ray_vdir, npts_poly,
+                               nstruct_tot, nstruct_lim,
+                               rmin, eps_uz, eps_a, eps_vz, eps_b,
+                               eps_plane, is_tor,
+                               forbid, num_threads)
     return
