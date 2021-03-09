@@ -743,22 +743,30 @@ $$
     + (1-1)\Delta Z\int_{0}^{\pi}\frac{\sin(\theta')}{\| \ud{AM} \|^3}d\theta''\ud{e}_{\theta}(0)
     \right)\\
     & = 2\frac{\mu_0}{4\pi}IR\left(
-    R\int_{0}^{\pi}\frac{1-a_M\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_z
+    R\int_{0}^{\pi}\frac{1-r\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_z
     + \Delta Z\int_{0}^{\pi}\frac{\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_r(0)
     \right)\\
 \end{array}
 $$
 
+Introducing:
+$$
+\left\{
+\begin{array}{ll}
+    r = \frac{R_M}{R}\\
+    z = \frac{Z}{R}
+\end{array}
+\right.
+$$
 
 Now, writing:
 $$
 \begin{array}{ll}
     \|\ud{AM}\|^2
-    & = \left(-R\ud{e}_r(\theta') + \ud{CM}\right)^2\\
-    & = R^2 - 2R\ud{e}_r(\theta')\cdot\ud{CM} + \|\ud{CM}\|^2\\
-    & = R^2 - 2RR_M\cos(\theta') + R_M^2 + \Delta Z^2\\
-    & = R^2\left(1 + a_M^2 + \left(\frac{\Delta Z}{R}\right)^2
-    - 2a_M\cos(\theta')\right)\\
+    & = \left(-R\ud{e}_r(\theta) + \ud{CM}\right)^2\\
+    & = R^2 - 2R\ud{e}_r(\theta)\cdot\ud{CM} + \|\ud{CM}\|^2\\
+    & = R^2 - 2RR_M\cos(\theta) + R_M^2 + \Delta Z^2\\
+    & = R^2\left(1 + r^2 + z^2 - 2r\cos(\theta)\right)\\
 \end{array}
 $$
 
@@ -767,21 +775,141 @@ $$
 \begin{array}{ll}
     \ud{B}
     & = 2\frac{\mu_0}{4\pi}IR\left(
-    R\int_{0}^{\pi}\frac{1-a_M\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_z
-    + \Delta Z\int_{0}^{\pi}\frac{\cos(\theta')}{\| \ud{AM} \|^3}d\theta'\ud{e}_r(0)
+    R\int_{0}^{\pi}\frac{1-r\cos(\theta)}{\| \ud{AM} \|^3}d\theta\ud{e}_z
+    + \Delta Z\int_{0}^{\pi}\frac{\cos(\theta)}{\| \ud{AM} \|^3}d\theta\ud{e}_r(0)
     \right)\\
     & = 2\frac{\mu_0}{4\pi}\frac{I}{R}\left(
-    \int_{0}^{\pi}\frac{1-a_M\cos(\theta')}
-    {\left(1 + a_M^2 + \left(\frac{\Delta Z}{R}\right)^2
-    - 2a_M\cos(\theta')\right)^{3/2}}
-    d\theta'\ud{e}_z
-    + \frac{\Delta Z}{R}\int_{0}^{\pi}\frac{\cos(\theta')}
-    {\left(1 + a_M^2 + \left(\frac{\Delta Z}{R}\right)^2
-    - 2a_M\cos(\theta')\right)^{3/2}}
-    d\theta'\ud{e}_r(0)
+    \int_{0}^{\pi}\underbrace{
+        \frac{1-r\cos(\theta)}
+        {\left(1 + r^2 + z^2 - 2r\cos(\theta)\right)^{3/2}}
+    }_{f_z(\theta, r, z)}
+    d\theta\ud{e}_z
+    + z\int_{0}^{\pi}\underbrace{
+        \frac{\cos(\theta)}
+        {\left(1 + r^2 + z^2 - 2r\cos(\theta)\right)^{3/2}}
+    }_{f_r(\theta, r, z)}
+    d\theta\ud{e}_r(0)
     \right)\\
 \end{array}
 $$
+
+\section{Analyzing components}
+
+
+\subsection{Sign of the integrands}
+Both $r$ and $z$ components are integrals of functions $f_r$ and $f_z$, each
+with the same denominator.
+
+This denominator is always positive, indeed:
+$$
+\begin{array}{ll}
+    & 1 + r^2 + z^2 - 2r\cos(\theta) \geq 0\\
+    & (1 - r)^2  + 2r(1-\cos(\theta)) + z^2 \geq 0\\
+\end{array}
+$$
+
+Which is always true because all terms are positive.
+
+Hence:
+$$
+\left\{
+\begin{array}{lll}
+    f_r(\theta, r, z) \geq 0
+    & \Leftrightarrow \cos(\theta) \geq 0
+    & \Leftrightarrow \theta \leq \frac{\pi}{2}\\
+    f_z(\theta, r, z) \geq 0
+    & \Leftrightarrow r\cos(\theta) \leq 1
+    & \Leftrightarrow \theta \geq \arccos\left(\frac{1}{r}\right)\\
+\end{array}
+\right.
+$$
+
+It can be noticed that if $r\leq1$ (i.e.: $R_M \leq R$), the $z$ component of
+the magnetic field is always negative (or positive, depending on the sign of
+the current $I$).
+
+However, if $r > 1$, there is a value of $z$ (for fixed $r$) for which the
+component changes sign.
+
+\subsection{Zero vertical component}
+
+The vertical component is always non-zero if $r<1$.
+So here we assume $r \geq 1$.
+
+In the context, let's investigate the monotonicity of the integrands, keeping
+in mind that $1 + r^2 + z^2 - 2r\cos(\theta) > 0$ and $\sin(\theta) \geq 0$ in
+$[0; \pi]$.
+$$
+\begin{array}{ll}
+    & \partial_{\theta} f_z(\theta, r, z) \geq 0\\
+    \Leftrightarrow
+    & r\sin(\theta)(1 + r^2 + z^2 - 2r\cos(\theta) )^{3/2}
+    - (1-r\cos(\theta)\frac{3}{2}\sqrt{1 + r^2 + z^2 -
+    2r\cos(\theta)}(2r\sin(\theta))) \geq 0\\
+    \Leftrightarrow
+    & r\sin(\theta)(1 + r^2 + z^2 - 2r\cos(\theta))
+    - 3(1-r\cos(\theta))r\sin(\theta))) \geq 0\\
+    \Leftrightarrow
+    & \sin(\theta)(1 + r^2 + z^2 - 2r\cos(\theta))
+    - 3(1-r\cos(\theta))\sin(\theta))) \geq 0\\
+    \Leftrightarrow
+    & 1 + r^2 + z^2 - 2r\cos(\theta) - 3(1-r\cos(\theta)) \geq 0\\
+    \Leftrightarrow
+    & r^2 + z^2 + r\cos(\theta) \geq 2\\
+    \Leftrightarrow
+    & \cos(\theta) \geq \frac{2 - r^2 - z^2}{r}\\
+    \Leftrightarrow
+    & \theta \leq \arccos\left(\frac{2 - r^2 - z^2}{r}\right)\\
+\end{array}
+$$
+
+We have 2 thresholds, and:
+$$
+\begin{array}{ll}
+    & \frac{2 - r^2 - z^2}{r} \leq \frac{1}{r}\\
+    \Leftrightarrow
+    & 2 - r^2 - z^2 \leq 1\\
+    \Leftrightarrow
+    & 1 \leq r^2 + z^2\\
+\end{array}
+$$
+
+Which is always true because we assumed $r \geq 1$.\\
+Hence, $\theta$ lives in:
+$$
+\left\{
+\begin{array}{ll}
+    \theta \in [0; \arccos(\frac{1}{r})]
+    & \Rightarrow f_z(\theta, r, z) \leq 0\\
+    \theta \in [\arccos(\frac{1}{r}); \arccos(\frac{2-r^2-z^2}{r})]
+    & \Rightarrow \partial_{\theta} f_z(\theta, r, z) \geq 0\\
+\end{array}
+\right.
+$$
+
+
+Hence, a summary of the behaviour of $f_z$ can be written:
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|l|l|l|l|}
+        \hline
+              & $0$ & $\arccos(\frac{1}{r})$ & $\arccos(\frac{2 - r^2 - z^2}{r})$ & $\pi$ \\ \hline
+        $\partial_{\theta} f_z$ & $\geq 0$ & $\geq 0$ & $\leq 0$ & $\leq 0$ \\ \hline
+        $f_z$ & $\leq 0$ & $\geq 0$ & $\geq 0$ & $\geq 0$ \\ \hline
+    \end{tabular}
+\end{table}
+
+
+\section{Re-writing as elliptic integrals}
+
+Both components can be written as elliptic integrals.\\
+The result be found in:\\
+
+[1] J. E. Lane, « Simple Analytic Expressions for the Magnetic Field of a
+Circular Current Loop », NASA/TM-2013-217919, 2001.
+
+
 
 
 
