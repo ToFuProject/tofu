@@ -147,6 +147,7 @@ class MultiIDSLoader(object):
     # Known short version of signal str
     _dshort = _defimas2tofu._dshort
     _didsdiag = _defimas2tofu._didsdiag
+    _lidsconfig = _defimas2tofu._lidsconfig
     _lidsdiag = _defimas2tofu._lidsdiag
     _lidslos = _defimas2tofu._lidslos
     _lidssynth = _defimas2tofu._lidssynth
