@@ -13,6 +13,7 @@ from matplotlib.path import Path
 
 # -- cython libraries imports --------------------------------------------------
 from cpython cimport bool
+from cython cimport view
 from cpython.array cimport array, clone
 from cython.parallel import prange
 from cython.parallel cimport parallel
@@ -4856,6 +4857,26 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     # initializing utilitary arrays
     is_vis = np.zeros(sz_p)
     dist = np.zeros(sz_p)
+    # .. useless tabs ..........................................................
+    # declared here so that cython can run without gil
+    cdef array vperp_out = clone(array('d'), sz_p * 3, True)
+    cdef array coeff_inter_in  = clone(array('d'), sz_p, True)
+    cdef array coeff_inter_out = clone(array('d'), sz_p, True)
+    cdef array ind_inter_out = clone(array('i'), sz_p * 3, True)
+    cdef int sz_ves_lims = np.size(ves_lims)
+    cdef int npts_poly = ves_norm.shape[1]
+    cdef double[:, ::1] ray_orig = view.array(shape=(3,sz_p),
+                                              itemsize=sizeof(double),
+                                              format="d")
+    cdef double[:, ::1] ray_vdir = view.array(shape=(3,sz_p),
+                                              itemsize=sizeof(double),
+                                              format="d")
+    # ... copying tab that will be changed
+    if lstruct_nlim is None:
+        lstruct_nlim_copy = None
+    else:
+        lstruct_nlim_copy = lstruct_nlim.copy()
+    # ..............
     _st.sa_double_loop(part_coords, part_r,
                        sa_map,
                        ves_poly, ves_norm,
@@ -4867,11 +4888,15 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        lstruct_lims,
                        lstruct_normx,
                        lstruct_normy,
-                       lnvert, nstruct_tot, nstruct_lim,
+                       lnvert, vperp_out,
+                       coeff_inter_in, coeff_inter_out,
+                       ind_inter_out, sz_ves_lims,
+                       ray_orig, ray_vdir, npts_poly,
+                       nstruct_tot, nstruct_lim,
                        rmin,
                        eps_uz, eps_a,
                        eps_vz, eps_b, eps_plane,
-                       ves_type, forbid,
+                       ves_type=='tor', forbid,
                        first_ind_mv, indi_mv,
                        is_cart, sz_p, sz_r, sz_z, lindex_z,
                        ncells_rphi, tot_nc_plane,
