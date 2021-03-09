@@ -2208,7 +2208,7 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
                                     reso_phi_mv, pts_mv, ind_mv)
     else:
         with nogil, parallel(num_threads=num_threads):
-            for ii in range(sz_r):
+            for ii in prange(sz_r):
                 sa_double_loop_polr(ii, part_coords, part_rad,
                                     sz_p, sz_z,
                                     sa_map[ii],
