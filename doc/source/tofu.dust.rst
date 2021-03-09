@@ -5,6 +5,7 @@ tofu.dust package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
@@ -16,6 +17,7 @@ tofu.dust.\_comp module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dust.\_core module
 -----------------------
@@ -24,6 +26,7 @@ tofu.dust.\_core module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dust.\_plot module
 -----------------------
@@ -32,4 +35,4 @@ tofu.dust.\_plot module
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:
