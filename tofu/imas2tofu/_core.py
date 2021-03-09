@@ -267,6 +267,8 @@ class MultiIDSLoader(object):
                 if not all([iids in self._IDS_BASE
                             for iids in self._dids.keys()]):
                     ids_base = True
+                else:
+                    ids_base = False
             if not isinstance(ids_base, bool):
                 msg = ("Arg ids_base must be bool:\n"
                        + "\t- False: adds no ids\n"
