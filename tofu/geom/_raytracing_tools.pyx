@@ -2031,28 +2031,84 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     cdef array coeff_inter_in  = clone(array('d'), npts, True)
     cdef array coeff_inter_out = clone(array('d'), npts, True)
     cdef array ind_inter_out = clone(array('i'), npts * 3, True)
-    cdef int sz_ves_lims
-    cdef double min_poly_r
-    cdef double* dist_arr = NULL
+    cdef int sz_ves_lims = np.size(ves_lims)
+    cdef int npts_poly = ves_norm.shape[1]
     cdef double[:, ::1] ray_orig = view.array(shape=(3,npts),
                                               itemsize=sizeof(double),
                                               format="d")
     cdef double[:, ::1] ray_vdir = view.array(shape=(3,npts),
                                               itemsize=sizeof(double),
                                               format="d")
-    cdef int npts_poly = ves_norm.shape[1]
+    # ... copying tab that will be changed
+    if lstruct_nlim is None:
+        lstruct_nlim_copy = None
+    else:
+        lstruct_nlim_copy = lstruct_nlim.copy()
+    # --------------------------------------------------------------------------
+    is_visible_pt_vec_core(pt0, pt1, pt2,
+                           pts, npts,
+                           ves_poly, ves_norm,
+                           is_vis, dist, ves_lims,
+                           lstruct_nlim,
+                           lstruct_polyx, lstruct_polyy,
+                           lstruct_lims,
+                           lstruct_normx, lstruct_normy,
+                           lnvert, vperp_out,
+                           coeff_inter_in, coeff_inter_out,
+                           ind_inter_out, sz_ves_lims,
+                           ray_orig, ray_vdir, npts_poly,
+                           nstruct_tot, nstruct_lim,
+                           rmin, eps_uz, eps_a, eps_vz, eps_b,
+                           eps_plane, is_tor,
+                           forbid, num_threads)
+
+    return
+
+
+cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
+                                        double[:, ::1] pts, int npts,
+                                        double[:, ::1] ves_poly,
+                                        double[:, ::1] ves_norm,
+                                        double[::1] is_vis,
+                                        double[::1] dist,
+                                        double[::1] ves_lims,
+                                        long[::1] lstruct_nlim,
+                                        double[::1] lstruct_polyx,
+                                        double[::1] lstruct_polyy,
+                                        double[::1] lstruct_lims,
+                                        double[::1] lstruct_normx,
+                                        double[::1] lstruct_normy,
+                                        long[::1] lnvert,
+                                        # results:
+                                        double[::1] vperp_out,
+                                        double[::1] coeff_inter_in,
+                                        double[::1] coeff_inter_out,
+                                        int[::1] ind_inter_out,
+                                        int sz_ves_lims,
+                                        double[:, ::1] ray_orig,
+                                        double[:, ::1] ray_vdir,
+                                        int npts_poly,
+                                        # ...
+                                        int nstruct_tot,
+                                        int nstruct_lim,
+                                        double rmin,
+                                        double eps_uz, double eps_a,
+                                        double eps_vz, double eps_b,
+                                        double eps_plane, bint is_tor,
+                                        bint forbid,
+                                        int num_threads) nogil:
+    cdef double* dist_arr = NULL
+    cdef double min_poly_r
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
-    with nogil:
-        _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
-        if dist == None:
-            dist_arr = <double*> malloc(npts*sizeof(double))
-            _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
-            _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
-        else:
-            _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
+    _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
+    if dist is None:
+        dist_arr = <double*> malloc(npts*sizeof(double))
+        _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
+        _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
+    else:
+        _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
     # --------------------------------------------------------------------------
-    sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
     compute_inout_tot(npts, npts_poly,
                       ray_orig, ray_vdir,
@@ -2070,11 +2126,11 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                       ind_inter_out)
     # --------------------------------------------------------------------------
     # Get ind
-    if dist == None:
-        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts, num_threads)
+    if dist is None:
+        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts, 4)
         free(dist_arr)
     else:
-        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts, num_threads)
+        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts, 4)
     return
 
 
@@ -2112,13 +2168,9 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double eps_plane, bint is_tor,
                                      bint forbid,
                                      int num_threads):
-    cdef np.ndarray[double, ndim=2, mode='c'] ray_orig_arr
-    cdef np.ndarray[double, ndim=2, mode='c'] ray_vdir_arr
-    cdef np.ndarray[double, ndim=2, mode='c'] dist_arr
-    cdef double[:, ::1] ray_orig
-    cdef double[:, ::1] ray_vdir
-    cdef long[::1] lstruct_nlim_copy
     cdef int ii
+    cdef long[::1] lstruct_nlim_copy
+
     # We compute for each point in the polygon
     for ii in range(npts1):
         # ... copying tab that will be changed
