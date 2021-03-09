@@ -2034,7 +2034,6 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     cdef int sz_ves_lims
     cdef double min_poly_r
     cdef double* dist_arr = NULL
-    cdef long[::1] lstruct_nlim_copy
     cdef double[:, ::1] ray_orig = view.array(shape=(3,npts),
                                               itemsize=sizeof(double),
                                               format="d")
@@ -2055,14 +2054,10 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
-    if lstruct_nlim is None:
-        lstruct_nlim_copy = None
-    else:
-        lstruct_nlim_copy = lstruct_nlim.copy()
     compute_inout_tot(npts, npts_poly,
                       ray_orig, ray_vdir,
                       ves_poly, ves_norm,
-                      lstruct_nlim_copy, ves_lims,
+                      lstruct_nlim, ves_lims,
                       lstruct_polyx, lstruct_polyy,
                       lstruct_lims, lstruct_normx,
                       lstruct_normy, lnvert,
@@ -2076,20 +2071,23 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     # Get ind
     if dist == None:
-        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts)
+        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts, num_threads)
         free(dist_arr)
     else:
-        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts)
+        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts, num_threads)
     return
+
 
 cdef inline void is_vis_mask(double[::1] is_vis, double* dist,
                              double[::1] coeff_inter_out,
-                             int npts) nogil:
+                             int npts,
+                             int num_threads) nogil:
     cdef int ii
-    for ii in range(npts):
-        is_vis[ii] = 1
-        if dist[ii] > coeff_inter_out[ii]:
-            is_vis[ii] = 0
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(npts):
+            is_vis[ii] = 1
+            if dist[ii] > coeff_inter_out[ii]:
+                is_vis[ii] = 0
     return
 
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
@@ -2119,14 +2117,20 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     cdef np.ndarray[double, ndim=2, mode='c'] dist_arr
     cdef double[:, ::1] ray_orig
     cdef double[:, ::1] ray_vdir
+    cdef long[::1] lstruct_nlim_copy
     cdef int ii
     # We compute for each point in the polygon
     for ii in range(npts1):
+        # ... copying tab that will be changed
+        if lstruct_nlim is None:
+            lstruct_nlim_copy = None
+        else:
+            lstruct_nlim_copy = lstruct_nlim.copy()
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
                           ves_poly, ves_norm,
                           is_vis[ii,...], dist[ii], ves_lims,
-                          lstruct_nlim,
+                          lstruct_nlim_copy,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,
                           lstruct_normx, lstruct_normy,
