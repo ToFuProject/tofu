@@ -1634,6 +1634,22 @@ class MultiIDSLoader(object):
             Name = wall.type.name
             if Name == '':
                 Name = 'imas wall'
+        if '_' in Name:
+            Name = Name.strip('_')
+            ln = Name.split('_')
+            if len(ln) > 1:
+                for ii, nn in enumerate(ln[1:]):
+                    if nn[0].islower():
+                        ln[ii+1] = nn.capitalize()
+                Name = ''.join(ln)
+        if ' ' in Name:
+            Name = Name.strip(' ')
+            ln = Name.split(' ')
+            if len(ln) > 1:
+                for ii, nn in enumerate(ln[1:]):
+                    if nn[0].islower():
+                        ln[ii+1] = nn.capitalize()
+                Name = ''.join(ln)
         config = mod.Config(lStruct=lS, Name=Name, **kwargs)
 
         # Output
