@@ -1579,6 +1579,31 @@ def calc_from_imas(
                                                 ref2d='equilibrium.2drhotn',
                                                 coefs=coefs, bck=bck,
                                                 Brightness=True, plot=plot)[0]
+        if 'polarimeter' in lids:
+            lf = ['t', 'rhotn', '1dne', '2dne', '2dBR', '2dBT', '2dBZ']
+            dout = imas2tofu.get_data_from_matids(input_file, return_fields=lf)
+            plasma.add_ref(key='core_profiles.t', data=dout['t'], group='time',
+                           origin='input_file')
+            nrad = dout['rhotn'].shape[1]
+            plasma.add_ref(key='core_profiles.radius', data=np.arange(0, nrad),
+                           group='radius', origin='input_file')
+            plasma.add_quantity(key='core_profiles.1drhotn',
+                                data=dout['rhotn'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file',
+                                quant='rhotn', dim='rho', units='adim.')
+            plasma.add_quantity(key='core_profiles.1dne', data=dout['ne'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file')
+            cam = multi.to_Cam(plot=False)
+            sig = cam.calc_signal_from_Plasma2D(plasma,
+                                                quant='core_profiles.1dne',
+                                                ref1d='core_profiles.1drhotn',
+                                                ref2d='equilibrium.2drhotn',
+                                                coefs=coefs, bck=bck,
+                                                Brightness=True, plot=plot)[0]
     if output_file is not None:
         try:
             # Format output dictionnary to be saved
