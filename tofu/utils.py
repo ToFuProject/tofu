@@ -1573,6 +1573,8 @@ def calc_from_imas(
                                         'core_profiles.radius'),
                                 origin='input_file')
             cam = multi.to_Cam(plot=False)
+            if coefs is None:
+                coefs = 2.  # get both ways
             sig = cam.calc_signal_from_Plasma2D(plasma,
                                                 quant='core_profiles.1dne',
                                                 ref1d='core_profiles.1drhotn',
@@ -1580,7 +1582,9 @@ def calc_from_imas(
                                                 coefs=coefs, bck=bck,
                                                 Brightness=True, plot=plot)[0]
         if 'polarimeter' in lids:
-            lf = ['t', 'rhotn', '1dne', '2dne', '2dBR', '2dBT', '2dBZ']
+            lamb = multi.get_data(dsig={'polarimeter': 'lamb'},
+                                  stack=True)[ids]['lamb']['data'][0]
+            lf = ['t', 'rhotn', 'ne']
             dout = imas2tofu.get_data_from_matids(input_file, return_fields=lf)
             plasma.add_ref(key='core_profiles.t', data=dout['t'], group='time',
                            origin='input_file')
@@ -1597,13 +1601,43 @@ def calc_from_imas(
                                 depend=('core_profiles.t',
                                         'core_profiles.radius'),
                                 origin='input_file')
+            # Add necessary 2dne (and time reference)
+            ne2d, tne2d = plasma.interp_pts2profile(quant='core_profiles.1dne',
+                                                    ref1d='core_profiles.1drhotn',
+                                                    ref2d='equilibrium.2drhotn',
+                                                    t=t, interp_t='nearest')
+            # Add fanglev
+            out = plasma.compute_fanglev(BR='equilibrium.2dBR',
+                                         BPhi='equilibrium.2dBT',
+                                         BZ='equilibrium.2dBZ',
+                                         ne=ne2d, tne=tne2d, lamb=lamb)
+            fangleRPZ, tfang, units = out
+
+            plasma.add_ref(key='tfangleRPZ', data=tfang, group='time')
+
+            origin = 'f(equilibrium, core_profiles, polarimeter)'
+            depend = ('tfangleRPZ','equilibrium.mesh')
+
+            plasma.add_quantity(key='2dfangleR', data=fangleRPZ[0,...],
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            plasma.add_quantity(key='2dfanglePhi', data=fangleRPZ[1,...],
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            plasma.add_quantity(key='2dfangleZ', data=fangleRPZ[2,...],
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+
             cam = multi.to_Cam(plot=False)
-            sig = cam.calc_signal_from_Plasma2D(plasma,
-                                                quant='core_profiles.1dne',
-                                                ref1d='core_profiles.1drhotn',
-                                                ref2d='equilibrium.2drhotn',
-                                                coefs=coefs, bck=bck,
-                                                Brightness=True, plot=plot)[0]
+            if coefs is None:
+                coefs = -2.  # get both ways, with reverse LOS direction
+            sig = cam.calc_signal_from_Plasma2D(
+                plasma,
+                q2dR='2dfangleR', q2dPhi='2dfanglePhi', q2dZ='2dfangleZ',
+                ref2d='equilibrium.2drhotn', Type='sca',
+                coefs=coefs, bck=bck, ani=True, Brightness=True, plot=plot,
+            )[0]
+
     if output_file is not None:
         try:
             # Format output dictionnary to be saved
