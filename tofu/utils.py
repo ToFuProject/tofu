@@ -1503,16 +1503,18 @@ def calc_from_imas(
             # export to instances
             for ii in range(0, nids):
                 if out[ii] == "Data":
-                    multi.calc_signal(ids=lids[ii],
-                                      tlim=tlim, dsig=dsig,
-                                      config=config, t=t,
-                                      res=res, indch=indch,
-                                      Brightness=Brightness,
-                                      interp_t=interp_t,
-                                      indch_auto=indch_auto,
-                                      t0=t0, dextra=dextra,
-                                      coefs=coefs, plot=True, bck=bck,
-                                      plot_compare=plot_compare)
+                    sig = multi.calc_signal(
+                        ids=lids[ii],
+                        tlim=tlim, dsig=dsig,
+                        config=config, t=t,
+                        res=res, indch=indch,
+                        Brightness=Brightness,
+                        interp_t=interp_t,
+                        indch_auto=indch_auto,
+                        t0=t0, dextra=dextra,
+                        coefs=coefs, plot=plot, bck=bck,
+                        plot_compare=plot_compare,
+                    )
 
     else:
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
@@ -1577,30 +1579,30 @@ def calc_from_imas(
                                                 ref2d='equilibrium.2drhotn',
                                                 coefs=coefs, bck=bck,
                                                 Brightness=True, plot=plot)[0]
-        if output_file is not None:
-            try:
-                # Format output dictionnary to be saved
-                dout = {'shot': shot[0],
-                        't': sig.t,
-                        'data': sig.data,
-                        'units_t': 's',
-                        'units_data': 'ph / (s.m2.sr.m)',
-                        'channels': sig.dchans('names'),
-                        'tofu_version': __version__}
+    if output_file is not None:
+        try:
+            # Format output dictionnary to be saved
+            dout = {'shot': shot[0],
+                    't': sig.t,
+                    'data': sig.data,
+                    'units_t': 's',
+                    'units_data': 'ph / (s.m2.sr.m)',
+                    'channels': sig.dchans('names'),
+                    'tofu_version': __version__}
 
-                # Save to specified path + filename + extension
-                if output_file[-4:] != '.mat':
-                    assert len(output_file.split('.')) == 1
-                    output_file += '.mat'
-                scpio.savemat(output_file, dout)
-                msg = ("Successfully saved in:\n"
-                       + "\t{}".format(output_file))
-                print(msg)
-            except Exception as err:
-                msg = str(err)
-                msg += "\nCould not save computed synthetic signal to:\n"
-                msg += "scpio.savemat({0}, dout)".format(output_file)
-                warnings.warn(msg)
+            # Save to specified path + filename + extension
+            if output_file[-4:] != '.mat':
+                assert len(output_file.split('.')) == 1
+                output_file += '.mat'
+            scpio.savemat(output_file, dout)
+            msg = ("Successfully saved in:\n"
+                   + "\t{}".format(output_file))
+            print(msg)
+        except Exception as err:
+            msg = str(err)
+            msg += "\nCould not save computed synthetic signal to:\n"
+            msg += "scpio.savemat({0}, dout)".format(output_file)
+            warnings.warn(msg)
 
 
 #############################################
