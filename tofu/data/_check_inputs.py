@@ -155,7 +155,7 @@ def _remove_data(
 # #############################################################################
 
 
-def _check_dgroup(dgroup=None, dgroup0=None):
+def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
     """ dgroup must be
     - str: turned to list
     - list of str
@@ -169,10 +169,10 @@ def _check_dgroup(dgroup=None, dgroup0=None):
 
     # ----------------
     # Check conformity
-    c0 = isinstance(dgroup, str) and dgroup in dgroup.keys()
+    c0 = isinstance(dgroup, str) and dgroup not in dgroup0.keys()
     c1 = (
         isinstance(goup, list)
-        and all([isinstance(gg, str) and gg in dgroup.keys()])
+        and all([isinstance(gg, str) and gg not in dgroup0.keys()])
     )
     c2 = (
         isinstance(dgroup, dict)
@@ -210,6 +210,29 @@ def _check_dgroup(dgroup=None, dgroup0=None):
             )
         )
         raise Exception(msg)
+
+    # Check compliance with allowed groups, if any
+    if allowed_groups is not None:
+        if c0:
+            lg = [dgroup] if dgroup not in allowed_groups else []
+        elif c1:
+            lg = [k0 for k0 in dgroup if k0 not in allowed_groups]
+        else:
+            lg = [k0 for k0 in dgroup>keys() if k0 not in allowed_groups]
+        if len(lg) > 0:
+            msg = (
+                """
+                The following group names are not allowed:
+                {}
+
+                Only the following group names are allowed:
+                {}
+                """.format(
+                    '\t- ' + '\n\t- '.join(lg),
+                    '\t- ' + '\n\t- '.join(allowed_groups),
+                )
+            )
+            raise Exception(msg)
 
     # Convert if necessary
     if c0:
@@ -274,7 +297,9 @@ def _check_dataref(data=None, ref=None):
     return data, size
 
 
-def _check_dref(dref=None, dref0=None, dgroup0=None, ddata0=None):
+def _check_dref(
+    dref=None, dref0=None, dgroup0=None, ddata0=None, allowed_groups=None,
+):
     """ Check and format dref
 
     dref can be:
@@ -371,7 +396,9 @@ def _check_dref(dref=None, dref0=None, dgroup0=None, ddata0=None):
         if 'group' in v0.keys() and v0['group'] not in dgroup0.keys()
     ]))
     if len(lgroups) > 0:
-        dgroup_add = _check_dgroup(lgroups, dgroup0=dgroup0)
+        dgroup_add = _check_dgroup(
+            lgroups, dgroup0=dgroup0, allowed_groups=allowed_groups,
+        )
 
     # Add size / data if relevant
     ddata_add = {
@@ -409,18 +436,33 @@ def _check_data(data=None, key=None):
 
     # if not array
     # => try converting or get class (dict, mesh...)
+    shape = None
     if not isinstance(data, np.ndarray):
         if isinstance(data, list) or isinstance(data, tuple):
-            try:
+            c0 = (
+                all([hasattr(oo, '__iter__') for oo in data])
+                and len(set([len(oo) for oo in data])) != 1
+            )
+            c1 = (
+                all([hasattr(oo, '__iter__') for oo in data])
+                and len(set([len(oo) for oo in data])) == 1
+            )
+            if c0:
+                data = np.array(data, dtype=object)
+                shape = (data.shape[0],)
+            elif c1:
                 data = np.array(data)
-                shape = data.shape
-            except Exception as err:
-                raise DataRefException(ref=ref, data=data)
+            else:
+                try:
+                    data = np.array(data)
+                    shape = data.shape
+                except Exception as err:
+                    raise DataRefException(ref=ref, data=data)
         else:
             shape = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
-    if isinstance(data, np.ndarray):
+    if isinstance(data, np.ndarray) and shape is None:
         shape = data.shape
 
     return data, shape
@@ -536,7 +578,7 @@ def _check_ddata(
 
     # Check data and ref vs shape
     for k0, v0 in ddata.items():
-        ddata[k0]['data'], shape = _check_dataref(data=v0['data'], key=k0)
+        ddata[k0]['data'], shape = _check_data(data=v0['data'], key=k0)
         if isinstance(shape, tuple):
             c0 = (
                 len(v0['ref']) = len(shape)
@@ -557,18 +599,71 @@ def _check_ddata(
             raise Exception(msg)
         ddata[k0]['shape'] = shape
 
-    # Check for params      # DB
-    lparams = _get_lparams(ddata, lkeys=None, reserved_keys=reserved_keys)
-    lparams = _get_lparams(ddata0, lkeys=lparams, reserved_keys=reserved_keys)
-    dparams = _get_dparams(ddata, reserved_keys=reserved_keys)
-
-    # Get rid of extra keys
-    ddata = {
-        k0: {k1: v0[k1] for k1 in _DRESERVED_KEYS}
-        for k0 in ddata.keys()
-    }
-
     return ddata, dref_add, dgroup_add
+
+
+# #############################################################################
+# #############################################################################
+#                           Params
+# #############################################################################
+
+
+def _harmonize_params(
+    ddata=None, lkeys=None, reserved_keys=None, ddefparams=None,
+):
+
+    # Check inputs
+    if reserved_keys is None:
+        reserved_keys = _DRESERVED_KEYS['ddata']
+    if ddefparams is None:
+        ddefparams = _DDEFPARAMS
+
+    # ------------------
+    # list of param keys
+
+    # Get list of known param keys
+    lparams = sorted(set(itt.chain.from_iterable([
+        [k1 for k1 in v0.keys() if k1 not reserved_keys]
+        for k0, v0 in ddata.items()
+    ])))
+
+    # Add arbitrary params
+    if lkeys is not None:
+        if isinstance(lkeys, str):
+            lkeys = [lkeys]
+        c0 = (
+            isinstance(lkeys, list)
+            and all([isinstance(ss, str) for ss in lkeys])
+        )
+        if not c0:
+            msg = "lkeys must be a list of str!"
+            raise Exception(msg)
+        lparams = sorted(set(lparams).intersection(lkeys))
+
+    # ------------------
+    # dparam
+    for k0, v0 in ddefparams.items():
+        for k1, v1 in ddata.items():
+            if k0 not in v1.keys():
+                ddata[k1][k0] = v0[1]
+            else:
+                # Check type if already included
+                if not isinstance(ddata[k1][k0], v0[0]):
+                    msg = (
+                        """
+                        Wrong type for parameter:
+                            - type(ddata[{}][{}]) = {}
+                        - Expected: {}
+                        """.format(
+                            k1, k0, type(ddata[k1][k0]), v0[0],
+                        )
+                    )
+                    raise Exception(msg)
+
+    for k0 in lparams:
+        for k1, v1 in ddata.items():
+            ddata[k1][k0] = ddata[k1].get(k0)
+    return ddata
 
 
 # #############################################################################
@@ -585,7 +680,9 @@ def _consistency(
 
     # --------------
     # dgroup
-    dgroup = _check_dgroup(dgroup=dgroup, dgroup0=dgroup0)
+    dgroup = _check_dgroup(
+        dgroup=dgroup, dgroup0=dgroup0, allowed_groups=allowed_groups,
+    )
     dgroup0.update(dgroup)
 
     # --------------
@@ -606,7 +703,14 @@ def _consistency(
     ddata0.update(ddata)
 
     # --------------
-    # Complenent
+    # params harmonization
+    ddata0 = _harmonize_params(
+        ddata=data0,
+        ddefparams=ddefparams, reserved_keys=reserved_keys,
+    )
+
+    # --------------
+    # Complement
 
     # ddata0
     for k0, v0 in ddata0.items():
@@ -614,12 +718,12 @@ def _consistency(
 
     # dref0
     for k0, v0 in dref0.items():
-        lref_add = [
+        ldata_add = [
             k1 for k1 in ddata0.keys()
             if k0 in ddata0[k1]['ref'] and k1 not in v0['ldata']
         ]
         if len(ldata_add) > 0:
-            dref0[k0]['ldata'].append(ldata_add)
+            dref0[k0]['ldata'].extend(ldata_add)
 
     # dgroup0
     for k0, v0 in dgroup0.items():
@@ -628,13 +732,14 @@ def _consistency(
             if dref0[k1]['group'] == k0 and k1 not in v0['lref']
         ]
         if len(lref_add) > 0:
-            dgroup0[k0]['lref'].append(lref_add)
+            dgroup0[k0]['lref'].extend(lref_add)
+
         ldata_add = [
             k1 for k1 in ddata0.keys()
             if k0 in ddata0[k1]['group'] and k1 not in v0['ldata']
         ]
         if len(ldata_add) > 0:
-            dgroup0[k0]['ldata'].append(ldata_add)
+            dgroup0[k0]['ldata'].extend(ldata_add)
 
     return ddata0, dref0, dgroup0
 
@@ -717,81 +822,3 @@ def _consistency(
                 self._ddata['dict'][kk][pp] = None
     self._ddata['lparam'] = lparam
 """
-
-
-# #############################################################################
-# #############################################################################
-#                           Params
-# #############################################################################
-
-
-def _get_lparams(data0, lkeys=None, reserved_keys=None):
-    if reserved_keys is None:
-        reserved_keys = _DRESERVED_KEYS['ddata']
-
-    # Get list of known param keys
-    lparams = sorted(set(itt.chain.from_iterable([
-        [k1 for k1 in v0.keys() if k1 not reserved_keys]
-        for k0, v0 in ddata0.items()
-    ])))
-
-    # Add arbitrary params
-    if lkeys is not None:
-        if isinstance(lkeys, str):
-            lkeys = [lkeys]
-        c0 = (
-            isinstance(lkeys, list)
-            and all([isinstance(ss, str) for ss in lkeys])
-        )
-        if not c0:
-            msg = "lkeys must be a list of str!"
-            raise Exception(msg)
-        lparam = sorted(set(lparam).intersection(lkeys))
-    return lparam
-
-
-def _get_dparams(ddata0, lkeys=None, reserved_keys=None):
-    return {k0:
-            {k1: v1.get(k0, None)}
-            for k0 in _get_lparams(
-                ddata0, lkeys=lkeys, reserved_keys=reserved_keys,
-            )
-           }
-
-
-def _extract_params(
-    key,
-    dd,
-    ref=False,
-    group=None,
-    reserved_params=None,
-    _dallowed_params=None,
-    _ddef_params=None,
-):
-
-
-
-    # Extract relevant parameters
-    dparams = {
-        kk: vv for kk, vv in dd.items()
-        if kk not in reserved_params
-    }
-
-    if ref and group is not None and _dallowed_params is not None:
-        defpars = _dallowed_params[group]
-    else:
-        defpars = _ddef_params
-
-    # Add minimum default parameters if not already included
-    for kk, vv in defpars.items():
-        if kk not in dparams.keys():
-            dparams[kk] = vv[1]
-        else:
-            # Check type if already included
-            if not isinstance(dparams[kk], vv[0]):
-                vtyp = str(type(vv[0]))
-                msg = "A parameter for %s has the wrong type:\n"%key
-                msg += "    - Provided: type(%s) = %s\n"%(kk, vtyp)
-                msg += "    - Expected %s"%str(_ddef_params[kk][0])
-                raise Exception(msg)
-    return dparams
