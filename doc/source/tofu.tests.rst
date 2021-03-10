@@ -5,11 +5,13 @@ tofu.tests package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 5
 
    tofu.tests.tests00_root
    tofu.tests.tests01_geom

@@ -393,7 +393,7 @@ class ID(object):
         return self._Name
     @property
     def NameLTX(self):
-        return r"$"+self.Name.replace('_','\_')+r"$"
+        return r"$" + self.Name.replace('_', '\_') + r"$"
     @property
     def Exp(self):
         return self._Exp

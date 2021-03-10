@@ -7,10 +7,10 @@ on:
   push:
     branches:
       - master
-      - test-deploy
+      - deploy-test
 
 jobs:
-  test-deploy:
+  deploy:
 
     runs-on: ubuntu-latest
 

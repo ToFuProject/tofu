@@ -18,8 +18,9 @@ import sphinx_bootstrap_theme
 from sphinx_gallery.sorting import FileNameSortKey
 
 # Getting tofu version
-tf_version = tf.__version__[:3]
-tf_release = tf.__version__[:5]
+splitted = tf.__version__.split(".")
+tf_version = splitted[0] + "." + splitted[1]
+tf_release = tf_version  + "." + splitted[2]
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

@@ -25,11 +25,13 @@ try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
+    import tofu.geom._comp_solidangles as _comp_solidangles
     import tofu.geom._plot as _plot
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
     from . import _comp as _comp
+    from . import _comp_solidangles
     from . import _plot as _plot
 
 __all__ = [
@@ -3915,6 +3917,68 @@ class Config(utils.ToFuObject):
         )
         return dkwd
 
+    def calc_solidangle_particle(
+        self,
+        pts=None,
+        traj=None,
+        rad=None,
+        approx=None,
+        aniso=None,
+        block=None,
+    ):
+        """ Compute the solid angle subtended by a particle along a trajectory
+
+        The particle has radius r, and trajectory (array of points) traj
+        It is observed from pts (array of points)
+        Takes into account blocking of the field of view by structural elements
+
+        traj and pts are (3, N) and (3, M) arrays of cartesian coordinates
+
+        approx = True => use approximation
+        aniso = True => return also unit vector of emission
+        block = True consider LOS collisions (with Ves, Struct...)
+
+        if block:
+            config used for LOS collisions
+
+        Parameters
+        ----------
+        traj:       np.ndarray
+            Array of (3, N) pts coordinates (X, Y, Z) representing the particle
+            positions
+        pts:        np.ndarray
+            Array of (3, M) pts coordinates (X, Y, Z) representing points from
+            which the particle is observed
+        rad:        float / np.ndarray
+            Unique of multiple values for the radius of the spherical particle
+                if multiple, rad is a np.ndarray of shape (N,)
+        approx:     None / bool
+            Flag indicating whether to compute the solid angle using a
+            1st-order series development (in which case the solid angle becomes
+            proportional to the radius of the particle, see Notes_Upgrades/)
+        aniso:      None / bool
+            Flag indicating whether to consider anisotropic emissivity,
+            meaning the routine must also compute and return the unit vector
+            directing the flux from each pts to each position on the trajectory
+        block:      None / bool
+            Flag indicating whether to check for vignetting by structural
+            elements provided by config
+
+        Return:
+        -------
+        sang: np.ndarray
+            (N, M) Array of floats, solid angles
+
+        """
+        return _comp_solidangles.calc_solidangle_particle(
+            pts=pts,
+            traj=traj,
+            rad=rad,
+            config=self,
+            approx=approx,
+            aniso=aniso,
+            block=block,
+        )
 
 """
 ###############################################################################
@@ -4868,7 +4932,7 @@ class Rays(utils.ToFuObject):
                 else:
                     num_tot_structs += len(ss.Lim)
 
-            lsnvert = np.asarray(lsnvert, dtype=np.long)
+            lsnvert = np.asarray(lsnvert, dtype=int)
             lSPolyx = np.asarray(lSPolyx)
             lSPolyy = np.asarray(lSPolyy)
             lSVInx = np.asarray(lSVInx)
@@ -4880,7 +4944,7 @@ class Rays(utils.ToFuObject):
                         lstruct_polyx=lSPolyx,
                         lstruct_polyy=lSPolyy,
                         lstruct_lims=lSLim,
-                        lstruct_nlim=np.asarray(lSnLim, dtype=np.long),
+                        lstruct_nlim=np.asarray(lSnLim, dtype=int),
                         lstruct_normx=lSVInx,
                         lstruct_normy=lSVIny,
                         lnvert=lsnvert,
@@ -5855,7 +5919,7 @@ class Rays(utils.ToFuObject):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim == 1
-            assert ind.dtype in [np.int64, np.bool_, np.long]
+            assert ind.dtype in [np.int64, np.bool_, int]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
                 if out is int:

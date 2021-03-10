@@ -2,6 +2,7 @@
 numpy
 scipy
 matplotlib
+requests
 
 ######## Requirements with Version Specifier ########
 Cython>=0.26
