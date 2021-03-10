@@ -6772,6 +6772,7 @@ class Rays(utils.ToFuObject):
         invert=True,
         draw=True,
         connect=True,
+        bck=None,
     ):
         if Brightness is False:
             if dataname is None:
@@ -6815,6 +6816,7 @@ class Rays(utils.ToFuObject):
                     invert=invert,
                     draw=draw,
                     connect=connect,
+                    bck=bck,
                 )
 
         if out in [object, "object"]:
@@ -6849,6 +6851,7 @@ class Rays(utils.ToFuObject):
         units=None,
         draw=True,
         connect=True,
+        bck=None,
         newcalc=True,
     ):
         """ Return the line-integrated emissivity
@@ -7022,6 +7025,7 @@ class Rays(utils.ToFuObject):
             invert=invert,
             draw=draw,
             connect=connect,
+            bck=bck,
         )
 
     def calc_signal_from_Plasma2D(
@@ -7060,6 +7064,7 @@ class Rays(utils.ToFuObject):
         units=None,
         draw=True,
         connect=True,
+        bck=None,
     ):
 
         # Format input
@@ -7239,6 +7244,7 @@ class Rays(utils.ToFuObject):
             invert=invert,
             draw=draw,
             connect=connect,
+            bck=bck,
         )
         return out
 

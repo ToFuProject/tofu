@@ -3276,9 +3276,9 @@ class Plasma2D(utils.ToFuObject):
 
         # Check ref
         lc = [
-            isinstance(ref, str) and ref in self._dref.keys(),
+            isinstance(ref, str) and ref in self._dindref.keys(),
             isinstance(ref, tuple) and all([
-                isinstance(rr, str) and rr in self._dref.keys() for rr in ref
+                isinstance(rr, str) and rr in self._dindref.keys() for rr in ref
             ])
         ]
         if not any(lc):
