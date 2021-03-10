@@ -3442,9 +3442,11 @@ class Plasma2D(utils.ToFuObject):
         # Run global consistency check and complement if necessary
         self._complement()
 
-    def add_quantity(self, key=None, data=None, depend=None,
-                     dim=None, quant=None, units=None,
-                     origin=None, name=None):
+    def add_quantity(
+        self, key=None, data=None, depend=None,
+        dim=None, quant=None, units=None, origin=None, name=None,
+        comments=None, delimiter=None,
+    ):
         """ Add a quantity
 
         The data is contained in data, which can be:
