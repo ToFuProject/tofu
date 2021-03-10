@@ -3237,6 +3237,60 @@ class Plasma2D(utils.ToFuObject):
 
         return data, key, group, units, dim, quant, origin, name
 
+    def _checkformat_addquant(
+        self, key=None, data=None, ref=None,
+        dim=None, quant=None, units=None,
+        origin=None, name=None,
+        comments=None, delimiter=None,
+    ):
+        # Check data
+        lc = [
+            isinstance(data, np.ndarray),
+            isinstance(data, dict),
+            isinstance(data, str) and os.path.isfile(data),
+        ]
+        if not any(lc):
+            msg = ("Arg data must be either:\n"
+                   + "\t- np.ndarray: a 1d array\n"
+                   + "\t- dict:       a dict containing a 2d mesh\n"
+                   + "\t- str:        an absolute path to an existing file\n"
+                   + "You provided:\n{}".format(data))
+            raise Exception(msg)
+
+        # If file: check content and extract data
+        if lc[2] is True:
+            data = os.path.abspath(data)
+            (data, key, units,
+             quant, dim, origin, name) = self._add_quant_from_file(
+                 pfe=data, key=key,
+                 dim=dim, quant=quant, units=units, origin=origin, name=name,
+                 comments=comments, delimiter=delimiter,
+             )
+
+        # Check key
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = ("Arg key must be a str not already in self.ddata.keys()\n"
+                   + "\t- key: {}\n".format(key))
+            raise Exception(msg)
+
+        # Check ref
+        lc = [
+            isinstance(ref, str) and ref in self._dref.keys(),
+            isinstance(ref, tuple) and all([
+                isinstance(rr, str) and rr in self._dref.keys() for rr in ref
+            ])
+        ]
+        if not any(lc):
+            msg = ("Arg ref must be str (or tuple of) in self.dref.keys()\n"
+                   + "\t- ref: {}".format(ref)
+                   + "\t- available ref: {}".format(self.dref.keys()))
+            raise Exception(msg)
+        if lc[0]:
+            ref = (ref,)
+
+        return data, key, ref, units, dim, quant, origin, name
+
     @staticmethod
     def _add_ref_from_file(pfe=None, key=None, group=None,
                            dim=None, quant=None, units=None,
@@ -3409,9 +3463,9 @@ class Plasma2D(utils.ToFuObject):
         a .txt file (fed to np.loadtxt)
         """
         # Check inputs
-        (data, key, group, units,
-         dim, quant, origin, name) = self._checkformat_addref(
-             data=data, key=key, depend=depend, group=group, units=units,
+        (data, key, ref, units,
+         dim, quant, origin, name) = self._checkformat_addquant(
+             data=data, key=key, ref=depend, units=units,
              dim=dim, quant=quant, origin=origin, name=name,
              comments=comments, delimiter=delimiter)
 
@@ -3429,16 +3483,11 @@ class Plasma2D(utils.ToFuObject):
         out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
                                  'units':units, 'origin':origin}}, key)
         dim, quant, origin, name, units = out
-        assert type(depend) in [list,str,tuple]
-        if type(depend) is str:
-            depend = (depend,)
-        for ii in range(0,len(depend)):
-            assert depend[ii] in self._dindref.keys()
         lgroup = [self._dindref[dd]['group'] for dd in depend]
-        self._ddata[key] = {'data':data,
-                            'dim':dim, 'quant':quant, 'units':units,
-                            'origin':origin, 'name':name,
-                            'depend':tuple(depend), 'lgroup':lgroup}
+        self._ddata[key] = {'data': data,
+                            'dim': dim, 'quant': quant, 'units': units,
+                            'origin': origin, 'name': name,
+                            'depend': ref, 'lgroup': lgroup}
         self._complement()
 
 
