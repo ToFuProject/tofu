@@ -1343,8 +1343,10 @@ def calc_from_imas(
         assert not any([ids_ in ids for ids_ in lidscustom])
 
     # Check if input_file
+    lids_input_file = [
+        'bremsstrahlung_visible', 'interferometer', 'polarimeter',
+    ]
     if input_file is not None:
-        lids_input_file = ['bremsstrahlung_visible']
         if nids != 1 or ids[0] not in lids_input_file:
             msg = ("input_file is only available for a single ids in:\n"
                    + "\t- " + "\n\t- ".join(lids_input_file))
@@ -1516,9 +1518,10 @@ def calc_from_imas(
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
                                          tokamak=tokamak, version=version,
                                          ids=lids, synthdiag=False, get=False)
-        if 'bremsstrahlung_visible' in lids:
+        if any([iii in lids_input_file for iii in lids]):
             multi.add_ids('equilibrium', get=True)
             plasma = multi.to_Plasma2D()
+        if 'bremsstrahlung_visible' in lids:
             lf = ['t', 'rhotn', 'brem']
             lamb = multi.get_data(
                 dsig={'bremsstrahlung_visible': 'lamb'},
@@ -1545,6 +1548,31 @@ def calc_from_imas(
             cam = multi.to_Cam(plot=False)
             sig = cam.calc_signal_from_Plasma2D(plasma,
                                                 quant='core_profiles.1dbrem',
+                                                ref1d='core_profiles.1drhotn',
+                                                ref2d='equilibrium.2drhotn',
+                                                coefs=coefs, bck=bck,
+                                                Brightness=True, plot=plot)[0]
+        if 'interferometer' in lids:
+            lf = ['t', 'rhotn', 'ne']
+            dout = imas2tofu.get_data_from_matids(input_file, return_fields=lf)
+            plasma.add_ref(key='core_profiles.t', data=dout['t'], group='time',
+                           origin='input_file')
+            nrad = dout['rhotn'].shape[1]
+            plasma.add_ref(key='core_profiles.radius', data=np.arange(0, nrad),
+                           group='radius', origin='input_file')
+            plasma.add_quantity(key='core_profiles.1drhotn',
+                                data=dout['rhotn'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file',
+                                quant='rhotn', dim='rho', units='adim.')
+            plasma.add_quantity(key='core_profiles.1dne', data=dout['ne'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file')
+            cam = multi.to_Cam(plot=False)
+            sig = cam.calc_signal_from_Plasma2D(plasma,
+                                                quant='core_profiles.1dne',
                                                 ref1d='core_profiles.1drhotn',
                                                 ref2d='equilibrium.2drhotn',
                                                 coefs=coefs, bck=bck,
