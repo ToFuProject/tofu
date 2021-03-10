@@ -1523,6 +1523,34 @@ def calc_from_imas(
         if any([iii in lids_input_file for iii in lids]):
             multi.add_ids('equilibrium', get=True)
             plasma = multi.to_Plasma2D()
+        if 'bolometer' in lids:
+            raise NotImplementedError
+            lf = ['t', 'rhotn', 'prad']
+            dout = imas2tofu.get_data_from_matids(input_file, return_fields=lf)
+            plasma.add_ref(key='core_profiles.t', data=dout['t'], group='time',
+                           origin='input_file')
+            nrad = dout['rhotn'].shape[1]
+            plasma.add_ref(key='core_profiles.radius', data=np.arange(0, nrad),
+                           group='radius', origin='input_file')
+            plasma.add_quantity(key='core_profiles.1drhotn',
+                                data=dout['rhotn'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file',
+                                quant='rhotn', dim='rho', units='adim.')
+            plasma.add_quantity(key='core_profiles.1dprad', data=dout['prad'],
+                                depend=('core_profiles.t',
+                                        'core_profiles.radius'),
+                                origin='input_file')
+            cam = multi.to_Cam(plot=False)
+            if coefs is None:
+                coefs = 2.  # get both ways
+            sig = cam.calc_signal_from_Plasma2D(plasma,
+                                                quant='core_profiles.1dprad',
+                                                ref1d='core_profiles.1drhotn',
+                                                ref2d='equilibrium.2drhotn',
+                                                coefs=coefs, bck=bck,
+                                                Brightness=True, plot=plot)[0]
         if 'bremsstrahlung_visible' in lids:
             lf = ['t', 'rhotn', 'brem']
             lamb = multi.get_data(
