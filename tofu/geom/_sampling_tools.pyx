@@ -23,7 +23,7 @@ cimport numpy as cnp
 # tofu libs
 cimport _basic_geom_tools as _bgt
 cimport _raytracing_tools as _rt
-
+cimport _openmp_tools as _ompt
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -2089,11 +2089,15 @@ cdef inline void sa_double_loop_cart(int ii,
             ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
             vol = reso_r_z*reso_phi_mv[ii]
             # computing distance ....
+            with gil:
+                print("_______________ before compute dist")
             _bgt.compute_dist_pt_vec(pts_mv[0, NP],
                                      pts_mv[1, NP],
                                      pts_mv[2, NP],
                                      sz_p, part_coords,
                                      &dist[0])
+            with gil:
+                print("_______________ after compute dist")
             # checking if visible .....
             _rt.is_visible_pt_vec_core(pts_mv[0, NP],
                                        pts_mv[1, NP],
@@ -2118,6 +2122,8 @@ cdef inline void sa_double_loop_cart(int ii,
                                        eps_uz, eps_a,
                                        eps_vz, eps_b, eps_plane,
                                        is_tor, forbid, num_threads)
+            with gil:
+                print("_______________ after is vis")
             volpi = vol * Cpi
             for pp in range(sz_p):
                 if is_vis[pp] :
@@ -2175,9 +2181,17 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
                                 int num_threads) nogil:
     cdef int ii
     # ...
+    with gil:
+        print(" =========== in double loop 1")
     if is_cart:
+        with gil:
+            print("CART =========== in double loop 2")
         with nogil:
+            with gil:
+                print("CART =========== in double loop 3")
             for ii in range(sz_r):
+                with gil:
+                    print("CART =========== in double loop 4 ", ii)
                 # To make sure the indices are in increasing order
                 sa_double_loop_cart(ii, part_coords, part_rad,
                                     sz_p, sz_z,
@@ -2207,8 +2221,14 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
                                     indi_mv[ii, first_ind_mv[ii]:],
                                     reso_phi_mv, pts_mv, ind_mv)
     else:
+        with gil:
+            print("POLAR =========== in double loop 2")
         with nogil:
+            with gil:
+                print("POLAR =========== in double loop 3")
             for ii in range(sz_r):
+                with gil:
+                    print("POLAR =========== in double loop 4 ", ii)
                 sa_double_loop_polr(ii, part_coords, part_rad,
                                     sz_p, sz_z,
                                     sa_map[ii],

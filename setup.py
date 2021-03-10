@@ -257,6 +257,12 @@ extensions = [
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
     ),
+    Extension(
+        name="tofu.geom._openmp_tools",
+        sources=["tofu/geom/_openmp_tools.pyx"],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+    ),
 ]
 
 

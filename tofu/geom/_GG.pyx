@@ -4694,6 +4694,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[double,ndim=3] sa_map
     #
     # == Testing inputs ========================================================
+    print(".............. TOUT DEBUT")
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
         assert ves_poly is not None and ves_norm is not None, msg
@@ -4859,6 +4860,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     dist = np.zeros(sz_p)
     # .. useless tabs ..........................................................
     # declared here so that cython can run without gil
+    print(".............. jusqu'ici tout va bien")
     cdef array vperp_out = clone(array('d'), sz_p * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), sz_p, True)
     cdef array coeff_inter_out = clone(array('d'), sz_p, True)
@@ -4876,13 +4878,14 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         lstruct_nlim_copy = None
     else:
         lstruct_nlim_copy = lstruct_nlim.copy()
+    print(".............. jusqu'ici tout va bien 2")
     # ..............
     _st.sa_double_loop(part_coords, part_r,
                        sa_map,
                        ves_poly, ves_norm,
                        is_vis, dist,
                        ves_lims,
-                       lstruct_nlim,
+                       lstruct_nlim_copy,
                        lstruct_polyx,
                        lstruct_polyy,
                        lstruct_lims,
@@ -4904,6 +4907,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        disc_r, disc_z, lnp, sz_phi,
                        reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
+    print(".............. jusqu'ici tout va bien 3")
     # # If we only want to discretize the volume inside a certain flux surface
     # # describe by a limit_vpoly:
     # if limit_vpoly is not None:

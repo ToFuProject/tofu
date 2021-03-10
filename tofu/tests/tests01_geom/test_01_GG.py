@@ -1934,7 +1934,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     ves_norm = ves_poly[:, 1:] - ves_poly[:, :-1]
     ves_norm = np.array([-ves_norm[1, :], ves_norm[0, :]])
     ves_norm = ves_norm / np.sqrt(np.sum(ves_norm**2, axis=0))[np.newaxis, :]
-
+    print("ok at least this print ?")
     if debug > 0:
         # Visualisation:
         ves = tfg.Ves(
