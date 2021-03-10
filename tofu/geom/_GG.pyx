@@ -36,6 +36,7 @@ cimport _raytracing_tools as _rt
 cimport _distance_tools as _dt
 cimport _sampling_tools as _st
 cimport _vignetting_tools as _vt
+cimport _openmp_tools as _omp
 
 # == Exports ===================================================================
 __all__ = ['CoordShift',
@@ -4860,7 +4861,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     dist = np.zeros(sz_p)
     # .. useless tabs ..........................................................
     # declared here so that cython can run without gil
-    print(".............. jusqu'ici tout va bien")
+    print(".............. jusqu'ici tout va bien",
+          _omp._get_effective_num_threads(num_threads))
     cdef array vperp_out = clone(array('d'), sz_p * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), sz_p, True)
     cdef array coeff_inter_out = clone(array('d'), sz_p, True)
