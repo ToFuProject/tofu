@@ -100,15 +100,32 @@ class Test01_DataCollection(object):
         r2 = np.linspace(0,1,200)
         cls.lr = [r0, r1, r2]
 
+        # chan
+        ch0 = np.arange(0, 2)
+        ch1 = np.arange(0, 5)
+        cls.lch = [ch0, ch1]
+
+        # meshes
+        mesh0 = {'nodes': None}
+        mesh1 = {'nodes': None}
+        cls.lmesh = [mesh0, mesh1]
+
         # traces
-        trace00, trace01 = np.cos(t0), np.sin(t2)
-        trace10, trace11 = np.cos(t1), t1[:,None]*t0
-        trace20, trace21 = np.sin(r0), r0[:,None]*r1
-        trace30, trace31 = np.cos(r2), t0[:,None]*np.sin(r2)
-        trace40, trace41 = t2[:,None]*r1, t2[:,None]*r2
+        trace00, trace01 = np.cos(t0), np.sin(t0)
+        trace10, trace11 = np.cos(t1), t1[:, None]*t0
+        trace20, trace21 = np.sin(r0), r0[:, None]*r1
+        trace30, trace31 = np.cos(r2), t0[:, None]*np.sin(r2)
+        trace40 = t2[:, None, None]*r1[None, :, None]*ch0[None, None, :]
+        trace41 = t2[None, None, :]*r2[:, None, None]*ch1[None, :, None]
         cls.ltrace = [trace00, trace01, trace10, trace11,
                       trace20, trace21, trace30, trace31,
                       trace40, trace41]
+
+        # polygons
+        lpoly0 = [np.ones((2, 5)), np.ones((2, 8))]
+        lpoly1 = [np.ones((2, 5)), np.ones((2, 8)), np.ones((2, 5))]
+        lpoly2 = [np.ones((2, 5)), np.ones((2, 5))]
+        cls.lpoly = [lpoly0, lpoly1, lpoly2]
 
         # Configs
         # conf0 = tfg.utils.create_config(case='B2')
@@ -116,15 +133,14 @@ class Test01_DataCollection(object):
 
         dref = {'t0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
                 't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
-                'r2': {'data': cls.lr[2], 'group': 'time', 'units': 'm'}}
-        ddata = {'trace00': {'data': cls.ltrace[0], 'refs': ('t0',)},
-                 'trace10': {'data': cls.ltrace[2], 'refs': ('t1',)},
-                 'trace11': {'data': cls.ltrace[3], 'refs': ('t1','t0')},
-                 'trace30': {'data': cls.ltrace[6], 'refs': ('r2',)},
-                 'trace31': {'data': cls.ltrace[7], 'refs': ('t0','r2')}}
+                'r2': {'data': cls.lr[2], 'group': 'radius', 'units': 'm'}}
+        ddata = {'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
+                 'trace10': {'data': cls.ltrace[2], 'ref': ('t1',)},
+                 'trace11': {'data': cls.ltrace[3], 'ref': ('t1','t0')},
+                 'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
+                 'trace31': {'data': cls.ltrace[7], 'ref': ('t0','r2')}}
         data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
         cls.lobj = [data]
-
 
     @classmethod
     def setup(self):
@@ -136,47 +152,83 @@ class Test01_DataCollection(object):
     def teardown_class(cls):
         pass
 
-    def test01_init_from_minimalist(self):
+    def test01_init_from_combinations(self):
+
+        # Try with minimalist input (implicit with n = 1)
+        dgroup = 'time'
+        dref = {'t0': self.lt[0]}
+        ddata = {'trace00': self.ltrace[0],
+                 'trace01': {'data': self.ltrace[1], 'units': 'a.u.'},
+                }
+        data = tfd.DataCollection(
+            dgroup=dgroup, dref=dref, ddata=ddata,
+            Name='data',
+        )
 
         # Try with minimalist input
-        dref = {'time':{'t0': self.lt[0], 't1': self.lt[1]},
-                'radius': {'r2': self.lr[2]}}
-        ddata = {'trace00': self.ltrace[0], 'trace10': self.ltrace[2],
-                 'trace11': self.ltrace[3],
-                 'trace30': self.ltrace[6], 'trace31': self.ltrace[7]}
-        data2 = tfd.DataCollection(dref=dref, ddata=ddata, Name='data2')
+        dref = {'t0': {'data': self.lt[0], 'group': 'time'},
+                't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
+                'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'}}
+        ddata = {'trace00': {'data': self.ltrace[0], 'ref': 't0'},
+                 'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
+                 'trace11': {'data': self.ltrace[3], 'ref': ('t1', 't0')},
+                 'trace30': {'data': self.ltrace[6], 'ref': ('r2',), 'foo': 'bar'},
+                 'trace31': {'data': self.ltrace[7], 'ref': ('t0', 'r2')}
+                }
+        data = tfd.DataCollection(
+            dgroup=None, dref=dref, ddata=ddata,
+            Name='data',
+        )
 
-        print(self.lobj[0] == data2)
 
-    def tests02_add_remove_refdata(self):
+    def test02_wrong_init(self):
+        # Try with minimalist input
+        dref = {'t0': {'data': self.lt[0], 'group': 'time'},
+                't1': {'data': self.lt[1], 'group': 'time'},
+               }
+        ddata = {'trace00': self.ltrace[0], 'ref': 't0',
+                 'trace11': self.ltrace[3], 'ref': ('t0', 't1'),
+                }
+        err = False
+        try:
+            data = tfd.DataCollection(
+                dgroup=None, dref=dref, ddata=ddata,
+                Name='data',
+            )
+        except Exception as er:
+            err = True
+        assert err, "Exception was not detected properly!"
+
+    def test03_add_remove_refdata(self):
         data = self.lobj[0]
 
-        data.add_ref('r0', self.lr[0], group='radius')
+        data.add_ref(key='r0', data=self.lr[0], group='radius', foo='bar')
         assert 'r0' in data.dref.keys()
 
-        data.remove_ref('t0')
+        data.remove_ref(key='t0')
         assert 't0' not in data.dref.keys()
         assert 't0' not in data.ddata.keys()
         assert all([tt not in data.ddata.keys()
                     for tt in ['trace00', 'trace11', 'trace31']])
 
-        data.add_ref('t0', self.lt[0], group='time')
+        data.add_ref('t0', data=self.lt[0], group='time')
         assert 't0' in data.dref.keys()
 
         # Check ambiguous throws error
         err = False
         try:
-            data.add_data('trace00', self.ltrace[0])
+            data.add_data(key='trace00', data=self.ltrace[0])
         except Exception:
             err = True
         assert err
-        data.add_data('trace00', self.ltrace[0], refs=('t0',))
-        data.add_data('trace11', self.ltrace[2])
-        data.add_data('trace31', self.ltrace[7], refs=('t0','r2'))
+        data.add_data('trace00', data=self.ltrace[0], ref=('t0',))
+        data.add_data('trace11', data=self.ltrace[2], ref=('t1', 't0'))
+        data.add_data('trace31', data=self.ltrace[7], ref=('t0', 'r2'),
+                      foo='bar')
         assert all([tt in data.ddata.keys()
                     for tt in ['trace00', 'trace11', 'trace31']])
 
-    def tests03_select(self):
+    def test04_select(self):
         data = self.lobj[0]
 
         key = data.select(units='min', returnas=str)

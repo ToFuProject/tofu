@@ -86,8 +86,8 @@ def _remove_ref(
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
         return group0, dref0, ddata0
-    key = _check_inputs._check_remove(
-        key=key, dkey=self._dref, name='ref',
+    key = _check_remove(
+        key=key, dkey=dref0, name='ref',
     )
 
     for k0 in key:
@@ -121,8 +121,8 @@ def _remove_data(
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
         return group0, dref0, ddata0
-    key = _check_inputs._check_remove(
-        key=key, dkey=self._dref, name='data',
+    key = _check_remove(
+        key=key, dkey=ddata0, name='data',
     )
 
     for k0 in key:
@@ -172,8 +172,10 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
     # Check conformity
     c0 = isinstance(dgroup, str) and dgroup not in dgroup0.keys()
     c1 = (
-        isinstance(goup, list)
-        and all([isinstance(gg, str) and gg not in dgroup0.keys()])
+        isinstance(dgroup, list)
+        and all([
+            isinstance(gg, str) and gg not in dgroup0.keys() for gg in dgroup
+        ])
     )
     c2 = (
         isinstance(dgroup, dict)
@@ -205,9 +207,9 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
             Already available in self.dgroup:
             {}
             """.format(
-                sorted(_DRESERVED_KEYS['dgroup'].keys()),
-                group,
-                '\t- ' + '\n\t- '.join(sorted(dgroup.keys())),
+                sorted(_DRESERVED_KEYS['dgroup']),
+                dgroup,
+                '\t- ' + '\n\t- '.join(sorted(dgroup0.keys())),
             )
         )
         raise Exception(msg)
@@ -318,7 +320,7 @@ def _check_dref(
     # ----------------
     # Trivial case
     if dref in [None, {}]:
-        return {}, {}, {}
+        return {}, None, None
 
     # ----------------
     # Check conformity
@@ -346,7 +348,7 @@ def _check_dref(
                     )
                 )
                 or (
-                    ngroup > 1
+                    (ngroup == 0 or ngroup > 1)
                     and isinstance(v0, dict)
                     and all([isinstance(ss, str) for ss in v0.keys()])
                     and ('size' in v0.keys() or 'data' in v0.keys())
@@ -377,9 +379,8 @@ def _check_dref(
                 - (D): only the data array is provided if len(self.dgroup) == 1
 
             Each ref shall be assigned a group:
-            \t- {}
-
-            """.format('\n\t- '.join(sorted(dgroup0.keys())))
+            """
+            + ('\t- ' + '\n\t- '.join(sorted(dgroup0.keys())))
         )
         raise Exception(msg)
 
@@ -392,10 +393,12 @@ def _check_dref(
             dref[k0]['group'] = groupref
 
     # Add missing groups
-    lgroups = set([
+    lgroups = sorted(set([
         v0['group'] for v0 in dref.values()
         if 'group' in v0.keys() and v0['group'] not in dgroup0.keys()
-    ])
+    ]))
+
+    dgroup_add = None
     if len(lgroups) > 0:
         dgroup_add = _check_dgroup(
             lgroups, dgroup0=dgroup0, allowed_groups=allowed_groups,
@@ -412,6 +415,7 @@ def _check_dref(
             data, dref[k0]['size'] = _check_dataref(data=v0['data'], ref=k0)
             if k0 in ddata_add.keys():
                 ddata_add[k0]['data'] = data
+                ddata_add[k0]['ref'] = (k0,)
                 ddata_add[k0].update({
                     k1: v1 for k1, v1 in v0.items()
                     if k1 not in ['group', 'size', 'ldata']
@@ -419,10 +423,9 @@ def _check_dref(
 
     # get rid of extra keys
     dref = {
-        k0: {k1: v0[k1] for k1 in _DRESERVED_KEYS['dref']}
-        for k0 in dref.keys()
+        k0: {k1: v1 for k1, v1 in v0.items() if k1 in _DRESERVED_KEYS['dref']}
+        for k0, v0 in dref.items()
     }
-
     return dref, dgroup_add, ddata_add
 
 
@@ -478,7 +481,7 @@ def _check_ddata(
     # ----------------
     # Trivial case
     if ddata in [None, {}]:
-        return {}, {}, {}
+        return {}, None, None
 
     # ----------------
     # Check conformity
@@ -511,7 +514,7 @@ def _check_ddata(
                     )
                 )
                 or (
-                    nref > 1
+                    (nref == 0 or nref > 1)
                     and isinstance(v0, dict)
                     and all([isinstance(ss, str) for ss in v0.keys()])
                     and 'data' in v0.keys()
@@ -531,24 +534,23 @@ def _check_ddata(
         msg = (
             """
             Arg ddata must be a dict of the form:
-            {
-                'data0': {'ref': str, 'size': int, ...},       (A)
+            dict(
+                'data0': {'ref': 'ref0', 'data': list, ...},       (A)
                 'data1': {'ref': ('ref0', 'ref1'), 'data': np.array, ...},  (B)
                 'data2': {'data': np.array, ...},                (C)
                 ...
                 'datan': np.array,                               (D)
-            }
+            )
 
             Where:
-                - each 'refi' is a unique str identifier
-                - (A) & (B): 'ref' is provided as well as 'size' of 'data'
-                - (C): 'group' is not provided if len(self.dgroup) == 1
+                - each 'datai' is a unique str identifier
+                - (A) & (B): 'data' is provided as well as 'ref'
+                - (C): 'ref' is not provided if len(self.dref) == 1
                 - (D): only the data array is provided if len(self.dgroup) == 1
 
             Each data shall be assigned a ref:
-            \t- {}
-
-            """.format('\n\t- '.join(sorted(dref0.keys())))
+            """
+            + ('\t- '+'\n\t- '.join(sorted(dref0.keys())))
         )
         raise Exception(msg)
 
@@ -571,6 +573,9 @@ def _check_ddata(
         for v0 in ddata.values() if 'ref' in v0.keys()
     ]
     ))
+
+    dgroup_add = None
+    dref_add = None
     if len(lref) > 0:
         dref_add = {rr: {'data': ddata[rr]['data']} for rr in lref}
         dref_add, dgroup_add, ddata_dadd = _check_dref(
@@ -591,8 +596,8 @@ def _check_ddata(
             msg = (
                 """
                 Inconsistent shape vs ref for ddata[{0}]:
-                    - ddata[{0}]['ref'] = {1}
-                    - ddata[{0}]['shape'] = {2}
+                    - ddata['{0}']['ref'] = {1}
+                    - ddata['{0}']['shape'] = {2}
 
                 If dict / object it should be its own ref!
                 """.format(k0, v0['ref'], shape)
@@ -694,7 +699,13 @@ def _consistency(
     dref, dgroup_add, ddata_add = _check_dref(
         dref=dref, dref0=dref0, dgroup0=dgroup0, ddata0=ddata0,
     )
-    dgroup0.update(dgroup_add)
+    if dgroup_add is not None:
+        dgroup0.update(dgroup_add)
+    if ddata_add is not None:
+        if ddata is None:
+            ddata = ddata_add
+        else:
+            ddata.update(ddata_add)
     dref0.update(dref)
 
     # --------------
@@ -702,8 +713,10 @@ def _consistency(
     ddata, dref_add, dgroup_add = _check_ddata(
         ddata=ddata, ddata0=ddata0, dref0=dref0, dgroup0=dgroup0,
     )
-    dgroup0.update(dgroup_add)
-    dref0.update(dref_add)
+    if dgroup_add is not None:
+        dgroup0.update(dgroup_add)
+    if dref_add is not None:
+        dref0.update(dref_add)
     ddata0.update(ddata)
 
     # --------------
@@ -718,34 +731,27 @@ def _consistency(
 
     # ddata0
     for k0, v0 in ddata0.items():
-        ddata0[k0]['group'] = tuple([rr['group'] for rr in v0['ref']])
+        ddata0[k0]['group'] = tuple([dref0[rr]['group'] for rr in v0['ref']])
 
     # dref0
     for k0, v0 in dref0.items():
-        ldata_add = [
-            k1 for k1 in ddata0.keys()
-            if k0 in ddata0[k1]['ref'] and k1 not in v0['ldata']
-        ]
-        if len(ldata_add) > 0:
-            dref0[k0]['ldata'].extend(ldata_add)
+        dref0[k0]['ldata'] = sorted(set(
+            k1 for k1 in ddata0.keys() if k0 in ddata0[k1]['ref']
+        ))
 
     # dgroup0
     for k0, v0 in dgroup0.items():
-        lref_add = [
-            k1 for k1 in dref0.keys()
-            if dref0[k1]['group'] == k0 and k1 not in v0['lref']
-        ]
-        if len(lref_add) > 0:
-            dgroup0[k0]['lref'].extend(lref_add)
+        dgroup0[k0]['lref'] = sorted(set(
+            k1 for k1, v1 in dref0.items() if v1['group'] == k0
+        ))
+        dgroup0[k0]['ldata'] = sorted(set(
+            k1 for k1 in ddata0.keys() if k0 in ddata0[k1]['group']
+        ))
+    for k0, v0 in ddata0.items():
+        if 'lref' in ddata0[k0].keys():
+            import pdb; pdb.set_trace()     # DB
 
-        ldata_add = [
-            k1 for k1 in ddata0.keys()
-            if k0 in ddata0[k1]['group'] and k1 not in v0['ldata']
-        ]
-        if len(ldata_add) > 0:
-            dgroup0[k0]['ldata'].extend(ldata_add)
-
-    return ddata0, dref0, dgroup0
+    return dgroup0, dref0, ddata0
 
 """
     # --------------
@@ -807,12 +813,12 @@ def _get_param(ddata=None, param=None, returnas=np.ndarray):
     # Get output
     if returnas == dict:
         out = {
-            k0: {self._ddata[k1][k0] for k1 in self._ddata.keys()}
+            k0: {ddata[k1][k0] for k1 in ddata.keys()}
             for k0 in lp
         }
     else:
         out = {
-            k0: [self._ddata[k1][k0] for k1 in self._ddatakeys()]
+            k0: [ddata[k1][k0] for k1 in ddata.keys()]
             for k0 in lp
         }
     return out
@@ -915,7 +921,7 @@ def _add_param(ddata=None, param=None, value=None):
     # Initialize and set
     for kk in ddata.keys():
         ddata[kk][param] = None
-    self.set_param(ddata=ddata, param=param, value=value)
+    _set_param(ddata=ddata, param=param, value=value)
 
 
 def _remove_param(ddata=None, param=None):
@@ -934,8 +940,8 @@ def _remove_param(ddata=None, param=None):
         raise Exception(msg)
 
     # Remove
-    for k0 in self._ddata.keys():
-        del self._ddata[k0][param]
+    for k0 in ddata.keys():
+        del ddata[k0][param]
 
 
 
