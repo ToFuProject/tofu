@@ -3,24 +3,25 @@
 # Standard
 import itertools as itt
 
+# Common
+import numpy as np
+
 
 
 _DRESERVED_KEYS = {
     'dgroup': ['lref', 'ldata'],
-    'dref': ['ldata', 'group', 'size'],
+    'dref': ['ldata', 'group', 'size', 'ind'],
     'ddata': ['ref', 'group', 'shape', 'data'],
 }
 
 
 _DDEF_PARAMS = {
+    'origin': (str, 'unknown'),
+    'dim':    (str, 'unknown'),
+    'quant':  (str, 'unknown'),
+    'name':   (str, 'unknown'),
+    'units':  (str, 'a.u.'),
 }
-
-
-         # 'params': {'origin': (str, 'unknown'),
-                    # 'dim':    (str, 'unknown'),
-                    # 'quant':  (str, 'unknown'),
-                    # 'name':   (str, 'unknown'),
-                    # 'units':  (str, 'a.u.')}}
 
 
 
@@ -74,8 +75,8 @@ def _remove_group(group=None, dgroup0=None, dref0=None, ddata0=None):
     # Double-check consistency
     return _consistency(
         ddata=None, ddata0=ddata0,
-        dref=None, ddata0=dref0,
-        dgroup=None, ddata0=dgroup0,
+        dref=None, dref0=dref0,
+        dgroup=None, dgroup0=dgroup0,
     )
 
 
@@ -109,8 +110,8 @@ def _remove_ref(
     # Double-check consistency
     return _consistency(
         ddata=None, ddata0=ddata0,
-        dref=None, ddata0=dref0,
-        dgroup=None, ddata0=dgroup0,
+        dref=None, dref0=dref0,
+        dgroup=None, dgroup0=dgroup0,
     )
 
 
@@ -145,8 +146,8 @@ def _remove_data(
     # Double-check consistency
     return _consistency(
         ddata=None, ddata0=ddata0,
-        dref=None, ddata0=dref0,
-        dgroup=None, ddata0=dgroup0,
+        dref=None, dref0=dref0,
+        dgroup=None, dgroup0=dgroup0,
     )
 
 # #############################################################################
@@ -187,7 +188,7 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
                 and all([isinstance(v2, str) for v2 in v1])
                 for k1, v1 in v0.items()
             ])
-            for k0, v0 not in dgroup.items()
+            for k0, v0 in dgroup.items()
         ])
     )
     if not (c0 or c1 or c2):
@@ -253,7 +254,7 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
 
 class DataRefException(Exception):
 
-    def __init__(ref=None, data=None)
+    def __init__(ref=None, data=None):
         msg = (
             """
             To be a valid reference for {}, provided data must be either:
@@ -391,10 +392,10 @@ def _check_dref(
             dref[k0]['group'] = groupref
 
     # Add missing groups
-    lgroups = sorted(set([
+    lgroups = set([
         v0['group'] for v0 in dref.values()
         if 'group' in v0.keys() and v0['group'] not in dgroup0.keys()
-    ]))
+    ])
     if len(lgroups) > 0:
         dgroup_add = _check_dgroup(
             lgroups, dgroup0=dgroup0, allowed_groups=allowed_groups,
@@ -562,14 +563,14 @@ def _check_ddata(
             ddata[k0]['ref'] = (v0['ref'],)
 
     # Add missing refs (only in ddata)
-    lref = sorted(set(itt.chain.from_iterable([
+    lref = set(itt.chain.from_iterable([
         [
             rr for rr in v0['ref']
             if rr not in dref0.keys() and rr in ddata.keys()
         ]
         for v0 in ddata.values() if 'ref' in v0.keys()
     ]
-    )))
+    ))
     if len(lref) > 0:
         dref_add = {rr: {'data': ddata[rr]['data']} for rr in lref}
         dref_add, dgroup_add, ddata_dadd = _check_dref(
@@ -581,8 +582,8 @@ def _check_ddata(
         ddata[k0]['data'], shape = _check_data(data=v0['data'], key=k0)
         if isinstance(shape, tuple):
             c0 = (
-                len(v0['ref']) = len(shape)
-                tuple([dref0[rr]['size'] for rr in v0['ref']]) == shape
+                len(v0['ref']) == len(shape)
+                and tuple([dref0[rr]['size'] for rr in v0['ref']]) == shape
             )
         else:
             c0 = v0['ref'] == (k0,)
@@ -616,16 +617,16 @@ def _harmonize_params(
     if reserved_keys is None:
         reserved_keys = _DRESERVED_KEYS['ddata']
     if ddefparams is None:
-        ddefparams = _DDEFPARAMS
+        ddefparams = _DDEF_PARAMS
 
     # ------------------
     # list of param keys
 
     # Get list of known param keys
-    lparams = sorted(set(itt.chain.from_iterable([
-        [k1 for k1 in v0.keys() if k1 not reserved_keys]
+    lparams = set(itt.chain.from_iterable([
+        [k1 for k1 in v0.keys() if k1 not in reserved_keys]
         for k0, v0 in ddata.items()
-    ])))
+    ]))
 
     # Add arbitrary params
     if lkeys is not None:
@@ -638,7 +639,7 @@ def _harmonize_params(
         if not c0:
             msg = "lkeys must be a list of str!"
             raise Exception(msg)
-        lparams = sorted(set(lparams).intersection(lkeys))
+        lparams = set(lparams).intersection(lkeys)
 
     # ------------------
     # dparam
@@ -676,6 +677,9 @@ def _consistency(
     ddata=None, ddata0=None,
     dref=None, dref0=None,
     dgroup=None, dgroup0=None,
+    allowed_groups=None,
+    reserved_keys=None,
+    ddefparams=None,
 ):
 
     # --------------
@@ -705,7 +709,7 @@ def _consistency(
     # --------------
     # params harmonization
     ddata0 = _harmonize_params(
-        ddata=data0,
+        ddata=ddata0,
         ddefparams=ddefparams, reserved_keys=reserved_keys,
     )
 
@@ -743,71 +747,7 @@ def _consistency(
 
     return ddata0, dref0, dgroup0
 
-
-
-
-
-
-
-
-
-
 """
-    # --------------
-    # ddata
-    for k0, v0 in ddata.items():
-
-        # Check all ref are in dref
-        lrefout = [ii for ii in v0['refs'] if ii not in self._dref['lkey']]
-        if len(lrefout) != 0:
-            msg = "ddata[%s]['refs'] has keys not in dref:\n"%k0
-            msg += "    - " + "\n    - ".join(lrefout)
-            raise Exception(msg)
-
-        # set group
-        grps = tuple(self._dref['dict'][rr]['group'] for rr in v0['refs'])
-        gout = [gg for gg in grps if gg not in self._dgroup['lkey']]
-        if len(gout) > 0:
-            lg = self._dgroup['lkey']
-            msg = "Inconsistent grps from self.ddata[%s]['refs']:\n"%k0
-            msg += "    - grps = %s\n"%str(grps)
-            msg += "    - self._dgroup['lkey'] = %s\n"%str(lg)
-            msg += "    - self.dgroup.keys() = %s"%str(self.dgroup.keys())
-            raise Exception(msg)
-        self._ddata['dict'][k0]['groups'] = grps
-
-    # --------------
-    # dref
-    for k0 in self._dref['lkey']:
-        ldata = [kk for kk in self._ddata['lkey']
-                 if k0 in self._ddata['dict'][kk]['refs']]
-        self._dref['dict'][k0]['ldata'] = ldata
-        assert self._dref['dict'][k0]['group'] in self._dgroup['lkey']
-
-    # --------------
-    # dgroup
-    for gg in self._dgroup['lkey']:
-        vg = self._dgroup['dict'][gg]
-        lref = [rr for rr in self._dref['lkey']
-                if self._dref['dict'][rr]['group'] == gg]
-        ldata = [dd for dd in self._ddata['lkey']
-                 if any([dd in self._dref['dict'][vref]['ldata']
-                         for vref in lref])]
-        # assert vg['depend'] in lidindref
-        self._dgroup['dict'][gg]['lref'] = lref
-        self._dgroup['dict'][gg]['ldata'] = ldata
-
-    if self._forced_group is not None:
-        if len(self.lgroup) != 1 or self.lgroup[0] != self._forced_group:
-            msg = "The only allowed group is %s"%self._forced_group
-            raise Exception(msg)
-    if self._allowed_groups is not None:
-        if any([gg not in self._allowed_groups for gg in self.lgroup]):
-            msg = "Some groups are not allowed:\n"
-            msg += "    - provided: %s\n"%str(self.lgroup)
-            msg += "    - allowed:  %s"%str(self._allowed_groups)
-            raise Exception(msg)
-
     # --------------
     # params
     lparam = self._ddata['lparam']
@@ -815,10 +755,368 @@ def _consistency(
         for pp in self._ddata['dict'][kk].keys():
             if pp not in self._reserved_all and pp not in lparam:
                 lparam.append(pp)
-
-    for kk in self._ddata['lkey']:
-        for pp in lparam:
-            if pp not in self._ddata['dict'][kk].keys():
-                self._ddata['dict'][kk][pp] = None
-    self._ddata['lparam'] = lparam
 """
+
+
+# #############################################################################
+# #############################################################################
+#               Get / set / add / remove param
+# #############################################################################
+
+
+def _get_param(ddata=None, param=None, returnas=np.ndarray):
+    """ Return the array of the chosen parameter (or list of parameters)
+
+    Can be returned as:
+        - dict: {param0: {key0: values0, key1: value1...}, ...}
+        - np[.ndarray: {param0: np.r_[values0, value1...], ...}
+
+    """
+    # Trivial case
+    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    if param is None:
+        param = lp
+
+    # Check inputs
+    lc = [
+        isinstance(param, str) and param in ddata.keys() and param != 'data',
+        isinstance(param, list)
+        and all([isinstance(pp, str) and pp in data.keys() for pp in param])
+    ]
+    if not any(lc):
+        msg = (
+            """
+            Arg param must a valid param key of a list of such (except 'data')
+
+            Valid params:
+            {}
+
+            Provided:
+            {}
+            """.format('\t- ' + '\n\t- '.join(lp), param)
+        )
+        raise Exception(msg)
+
+    if lc[0]:
+        param = [param]
+
+    c0 = returnas in [np.ndarray, dict]
+    if not c0:
+        raise Exception(msg)
+
+    # Get output
+    if returnas == dict:
+        out = {
+            k0: {self._ddata[k1][k0] for k1 in self._ddata.keys()}
+            for k0 in lp
+        }
+    else:
+        out = {
+            k0: [self._ddata[k1][k0] for k1 in self._ddatakeys()]
+            for k0 in lp
+        }
+    return out
+
+
+def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
+    """ Set the value of a parameter
+
+    values can be:
+        - None
+        - a unique value (int, float, bool, str, tuple) => common to all keys
+        - an iterable of values (array, list) => one for each key
+        - a dict of values (per key)
+
+    A subset of keys can be chosen (ind, key, fed to self.select()) to set
+    only the values of some key
+
+    """
+
+    # Check param
+    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    if param is None:
+        return
+    c0 = isinstance(param, str) and param in lp
+    if not c0:
+        msg = (
+            """
+            Provided param in not valid
+            Valid param:
+            {}
+
+            Provided:
+            {}
+            """.format('\t- ' + '\n\t- '.join(lp), param)
+        )
+        raise Exception(msg)
+
+    # Check ind / key
+    key = _ind_tofrom_key(ddata=ddata, ind=ind, key=key, returnas='key')
+
+    # Check value
+    ltypes = [str, int, np.int, float, np.float, tuple]
+    lc = [
+        type(value) in ltypes,
+        isinstance(value, list)
+        and all([type(tt) in ltypes for tt in value])
+        and len(value) == len(key),
+        isinstance(value, np.ndarray)
+        and value.shape[0] == len(key),
+        isinstance(value, dict)
+        and all([
+            kk in ddata.keys() and type(vv) in ltypes
+            for kk, vv in value.items()
+        ])
+    ]
+    if not (value is None or any(lc)):
+        msg = (
+            """
+            Accepted types for values include:
+                - None
+                - {}: common to all
+                - list, np.ndarray: key by key
+                - dict of {key: scalar / str}
+
+            The length of value must match the selected keys ({})
+            """.format(ltypes, len(key))
+        )
+        raise Exception(msg)
+
+    # Update data
+    if values is None or lc[0]:
+        for kk in key:
+            ddata[kk][param] = values
+    elif lc[1]:
+        for ii, kk in enumerate(key):
+            ddata[kk][param] = values[ii]
+    else:
+        for kk, vv in value.items():
+            ddata[kk][param] = vv
+
+
+def _add_param(ddata=None, param=None, value=None):
+    """ Add a parameter, optionnally also set its value """
+    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    c0 = isinstance(param, str) and param not in lp
+    if not c0:
+        msg = (
+            """
+            param must be a str not matching any existing param
+
+            Available param:
+            {}
+
+            Provided:
+            {}
+            """.format(lp, param)
+        )
+        raise Exception(msg)
+
+    # Initialize and set
+    for kk in ddata.keys():
+        ddata[kk][param] = None
+    self.set_param(ddata=ddata, param=param, value=value)
+
+
+def _remove_param(ddata=None, param=None):
+    """ Remove a parameter, none by default, all if param = 'all' """
+
+    # Check inputs
+    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    if param is None:
+        return
+    if param == 'all':
+        param = lp
+
+    c0 = isinstance(param, str) and param in lp
+    if not c0:
+        msg = ()
+        raise Exception(msg)
+
+    # Remove
+    for k0 in self._ddata.keys():
+        del self._ddata[k0][param]
+
+
+
+# #############################################################################
+# #############################################################################
+#               Selection
+# #############################################################################
+
+
+def _ind_tofrom_key(
+    ddata=None, dgroup=None,
+    ind=None, key=None, group=None, returnas=int,
+):
+
+    # --------------------
+    # Check / format input
+    lc = [ind is not None, key is not None]
+    if not np.sum(lc) <= 1:
+        msg = ("Args ind and key cannot be prescribed simulatneously!")
+        raise Exception(msg)
+
+    if group is not None:
+        if not (isinstance(group, str) and group in group.keys()):
+            msg = (
+                """
+                Provided group must be valid key of dgroup:
+                {}
+
+                Provided:
+                {}
+                """.format(sorted(dgroup.keys()), group)
+            )
+            raise Exception(msg)
+
+    lret = [int, bool, str, 'key']
+    if returnas not in lret:
+        msg = (
+            """
+            Possible values for returnas are:
+            {}
+
+            Provided:
+            {}
+            """.format(lret, returnas)
+        )
+        raise Exception(msg)
+
+    # -----------------
+    # Compute
+
+    # Intialize output
+    out = np.zeros((len(ddata),), dtype=bool)
+
+    if not any(lc) and group is not None:
+        key = dgroup[group]['ldata']
+        lc[1] = True
+
+    # Get output
+    lk = list(ddata.keys())
+    if lc[0]:
+
+        # Check ind
+        if not isinstance(ind, np.ndarray):
+            ind = np.atleast_1d(ind).ravel()
+        c0 = (
+            ind.ndim == 1
+            and (
+                (ind.dtype == np.bool and ind.size == len(ddata))
+                or (ind.dtype == np.int and ind.size <= len(ddata))
+        ))
+        if not c0:
+            msg = "Arg ind must be an iterable of bool or int indices!"
+            raise Exception(msg)
+
+        # return
+        out[ind] = True
+        if returnas in [int, str, 'key']:
+            out = out.nonzero()[0]
+            if returnas in [str, 'key']:
+                out = np.array(
+                    [kk for ii, kk in enumerate(lk) if ii in out],
+                    dtype=str
+                )
+
+    elif lc[1]:
+
+        # Check key
+        if isinstance(key, str):
+            key = [key]
+        c0 = (
+            isinstance(key, list)
+            and all([isinstance(kk, str) and kk in lk])
+        )
+        if not c0:
+            msg = (
+                """
+                key must be valid key to ddata (or list of such)
+                Provided: {}
+                """.format(key)
+            )
+            raise Exception(msg)
+
+        if returnas in ['key', str]:
+            out = key
+        else:
+            for kk in key:
+                out[lk.index(kk)] = True
+            if returnas == int:
+                out = out.nonzero()[0]
+    else:
+        if returnas == bool:
+            out[:] = True
+        elif returnas == int:
+            out = np.arange(0, len(lk))
+        else:
+            out = lk
+    return out
+
+
+def _select(self, log='all', returnas=int, **kwdargs):
+    """ Return the indices / keys of data matching criteria
+
+    The selection is done comparing the value of all provided parameters
+    The result is a boolean indices array, optionally with the keys list
+    It can include:
+        - log = 'all': only the data matching all criteria
+        - log = 'any': the data matching any criterion
+
+    If log = 'raw', a dict of indices arrays is returned, showing the
+    details for each criterion
+
+    """
+
+    # Format and check input
+    assert returnas in [int, bool, str, 'key']
+    assert log in ['all', 'any', 'raw']
+    if log == 'raw':
+        assert returnas == bool
+
+    # Get list of relevant criteria
+    lcritout = [ss for ss in kwdargs.keys()
+                if ss not in self._ddata['lparam']]
+    if len(lcritout) > 0:
+        msg = "The following criteria correspond to no parameters:\n"
+        msg += "    - %s\n"%str(lcritout)
+        msg += "  => only use known parameters (self.lparam):\n"
+        msg += "    %s"%str(self._ddata['lparam'])
+        raise Exception(msg)
+    kwdargs = {kk: vv for kk, vv in kwdargs.items()
+               if vv is not None and kk in self._ddata['lparam']}
+    lcrit = list(kwdargs)
+    ncrit = len(kwdargs)
+
+    # Prepare array of bool indices and populate
+    ind = np.ones((ncrit, len(self._ddata['lkey'])), dtype=bool)
+    for ii in range(ncrit):
+        critval = kwdargs[lcrit[ii]]
+        try:
+            par = self.get_param(lcrit[ii], returnas=np.ndarray)
+            ind[ii, :] = par == critval
+        except Exception as err:
+            ind[ii, :] = [self._ddata['dict'][kk][lcrit[ii]] == critval
+                          for kk in self._ddata['lkey']]
+
+    # Format output ind
+    if log == 'all':
+        ind = np.all(ind, axis=0)
+    elif log == 'any':
+        ind = np.any(ind, axis=0)
+    else:
+        ind = {lcrit[ii]: ind[ii, :] for ii in range(ncrit)}
+
+    # Also return the list of keys if required
+    if returnas == int:
+        out = ind.nonzero()[0]
+    elif returnas in [str, 'key']:
+        out = self.ldata[ind.nonzero()[0]]
+    else:
+        out = ind
+    return out
+
+
+
+

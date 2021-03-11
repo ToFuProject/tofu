@@ -18,19 +18,13 @@ import scipy.interpolate as scpinterp
 
 # tofu
 # from tofu import __version__ as __version__
-import tofu.pathfile as tfpf
 import tofu.utils as utils
 from . import _check_inputs
-from . import _comp
 from . import _comp_new
 from . import _plot_new
-from . import _plot
 from . import _def
-from .. import _physics
 
 __all__ = ['DataCollection', 'TimeTraceCollection']
-
-_SAVEPATH = os.path.abspath('./')
 _INTERPT = 'zero'
 
 
@@ -91,21 +85,19 @@ class DataCollection(utils.ToFuObject):
         Id=None,
         Name=None,
         fromdict=None,
-        SavePath=os.path.abspath('./'),
-        SavePath_Include=tfpf.defInclude
+        SavePath=None,
+        include=None,
     ):
 
         # Create a dplot at instance level
         # self._dplot = copy.deepcopy(self.__class__._dplot)
         kwdargs = locals()
         del kwdargs['self']
-        # super()
-        super(DataCollection, self).__init__(**kwdargs)
+        super().__init__(**kwdargs)
 
     def _reset(self):
         # Run by the parent class __init__()
-        # super()
-        super(DataCollection, self)._reset()
+        super()._reset()
         self._dgroup = {}
         self._dref = {}
         self._ddata = {}
@@ -131,14 +123,14 @@ class DataCollection(utils.ToFuObject):
     ###########
 
     def _init(self, dgroup=None, dref=None, ddata=None, **kwargs):
-        self._setadd_all(dgroup=dgroup, dref=dref, ddata=ddata)
+        self.update(dgroup=dgroup, dref=dref, ddata=ddata)
         self._dstrip['strip'] = 0
 
     ###########
     # set dictionaries
     ###########
 
-    def _setadd_all(self, ddata=None, dref=None, dgroup=None):
+    def update(self, ddata=None, dref=None, dgroup=None):
         """ Can be used to set/add data/ref/group
 
         Will update existing attribute with new dict
@@ -146,22 +138,40 @@ class DataCollection(utils.ToFuObject):
         # Check consistency
         self._dgroup, self._dref, self._ddata = _check_inputs._consistency(
             ddata=ddata, ddata0=self._ddata,
-            dref=dref, ddata0=self._dref,
-            dgroup=dgroup, ddata0=self._dgroup,
+            dref=dref, dref0=self._dref,
+            dgroup=dgroup, dgroup0=self._dgroup,
         )
 
     # ---------------------
-    # Methods for adding / removing group / ref / quantities
+    # Adding group / ref / quantity one by one
     # ---------------------
 
-    def _remove_group(self, group=None):
+    def add_group(self, group=None):
+        # Check consistency
+        self.update(ddata=None, dref=None, dgroup=group)
+
+    def add_ref(self, ref=None, group=None, data=None, **kwdargs):
+        dref = {ref: {'group': group, 'data': data, **kwdargs}}
+        # Check consistency
+        self.update(ddata=None, dref=dref, dgroup=None)
+
+    def add_data(self, key=None, data=None, ref=None, **kwdargs):
+        ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
+        # Check consistency
+        self.update(ddata=ddata, dref=None, dgroup=None)
+
+    # ---------------------
+    # Removing group / ref / quantities
+    # ---------------------
+
+    def remove_group(self, group=None):
         """ Remove a group (or list of groups) and all associated ref, data """
         self._dgroup, self._dref, self._ddata = _check_inputs._remove_group(
             group=group,
             dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
         )
 
-    def _remove_ref(self, key=None, propagate=None):
+    def remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
         self._dgroup, self._dref, self._ddata = _check_inputs._remove_ref(
             key=key,
@@ -169,13 +179,79 @@ class DataCollection(utils.ToFuObject):
             propagate=propagate,
         )
 
-    def _remove_data(self, key, propagate=True):
+    def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
         self._dgroup, self._dref, self._ddata = _check_inputs._remove_data(
             key=key,
             dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
             propagate=propagate,
         )
+
+    # ---------------------
+    # Get / set / add / remove params
+    # ---------------------
+
+    def get_param(self, param=None, returnas=np.ndarray):
+        """ Return the array of the chosen parameter (or list of parameters)
+
+        Can be returned as:
+            - dict: {param0: {key0: values0, key1: value1...}, ...}
+            - np[.ndarray: {param0: np.r_[values0, value1...], ...}
+
+        """
+        return _check_inputs._get_param(
+            ddata=self._ddata, param=param, returnas=returnas)
+
+    def set_param(self, param=None, values=None, ind=None, key=None):
+        """ Set the value of a parameter
+
+        values can be:
+            - None
+            - a unique value (int, float, bool, str, tuple) => common to all keys
+            - an iterable of vlues (array, list) => one for each key
+
+        A subset of keys can be chosen (ind, key, fed to self.select()) to set
+        only the values of some key
+
+        """
+
+        # Check and format input
+        if param is None:
+            return
+        assert param in self._ddata['lparam']
+
+        # Update all keys with common value
+        ltypes = [str, int, np.int, float, np.float, tuple]
+        lc = [any([isinstance(values, tt) for tt in ltypes]),
+              isinstance(values, list), isinstance(values, np.ndarray)]
+        if not (values is None or any(lc)):
+            msg = "Accepted types for values include:\n"
+            msg += "    - None\n"
+            msg += "    - %s: common to all\n"%str(ltypes)
+            msg += "    - list, np.ndarray: key by key"
+            raise Exception(msg)
+
+        if values is None or lc[0]:
+            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
+            for kk in key:
+                self._ddata['dict'][kk][param] = values
+
+        # Update relevant keys with corresponding values
+        else:
+            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
+            assert len(key) == len(values)
+            for ii, kk in enumerate(key):
+                self._ddata['dict'][kk][param] = values[ii]
+
+    def add_param(self, param, value=None):
+        """ Add a parameter, optionnally also set its value """
+        self._ddata = _check_inputs._add_param(
+            ddata=self._ddata, param=param, value=value
+        )
+
+    def remove_param(self, param=None):
+        """ Remove a parameter, none by default, all if param = 'all' """
+        _check_inputs._remove_param(ddata=self._ddata, param=param)
 
     ###########
     # strip dictionaries
@@ -239,103 +315,30 @@ class DataCollection(utils.ToFuObject):
     @property
     def dparams(self):
         """ Return a dict of params """
-        return _check_inputs._get_dparams(ddata0=self._ddata)
+        dp = {
+            k0: {k1: v1 for k1, v1 in v0.items() if k1 != 'data'}
+            for k0, v0 in self._ddata.items()
+        }
+        for k0 in dp.keys():
+            if isinstance(self._ddata[k0]['data'], np.ndarray):
+                dp[k0]['data'] = self._ddata[k0]['data'].dtype.name
+            else:
+                dp[k0]['data'] = type(self._ddata[k0]['data'])
+        return dp
+
+    ###########
+    # General use methods
+    ###########
+
+    def to_DataFrame(self):
+        import pandas as pd
+        return pd.DataFrame(self.dparams)
 
     # ---------------------
-    # Add / remove params
+    # Key selection methods
     # ---------------------
 
-    def get_param(self, param=None, returnas=np.ndarray):
-        """ Return the array of the chosen parameter values """
-        # Check inputs and trivial cases
-        if param is None:
-            return
-        assert param in self._ddata['lparam']
-        assert returnas in [np.ndarray, dict, list]
-
-        # Get output
-        if returnas == dict:
-            out = {kk: self._ddata['dict'][kk][param]
-                   for kk in self._ddata['lkey']}
-        else:
-            out = [self._ddata['dict'][kk][param]
-                   for kk in self._ddata['lkey']]
-            if returnas == np.ndarray:
-                try:
-                    out = np.asarray(out)
-                except Exception as err:
-                    msg = "Could not convert %s to array !"
-                    warnings.warn(msg)
-        return out
-
-    def set_param(self, param=None, values=None, ind=None, key=None):
-        """ Set the value of a parameter
-
-        values can be:
-            - None
-            - a unique value (int, float, bool, str, tuple) => common to all keys
-            - an iterable of vlues (array, list) => one for each key
-
-        A subset of keys can be chosen (ind, key, fed to self.select()) to set
-        only the values of some key
-
-        """
-
-        # Check and format input
-        if param is None:
-            return
-        assert param in self._ddata['lparam']
-
-        # Update all keys with common value
-        ltypes = [str, int, np.int, float, np.float, tuple]
-        lc = [any([isinstance(values, tt) for tt in ltypes]),
-              isinstance(values, list), isinstance(values, np.ndarray)]
-        if not (values is None or any(lc)):
-            msg = "Accepted types for values include:\n"
-            msg += "    - None\n"
-            msg += "    - %s: common to all\n"%str(ltypes)
-            msg += "    - list, np.ndarray: key by key"
-            raise Exception(msg)
-
-        if values is None or lc[0]:
-            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
-            for kk in key:
-                self._ddata['dict'][kk][param] = values
-
-        # Update relevant keys with corresponding values
-        else:
-            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
-            assert len(key) == len(values)
-            for ii, kk in enumerate(key):
-                self._ddata['dict'][kk][param] = values[ii]
-
-    def add_param(self, param, values=None):
-        """ Add a parameter, optionnally also set its value """
-        assert isinstance(param, str)
-        assert param not in self._ddata['lparam']
-        self._ddata['lparam'].append(param)
-        try:
-            self.set_param(param=param, values=values)
-        except Exception as err:
-            self._ddata['lparam'].remove(param)
-            raise err
-
-    def remove_param(self, param=None):
-        """ Remove a parameters """
-        # Check and format input
-        if param is None:
-            return
-        assert param in self._ddata['lparam']
-
-        self._ddata['lparam'].remove(param)
-        for kk in self._ddata['lkey']:
-            del self._ddata['dict'][kk][param]
-
-    # ---------------------
-    # Read-only for internal use
-    # ---------------------
-
-    def select(self, log='all', returnas=int, **kwdargs):
+    def select(self, log=None, returnas=None, **kwdargs):
         """ Return the indices / keys of data matching criteria
 
         The selection is done comparing the value of all provided parameters
@@ -348,97 +351,17 @@ class DataCollection(utils.ToFuObject):
         details for each criterion
 
         """
-
-        # Format and check input
-        assert returnas in [int, bool, str, 'key']
-        assert log in ['all', 'any', 'raw']
-        if log == 'raw':
-            assert returnas == bool
-
-        # Get list of relevant criteria
-        lcritout = [ss for ss in kwdargs.keys()
-                    if ss not in self._ddata['lparam']]
-        if len(lcritout) > 0:
-            msg = "The following criteria correspond to no parameters:\n"
-            msg += "    - %s\n"%str(lcritout)
-            msg += "  => only use known parameters (self.lparam):\n"
-            msg += "    %s"%str(self._ddata['lparam'])
-            raise Exception(msg)
-        kwdargs = {kk: vv for kk, vv in kwdargs.items()
-                   if vv is not None and kk in self._ddata['lparam']}
-        lcrit = list(kwdargs)
-        ncrit = len(kwdargs)
-
-        # Prepare array of bool indices and populate
-        ind = np.ones((ncrit, len(self._ddata['lkey'])), dtype=bool)
-        for ii in range(ncrit):
-            critval = kwdargs[lcrit[ii]]
-            try:
-                par = self.get_param(lcrit[ii], returnas=np.ndarray)
-                ind[ii, :] = par == critval
-            except Exception as err:
-                ind[ii, :] = [self._ddata['dict'][kk][lcrit[ii]] == critval
-                              for kk in self._ddata['lkey']]
-
-        # Format output ind
-        if log == 'all':
-            ind = np.all(ind, axis=0)
-        elif log == 'any':
-            ind = np.any(ind, axis=0)
-        else:
-            ind = {lcrit[ii]: ind[ii, :] for ii in range(ncrit)}
-
-        # Also return the list of keys if required
-        if returnas == int:
-            out = ind.nonzero()[0]
-        elif returnas in [str, 'key']:
-            out = self.ldata[ind.nonzero()[0]]
-        else:
-            out = ind
-        return out
+        return _check_inputs._select(
+            ddata=self._ddata, log=log, returnas=returnas, **kwdargs,
+        )
 
     def _ind_tofrom_key(self, ind=None, key=None, group=None, returnas=int):
-
-        # Check / format input
-        assert returnas in [int, bool, str, 'key']
-        lc = [ind is not None, key is not None]
-        assert np.sum(lc) <= 1
-
-        # Initialize output
-        out = np.zeros((len(self._ddata['lkey']),), dtype=bool)
-
-        if not any(lc) and group is not None:
-            key = self._dgroup['dict'][group]['ldata']
-            lc[1] = True
-
-        # Test
-        if lc[0]:
-            ind = np.atleast_1d(ind).ravel()
-            assert ind.dtype == np.int or ind.dtype == np.bool
-            out[ind] = True
-            if returnas in [int, str, 'key']:
-                out = out.nonzero()[0]
-                if returnas in [str, 'key']:
-                    out = [self._ddata['lkey'][ii] for ii in out]
-
-        elif lc[1]:
-            if isinstance(key, str):
-                key = [key]
-            if returnas in ['key', str]:
-                out = key
-            else:
-                for kk in key:
-                    out[self._ddata['lkey'].index(kk)] = True
-                if returnas == int:
-                    out = out.nonzero()[0]
-        else:
-            if returnas == bool:
-                out[:] = True
-            elif returnas == int:
-                out = np.arange(0, len(self._ddata['lkey']))
-            else:
-                out = self._ddata['lkey']
-        return out
+        """ Return ind from key or key from ind for all data """
+        return _check_inputs._ind_tofrom_key(
+            ddata=self._ddata, ind=ind, key=key,
+            group=group, dgroup=self._dgroup,
+            returnas=returnas,
+        )
 
     # ---------------------
     # Methods for getting a subset of the collection

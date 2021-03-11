@@ -114,9 +114,9 @@ class Test01_DataCollection(object):
         # conf0 = tfg.utils.create_config(case='B2')
         # conf1 = tfg.utils.create_config(case='B3')
 
-        dref = {'t0':{'data': cls.lt[0], 'group': 'time', 'units': 's'},
-                't1':{'data': cls.lt[1], 'group': 'time', 'units': 'min'},
-                'r2':{'data': cls.lr[2], 'group': 'time', 'units': 'm'}}
+        dref = {'t0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
+                't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+                'r2': {'data': cls.lr[2], 'group': 'time', 'units': 'm'}}
         ddata = {'trace00': {'data': cls.ltrace[0], 'refs': ('t0',)},
                  'trace10': {'data': cls.ltrace[2], 'refs': ('t1',)},
                  'trace11': {'data': cls.ltrace[3], 'refs': ('t1','t0')},

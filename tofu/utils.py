@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 
 # tofu-specific
 from tofu import __version__
-import tofu.pathfile as tfpf
 
+_SAVEPATH = os.getcwd()
 _SEP = '.'
 _dict_lexcept_key = []
 
@@ -2659,6 +2659,8 @@ class ID(ToFuObjectBase):
                                  SaveName=None, include=None,
                                  lObj=None, dUSR=None):
         # Str args
+        if SavePath is None:
+            SavePath = _SAVEPATH
         ls = [usr, Type, SavePath, Exp, Diag, SaveName]
         assert all(ss is None or type(ss) is str for ss in ls)
         if usr is None:
