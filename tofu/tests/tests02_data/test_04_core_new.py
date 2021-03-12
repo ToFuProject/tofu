@@ -11,9 +11,6 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Nose-specific
-from nose import with_setup # optional
-
 # tofu-specific
 from tofu import __version__
 import tofu.data as tfd
