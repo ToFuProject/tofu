@@ -103,8 +103,17 @@ class Test01_DataCollection(object):
         cls.lch = [ch0, ch1]
 
         # meshes
-        mesh0 = {'nodes': None}
-        mesh1 = {'nodes': None}
+        mesh0 = {
+            'type': 'rect',
+            'R': np.r_[0,1,2,3],
+            'Z': np.r_[0,1,2],
+            'shapeRZ': ('R', 'Z'),
+        }
+        mesh1 = {
+            'type': 'tri',
+            'nodes': np.array([[0, 1, 1, 0], [0, 0, 1, 1]]).T,
+            'faces': np.array([[0, 1, 2], [2, 3, 0]]),
+        }
         cls.lmesh = [mesh0, mesh1]
 
         # traces
@@ -114,9 +123,11 @@ class Test01_DataCollection(object):
         trace30, trace31 = np.cos(r2), t0[:, None]*np.sin(r2)
         trace40 = t2[:, None, None]*r1[None, :, None]*ch0[None, None, :]
         trace41 = t2[None, None, :]*r2[:, None, None]*ch1[None, :, None]
+        trace50 = mesh0['R'][:, None]*mesh0['Z'][None, :]
+        trace51 = mesh1['faces'][:, 0:1]*t1[None, :]
         cls.ltrace = [trace00, trace01, trace10, trace11,
                       trace20, trace21, trace30, trace31,
-                      trace40, trace41]
+                      trace40, trace41, trace50, trace51]
 
         # polygons
         lpoly0 = [np.ones((2, 5)), np.ones((2, 8))]
@@ -133,9 +144,9 @@ class Test01_DataCollection(object):
                 'r2': {'data': cls.lr[2], 'group': 'radius', 'units': 'm'}}
         ddata = {'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
                  'trace10': {'data': cls.ltrace[2], 'ref': ('t1',), 'units': 's'},
-                 'trace11': {'data': cls.ltrace[3], 'ref': ('t1','t0')},
+                 'trace11': {'data': cls.ltrace[3], 'ref': ('t1', 't0')},
                  'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
-                 'trace31': {'data': cls.ltrace[7], 'ref': ('t0','r2')}}
+                 'trace31': {'data': cls.ltrace[7], 'ref': ('t0', 'r2')}}
         data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
         cls.lobj = [data]
 
@@ -174,6 +185,23 @@ class Test01_DataCollection(object):
                 }
         data = tfd.DataCollection(
             dgroup=None, dref=dref, ddata=ddata,
+            Name='data',
+        )
+
+        # Try with meshes
+        dref = {
+            't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
+            'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'},
+            'mesh1': {'data': self.lmesh[1], 'foo': 'bar'},
+            'mesh0': {'data': self.lmesh[0], 'group': 'mesh2d', 'foo': 'bar'},
+        }
+        ddata = {
+            'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
+            'trace50': {'data': self.ltrace[-2], 'ref': 'mesh0'},
+            'trace51': {'data': self.ltrace[-1], 'ref': ('mesh1', 't1')},
+        }
+        data = tfd.DataCollection(
+            dref=dref, ddata=ddata,
             Name='data',
         )
 
@@ -225,6 +253,11 @@ class Test01_DataCollection(object):
         assert all([tt in data.ddata.keys()
                     for tt in ['trace00', 'trace11', 'trace31']])
 
+        # Add/remove mesh
+        data.add_ref(key='mesh0', data=self.lmesh[0])
+        data.add_data(key='mesh1', data=self.lmesh[1])
+        data.add_data(key='trace51', data=self.ltrace[-1], ref=('mesh1', 't1'))
+
     def test04_select(self):
         data = self.lobj[0]
 
@@ -232,7 +265,7 @@ class Test01_DataCollection(object):
         assert key == ['trace10']
 
         out = data.select(units='a.u.', returnas=int)
-        assert len(out) == 6, out
+        assert len(out) == 9, out
 
     def tests04_get_summary(self):
         data = self.lobj[0]

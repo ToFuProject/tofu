@@ -272,32 +272,40 @@ class DataRefException(Exception):
         self.message = msg
 
 
-def _check_dataref(data=None, ref=None):
+def _check_dataref(data=None, key=None):
     """ Check the conformity of data to be a valid reference """
 
     # if not array
     # => try converting or get class (dict, mesh...)
+    group = None
     if not isinstance(data, np.ndarray):
         if isinstance(data, list) or isinstance(data, tuple):
             try:
                 data = np.array(data)
                 size = data.size
             except Exception as err:
-                raise DataRefException(ref=ref, data=data)
+                raise DataRefException(ref=key, data=data)
         else:
-            size = data.__class__.__name__
+            try:
+                data, size = _check_mesh_temp(data=data, key=key)
+                if len(size) == 1:
+                    size = size[0]
+                group = 'mesh2d'
+            except Exception as err:
+                import pdb; pdb.set_trace()     # DB
+                size = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
     if isinstance(data, np.ndarray):
         if data.ndim != 1:
-            raise DataRefException(ref=ref, data=data)
+            raise DataRefException(ref=key, data=data)
 
         datau = np.unique(data)
         if not (datau.size == data.size and np.allclose(datau, data)):
-            raise DataRefException(ref=ref, data=data)
+            raise DataRefException(ref=key, data=data)
         size = data.size
 
-    return data, size
+    return data, size, group
 
 
 def _check_dref(
@@ -352,7 +360,13 @@ def _check_dref(
                     and isinstance(v0, dict)
                     and all([isinstance(ss, str) for ss in v0.keys()])
                     and ('size' in v0.keys() or 'data' in v0.keys())
-                    and 'group' in v0.keys()
+                    and (
+                        'group' in v0.keys()
+                        or (
+                            'data' in v0.keys()
+                            and isinstance(v0['data'], dict)
+                        )
+                    )
                 )
             )
             for k0, v0 in dref.items()
@@ -384,12 +398,45 @@ def _check_dref(
         )
         raise Exception(msg)
 
+    # -----------------------
+    # Make sure all are dict
+    for k0, v0 in dref.items():
+        if not isinstance(v0, dict):
+            dref[k0] = {'data': v0}
+
+    # ----------------
+    # Add size / data if relevant
+    ddata_add = {
+        k0: {'data': None}
+        for k0, v0 in dref.items()
+        if 'data' in v0.keys() and k0 not in ddata0.keys()
+    }
+    for k0, v0 in dref.items():
+        if 'data' in v0.keys():
+            data, dref[k0]['size'], group = _check_dataref(
+                data=v0['data'], key=k0,
+            )
+            if k0 in ddata_add.keys():
+                ddata_add[k0]['data'] = data
+                ddata_add[k0]['ref'] = (k0,)
+                ddata_add[k0].update({
+                    k1: v1 for k1, v1 in v0.items()
+                    if k1 not in ['group', 'size', 'ldata']
+                })
+            if group is not None and dref.get('group') is None:
+                dref[k0]['group'] = group
+
+    # Make sure, if ngroup != 1, that NOW all refs have a group
+    if ngroup != 1:
+        lerr = [k0 for k0, v0 in dref.items() if v0.get('group') is None]
+        if len(lerr) > 0:
+            msg = "Some groups remain ambiguous!:\n{}".format(lerr)
+            raise Exception(msg)
+
     # ----------------
     # Convert and/or add group if necessary
     for k0, v0 in dref.items():
-        if not isinstance(v0, dict):
-            dref[k0] = {'group': groupref, 'data': v0}
-        elif v0.get('group') is None:
+        if v0.get('group') is None:
             dref[k0]['group'] = groupref
 
     # Add missing groups
@@ -403,23 +450,6 @@ def _check_dref(
         dgroup_add = _check_dgroup(
             lgroups, dgroup0=dgroup0, allowed_groups=allowed_groups,
         )
-
-    # Add size / data if relevant
-    ddata_add = {
-        k0: {'data': None}
-        for k0, v0 in dref.items()
-        if 'data' in v0.keys() and k0 not in ddata0.keys()
-    }
-    for k0, v0 in dref.items():
-        if 'data' in v0.keys():
-            data, dref[k0]['size'] = _check_dataref(data=v0['data'], ref=k0)
-            if k0 in ddata_add.keys():
-                ddata_add[k0]['data'] = data
-                ddata_add[k0]['ref'] = (k0,)
-                ddata_add[k0].update({
-                    k1: v1 for k1, v1 in v0.items()
-                    if k1 not in ['group', 'size', 'ldata']
-                })
 
     # get rid of extra keys
     dref = {
@@ -512,6 +542,7 @@ def _check_trimesh_conformity(nodes, faces, key=None):
         faces[clock, 1], faces[clock, 2] = faces[clock, 2], faces[clock, 1]
     return faces
 
+
 def _check_mesh_temp(data=None, key=None):
     # Check if provided data is mesh (as a dict)
 
@@ -543,11 +574,11 @@ def _check_mesh_temp(data=None, key=None):
                 and (
                     (
                         data['type'] in ['tri', 'quadtri']
-                        and data['faces'].shape == (data['nodes'].shape[0], 3)
+                        and data['faces'].shape[1] == 3
                     )
                     or (
                         data['type'] == 'quad'
-                        and data['faces'].shape == (data['nodes'].shape[0], 4)
+                        and data['faces'].shape[1] == 4
                     )
                 )
                 and np.max(data['faces']) <= data['nodes'].shape[0]
@@ -559,18 +590,24 @@ def _check_mesh_temp(data=None, key=None):
             """
             A mesh should be a dict of one of the following form:
 
-                {'type': 'rect',
+                dict(
+                 'type': 'rect',
                  'R': np.ndarray (with ndim in [1, 2]),
                  'Z': np.ndarray (with ndim in [1, 2]),
-                 'shapeRZ': ('R', 'Z') or ('Z', 'R')}
+                 'shapeRZ': ('R', 'Z') or ('Z', 'R')
+                )
 
-                {'type': 'tri' or 'quadtri',
+                 dict(
+                 'type': 'tri' or 'quadtri',
                  'nodes': np.ndarray of shape (N, 2),
-                 'faces': np.ndarray of int of shape (N, 3)}
+                 'faces': np.ndarray of int of shape (N, 3)
+                )
 
-                {'type': 'quad',
+                dict(
+                 'type': 'quad',
                  'nodes': np.ndarray of shape (N, 2),
-                 'faces': np.ndarray of int of shape (N, 4)}
+                 'faces': np.ndarray of int of shape (N, 4)
+                )
 
             Provided:
             {}
@@ -619,7 +656,7 @@ def _check_mesh_temp(data=None, key=None):
         data['shapeRZ'] = shapeRZ
         data['nR'] = R.size
         data['nZ'] = Z.size
-        data['size'] = R.size*Z.size
+        data['shape'] = (R.size, Z.size)
         data['trifind'] = trifind
         data['ftype'] = data.get('ftype', 0)
 
@@ -665,12 +702,12 @@ def _check_mesh_temp(data=None, key=None):
             raise Exception(msg)
 
         # Only triangular meshes so far
-        if 'tri' in v0['type']:
+        if 'tri' in data['type']:
             if data.get('mpltri', None) is None:
                 data['mpltri'] = mplTri(
                     data['nodes'][:, 0],
                     data['nodes'][:, 1],
-                    ddata['faces']
+                    data['faces']
                 )
             if not isinstance(data['mpltri'], mplTri):
                 msg = (
@@ -682,11 +719,11 @@ def _check_mesh_temp(data=None, key=None):
                 )
             assert data['ftype'] in [0, 1]
             if data['ftype'] == 1:
-                data['size'] = data['nnodes']
+                data['shape'] = (data['nnodes'],)
             else:
-                data['size'] = int(data['nfaces'] / data['ntri'])
+                data['shape'] = (int(data['nfaces'] / data['ntri']),)
 
-    return data, data['size']
+    return data, data['shape']
 
 
 # #############################################################################
@@ -775,6 +812,7 @@ def _check_ddata(
                                 v0.get('ref') is None
                                 or isinstance(v0.get('ref'), str)
                                 or isinstance(v0.get('ref'), tuple)
+                                or v0.get('ref') is True
                             )
                         )
                     )
@@ -784,10 +822,21 @@ def _check_ddata(
                     and isinstance(v0, dict)
                     and all([isinstance(ss, str) for ss in v0.keys()])
                     and 'data' in v0.keys()
-                    and 'ref' in v0.keys()
                     and (
-                        isinstance(v0['ref'], str)
-                        or isinstance(v0['ref'], tuple)
+                        (
+                        'ref' in v0.keys()
+                         and (
+                            isinstance(v0.get('ref'), str)
+                            or isinstance(v0.get('ref'), tuple)
+                            or v0.get('ref') is True
+                         )
+                        )
+                        or (
+                            isinstance(v0['data'], dict)
+                            or isinstance(v0.get('ref'), str)
+                            or isinstance(v0.get('ref'), tuple)
+                            or v0.get('ref') in [None, True]
+                        )
                     )
                 )
             )
@@ -814,6 +863,8 @@ def _check_ddata(
                 - (C): 'ref' is not provided if len(self.dref) == 1
                 - (D): only the data array is provided if len(self.dgroup) == 1
 
+            If ref = True, the data is itself considered a ref
+
             Each data shall be assigned a ref:
             """
             + ('\t- '+'\n\t- '.join(sorted(dref0.keys())))
@@ -822,16 +873,54 @@ def _check_ddata(
 
     # ----------------
     # Convert and/or add ref if necessary
+    lref_add = None
     for k0, v0 in ddata.items():
         if not isinstance(v0, dict):
             ddata[k0] = {'ref': (refref,), 'data': v0}
         elif v0.get('ref') is None:
-            ddata[k0]['ref'] = (refref,)
+            if not isinstance(v0['data'], dict):
+                ddata[k0]['ref'] = (refref,)
         elif isinstance(v0['ref'], str):
             ddata[k0]['ref'] = (v0['ref'],)
+        elif v0['ref'] is True:
+            if k0 not in dref0.keys():
+                if lref_add is None:
+                    lref_add = [k0]
+                else:
+                    lref_add.append(k0)
+            ddata[k0]['ref'] = (k0,)
+
+
+    # Check data and ref vs shape - and optionnally add to ref if mesh2d
+    for k0, v0 in ddata.items():
+        ddata[k0]['data'], ddata[k0]['shape'], group = _check_data(
+            data=v0['data'], key=k0,
+        )
+
+        # Check if group / mesh2d
+        if group is not None:
+            c0 = ddata[k0].get('ref') in [None, (k0,)]
+            if not c0:
+                msg = (
+                    """
+                    ddata[{}]['ref'] is a {}
+                      => it should have ref = ({},)
+                    """.format(k0, group, k0)
+                )
+                raise Exception(msg)
+            ddata[k0]['ref'] = (k0,)
+            c0 = (
+                (lref_add is None or k0 not in lref_add)
+                and k0 not in dref0.keys()
+            )
+            if c0:
+                if lref_add is None:
+                    lref_add = [k0]
+                else:
+                    lref_add.append(k0)
 
     # Add missing refs (only in ddata)
-    lref = set(itt.chain.from_iterable([
+    lref = list(itt.chain.from_iterable([
         [
             rr for rr in v0['ref']
             if rr not in dref0.keys() and rr in ddata.keys()
@@ -839,54 +928,53 @@ def _check_ddata(
         for v0 in ddata.values() if 'ref' in v0.keys()
     ]
     ))
+    if lref_add is not None:
+        lref += lref_add
+    lref = set(lref)
 
     dgroup_add = None
     dref_add = None
     if len(lref) > 0:
         dref_add = {rr: {'data': ddata[rr]['data']} for rr in lref}
         dref_add, dgroup_add, ddata_dadd = _check_dref(
-            dref_add, dref0=dref0, dgroup0=dgroup0,
+            dref=dref_add, dref0=dref0, ddata0=ddata0, dgroup0=dgroup0,
+            allowed_groups=allowed_groups,
         )
 
-    # Check data and ref vs shape
-    lgroup_add = None
+    # Check shape vs ref
     for k0, v0 in ddata.items():
-        ddata[k0]['data'], shape, group = _check_data(data=v0['data'], key=k0)
-        if isinstance(shape, tuple):
-            c0 = (
-                len(v0['ref']) == len(shape)
-                and tuple([dref0[rr]['size'] for rr in v0['ref']]) == shape
+        c0 = (
+            isinstance(v0['ref'], tuple)
+            and all([
+                ss in dref0.keys() or ss in dref_add.keys() for ss in v0['ref']
+            ])
+        )
+        if isinstance(v0['shape'], tuple):
+            shaperef = [
+                dref0[rr]['size'] if rr in dref0.keys()
+                else dref_add[rr]['size']
+                for rr in v0['ref']
+            ]
+            c1 = (
+                len(shaperef) > 1
+                or any([isinstance(ss, tuple) for ss in shaperef])
             )
+            if c1:
+                shaperef = np.r_[shaperef].ravel()
+            c0 = c0 and tuple(shaperef) == v0['shape']
         else:
             c0 = v0['ref'] == (k0,)
         if not c0:
             msg = (
                 """
                 Inconsistent shape vs ref for ddata[{0}]:
-                    - ddata['{0}']['ref'] = {1}
-                    - ddata['{0}']['shape'] = {2}
+                    - ddata['{0}']['ref'] = {1}  ({2})
+                    - ddata['{0}']['shape'] = {3}
 
                 If dict / object it should be its own ref!
-                """.format(k0, v0['ref'], shape)
+                """.format(k0, v0['ref'], tuple(shaperef), v0['shape'])
             )
             raise Exception(msg)
-        ddata[k0]['shape'] = shape
-        c0 = (
-            group is not None
-            and (dgroup_add is None or group not in dgroup_add.keys())
-            and (lgroup_add is None or group not in lgroup_add)
-        )
-        if c0:
-            if lgroup_add is None:
-                lgroup_add = [group]
-            else:
-                lgroup_add.append(group)
-
-    # Complement dgroup_add
-    if lgroup_add is not None:
-        dgroup_add.update(_check_dgroup(
-            lgroup_add, dgroup0=dgroup0, allowed_groups=allowed_groups,
-        ))
 
     return ddata, dref_add, dgroup_add
 
@@ -981,6 +1069,7 @@ def _consistency(
     # dref
     dref, dgroup_add, ddata_add = _check_dref(
         dref=dref, dref0=dref0, dgroup0=dgroup0, ddata0=ddata0,
+        allowed_groups=allowed_groups,
     )
     if dgroup_add is not None:
         dgroup0.update(dgroup_add)

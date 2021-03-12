@@ -414,7 +414,7 @@ class DataCollection(utils.ToFuObject):
         col1 = ['ref key', 'group', 'size', 'nb. data']
         ar1 = [(k0,
                 self._dref[k0]['group'],
-                self._dref[k0]['size'],
+                str(self._dref[k0]['size']),
                 len(self._dref[k0]['ldata']))
                for k0 in self._dref.keys()]
 
