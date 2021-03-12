@@ -5,6 +5,7 @@ import itertools as itt
 
 # Common
 import numpy as np
+from matplotlib.tri import Triangulation as mplTri
 
 
 
@@ -430,6 +431,266 @@ def _check_dref(
 
 # #############################################################################
 # #############################################################################
+#               ddata - special case: meshes
+# #############################################################################
+
+
+def _get_RZ(arr, name=None, shapeRZ=None):
+    if arr.ndim == 1:
+        if np.any(np.diff(arr) <= 0.):
+            msg = "Non-increasing {}".format(name)
+            raise Exception(msg)
+    else:
+        lc = [np.all(np.diff(arr[0, :])) > 0.,
+              np.all(np.diff(arr[:, 0])) > 0.]
+        if np.sum(lc) != 1:
+            msg = "Impossible to know {} dimension!".format(name)
+            raise Exception(msg)
+        if lc[0]:
+            arr = arr[0, :]
+            if shapeRZ[1] is None:
+                shapeRZ[1] = name
+            if shapeRZ[1] != name:
+                msg = "Inconsistent shapeRZ"
+                raise Exception(msg)
+        else:
+            arr = arr[:, 0]
+            if shapeRZ[0] is None:
+                shapeRZ[0] = name
+            if shapeRZ[0] != name:
+                msg = "Inconsistent shapeRZ"
+                raise Exception(msg)
+    return arr, shapeRZ
+
+
+def _duplicates(arr, arru, nn, name=None, msg=None):
+    msg += (
+        "  Duplicate {}: {}\n".format(name, nn - arru.shape[0])
+        + "\t- {}.shape: {}\n".format(name, arr.shape)
+        + "\t- unique shape: {}".format(arru.shape)
+    )
+    return msg
+
+
+def _check_trimesh_conformity(nodes, faces, key=None):
+    nnodes = nodes.shape[0]
+    nfaces = faces.shape[0]
+
+    # Test for duplicates
+    nodesu = np.unique(nodes, axis=0)
+    facesu = np.unique(faces, axis=0)
+    lc = [nodesu.shape[0] != nnodes,
+          facesu.shape[0] != nfaces]
+    if any(lc):
+        msg = "Non-valid mesh ddata[{0}]: \n".format(key)
+        if lc[0]:
+            msg = _duplicates(nodes, nodesu, nnodes, name='nodes', msg=msg)
+        if lc[1]:
+            msg = _duplicates(faces, facesu, nfaces, name='faces', msg=msg)
+        raise Exception(msg)
+
+    # Test for unused nodes
+    facesu = np.unique(facesu)
+    c0 = np.all(facesu >= 0) and facesu.size == nnodes
+    if not c0:
+        ino = str([ii for ii in range(0, nnodes) if ii not in facesu])
+        msg = "Unused nodes in ddata[{0}]:\n".format(key)
+        msg += "    - unused nodes indices: {}".format(ino)
+        warnings.warn(msg)
+
+    # Check counter-clockwise orientation
+    x, y = nodes[faces, 0], nodes[faces, 1]
+    orient = ((y[:, 1] - y[:, 0])*(x[:, 2] - x[:, 1])
+              - (y[:, 2] - y[:, 1])*(x[:, 1] - x[:, 0]))
+
+    clock = orient > 0.
+    if np.any(clock):
+        msg = ("Some triangles not counter-clockwise\n"
+               + "  (necessary for matplotlib.tri.Triangulation)\n"
+               + "    => {}/{} triangles reshaped".format(clock.sum(), nfaces))
+        warnings.warn(msg)
+        faces[clock, 1], faces[clock, 2] = faces[clock, 2], faces[clock, 1]
+    return faces
+
+def _check_mesh_temp(data=None, key=None):
+    # Check if provided data is mesh (as a dict)
+
+    # ------------
+    # Check basics
+    lmok = ['rect', 'tri', 'quadtri']
+    c0 = (
+        isinstance(data, dict)
+        and all([ss in data.keys() for ss in ['type']])
+        and data['type'] in lmok
+        and (
+            (
+                data['type'] == 'rect'
+                and all([ss in data.keys() for ss in ['R', 'Z']])
+                and isinstance(data['R'], np.ndarray)
+                and isinstance(data['Z'], np.ndarray)
+                and data['R'].ndim in [1, 2]
+                and data['Z'].ndim in [1, 2]
+            )
+            or (
+                data['type'] in ['tri', 'quadtri', 'quad']
+                and all([ss in data.keys() for ss in ['nodes', 'faces']])
+                and isinstance(data['nodes'], np.ndarray)
+                and isinstance(data['faces'], np.ndarray)
+                and data['nodes'].ndim == 2
+                and data['faces'].ndim == 2
+                and data['faces'].dtype == np.int
+                and data['nodes'].shape[1] == 2
+                and (
+                    (
+                        data['type'] in ['tri', 'quadtri']
+                        and data['faces'].shape == (data['nodes'].shape[0], 3)
+                    )
+                    or (
+                        data['type'] == 'quad'
+                        and data['faces'].shape == (data['nodes'].shape[0], 4)
+                    )
+                )
+                and np.max(data['faces']) <= data['nodes'].shape[0]
+            )
+        )
+    )
+    if not c0:
+        msg = (
+            """
+            A mesh should be a dict of one of the following form:
+
+                {'type': 'rect',
+                 'R': np.ndarray (with ndim in [1, 2]),
+                 'Z': np.ndarray (with ndim in [1, 2]),
+                 'shapeRZ': ('R', 'Z') or ('Z', 'R')}
+
+                {'type': 'tri' or 'quadtri',
+                 'nodes': np.ndarray of shape (N, 2),
+                 'faces': np.ndarray of int of shape (N, 3)}
+
+                {'type': 'quad',
+                 'nodes': np.ndarray of shape (N, 2),
+                 'faces': np.ndarray of int of shape (N, 4)}
+
+            Provided:
+            {}
+            """.format(data)
+        )
+        raise Exception(msg)
+
+    # ------------
+    # Check per type
+    if data['type'] == 'rect':
+
+        shapeRZ = data.get('shapeRZ', [None, None])
+        if shapeRZ is None:
+            shapeRZ = [None, None]
+        else:
+            shapeRZ = list(shapeRZ)
+
+        R, shapeRZ = _get_RZ(data['R'], name='R', shapeRZ=shapeRZ)
+        Z, shapeRZ = _get_RZ(data['Z'], name='Z', shapeRZ=shapeRZ)
+        shapeRZ = tuple(shapeRZ)
+
+        if shapeRZ not in [('R', 'Z'), ('Z', 'R')]:
+            msg = "Inconsistent shapeRZ"
+            raise Exception(msg)
+
+        def trifind(
+            r, z,
+            Rbin=0.5*(R[1:] + R[:-1]),
+            Zbin=0.5*(Z[1:] + Z[:-1]),
+            nR=R.size, nZ=Z.size,
+            shapeRZ=shapeRZ
+        ):
+            indR = np.searchsorted(Rbin, r)
+            indZ = np.searchsorted(Zbin, z)
+            if shapeRZ == ('R', 'Z'):
+                indpts = indR*nZ + indZ
+            else:
+                indpts = indZ*nR + indR
+            indout = ((r < R[0]) | (r > R[-1])
+                      | (z < Z[0]) | (z > Z[-1]))
+            indpts[indout] = -1
+            return indpts
+
+        data['R'] = R
+        data['Z'] = Z
+        data['shapeRZ'] = shapeRZ
+        data['nR'] = R.size
+        data['nZ'] = Z.size
+        data['size'] = R.size*Z.size
+        data['trifind'] = trifind
+        data['ftype'] = data.get('ftype', 0)
+
+        if data['ftype'] != 0:
+            msg = "Linear interpolation not handled yet !"
+            raise Exception(msg)
+
+    else:
+        # Check mesh conformity for triangulation
+        data['faces'] = _check_trimesh_conformity(
+            nodes=data['nodes'], faces=data['faces'], key=key
+        )
+
+        data['nnodes'] = data['nodes'].shape[0]
+        data['nfaces'] = data['faces'].shape[0]
+        data['ftype'] = data.get('ftype', 0)
+
+        # Convert 'quad' to 'quadtri' if relevant
+        if data['type'] == 'quad':
+            # Convert to tri mesh (solution for unstructured meshes)
+            faces = np.empty((data['nfaces']*2, 3), dtype=int)
+            faces[::2, :] = data['faces'][:, :3]
+            faces[1::2, :-1] = data['faces'][:, 2:]
+            faces[1::2, -1] = data['faces'][:, 0]
+            data['faces'] = faces
+            data['type'] = 'quadtri'
+            data['ntri'] = 2
+
+            # Re-check mesh conformity
+            data['faces'] = _check_trimesh_conformity(
+                nodes=data['nodes'], faces=data['faces'], key=key
+            )
+
+        # Check ntri
+        if data['type'] == 'tri':
+            data['ntri'] = 1
+        elif 'ntri' not in data.keys():
+            msg = (
+                """
+                For ddata[{}] of type 'quadtri', 'ntri' must be provided
+                """.format(key)
+            )
+            raise Exception(msg)
+
+        # Only triangular meshes so far
+        if 'tri' in v0['type']:
+            if data.get('mpltri', None) is None:
+                data['mpltri'] = mplTri(
+                    data['nodes'][:, 0],
+                    data['nodes'][:, 1],
+                    ddata['faces']
+                )
+            if not isinstance(data['mpltri'], mplTri):
+                msg = (
+                    """
+                    ddata[{}]['mpltri'] must be a matplotlib Triangulation
+                    Provided:
+                    {}
+                    """.format(key, data['mpltri'])
+                )
+            assert data['ftype'] in [0, 1]
+            if data['ftype'] == 1:
+                data['size'] = data['nnodes']
+            else:
+                data['size'] = int(data['nfaces'] / data['ntri'])
+
+    return data, data['size']
+
+
+# #############################################################################
+# #############################################################################
 #                           ddata
 # #############################################################################
 
@@ -440,6 +701,7 @@ def _check_data(data=None, key=None):
     # if not array
     # => try converting or get class (dict, mesh...)
     shape = None
+    group = None
     if not isinstance(data, np.ndarray):
         if isinstance(data, list) or isinstance(data, tuple):
             c0 = (
@@ -460,21 +722,26 @@ def _check_data(data=None, key=None):
                     data = np.array(data)
                     shape = data.shape
                 except Exception as err:
-                    raise DataRefException(ref=ref, data=data)
+                    raise DataRefException(ref=key, data=data)
         else:
-            shape = data.__class__.__name__
+            try:
+                data, shape = _check_mesh_temp(data=data, key=key)
+                group = 'mesh2d'
+            except Exception as err:
+                shape = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
     if isinstance(data, np.ndarray) and shape is None:
         shape = data.shape
 
-    return data, shape
+    return data, shape, group
 
 
 def _check_ddata(
     ddata=None,
     ddata0=None, dref0=None, dgroup0=None,
     reserved_keys=None,
+    allowed_groups=None,
 ):
 
     # ----------------
@@ -582,8 +849,9 @@ def _check_ddata(
         )
 
     # Check data and ref vs shape
+    lgroup_add = None
     for k0, v0 in ddata.items():
-        ddata[k0]['data'], shape = _check_data(data=v0['data'], key=k0)
+        ddata[k0]['data'], shape, group = _check_data(data=v0['data'], key=k0)
         if isinstance(shape, tuple):
             c0 = (
                 len(v0['ref']) == len(shape)
@@ -603,6 +871,22 @@ def _check_ddata(
             )
             raise Exception(msg)
         ddata[k0]['shape'] = shape
+        c0 = (
+            group is not None
+            and (dgroup_add is None or group not in dgroup_add.keys())
+            and (lgroup_add is None or group not in lgroup_add)
+        )
+        if c0:
+            if lgroup_add is None:
+                lgroup_add = [group]
+            else:
+                lgroup_add.append(group)
+
+    # Complement dgroup_add
+    if lgroup_add is not None:
+        dgroup_add.update(_check_dgroup(
+            lgroup_add, dgroup0=dgroup0, allowed_groups=allowed_groups,
+        ))
 
     return ddata, dref_add, dgroup_add
 
@@ -711,6 +995,7 @@ def _consistency(
     # ddata
     ddata, dref_add, dgroup_add = _check_ddata(
         ddata=ddata, ddata0=ddata0, dref0=dref0, dgroup0=dgroup0,
+        reserved_keys=reserved_keys, allowed_groups=allowed_groups,
     )
     if dgroup_add is not None:
         dgroup0.update(dgroup_add)
