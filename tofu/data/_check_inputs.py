@@ -24,7 +24,6 @@ _DDEF_PARAMS = {
 }
 
 
-
 # #############################################################################
 # #############################################################################
 #                           Generic
@@ -747,9 +746,6 @@ def _consistency(
         dgroup0[k0]['ldata'] = sorted(set(
             k1 for k1 in ddata0.keys() if k0 in ddata0[k1]['group']
         ))
-    for k0, v0 in ddata0.items():
-        if 'lref' in ddata0[k0].keys():
-            import pdb; pdb.set_trace()     # DB
 
     return dgroup0, dref0, ddata0
 
@@ -779,15 +775,15 @@ def _get_param(ddata=None, param=None, returnas=np.ndarray):
 
     """
     # Trivial case
-    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
     if param is None:
         param = lp
 
     # Check inputs
     lc = [
-        isinstance(param, str) and param in ddata.keys() and param != 'data',
+        isinstance(param, str) and param in lp and param != 'data',
         isinstance(param, list)
-        and all([isinstance(pp, str) and pp in data.keys() for pp in param])
+        and all([isinstance(pp, str) and pp in lp for pp in param])
     ]
     if not any(lc):
         msg = (
@@ -814,12 +810,12 @@ def _get_param(ddata=None, param=None, returnas=np.ndarray):
     if returnas == dict:
         out = {
             k0: {ddata[k1][k0] for k1 in ddata.keys()}
-            for k0 in lp
+            for k0 in param
         }
     else:
         out = {
             k0: [ddata[k1][k0] for k1 in ddata.keys()]
-            for k0 in lp
+            for k0 in param
         }
     return out
 
@@ -839,7 +835,7 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
     """
 
     # Check param
-    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
     if param is None:
         return
     c0 = isinstance(param, str) and param in lp
@@ -863,11 +859,9 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
     ltypes = [str, int, np.int, float, np.float, tuple]
     lc = [
         type(value) in ltypes,
-        isinstance(value, list)
-        and all([type(tt) in ltypes for tt in value])
+        isinstance(value, list) and all([type(tt) in ltypes for tt in value])
         and len(value) == len(key),
-        isinstance(value, np.ndarray)
-        and value.shape[0] == len(key),
+        isinstance(value, np.ndarray) and value.shape[0] == len(key),
         isinstance(value, dict)
         and all([
             kk in ddata.keys() and type(vv) in ltypes
@@ -877,7 +871,7 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
     if not (value is None or any(lc)):
         msg = (
             """
-            Accepted types for values include:
+            Accepted types for value include:
                 - None
                 - {}: common to all
                 - list, np.ndarray: key by key
@@ -889,12 +883,12 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
         raise Exception(msg)
 
     # Update data
-    if values is None or lc[0]:
+    if value is None or lc[0]:
         for kk in key:
-            ddata[kk][param] = values
-    elif lc[1]:
+            ddata[kk][param] = value
+    elif lc[1] or lc[2]:
         for ii, kk in enumerate(key):
-            ddata[kk][param] = values[ii]
+            ddata[kk][param] = value[ii]
     else:
         for kk, vv in value.items():
             ddata[kk][param] = vv
@@ -902,7 +896,7 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
 
 def _add_param(ddata=None, param=None, value=None):
     """ Add a parameter, optionnally also set its value """
-    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
     c0 = isinstance(param, str) and param not in lp
     if not c0:
         msg = (
@@ -928,7 +922,7 @@ def _remove_param(ddata=None, param=None):
     """ Remove a parameter, none by default, all if param = 'all' """
 
     # Check inputs
-    lp = [kk for kk in ddata[list(ddata.keys())[0]].keys() if kk != 'data']
+    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
     if param is None:
         return
     if param == 'all':
@@ -1033,7 +1027,7 @@ def _ind_tofrom_key(
             key = [key]
         c0 = (
             isinstance(key, list)
-            and all([isinstance(kk, str) and kk in lk])
+            and all([isinstance(kk, str) and kk in lk for kk in key])
         )
         if not c0:
             msg = (
@@ -1061,7 +1055,7 @@ def _ind_tofrom_key(
     return out
 
 
-def _select(self, log='all', returnas=int, **kwdargs):
+def _select(ddata=None, log=None, returnas=None, **kwdargs):
     """ Return the indices / keys of data matching criteria
 
     The selection is done comparing the value of all provided parameters
@@ -1076,53 +1070,67 @@ def _select(self, log='all', returnas=int, **kwdargs):
     """
 
     # Format and check input
+    if returnas is None:
+        returnas = int
+    if log is None:
+        log = 'all'
     assert returnas in [int, bool, str, 'key']
     assert log in ['all', 'any', 'raw']
     if log == 'raw':
         assert returnas == bool
 
     # Get list of relevant criteria
-    lcritout = [ss for ss in kwdargs.keys()
-                if ss not in self._ddata['lparam']]
+    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
+    lcritout = [ss for ss in kwdargs.keys() if ss not in lp]
     if len(lcritout) > 0:
-        msg = "The following criteria correspond to no parameters:\n"
-        msg += "    - %s\n"%str(lcritout)
-        msg += "  => only use known parameters (self.lparam):\n"
-        msg += "    %s"%str(self._ddata['lparam'])
+        msg = (
+            """
+            The following criteria correspond to no parameters:
+                - {}
+              => only use known parameters (self.dparam.keys()):
+                - {}
+            """.format(lcritout, '\n\t- '.join(lp))
+        )
         raise Exception(msg)
-    kwdargs = {kk: vv for kk, vv in kwdargs.items()
-               if vv is not None and kk in self._ddata['lparam']}
-    lcrit = list(kwdargs)
-    ncrit = len(kwdargs)
 
     # Prepare array of bool indices and populate
-    ind = np.ones((ncrit, len(self._ddata['lkey'])), dtype=bool)
-    for ii in range(ncrit):
-        critval = kwdargs[lcrit[ii]]
+    ind = np.zeros((len(kwdargs), len(ddata)), dtype=bool)
+    for ii, kk in enumerate(kwdargs.keys()):
         try:
-            par = self.get_param(lcrit[ii], returnas=np.ndarray)
-            ind[ii, :] = par == critval
+            par = self.get_param(ddata=ddata, param=kk, returnas=np.ndarray)
+            ind[ii, :] = par == kwdargs[kk]
         except Exception as err:
-            ind[ii, :] = [self._ddata['dict'][kk][lcrit[ii]] == critval
-                          for kk in self._ddata['lkey']]
+            try:
+                ind[ii, :] = [
+                    ddata[k0][kk] == kwdargs[kk] for k0 in ddata.keys()
+                ]
+            except Exception as err:
+                pass
 
     # Format output ind
-    if log == 'all':
-        ind = np.all(ind, axis=0)
-    elif log == 'any':
-        ind = np.any(ind, axis=0)
+    if log == 'raw':
+        if returnas in [str, 'key']:
+            ind = {
+                kk: [k0 for jj, k0 in enumerate(ddata.keys()) if ind[ii, jj]]
+                for ii, kk in enumerate(kwdargs.keys())
+            }
+        if returnas == int:
+            ind = {
+                kk: ind[ii, :].nonzero()[0]
+                for ii, kk in enumerate(kwdargs.keys())
+            }
+        else:
+            ind = {kk: ind[ii, :] for ii, kk in enumerate(kwdargs.keys())}
     else:
-        ind = {lcrit[ii]: ind[ii, :] for ii in range(ncrit)}
-
-    # Also return the list of keys if required
-    if returnas == int:
-        out = ind.nonzero()[0]
-    elif returnas in [str, 'key']:
-        out = self.ldata[ind.nonzero()[0]]
-    else:
-        out = ind
-    return out
-
-
-
-
+        if log == 'all':
+            ind = np.all(ind, axis=0)
+        else:
+            ind = np.any(ind, axis=0)
+        if returnas == int:
+            ind = ind.nonzero()[0]
+        elif returnas in [str, 'key']:
+            ind = np.array(
+                [k0 for jj, k0 in enumerate(ddata.keys()) if ind[jj]],
+                dtype=str,
+            )
+    return ind

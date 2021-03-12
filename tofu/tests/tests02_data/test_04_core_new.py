@@ -135,7 +135,7 @@ class Test01_DataCollection(object):
                 't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
                 'r2': {'data': cls.lr[2], 'group': 'radius', 'units': 'm'}}
         ddata = {'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
-                 'trace10': {'data': cls.ltrace[2], 'ref': ('t1',)},
+                 'trace10': {'data': cls.ltrace[2], 'ref': ('t1',), 'units': 's'},
                  'trace11': {'data': cls.ltrace[3], 'ref': ('t1','t0')},
                  'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
                  'trace31': {'data': cls.ltrace[7], 'ref': ('t0','r2')}}
@@ -222,7 +222,7 @@ class Test01_DataCollection(object):
             err = True
         assert err
         data.add_data('trace00', data=self.ltrace[0], ref=('t0',))
-        data.add_data('trace11', data=self.ltrace[2], ref=('t1', 't0'))
+        data.add_data('trace11', data=self.ltrace[3], ref=('t1', 't0'))
         data.add_data('trace31', data=self.ltrace[7], ref=('t0', 'r2'),
                       foo='bar')
         assert all([tt in data.ddata.keys()
@@ -231,11 +231,11 @@ class Test01_DataCollection(object):
     def test04_select(self):
         data = self.lobj[0]
 
-        key = data.select(units='min', returnas=str)
-        assert len(key) == 1 and key[0] == 't1'
+        key = data.select(units='s', returnas=str)
+        assert key == ['trace10']
 
         out = data.select(units='a.u.', returnas=int)
-        assert len(out) == 7, out
+        assert len(out) == 6, out
 
     def tests04_get_summary(self):
         data = self.lobj[0]
@@ -245,13 +245,11 @@ class Test01_DataCollection(object):
         data = self.lobj[0]
 
         out = data.get_param('units')
-        data.set_param('units', 'T', key='trace00')
-        data.add_param('shot', np.arange(0,len(data.ldata)))
-        assert np.all(data.get_param('shot') == np.arange(0,len(data.ldata)))
+        data.set_param('units', value='T', key='trace00')
+        data.add_param('shot', value=np.arange(0, len(data.ddata)))
+        assert np.all(data.get_param('shot')['shot'] == np.arange(0, len(data.ddata)))
         data.remove_param('shot')
         assert 'shot' not in data.lparam
-
-
 
     # ------------------------
     #   Generic TofuObject methods
@@ -296,10 +294,10 @@ class Test01_DataCollection(object):
 
 
 
-class Test02_TimeTraceCollection(Test01_DataCollection):
+# class Test02_TimeTraceCollection(Test01_DataCollection):
 
-    @classmethod
-    def setup_class(cls, Name=None,  SavePath='./', verb=False):
-        super(Test02_TimeTraceCollection, cls).setup_class(Name=Name,
-                                                           SavePath=SavePath,
-                                                           verb=verb)
+    # @classmethod
+    # def setup_class(cls, Name=None,  SavePath='./', verb=False):
+        # super(Test02_TimeTraceCollection, cls).setup_class(Name=Name,
+                                                           # SavePath=SavePath,
+                                                           # verb=verb)

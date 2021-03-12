@@ -60,7 +60,7 @@ class DataCollection(utils.ToFuObject):
         _allowed_groups = None
     _dallowed_params = None
 
-    _show_in_summary_core = ['shape', 'refs', 'groups']
+    _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
     _dgroup = {}
@@ -87,6 +87,7 @@ class DataCollection(utils.ToFuObject):
         fromdict=None,
         SavePath=None,
         include=None,
+        sep=None,
     ):
 
         # Create a dplot at instance level
@@ -202,50 +203,25 @@ class DataCollection(utils.ToFuObject):
         return _check_inputs._get_param(
             ddata=self._ddata, param=param, returnas=returnas)
 
-    def set_param(self, param=None, values=None, ind=None, key=None):
+    def set_param(self, param=None, value=None, ind=None, key=None):
         """ Set the value of a parameter
 
-        values can be:
+        value can be:
             - None
             - a unique value (int, float, bool, str, tuple) => common to all keys
             - an iterable of vlues (array, list) => one for each key
 
         A subset of keys can be chosen (ind, key, fed to self.select()) to set
-        only the values of some key
+        only the value of some key
 
         """
-
-        # Check and format input
-        if param is None:
-            return
-        assert param in self._ddata['lparam']
-
-        # Update all keys with common value
-        ltypes = [str, int, np.int, float, np.float, tuple]
-        lc = [any([isinstance(values, tt) for tt in ltypes]),
-              isinstance(values, list), isinstance(values, np.ndarray)]
-        if not (values is None or any(lc)):
-            msg = "Accepted types for values include:\n"
-            msg += "    - None\n"
-            msg += "    - %s: common to all\n"%str(ltypes)
-            msg += "    - list, np.ndarray: key by key"
-            raise Exception(msg)
-
-        if values is None or lc[0]:
-            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
-            for kk in key:
-                self._ddata['dict'][kk][param] = values
-
-        # Update relevant keys with corresponding values
-        else:
-            key = self._ind_tofrom_key(ind=ind, key=key, returnas='key')
-            assert len(key) == len(values)
-            for ii, kk in enumerate(key):
-                self._ddata['dict'][kk][param] = values[ii]
+        _check_inputs._set_param(
+            ddata=self._ddata, param=param, value=value, ind=ind, key=key,
+        )
 
     def add_param(self, param, value=None):
         """ Add a parameter, optionnally also set its value """
-        self._ddata = _check_inputs._add_param(
+        _check_inputs._add_param(
             ddata=self._ddata, param=param, value=value
         )
 
@@ -291,7 +267,7 @@ class DataCollection(utils.ToFuObject):
         self._dgroup.update(**fd['dgroup'])
         self._dref.update(**fd['dref'])
         self._ddata.update(**fd['ddata'])
-        self._complement_dgrouprefdata()
+        self.update()
 
     ###########
     # properties
@@ -311,6 +287,12 @@ class DataCollection(utils.ToFuObject):
     def ddata(self):
         """ the dict of data """
         return self._ddata
+
+    @property
+    def lparam(self):
+        return [
+            k0 for k0 in list(self._ddata.values())[0].keys() if k0 != 'data'
+        ]
 
     @property
     def dparams(self):
@@ -423,18 +405,18 @@ class DataCollection(utils.ToFuObject):
         # Build for groups
         col0 = ['group name', 'nb. ref', 'nb. data']
         ar0 = [(k0,
-                len(self._dgroup['dict'][k0]['lref']),
-                len(self._dgroup['dict'][k0]['ldata']))
-               for k0 in self._dgroup['lkey']]
+                len(self._dgroup[k0]['lref']),
+                len(self._dgroup[k0]['ldata']))
+               for k0 in self._dgroup.keys()]
 
         # -----------------------
         # Build for refs
         col1 = ['ref key', 'group', 'size', 'nb. data']
         ar1 = [(k0,
-                self._dref['dict'][k0]['group'],
-                self._dref['dict'][k0]['size'],
-                len(self._dref['dict'][k0]['ldata']))
-               for k0 in self._dref['lkey']]
+                self._dref[k0]['group'],
+                self._dref[k0]['size'],
+                len(self._dref[k0]['ldata']))
+               for k0 in self._dref.keys()]
 
         # -----------------------
         # Build for ddata
@@ -443,24 +425,24 @@ class DataCollection(utils.ToFuObject):
             show_core = self._show_in_summary_core
         if isinstance(show_core, str):
             show_core = [show_core]
-        lkcore = ['shape', 'groups', 'refs']
-        assert all([ss in self._ddata['lparam'] + lkcore for ss in show_core])
+        lp = self.lparam
+        lkcore = ['shape', 'group', 'ref']
+        assert all([ss in lp + lkcore for ss in show_core])
         col2 += show_core
 
         if show is None:
             show = self._show_in_summary
         if show == 'all':
-            col2 += self._ddata['lparam']
+            col2 += [pp for pp in lp if pp not in col2]
         else:
             if isinstance(show, str):
                 show = [show]
-            assert all([ss in self._ddata['lparam'] for ss in show])
-            col2 += show
+            assert all([ss in lp for ss in show])
+            col2 += [pp for pp in show if pp not in col2]
 
         ar2 = []
-        for k0 in self._ddata['lkey']:
-            v0 = self._ddata['dict'][k0]
-            lu = [k0] + [str(v0[cc]) for cc in col2[1:]]
+        for k0 in self._ddata.keys():
+            lu = [k0] + [str(self._ddata[k0][cc]) for cc in col2[1:]]
             ar2.append(lu)
 
         return self._get_summary(
