@@ -118,12 +118,16 @@ def check_for_openmp(cc_var):
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    filename = r"test.c"
+    filename = "test.c"
     with open(filename, "w") as file:
         file.write(omp_test)
+    if not on_windows:
+        openmp_flag = "-fopenmp"
+    else:
+        openmp_flag = "/openmp"
     with open(os.devnull, "w") as fnull:
         result = subprocess.call(
-            [cc_var, "-fopenmp", filename], stdout=fnull, stderr=fnull
+            [cc_var, openmp_flag, filename], stdout=fnull, stderr=fnull
         )
 
     os.chdir(curdir)
@@ -132,8 +136,6 @@ def check_for_openmp(cc_var):
     return result
 
 
-# ....... Using function
-openmp_installed = not check_for_openmp("cc")
 # =============================================================================
 
 
