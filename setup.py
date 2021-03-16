@@ -4,7 +4,6 @@ See:
 https://github.com/ToFuProject/tofu
 """
 import os
-import sys
 import glob
 import shutil
 import logging
@@ -21,7 +20,7 @@ import numpy as np
 import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
-
+# ... openmp utilities
 from tofu_helpers.openmp_helpers import is_openmp_installed
 from tofu_helpers.openmp_helpers import generate_openmp_enabled_py
 
@@ -172,18 +171,10 @@ else:
 
 # =============================================================================
 #  Compiling files
-openmp_installed = is_openmp_installed()
+openmp_installed, openmp_flag = is_openmp_installed()
 
-
-if openmp_installed and is_platform_windows:
-    extra_compile_args = ["-O3", "-Wall", "/openmp", "-fno-wrapv"]
-    extra_link_args = ["/openmp"]
-elif openmp_installed:
-    extra_compile_args = ["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
-    extra_link_args = ["-fopenmp"]
-else:
-    extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"]
-    extra_link_args = []
+extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag
+extra_link_args = [] + openmp_flag
 
 extensions = [
     Extension(
@@ -228,6 +219,7 @@ extensions = [
         sources=["tofu/geom/_openmp_tools.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
+        define_macros=[('TOFU_OPENMP_ENABLED', 'True')]
     ),
 ]
 
