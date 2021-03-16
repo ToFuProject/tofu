@@ -124,10 +124,10 @@ def check_for_openmp(cc_var, on_windows):
 
     if not on_windows:
         openmp_flag = "-fopenmp"
-        shell = True
+        shell = False
     else:
         openmp_flag = "/openmp"
-        shell = False
+        shell = True
 
     with open(os.devnull, "w") as fnull:
         result = subprocess.call(
