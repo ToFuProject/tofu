@@ -3,7 +3,7 @@ from openmp_enabled import is_openmp_enabled
 IF TOFU_OPENMP_ENABLED:
     cimport openmp
 
-cdef _get_effective_num_threads(n_threads=None):
+cpdef _get_effective_num_threads(n_threads=None):
     """
     Based on Scikit-learn:  scikit-learn/sklearn/utils/_openmp_helpers.pyx
     Determine the effective number of threads to be used for OpenMP calls
