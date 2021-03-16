@@ -111,7 +111,7 @@ printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(),
 """
 
 
-def check_for_openmp(cc_var):
+def check_for_openmp(cc_var, on_windows):
     import tempfile
 
     tmpdir = tempfile.mkdtemp()
@@ -209,6 +209,7 @@ else:
 
 # =============================================================================
 #  Compiling files
+openmp_installed = not check_for_openmp("cc", is_platform_windows)
 if openmp_installed and is_platform_windows:
     extra_compile_args = ["-O3", "-Wall", "/openmp", "-fno-wrapv"]
     extra_link_args = ["/openmp"]
