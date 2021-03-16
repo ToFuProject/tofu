@@ -4,6 +4,7 @@ import time
 import shutil
 import datetime
 import tempfile
+import platform
 import subprocess
 
 from distutils.dist import Distribution
@@ -124,7 +125,8 @@ def check_for_openmp():
             file.write(omp_source)
         with open(os.devnull, "w") as fnull:
             result = subprocess.call(
-                [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull
+                [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
+                shell=is_platform_windows()
             )
     except subprocess.CalledProcessError:
         result = -1
