@@ -73,3 +73,6 @@ doc/source/auto_examples/
 
 # no pip wheel metadata
 pip-wheel-metadata/
+
+# Notebooks checkpoints
+**/.ipynb_checkpoints
