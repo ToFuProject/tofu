@@ -121,13 +121,18 @@ def check_for_openmp(cc_var, on_windows):
     filename = "test.c"
     with open(filename, "w") as file:
         file.write(omp_test)
+
     if not on_windows:
         openmp_flag = "-fopenmp"
+        shell = True
     else:
         openmp_flag = "/openmp"
+        shell = False
+
     with open(os.devnull, "w") as fnull:
         result = subprocess.call(
-            [cc_var, openmp_flag, filename], stdout=fnull, stderr=fnull
+            [cc_var, openmp_flag, filename], stdout=fnull, stderr=fnull,
+            shell=shell
         )
 
     os.chdir(curdir)
