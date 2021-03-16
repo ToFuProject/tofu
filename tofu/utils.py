@@ -2180,6 +2180,13 @@ class ToFuObjectBase(object):
                                 if not eqk:
                                     m0 = 'tri ' + str(d0[k].triangles)
                                     m1 = 'tri ' + str(d1[k].triangles)
+                    elif 'trifind' in k:
+                        lpar0 = inspect.signature(d0[k]).parameters
+                        lpar1 = inspect.signature(d1[k]).parameters
+                        eqk = lpar0.keys() == lpar1.keys()
+                        if not eqk:
+                            m0 = 'tri ' + lpar0.keys()
+                            m1 = 'tri ' + lpar1.keys()
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))

@@ -608,7 +608,36 @@ class DataCollection(utils.ToFuObject):
                                        draw=draw, legend=legend,
                                        connect=connect, lib=lib)
 
+    # ---------------------
+    # saving => get rid of function
+    # ---------------------
 
+    def save(self, path=None, name=None,
+             strip=None, sep=None, deep=True, mode='npz',
+             compressed=False, verb=True, return_pfe=False):
+
+        # Remove function mpltri if relevant
+        lk = [
+            k0 for k0, v0 in self._ddata.items()
+            if isinstance(v0['data'], dict)
+            and 'mpltri' in v0['data'].keys()
+        ]
+        for k0 in lk:
+            del self._ddata[k0]['data']['mpltri']
+        lk = [
+            k0 for k0, v0 in self._ddata.items()
+            if isinstance(v0['data'], dict)
+            and 'trifind' in v0['data'].keys()
+        ]
+        for k0 in lk:
+            del self._ddata[k0]['data']['trifind']
+
+        return super().save(
+            path=path, name=name,
+            sep=sep, deep=deep, mode=mode,
+            strip=strip, compressed=compressed,
+            return_pfe=return_pfe, verb=verb
+        )
 
 
 #############################################
