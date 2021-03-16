@@ -23,9 +23,7 @@ from distutils.command.clean import clean as Clean
 
 
 # == Checking platform ========================================================
-is_platform_windows = False
-if platform.system() == "Windows":
-    is_platform_windows = True
+is_platform_windows = platform.system() == "Windows"
 
 
 # === Setting clean command ===================================================
@@ -135,10 +133,7 @@ def check_for_openmp(cc_var):
 
 
 # ....... Using function
-if is_platform_windows:
-    openmp_installed = False
-else:
-    openmp_installed = not check_for_openmp("cc")
+openmp_installed = not check_for_openmp("cc")
 # =============================================================================
 
 
@@ -212,7 +207,10 @@ else:
 
 # =============================================================================
 #  Compiling files
-if openmp_installed:
+if openmp_intalled and is_platform_windows:
+    extra_compile_args = ["-O3", "-Wall", "/openmp", "-fno-wrapv"]
+    extra_link_args = ["/openmp"]
+elif openmp_installed:
     extra_compile_args = ["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
     extra_link_args = ["-fopenmp"]
 else:

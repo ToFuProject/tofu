@@ -2153,7 +2153,7 @@ cdef inline void is_vis_mask(double[::1] is_vis, double* dist,
                              int npts,
                              int num_threads) nogil:
     cdef int ii
-    for ii in prange(npts, num_threads=num_threads, schedule='static'):
+    for ii in range(npts):
         is_vis[ii] = 1
         if dist[ii] > coeff_inter_out[ii]:
             is_vis[ii] = 0

@@ -119,6 +119,7 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     nind[0] = nl1 + 1 - nl0[0]
     return
 
+
 cdef inline void second_discretize_line1d_core(double* lminmax,
                                                double* ldiscret,
                                                long* lindex,
@@ -174,6 +175,7 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
     for ii in range(ncells):
         ldiscret_arr[0][ii] = first + resol * ii
     return
+
 
 # --- Utility function for discretizing line ---
 cdef inline void cythonize_subdomain_dl(DL, double[2] dl_array):
@@ -410,7 +412,7 @@ cdef inline void middle_rule_rel(int nlos, int num_raf,
                        loc_resol, &los_coeffs[first_index])
     # Now for the rest:
     with nogil, parallel(num_threads=num_threads):
-        for ii in prange(1, nlos):
+        for ii in range(1, nlos):
             los_ind[ii] = num_raf + los_ind[ii-1]
             loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
             eff_resolution[ii] = loc_resol

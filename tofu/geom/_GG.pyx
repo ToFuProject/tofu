@@ -4861,8 +4861,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     dist = np.zeros(sz_p)
     # .. useless tabs ..........................................................
     # declared here so that cython can run without gil
-    print(".............. jusqu'ici tout va bien",
-          _omp._get_effective_num_threads(num_threads))
+    print(".............. jusqu'ici tout va bien")
+    # print(_omp._get_effective_num_threads(num_threads))
+    # assert(1==2)
     cdef array vperp_out = clone(array('d'), sz_p * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), sz_p, True)
     cdef array coeff_inter_out = clone(array('d'), sz_p, True)
