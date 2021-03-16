@@ -22,8 +22,8 @@ import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
-from tofu_helpers.openmp_helpers import is_openmp_installed
-
+from .tofu_helpers.openmp_helpers import is_openmp_installed
+from .tofu_helpers.openmp_helpers import generate_openmp_enabled_py
 
 # == Checking platform ========================================================
 is_platform_windows = platform.system() == "Windows"
@@ -173,6 +173,7 @@ else:
 # =============================================================================
 #  Compiling files
 openmp_installed = is_openmp_installed()
+
 
 if openmp_installed and is_platform_windows:
     extra_compile_args = ["-O3", "-Wall", "/openmp", "-fno-wrapv"]
