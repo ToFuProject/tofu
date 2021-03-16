@@ -207,7 +207,7 @@ else:
 
 # =============================================================================
 #  Compiling files
-if openmp_intalled and is_platform_windows:
+if openmp_installed and is_platform_windows:
     extra_compile_args = ["-O3", "-Wall", "/openmp", "-fno-wrapv"]
     extra_link_args = ["/openmp"]
 elif openmp_installed:
