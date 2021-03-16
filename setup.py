@@ -4,6 +4,7 @@ See:
 https://github.com/ToFuProject/tofu
 """
 import os
+import sys
 import glob
 import shutil
 import logging
@@ -21,6 +22,8 @@ import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
 
+from tofu_helpers.openmp_helpers import is_openmp_installed
+
 
 # == Checking platform ========================================================
 is_platform_windows = platform.system() == "Windows"
@@ -32,6 +35,7 @@ logger = logging.getLogger("tofu.setup")
 
 
 class CleanCommand(Clean):
+
     description = "Remove build artifacts from the source tree"
 
     def expand(self, path_list):
@@ -96,52 +100,6 @@ class CleanCommand(Clean):
                     pass
 # =============================================================================
 
-
-# =============================================================================
-# Check if openmp available
-# see http://openmp.org/wp/openmp-compilers/
-omp_test = r"""
-#include <omp.h>
-#include <stdio.h>
-int main() {
-#pragma omp parallel
-printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(),
-       omp_get_num_threads());
-}
-"""
-
-
-def check_for_openmp(cc_var, on_windows):
-    import tempfile
-
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    filename = "test.c"
-    with open(filename, "w") as file:
-        file.write(omp_test)
-
-    if not on_windows:
-        openmp_flag = "-fopenmp"
-        shell = False
-    else:
-        openmp_flag = "/openmp"
-        shell = True
-
-    with open(os.devnull, "w") as fnull:
-        result = subprocess.call(
-            [cc_var, openmp_flag, filename], stdout=fnull, stderr=fnull,
-            shell=shell
-        )
-
-    os.chdir(curdir)
-    # clean up
-    shutil.rmtree(tmpdir)
-    return result
-
-
-# =============================================================================
 
 
 # == Getting tofu version =====================================================
@@ -214,7 +172,8 @@ else:
 
 # =============================================================================
 #  Compiling files
-openmp_installed = not check_for_openmp("cc", is_platform_windows)
+openmp_installed = is_openmp_installed()
+
 if openmp_installed and is_platform_windows:
     extra_compile_args = ["-O3", "-Wall", "/openmp", "-fno-wrapv"]
     extra_link_args = ["/openmp"]
