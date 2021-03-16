@@ -22,7 +22,6 @@ import _updateversion as up
 from distutils.command.clean import clean as Clean
 # ... openmp utilities
 from tofu_helpers.openmp_helpers import is_openmp_installed
-from tofu_helpers.openmp_helpers import generate_openmp_enabled_py
 
 # == Checking platform ========================================================
 is_platform_windows = platform.system() == "Windows"
@@ -98,7 +97,6 @@ class CleanCommand(Clean):
                 except OSError:
                     pass
 # =============================================================================
-
 
 
 # == Getting tofu version =====================================================
@@ -349,7 +347,7 @@ setup(
     # Theye are generally preferable over scripts because they provide
     # cross-platform support and allow pip to create the appropriate form
     # of executable for the target platform.
-   entry_points={
+    entry_points={
         'console_scripts': [
             'tofuplot=tofu.entrypoints.tofuplot:main',
             'tofucalc=tofu.entrypoints.tofucalc:main',
