@@ -10,7 +10,7 @@ cdef _get_effective_num_threads(n_threads=None):
       - For ``n_threads = None``,
         - if the ``OMP_NUM_THREADS`` environment variable is set, return
           ``openmp.omp_get_max_threads()``
-        - otherwise, return the minimum between ``openmp.omp_get_max_threads()``
+        - otherwise return the minimum between ``openmp.omp_get_max_threads()``
           and the number of cpus, taking cgroups quotas into account. Cgroups
           quotas can typically be set by tools such as Docker.
         The result of ``omp_get_max_threads`` can be influenced by environment
