@@ -9,13 +9,13 @@ import shutil
 import logging
 import platform
 import subprocess
+import numpy as np
 from codecs import open
 # ... setup tools
 from setuptools import setup, find_packages
-from setuptools import Extension
 # ... packages that need to be in pyproject.toml
+from Cython.Distutils import Extension
 from Cython.Distutils import build_ext
-import numpy as np
 # ... local script
 import _updateversion as up
 # ... for `clean` command
@@ -219,11 +219,9 @@ extensions = [
         sources=["tofu/geom/_openmp_tools.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
-        define_macros=[('TOFU_OPENMP_ENABLED', 'True')]
+        cython_compile_time_env=dict(TOFU_OPENMP_ENABLED=True),
     ),
 ]
-
-
 
 
 setup(
@@ -365,7 +363,7 @@ setup(
 
     # Extensions and commands
     ext_modules=extensions,
-    cmdclass={"build_ext": Cython.Build.new_build_ext,
+    cmdclass={"build_ext": build_ext,
               "clean": CleanCommand},
     include_dirs=[np.get_include()],
 )

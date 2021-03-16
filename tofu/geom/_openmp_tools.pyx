@@ -1,7 +1,7 @@
 import os
 from openmp_enabled import is_openmp_enabled
-
-
+IF TOFU_OPENMP_ENABLED:
+    cimport openmp
 
 cdef _get_effective_num_threads(n_threads=None):
     """
@@ -26,9 +26,10 @@ cdef _get_effective_num_threads(n_threads=None):
     if n_threads == 0:
         raise ValueError("n_threads = 0 is invalid")
 
-    TOFU_OPENMP_ENABLED = is_openmp_enabled()
-    if TOFU_OPENMP_ENABLED:
-        cimport openmp
+    local_openmp_enabled = is_openmp_enabled()
+    assert local_openmp_enabled == TOFU_OPENMP_ENABLED
+
+    IF TOFU_OPENMP_ENABLED:
 
         if os.getenv("OMP_NUM_THREADS"):
             # Fall back to user provided number of threads making it possible
@@ -44,6 +45,6 @@ cdef _get_effective_num_threads(n_threads=None):
             return max(1, max_n_threads + n_threads + 1)
 
         return min(n_threads, max_n_threads)
-    else:
+    ELSE:
         # OpenMP disabled at build-time => sequential mode
         return 1
