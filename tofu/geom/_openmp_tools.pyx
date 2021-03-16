@@ -1,6 +1,6 @@
 import os
 from openmp_enabled import is_openmp_enabled
-cimport openmp
+
 
 
 cdef _get_effective_num_threads(n_threads=None):
@@ -28,6 +28,8 @@ cdef _get_effective_num_threads(n_threads=None):
 
     TOFU_OPENMP_ENABLED = is_openmp_enabled()
     if TOFU_OPENMP_ENABLED:
+        cimport openmp
+
         if os.getenv("OMP_NUM_THREADS"):
             # Fall back to user provided number of threads making it possible
             # to exceed the number of cpus.

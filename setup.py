@@ -228,6 +228,7 @@ for e in extensions:
     e.cython_directives = {'language_level': "3"} #all are Python-3
 
 
+
 setup(
     name="tofu",
     version="{ver}".format(ver=version_tofu),
@@ -367,7 +368,7 @@ setup(
 
     # Extensions and commands
     ext_modules=extensions,
-    cmdclass={"build_ext": build_ext,
+    cmdclass={"build_ext": Cython.Build.new_build_ext,
               "clean": CleanCommand},
     include_dirs=[np.get_include()],
 )
