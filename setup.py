@@ -223,6 +223,10 @@ extensions = [
     ),
 ]
 
+# Setting all to python 3
+for e in extensions:
+    e.cython_directives = {'language_level': "3"} #all are Python-3
+
 
 setup(
     name="tofu",
