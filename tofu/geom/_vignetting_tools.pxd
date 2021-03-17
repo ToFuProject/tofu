@@ -62,9 +62,9 @@ cdef int vignetting_vmesh_vpoly(int npts, int sz_r,
                                 long* sz_rphi,
                                 int num_threads) nogil
 
-cdef inline int are_in_vignette(int sz_r, int sz_z,
-                                double[:, ::1] vpoly,
-                                int npts_vpoly,
-                                double* disc_r,
-                                double* disc_z,
-                                long[:, ::1] is_in_vignette) nogil
+cdef int are_in_vignette(int sz_r, int sz_z,
+                         double[:, ::1] vpoly,
+                         int npts_vpoly,
+                         double* disc_r,
+                         double* disc_z,
+                         long[:, ::1] is_in_vignette) nogil
