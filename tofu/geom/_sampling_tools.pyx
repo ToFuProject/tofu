@@ -23,7 +23,7 @@ cimport numpy as cnp
 # tofu libs
 cimport _basic_geom_tools as _bgt
 cimport _raytracing_tools as _rt
-cimport _openmp_tools as _ompt
+# cimport _openmp_tools as _ompt
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
