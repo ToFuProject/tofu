@@ -38,7 +38,7 @@ jobs:
         pip install -e ".[dev]"
     - name: runing openmp test
       run: |
-      	python tofu/geom/test_openmp.py
+        python tofu/geom/test_openmp.py
     - name: Test with pytest and coverage
       run: |
         coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
