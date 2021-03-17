@@ -1967,6 +1967,51 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     # assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
     # assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
     # ...
+    fig = plt.figure(figsize=(14, 8))
+    ax = plt.subplot(121)
+    ax.plot(pts[0, :], pts[1, :], '.b')
+    ax2 = plt.subplot(122)
+    ax2.plot(pts[0, :]*np.cos(pts[2, :]),
+             pts[0, :]*np.sin(pts[2, :]), '.r')
+    return
+
+
+def test26(ves_poly=VPoly, debug=1):
+    import tofu.geom as tfg
+    import matplotlib.pyplot as plt
+
+    ves_norm = ves_poly[:, 1:] - ves_poly[:, :-1]
+    ves_norm = np.array([-ves_norm[1, :], ves_norm[0, :]])
+    ves_norm = ves_norm / np.sqrt(np.sum(ves_norm**2, axis=0))[np.newaxis, :]
+    print("ok at least this print ?")
+    if debug > 0:
+        # Visualisation:
+        ves = tfg.Ves(
+            Name="DebugVessel",
+            Poly=ves_poly,
+            Type="Tor",
+            Exp="Misc",
+            shot=0
+        )
+        if debug > 2:
+            lax = ves.plot()
+    part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
+    part_rad = np.r_[0.1, 0.1, 0.1]
+    rstep = zstep = phistep = 0.1
+    phistep = 0.5
+    RMinMax = np.array([np.min(ves_poly[0, :]), np.max(ves_poly[0, :])])
+    ZMinMax = np.array([np.min(ves_poly[1, :]), np.max(ves_poly[1, :])])
+
+    res = GG._Ves_Vmesh_Tor_SubFromD_cython(
+                                            rstep, zstep, phistep,
+                                            RMinMax, ZMinMax,
+                                     )
+    pts = res[0]
+    # check size r,z,m,p
+    # assert d1 == 40, "Wrong 1st dim of sa_map: " + str(d1)
+    # assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
+    # assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
+    # ...
     # fig = plt.figure(figsize=(14, 8))
     # ax = plt.subplot(121)
     # ax.plot(pts[0, :], pts[1, :], '.b')
@@ -1975,6 +2020,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     #          pts[0, :]*np.sin(pts[2, :]), '.r')
 
     fig = plt.figure(figsize=(14, 8))
+    fig.suptitle("test 26")
     ax = plt.subplot(121)
     ax.plot(pts[0, :], pts[1, :], '.b')
     ax2 = plt.subplot(122)

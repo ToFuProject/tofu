@@ -475,7 +475,7 @@ cdef inline int are_in_vignette(int sz_r, int sz_z,
                                 int npts_vpoly,
                                 double* disc_r,
                                 double* disc_z,
-                                double[:, ::1] is_in_vignette) nogil:
+                                long[:, ::1] is_in_vignette) nogil:
     # we keep only the points in vpoly
     cdef int ii, jj
     cdef int nb_in_poly = 0
