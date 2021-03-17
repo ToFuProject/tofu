@@ -135,6 +135,22 @@ class Test01_DataCollection(object):
         lpoly2 = [np.ones((2, 5)), np.ones((2, 5))]
         cls.lpoly = [lpoly0, lpoly1, lpoly2]
 
+        # spectral lines
+        l0 = {
+            'key': 'l0', 'lambda0': 5e-10,
+            'origin': '[1]', 'transition': 'A->B',
+        }
+        l1 = {
+            'key': 'l1', 'lambda0': 5e-10,
+            'origin': '[2]', 'transition': 'B->C',
+        }
+        l2 = {
+            'key': 'l2',
+            'data': t0[:, None]*t1[None, :], 'ref': ('t0', 't1'),
+            'lambda0': 5e-10, 'origin': '[2]', 'transition': 'B->C'
+        }
+        cls.llines = [l0, l1, l2]
+
         # Configs
         # conf0 = tfg.utils.create_config(case='B2')
         # conf1 = tfg.utils.create_config(case='B3')
@@ -193,18 +209,25 @@ class Test01_DataCollection(object):
             't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
             'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'},
             'mesh1': {'data': self.lmesh[1], 'foo': 'bar'},
-            'mesh0': {'data': self.lmesh[0], 'group': 'mesh2d', 'foo': 'bar'},
         }
         ddata = {
             'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
             'trace50': {'data': self.ltrace[-2], 'ref': 'mesh0'},
             'trace51': {'data': self.ltrace[-1], 'ref': ('mesh1', 't1')},
+            'mesh0': {'data': self.lmesh[0], 'foo': 'bar'},
         }
         data = tfd.DataCollection(
             dref=dref, ddata=ddata,
             Name='data',
         )
 
+        # Try with lines
+        data = tfd.DataCollection()
+        data.add_data(**self.llines[0])
+        data.add_data(**self.llines[1])
+        data.add_ref(key='t0', data=self.lt[0], group='ne')
+        data.add_ref(key='t1', data=self.lt[1], group='Te')
+        data.add_data(**self.llines[2])
 
     def test02_wrong_init(self):
         # Try with minimalist input

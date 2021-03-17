@@ -338,9 +338,10 @@ def _check_dref(
 
     # Basis
     # lk_opt = ['ldata', 'size', 'group', 'data']
-    c0 = (
-        isinstance(dref, dict)
-        and all([
+    c0 = isinstance(dref, dict)
+    lc = [
+        k0 for k0, v0 in dref.items()
+        if not (
             isinstance(k0, str)
             and k0 not in dref0.keys()
             and (
@@ -369,12 +370,11 @@ def _check_dref(
                     )
                 )
             )
-            for k0, v0 in dref.items()
-        ])
-    )
+        )
+    ]
 
     # Raise exception if non-conformity
-    if not c0:
+    if not (c0 and len(lc)==0):
         msg = (
             """
             Arg dref must be a dict of the form:
@@ -392,9 +392,9 @@ def _check_dref(
                 - (C): 'group' is not provided if len(self.dgroup) == 1
                 - (D): only the data array is provided if len(self.dgroup) == 1
 
-            Each ref shall be assigned a group:
+            Non-conform refs
             """
-            + ('\t- ' + '\n\t- '.join(sorted(dgroup0.keys())))
+            + '\t- ' + '\n\t- '.join(lc)
         )
         raise Exception(msg)
 
@@ -779,12 +779,15 @@ def _check_ddata(
     ddata0=None, dref0=None, dgroup0=None,
     reserved_keys=None,
     allowed_groups=None,
+    data_none=None,
 ):
 
     # ----------------
     # Trivial case
     if ddata in [None, {}]:
         return {}, None, None
+    if data_none is None:
+        data_none = False
 
     # ----------------
     # Check conformity
@@ -794,9 +797,10 @@ def _check_ddata(
 
     # Basis
     # lk_opt = ['ldata', 'size', 'group', 'data']
-    c0 = (
-        isinstance(ddata, dict)
-        and all([
+    c0 = isinstance(ddata, dict)
+    lc = [
+        k0 for k0, v0 in ddata.items()
+        if not (
             isinstance(k0, str)
             and k0 not in ddata0.keys()
             and (
@@ -807,12 +811,20 @@ def _check_ddata(
                         or (
                             isinstance(v0, dict)
                             and all([isinstance(ss, str) for ss in v0.keys()])
-                            and 'data' in v0.keys()
                             and (
-                                v0.get('ref') is None
-                                or isinstance(v0.get('ref'), str)
-                                or isinstance(v0.get('ref'), tuple)
-                                or v0.get('ref') is True
+                                (
+                                    'data' in v0.keys()
+                                    and (
+                                        v0.get('ref') is None
+                                        or isinstance(v0.get('ref'), str)
+                                        or isinstance(v0.get('ref'), tuple)
+                                        or v0.get('ref') is True
+                                    )
+                                )
+                                or (
+                                    data_none is True
+                                    and v0.get('data') is None
+                                )
                             )
                         )
                     )
@@ -821,31 +833,38 @@ def _check_ddata(
                     (nref == 0 or nref > 1)
                     and isinstance(v0, dict)
                     and all([isinstance(ss, str) for ss in v0.keys()])
-                    and 'data' in v0.keys()
                     and (
                         (
-                        'ref' in v0.keys()
-                         and (
-                            isinstance(v0.get('ref'), str)
-                            or isinstance(v0.get('ref'), tuple)
-                            or v0.get('ref') is True
-                         )
+                            'data' in v0.keys()
+                            and (
+                                (
+                                'ref' in v0.keys()
+                                 and (
+                                    isinstance(v0.get('ref'), str)
+                                    or isinstance(v0.get('ref'), tuple)
+                                    or v0.get('ref') is True
+                                 )
+                                )
+                                or (
+                                    isinstance(v0['data'], dict)
+                                    or isinstance(v0.get('ref'), str)
+                                    or isinstance(v0.get('ref'), tuple)
+                                    or v0.get('ref') in [None, True]
+                                )
+                            )
                         )
                         or (
-                            isinstance(v0['data'], dict)
-                            or isinstance(v0.get('ref'), str)
-                            or isinstance(v0.get('ref'), tuple)
-                            or v0.get('ref') in [None, True]
+                            data_none is True
+                            and v0.get('data') is None
                         )
                     )
                 )
             )
-            for k0, v0 in ddata.items()
-        ])
-    )
+        )
+    ]
 
     # Raise exception if non-conformity
-    if not c0:
+    if not (c0 and len(lc)==0):
         msg = (
             """
             Arg ddata must be a dict of the form:
@@ -865,9 +884,9 @@ def _check_ddata(
 
             If ref = True, the data is itself considered a ref
 
-            Each data shall be assigned a ref:
+            The following keys do not match the criteria:
             """
-            + ('\t- '+'\n\t- '.join(sorted(dref0.keys())))
+            + '\t- '+'\n\t- '.join(lc)
         )
         raise Exception(msg)
 
@@ -875,66 +894,72 @@ def _check_ddata(
     # Convert and/or add ref if necessary
     lref_add = None
     for k0, v0 in ddata.items():
-        if not isinstance(v0, dict):
-            ddata[k0] = {'ref': (refref,), 'data': v0}
-        elif v0.get('ref') is None:
-            if not isinstance(v0['data'], dict):
-                ddata[k0]['ref'] = (refref,)
-        elif isinstance(v0['ref'], str):
-            ddata[k0]['ref'] = (v0['ref'],)
-        elif v0['ref'] is True:
-            if k0 not in dref0.keys():
-                if lref_add is None:
-                    lref_add = [k0]
-                else:
-                    lref_add.append(k0)
-            ddata[k0]['ref'] = (k0,)
+            if not isinstance(v0, dict):
+                ddata[k0] = {'ref': (refref,), 'data': v0}
+            else:
+                if v0.get('data') is None:
+                    continue
+                if v0.get('ref') is None:
+                    if not isinstance(v0['data'], dict):
+                        ddata[k0]['ref'] = (refref,)
+                elif isinstance(v0['ref'], str):
+                    ddata[k0]['ref'] = (v0['ref'],)
+                elif v0['ref'] is True:
+                    if k0 not in dref0.keys():
+                        if lref_add is None:
+                            lref_add = [k0]
+                        else:
+                            lref_add.append(k0)
+                    ddata[k0]['ref'] = (k0,)
 
 
     # Check data and ref vs shape - and optionnally add to ref if mesh2d
     for k0, v0 in ddata.items():
-        ddata[k0]['data'], ddata[k0]['shape'], group = _check_data(
-            data=v0['data'], key=k0,
-        )
-
-        # Check if group / mesh2d
-        if group is not None:
-            c0 = ddata[k0].get('ref') in [None, (k0,)]
-            if not c0:
-                msg = (
-                    """
-                    ddata[{}]['ref'] is a {}
-                      => it should have ref = ({},)
-                    """.format(k0, group, k0)
-                )
-                raise Exception(msg)
-            ddata[k0]['ref'] = (k0,)
-            c0 = (
-                (lref_add is None or k0 not in lref_add)
-                and k0 not in dref0.keys()
+        if v0.get('data') is not None:
+            ddata[k0]['data'], ddata[k0]['shape'], group = _check_data(
+                data=v0['data'], key=k0,
             )
-            if c0:
-                if lref_add is None:
-                    lref_add = [k0]
-                else:
-                    lref_add.append(k0)
+
+            # Check if group / mesh2d
+            if group is not None:
+                c0 = ddata[k0].get('ref') in [None, (k0,)]
+                if not c0:
+                    msg = (
+                        """
+                        ddata[{}]['ref'] is a {}
+                          => it should have ref = ({},)
+                        """.format(k0, group, k0)
+                    )
+                    raise Exception(msg)
+                ddata[k0]['ref'] = (k0,)
+                c0 = (
+                    (lref_add is None or k0 not in lref_add)
+                    and k0 not in dref0.keys()
+                )
+                if c0:
+                    if lref_add is None:
+                        lref_add = [k0]
+                    else:
+                        lref_add.append(k0)
 
     # Add missing refs (only in ddata)
+    dgroup_add = None
+    dref_add = None
     lref = list(itt.chain.from_iterable([
         [
             rr for rr in v0['ref']
             if rr not in dref0.keys() and rr in ddata.keys()
         ]
-        for v0 in ddata.values() if 'ref' in v0.keys()
+        for v0 in ddata.values() if (
+            'ref' in v0.keys() and v0.get('data') is not None
+        )
     ]
     ))
     if lref_add is not None:
         lref += lref_add
-    lref = set(lref)
 
-    dgroup_add = None
-    dref_add = None
     if len(lref) > 0:
+        lref = set(lref)
         dref_add = {rr: {'data': ddata[rr]['data']} for rr in lref}
         dref_add, dgroup_add, ddata_dadd = _check_dref(
             dref=dref_add, dref0=dref0, ddata0=ddata0, dgroup0=dgroup0,
@@ -943,6 +968,8 @@ def _check_ddata(
 
     # Check shape vs ref
     for k0, v0 in ddata.items():
+        if v0.get('data') is None:
+            continue
         c0 = (
             isinstance(v0['ref'], tuple)
             and all([
@@ -1104,12 +1131,15 @@ def _consistency(
 
     # ddata0
     for k0, v0 in ddata0.items():
+        if v0.get('data') is None:
+            continue
         ddata0[k0]['group'] = tuple([dref0[rr]['group'] for rr in v0['ref']])
 
     # dref0
     for k0, v0 in dref0.items():
         dref0[k0]['ldata'] = sorted(set(
-            k1 for k1 in ddata0.keys() if k0 in ddata0[k1]['ref']
+            k1 for k1 in ddata0.keys()
+            if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['ref']
         ))
 
     # dgroup0
@@ -1118,7 +1148,8 @@ def _consistency(
             k1 for k1, v1 in dref0.items() if v1['group'] == k0
         ))
         dgroup0[k0]['ldata'] = sorted(set(
-            k1 for k1 in ddata0.keys() if k0 in ddata0[k1]['group']
+            k1 for k1 in ddata0.keys()
+            if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['group']
         ))
 
     return dgroup0, dref0, ddata0
