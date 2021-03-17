@@ -58,7 +58,9 @@ class DataCollection(utils.ToFuObject):
         _allowed_groups = [_forced_group]
     else:
         _allowed_groups = None
-    _dallowed_params = None
+    # _dallowed_params = None
+    _data_none = None
+    _reserved_keys = None
 
     _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
@@ -141,6 +143,10 @@ class DataCollection(utils.ToFuObject):
             ddata=ddata, ddata0=self._ddata,
             dref=dref, dref0=self._dref,
             dgroup=dgroup, dgroup0=self._dgroup,
+            allowed_groups=self._allowed_groups,
+            reserved_keys=self._reserved_keys,
+            ddefparams=self._ddef['params'],
+            data_none=self._data_none,
         )
 
     # ---------------------

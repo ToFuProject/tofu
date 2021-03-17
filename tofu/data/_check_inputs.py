@@ -24,6 +24,7 @@ _DDEF_PARAMS = {
     'units':  (str, 'a.u.'),
 }
 
+_DATA_NONE = False
 
 # #############################################################################
 # #############################################################################
@@ -57,7 +58,13 @@ def _check_remove(key=None, dkey=None, name=None):
 #                           Removing routines
 # #############################################################################
 
-def _remove_group(group=None, dgroup0=None, dref0=None, ddata0=None):
+def _remove_group(
+    group=None, dgroup0=None, dref0=None, ddata0=None,
+    allowed_groups=None,
+    reserved_keys=None,
+    ddefparams=None,
+    data_none=None,
+):
     """ Remove a group (or list of groups) and all associated ref, data """
     if group is None:
         return dgroup0, dref0, ddata0
@@ -77,11 +84,19 @@ def _remove_group(group=None, dgroup0=None, dref0=None, ddata0=None):
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
         dgroup=None, dgroup0=dgroup0,
+        allowed_groups=allowed_groups,
+        reserved_keys=reserved_keys,
+        ddefparams=ddefparams,
+        data_none=data_none,
     )
 
 
 def _remove_ref(
     key=None, dgroup0=None, dref0=None, ddata0=None, propagate=None,
+    allowed_groups=None,
+    reserved_keys=None,
+    ddefparams=None,
+    data_none=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
@@ -112,11 +127,19 @@ def _remove_ref(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
         dgroup=None, dgroup0=dgroup0,
+        allowed_groups=allowed_groups,
+        reserved_keys=reserved_keys,
+        ddefparams=ddefparams,
+        data_none=data_none,
     )
 
 
 def _remove_data(
     key=None, dgroup0=None, dref0=None, ddata0=None, propagate=None,
+    allowed_groups=None,
+    reserved_keys=None,
+    ddefparams=None,
+    data_none=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
@@ -148,6 +171,10 @@ def _remove_data(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
         dgroup=None, dgroup0=dgroup0,
+        allowed_groups=allowed_groups,
+        reserved_keys=reserved_keys,
+        ddefparams=ddefparams,
+        data_none=data_none,
     )
 
 # #############################################################################
@@ -787,7 +814,7 @@ def _check_ddata(
     if ddata in [None, {}]:
         return {}, None, None
     if data_none is None:
-        data_none = False
+        data_none = _DATA_NONE
 
     # ----------------
     # Check conformity
@@ -1067,6 +1094,56 @@ def _harmonize_params(
     for k0 in lparams:
         for k1, v1 in ddata.items():
             ddata[k1][k0] = ddata[k1].get(k0)
+
+    # ------------------
+    # Check element / ion / charge
+    c0 = all([ss in lparams for ss in ['ion', 'element', 'charge']])
+    if c0:
+        for k0, v0 in ddata.items():
+            lc = [
+                v0.get('ion') is not None,
+                v0.get('element') is not None,
+                v0.get('charge') is not None,
+            ]
+            if not any(lc):
+                continue
+            if lc[0]:
+                element = ''.join([
+                    ss for ss in v0['ion'].strip('+') if not ss.isdigit()
+                ])
+                charge = int(''.join([
+                    ss for ss in v0['ion'].strip('+') if ss.isdigit()
+                ]))
+                if lc[1] and v0['element'] != element:
+                    msg = (
+                        'Non-matching element for key {}:\n\t{}\n\t{}'.format(
+                            v0['element'], element
+                        )
+                    )
+                    raise Exception(msg)
+                ddata[k0]['element'] = element
+                if lc[2] and v0['charge'] != charge:
+                    msg = (
+                        'Non-matching charge for key {}:\n\t{}\n\t{}'.format(
+                            v0['charge'], charge
+                        )
+                    )
+                    raise Exception(msg)
+                ddata[k0]['charge'] = charge
+            elif lc[1] and lc[2]:
+                ddata[k0]['ion'] = '{}{}+'.format(v0['element'], v0['charge'])
+            else:
+                msg = (
+                    """
+                    element / charge / ion cannot be infered for {}
+                    - element:{}
+                    - charge: {}
+                    - ion:    {}
+                    """.format(
+                        v0.get('element'), v0.get('charge'), v0.get('ion'),
+                    )
+                )
+                raise Exception(msg)
     return ddata
 
 
@@ -1083,6 +1160,7 @@ def _consistency(
     allowed_groups=None,
     reserved_keys=None,
     ddefparams=None,
+    data_none=None,
 ):
 
     # --------------
@@ -1112,6 +1190,7 @@ def _consistency(
     ddata, dref_add, dgroup_add = _check_ddata(
         ddata=ddata, ddata0=ddata0, dref0=dref0, dgroup0=dgroup0,
         reserved_keys=reserved_keys, allowed_groups=allowed_groups,
+        data_none=data_none,
     )
     if dgroup_add is not None:
         dgroup0.update(dgroup_add)
