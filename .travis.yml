@@ -19,7 +19,7 @@ jobs:
     os: linux
     dist: xenial
     python: 3.7
-    if: branch = master OR branch = devel OR branch=Issue#73_solid_angles_pt1
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
@@ -27,7 +27,7 @@ jobs:
     os: linux
     dist: xenial
     python: 3.6
-    if: branch = master OR branch = devel OR branch=Issue#73_solid_angles_pt1
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
