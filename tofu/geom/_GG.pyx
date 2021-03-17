@@ -36,7 +36,7 @@ cimport _raytracing_tools as _rt
 cimport _distance_tools as _dt
 cimport _sampling_tools as _st
 cimport _vignetting_tools as _vt
-cimport _openmp_tools as _ompt
+import _openmp_tools as _ompt
 
 # == Exports ===================================================================
 __all__ = ['CoordShift',
