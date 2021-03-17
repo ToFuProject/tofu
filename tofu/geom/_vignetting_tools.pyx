@@ -428,7 +428,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size()
         res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
-        with nogil, parallel(num_threads=48):
+        with nogil, parallel(num_threads=num_threads):
             for ii in prange(sz_rphi[0]):
                 res_rphi[0][ii] = vec_rphi[ii]
     else:
@@ -462,6 +462,31 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size()
         res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
-        for ii in range(sz_rphi[0]):
+        for ii in prange(sz_rphi[0], num_threads=num_threads):
             res_rphi[0][ii] = vec_rphi[ii]
+    return nb_in_poly
+
+
+# ==============================================================================
+# =  Vignetting Vmesh with VPoly
+# ==============================================================================
+cdef inline int are_in_vignette(int sz_r, int sz_z,
+                                double[:, ::1] vpoly,
+                                int npts_vpoly,
+                                double* disc_r,
+                                double* disc_z,
+                                double[:, ::1] is_in_vignette) nogil:
+    # we keep only the points in vpoly
+    cdef int ii, jj
+    cdef int nb_in_poly = 0
+
+    for ii in range(sz_r):
+        for jj in range(sz_z):
+            if _bgt.is_point_in_path(npts_vpoly,
+                                     &vpoly[0][0], &vpoly[1][0],
+                                     disc_r[ii], disc_z[jj]):
+                nb_in_poly += 1
+                is_in_vignette[ii, jj] = 1
+            else:
+                is_in_vignette[ii, jj] = 0
     return nb_in_poly

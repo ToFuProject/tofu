@@ -1089,6 +1089,22 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
+    # ... vignetting :
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    if limit_vpoly is not None:
+        npts_vpoly = limit_vpoly.shape[1] - 1
+        # we make sure it is closed
+        if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
+                and abs(limit_vpoly[1, 0]
+                        - limit_vpoly[1, npts_vpoly]) < _VSMALL):
+            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
+        else:
+            poly_mv = limit_vpoly
+        nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
+                                         poly_mv, npts_vpoly,
+                                         disc_r, disc_z,
+                                         is_in_vignette)
+
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
@@ -4307,6 +4323,7 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
                                     num_threads)
     return np.asarray(ind_close_tab)
 
+
 def which_vpoly_closer_los_vec(int nvpoly, int nlos,
                                np.ndarray[double,ndim=2,mode='c'] ray_orig,
                                np.ndarray[double,ndim=2,mode='c'] ray_vdir,
@@ -4695,7 +4712,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[double,ndim=3] sa_map
     #
     # == Testing inputs ========================================================
-    print(".............. TOUT DEBUT")
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
         assert ves_poly is not None and ves_norm is not None, msg
@@ -4861,9 +4877,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     dist = np.zeros(sz_p)
     # .. useless tabs ..........................................................
     # declared here so that cython can run without gil
-    print(".............. jusqu'ici tout va bien")
-    print(_ompt._get_effective_num_threads(num_threads))
-    # assert(1==2)
     cdef array vperp_out = clone(array('d'), sz_p * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), sz_p, True)
     cdef array coeff_inter_out = clone(array('d'), sz_p, True)
@@ -4881,7 +4894,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         lstruct_nlim_copy = None
     else:
         lstruct_nlim_copy = lstruct_nlim.copy()
-    print(".............. jusqu'ici tout va bien 2")
+
+    num_threads = _ompt._get_effective_num_threads(num_threads)
+
     # ..............
     _st.sa_double_loop(part_coords, part_r,
                        sa_map,
@@ -4910,7 +4925,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        disc_r, disc_z, lnp, sz_phi,
                        reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
-    print(".............. jusqu'ici tout va bien 3")
+
     # # If we only want to discretize the volume inside a certain flux surface
     # # describe by a limit_vpoly:
     # if limit_vpoly is not None:

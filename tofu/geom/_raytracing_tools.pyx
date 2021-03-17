@@ -2103,8 +2103,6 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
     cdef double min_poly_r
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
-    with gil:
-        print("################### bgt 1")
     _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
     if dist is None:
         dist_arr = <double*> malloc(npts*sizeof(double))
@@ -2112,8 +2110,6 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
         _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
     else:
         _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
-    with gil:
-        print("################### bgt 2")
     # --------------------------------------------------------------------------
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
     compute_inout_tot(npts, npts_poly,
@@ -2130,17 +2126,11 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                       forbid, num_threads,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
-    with gil:
-        print("################### bgt 3")
     # --------------------------------------------------------------------------
     # Get ind
     if dist is None:
-        with gil:
-            print("################### before is mask 1")
         is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts,
                     num_threads)
-        with gil:
-            print("################### before is mask 2")
         free(dist_arr)
     else:
         is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts,
