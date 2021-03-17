@@ -34,20 +34,22 @@ cpdef _get_effective_num_threads(n_threads=None):
 
     IF TOFU_OPENMP_ENABLED:
 
-        if os.getenv("OMP_NUM_THREADS"):
-            # Fall back to user provided number of threads making it possible
-            # to exceed the number of cpus.
-            max_n_threads = openmp.omp_get_max_threads()
-        else:
-            max_n_threads = min(openmp.omp_get_max_threads(),
-                                len(os.sched_getaffinity(0)))
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>> ", TOFU_OPENMP_ENABLED)
+        # if os.getenv("OMP_NUM_THREADS"):
+        #     # Fall back to user provided number of threads making it possible
+        #     # to exceed the number of cpus.
+        #     max_n_threads = openmp.omp_get_max_threads()
+        # else:
+        #     max_n_threads = min(openmp.omp_get_max_threads(),
+        #                         len(os.sched_getaffinity(0)))
 
-        if n_threads is None:
-            return max_n_threads
-        elif n_threads < 0:
-            return max(1, max_n_threads + n_threads + 1)
+        # if n_threads is None:
+        #     return max_n_threads
+        # elif n_threads < 0:
+        #     return max(1, max_n_threads + n_threads + 1)
 
-        return min(n_threads, max_n_threads)
+        # return min(n_threads, max_n_threads)
+        return 0
     ELSE:
         # OpenMP disabled at build-time => sequential mode
         return 1
