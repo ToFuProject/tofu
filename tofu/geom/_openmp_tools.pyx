@@ -2,7 +2,7 @@ import os
 from openmp_enabled import is_openmp_enabled
 IF TOFU_OPENMP_ENABLED:
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>> ", TOFU_OPENMP_ENABLED)
-    cimport openmp
+    # cimport openmp
 ELSE:
     print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ", TOFU_OPENMP_ENABLED)
 
