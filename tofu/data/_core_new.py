@@ -351,6 +351,41 @@ class DataCollection(utils.ToFuObject):
             returnas=returnas,
         )
 
+    def get_sort_index(self, param=None):
+        """ Return sorting index ofself.ddata dict """
+
+        if param is None:
+            return
+        if param == 'key':
+            return np.argsort(list(self._ddata.keys()))
+        elif isinstance(param, str):
+            return np.argsort(
+                self.get_param(param, returnas=np.ndarray)[param]
+            )
+        else:
+            msg = "Arg param must be a valid str\n  Provided: {}".format(param)
+            raise Exception(msg)
+
+    def sortby(self, param=None, order=None):
+        """ sort the self.ddata dict by desired parameter """
+
+        c0 = order in [None, 'increasing', 'reverse']
+        if not c0:
+            msg = (
+                """
+                Arg order must be in [None, 'increasing', 'reverse']
+                Provided: {}
+                """.format(order)
+            )
+            raise Exception(msg)
+
+        lk = list(self._ddata.keys())
+        ind = self.get_sort_index(param)
+        if order == 'reverse':
+            self._ddata = {lk[ii]: self._ddata[lk[ii]] for ii in ind[::-1]}
+        else:
+            self._ddata = {lk[ii]: self._ddata[lk[ii]] for ii in ind}
+
     # ---------------------
     # Methods for getting a subset of the collection
     # ---------------------
@@ -426,7 +461,7 @@ class DataCollection(utils.ToFuObject):
 
         # -----------------------
         # Build for ddata
-        col2 = ['data key']
+        col2 = ['key']
         if show_core is None:
             show_core = self._show_in_summary_core
         if isinstance(show_core, str):

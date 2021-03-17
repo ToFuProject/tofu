@@ -1,7 +1,10 @@
 
 
+import numpy as np
+
 
 from ._core_new import DataCollection
+from . import _plot_spectrallines
 
 
 __all__ = ['SpectralLines', 'TimeTraces']
@@ -29,6 +32,10 @@ class SpectralLines(DataCollection):
     _forced_group = ['Te', 'ne']
     _data_none = True
 
+    _show_in_summary_core = ['shape', 'ref', 'group']
+    _show_in_summary = [
+        'data', 'lambda0', 'symbol', 'ion', 'transition', 'origin'
+    ]
 
     def update(self, ddata=None, dref=None, dgroup=None):
         super().update(ddata=ddata, dref=dref, dgroup=dgroup)
@@ -58,6 +65,7 @@ class SpectralLines(DataCollection):
         key=None,
         lambda0=None,
         pec=None,
+        ref=None,
         origin=None,
         transition=None,
         ion=None,
@@ -73,6 +81,7 @@ class SpectralLines(DataCollection):
             key=key,
             lambda0=lambda0,
             data=pec,
+            ref=ref,
             origin=origin,
             transition=transition,
             ion=ion,
@@ -82,13 +91,8 @@ class SpectralLines(DataCollection):
             **kwdargs,
         )
 
-    def add_pec(self, key=None, pec=None):
+    def add_pec(self, key=None, pec=None, ref=None):
         pass
-
-    # -----------------
-    # properties
-    # ------------------
-
 
     # -----------------
     # summary
@@ -121,25 +125,33 @@ class SpectralLines(DataCollection):
         # -----------------------
         # Build for ions
         ions = sorted(set([
-            v0['ion'] for v0 in self._ddata.values() if v0.get('ion') is not None
+            v0['ion'] for v0 in self._ddata.values()
+            if v0.get('ion') is not None
         ]))
-        col2 = ['ions', 'nb. lines']
+        col2 = ['ions', 'nb. lines', 'lambda0 min', 'lambda0 max']
         ar2 = [(
             ion,
-            np.sum([v0.get('ion') == ion for v0 in self._ddata.values()])
+            np.sum([v0.get('ion') == ion for v0 in self._ddata.values()]),
+            np.min([
+                v0['lambda0'] for v0 in self._ddata.values()
+                if v0.get('ion') == ion
+            ]),
+            np.max([
+                v0['lambda0'] for v0 in self._ddata.values()
+                if v0.get('ion') == ion
+            ]),
         ) for ion in ions]
 
         # -----------------------
         # Build for ddata
-        col3 = ['data key']
+        col3 = ['key']
         if show_core is None:
             show_core = self._show_in_summary_core
         if isinstance(show_core, str):
             show_core = [show_core]
         lp = self.lparam
-        lkcore = ['shape', 'group', 'ref']
-        assert all([ss in lp + lkcore for ss in show_core])
-        col3 += show_core
+        # lkcore = ['shape', 'group', 'ref']
+        col3 += [ss for ss in show_core if ss in lp]
 
         if show is None:
             show = self._show_in_summary
@@ -148,7 +160,7 @@ class SpectralLines(DataCollection):
         else:
             if isinstance(show, str):
                 show = [show]
-            assert all([ss in lp for ss in show])
+            show = [ss for ss in show if ss in lp]
             col3 += [pp for pp in show if pp not in col3]
 
         ar3 = []
@@ -160,6 +172,52 @@ class SpectralLines(DataCollection):
             [ar0, ar1, ar2, ar3], [col0, col1, col2, col3],
             sep=sep, line=line, table_sep=table_sep,
             verb=verb, return_=return_)
+
+    # -----------------
+    # plotting
+    # ------------------
+
+    def plot(
+        self,
+        ax=None,
+        sortby=None,
+        ymin=None,
+        ymax=None,
+        ls=None,
+        lw=None,
+        fontsize=None,
+        side=None,
+        dcolor=None,
+        fraction=None,
+        **kwdargs,
+    ):
+        """ plot rest wavelengths as vertical lines """
+
+        key = self.select(**kwdargs, returnas=str)
+        if sortby is None:
+            sortby = 'ion'
+        lok = ['ion', 'element']
+        if sortby not in lok:
+            msg = (
+                """
+                For plotting, sorting can be done only by:
+                {}
+
+                You provided:
+                {}
+                """.format(lok, param)
+            )
+            raise Exception(msg)
+        return _plot_spectrallines.plot_axvline(
+            ddata=self._ddata, key=key, sortby=sortby,
+            ax=ax, ymin=ymin, ymax=ymax,
+            ls=ls, lw=lw, fontsize=fontsize,
+            side=side, dcolor=dcolor, fraction=fraction,
+        )
+
+
+    def plot_pec(self):
+        raise NotImplementedError
 
 
 

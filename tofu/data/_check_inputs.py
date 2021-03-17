@@ -755,6 +755,46 @@ def _check_mesh_temp(data=None, key=None):
 
 # #############################################################################
 # #############################################################################
+#               ddata - special case: roman to int (SpectralLines)
+# #############################################################################
+
+
+def romanToInt(ss):
+      """
+      :type s: str
+      :rtype: int
+
+      source: https://www.tutorialspoint.com/roman-to-integer-in-python
+      """
+      roman = {
+          'I': 1,
+          'V': 5,
+          'X': 10,
+          'L': 50,
+          'C': 100,
+          'D': 500,
+          'M': 1000,
+          'IV': 4,
+          'IX': 9,
+          'XL': 40,
+          'XC': 90,
+          'CD': 400,
+          'CM': 900,
+      }
+      i = 0
+      num = 0
+      while i < len(ss):
+         if i+1 < len(ss) and ss[i:i+2] in roman:
+            num += roman[ss[i:i+2]]
+            i += 2
+         else:
+            num += roman[ss[i]]
+            i += 1
+      return num
+
+
+# #############################################################################
+# #############################################################################
 #                           ddata
 # #############################################################################
 
@@ -1039,6 +1079,94 @@ def _check_ddata(
 # #############################################################################
 
 
+def _check_elementioncharge(ddata, lparams=None):
+    """ Specific to SpectralLines """
+
+    # Assess if relevant
+    c0 = any([ss in lparams for ss in ['ION', 'ion', 'element', 'charge']])
+    if not c0:
+        return
+
+    for k0, v0 in ddata.items():
+
+        # Get element and charge from ION if any
+        if v0.get('ION') is not None:
+            indc = 1
+            if v0['ION'][1].islower():
+                indc = 2
+            element = v0['ION'][:indc]
+            charge = romanToInt(v0['ION'][indc:]) - 1
+            if v0.get('element') is not None and v0['element'] != element:
+                msg = (
+                    """
+                    Inconsistent ION  vs element for key {}:
+                    """.format(k0, v0.get('element'), element)
+                )
+                raise Exception(msg)
+            if v0.get('charge') is not None and v0['charge'] != charge:
+                msg = (
+                    """
+                    Inconsistent ION vs charge for key {}:
+                    """.format(k0, v0.get('charge'), charge)
+                )
+                raise Exception(msg)
+            ddata[k0]['element'] = element
+            ddata[k0]['charge'] = charge
+
+        # Check ion / element / charge consistency
+        lc = [
+            v0.get('ion') is not None,
+            v0.get('element') is not None,
+            v0.get('charge') is not None,
+        ]
+        if not any(lc):
+            continue
+
+        # ion provided -> element and charge
+        if lc[0]:
+            element = ''.join([
+                ss for ss in v0['ion'].strip('+') if not ss.isdigit()
+            ])
+            charge = int(''.join([
+                ss for ss in v0['ion'].strip('+') if ss.isdigit()
+            ]))
+            if lc[1] and v0['element'] != element:
+                msg = (
+                    'Non-matching element for key {}:\n\t{}\n\t{}'.format(
+                        v0['element'], element
+                    )
+                )
+                raise Exception(msg)
+            ddata[k0]['element'] = element
+            if lc[2] and v0['charge'] != charge:
+                msg = (
+                    'Non-matching charge for key {}:\n\t{}\n\t{}'.format(
+                        v0['charge'], charge
+                    )
+                )
+                raise Exception(msg)
+            ddata[k0]['charge'] = charge
+
+        # element and charge provided -> ion
+        elif lc[1] and lc[2]:
+            ddata[k0]['ion'] = '{}{}+'.format(v0['element'], v0['charge'])
+
+        # Lack of info
+        else:
+            msg = (
+                """
+                element / charge / ion cannot be infered for {}
+                - element:{}
+                - charge: {}
+                - ion:    {}
+                """.format(
+                    v0.get('element'), v0.get('charge'), v0.get('ion'),
+                )
+            )
+            raise Exception(msg)
+
+
+
 def _harmonize_params(
     ddata=None, lkeys=None, reserved_keys=None, ddefparams=None,
 ):
@@ -1097,53 +1225,7 @@ def _harmonize_params(
 
     # ------------------
     # Check element / ion / charge
-    c0 = all([ss in lparams for ss in ['ion', 'element', 'charge']])
-    if c0:
-        for k0, v0 in ddata.items():
-            lc = [
-                v0.get('ion') is not None,
-                v0.get('element') is not None,
-                v0.get('charge') is not None,
-            ]
-            if not any(lc):
-                continue
-            if lc[0]:
-                element = ''.join([
-                    ss for ss in v0['ion'].strip('+') if not ss.isdigit()
-                ])
-                charge = int(''.join([
-                    ss for ss in v0['ion'].strip('+') if ss.isdigit()
-                ]))
-                if lc[1] and v0['element'] != element:
-                    msg = (
-                        'Non-matching element for key {}:\n\t{}\n\t{}'.format(
-                            v0['element'], element
-                        )
-                    )
-                    raise Exception(msg)
-                ddata[k0]['element'] = element
-                if lc[2] and v0['charge'] != charge:
-                    msg = (
-                        'Non-matching charge for key {}:\n\t{}\n\t{}'.format(
-                            v0['charge'], charge
-                        )
-                    )
-                    raise Exception(msg)
-                ddata[k0]['charge'] = charge
-            elif lc[1] and lc[2]:
-                ddata[k0]['ion'] = '{}{}+'.format(v0['element'], v0['charge'])
-            else:
-                msg = (
-                    """
-                    element / charge / ion cannot be infered for {}
-                    - element:{}
-                    - charge: {}
-                    - ion:    {}
-                    """.format(
-                        v0.get('element'), v0.get('charge'), v0.get('ion'),
-                    )
-                )
-                raise Exception(msg)
+    _check_elementioncharge(ddata, lparams=lparams)
     return ddata
 
 
