@@ -388,6 +388,7 @@ class Test01_Struct(object):
                     P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
                     for ii in range(len(ldomain)):
                         try:
+                            print("Computing pts 0", ldomain[ii])
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   domain=ldomain[ii],
                                                   returnas='(X,Y,Z)',
@@ -404,6 +405,7 @@ class Test01_Struct(object):
                                    )
                             raise Exception(msg)
                         try:
+                            print("Computing pts 1")
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   ind=ind0,
                                                   returnas='(X,Y,Z)',
@@ -420,6 +422,8 @@ class Test01_Struct(object):
                                    )
                             raise Exception(msg)
                         try:
+                            print("ii, Computing pts 2")
+                            print(ldomain[ii])
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   domain=ldomain[ii],
                                                   returnas='(X,Y,Z)',
@@ -435,6 +439,7 @@ class Test01_Struct(object):
                                    )
                             raise Exception(msg)
                         try:
+                            print("Computing pts 3")
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   ind=ind0,
                                                   returnas='(X,Y,Z)',

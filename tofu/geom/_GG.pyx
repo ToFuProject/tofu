@@ -1089,29 +1089,38 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
-    # ... vignetting :
+    print(">>>>>>> np = ", NP)
+    # ... vignetting ...........................................................
     is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
     if limit_vpoly is not None:
+        print("€€€€€€€€€€€€€€€€€€€€€e there is a VPOLY!!!")
         npts_vpoly = limit_vpoly.shape[1] - 1
         # we make sure it is closed
         if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
                 and abs(limit_vpoly[1, 0]
                         - limit_vpoly[1, npts_vpoly]) < _VSMALL):
-            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
+            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:, 0:1]), axis=1)
+            npts_vpoly += 1
         else:
             poly_mv = limit_vpoly
+        print("poly first and list = ",
+              poly_mv[:, 0],
+              poly_mv[:, npts_vpoly],
+              npts_vpoly, poly_mv.shape[1])
         nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
                                          poly_mv, npts_vpoly,
                                          disc_r, disc_z,
                                          is_in_vignette)
-
+        print("nb_in poly =", nb_in_poly)
     # Preparing an array of indices to associate (r, z, phi) => NP
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
+        print("€€€€€€€€€€€€€€€€€€€€ there was no vpoly apparently")
         assert NP == new_np
     else:
         NP = new_np
+    print(">>>>>>> np = ", NP)
 
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
@@ -2325,9 +2334,12 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
+    print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims ttt")
     if lstruct_lims is None:
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims is None")
         lstruct_lims_np = np.array([Cnan])
     else:
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims is NOT none")
         flat_list = []
         for ele in lstruct_lims:
             if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
@@ -2338,7 +2350,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         flat_list += elele.flatten().tolist()
             else:
                 flat_list += [Cnan]
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€")
         lstruct_lims_np = np.array(flat_list)
+        print(lstruct_lims_np)
+        print(lstruct_lims)
 
     if lstruct_nlim is None:
         lstruct_nlim_copy = None
@@ -2618,9 +2633,12 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
+    print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims ttt")
     if lstruct_lims is None:
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims NONE")
         lstruct_lims_np = np.array([Cnan])
     else:
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims NOT none")
         flat_list = []
         for ele in lstruct_lims:
             if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
@@ -2632,6 +2650,8 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
             else:
                 flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims ", lstruct_lims_np,
+              lstruct_lims)
 
     if lstruct_nlim is None:
         lstruct_nlim_copy = None
@@ -2723,9 +2743,12 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
+    print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims ttt")
     if lstruct_lims is None:
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims NONE")
         lstruct_lims_np = np.array([Cnan])
     else:
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims NOT none")
         flat_list = []
         for ele in lstruct_lims:
             if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
@@ -2737,6 +2760,23 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
             else:
                 flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
+        print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ lstruct lims ", lstruct_lims_np,
+              lstruct_lims)
+
+    # if lstruct_lims is None:
+    #     lstruct_lims_np = np.array([Cnan])
+    # else:
+    #     flat_list = []
+    #     for ele in lstruct_lims:
+    #         if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+    #             for elele in ele:
+    #                 if type(elele) is list:
+    #                     flat_list += elele
+    #                 else:
+    #                     flat_list += elele.flatten().tolist()
+    #         else:
+    #             flat_list += [Cnan]
+    #     lstruct_lims_np = np.array(flat_list)
 
     if lstruct_nlim is None:
         lstruct_nlim_copy = None
@@ -4441,6 +4481,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
     ind = np.empty((NP,))
     dV = np.empty((NP,))
     # Compute Pts, dV and ind
+    print("OLD >>>>>>>>>>>>>>>>>>>", NP)
     # This triple loop is the longest part, it takes ~90% of the CPU time
     NP = 0
     if Out.lower()=='(x,y,z)':
@@ -4470,6 +4511,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython_old(double dR, double dZ, double dRPhi,
                     ind[NP] = NRPhi0[ii] + indZ[zz]*NRPhi[ii] + indiijj
                     dV[NP] = reso_r*reso_z*dRPhir[ii]
                     NP += 1
+    print("OLD >>>>>>>>>>>>>>>>>>>", NP)
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
             hypot = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
