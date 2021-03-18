@@ -1332,7 +1332,7 @@ def _consistency(
 # #############################################################################
 
 
-def _get_param(ddata=None, param=None, returnas=np.ndarray):
+def _get_param(ddata=None, param=None, key=None, ind=None, returnas=np.ndarray):
     """ Return the array of the chosen parameter (or list of parameters)
 
     Can be returned as:
@@ -1344,6 +1344,9 @@ def _get_param(ddata=None, param=None, returnas=np.ndarray):
     lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
     if param is None:
         param = lp
+
+    # Get key (which data to return param for)
+    key = _ind_tofrom_key(ddata=ddata, key=key, ind=ind, returnas=str)
 
     # Check inputs
     lc = [
@@ -1375,12 +1378,12 @@ def _get_param(ddata=None, param=None, returnas=np.ndarray):
     # Get output
     if returnas == dict:
         out = {
-            k0: {ddata[k1][k0] for k1 in ddata.keys()}
+            k0: {ddata[k1][k0] for k1 in key}
             for k0 in param
         }
     else:
         out = {
-            k0: [ddata[k1][k0] for k1 in ddata.keys()]
+            k0: [ddata[k1][k0] for k1 in key]
             for k0 in param
         }
     return out

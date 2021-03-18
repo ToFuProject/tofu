@@ -23,6 +23,7 @@ from . import _check_inputs
 from . import _comp_new
 from . import _plot_new
 from . import _def
+from . import _comp_spectrallines
 
 __all__ = ['DataCollection'] # , 'TimeTraceCollection']
 _INTERPT = 'zero'
@@ -198,7 +199,7 @@ class DataCollection(utils.ToFuObject):
     # Get / set / add / remove params
     # ---------------------
 
-    def get_param(self, param=None, returnas=np.ndarray):
+    def get_param(self, param=None, key=None, ind=None, returnas=np.ndarray):
         """ Return the array of the chosen parameter (or list of parameters)
 
         Can be returned as:
@@ -207,7 +208,9 @@ class DataCollection(utils.ToFuObject):
 
         """
         return _check_inputs._get_param(
-            ddata=self._ddata, param=param, returnas=returnas)
+            ddata=self._ddata, param=param,
+            key=key, ind=ind, returnas=returnas,
+        )
 
     def set_param(self, param=None, value=None, ind=None, key=None):
         """ Set the value of a parameter
@@ -491,6 +494,30 @@ class DataCollection(utils.ToFuObject):
             sep=sep, line=line, table_sep=table_sep,
             verb=verb, return_=return_)
 
+
+    # -----------------
+    # conversion wavelength - energy - frequency
+    # ------------------
+
+    @staticmethod
+    def convert_spectral(
+        data_in=None,
+        units_in=None, units_out=None,
+        returnas=None,
+    ):
+        """ convert wavelength / energy/ frequency
+
+        Available units:
+            wavelength: m, mm, um, nm, A
+            energy:     J, eV, keV
+            frequency:  Hz, kHz, MHz, GHz
+
+        Can also just return the conversion coef if returnas='coef'
+        """
+        return _comp_spectrallines.convert_spectral(
+            data_in=data_in, units_in=units_in, units_out=units_out,
+            returnas=returnas,
+        )
 
     # ---------------------
     # Method for interpolating on ref
