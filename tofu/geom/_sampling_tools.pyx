@@ -1658,27 +1658,29 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
 
     return NP
 
-cdef inline void vmesh_prepare_tab(long[:,:,::1] lnp,
-                                   int sz_r,
-                                   int sz_z,
-                                   long* sz_phi) nogil:
+cdef inline int vmesh_prepare_tab(long[:, :, ::1] lnp,
+                                  long[:, ::1] is_in_vignette,
+                                  int sz_r,
+                                  int sz_z,
+                                  long* sz_phi) nogil:
     cdef int ii, zz, jj
     cdef int kk
     cdef int NP = 0
     cdef int rem
     for ii in range(sz_r):
         for zz in range(sz_z):
-            rem = sz_phi[ii] % 4
-            for jj in range(0, sz_phi[ii]-rem, 4):
-                lnp[ii, zz, jj] = NP
-                lnp[ii, zz, jj + 1] = NP + 1
-                lnp[ii, zz, jj + 2] = NP + 2
-                lnp[ii, zz, jj + 3] = NP + 3
-                NP += 4
-            for kk in range(jj+4, sz_phi[ii]):
-                lnp[ii, zz, kk] = NP
-                NP += 1
-    return
+            if is_in_vignette[ii, zz]:
+                rem = sz_phi[ii] % 4
+                for jj in range(0, sz_phi[ii]-rem, 4):
+                    lnp[ii, zz, jj] = NP
+                    lnp[ii, zz, jj + 1] = NP + 1
+                    lnp[ii, zz, jj + 2] = NP + 2
+                    lnp[ii, zz, jj + 3] = NP + 3
+                    NP += 4
+                for kk in range(jj+4, sz_phi[ii]):
+                    lnp[ii, zz, kk] = NP
+                    NP += 1
+    return NP
 
 cdef inline void vmesh_double_loop_cart(int ii,
                                         int sz_z,
@@ -1705,22 +1707,24 @@ cdef inline void vmesh_double_loop_cart(int ii,
     cdef long NP
     # ..
     for zz in range(sz_z):
+        # TODO
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        # TODO faire le vignetting a ce stade la (R,Z) dans le poly ?
-        for jj in range(sz_phi[ii]):
-            NP = lnp[ii,zz,jj]
-            indiijj = iii[jj]
-            phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
-            pts_mv[1,NP] = disc_r[ii]*Csin(phi)
-            pts_mv[2,NP] = disc_z[zz]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            dv_mv[NP] = reso_r_z*reso_phi_mv[ii]
+        if is_in_vignette[zz]:
+            for jj in range(sz_phi[ii]):
+                NP = lnp[ii,zz,jj]
+                indiijj = iii[jj]
+                phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
+                pts_mv[1,NP] = disc_r[ii]*Csin(phi)
+                pts_mv[2,NP] = disc_z[zz]
+                ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                dv_mv[NP] = reso_r_z*reso_phi_mv[ii]
     return
 
 cdef inline void vmesh_double_loop_polr(int ii,
                                         int sz_z,
                                         long* lindex_z,
+                                        long[::1] is_in_vignette,
                                         long* ncells_rphi,
                                         long* tot_nc_plane,
                                         double reso_r_z,
@@ -1742,14 +1746,15 @@ cdef inline void vmesh_double_loop_polr(int ii,
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(sz_phi[ii]):
-            NP = lnp[ii,zz,jj]
-            indiijj = iii[jj]
-            pts_mv[0,NP] = disc_r[ii]
-            pts_mv[1,NP] = disc_z[zz]
-            pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            dv_mv[NP] = reso_r_z * reso_phi_mv[ii]
+        if is_in_vignette[zz]:
+            for jj in range(sz_phi[ii]):
+                NP = lnp[ii,zz,jj]
+                indiijj = iii[jj]
+                pts_mv[0,NP] = disc_r[ii]
+                pts_mv[1,NP] = disc_z[zz]
+                pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                dv_mv[NP] = reso_r_z * reso_phi_mv[ii]
     return
 
 
@@ -1928,6 +1933,7 @@ cdef inline void vmesh_ind_polr_loop(int np,
 cdef inline void sa_double_loop_polr(int ii,
                                      double[:, ::1] part_coords,
                                      double[::1] part_rad,
+                                     long[::1] is_in_vignette,
                                      int sz_p, int sz_z,
                                      double[:, ::1] sa_map,
                                      double[:, ::1] ves_poly,
@@ -1981,54 +1987,56 @@ cdef inline void sa_double_loop_polr(int ii,
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(sz_phi[ii]):
-            NP = lnp[ii,zz,jj]
-            indiijj = iii[jj]
-            pts_mv[0,NP] = disc_r[ii]
-            pts_mv[1,NP] = disc_z[zz]
-            pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            vol = reso_r_z * reso_phi_mv[ii]
-            # computing distance ....
-            _bgt.compute_dist_pt_vec(pts_mv[0, NP],
-                                     pts_mv[1, NP],
-                                     pts_mv[2, NP],
-                                     sz_p, part_coords,
-                                     &dist[0])
-            # checking if visible .....
-            _rt.is_visible_pt_vec_core(pts_mv[0, NP],
-                                       pts_mv[1, NP],
-                                       pts_mv[2, NP],
-                                       part_coords,
-                                       sz_p,
-                                       ves_poly, ves_norm,
-                                       is_vis, dist,
-                                       ves_lims,
-                                       lstruct_nlim,
-                                       lstruct_polyx,
-                                       lstruct_polyy,
-                                       lstruct_lims,
-                                       lstruct_normx,
-                                       lstruct_normy,
-                                       lnvert, vperp_out,
-                                       coeff_inter_in, coeff_inter_out,
-                                       ind_inter_out, sz_ves_lims,
-                                       ray_orig, ray_vdir, npts_poly,
-                                       nstruct_tot, nstruct_lim,
-                                       rmin,
-                                       eps_uz, eps_a,
-                                       eps_vz, eps_b, eps_plane,
-                                       is_tor, forbid, num_threads)
-            volpi = vol * Cpi
-            for pp in range(sz_p):
-                if is_vis[pp] :
-                    sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
+        if is_in_vignette[zz]:
+            for jj in range(sz_phi[ii]):
+                NP = lnp[ii,zz,jj]
+                indiijj = iii[jj]
+                pts_mv[0,NP] = disc_r[ii]
+                pts_mv[1,NP] = disc_z[zz]
+                pts_mv[2,NP] = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                vol = reso_r_z * reso_phi_mv[ii]
+                # computing distance ....
+                _bgt.compute_dist_pt_vec(pts_mv[0, NP],
+                                         pts_mv[1, NP],
+                                         pts_mv[2, NP],
+                                         sz_p, part_coords,
+                                         &dist[0])
+                # checking if visible .....
+                _rt.is_visible_pt_vec_core(pts_mv[0, NP],
+                                           pts_mv[1, NP],
+                                           pts_mv[2, NP],
+                                           part_coords,
+                                           sz_p,
+                                           ves_poly, ves_norm,
+                                           is_vis, dist,
+                                           ves_lims,
+                                           lstruct_nlim,
+                                           lstruct_polyx,
+                                           lstruct_polyy,
+                                           lstruct_lims,
+                                           lstruct_normx,
+                                           lstruct_normy,
+                                           lnvert, vperp_out,
+                                           coeff_inter_in, coeff_inter_out,
+                                           ind_inter_out, sz_ves_lims,
+                                           ray_orig, ray_vdir, npts_poly,
+                                           nstruct_tot, nstruct_lim,
+                                           rmin,
+                                           eps_uz, eps_a,
+                                           eps_vz, eps_b, eps_plane,
+                                           is_tor, forbid, num_threads)
+                volpi = vol * Cpi
+                for pp in range(sz_p):
+                    if is_vis[pp] :
+                        sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
     return
 
 
 cdef inline void sa_double_loop_cart(int ii,
                                      double[:, ::1] part_coords,
                                      double[::1] part_rad,
+                                     long[::1] is_in_vignette,
                                      int sz_p, int sz_z,
                                      double[:, ::1] sa_map,
                                      double[:, ::1] ves_poly,
@@ -2085,54 +2093,56 @@ cdef inline void sa_double_loop_cart(int ii,
     # ..
     for zz in range(sz_z):
         zrphi = lindex_z[zz] * ncells_rphi[ii]
-        for jj in range(sz_phi[ii]):
-            NP = lnp[ii,zz,jj]
-            indiijj = iii[jj]
-            phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-            pts_mv[0, NP] = disc_r[ii]*Ccos(phi)
-            pts_mv[1, NP] = disc_r[ii]*Csin(phi)
-            pts_mv[2, NP] = disc_z[zz]
-            ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-            vol = reso_r_z*reso_phi_mv[ii]
-            # computing distance ....
-            _bgt.compute_dist_pt_vec(pts_mv[0, NP],
-                                     pts_mv[1, NP],
-                                     pts_mv[2, NP],
-                                     sz_p, part_coords,
-                                     &dist[0])
-            # checking if visible .....
-            _rt.is_visible_pt_vec_core(pts_mv[0, NP],
-                                       pts_mv[1, NP],
-                                       pts_mv[2, NP],
-                                       part_coords,
-                                       sz_p,
-                                       ves_poly, ves_norm,
-                                       is_vis, dist,
-                                       ves_lims,
-                                       lstruct_nlim,
-                                       lstruct_polyx,
-                                       lstruct_polyy,
-                                       lstruct_lims,
-                                       lstruct_normx,
-                                       lstruct_normy,
-                                       lnvert, vperp_out,
-                                       coeff_inter_in, coeff_inter_out,
-                                       ind_inter_out, sz_ves_lims,
-                                       ray_orig, ray_vdir, npts_poly,
-                                       nstruct_tot, nstruct_lim,
-                                       rmin,
-                                       eps_uz, eps_a,
-                                       eps_vz, eps_b, eps_plane,
-                                       is_tor, forbid, num_threads)
-            volpi = vol * Cpi
-            for pp in range(sz_p):
-                if is_vis[pp] :
-                    sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
+        if is_in_vignette[zz]:
+            for jj in range(sz_phi[ii]):
+                NP = lnp[ii,zz,jj]
+                indiijj = iii[jj]
+                phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                pts_mv[0, NP] = disc_r[ii]*Ccos(phi)
+                pts_mv[1, NP] = disc_r[ii]*Csin(phi)
+                pts_mv[2, NP] = disc_z[zz]
+                ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                vol = reso_r_z*reso_phi_mv[ii]
+                # computing distance ....
+                _bgt.compute_dist_pt_vec(pts_mv[0, NP],
+                                         pts_mv[1, NP],
+                                         pts_mv[2, NP],
+                                         sz_p, part_coords,
+                                         &dist[0])
+                # checking if visible .....
+                _rt.is_visible_pt_vec_core(pts_mv[0, NP],
+                                           pts_mv[1, NP],
+                                           pts_mv[2, NP],
+                                           part_coords,
+                                           sz_p,
+                                           ves_poly, ves_norm,
+                                           is_vis, dist,
+                                           ves_lims,
+                                           lstruct_nlim,
+                                           lstruct_polyx,
+                                           lstruct_polyy,
+                                           lstruct_lims,
+                                           lstruct_normx,
+                                           lstruct_normy,
+                                           lnvert, vperp_out,
+                                           coeff_inter_in, coeff_inter_out,
+                                           ind_inter_out, sz_ves_lims,
+                                           ray_orig, ray_vdir, npts_poly,
+                                           nstruct_tot, nstruct_lim,
+                                           rmin,
+                                           eps_uz, eps_a,
+                                           eps_vz, eps_b, eps_plane,
+                                           is_tor, forbid, num_threads)
+                volpi = vol * Cpi
+                for pp in range(sz_p):
+                    if is_vis[pp] :
+                        sa_map[zz, pp] += (part_rad[pp] / dist[pp])**2 * volpi
     return
 
 
 cdef inline void sa_double_loop(double[:, ::1] part_coords,
                                 double[::1] part_rad,
+                                long[:, ::1] is_in_vignette,
                                 double[:, :, ::1] sa_map,
                                 double[:, ::1] ves_poly,
                                 double[:, ::1] ves_norm,
@@ -2182,64 +2192,64 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
     cdef int ii
     # ...
     if is_cart:
-        with nogil:
-            for ii in prange(sz_r):
-                # To make sure the indices are in increasing order
-                sa_double_loop_cart(ii, part_coords, part_rad,
-                                    sz_p, sz_z,
-                                    sa_map[ii],
-                                    ves_poly, ves_norm,
-                                    is_vis, dist,
-                                    ves_lims,
-                                    lstruct_nlim,
-                                    lstruct_polyx,
-                                    lstruct_polyy,
-                                    lstruct_lims,
-                                    lstruct_normx,
-                                    lstruct_normy,
-                                    lnvert, vperp_out,
-                                    coeff_inter_in, coeff_inter_out,
-                                    ind_inter_out, sz_ves_lims,
-                                    ray_orig, ray_vdir, npts_poly,
-                                    nstruct_tot, nstruct_lim,
-                                    rmin,
-                                    eps_uz, eps_a,
-                                    eps_vz, eps_b, eps_plane,
-                                    is_tor, forbid, num_threads,
-                                    lindex_z,
-                                    ncells_rphi, tot_nc_plane,
-                                    reso_r_z, step_rphi,
-                                    disc_r, disc_z, lnp, sz_phi,
-                                    indi_mv[ii, first_ind_mv[ii]:],
-                                    reso_phi_mv, pts_mv, ind_mv)
+        for ii in prange(sz_r):
+            # To make sure the indices are in increasing order
+            sa_double_loop_cart(ii, part_coords, part_rad,
+                                is_in_vignette[ii],
+                                sz_p, sz_z,
+                                sa_map[ii],
+                                ves_poly, ves_norm,
+                                is_vis, dist,
+                                ves_lims,
+                                lstruct_nlim,
+                                lstruct_polyx,
+                                lstruct_polyy,
+                                lstruct_lims,
+                                lstruct_normx,
+                                lstruct_normy,
+                                lnvert, vperp_out,
+                                coeff_inter_in, coeff_inter_out,
+                                ind_inter_out, sz_ves_lims,
+                                ray_orig, ray_vdir, npts_poly,
+                                nstruct_tot, nstruct_lim,
+                                rmin,
+                                eps_uz, eps_a,
+                                eps_vz, eps_b, eps_plane,
+                                is_tor, forbid, num_threads,
+                                lindex_z,
+                                ncells_rphi, tot_nc_plane,
+                                reso_r_z, step_rphi,
+                                disc_r, disc_z, lnp, sz_phi,
+                                indi_mv[ii, first_ind_mv[ii]:],
+                                reso_phi_mv, pts_mv, ind_mv)
     else:
-        with nogil:
-            for ii in prange(sz_r):
-                sa_double_loop_polr(ii, part_coords, part_rad,
-                                    sz_p, sz_z,
-                                    sa_map[ii],
-                                    ves_poly, ves_norm,
-                                    is_vis, dist,
-                                    ves_lims,
-                                    lstruct_nlim,
-                                    lstruct_polyx,
-                                    lstruct_polyy,
-                                    lstruct_lims,
-                                    lstruct_normx,
-                                    lstruct_normy,
-                                    lnvert, vperp_out,
-                                    coeff_inter_in, coeff_inter_out,
-                                    ind_inter_out, sz_ves_lims,
-                                    ray_orig, ray_vdir, npts_poly,
-                                    nstruct_tot, nstruct_lim,
-                                    rmin,
-                                    eps_uz, eps_a,
-                                    eps_vz, eps_b, eps_plane,
-                                    is_tor, forbid, num_threads,
-                                    lindex_z,
-                                    ncells_rphi, tot_nc_plane,
-                                    reso_r_z, step_rphi,
-                                    disc_r, disc_z, lnp, sz_phi,
-                                    indi_mv[ii, first_ind_mv[ii]:],
-                                    reso_phi_mv, pts_mv, ind_mv)
+        for ii in prange(sz_r):
+            sa_double_loop_polr(ii, part_coords, part_rad,
+                                is_in_vignette[ii],
+                                sz_p, sz_z,
+                                sa_map[ii],
+                                ves_poly, ves_norm,
+                                is_vis, dist,
+                                ves_lims,
+                                lstruct_nlim,
+                                lstruct_polyx,
+                                lstruct_polyy,
+                                lstruct_lims,
+                                lstruct_normx,
+                                lstruct_normy,
+                                lnvert, vperp_out,
+                                coeff_inter_in, coeff_inter_out,
+                                ind_inter_out, sz_ves_lims,
+                                ray_orig, ray_vdir, npts_poly,
+                                nstruct_tot, nstruct_lim,
+                                rmin,
+                                eps_uz, eps_a,
+                                eps_vz, eps_b, eps_plane,
+                                is_tor, forbid, num_threads,
+                                lindex_z,
+                                ncells_rphi, tot_nc_plane,
+                                reso_r_z, step_rphi,
+                                disc_r, disc_z, lnp, sz_phi,
+                                indi_mv[ii, first_ind_mv[ii]:],
+                                reso_phi_mv, pts_mv, ind_mv)
     return

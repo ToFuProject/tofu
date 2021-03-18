@@ -156,13 +156,15 @@ cdef int  vmesh_disc_phi(int sz_r, int sz_z,
                          double margin,
                          int num_threads) nogil
 
-cdef void vmesh_prepare_tab(long[:,:,::1] lnp,
-                            int sz_r,
-                            int sz_z,
-                            long* sz_phi) nogil
+cdef int vmesh_prepare_tab(long[:, :, ::1] lnp,
+                           long[:, ::1] is_in_vignette,
+                           int sz_r,
+                           int sz_z,
+                           long* sz_phi) nogil
 
 cdef void vmesh_double_loop(long[::1] first_ind_mv,
-                            long[:,::1] indi_mv,
+                            long[:, ::1] indi_mv,
+                            long[:, ::1] is_in_vignette,
                             bint is_cart,
                             int sz_r,
                             int sz_z,
@@ -228,6 +230,7 @@ cdef void vmesh_ind_polr_loop(int np,
 # ==============================================================================
 cdef void sa_double_loop(double[:, ::1] part_coords,
                          double[::1] part_rad,
+                         long[:, ::1] is_in_vignette,
                          double[:, :, ::1] sa_map,
                          double[:, ::1] ves_poly,
                          double[:, ::1] ves_norm,

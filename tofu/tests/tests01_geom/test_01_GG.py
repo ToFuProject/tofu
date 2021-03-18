@@ -275,8 +275,10 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
                                                                  out_format='(R,Z,Phi)',
                                                                  margin=1.e-9)
         assert Pts.ndim==2 and Pts.shape[0]==3
-        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and \
-            np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.)
+        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.), \
+            " X coordinates not in right bounds"
+        assert np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.), \
+            " Y coordinates not in right bounds"
         marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1,:])))
         if not LDPhi[ii] is None:
             LDPhi[ii][0] = np.arctan2(np.sin(LDPhi[ii][0]),np.cos(LDPhi[ii][0]))
@@ -1970,7 +1972,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax2.plot(pts[0, :]*np.cos(pts[2, :]),
                  pts[0, :]*np.sin(pts[2, :]), '.r')
 
-    # check size r,z,p
+    # check size r,z, p
     d1, d2, d3 = np.shape(sa_map)
     # assert d1 == 40, "Wrong 1st dim of sa_map: " + str(d1)
     # assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
@@ -1986,7 +1988,10 @@ def test26(ves_poly=VPoly, debug=1):
     ves_norm = ves_poly[:, 1:] - ves_poly[:, :-1]
     ves_norm = np.array([-ves_norm[1, :], ves_norm[0, :]])
     ves_norm = ves_norm / np.sqrt(np.sum(ves_norm**2, axis=0))[np.newaxis, :]
-    print("ok at least this print ?")
+
+    ves_poly_interne = ves_poly * 0.5
+    ves_poly_interne[0, :] += 1
+
     if debug > 0:
         # Visualisation:
         ves = tfg.Ves(
@@ -2010,11 +2015,15 @@ def test26(ves_poly=VPoly, debug=1):
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(
         rstep, zstep, phistep,
         RMinMax, ZMinMax,
+        limit_vpoly=ves_poly_interne
     )
     pts = res[0]
 
     if debug > 0:
         lax = ves.plot()
+        lax[0].plot(ves_poly_interne[0, :],
+                    ves_poly_interne[1, :], '-g') # x, y
+        # vmesh
         lax[1].plot(pts[0, :], pts[1, :], '.b') # x, y
         lax[0].plot(np.sqrt(pts[0, :]**2 + pts[1, :]**2),
                     pts[2, :], '.r') # r, z
@@ -2024,11 +2033,16 @@ def test26(ves_poly=VPoly, debug=1):
     res = GG._Ves_Vmesh_Tor_SubFromD_cython_old(
         rstep, zstep, phistep,
         RMinMax, ZMinMax,
+        VPoly=ves_poly_interne,
     )
     pts = res[0]
 
     if debug > 0:
         lax = ves.plot()
+        # limit
+        lax[0].plot(ves_poly_interne[0, :],
+                    ves_poly_interne[1, :], '-g') # x, y
+        # vmesh
         lax[1].plot(pts[0, :], pts[1, :], '.b') # x, y
         lax[0].plot(np.sqrt(pts[0, :]**2 + pts[1, :]**2),
                     pts[2, :], '.r') # r, z

@@ -1105,6 +1105,14 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                          disc_r, disc_z,
                                          is_in_vignette)
 
+    # Preparing an array of indices to associate (r, z, phi) => NP
+    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
+    new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
+    if limit_vpoly == None:
+        assert NP == new_np
+    else:
+        NP = new_np
+
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
     res3d  = np.empty((NP,))
@@ -1112,8 +1120,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     ind_mv = ind
     dv_mv  = res3d
     reso_r_z = reso_r[0]*reso_z[0]
-    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
-    _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
+
     indI = np.sort(indI, axis=1)
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
@@ -1126,53 +1133,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                           disc_r, disc_z, lnp, sz_phi,
                           dv_mv, reso_phi_mv, pts_mv, ind_mv,
                           num_threads)
-    # If we only want to discretize the volume inside a certain flux surface
-    # describe by a limit_vpoly:
-    if limit_vpoly is not None:
-        npts_vpoly = limit_vpoly.shape[1] - 1
-        # we make sure it is closed
-        if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
-                and abs(limit_vpoly[1, 0]
-                        - limit_vpoly[1, npts_vpoly]) < _VSMALL):
-            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
-        else:
-            poly_mv = limit_vpoly
-        # initializations:
-        res_x = <double**> malloc(sizeof(double*))
-        res_y = <double**> malloc(sizeof(double*))
-        res_z = <double**> malloc(sizeof(double*))
-        res_vres = <double**> malloc(sizeof(double*))
-        res_rphi = <double**> malloc(sizeof(double*))
-        res_lind = <long**>   malloc(sizeof(long*))
-        res_lind[0] = NULL
-        # .. Calling main function
-        # this is now the bottleneck taking over 2/3 of the time....
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv,
-                                                pts_mv, dv_mv, reso_phi_mv,
-                                                disc_r, ind_mv,
-                                                res_x, res_y, res_z,
-                                                res_vres, res_rphi, res_lind,
-                                                &sz_rphi[0], num_threads)
-        pts = np.empty((3,nb_in_poly))
-        ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-        res3d  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
-        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
-        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
-        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-        reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
-        # freeing the memory
-        free(res_x[0])
-        free(res_y[0])
-        free(res_z[0])
-        free(res_vres[0])
-        free(res_rphi[0])
-        free(res_lind[0])
-        free(res_x)
-        free(res_y)
-        free(res_z)
-        free(res_vres)
-        free(res_rphi)
-        free(res_lind)
     free(disc_r)
     free(disc_z)
     free(disc_r0)
@@ -4861,15 +4821,35 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
+    # ... vignetting ...........................................................
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    if limit_vpoly is not None:
+        npts_vpoly = limit_vpoly.shape[1] - 1
+        # we make sure it is closed
+        if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
+                and abs(limit_vpoly[1, 0]
+                        - limit_vpoly[1, npts_vpoly]) < _VSMALL):
+            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
+        else:
+            poly_mv = limit_vpoly
+        nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
+                                         poly_mv, npts_vpoly,
+                                         disc_r, disc_z,
+                                         is_in_vignette)
     # .. preparing for actual discretization ...................................
     sa_map = np.zeros((sz_r, sz_z, sz_p))
+    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
+    new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
+    if limit_vpoly == None:
+        assert NP == new_np
+    else:
+        NP = new_np
+    # initializing arrays
     pts = np.empty((3, NP))
     ind = np.empty((NP, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
     reso_r_z = reso_r[0]*reso_z[0]
-    lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
-    _st.vmesh_prepare_tab(lnp, sz_r, sz_z, sz_phi)
     indI = np.sort(indI, axis=1)
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
@@ -4900,6 +4880,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
 
     # ..............
     _st.sa_double_loop(part_coords, part_r,
+                       is_in_vignette,
                        sa_map,
                        ves_poly, ves_norm,
                        is_vis, dist,
