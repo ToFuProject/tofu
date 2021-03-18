@@ -118,7 +118,7 @@ class Test01_DataCollection(object):
         cls.lmesh = [mesh0, mesh1]
 
         # traces
-        trace00, trace01 = np.cos(t0), np.sin(t0)
+        trace00, trace01 = 2.*t0, np.sin(t0)
         trace10, trace11 = np.cos(t1), t1[:, None]*t0
         trace20, trace21 = np.sin(r0), r0[:, None]*r1
         trace30, trace31 = np.cos(r2), t0[:, None]*np.sin(r2)
@@ -165,7 +165,24 @@ class Test01_DataCollection(object):
                  'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
                  'trace31': {'data': cls.ltrace[7], 'ref': ('t0', 'r2')}}
         data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
-        cls.lobj = [data]
+
+        # Spectrallines
+        dref = {'t0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
+                't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+               }
+        ddata = {
+            'l0': {'lambda0': 5e-10, 'origin': '[1]', 'transition': 'A->B'},
+            'l1': {'lambda0': 5e-10, 'origin': '[2]', 'transition': 'B->C'},
+            'l2': {
+                'data': t0[:, None]*t1[None, :], 'ref': ('t0', 't1'),
+                'lambda0': 5e-10, 'origin': '[2]', 'transition': 'B->C',
+            },
+        }
+        sl = tfd.DataCollection()
+        sl._data_none = True
+        sl.update(dref=dref, ddata=ddata)
+
+        cls.lobj = [data, sl]
 
     @classmethod
     def setup(self):
@@ -292,8 +309,8 @@ class Test01_DataCollection(object):
         assert len(out) == 9, out
 
     def tests04_get_summary(self):
-        data = self.lobj[0]
-        data.get_summary()
+        for oo in self.lobj:
+            oo.get_summary()
 
     def tests05_getsetaddremove_param(self):
         data = self.lobj[0]
@@ -305,7 +322,25 @@ class Test01_DataCollection(object):
         data.remove_param('shot')
         assert 'shot' not in data.lparam
 
-    def tests06_convert_spectral(self):
+    def tests06_switch_ref(self):
+
+        data = self.lobj[0]
+        data.switch_ref('trace00')
+
+        # Check t0 removed
+        assert 'trace00' in data.dref.keys()
+        assert 'trace00' in data.dgroup['time']['lref']
+        assert all(['trace00' in v0['ref'] for k0, v0 in data.ddata.items()
+                    if k0 in data.dref['trace00']['ldata']])
+        # Check t0 removed
+        assert 't0' not in data.dref.keys()
+        assert 't0' not in data.dgroup['time']['lref']
+        assert all(['t0' not in v0['ref'] for k0, v0 in data.ddata.items()
+                    if k0 in data.dref['trace00']['ldata']])
+        # .. but still in data
+        assert 't0' in data.ddata.keys()
+
+    def tests10_convert_spectral(self):
         coef, inv = self.lobj[0].convert_spectral(
             units_in='eV', units_out='J', returnas='coef',
         )
