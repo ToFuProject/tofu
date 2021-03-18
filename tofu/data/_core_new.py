@@ -65,6 +65,7 @@ class DataCollection(utils.ToFuObject):
 
     _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
+    _max_ndim = None
 
     _dgroup = {}
     _dref = {}
@@ -148,6 +149,7 @@ class DataCollection(utils.ToFuObject):
             reserved_keys=self._reserved_keys,
             ddefparams=self._ddef['params'],
             data_none=self._data_none,
+            max_ndim=self._max_ndim,
         )
 
     # ---------------------
@@ -177,6 +179,7 @@ class DataCollection(utils.ToFuObject):
         self._dgroup, self._dref, self._ddata = _check_inputs._remove_group(
             group=group,
             dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+            max_ndim=self._max_ndim,
         )
 
     def remove_ref(self, key=None, propagate=None):
@@ -185,6 +188,7 @@ class DataCollection(utils.ToFuObject):
             key=key,
             dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
             propagate=propagate,
+            max_ndim=self._max_ndim,
         )
 
     def remove_data(self, key=None, propagate=True):
@@ -193,6 +197,7 @@ class DataCollection(utils.ToFuObject):
             key=key,
             dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
             propagate=propagate,
+            max_ndim=self._max_ndim,
         )
 
     # ---------------------

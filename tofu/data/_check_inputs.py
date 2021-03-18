@@ -64,6 +64,7 @@ def _remove_group(
     reserved_keys=None,
     ddefparams=None,
     data_none=None,
+    max_ndim=None,
 ):
     """ Remove a group (or list of groups) and all associated ref, data """
     if group is None:
@@ -88,6 +89,7 @@ def _remove_group(
         reserved_keys=reserved_keys,
         ddefparams=ddefparams,
         data_none=data_none,
+        max_ndim=max_ndim,
     )
 
 
@@ -97,6 +99,7 @@ def _remove_ref(
     reserved_keys=None,
     ddefparams=None,
     data_none=None,
+    max_ndim=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
@@ -131,6 +134,7 @@ def _remove_ref(
         reserved_keys=reserved_keys,
         ddefparams=ddefparams,
         data_none=data_none,
+        max_ndim=max_ndim,
     )
 
 
@@ -140,6 +144,7 @@ def _remove_data(
     reserved_keys=None,
     ddefparams=None,
     data_none=None,
+    max_ndim=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
@@ -175,6 +180,7 @@ def _remove_data(
         reserved_keys=reserved_keys,
         ddefparams=ddefparams,
         data_none=data_none,
+        max_ndim=max_ndim,
     )
 
 # #############################################################################
@@ -799,7 +805,7 @@ def romanToInt(ss):
 # #############################################################################
 
 
-def _check_data(data=None, key=None):
+def _check_data(data=None, key=None, max_ndim=None):
     """ Check the conformity of data to be a valid reference """
 
     # if not array
@@ -838,6 +844,18 @@ def _check_data(data=None, key=None):
     if isinstance(data, np.ndarray) and shape is None:
         shape = data.shape
 
+    # Check max_dim if any
+    if isinstance(data, np.ndarray) and max_ndim is not None:
+        if data.ndim > max_ndim:
+            msg = (
+                """
+                Provided data for ddata[{}] has too many dimensions!
+                - ndim:     {}
+                - max_ndim: {}
+                """.format(key, data.ndim, max_ndim)
+            )
+            raise Exception(msg)
+
     return data, shape, group
 
 
@@ -847,6 +865,7 @@ def _check_ddata(
     reserved_keys=None,
     allowed_groups=None,
     data_none=None,
+    max_ndim=None,
 ):
 
     # ----------------
@@ -984,7 +1003,7 @@ def _check_ddata(
     for k0, v0 in ddata.items():
         if v0.get('data') is not None:
             ddata[k0]['data'], ddata[k0]['shape'], group = _check_data(
-                data=v0['data'], key=k0,
+                data=v0['data'], key=k0, max_ndim=max_ndim,
             )
 
             # Check if group / mesh2d
@@ -1243,6 +1262,7 @@ def _consistency(
     reserved_keys=None,
     ddefparams=None,
     data_none=None,
+    max_ndim=None,
 ):
 
     # --------------
@@ -1272,7 +1292,7 @@ def _consistency(
     ddata, dref_add, dgroup_add = _check_ddata(
         ddata=ddata, ddata0=ddata0, dref0=dref0, dgroup0=dgroup0,
         reserved_keys=reserved_keys, allowed_groups=allowed_groups,
-        data_none=data_none,
+        data_none=data_none, max_ndim=max_ndim,
     )
     if dgroup_add is not None:
         dgroup0.update(dgroup_add)
