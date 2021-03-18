@@ -946,16 +946,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef long*  lindex   = NULL
     cdef long*  lindex_z = NULL
     cdef long*  sz_phi = NULL
-    cdef long** res_lind = NULL
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
     cdef double* step_rphi = NULL
-    cdef double** res_x  = NULL
-    cdef double** res_y  = NULL
-    cdef double** res_z  = NULL
-    cdef double** res_vres = NULL
-    cdef double** res_rphi = NULL
     cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
@@ -4662,16 +4656,10 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long*  lindex   = NULL
     cdef long*  lindex_z = NULL
     cdef long*  sz_phi = NULL
-    cdef long** res_lind = NULL
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
     cdef double* step_rphi = NULL
-    cdef double** res_x  = NULL
-    cdef double** res_y  = NULL
-    cdef double** res_z  = NULL
-    cdef double** res_vres = NULL
-    cdef double** res_rphi = NULL
     cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
@@ -4884,7 +4872,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         lstruct_nlim_copy = lstruct_nlim.copy()
 
     num_threads = _ompt._get_effective_num_threads(num_threads)
-
     # ..............
     _st.sa_double_loop(part_coords, part_r,
                        is_in_vignette,
@@ -4914,53 +4901,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        disc_r, disc_z, lnp, sz_phi,
                        reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
-
-    # # If we only want to discretize the volume inside a certain flux surface
-    # # describe by a limit_vpoly:
-    # if limit_vpoly is not None:
-    #     npts_vpoly = limit_vpoly.shape[1] - 1
-    #     # we make sure it is closed
-    #     if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
-    #             and abs(limit_vpoly[1, 0]
-    #                     - limit_vpoly[1, npts_vpoly]) < _VSMALL):
-    #         poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
-    #     else:
-    #         poly_mv = limit_vpoly
-    #     # initializations:
-    #     res_x = <double**> malloc(sizeof(double*))
-    #     res_y = <double**> malloc(sizeof(double*))
-    #     res_z = <double**> malloc(sizeof(double*))
-    #     res_vres = <double**> malloc(sizeof(double*))
-    #     res_rphi = <double**> malloc(sizeof(double*))
-    #     res_lind = <long**>   malloc(sizeof(long*))
-    #     res_lind[0] = NULL
-    #     # .. Calling main function
-    #     # this is now the bottleneck taking over 2/3 of the time....
-    #     nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, poly_mv,
-    #                                             pts_mv, dv_mv, reso_phi_mv,
-    #                                             disc_r, ind_mv,
-    #                                             res_x, res_y, res_z,
-    #                                             res_vres, res_rphi, res_lind,
-    #                                             &sz_rphi[0], num_threads)
-    #     pts = np.empty((3,nb_in_poly))
-    #     ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
-    #     pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
-    #     pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
-    #     pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
-    #     reso_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
-    #     # freeing the memory
-    #     free(res_x[0])
-    #     free(res_y[0])
-    #     free(res_z[0])
-    #     free(res_vres[0])
-    #     free(res_rphi[0])
-    #     free(res_lind[0])
-    #     free(res_x)
-    #     free(res_y)
-    #     free(res_z)
-    #     free(res_vres)
-    #     free(res_rphi)
-    #     free(res_lind)
+    # ... freeing up memory ....................................................
     free(disc_r)
     free(disc_z)
     free(disc_r0)
@@ -4969,4 +4910,5 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
+
     return pts, sa_map
