@@ -395,9 +395,33 @@ class DataCollection(utils.ToFuObject):
             self._ddata = {lk[ii]: self._ddata[lk[ii]] for ii in ind}
 
     # ---------------------
+    # Get refs from data key
+    # ---------------------
+
+    def get_ref_from_key(self, key=None, group=None):
+        """ Get the key of the ref in chosen group """
+
+        # Check input
+        if key not in self._ddata.keys():
+            msg = "Provide a valid data key!\n\t- Provided: {}".format(key)
+            raise Exception(msg)
+
+        ref = self._ddata[key]['ref']
+        if len(ref) > 1:
+            if group not in self._dgroup.keys():
+                msg = "Provided group is not valid!\n\t{}".format(group)
+                raise Exception(msg)
+            ref = [rr for rr in ref if self._dref[rr]['group'] == group]
+            if len(ref) != 1:
+                msg = "Ambiguous ref for key {}!\n\t- {}".format(key, ref)
+                raise Exception(msg)
+        return ref[0]
+
+    # ---------------------
     # Methods for getting a subset of the collection
     # ---------------------
 
+    # TBC
     def get_drefddata_as_input(self, key=None, ind=None, group=None):
         lk = self._ind_tofrom_key(ind=ind, key=key, group=group, returnas=str)
         lkr = [kr for kr in self._dref['lkey']
@@ -408,7 +432,7 @@ class DataCollection(utils.ToFuObject):
         ddata = {kk: self._ddata['dict'][kk] for kk in lk if kk not in lkr}
         return dref, ddata
 
-
+    # TBC
     def get_subset(self, key=None, ind=None, group=None, Name=None):
         if key is None and ind is None:
             return self
@@ -423,6 +447,7 @@ class DataCollection(utils.ToFuObject):
     # Methods for exporting plot collection (subset)
     # ---------------------
 
+    # TBC
     def to_PlotCollection(self, key=None, ind=None, group=None, Name=None,
                           dnmax=None, lib='mpl'):
         dref, ddata = self.get_drefddata_as_input(key=key, ind=ind, group=group)
@@ -528,6 +553,7 @@ class DataCollection(utils.ToFuObject):
     # Method for interpolating on ref
     # ---------------------
 
+    # TBC
     def _interp_one_dim(x=None, ind=None, key=None, group=None,
                         kind=None, bounds_error=None, fill_value=None):
         """ Return a dict of interpolated data
@@ -629,6 +655,7 @@ class DataCollection(utils.ToFuObject):
     # Method for fitting models in one direction
     # ---------------------
 
+    # TBC
     def _fit_one_dim(ind=None, key=None, group=None,
                      Type=None, func=None, **kwdargs):
         """ Return the parameters of a fitted function
