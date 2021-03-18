@@ -856,7 +856,17 @@ def _check_data(data=None, key=None, max_ndim=None):
             )
             raise Exception(msg)
 
-    return data, shape, group
+    # Check if valid ref candidate
+    refcandidate = bool(
+        isinstance(data, np.ndarray)
+        and data.ndim == 1
+        and (
+            np.all(np.diff(data) > 0.)
+            or np.all(np.diff(data) < 0.)
+        )
+    )
+
+    return data, shape, group, refcandidate
 
 
 def _check_ddata(
@@ -1002,7 +1012,10 @@ def _check_ddata(
     # Check data and ref vs shape - and optionnally add to ref if mesh2d
     for k0, v0 in ddata.items():
         if v0.get('data') is not None:
-            ddata[k0]['data'], ddata[k0]['shape'], group = _check_data(
+            (
+                ddata[k0]['data'], ddata[k0]['shape'],
+                group, ddata[k0]['refcandidate']
+            ) = _check_data(
                 data=v0['data'], key=k0, max_ndim=max_ndim,
             )
 
@@ -1348,6 +1361,78 @@ def _consistency(
 
 # #############################################################################
 # #############################################################################
+#               Switch ref
+# #############################################################################
+
+
+def switch_ref(
+    new_ref=None,
+    ddata=None,
+    dref=None,
+    dgroup=None,
+    allowed_groups=None,
+    reserved_keys=None,
+    ddefparams=None,
+    data_none=None,
+    max_ndim=None,
+):
+    """Use the provided key as ref (if valid) """
+
+    # Check input
+    c0 = (
+        new_ref in ddata.keys()
+        and ddata[new_ref].get('refcandidate') is True
+    )
+    if not c0:
+        strgroup = [
+            '{}: {}'.format(
+                k0,
+                [
+                    k1 for k1 in v0['ldata']
+                    if ddata[k1].get('refcandidate') is True
+                ]
+            )
+            for k0, v0 in dgroup.items()
+        ]
+        msg = (
+            """
+            Arg new_ref must be a key to a valid refcandidate!
+            - Provided: {}
+
+            Available valid ref candidates:
+            - {}
+            """.format(new_ref, '\n\t- '.join(strgroup))
+        )
+        raise Exception(msg)
+
+    # Substitute in dref
+    old_ref = ddata[new_ref]['ref'][0]
+    dref[new_ref] = dict(dref[old_ref])
+    del dref[old_ref]
+
+    # substitute in ddata['ref']
+    for k0, v0 in ddata.items():
+        if v0.get('ref') is not None and old_ref in v0['ref']:
+            new = tuple([rr for rr in v0['ref']])
+            ddata[k0]['ref'] = tuple([
+                new_ref if rr == old_ref else rr
+                for rr in v0['ref']
+            ])
+
+    return _consistency(
+        ddata=ddata, ddata0={},
+        dref=dref, dref0={},
+        dgroup=dgroup, dgroup0={},
+        allowed_groups=None,
+        reserved_keys=None,
+        ddefparams=None,
+        data_none=None,
+        max_ndim=None,
+    )
+
+
+# #############################################################################
+# #############################################################################
 #               Get / set / add / remove param
 # #############################################################################
 
@@ -1393,12 +1478,18 @@ def _get_param(ddata=None, param=None, key=None, ind=None, returnas=np.ndarray):
 
     c0 = returnas in [np.ndarray, dict]
     if not c0:
+        msg = (
+            """
+            Arg returnas must be in [np.ndarray, dict]
+            Provided: {}
+            """.format(returnas)
+        )
         raise Exception(msg)
 
     # Get output
     if returnas == dict:
         out = {
-            k0: {ddata[k1][k0] for k1 in key}
+            k0: {k1: ddata[k1][k0] for k1 in key}
             for k0 in param
         }
     else:

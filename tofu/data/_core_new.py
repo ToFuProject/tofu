@@ -418,6 +418,22 @@ class DataCollection(utils.ToFuObject):
         return ref[0]
 
     # ---------------------
+    # Switch ref
+    # ---------------------
+
+    def switch_ref(self, new_ref=None):
+        """Use the provided key as ref (if valid) """
+        self._dgroup, self._dref, self._ddata = _check_inputs.switch_ref(
+            new_ref=new_ref,
+            ddata=self._ddata, dref=self._dref, dgroup=self._dgroup,
+            allowed_groups=self._allowed_groups,
+            reserved_keys=self._reserved_keys,
+            ddefparams=self._ddef['params'],
+            data_none=self._data_none,
+            max_ndim=self._max_ndim,
+        )
+
+    # ---------------------
     # Methods for getting a subset of the collection
     # ---------------------
 
@@ -516,7 +532,7 @@ class DataCollection(utils.ToFuObject):
 
         ar2 = []
         for k0 in self._ddata.keys():
-            lu = [k0] + [str(self._ddata[k0][cc]) for cc in col2[1:]]
+            lu = [k0] + [str(self._ddata[k0].get(cc)) for cc in col2[1:]]
             ar2.append(lu)
 
         return self._get_summary(
