@@ -10,8 +10,8 @@ import scipy.constants as scpct
 
 _SPECTRAL_DUNITS = {
     'wavelength': ['m', 'mm', 'um', 'nm', 'pm', 'A'],
-    'energy': ['eV', 'keV', 'MeV', 'GeV', 'TeV', 'J'],
-    'frequency': ['Hz', 'kHz', 'MHz', 'GHz', 'THz'],
+    'energy': ['TeV', 'GeV', 'MeV', 'keV', 'eV', 'J'],
+    'frequency': ['THz', 'GHz', 'MHz', 'kHz', 'Hz'],
 }
 
 
@@ -94,11 +94,12 @@ def _convert_spectral_coef(units_in=None, units_out=None):
     k0_out = [k0 for k0, v0 in _SPECTRAL_DUNITS.items() if units_out in v0][0]
 
     if units_in == units_out:
-        return 1.
+        return 1., False
 
     # ---------
     # First case: same category
 
+    inv = False
     if k0_in == k0_out:
         indin = _SPECTRAL_DUNITS[k0_in].index(units_in)
         indout = _SPECTRAL_DUNITS[k0_out].index(units_out)
@@ -116,11 +117,9 @@ def _convert_spectral_coef(units_in=None, units_out=None):
 
         elif k0_in == 'energy':
             if units_in == 'J':
-                # TBC
                 coef = 10**(3*(indout-(indin-1))) / scpct.e
             elif units_out == 'J':
-                # TBC
-                coef = 10**(3*(indout-(indin-1))) * scpct.e
+                coef = 10**(3*((indout-1)-indin)) * scpct.e
             else:
                 coef = 10**(3*(indout-indin))
 
@@ -131,61 +130,70 @@ def _convert_spectral_coef(units_in=None, units_out=None):
         # coefs_in
         if k0_in == 'wavelength':
             # units_in -> eV
-            coef_in = _convert_spectral_coef(
+            coef_in, _ = _convert_spectral_coef(
                 units_in=units_in, units_out='m',
             )
         elif k0_in == 'energy':
-            coef_in = _convert_spectral_coef(
-                units_in=units_in, units_out='eV',
+            coef_in, _ = _convert_spectral_coef(
+                units_in=units_in, units_out='J',
             )
         elif k0_in == 'frequency':
-            coef_in = _convert_spectral_coef(
+            coef_in, _ = _convert_spectral_coef(
                 units_in=units_in, units_out='Hz',
             )
 
         # coefs_out
         if k0_out == 'wavelength':
             # units_in -> eV
-            coef_out = _convert_spectral_coef(
-                units_in=units_out, units_out='m',
+            coef_out, _ = _convert_spectral_coef(
+                units_in='m', units_out=units_out,
             )
         elif k0_out == 'energy':
-            coef_out = _convert_spectral_coef(
-                units_in=units_out, units_out='eV',
+            coef_out, _ = _convert_spectral_coef(
+                units_in='J', units_out=units_out,
             )
         elif k0_out == 'frequency':
-            coef_out = _convert_spectral_coef(
-                units_in=units_out, units_out='Hz',
+            coef_out, _ = _convert_spectral_coef(
+                units_in='Hz', units_out=units_out,
             )
 
         # ------------------
-        # Cross combinations between (m, eV, Hz)
+        # Cross combinations between (m, J, Hz)
 
+        # E = h*f = h*c/lambda
         if k0_in == 'wavelength':
+            inv = True
             if k0_out == 'energy':
-                # m -> eV
-                pass
+                # m -> J
+                coef_cross = scpct.h * scpct.c
             elif k0_out == 'frequency':
                 # m -> Hz
-                pass
+                coef_cross = scpct.c
+
         elif k0_in == 'energy':
             if k0_out == 'wavelength':
-                # eV -> m
-                pass
+                # J -> m
+                inv = True
+                coef_cross = scpct.h * scpct.c
             elif k0_out == 'frequency':
-                # eV -> Hz
-                pass
+                # J -> Hz
+                coef_cross = 1./scpct.h
+
         elif k0_in == 'frequency':
             if k0_out == 'wavelength':
                 # Hz -> m
-                pass
+                inv = True
+                coef_cross = scpct.c
             elif k0_out == 'energy':
-                # Hz -> eV
-                pass
+                # Hz -> J
+                coef_cross = scpct.h
 
-        coef = coef_in*coef_cross*coef_out
+        if inv:
+            coef = coef_cross*coef_out / coef_in
+        else:
+            coef = coef_in*coef_cross*coef_out
 
-    return coef
+    return coef, inv
 
 
 def convert_spectral(
@@ -216,8 +224,11 @@ def convert_spectral(
     if units_in == units_out:
         return data_in
 
-    coef = _convert_spectral_coef(units_in=units_in, units_out=units_out)
+    coef, inv = _convert_spectral_coef(units_in=units_in, units_out=units_out)
     if returnas == 'data':
-        return coef*data_in
+        if inv:
+            return coef / data_in
+        else:
+            return coef * data_in
     else:
-        return coef
+        return coef, inv

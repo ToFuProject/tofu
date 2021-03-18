@@ -501,7 +501,7 @@ class DataCollection(utils.ToFuObject):
 
     @staticmethod
     def convert_spectral(
-        data_in=None,
+        data=None,
         units_in=None, units_out=None,
         returnas=None,
     ):
@@ -515,7 +515,7 @@ class DataCollection(utils.ToFuObject):
         Can also just return the conversion coef if returnas='coef'
         """
         return _comp_spectrallines.convert_spectral(
-            data_in=data_in, units_in=units_in, units_out=units_out,
+            data_in=data, units_in=units_in, units_out=units_out,
             returnas=returnas,
         )
 

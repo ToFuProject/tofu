@@ -9,6 +9,7 @@ import warnings
 
 # Standard
 import numpy as np
+import scipy.constants as scpct
 import matplotlib.pyplot as plt
 
 # tofu-specific
@@ -303,6 +304,25 @@ class Test01_DataCollection(object):
         assert np.all(data.get_param('shot')['shot'] == np.arange(0, len(data.ddata)))
         data.remove_param('shot')
         assert 'shot' not in data.lparam
+
+    def tests06_convert_spectral(self):
+        coef, inv = self.lobj[0].convert_spectral(
+            units_in='eV', units_out='J', returnas='coef',
+        )
+        assert coef == scpct.e and inv is False
+
+        coef, inv = self.lobj[0].convert_spectral(
+            units_in='nm', units_out='keV', returnas='coef',
+        )
+        assert coef == (0.001*(1/scpct.e)*scpct.h*scpct.c / 1.e-9)
+        assert inv is True
+
+        data = [[0], [1], [2], [3]]
+        out = self.lobj[0].convert_spectral(
+            data=data,
+            units_in='A', units_out='MHz',
+        )
+        assert out.shape == (4, 1)
 
     # ------------------------
     #   Generic TofuObject methods
