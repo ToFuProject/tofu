@@ -4,6 +4,7 @@ import numpy as np
 
 
 from ._core_new import DataCollection
+from . import _comp_spectrallines
 from . import _plot_spectrallines
 
 
@@ -174,11 +175,36 @@ class SpectralLines(DataCollection):
             verb=verb, return_=return_)
 
     # -----------------
+    # conversion wavelength - energy - frequency
+    # ------------------
+
+    def convert_lines(self, units=None, key=None, ind=None, returnas=None):
+        """ Convert wavelength (m) to other units or other quantities (energy)
+
+        Avalaible units:
+            wavelength: km, m, mm, um, nm, pm, A
+            energy:     J, eV, keV, MeV, GeV
+            frequency:  Hz, kHz, MHz, GHz, THz
+
+        Can also just return the conversion coef if returnas='coef'
+        """
+
+        key = self._ind_tofrom_key(key=key, ind=ind, returnas=str)
+        lamb_in = self.get_param(
+            'lambda0', key=key, returnas=np.ndarray,
+        )['lambda0']
+        return self.convert_spectral(
+            data_in=lamb_in, units_in='m', units_out=units, returnas=returnas,
+        )
+
+    # -----------------
     # plotting
     # ------------------
 
     def plot(
         self,
+        key=None,
+        ind=None,
         ax=None,
         sortby=None,
         ymin=None,
@@ -189,11 +215,14 @@ class SpectralLines(DataCollection):
         side=None,
         dcolor=None,
         fraction=None,
-        **kwdargs,
+        figsize=None,
+        dmargin=None,
+        wintit=None,
+        tit=None,
     ):
         """ plot rest wavelengths as vertical lines """
 
-        key = self.select(**kwdargs, returnas=str)
+        key = self._ind_tofrom_key(key=key, ind=ind, returnas=str)
         if sortby is None:
             sortby = 'ion'
         lok = ['ion', 'element']
@@ -213,6 +242,8 @@ class SpectralLines(DataCollection):
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
             side=side, dcolor=dcolor, fraction=fraction,
+            figsize=figsize, dmargin=dnargin,
+            wintit=wintit, tit=tit,
         )
 
 
