@@ -1105,7 +1105,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         else:
             poly_mv = limit_vpoly
 
-            nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
+        nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
                                          poly_mv, npts_vpoly,
                                          disc_r, disc_z,
                                          is_in_vignette)
