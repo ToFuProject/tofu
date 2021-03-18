@@ -1683,6 +1683,7 @@ cdef inline void vmesh_prepare_tab(long[:,:,::1] lnp,
 cdef inline void vmesh_double_loop_cart(int ii,
                                         int sz_z,
                                         long* lindex_z,
+                                        long[::1] is_in_vignette,
                                         long* ncells_rphi,
                                         long* tot_nc_plane,
                                         double reso_r_z,
@@ -1754,7 +1755,8 @@ cdef inline void vmesh_double_loop_polr(int ii,
 
 
 cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
-                                   long[:,::1] indi_mv,
+                                   long[:, ::1] indi_mv,
+                                   long[:, ::1] is_in_vignette,
                                    bint is_cart,
                                    int sz_r,
                                    int sz_z,
@@ -1779,6 +1781,7 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
             for ii in prange(sz_r):
                 # To make sure the indices are in increasing order
                 vmesh_double_loop_cart(ii, sz_z, lindex_z,
+                                       is_in_vignette[ii],
                                        ncells_rphi, tot_nc_plane,
                                        reso_r_z, step_rphi,
                                        disc_r, disc_z, lnp, sz_phi,
@@ -1787,6 +1790,7 @@ cdef inline void vmesh_double_loop(long[::1] first_ind_mv,
         else:
             for ii in prange(sz_r):
                 vmesh_double_loop_polr(ii, sz_z, lindex_z,
+                                       is_in_vignette[ii],
                                        ncells_rphi, tot_nc_plane,
                                        reso_r_z, step_rphi,
                                        disc_r, disc_z, lnp, sz_phi,

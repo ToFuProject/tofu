@@ -1944,8 +1944,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
             Exp="Misc",
             shot=0
         )
-        if debug > 2:
-            lax = ves.plot()
+
     part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
     part_rad = np.r_[0.1, 0.1, 0.1]
     rstep = zstep = phistep = 0.01
@@ -1960,19 +1959,23 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                      ves_norm=ves_norm,
                                      )
     pts, sa_map = res
+
     print(np.shape(sa_map))
-    # check size r,z,m,p
+
+    if debug > 0:
+        fig = plt.figure(figsize=(14, 8))
+        ax = plt.subplot(121)
+        ax.plot(pts[0, :], pts[1, :], '.b')
+        ax2 = plt.subplot(122)
+        ax2.plot(pts[0, :]*np.cos(pts[2, :]),
+                 pts[0, :]*np.sin(pts[2, :]), '.r')
+
+    # check size r,z,p
     d1, d2, d3 = np.shape(sa_map)
     # assert d1 == 40, "Wrong 1st dim of sa_map: " + str(d1)
     # assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
     # assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
     # ...
-    fig = plt.figure(figsize=(14, 8))
-    ax = plt.subplot(121)
-    ax.plot(pts[0, :], pts[1, :], '.b')
-    ax2 = plt.subplot(122)
-    ax2.plot(pts[0, :]*np.cos(pts[2, :]),
-             pts[0, :]*np.sin(pts[2, :]), '.r')
     return
 
 
@@ -1993,37 +1996,48 @@ def test26(ves_poly=VPoly, debug=1):
             Exp="Misc",
             shot=0
         )
-        if debug > 2:
-            lax = ves.plot()
-    part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
+
+    part = np.array([[2.0, 2., 0.],
+                     [1.5, 0, 0],
+                     [2.5, 0, 0]], order='F').T
     part_rad = np.r_[0.1, 0.1, 0.1]
     rstep = zstep = phistep = 0.1
     phistep = 0.5
     RMinMax = np.array([np.min(ves_poly[0, :]), np.max(ves_poly[0, :])])
     ZMinMax = np.array([np.min(ves_poly[1, :]), np.max(ves_poly[1, :])])
+    print(RMinMax, ZMinMax)
 
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(
-                                            rstep, zstep, phistep,
-                                            RMinMax, ZMinMax,
-                                     )
+        rstep, zstep, phistep,
+        RMinMax, ZMinMax,
+    )
     pts = res[0]
-    # check size r,z,m,p
-    # assert d1 == 40, "Wrong 1st dim of sa_map: " + str(d1)
-    # assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
-    # assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
-    # ...
-    # fig = plt.figure(figsize=(14, 8))
-    # ax = plt.subplot(121)
-    # ax.plot(pts[0, :], pts[1, :], '.b')
-    # ax2 = plt.subplot(122)
-    # ax2.plot(pts[0, :]*np.cos(pts[2, :]),
-    #          pts[0, :]*np.sin(pts[2, :]), '.r')
 
-    fig = plt.figure(figsize=(14, 8))
-    fig.suptitle("test 26")
-    ax = plt.subplot(121)
-    ax.plot(pts[0, :], pts[1, :], '.b')
-    ax2 = plt.subplot(122)
-    ax2.plot(pts[0, :]*np.cos(pts[2, :]),
-             pts[0, :]*np.sin(pts[2, :]), '.r')
+    if debug > 0:
+        lax = ves.plot()
+        lax[1].plot(pts[0, :], pts[1, :], '.b') # x, y
+        lax[0].plot(np.sqrt(pts[0, :]**2 + pts[1, :]**2),
+                    pts[2, :], '.r') # r, z
+    pts_new = pts
+
+    # old
+    res = GG._Ves_Vmesh_Tor_SubFromD_cython_old(
+        rstep, zstep, phistep,
+        RMinMax, ZMinMax,
+    )
+    pts = res[0]
+
+    if debug > 0:
+        lax = ves.plot()
+        lax[1].plot(pts[0, :], pts[1, :], '.b') # x, y
+        lax[0].plot(np.sqrt(pts[0, :]**2 + pts[1, :]**2),
+                    pts[2, :], '.r') # r, z
+
+    assert np.shape(pts) == np.shape(pts_new)
+    print(pts[0, 1] - pts_new[0, 1])
+    assert pts[0, 1] == pts_new[0, 1]
+    assert np.allclose(pts[0, :], pts_new[0, :])
+    assert np.allclose(pts[1, :], pts_new[1, :])
+    assert np.allclose(pts[2, :], pts_new[2, :])
+
     return

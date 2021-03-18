@@ -1118,6 +1118,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
     _st.vmesh_double_loop(first_ind_mv, indi_mv,
+                          is_in_vignette,
                           is_cart, sz_r,
                           sz_z, lindex_z,
                           ncells_rphi, tot_nc_plane,
