@@ -1968,9 +1968,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
         ax.plot(pts[0, :], pts[1, :], '.b')
-        ax2 = plt.subplot(122)
-        ax2.plot(pts[0, :]*np.cos(pts[2, :]),
-                 pts[0, :]*np.sin(pts[2, :]), '.r')
 
     # check size r,z, p
     d1, d2, d3 = np.shape(sa_map)

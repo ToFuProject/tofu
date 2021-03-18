@@ -2043,56 +2043,56 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
     cdef double loc_phi
     cdef long[::1] iii
     # ...
-
-    for ii in prange(sz_r, num_threads=num_threads):
-        #iii   = indi_mv[ii, first_ind_mv[ii]:]
-        loc_r = disc_r[ii]
-        for zz in range(sz_z):
-            loc_z = disc_z[zz]
-            zrphi = lindex_z[zz] * ncells_rphi[ii]
-            if is_in_vignette[ii, zz]:
-                for jj in range(sz_phi[ii]):
-                    NP = lnp[ii, zz, jj]
-                    indiijj = indi_mv[ii, first_ind_mv[ii] + jj]
-                    pts_mv[0, NP] = loc_r
-                    pts_mv[1, NP] = loc_z
-                    loc_phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
-                    ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
-                    vol = reso_r_z * reso_phi_mv[ii]
-                    # computing distance ....
-                    _bgt.compute_dist_pt_vec(pts_mv[0, NP],
-                                             pts_mv[1, NP],
-                                             loc_phi,
-                                             sz_p, part_coords,
-                                             &dist[0])
-                    # checking if visible .....
-                    _rt.is_visible_pt_vec_core(pts_mv[0, NP],
-                                               pts_mv[1, NP],
-                                               loc_phi,
-                                               part_coords,
-                                               sz_p,
-                                               ves_poly, ves_norm,
-                                               is_vis, dist,
-                                               ves_lims,
-                                               lstruct_nlim,
-                                               lstruct_polyx,
-                                               lstruct_polyy,
-                                               lstruct_lims,
-                                               lstruct_normx,
-                                               lstruct_normy,
-                                               lnvert, vperp_out,
-                                               coeff_inter_in, coeff_inter_out,
-                                               ind_inter_out, sz_ves_lims,
-                                               ray_orig, ray_vdir, npts_poly,
-                                               nstruct_tot, nstruct_lim,
-                                               rmin,
-                                               eps_uz, eps_a,
-                                               eps_vz, eps_b, eps_plane,
-                                               is_tor, forbid, num_threads)
-                    volpi = vol * Cpi
-                    for pp in range(sz_p):
-                        if is_vis[pp] :
-                            sa_map[ii, zz, pp] += (part_rad[pp]
-                                                   / dist[pp])**2 * volpi
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(sz_r):
+            #iii   = indi_mv[ii, first_ind_mv[ii]:]
+            loc_r = disc_r[ii]
+            for zz in range(sz_z):
+                loc_z = disc_z[zz]
+                zrphi = lindex_z[zz] * ncells_rphi[ii]
+                if is_in_vignette[ii, zz]:
+                    for jj in range(sz_phi[ii]):
+                        NP = lnp[ii, zz, jj]
+                        indiijj = indi_mv[ii, first_ind_mv[ii] + jj]
+                        pts_mv[0, NP] = loc_r
+                        pts_mv[1, NP] = loc_z
+                        loc_phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                        ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                        vol = reso_r_z * reso_phi_mv[ii]
+                        # computing distance ....
+                        _bgt.compute_dist_pt_vec(pts_mv[0, NP],
+                                                 pts_mv[1, NP],
+                                                 loc_phi,
+                                                 sz_p, part_coords,
+                                                 &dist[0])
+                        # checking if visible .....
+                        _rt.is_visible_pt_vec_core(pts_mv[0, NP],
+                                                   pts_mv[1, NP],
+                                                   loc_phi,
+                                                   part_coords,
+                                                   sz_p,
+                                                   ves_poly, ves_norm,
+                                                   is_vis, dist,
+                                                   ves_lims,
+                                                   lstruct_nlim,
+                                                   lstruct_polyx,
+                                                   lstruct_polyy,
+                                                   lstruct_lims,
+                                                   lstruct_normx,
+                                                   lstruct_normy,
+                                                   lnvert, vperp_out,
+                                                   coeff_inter_in, coeff_inter_out,
+                                                   ind_inter_out, sz_ves_lims,
+                                                   ray_orig, ray_vdir, npts_poly,
+                                                   nstruct_tot, nstruct_lim,
+                                                   rmin,
+                                                   eps_uz, eps_a,
+                                                   eps_vz, eps_b, eps_plane,
+                                                   is_tor, forbid, num_threads)
+                        volpi = vol * Cpi
+                        for pp in range(sz_p):
+                            if is_vis[pp] :
+                                sa_map[ii, zz, pp] += (part_rad[pp]
+                                                       / dist[pp])**2 * volpi
 
     return
