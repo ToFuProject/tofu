@@ -4831,6 +4831,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                          poly_mv, npts_vpoly,
                                          disc_r, disc_z,
                                          is_in_vignette)
+        print(">>>>>>>>>>>> nb in poly = ", nb_in_poly)
     # .. preparing for actual discretization ...................................
     sa_map = np.zeros((sz_r, sz_z, sz_p))
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
@@ -4839,8 +4840,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         assert NP == new_np
     else:
         NP = new_np
+    print(">>>>>>>>>>>>>>>>>>>>>> NP", NP)
     # initializing arrays
-    pts = np.empty((3, NP))
+    pts = np.empty((2, NP))
     ind = np.empty((NP, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
@@ -4851,6 +4853,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     # initializing utilitary arrays
     is_vis = np.zeros(sz_p)
     dist = np.zeros(sz_p)
+    print("before useless tabs.............................................")
     # .. useless tabs ..........................................................
     # declared here so that cython can run without gil
     cdef array vperp_out = clone(array('d'), sz_p * 3, True)
@@ -4865,6 +4868,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double[:, ::1] ray_vdir = view.array(shape=(3,sz_p),
                                               itemsize=sizeof(double),
                                               format="d")
+    print("before openmp .....................................................")
     # ... copying tab that will be changed
     if lstruct_nlim is None:
         lstruct_nlim_copy = None
@@ -4872,6 +4876,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         lstruct_nlim_copy = lstruct_nlim.copy()
 
     num_threads = _ompt._get_effective_num_threads(num_threads)
+    print("before loop .....................................................")
     # ..............
     _st.sa_double_loop(part_coords, part_r,
                        is_in_vignette,
@@ -4895,12 +4900,13 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                        eps_vz, eps_b, eps_plane,
                        ves_type=='tor', forbid,
                        first_ind_mv, indi_mv,
-                       is_cart, sz_p, sz_r, sz_z, lindex_z,
+                       sz_p, sz_r, sz_z, lindex_z,
                        ncells_rphi, tot_nc_plane,
                        reso_r_z, step_rphi,
                        disc_r, disc_z, lnp, sz_phi,
                        reso_phi_mv, pts_mv, ind_mv,
                        num_threads)
+    print("before freeing .....................................................")
     # ... freeing up memory ....................................................
     free(disc_r)
     free(disc_z)
