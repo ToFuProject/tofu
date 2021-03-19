@@ -2044,14 +2044,14 @@ cdef inline void sa_double_loop(double[:, ::1] part_coords,
     cdef long[::1] iii
     # ...
     with nogil, parallel(num_threads=num_threads):
-        for ii in prange(sz_r):
+        for ii in range(sz_r):
             #iii   = indi_mv[ii, first_ind_mv[ii]:]
             loc_r = disc_r[ii]
             for zz in range(sz_z):
                 loc_z = disc_z[zz]
                 zrphi = lindex_z[zz] * ncells_rphi[ii]
                 if is_in_vignette[ii, zz]:
-                    for jj in range(sz_phi[ii]):
+                    for jj in prange(sz_phi[ii]):
                         NP = lnp[ii, zz, jj]
                         indiijj = indi_mv[ii, first_ind_mv[ii] + jj]
                         pts_mv[0, NP] = loc_r
