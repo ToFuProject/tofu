@@ -1563,7 +1563,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     cdef int ii, jj
     cdef int NP
     cdef int loc_nc_rphi
-    cdef double inv_drphi
     cdef double min_phi_pi
     cdef double max_phi_pi
     cdef double margin_step
@@ -1585,7 +1584,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
             loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
-            inv_drphi = 1. / step_rphi[ii]
             reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
             tot_nc_plane[ii] = 0 # initialization
             # Get index and cumulated indices from background
@@ -1623,7 +1621,6 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
             ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
             loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
-            inv_drphi = 1. / step_rphi[ii]
             reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
             tot_nc_plane[ii] = 0 # initialization
             # Get index and cumulated indices from background
@@ -1952,7 +1949,6 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
     cdef int ii, jj
     cdef int NP
     cdef int loc_nc_rphi
-    cdef double inv_drphi
     cdef double min_phi_pi
     cdef double max_phi_pi
     cdef double margin_step
@@ -1974,7 +1970,6 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
             ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
             loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
-            inv_drphi = 1. / step_rphi[ii]
             tot_nc_plane[ii] = 0 # initialization
             # Get index and cumulated indices from background
             for jj in range(ind_loc_r0, ncells_r0):
@@ -2011,7 +2006,6 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
             ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
             loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
-            inv_drphi = 1. / step_rphi[ii]
             #reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
             tot_nc_plane[ii] = 0 # initialization
             # Get index and cumulated indices from background
@@ -2043,6 +2037,7 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
                 for jj in prange(loc_nc_rphi - nphi0, sz_phi[ii]):
                     indi_mv[ii, jj] = jj - (loc_nc_rphi - nphi0)
             NP += sz_z * sz_phi[ii]
+    return NP
 
 
 cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
@@ -2160,14 +2155,15 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                         volpi = vol * Cpi
                         for pp in range(sz_p):
                             if is_vis[pp] :
-                                sa_map[NP, pp] += (part_rad[pp]
-                                                   / dist[pp])**2 * volpi
+                                sa_map[NP, pp] += sa_formula(part_rad[pp],
+                                                             dist[pp],
+                                                             volpi)
     return
 
 
 cdef inline double sa_formula(double radius,
                               double distance,
-                              double volpi):
+                              double volpi) nogil:
     """
     Fourth degree approximation of solid angle computation subtended by a
     sphere of radius `radius` at a distance `distance`.

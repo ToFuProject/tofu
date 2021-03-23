@@ -276,9 +276,9 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
                                                      out_format='(R,Z,Phi)',
                                                      margin=1.e-9)
         assert Pts.ndim==2 and Pts.shape[0]==3
-        assert np.all(Pts[0, :]>=1.) and np.all(Pts[0, :]<=2.), \
+        assert np.all(Pts[0, :] >= 1.) and np.all(Pts[0, :] <= 2.), \
             " X coordinates not in right bounds"
-        assert np.all(Pts[1, :]>=0.) and np.all(Pts[1, :]<=1.), \
+        assert np.all(Pts[1, :] >= 0.) and np.all(Pts[1, :] <= 1.), \
             " Y coordinates not in right bounds"
         marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1, :])))
         if not LDPhi[ii] is None:
@@ -1937,7 +1937,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     ves_norm = ves_poly[:, 1:] - ves_poly[:, :-1]
     ves_norm = np.array([-ves_norm[1, :], ves_norm[0, :]])
     ves_norm = ves_norm / np.sqrt(np.sum(ves_norm**2, axis=0))[np.newaxis, :]
-    print("ok at least this print ?")
+
     if debug > 0:
         # Visualisation:
         ves = tfg.Ves(
@@ -1970,10 +1970,14 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax = plt.subplot(121)
         ax.plot(pts[0, :], pts[1, :], '.b')
 
-    # check size r,z, p
-    # d1, d2, d3 = np.shape(sa_map)
-    # assert d1 == 40, "Wrong 1st dim of sa_map: " + str(d1)
-    # assert d2 == 40, "Wrong 2nd dim of sa_map: " + str(d2)
-    # assert d3 == np.shape(part)[1], "Wrong 4th dim of sa_map: " + str(d4)
+    # check sizes
+    dim, npts   = np.shape(pts)
+    npts2, sz_p = np.shape(sa_map)
+    npts3 = np.size(ind)
+    npts4 = np.size(rdrdz)
+    assert dim == 2
+    assert sz_p == np.shape(part)[1]
+    assert npts == npts2 == npts3 == npts4
+
     # ...
     return

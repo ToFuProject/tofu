@@ -4881,7 +4881,10 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
-        assert NP == new_np
+        message = ("Error, if no vignetting number of points should remain ",
+                   "should be the same.",
+                   " Original : {}. New : {}.".format(NP, new_np))
+        assert NP == new_np, message
     else:
         NP = new_np
     # initializing arrays
