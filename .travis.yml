@@ -34,7 +34,7 @@ jobs:
   - name: osx python 3.7
     os: osx
     language: generic
-    if: branch = master OR branch = devel OR branch=Issue#73_solid_angles_pt1
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
@@ -42,7 +42,7 @@ jobs:
   - name: osx python 3.6
     os: osx
     language: generic
-    if: branch = master OR branch = devel OR branch=Issue#73_solid_angles_pt1
+    if: branch = master OR branch = devel
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
