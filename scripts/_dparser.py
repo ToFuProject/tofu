@@ -201,9 +201,10 @@ def parser_plot():
 
     tf, MultiIDSLoader, _defscripts = get_mods()
 
+    _LIDS_CONFIG = MultiIDSLoader._lidsconfig
     _LIDS_DIAG = MultiIDSLoader._lidsdiag
     _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
-    _LIDS = _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
+    _LIDS = _LIDS_CONFIG + _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
 
     msg = """Fast interactive visualization tool for diagnostics data in
     imas
