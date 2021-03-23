@@ -264,22 +264,23 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
     LDPhi = [None, [3.*np.pi/4.,5.*np.pi/4.], [-np.pi/4.,np.pi/4.]]
 
     for ii in range(0,len(LDPhi)):
-        Pts, dV, ind, \
-            dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
-                                                                 RMinMax,
-                                                                 ZMinMax,
-                                                                 DR=[0.5, 2.],
-                                                                 DZ=[0., 1.2],
-                                                                 DPhi=LDPhi[ii],
-                                                                 limit_vpoly=VPoly,
-                                                                 out_format='(R,Z,Phi)',
-                                                                 margin=1.e-9)
+        (Pts, dV, ind,
+         dRr, dZr,
+         dRPhir) = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
+                                                     RMinMax,
+                                                     ZMinMax,
+                                                     DR=[0.5, 2.],
+                                                     DZ=[0., 1.2],
+                                                     DPhi=LDPhi[ii],
+                                                     limit_vpoly=VPoly,
+                                                     out_format='(R,Z,Phi)',
+                                                     margin=1.e-9)
         assert Pts.ndim==2 and Pts.shape[0]==3
-        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.), \
+        assert np.all(Pts[0, :]>=1.) and np.all(Pts[0, :]<=2.), \
             " X coordinates not in right bounds"
-        assert np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.), \
+        assert np.all(Pts[1, :]>=0.) and np.all(Pts[1, :]<=1.), \
             " Y coordinates not in right bounds"
-        marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1,:])))
+        marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1, :])))
         if not LDPhi[ii] is None:
             LDPhi[ii][0] = np.arctan2(np.sin(LDPhi[ii][0]),np.cos(LDPhi[ii][0]))
             LDPhi[ii][1] = np.arctan2(np.sin(LDPhi[ii][1]),np.cos(LDPhi[ii][1]))

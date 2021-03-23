@@ -480,27 +480,32 @@ class Test01_Struct(object):
 
                             c0 = pts0.shape == pts2.shape
                             c1 = c0 and np.allclose(pts0, pts2)
-                            print("€€€€€€€€€€€€€€€€€", type(obj))
 
                             if not c0:
                                 lax = obj.plot()
-                                lax[1].plot(pts0[0, :], pts0[1, :], '.b') # x, y
-                                lax[0].plot(np.sqrt(pts0[0, :]**2 + pts0[1, :]**2),
+                                lax[1].plot(pts0[0, :],
+                                            pts0[1, :], '.b')  # x, y
+                                lax[0].plot(np.sqrt(pts0[0, :]**2
+                                                    + pts0[1, :]**2),
                                             pts0[2, :], '.r') # r, z
                                 plt.title("pts0 : OLD")
                                 plt.show(block=True)
                                 lax = obj.plot()
-                                lax[1].plot(pts2[0, :], pts2[1, :], '.b') # x, y
-                                lax[0].plot(np.sqrt(pts2[0, :]**2 + pts2[1, :]**2),
+                                lax[1].plot(pts2[0, :],
+                                            pts2[1, :], '.b')  # x, y
+                                lax[0].plot(np.sqrt(pts2[0, :]**2
+                                                    + pts2[1, :]**2),
                                             pts2[2, :], '.r') # r, z
                                 plt.title("pts2 : NEW")
                                 plt.show(block=True)
 
+                                n1 = pts0.shape
+                                n2 = pts2.shape
                                 msg = ("Volume sampling:\n"
                                        + "\t- no match old vs new algo\n"
                                        + "\t- same shape: {} ".format(c0)
-                                       + "(old : {}, new: {})\n".format(pts0.shape,
-                                                                        pts2.shape)
+                                       + "(old : {}, new: {})\n".format(n1,
+                                                                        n2)
                                        + "\t- np.allclose() {}\n".format(c1)
                                        + "\t- domain = {}".format(ldomain[ii]))
                                 raise Exception(msg)
