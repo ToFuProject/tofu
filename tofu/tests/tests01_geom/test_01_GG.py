@@ -1971,10 +1971,11 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.plot(pts[0, :], pts[1, :], '.b')
 
     # check sizes
-    dim, npts   = np.shape(pts)
-    npts2, sz_p = np.shape(sa_map)
     npts3 = np.size(ind)
     npts4 = np.size(rdrdz)
+    dim, npts = np.shape(pts)
+    npts2, sz_p = np.shape(sa_map)
+
     assert dim == 2
     assert sz_p == np.shape(part)[1]
     assert npts == npts2 == npts3 == npts4

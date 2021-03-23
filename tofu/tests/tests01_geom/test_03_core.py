@@ -487,7 +487,7 @@ class Test01_Struct(object):
                                             pts0[1, :], '.b')  # x, y
                                 lax[0].plot(np.sqrt(pts0[0, :]**2
                                                     + pts0[1, :]**2),
-                                            pts0[2, :], '.r') # r, z
+                                            pts0[2, :], '.r')  # r, z
                                 plt.title("pts0 : OLD")
                                 plt.show(block=True)
                                 lax = obj.plot()
@@ -495,7 +495,7 @@ class Test01_Struct(object):
                                             pts2[1, :], '.b')  # x, y
                                 lax[0].plot(np.sqrt(pts2[0, :]**2
                                                     + pts2[1, :]**2),
-                                            pts2[2, :], '.r') # r, z
+                                            pts2[2, :], '.r')  # r, z
                                 plt.title("pts2 : NEW")
                                 plt.show(block=True)
 
