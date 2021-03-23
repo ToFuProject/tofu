@@ -64,7 +64,8 @@ def get_compiler():
 
 
 def get_openmp_flag(compiler):
-    """Returns list of flags for using OpenMP depending on compiler and platform
+    """Returns list of flags for using OpenMP depending on compiler and
+    platform.
 
     Parameters
     ----------
