@@ -2,7 +2,7 @@ name: Complete testing matrix
 
 on:
   push:
-    branches: [ devel, master]
+    branches: [ devel, master ]
   pull_request:
     branches: [ devel, master ]
 

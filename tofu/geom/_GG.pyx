@@ -13,7 +13,6 @@ from matplotlib.path import Path
 
 # -- cython libraries imports --------------------------------------------------
 from cpython cimport bool
-from cython cimport view
 from cpython.array cimport array, clone
 from cython.parallel import prange
 from cython.parallel cimport parallel
@@ -2191,8 +2190,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     vessel polygon (toroidal or linear) with its associated structures.
     Return the normal vector at impact and the index of the impact segment
 
-    Params
-    ======
+    Parameters
+    ----------
     ray_orig : (3, nlos) double array
        LOS origin points coordinates
     ray_vdir : (3, nlos) double array
@@ -2230,8 +2229,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        The num_threads argument indicates how many threads the team should
        consist of. If not given, OpenMP will decide how many threads to use.
        Typically this is the number of cores available on the machine.
+
     Returns
-    ======
+    -------
     coeff_inter_in : (nlos) array
        scalars level of "in" intersection of the LOS (if k=0 at origin)
     coeff_inter_out : (nlos) array
@@ -4592,7 +4592,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             int nstruct_tot=0,
                             int nstruct_lim=0,
                             double rmin=-1, bint forbid=True,
-                            str out_format='(X,Y,Z)',
                             double eps_uz=_SMALL, double eps_a=_VSMALL,
                             double eps_vz=_VSMALL, double eps_b=_VSMALL,
                             double eps_plane=_VSMALL, str ves_type='Tor',
@@ -4602,25 +4601,74 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     Computes the 2D map of the integrated solid angles subtended by each of
     the sz_p particles P of radius part_r at the position part_coords
     in the sampled volume
-    Args:
-        part_coords: (3, sz_p) array of the cartesian coordinates of P particles
-        part_r: sz_p array of the radii of the P particles
-        block: bool, check if particles are viewable from viewing points
-        rstep (double): refinement along radius `r`
-        zstep (double): refinement along height `z`
-        phistep (double): refinement along toroidal direction `phi`
-        RMinMax: array specifying the limits min and max in `r`
-        ZMinMax: array specifying the limits min and max in `z`
-        DR: array specifying the actual sub-volume limits to get in `r`
-        DZ: array specifying the actual sub-volume limits to get in `z`
-        DPhi: array specifying the actual sub-volume limits to get in `phi`
-        limit_vpoly: (3, npts) double array, if we only want to discretize the
-            volume inside a certain flux surface. Defines the `(R,Z)`
-            coords of the poloidal cut of the limiting flux surface
-        out_format(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian
-             or polar coordinates
-        margin(double): tolerance error. Defaults to |_VSMALL|
-     Output:
+
+    Parameters
+    ----------
+    part_coords: (3, sz_p) double memory-view
+	cartesian coordinates of P particles
+    part_r: (sz_p) double memory-view
+        the radii of the P particles
+    rstep: double
+        refinement along radius `r`
+    zstep: double
+        refinement along height `z`
+    phistep: double
+        refinement along toroidal direction `phi`
+    RMinMax: double memory-view, optional
+        limits min and max in `r`
+    ZMinMax: double memory-view, optional
+        limits min and max in `z`
+    DR: double memory-view, optional
+        actual sub-volume limits to get in `r`
+    DZ: double memory-view, optional
+        actual sub-volume limits to get in `z`
+    DPhi: double memory-view, optional
+        actual sub-volume limits to get in `phi`
+    limit_vpoly: (3, npts) double memory-view, optional
+        if we only want to discretize the volume inside a certain flux surface.
+        Defines the `(R,Z)` coords of the poloidal cut of the limiting flux
+        surface.
+    block: bool, optional
+        check if particles are viewable from viewing points
+    ves_poly : (2, num_vertex) double array
+       Coordinates of the vertices of the Polygon defining the 2D poloidal
+       cut of the Vessel
+    ves_norm : (2, num_vertex-1) double array
+       Normal vectors going "inwards" of the edges of the Polygon defined
+       by ves_poly
+    nstruct : int
+       Total number of structures (counting each limited structure as one)
+    ves_lims : array
+       Contains the limits min and max of vessel
+    lstruct_poly : list
+       List of coordinates of the vertices of all structures on poloidal plane
+    lstruct_lims : list
+       List of limits of all structures
+    lstruct_nlim : array of ints
+       List of number of limits for all structures
+    lstruct_normx : double memory-view, optional
+       List of x-coordinates of "inwards" normal vectors of the polygon of all
+       the structures
+    lstruct_normy : double memory-view, optional
+       List of y-coordinates of "inwards" normal vectors of the polygon of all
+       the structures
+    rmin : double, optional
+       Minimal radius of vessel to take into consideration
+    forbid : bool, optional
+       Should we forbid values behind visible radius ? (see rmin)
+    eps_<val> : double, optional
+       Small value, acceptance of error
+    margin: double, optional
+        tolerance error. Defaults to |_VSMALL|
+    num_threads : int
+       The num_threads argument indicates how many threads the team should
+       consist of. If not given, OpenMP will decide how many threads to use.
+       Typically this is the number of cores available on the machine.
+    test : bool, optional
+       Should we run tests? Default True
+
+    Returns
+    -------
         sa_map: (sz_r, sz_z, sz_p) approx solid angle integrated
     """
     cdef int ii, jj, zz
@@ -4630,8 +4678,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef int r_ratio
     cdef int ind_loc_r0
     cdef int[1] max_sz_phi
-    cdef str out_low = out_format.lower()
-    cdef bint is_cart = out_low == '(x,y,z)'
     cdef double min_phi, max_phi
     cdef double min_phi_pi
     cdef double max_phi_pi
@@ -4832,7 +4878,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                          disc_r, disc_z,
                                          is_in_vignette)
     # .. preparing for actual discretization ...................................
-    sa_map = np.zeros((sz_r, sz_z, sz_p))
+    sa_map = np.ones((sz_r, sz_z, sz_p)) * Cnan
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
@@ -4859,12 +4905,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef array ind_inter_out = clone(array('i'), sz_p * 3, True)
     cdef int sz_ves_lims = np.size(ves_lims)
     cdef int npts_poly = ves_norm.shape[1]
-    cdef double[:, ::1] ray_orig = view.array(shape=(3,sz_p),
-                                              itemsize=sizeof(double),
-                                              format="d")
-    cdef double[:, ::1] ray_vdir = view.array(shape=(3,sz_p),
-                                              itemsize=sizeof(double),
-                                              format="d")
+    cdef double[:, ::1] ray_orig = np.zeros((3, sz_p))
+    cdef double[:, ::1] ray_vdir = np.zeros((3, sz_p))
     # ... copying tab that will be changed
     if lstruct_nlim is None:
         lstruct_nlim_copy = None

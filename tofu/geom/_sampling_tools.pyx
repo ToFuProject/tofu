@@ -2094,5 +2094,29 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                             if is_vis[pp] :
                                 sa_map[ii, zz, pp] += (part_rad[pp]
                                                        / dist[pp])**2 * volpi
-
     return
+
+
+cdef inline double sa_formula(double radius,
+                              double distance,
+                              double volpi):
+    """
+    Fourth degree approximation of solid angle computation subtended by a
+    sphere of radius `radius` at a distance `distance`.
+
+    Parameters
+    ----------
+    radius: double
+        radius of the particle
+    distance: double
+        distance between particle and viewing point
+    volpi: double
+        volume unit (eg: dPhi * R * dR * dZ) times pi
+
+    Returns
+    --------
+    Approximation of solid angle to the 4th order:
+        \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
+    """
+    cdef double r_over_d = radius / distance
+    return (r_over_d ** 2 + r_over_d**4 * 0.25) * volpi
