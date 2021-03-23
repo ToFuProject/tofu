@@ -4690,7 +4690,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] indR0, indR, indZ
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
-    cdef double[::1] reso_phi_mv
+    cdef double[::1] reso_rdrdz
     cdef double[::1] is_vis
     cdef double[::1] dist
     cdef double[:, ::1] poly_mv
@@ -4709,9 +4709,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
-    cdef np.ndarray[double,ndim=1] reso_phi
+    cdef np.ndarray[double,ndim=1] reso_rdrdz
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=3] sa_map
+    cdef np.ndarray[double,ndim=2] sa_map
     #
     # == Testing inputs ========================================================
     if test:
@@ -4773,8 +4773,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
     ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
     step_rphi    = <double*>malloc(sz_r*sizeof(double))
-    reso_phi = np.empty((sz_r,)) # we create the numpy array
-    reso_phi_mv = reso_phi # and its associated memoryview
     r_ratio = <int>(Cceil(disc_r[sz_r - 1] / disc_r[0]))
     twopi_over_dphi = _TWOPI / phistep
     ind_loc_r0 = 0
@@ -4790,7 +4788,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         loc_nc_rphi = ncells_rphi[0]
         step_rphi[0] = _TWOPI / ncells_rphi[0]
         inv_drphi = 1. / step_rphi[0]
-        reso_phi_mv[0] = step_rphi[0] * disc_r[0]
         tot_nc_plane[0] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
@@ -4824,7 +4821,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         loc_nc_rphi = ncells_rphi[0]
         step_rphi[0] = _TWOPI / ncells_rphi[0]
         inv_drphi = 1. / step_rphi[0]
-        reso_phi_mv[0] = step_rphi[0] * disc_r[0]
         tot_nc_plane[0] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
@@ -4855,13 +4851,13 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
         NP += sz_z * sz_phi[0]
     # ... doing the others .....................................................
-    NP += _st.vmesh_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
-                             ncells_rphi0,
-                             disc_r, disc_r0, step_rphi,
-                             reso_phi_mv, tot_nc_plane, ind_loc_r0,
-                             ncells_r0[0], ncells_z[0], &max_sz_phi[0],
-                             min_phi, max_phi, sz_phi, indi_mv,
-                             margin, num_threads)
+    NP += _st.sa_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
+                          ncells_rphi0,
+                          disc_r, disc_r0, step_rphi,
+                          tot_nc_plane, ind_loc_r0,
+                          ncells_r0[0], ncells_z[0], &max_sz_phi[0],
+                          min_phi, max_phi, sz_phi, indi_mv,
+                          margin, num_threads)
     # ... vignetting ...........................................................
     is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
     if limit_vpoly is not None:
@@ -4878,7 +4874,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                          disc_r, disc_z,
                                          is_in_vignette)
     # .. preparing for actual discretization ...................................
-    sa_map = np.ones((sz_r, sz_z, sz_p)) * Cnan
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
@@ -4886,13 +4881,16 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     else:
         NP = new_np
     # initializing arrays
+    reso_rdrdz = np.empty((NP, ))
+    sa_map = np.zeros((NP, sz_p))
     pts = np.empty((2, NP))
     ind = np.empty((NP, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
+    indi_mv = indI
+    reso_rdrdz_mv = reso_rdrdz
     reso_r_z = reso_r[0]*reso_z[0]
     indI = np.sort(indI, axis=1)
-    indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
     # initializing utilitary arrays
     is_vis = np.zeros(sz_p)
@@ -4939,9 +4937,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                            first_ind_mv, indi_mv,
                            sz_p, sz_r, sz_z, lindex_z,
                            ncells_rphi, tot_nc_plane,
-                           reso_r_z, step_rphi,
+                           reso_r_z, disc_r, step_rphi,
                            disc_r, disc_z, lnp, sz_phi,
-                           reso_phi_mv, pts_mv, ind_mv,
+                           step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
                            num_threads)
     # ... freeing up memory ....................................................
     free(disc_r)
@@ -4953,4 +4951,4 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(ncells_rphi)
     free(tot_nc_plane)
 
-    return pts, sa_map
+    return pts, sa_map, ind_mv, reso_rdrdz
