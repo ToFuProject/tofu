@@ -4942,7 +4942,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                            sz_p, sz_r, sz_z, lindex_z,
                            ncells_rphi, tot_nc_plane,
                            reso_r_z, disc_r, step_rphi,
-                           disc_r, disc_z, lnp, sz_phi,
+                           disc_z, lnp, sz_phi,
                            step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
                            num_threads)
     # ... freeing up memory ....................................................
