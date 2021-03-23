@@ -4669,7 +4669,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
 
     Returns
     -------
-        sa_map: (sz_r, sz_z, sz_p) approx solid angle integrated
+        pts:    (2, NP) array of (R, Z) coordinates of viewing points in
+                vignette where solid angle is integrated
+        sa_map: (NP, sz_p) array approx solid angle integrated along phi
+        ind:    (NP) indices to reconstruct (R,Z) map from sa_map
+        rdrdz:  (NP) volume unit: r_ii*dr*dz
     """
     cdef int ii, jj, zz
     cdef int sz_m, sz_p
