@@ -2,7 +2,7 @@ name: Complete testing matrix
 
 on:
   push:
-    branches: [ devel, master, Issue#73_solid_angles_pt1]
+    branches: [ devel, master]
   pull_request:
     branches: [ devel, master ]
 
