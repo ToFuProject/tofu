@@ -4694,7 +4694,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] indR0, indR, indZ
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
-    cdef double[::1] reso_rdrdz
+    cdef double[::1] reso_rdrdz_mv
     cdef double[::1] is_vis
     cdef double[::1] dist
     cdef double[:, ::1] poly_mv
@@ -4713,9 +4713,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
-    cdef np.ndarray[double,ndim=1] reso_rdrdz
-    cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=2] sa_map
+    cdef np.ndarray[double, ndim=1] reso_rdrdz
+    cdef np.ndarray[double, ndim=2] pts
+    cdef np.ndarray[double, ndim=2] sa_map
     #
     # == Testing inputs ========================================================
     if test:

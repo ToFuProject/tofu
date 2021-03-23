@@ -173,7 +173,6 @@ def generate_openmp_enabled_py(openmp_support, srcdir='.'):
     src = _IS_OPENMP_ENABLED_SRC.format(timestamp=timestamp,
                                         return_bool=openmp_support)
 
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ààà ", openmp_support)
     package_srcdir = os.path.join(srcdir, "tofu/geom")
     is_openmp_enabled_py = os.path.join(package_srcdir, 'openmp_enabled.py')
     with open(is_openmp_enabled_py, 'w') as f:
