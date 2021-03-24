@@ -345,8 +345,8 @@ def poly_area_and_barycenter(double[:,::1] poly, int npts):
         p2[0] = poly[0,ii+1]
         p2[1] = poly[1,ii+1]
         a2 = p1[0]*p2[1] - p2[0]*p1[1]
-        cg[0] += (p1[0] + p2[0])*a2
-        cg[1] += (p1[1] + p2[1])*a2
+        cg_mv[0] += (p1[0] + p2[0])*a2
+        cg_mv[1] += (p1[1] + p2[1])*a2
     area = poly_area(poly, npts)
     inva6 = 1. / area / 6.
     cg[0] = cg[0] * inva6
@@ -382,7 +382,7 @@ def Sino_ImpactEnv(np.ndarray[double,ndim=1] RZ,
     if Test:
         assert RZ.size==2, 'Arg RZ should be a (2,) np.ndarray!'
         assert Poly.shape[0]==2, 'Arg Poly should be a (2,N) np.ndarray!'
-    cdef int NPoly = Poly.shape[1]
+
     # Theta sampling and unit vector
     theta = np.linspace(0.,np.pi,NP,endpoint=True)
     vect = np.array([np.cos(theta), np.sin(theta)])
@@ -530,8 +530,6 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef int mode_num
     cdef str err_mess
     cdef str mode_low = mode.lower()
-    cdef bint mode_is_abs = mode_low == 'abs'
-    cdef bint mode_is_rel = mode_low == 'rel'
     cdef long sz_ld
     cdef long[1] N
     cdef long* lindex = NULL
@@ -625,8 +623,6 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef str mode_low = mode.lower()
     cdef long nind1
     cdef long nind2
-    cdef int[1] nL0_1
-    cdef int[1] nL0_2
     cdef long[1] ncells1
     cdef long[1] ncells2
     cdef double[2] dl1_array
@@ -732,7 +728,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef int NP = ind.size
     cdef int ii
     cdef double d1r, d2r
-    cdef int N1, N2
+    cdef int N1
     cdef int i1, i2
     cdef np.ndarray[double,ndim=2] Pts = np.empty((2,NP))
     cdef np.ndarray[double,ndim=1] dS
@@ -762,7 +758,6 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     d1r = resolution[0]
     d2r = resolution[1]
     N1 = ncells[0]
-    N2 = ncells[1]
     dS = d1r*d2r*np.ones((NP,))
     for ii in range(0,NP):
         i2 = ind[ii] // N1
@@ -834,10 +829,9 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef long* numcells = NULL
     cdef np.ndarray[double,ndim=2] PtsCross, VPolybis
     cdef np.ndarray[double,ndim=1] PtsCrossX, PtsCrossY
-    cdef np.ndarray[double,ndim=1] VPolybisX, VpolybisY
+    cdef np.ndarray[double,ndim=1] VPolybisX, VPolybisY
     cdef np.ndarray[double,ndim=1] Rref_arr, resol
     cdef np.ndarray[long,ndim=1] ind_arr, N_arr
-    cdef np.ndarray[long,ndim=1] ind_in
     cdef np.ndarray[np.npy_bool,ndim=1,cast=True] indin
     cdef str mode_low = mode.lower()
     cdef int mode_num = _st.get_nb_dmode(mode_low)
@@ -914,7 +908,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         margin(double): tolerance error.
             Defaults to |_VSMALL|
     """
-    cdef int ii, jj, zz
+    cdef int jj
     cdef int NP = 0
     cdef int sz_r, sz_z
     cdef int r_ratio
@@ -929,13 +923,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double reso_r_z
     cdef double twopi_over_dphi
     cdef long[1] ncells_r0, ncells_r, ncells_z
-    cdef long[1] sz_rphi
     cdef long[::1] ind_mv
-    cdef long[::1] indR0, indR, indZ
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] dv_mv
-    cdef double[::1] reso_phi_mv, hypot
+    cdef double[::1] reso_phi_mv
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
     cdef long[:, ::1] indi_mv
@@ -1098,7 +1090,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         else:
             poly_mv = limit_vpoly
 
-        nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
+        _ = _vt.are_in_vignette(sz_r, sz_z,
                                          poly_mv, npts_vpoly,
                                          disc_r, disc_z,
                                          is_in_vignette)
@@ -1153,16 +1145,12 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     cdef str out_low = Out.lower()
     cdef bint is_cart = out_low == '(x,y,z)'
     cdef int sz_r, sz_z
-    cdef int ii=0, jj=0, iiR, iiZ, iiphi
-    cdef long[::1] indR, indZ
     cdef long NP=len(ind)
-    cdef double phi
     cdef double twopi_over_dphi
     cdef double[::1] dRPhirRef
     cdef int[::1] Ru
     cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] res3d=np.empty((NP,))
-    cdef double[::1] reso_phi_mv
     cdef long[1]   ncells_r, ncells_z
     cdef double[1] reso_r, reso_z
     cdef double[2] limits_dl
@@ -1172,7 +1160,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     cdef double* disc_r = NULL
     cdef double* disc_z = NULL
     cdef double** phi_tab = NULL
-    cdef np.ndarray[double,ndim=1] reso_phi
+
     # Get the actual R and Z resolutions and mesh elements
     # .. We discretize R .......................................................
     _st.cythonize_subdomain_dl(None, limits_dl)
@@ -1197,9 +1185,6 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,
     ncells_rphi  = <int*>malloc(sz_r * sizeof(int))
     phi_tab = <double**>malloc(sizeof(double*))
     phi_tab[0] = NULL
-    # replacing dRPhir by reso_phi means no nan lefts
-    reso_phi = np.empty((sz_r,)) # we create the numpy array
-    reso_phi_mv = reso_phi # and its associated memoryview
     reso_r_z = reso_r[0]*reso_z[0]
     twopi_over_dphi = _TWOPI / phistep
     # .. Discretizing Phi (with respect to the corresponding radius R) .........
@@ -1247,7 +1232,7 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
     cdef double[::1] X, Y, Z
     cdef double dXr, dYr, reso_z, res3d
     cdef np.ndarray[long,ndim=1] indX, indY, indZ
-    cdef int NX, NY, NZ, Xn, Yn, Zn
+    cdef int NX, NY, Xn, Yn, Zn
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[long,ndim=1] ind
 
@@ -1256,7 +1241,7 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                                 margin=margin)
     Y, dYr, indY, NY = discretize_line1d(YMinMax, dY, DY, Lim=True,
                                                 margin=margin)
-    Z, reso_z, indZ, NZ = discretize_line1d(ZMinMax, dZ, DZ, Lim=True,
+    Z, reso_z, indZ, _ = discretize_line1d(ZMinMax, dZ, DZ, Lim=True,
                                                 margin=margin)
     Xn, Yn, Zn = len(X), len(Y), len(Z)
 
@@ -1288,17 +1273,16 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
 
     cdef np.ndarray[double,ndim=1] X, Y, Z
     cdef double dXr, dYr, reso_z, res3d
-    cdef long[::1] bla
     cdef np.ndarray[long,ndim=1] indX, indY, indZ
-    cdef int NX, NY, NZ, Xn, Yn, Zn
+    cdef int NX, NY
     cdef np.ndarray[double,ndim=2] pts
 
     # Get the actual X, Y and Z resolutions and mesh elements
-    X, dXr, bla, NX = discretize_line1d(XMinMax, dX, None, Lim=True,
+    X, dXr, _, NX = discretize_line1d(XMinMax, dX, None, Lim=True,
                                                margin=margin)
-    Y, dYr, bla, NY = discretize_line1d(YMinMax, dY, None, Lim=True,
+    Y, dYr, _, NY = discretize_line1d(YMinMax, dY, None, Lim=True,
                                                margin=margin)
-    Z, reso_z, bla, NZ = discretize_line1d(ZMinMax, dZ, None, Lim=True,
+    Z, reso_z, _, _ = discretize_line1d(ZMinMax, dZ, None, Lim=True,
                                                margin=margin)
 
     indZ = ind // (NX*NY)
@@ -1409,12 +1393,12 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     """ Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi)
     for the desired resolution (dR,dZ,dRphi)
     """
-    cdef double[::1] R, Z, dPhir, NRPhi#, dPhi, NRZPhi_cum0, indPhi, phi
-    cdef double reso_r, reso_z, DPhi0, DPhi1, DDPhi, DPhiMinMax
+    cdef double[::1] dPhir, NRPhi#, dPhi, NRZPhi_cum0, indPhi, phi
+    cdef double DPhi0, DPhi1, DDPhi, DPhiMinMax
     cdef double abs0, abs1, phi, indiijj
     cdef long[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
-    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj0=0, jj, nphi0, nphi1
-    cdef int zz, NP, NRPhi_int, radius_ratio, Ln
+    cdef int NR0, nRPhi0, indR0ii, ii, jj0=0, jj, nphi0, nphi1
+    cdef int NP, radius_ratio, Ln
     cdef np.ndarray[double,ndim=2] pts, indI, ptsCross, VPbis
     cdef np.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
     cdef np.ndarray[long,ndim=1] indL, NL, indok
@@ -1444,7 +1428,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                                                             Ccos(DPhi[1]))
     DDPhi = DPhi1-DPhi0 if DPhi1>DPhi0 else _TWOPI+DPhi1-DPhi0
 
-    inter, Bounds, Faces = _getBoundsinter2AngSeg(Full, PhiMinMax[0],
+    inter, Bounds, _ = _getBoundsinter2AngSeg(Full, PhiMinMax[0],
                                                   PhiMinMax[1], DPhi0, DPhi1)
 
     if inter:
@@ -1474,8 +1458,12 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                 indin = indin & (ptsCross[1,:] >= DZ[0])
             if DZ[1] is not None:
                 indin = indin & (ptsCross[1,:] <= DZ[1])
-        ptsCross, dLr, indL, Rref = ptsCross[:,indin], dLr[indin], \
-          indL[indin], Rref[indin]
+
+        ptsCross = ptsCross[:,indin]
+        dLr = dLr[indin]
+        indL = indL[indin]
+        Rref = Rref[indin]
+
         Ln = indin.sum()
         Indin = indin.nonzero()[0].astype(int)
 
@@ -1484,7 +1472,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         NRPhi = np.empty((Ln,))
         NRPhi0 = np.zeros((Ln,),dtype=int)
         nRPhi0, indR0ii = 0, 0
-        NP, NPhimax = 0, 0
+        NP = 0
         radius_ratio = int(Cceil(np.max(Rref)/np.min(Rref)))
         indBounds = np.empty((2,nBounds),dtype=int)
         for ii in range(0,Ln):
@@ -1591,11 +1579,11 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     """
     cdef double[::1] dRPhirRef, dPhir
     cdef long[::1] indL, NRPhi0, NRPhi
-    cdef long NR, NZ, Rn, Zn, NP=len(ind), radius_ratio
-    cdef int ii=0, jj=0, iiL, iiphi, Ln, nn=0, kk=0, nRPhi0
+    cdef long  NP=len(ind), radius_ratio
+    cdef int ii=0, jj=0, iiL, iiphi, Ln, nRPhi0
     cdef double[:,::1] Phi
-    cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP)), indI, ptsCross, VPbis
-    cdef np.ndarray[double,ndim=1] R0, dS=np.empty((NP,)), dLr, dRPhir, Rref
+    cdef np.ndarray[double,ndim=2] pts=np.empty((3,NP)), ptsCross, VPbis
+    cdef np.ndarray[double,ndim=1] dS=np.empty((NP,)), dLr, dRPhir, Rref
     cdef np.ndarray[long,ndim=1] NL
 
     # Pre-format input
@@ -4884,7 +4872,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
         else:
             poly_mv = limit_vpoly
-        nb_in_poly = _vt.are_in_vignette(sz_r, sz_z,
+        _ = _vt.are_in_vignette(sz_r, sz_z,
                                          poly_mv, npts_vpoly,
                                          disc_r, disc_z,
                                          is_in_vignette)

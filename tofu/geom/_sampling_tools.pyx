@@ -25,6 +25,7 @@ from cython cimport view
 cimport _basic_geom_tools as _bgt
 cimport _raytracing_tools as _rt
 
+
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -76,7 +77,7 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     the actual discretization.
     For that part, please refer to: second_discretize_line1d_core
     """
-    cdef int nl1, ii, jj
+    cdef int nl1
     cdef double abs0, abs1
     cdef double inv_resol, new_margin
     cdef double[2] desired_limits
@@ -610,7 +611,6 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
-    cdef double seg_length
     cdef double loc_resol
     # ... Treating the first los .....................................
     num_raf = <int>(Cceil(1./resolutions[0]))
@@ -777,7 +777,7 @@ cdef inline void left_rule_abs_s2(int nlos, double resol,
                                   int num_threads) nogil:
     # Simpson left quadrature rule with absolute resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii,
     cdef int num_raf
     cdef int first_index
     cdef double loc_resol
@@ -839,7 +839,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
                                     int num_threads) nogil:
     # Romboid left quadrature rule with relative resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double seg_length
@@ -997,7 +997,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double seg_length
@@ -1063,7 +1063,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with relative variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double loc_resol
@@ -1124,7 +1124,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double seg_length
@@ -1356,7 +1356,6 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(
     # It samples a LOS and recreates the points on that LOS
     # plus this is for the anisotropic version so it also compute usbis
     cdef int sz_coeff
-    cdef int ii, jj
     cdef double** los_coeffs = NULL
     cdef cnp.ndarray[double,ndim=2,mode='c'] pts
     # Initialization utility array
@@ -1661,7 +1660,7 @@ cdef inline int vmesh_prepare_tab(long[:, :, ::1] lnp,
                                   int sz_r,
                                   int sz_z,
                                   long* sz_phi) nogil:
-    cdef int ii, zz, jj
+    cdef int ii, zz, jj = 0
     cdef int kk
     cdef int NP = 0
     cdef int rem
@@ -1869,6 +1868,7 @@ cdef inline void vmesh_ind_cart_loop(int np,
     # we compute the points coordinates from the indices values
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(np):
+            jj = 0
             for jj in range(sz_r+1):
                 if ind[ii]-tot_nc_plane[jj]<0:
                     break
@@ -1904,10 +1904,10 @@ cdef inline void vmesh_ind_polr_loop(int np,
     cdef int ii
     cdef int jj
     cdef int iiR, iiZ, iiphi
-    cdef double phi
     # we compute the points coordinates from the indices values
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(np):
+            jj = 0
             for jj in range(sz_r+1):
                 if ind[ii]-tot_nc_plane[jj]<0:
                     break

@@ -65,7 +65,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
     """
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
-    cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
+    cdef double lambd, m2b2, b1sqr, b1, twoThirds, sHat, gHat, cutoff, s
     cdef double[3] D
     cdef double[3] MxN
     cdef double[3] DxN
@@ -329,7 +329,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
     # The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
-    cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
+    cdef double lambd, m2b2, b1sqr, b1, twoThirds, sHat, gHat, cutoff, s
     cdef double[3] D
     cdef double[3] MxN
     cdef double[3] DxN
@@ -635,12 +635,9 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
     cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
     cdef int i, ind_los, ind_pol, ind_pol2
-    cdef int npts_poly
     cdef double* loc_res
     cdef double* loc_dir
     cdef double* loc_org
-    cdef double* lpolyx
-    cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
     cdef double** list_vpoly_x = NULL
@@ -775,8 +772,6 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     to use it from Python please use: comp_dist_los_vpoly
     """
     cdef int jj
-    cdef int indin=0
-    cdef int indout=0
     cdef double norm_dir2, norm_dir2_ori
     cdef double radius_z
     cdef double q, coeff, sqd, k
@@ -1098,13 +1093,11 @@ cdef inline void is_close_los_vpoly_vec_core(int num_poly, int nlos,
     This is the CYTHON function, use only if you need this computation from
     cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
-    cdef int i, ind_los, ind_pol, ind_pol2
+    cdef int i, ind_los, ind_pol
     cdef int npts_poly
     cdef double* loc_res
     cdef double* loc_dir
     cdef double* loc_org
-    cdef double* lpolyx
-    cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
 
@@ -1189,16 +1182,8 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
     This is the CYTHON function, use only if you need this computation from
     cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
-    cdef int i, ind_los, ind_pol, ind_pol2, indloc
-    cdef int npts_poly
-    cdef double* loc_res
-    cdef double* loc_dir
-    cdef double* loc_org
+    cdef int ind_los, ind_pol, indloc
     cdef double loc_dist
-    cdef double* lpolyx
-    cdef double* lpolyy
-    cdef double crit2, invuz,  dpar2, upar2, upscaDp
-    cdef double crit2_base = eps_uz * eps_uz /400.
     cdef double* dist = <double*>malloc(sizeof(double)*num_poly*nlos)
 
     for indloc in range(num_poly):
@@ -1266,13 +1251,11 @@ cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
     This is the CYTHON function, use only if you need this computation from
     cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
-    cdef int i, ind_los, ind_pol, ind_pol2, indloc
+    cdef int i, ind_los, ind_pol, indloc
     cdef int npts_poly
     cdef double* loc_res
     cdef double* loc_dir
     cdef double* loc_org
-    cdef double* lpolyx
-    cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
 

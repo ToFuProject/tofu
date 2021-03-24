@@ -115,7 +115,6 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
     inv_direction : (3) double array
        Inverse on each axis of direction of LOS
     """
-    cdef int t0 = 1000000
     # computing sign and direction
     for  ii in range(3):
         if ray_vdir[ii] * ray_vdir[ii] < _VSMALL:
@@ -200,7 +199,6 @@ cdef inline double compute_bisect(double m2b2, double rm0sqr,
     cdef double root = 0.
     root = compute_find(m2b2, rm0sqr, m0sqr, b1sqr,
                 smin, smax, -1.0, 1.0, maxIterations, root)
-    gmin = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
     return root
 
 cdef inline double compute_find(double m2b2, double rm0sqr,
@@ -219,7 +217,7 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
         if f0*f1 > 0.:
             # It is not known whether the interval bounds a root.
             return root
-        for i in range(2, maxIterations+1):
+        for _ in range(2, maxIterations+1):
             root = (0.5) * (t0 + t1)
             if (root == t0 or root == t1):
                 # The numbers t0 and t1 are consecutive floating-point
@@ -381,7 +379,10 @@ cdef inline void sum_by_rows(double *orig, double *out,
 
 cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
     cdef int ii
-    cdef long out = 0
-    for ii in prange(n_cols):
-        out += orig[ii]
+    cdef long out
+
+    with nogil:
+        out = 0
+        for ii in prange(n_cols):
+            out += orig[ii]
     return out
