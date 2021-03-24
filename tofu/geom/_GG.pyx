@@ -2583,8 +2583,8 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     cdef int npts1=pts1.shape[1]
     cdef int npts2=pts2.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[double, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
-                                                                  dtype=float)
+    cdef np.ndarray[long, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
+                                                                dtype=int)
     cdef long[::1] lstruct_nlim_copy
     cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
