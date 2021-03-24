@@ -2010,7 +2010,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                    double[:, ::1] pts, int npts,
                                    double[:, ::1] ves_poly,
                                    double[:, ::1] ves_norm,
-                                   double[::1] is_vis,
+                                   long* is_vis,
                                    double[::1] dist,
                                    double[::1] ves_lims,
                                    long[::1] lstruct_nlim,
@@ -2046,22 +2046,40 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     else:
         lstruct_nlim_copy = lstruct_nlim.copy()
     # --------------------------------------------------------------------------
-    is_visible_pt_vec_core(pt0, pt1, pt2,
-                           pts, npts,
-                           ves_poly, ves_norm,
-                           is_vis, dist, ves_lims,
-                           lstruct_nlim,
-                           lstruct_polyx, lstruct_polyy,
-                           lstruct_lims,
-                           lstruct_normx, lstruct_normy,
-                           lnvert, vperp_out,
-                           coeff_inter_in, coeff_inter_out,
-                           ind_inter_out, sz_ves_lims,
-                           ray_orig, ray_vdir, npts_poly,
-                           nstruct_tot, nstruct_lim,
-                           rmin, eps_uz, eps_a, eps_vz, eps_b,
-                           eps_plane, is_tor,
-                           forbid, num_threads)
+    if dist == None:
+        is_visible_pt_vec_core_nd(pt0, pt1, pt2,
+                                  pts, npts,
+                                  ves_poly, ves_norm,
+                                  is_vis, ves_lims,
+                                  lstruct_nlim,
+                                  lstruct_polyx, lstruct_polyy,
+                                  lstruct_lims,
+                                  lstruct_normx, lstruct_normy,
+                                  lnvert, vperp_out,
+                                  coeff_inter_in, coeff_inter_out,
+                                  ind_inter_out, sz_ves_lims,
+                                  ray_orig, ray_vdir, npts_poly,
+                                  nstruct_tot, nstruct_lim,
+                                  rmin, eps_uz, eps_a, eps_vz, eps_b,
+                                  eps_plane, is_tor,
+                                  forbid, num_threads)
+    else:
+        is_visible_pt_vec_core(pt0, pt1, pt2,
+                               pts, npts,
+                               ves_poly, ves_norm,
+                               is_vis, &dist[0], ves_lims,
+                               lstruct_nlim,
+                               lstruct_polyx, lstruct_polyy,
+                               lstruct_lims,
+                               lstruct_normx, lstruct_normy,
+                               lnvert, vperp_out,
+                               coeff_inter_in, coeff_inter_out,
+                               ind_inter_out, sz_ves_lims,
+                               ray_orig, ray_vdir, npts_poly,
+                               nstruct_tot, nstruct_lim,
+                               rmin, eps_uz, eps_a, eps_vz, eps_b,
+                               eps_plane, is_tor,
+                               forbid, num_threads)
 
     return
 
@@ -2070,8 +2088,8 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                                         double[:, ::1] pts, int npts,
                                         double[:, ::1] ves_poly,
                                         double[:, ::1] ves_norm,
-                                        double[::1] is_vis,
-                                        double[::1] dist,
+                                        long* is_vis,
+                                        double* dist,
                                         double[::1] ves_lims,
                                         long[::1] lstruct_nlim,
                                         double[::1] lstruct_polyx,
@@ -2099,17 +2117,11 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                                         bint forbid,
                                         int num_threads) nogil:
     cdef int loc_nthreads
-    cdef double* dist_arr = NULL
     cdef double min_poly_r
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
     _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
-    if dist is None:
-        dist_arr = <double*> malloc(npts*sizeof(double))
-        _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
-        _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
-    else:
-        _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
+    _bgt.compute_diff_div(pts, ray_orig, &dist[0], npts, ray_vdir)
     # --------------------------------------------------------------------------
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
     compute_inout_tot(npts, npts_poly,
@@ -2128,17 +2140,77 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                       ind_inter_out)
     # --------------------------------------------------------------------------
     # Get ind
-    if dist is None:
-        is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts,
-                    num_threads)
-        free(dist_arr)
-    else:
-        is_vis_mask(is_vis, &dist[0], coeff_inter_out, npts,
-                    num_threads)
+    is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
     return
 
 
-cdef inline void is_vis_mask(double[::1] is_vis, double* dist,
+cdef inline void is_visible_pt_vec_core_nd(double pt0, double pt1, double pt2,
+                                           double[:, ::1] pts, int npts,
+                                           double[:, ::1] ves_poly,
+                                           double[:, ::1] ves_norm,
+                                           long* is_vis,
+                                           double[::1] ves_lims,
+                                           long[::1] lstruct_nlim,
+                                           double[::1] lstruct_polyx,
+                                           double[::1] lstruct_polyy,
+                                           double[::1] lstruct_lims,
+                                           double[::1] lstruct_normx,
+                                           double[::1] lstruct_normy,
+                                           long[::1] lnvert,
+                                           # results:
+                                           double[::1] vperp_out,
+                                           double[::1] coeff_inter_in,
+                                           double[::1] coeff_inter_out,
+                                           int[::1] ind_inter_out,
+                                           int sz_ves_lims,
+                                           double[:, ::1] ray_orig,
+                                           double[:, ::1] ray_vdir,
+                                           int npts_poly,
+                                           # ...
+                                           int nstruct_tot,
+                                           int nstruct_lim,
+                                           double rmin,
+                                           double eps_uz, double eps_a,
+                                           double eps_vz, double eps_b,
+                                           double eps_plane, bint is_tor,
+                                           bint forbid,
+                                           int num_threads) nogil:
+    """
+    Same as `is_visible_pt_vec_core` but when distance is not given.
+    """
+    cdef int loc_nthreads
+    cdef double* dist_arr = NULL
+    cdef double min_poly_r
+    # --------------------------------------------------------------------------
+    # Initialization : creation of the rays between points pts and P
+    _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
+    dist_arr = <double*> malloc(npts*sizeof(double))
+    _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
+    _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
+    # --------------------------------------------------------------------------
+    min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
+    compute_inout_tot(npts, npts_poly,
+                      ray_orig, ray_vdir,
+                      ves_poly, ves_norm,
+                      lstruct_nlim, ves_lims,
+                      lstruct_polyx, lstruct_polyy,
+                      lstruct_lims, lstruct_normx,
+                      lstruct_normy, lnvert,
+                      nstruct_tot, nstruct_lim,
+                      sz_ves_lims, min_poly_r, rmin,
+                      eps_uz, eps_a, eps_vz, eps_b,
+                      eps_plane, is_tor,
+                      forbid, num_threads,
+                      coeff_inter_out, coeff_inter_in, vperp_out,
+                      ind_inter_out)
+    # --------------------------------------------------------------------------
+    # Get ind
+    is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts,
+                num_threads)
+    return
+
+
+cdef inline void is_vis_mask(long* is_vis, double* dist,
                              double[::1] coeff_inter_out,
                              int npts,
                              int num_threads) nogil:
@@ -2149,11 +2221,12 @@ cdef inline void is_vis_mask(double[::1] is_vis, double* dist,
             is_vis[ii] = 0
     return
 
+
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double[:, ::1] pts2, int npts2,
                                      double[:, ::1] ves_poly,
                                      double[:, ::1] ves_norm,
-                                     double[:, ::1] is_vis,
+                                     long[:, ::1] is_vis,
                                      double[:, ::1] dist,
                                      double[::1] ves_lims,
                                      long[::1] lstruct_nlim,
@@ -2186,26 +2259,50 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                               itemsize=sizeof(double),
                                               format="d")
     # We compute for each point in the polygon
-    for ii in range(npts1):
-        # ... copying tab that will be changed
-        if lstruct_nlim is None:
-            lstruct_nlim_copy = None
-        else:
-            lstruct_nlim_copy = lstruct_nlim.copy()
-        is_visible_pt_vec_core(pts1[0,ii], pts1[1,ii], pts1[2,ii],
-                               pts2, npts2,
-                               ves_poly, ves_norm,
-                               is_vis[ii,...], dist[ii], ves_lims,
-                               lstruct_nlim_copy,
-                               lstruct_polyx, lstruct_polyy,
-                               lstruct_lims,
-                               lstruct_normx, lstruct_normy,
-                               lnvert, vperp_out,
-                               coeff_inter_in, coeff_inter_out,
-                               ind_inter_out, sz_ves_lims,
-                               ray_orig, ray_vdir, npts_poly,
-                               nstruct_tot, nstruct_lim,
-                               rmin, eps_uz, eps_a, eps_vz, eps_b,
-                               eps_plane, is_tor,
-                               forbid, num_threads)
+    if dist is not None:
+        for ii in range(npts1):
+            # ... copying tab that will be changed
+            if lstruct_nlim is None:
+                lstruct_nlim_copy = None
+            else:
+                lstruct_nlim_copy = lstruct_nlim.copy()
+            is_visible_pt_vec_core(pts1[0,ii], pts1[1,ii], pts1[2,ii],
+                                   pts2, npts2,
+                                   ves_poly, ves_norm,
+                                   &is_vis[ii, 0], &dist[ii, 0], ves_lims,
+                                   lstruct_nlim_copy,
+                                   lstruct_polyx, lstruct_polyy,
+                                   lstruct_lims,
+                                   lstruct_normx, lstruct_normy,
+                                   lnvert, vperp_out,
+                                   coeff_inter_in, coeff_inter_out,
+                                   ind_inter_out, sz_ves_lims,
+                                   ray_orig, ray_vdir, npts_poly,
+                                   nstruct_tot, nstruct_lim,
+                                   rmin, eps_uz, eps_a, eps_vz, eps_b,
+                                   eps_plane, is_tor,
+                                   forbid, num_threads)
+    else:
+        for ii in range(npts1):
+            # ... copying tab that will be changed
+            if lstruct_nlim is None:
+                lstruct_nlim_copy = None
+            else:
+                lstruct_nlim_copy = lstruct_nlim.copy()
+            is_visible_pt_vec_core_nd(pts1[0,ii], pts1[1,ii], pts1[2,ii],
+                                      pts2, npts2,
+                                      ves_poly, ves_norm,
+                                      &is_vis[ii, 0], ves_lims,
+                                      lstruct_nlim_copy,
+                                      lstruct_polyx, lstruct_polyy,
+                                      lstruct_lims,
+                                      lstruct_normx, lstruct_normy,
+                                      lnvert, vperp_out,
+                                      coeff_inter_in, coeff_inter_out,
+                                      ind_inter_out, sz_ves_lims,
+                                      ray_orig, ray_vdir, npts_poly,
+                                      nstruct_tot, nstruct_lim,
+                                      rmin, eps_uz, eps_a, eps_vz, eps_b,
+                                      eps_plane, is_tor,
+                                      forbid, num_threads)
     return

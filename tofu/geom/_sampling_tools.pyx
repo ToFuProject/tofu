@@ -20,6 +20,7 @@ from _basic_geom_tools cimport _TWOPI
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
+from cython cimport view
 # tofu libs
 cimport _basic_geom_tools as _bgt
 cimport _raytracing_tools as _rt
@@ -2046,8 +2047,6 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                     double[:, ::1] sa_map,
                                     double[:, ::1] ves_poly,
                                     double[:, ::1] ves_norm,
-                                    double[::1] is_vis,
-                                    double[::1] dist,
                                     double[::1] ves_lims,
                                     long[::1] lstruct_nlim,
                                     double[::1] lstruct_polyx,
@@ -2101,11 +2100,14 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
     cdef double loc_r
     cdef double loc_z
     cdef double loc_phi
-    cdef long[::1] iii
+    cdef double* dist = NULL
+    cdef long* is_vis
+
+    dist = <double*> malloc(sz_p * sizeof(double))
+    is_vis = <long*> malloc(sz_p * sizeof(long))
     # ...
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(sz_r):
-            #iii   = indi_mv[ii, first_ind_mv[ii]:]
             loc_r = disc_r[ii]
             for zz in range(sz_z):
                 loc_z = disc_z[zz]
@@ -2133,7 +2135,7 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                                    part_coords,
                                                    sz_p,
                                                    ves_poly, ves_norm,
-                                                   is_vis, dist,
+                                                   &is_vis[0], dist,
                                                    ves_lims,
                                                    lstruct_nlim,
                                                    lstruct_polyx,
@@ -2158,6 +2160,74 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                 sa_map[NP, pp] += sa_formula(part_rad[pp],
                                                              dist[pp],
                                                              volpi)
+    return
+
+
+cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
+                                            double[::1] part_rad,
+                                            long[:, ::1] is_in_vignette,
+                                            double[:, ::1] sa_map,
+                                            long[::1] first_ind_mv,
+                                            long[:, ::1] indi_mv,
+                                            int sz_p,
+                                            int sz_r, int sz_z,
+                                            long* lindex_z,
+                                            long* ncells_rphi,
+                                            long* tot_nc_plane,
+                                            double reso_r_z,
+                                            double* disc_r,
+                                            double* step_rphi,
+                                            double* disc_z,
+                                            long[:, :, ::1] lnp,
+                                            long* sz_phi,
+                                            double* reso_phi,
+                                            double[::1] reso_rdrdz,
+                                            double[:, ::1] pts_mv,
+                                            long[::1] ind_mv,
+                                            int num_threads) nogil:
+    cdef int ii
+    cdef int zz
+    cdef int jj
+    cdef int pp
+    cdef long NP
+    cdef long zrphi
+    cdef long indiijj
+    cdef double vol
+    cdef double volpi
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double* dist = NULL
+    # init
+    dist = <double*>malloc(sz_p * sizeof(double))
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(sz_r):
+            loc_r = disc_r[ii]
+            for zz in range(sz_z):
+                loc_z = disc_z[zz]
+                zrphi = lindex_z[zz] * ncells_rphi[ii]
+                if is_in_vignette[ii, zz]:
+                    for jj in range(sz_phi[ii]):
+                        NP = lnp[ii, zz, jj]
+                        indiijj = indi_mv[ii, first_ind_mv[ii] + jj]
+                        pts_mv[0, NP] = loc_r
+                        pts_mv[1, NP] = loc_z
+                        loc_phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
+                        ind_mv[NP] = tot_nc_plane[ii] + zrphi + indiijj
+                        reso_rdrdz[NP] = disc_r[ii] *  reso_r_z
+                        vol = reso_phi[ii]
+                        # computing distance ....
+                        _bgt.compute_dist_pt_vec(pts_mv[0, NP],
+                                                 pts_mv[1, NP],
+                                                 loc_phi,
+                                                 sz_p, part_coords,
+                                                 &dist[0])
+                        volpi = vol * Cpi
+                        for pp in range(sz_p):
+                            sa_map[NP, pp] += sa_formula(part_rad[pp],
+                                                         dist[pp],
+                                                         volpi)
     return
 
 

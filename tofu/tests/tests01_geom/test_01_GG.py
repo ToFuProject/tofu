@@ -1980,5 +1980,12 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     assert sz_p == np.shape(part)[1]
     assert npts == npts2 == npts3 == npts4
 
+    # ... Testing with exact function .........................................
+    res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
+                                            RMinMax, ZMinMax,
+                                            out_format='(R,Z,Phi)',
+                                            margin=1.e-9)
+    pts, dvol, ind, reso_r, reso_z, reso_phi = res
+
     # ...
     return

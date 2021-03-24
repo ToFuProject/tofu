@@ -2700,8 +2700,8 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     cdef str msg
     cdef int npts=pts.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[double, ndim=1, mode='c'] is_seen = np.empty((npts),
-                                                             dtype=float)
+    cdef np.ndarray[long, ndim=1, mode='c'] is_seen = np.empty((npts),
+                                                               dtype=int)
     cdef long[::1] lstruct_nlim_copy
     cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
@@ -2747,7 +2747,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
-                          is_seen, dist, ves_lims,
+                          &is_seen[0], dist, ves_lims,
                           lstruct_nlim_copy,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims_np,
@@ -4629,7 +4629,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         Defines the `(R,Z)` coords of the poloidal cut of the limiting flux
         surface.
     block: bool, optional
-        check if particles are viewable from viewing points
+        check if particles are viewable from viewing points or if there is a
+        structural element blocking visibility
     ves_poly : (2, num_vertex) double array
        Coordinates of the vertices of the Polygon defining the 2D poloidal
        cut of the Vessel
@@ -4695,8 +4696,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] reso_rdrdz_mv
-    cdef double[::1] is_vis
-    cdef double[::1] dist
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
     cdef long[:, ::1] indi_mv
@@ -4716,20 +4715,32 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[double, ndim=1] reso_rdrdz
     cdef np.ndarray[double, ndim=2] pts
     cdef np.ndarray[double, ndim=2] sa_map
+    cdef array vperp_out
+    cdef array coeff_inter_in
+    cdef array coeff_inter_out
+    cdef array ind_inter_out
+    cdef int sz_ves_lims
+    cdef int npts_poly
+    cdef double[:, ::1] ray_orig
+    cdef double[:, ::1] ray_vdir
     #
     # == Testing inputs ========================================================
     if test:
-        msg = "ves_poly and ves_norm are not optional arguments"
-        assert ves_poly is not None and ves_norm is not None, msg
-        bool1 = (ves_poly.shape[0]==2 and ves_norm.shape[0]==2
-              and ves_norm.shape[1]==ves_poly.shape[1]-1)
-        msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
-        assert bool1, msg
-        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normx)
-        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
-        msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims, lstruct_normx,"\
-              + " lstruct_normy, must be None or lists of same len()!"
-        assert bool1 and bool2, msg
+        if block:
+            msg = "ves_poly and ves_norm are not optional arguments"
+            assert ves_poly is not None and ves_norm is not None, msg
+            bool1 = (ves_poly.shape[0]==2 and ves_norm.shape[0]==2
+                     and ves_norm.shape[1]==ves_poly.shape[1]-1)
+            msg = "Args ves_poly & ves_norm must be of the same shape (2, NS)!"
+            assert bool1, msg
+            bool1 = (lstruct_lims is None
+                     or len(lstruct_normy) == len(lstruct_normx))
+            bool2 = (lstruct_normx is None
+                     or len(lstruct_polyx) == len(lstruct_polyy))
+            msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims,"\
+                + " lstruct_normx, lstruct_normy, must be None or"\
+                + " lists of same len()!"
+            assert bool1 and bool2, msg
         msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
         assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
                                           eps_vz, eps_b,
@@ -4900,54 +4911,63 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     indI = np.sort(indI, axis=1)
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
     # initializing utilitary arrays
-    is_vis = np.zeros(sz_p)
-    dist = np.zeros(sz_p)
-    # .. useless tabs ..........................................................
-    # declared here so that cython can run without gil
-    cdef array vperp_out = clone(array('d'), sz_p * 3, True)
-    cdef array coeff_inter_in  = clone(array('d'), sz_p, True)
-    cdef array coeff_inter_out = clone(array('d'), sz_p, True)
-    cdef array ind_inter_out = clone(array('i'), sz_p * 3, True)
-    cdef int sz_ves_lims = np.size(ves_lims)
-    cdef int npts_poly = ves_norm.shape[1]
-    cdef double[:, ::1] ray_orig = np.zeros((3, sz_p))
-    cdef double[:, ::1] ray_vdir = np.zeros((3, sz_p))
-    # ... copying tab that will be changed
-    if lstruct_nlim is None:
-        lstruct_nlim_copy = None
-    else:
-        lstruct_nlim_copy = lstruct_nlim.copy()
-
     num_threads = _ompt._get_effective_num_threads(num_threads)
     # ..............
-    _st.sa_assemble_arrays(part_coords, part_r,
-                           is_in_vignette,
-                           sa_map,
-                           ves_poly, ves_norm,
-                           is_vis, dist,
-                           ves_lims,
-                           lstruct_nlim_copy,
-                           lstruct_polyx,
-                           lstruct_polyy,
-                           lstruct_lims,
-                           lstruct_normx,
-                           lstruct_normy,
-                           lnvert, vperp_out,
-                           coeff_inter_in, coeff_inter_out,
-                           ind_inter_out, sz_ves_lims,
-                           ray_orig, ray_vdir, npts_poly,
-                           nstruct_tot, nstruct_lim,
-                           rmin,
-                           eps_uz, eps_a,
-                           eps_vz, eps_b, eps_plane,
-                           ves_type=='tor', forbid,
-                           first_ind_mv, indi_mv,
-                           sz_p, sz_r, sz_z, lindex_z,
-                           ncells_rphi, tot_nc_plane,
-                           reso_r_z, disc_r, step_rphi,
-                           disc_z, lnp, sz_phi,
-                           step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
-                           num_threads)
+    if block:
+        # .. useless tabs .....................................................
+        # declared here so that cython can run without gil
+        vperp_out = clone(array('d'), sz_p * 3, True)
+        coeff_inter_in  = clone(array('d'), sz_p, True)
+        coeff_inter_out = clone(array('d'), sz_p, True)
+        ind_inter_out = clone(array('i'), sz_p * 3, True)
+        sz_ves_lims = np.size(ves_lims)
+        npts_poly = ves_norm.shape[1]
+        ray_orig = np.zeros((3, sz_p))
+        ray_vdir = np.zeros((3, sz_p))
+        # ... copying tab that will be changed
+        if lstruct_nlim is None:
+            lstruct_nlim_copy = None
+        else:
+            lstruct_nlim_copy = lstruct_nlim.copy()
+
+        _st.sa_assemble_arrays(part_coords, part_r,
+                               is_in_vignette,
+                               sa_map,
+                               ves_poly, ves_norm,
+                               ves_lims,
+                               lstruct_nlim_copy,
+                               lstruct_polyx,
+                               lstruct_polyy,
+                               lstruct_lims,
+                               lstruct_normx,
+                               lstruct_normy,
+                               lnvert, vperp_out,
+                               coeff_inter_in, coeff_inter_out,
+                               ind_inter_out, sz_ves_lims,
+                               ray_orig, ray_vdir, npts_poly,
+                               nstruct_tot, nstruct_lim,
+                               rmin,
+                               eps_uz, eps_a,
+                               eps_vz, eps_b, eps_plane,
+                               ves_type=='tor', forbid,
+                               first_ind_mv, indi_mv,
+                               sz_p, sz_r, sz_z, lindex_z,
+                               ncells_rphi, tot_nc_plane,
+                               reso_r_z, disc_r, step_rphi,
+                               disc_z, lnp, sz_phi,
+                               step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
+                               num_threads)
+    else:
+        _st.sa_assemble_arrays_unblock(part_coords, part_r,
+                                       is_in_vignette,
+                                       sa_map,
+                                       first_ind_mv, indi_mv,
+                                       sz_p, sz_r, sz_z, lindex_z,
+                                       ncells_rphi, tot_nc_plane,
+                                       reso_r_z, disc_r, step_rphi,
+                                       disc_z, lnp, sz_phi,
+                                       step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
+                                       num_threads)
     # ... freeing up memory ....................................................
     free(disc_r)
     free(disc_z)
