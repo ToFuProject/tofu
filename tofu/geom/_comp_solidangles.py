@@ -212,7 +212,8 @@ def calc_solidangle_particle(
     # block
     if block:
         kwdargs = config.get_kwdargs_LOS_isVis()
-        # Issue 471: k=len_v is a 2d array, _GG only takes 1d array...
+        valval = kwdargs["lstruct_nlim"]
+        print(type(valval), np.size(valval))
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
             traj, pts, dist=len_v, **kwdargs
         )

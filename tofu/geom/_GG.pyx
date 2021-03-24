@@ -2313,7 +2313,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
 
-    if lstruct_lims is None:
+    if lstruct_lims is None or np.size(lstruct_lims) == 0:
         lstruct_lims_np = np.array([Cnan])
     else:
         flat_list = []
@@ -2329,7 +2329,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
 
         lstruct_lims_np = np.array(flat_list)
 
-    if lstruct_nlim is None:
+    if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
         lstruct_nlim_copy = None
     else:
         lstruct_nlim_copy = lstruct_nlim.copy()
@@ -2607,7 +2607,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
-    if lstruct_lims is None:
+    if lstruct_lims is None or np.size(lstruct_lims) == 0:
         lstruct_lims_np = np.array([Cnan])
     else:
         flat_list = []
@@ -2622,9 +2622,10 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                 flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
 
-    if lstruct_nlim is None:
+    if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
         lstruct_nlim_copy = None
     else:
+        print(">>>>>>>>>>>>>>>>>>>>>>< ", lstruct_nlim)
         lstruct_nlim_copy = lstruct_nlim.copy()
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
@@ -2712,7 +2713,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
-    if lstruct_lims is None:
+    if lstruct_lims is None or np.size(lstruct_lims) == 0:
         lstruct_lims_np = np.array([Cnan])
     else:
         flat_list = []
@@ -2727,7 +2728,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                 flat_list += [Cnan]
         lstruct_lims_np = np.array(flat_list)
 
-    if lstruct_nlim is None:
+    if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
         lstruct_nlim_copy = None
     else:
         lstruct_nlim_copy = lstruct_nlim.copy()
@@ -4913,7 +4914,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         ray_orig = np.zeros((3, sz_p))
         ray_vdir = np.zeros((3, sz_p))
         # ... copying tab that will be changed
-        if lstruct_nlim is None:
+        if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
             lstruct_nlim_copy = None
         else:
             lstruct_nlim_copy = lstruct_nlim.copy()

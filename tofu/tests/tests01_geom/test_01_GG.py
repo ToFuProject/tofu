@@ -1947,6 +1947,10 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
             Exp="Misc",
             shot=0
         )
+        # comeback
+        config = tfg.Config(Name="test",
+                            Exp="Misc",
+                            lStruct=[ves])
 
     part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
     part_rad = np.r_[0.1, 0.1, 0.1]
@@ -1986,7 +1990,11 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                             out_format='(R,Z,Phi)',
                                             margin=1.e-9)
     pts, dvol, ind, reso_r, reso_z, reso_phi = res
-    # 
+    npts_disc = np.shape(pts)[1]
+    res = config.calc_solidangle_particle(pts,
+                                          part,
+                                          part_rad)
+    assert (sz_p, npts_disc) == np.shape(res)
 
     # ...
     return
