@@ -3704,7 +3704,6 @@ class KeyHandler_mpl(object):
                             nn = (len(val),)
                         else:
                             raise Exception("Unknown val type !")
-                    if val2 is None:
                     df_ind_pos[ax] = get_ind_frompos(typ, val, val2,
                                                      otherid = otherid,
                                                      indother = indother)
