@@ -422,7 +422,8 @@ class CrystalBragg(utils.ToFuObject):
         return lk
 
     @staticmethod
-    def _get_keys_dmat():
+    def _get_keys_dmat(): 
+        # maybe put here two angles and/or alternative local basis
         lk = ['formula', 'density', 'symmetry',
               'lengths', 'angles', 'cut', 'd']
         return lk
