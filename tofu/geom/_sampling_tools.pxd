@@ -39,6 +39,7 @@ cdef void simple_discretize_line1d(double[2] LMinMax, double dstep,
 
 cdef void cythonize_subdomain_dl(DL, double[2] dl_array) # uses gil
 
+
 # ==============================================================================
 # =  Vessel's poloidal cut discretization
 # ==============================================================================

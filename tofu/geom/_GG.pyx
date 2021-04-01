@@ -673,10 +673,10 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         num_pts_vpoly = VPoly.shape[1] - 1
         are_in_poly = <int *>malloc(ndisc * sizeof(int))
         tot_true = _bgt.is_point_in_path_vec(num_pts_vpoly,
-                                            &VPoly[0][0], &VPoly[1][0],
-                                            ndisc,
-                                            &ldiscr_tmp[0], &ldiscr_tmp[ndisc],
-                                            are_in_poly)
+                                             &VPoly[0][0], &VPoly[1][0],
+                                             ndisc,
+                                             &ldiscr_tmp[0], &ldiscr_tmp[ndisc],
+                                             are_in_poly)
         ldiscr = np.empty((2, tot_true), dtype=float)
         lresol = np.empty((tot_true,), dtype=float)
         lindex = np.empty((tot_true,), dtype=int)
@@ -2625,7 +2625,6 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
         lstruct_nlim_copy = None
     else:
-        print(">>>>>>>>>>>>>>>>>>>>>>< ", lstruct_nlim)
         lstruct_nlim_copy = lstruct_nlim.copy()
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
