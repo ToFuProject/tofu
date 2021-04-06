@@ -291,6 +291,30 @@ class CrystalBragg(utils.ToFuObject):
         if dmat.get('cut') is not None:
             dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
             assert dmat['cut'].size <= 4
+        # Adding new parameters to new basis according to non-parallelism problem
+        ## need to modify the verification assert 
+        if dmat.get('alpha') is not None:
+            dmat['alpha'] = np.atleast_1d(dmat['alpha'])
+            assert dmat['alpha'].size == 1
+        if dmat.get['beta'] is not None:
+            dmat['beta'] = np.atleast_1d(dmat['beta'])
+            assert dmat['beta'].size == 1
+        if dmat.get['nout'] is not None:
+            dmat['nout'] = np.atleast_1d(dmat['nout'])
+            dmat['nout'] = dmat['nout'] / np.linalg.norm(dmat['nout'])
+            assert dmat['nout'].size == 3
+        if dmat.get['nin'] is not None:
+            dmat['nin'] = np.atleast_1d(dmat['nin'])
+            dmat['nin'] = dmat['nin'] / np.linalg.norm(dmat['nin'])
+            assert dmat['nin'].size == 3
+        if dmat.get['e1'] is not None:
+            dmat['e1'] = np.atleast_1d(dmat['e1'])
+            dmat['e1'] = dmat['e1'] / np.linalg.norm(dmat['e1'])
+            assert dmat['e1'].size == 3
+        if dmat.get['e2'] is not None:
+            dmat['e2'] = np.atleast_1d(dmat['e2'])
+            dmat['e2'] = dmat['e2'] / np.linalg.norm(dmat['e2'])
+            assert dmat['e2'].size == 3
         return dmat
 
     def _checkformat_dbragg(self, dbragg=None):
@@ -424,8 +448,10 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def _get_keys_dmat(): 
         # maybe put here two angles and/or alternative local basis
+	# adding two new angles in order to compute the new set of unit vectors 
         lk = ['formula', 'density', 'symmetry',
-              'lengths', 'angles', 'cut', 'd']
+              'lengths', 'angles', 'cut', 'd', 
+		'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
         return lk
 
     @staticmethod
@@ -493,7 +519,21 @@ class CrystalBragg(utils.ToFuObject):
                           **dgeom['move_kwdargs'])
 
     def set_dmat(self, dmat=None):
-        dmat = self._checkformat_dmat(dmat)
+        dmat = self._checkformat_dmat(dmat)	
+        # adding non-parallelism parameters as defined earlier in dmat dictionnary 
+        if dgeom['nin'] & dmat['alpha'] & dmat['beta'] is not None:
+            if dmat['nin'] is None:
+                dmat['nin'] = dgeom['nin'] / np.cos(dmat['alpha']) 
+        elif dgeom['e1'] & dgeom['e2'] is not None:
+            dmat['nin'] = np.sin(dmat['beta'])*dgeom['e1']+np.cos(dmat['alpha'])*dgeom['e2']
+        elif dmat['nout'] is None:
+            dmat['nout'] = -dmat['nin']
+        if dmat['nin'] & dgeom['nin'] is not None:
+            if dmat['alpha'] is None:
+		dmat['alpha'] = np.arccos(dgeom['nin'] / dmat['nin'])
+        elif dgeom['e1'] & dgeom['e2'] is not None:
+            if dmat['beta'] is None:
+                dmat['beta'] = np.arccos(dgeom['e2'] / dmat['nin'])
         self._dmat = dmat
 
     def set_dbragg(self, dbragg=None):
@@ -2294,46 +2334,6 @@ class CrystalBragg(utils.ToFuObject):
         # Geometrical transform
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
-        nxj = xj.size if xj is not None else np.unique(xjj).size
-
-        # Compute lamb / phi
-        bragg, phi = self.calc_braggphi_from_xixj(xii, xjj, n=n,
-                                                  det=det, dtheta=dtheta,
-                                                  psi=psi, plot=False)
-        assert bragg.shape == phi.shape
-        lamb = self.get_lamb_from_bragg(bragg, n=n)
-
-        import tofu.spectro._fit12d as _fit12d
-        return _fit12d.noise_analysis_2d(
-            data, lamb, phi,
-            mask=mask, valid_fraction=valid_fraction,
-            margin=margin, nxerrbin=nxerrbin,
-            nlamb=nlamb, deg=deg, knots=knots, nbsplines=nbsplines,
-            loss=loss, max_nfev=max_nfev,
-            xtol=xtol, ftol=ftol, gtol=gtol,
-            method=method, tr_solver=tr_solver, tr_options=tr_options,
-            verbose=verbose, plot=plot,
-            ms=ms, dcolor=dcolor,
-            dax=dax, fs=fs, dmargin=dmargin,
-            wintit=wintit, tit=tit, sublab=sublab,
-            save_fig=save_fig, name_fig=name_fig, path_fig=path_fig,
-            fmt=fmt, return_dax=return_dax)
-
-    @staticmethod
-    def noise_analysis_plot(
-        dnoise=None, margin=None, valid_fraction=None,
-        ms=None, dcolor=None,
-        dax=None, fs=None, dmargin=None,
-        wintit=None, tit=None, sublab=None,
-        save=None, name=None, path=None, fmt=None):
-        import tofu.spectro._plot as _plot_spectro
-        return _plot_spectro.plot_noise_analysis(
-            dnoise=dnoise, margin=margin, valid_fraction=valid_fraction,
-            ms=ms, dcolor=dcolor,
-            dax=dax, fs=fs, dmargin=dmargin,
-            wintit=wintit, tit=tit, sublab=sublab,
-            save=save, name=name, path=path, fmt=fmt)
-
     def noise_analysis_scannbs(
         self, data=None, xi=None, xj=None, n=None,
         det=None, dtheta=None, psi=None,
