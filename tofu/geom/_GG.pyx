@@ -4,8 +4,6 @@
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
-import sys
-import time
 from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
@@ -20,12 +18,11 @@ from cython.parallel cimport parallel
 cimport cython
 cimport numpy as np
 from libc.math cimport sqrt as Csqrt, ceil as Cceil, fabs as Cabs
-from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
-from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
+from libc.math cimport floor as Cfloor, round as Cround
+from libc.math cimport cos as Ccos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
 from libc.math cimport INFINITY as Cinf
-from libc.math cimport isnan as Cisnan
 from libc.stdlib cimport malloc, free
 # -- ToFu library imports ------------------------------------------------------
 from _basic_geom_tools cimport _VSMALL, _SMALL
@@ -38,7 +35,7 @@ cimport _vignetting_tools as _vt
 import _openmp_tools as _ompt
 
 # == Exports ===================================================================
-__all__ = ['CoordShift',
+__all__ = ['coord_shift',
            "comp_dist_los_circle",
            "comp_dist_los_circle_vec",
            "comp_dist_los_vpoly",
@@ -49,7 +46,7 @@ __all__ = ['CoordShift',
            "which_los_closer_vpoly_vec",
            "which_vpoly_closer_los_vec",
            "LOS_sino_findRootkPMin_Tor",
-           'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
+           'Poly_isClockwise', 'Poly_VolAngTor',
            'poly_area', "poly_area_and_barycenter",
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
@@ -70,8 +67,8 @@ __all__ = ['CoordShift',
            "LOS_Calc_kMinkMax_VesStruct",
            "LOS_isVis_PtFromPts_VesStruct",
            "LOS_areVis_PtsFromPts_VesStruct",
-           'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
-           'LOS_sino','integrate1d',
+           'LOS_get_sample', 'LOS_calc_signal',
+           'LOS_sino', 'integrate1d',
            "triangulate_by_earclipping",
            "vignetting",
            "Dust_calc_SolidAngle"]
@@ -82,92 +79,87 @@ __all__ = ['CoordShift',
 #       Coordinates handling
 ########################################################
 
-def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
+def coord_shift(points, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=None):
     """ Check the shape of an array of points coordinates and/or converts from
     2D to 3D, 3D to 2D, cylindrical to cartesian...
     (CrossRef is an angle (Tor) or a distance (X for Lin))
     """
     cdef str str_ii
-    cdef long ncoords = Pts.shape[0]
+    cdef long ncoords = points.shape[0]
     cdef long npts
-    assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), (
+    assert all([type(ff) is str and ',' in ff for ff in [in_format, out_format]]), (
         "Arg In and Out (coordinate format) must be comma-separated  !")
-    assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and \
-        ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
+    assert type(points) is np.ndarray and points.ndim in [1, 2] and \
+           ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
                                 "of 2 or 3 coordinates !")
-    okTypes = [int,float,np.int64,np.float64]
-    assert CrossRef is None or type(CrossRef) in okTypes, (
+    ok_types = [int,float,np.int64,np.float64]
+    assert cross_format is None or type(cross_format) in ok_types, (
         "Arg CrossRef must be a float !")
 
     # Pre-format inputs
-    In, Out = In.lower(), Out.lower()
+    in_format, out_format = in_format.lower(), out_format.lower()
 
     # Get order
-    Ins = In.replace('(','').replace(')','').split(',')
-    Outs = Out.replace('(','').replace(')','').split(',')
-    # TODO: @DV > it looks to me that (x, r, phi) could be a valid in/out-put
-    # >>>>> ajouter assert pour le moment
-    assert all([ss in ['x','y','z','r','phi'] for ss in Ins]), "Non-valid In!"
-    assert all([ss in ['x','y','z','r','phi'] for ss in Outs]), "Non-valid Out!"
-    InT = 'cyl' if any([ss in Ins for ss in ['r','phi']]) else 'cart'
-    OutT = 'cyl' if any([ss in Outs for ss in ['r','phi']]) else 'cart'
+    ins = in_format.replace('(', '').replace(')', '').split(',')
+    outs = out_format.replace('(', '').replace(')', '').split(',')
 
-    ndim = Pts.ndim
+    assert all([ss in ['x','y','z','r','phi'] for ss in ins]), "Non-valid In!"
+    assert all([ss in ['x','y','z','r','phi'] for ss in outs]), "Non-valid Out!"
+    in_type = 'cyl' if any([ss in ins for ss in ['r','phi']]) else 'cart'
+    out_type = 'cyl' if any([ss in outs for ss in ['r','phi']]) else 'cart'
+
+    ndim = points.ndim
     if ndim==1:
-        Pts = np.copy(Pts.reshape((ncoords,1)))
+        points = np.copy(points.reshape((ncoords, 1)))
 
     # Compute
-    if InT==OutT:
-        assert all([ss in Ins for ss in Outs])
+    if in_type==out_type:
+        assert all([ss in ins for ss in outs])
         pts = []
-        for str_ii in Outs:
+        for str_ii in outs:
             if str_ii=='phi':
-                pts.append(np.arctan2(np.sin(Pts[Ins.index(str_ii),:]),
-                                      np.cos(Pts[Ins.index(str_ii),:])))
+                pts.append(np.arctan2(np.sin(points[ins.index(str_ii), :]),
+                                      np.cos(points[ins.index(str_ii), :])))
             else:
-                pts.append(Pts[Ins.index(str_ii),:])
-    elif InT=='cart':
+                pts.append(points[ins.index(str_ii), :])
+    elif in_type=='cart':
         pts = []
-        for str_ii in Outs:
+        for str_ii in outs:
             if str_ii=='r':
-                assert all([ss in Ins for ss in ['x','y']])
-                pts.append(_bgt.compute_hypot(Pts[Ins.index('x'),:],
-                                              Pts[Ins.index('y'),:]))
+                assert all([ss in ins for ss in ['x','y']])
+                pts.append(_bgt.compute_hypot(points[ins.index('x'), :],
+                                              points[ins.index('y'), :]))
             elif str_ii=='z':
-                assert 'z' in Ins
-                pts.append(Pts[Ins.index('z'),:])
+                assert 'z' in ins
+                pts.append(points[ins.index('z'), :])
             elif str_ii=='phi':
-                if all([ss in Ins for ss in ['x','y']]):
-                    pts.append(np.arctan2(Pts[Ins.index('y'),:],
-                                          Pts[Ins.index('x'),:]))
-                elif CrossRef is not None:
-                    npts = Pts.shape[1]
-                    pts.append( CrossRef*np.ones((npts,)) )
+                if all([ss in ins for ss in ['x','y']]):
+                    pts.append(np.arctan2(points[ins.index('y'), :],
+                                          points[ins.index('x'), :]))
+                elif cross_format is not None:
+                    npts = points.shape[1]
+                    pts.append(cross_format * np.ones((npts,)))
                 else:
                     raise Exception("There is no phi value available !")
-                # TODO: @VZ > else... ? if Outs = (x, r, phi) ?
     else:
         pts = []
-        for str_ii in Outs:
+        for str_ii in outs:
             if str_ii=='x':
-                if all([ss in Ins for ss in ['r','phi']]) :
-                    # TODO : @VZ : and CrossRef is None ?
-                    # >>> ajouter un warning si crossref a ete defini
-                    pts.append(Pts[Ins.index('r'),:] *
-                               np.cos(Pts[Ins.index('phi'),:]))
-                elif CrossRef is not None:
-                    npts = Pts.shape[1]
-                    pts.append( CrossRef*np.ones((npts,)) )
+                if all([ss in ins for ss in ['r','phi']]) :
+                    pts.append(points[ins.index('r'), :] *
+                               np.cos(points[ins.index('phi'), :]))
+                elif cross_format is not None:
+                    npts = points.shape[1]
+                    pts.append(cross_format * np.ones((npts,)))
                 else:
                     raise Exception("There is no x value available !")
             elif str_ii=='y':
-                assert all([ss in Ins for ss in ['r','phi']])
-                pts.append(Pts[Ins.index('r'),:] *
-                           np.sin(Pts[Ins.index('phi'),:]))
+                assert all([ss in ins for ss in ['r','phi']])
+                pts.append(points[ins.index('r'), :] *
+                           np.sin(points[ins.index('phi'), :]))
             elif str_ii=='z':
-                assert 'z' in Ins
-                pts.append(Pts[Ins.index('z'),:])
-                # TODO : else....?
+                assert 'z' in ins
+                pts.append(points[ins.index('z'), :])
 
     # Format output
     pts = np.vstack(pts)
@@ -903,7 +895,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         DPhi: array specifying the actual sub-volume limits to get in `phi`
         limit_vpoly: array-like defining the `(R,Z)` coordinates of the poloidal
                      cut of the limiting flux surface
-        Out(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
+        out_format(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
             coordinates
         margin(double): tolerance error.
             Defaults to |_VSMALL|
@@ -2190,24 +2182,29 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     ves_norm : (2, num_vertex-1) double array
        Normal vectors going "inwards" of the edges of the Polygon defined
        by ves_poly
-    nstruct : int
+    nstruct_tot : int
        Total number of structures (counting each limited structure as one)
     ves_lims : array
        Contains the limits min and max of vessel
-    lstruct_poly : list
-       List of coordinates of the vertices of all structures on poloidal plane
+    lstruct_polyx : list
+       List of x coordinates of the vertices of all structures on poloidal plane
+    lstruct_polyy : list
+       List of y coordinates of the vertices of all structures on poloidal plane
     lstruct_lims : list
        List of limits of all structures
     lstruct_nlim : array of ints
        List of number of limits for all structures
-    lstruct_norm : list
-       List of coordinates of "inwards" normal vectors of the polygon of all
+    lstruct_normx : list
+       List of x coordinates of "inwards" normal vectors of the polygon of all
+       the structures
+    lstruct_normy : list
+       List of y coordinates of "inwards" normal vectors of the polygon of all
        the structures
     rmin : double
        Minimal radius of vessel to take into consideration
     eps_<val> : double
        Small value, acceptance of error
-    vtype : string
+    ves_type : string
        Type of vessel ("Tor" or "Lin")
     forbid : bool
        Should we forbid values behind visible radius ? (see rmin)
@@ -3416,8 +3413,8 @@ def LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
     cdef list Pk, Pk2D, rk
     cdef double kk, kPMin
     if Mode=='LOS':                     # Take solution on physical LOS
-        if any([kk>=0 and kk<=kOut for kk in KK]):
-            KK = [kk for kk in KK if kk>=0 and kk<=kOut]
+        if any([0 <= kk <= kOut for kk in KK]):
+            KK = [kk for kk in KK if 0 <= kk <= kOut]
             Pk = [(D0+kk*u0,D1+kk*u1,D2+kk*u2) for kk in KK]
             Pk2D = [(Csqrt(pp[0]**2+pp[1]**2), pp[2]) for pp in Pk]
             rk = [(pp[0]-RZ0)**2+(pp[1]-RZ1)**2 for pp in Pk2D]
@@ -4879,7 +4876,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     # .. preparing for actual discretization ...................................
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
-    if limit_vpoly == None:
+    if limit_vpoly is None:
         message = ("Error, if no vignetting number of points should remain ",
                    "should be the same.",
                    " Original : {}. New : {}.".format(NP, new_np))
@@ -4897,9 +4894,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     reso_rdrdz_mv = reso_rdrdz
     reso_r_z = reso_r[0]*reso_z[0]
     indI = np.sort(indI, axis=1)
-    first_ind_mv = np.argmax(indI > -1, axis=1).astype(np.long)
+    first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
     # initializing utilitary arrays
-    num_threads = _ompt._get_effective_num_threads(num_threads)
+    num_threads = _ompt.get_effective_num_threads(num_threads)
     # ..............
     if block:
         # .. useless tabs .....................................................

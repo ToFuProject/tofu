@@ -3,14 +3,11 @@ This module contains tests for tofu.geom in its structured version
 """
 
 # External modules
-import os
-import sys
 import numpy as np
-import matplotlib
-import tofu as tf
-
 # ToFu-specific
 import tofu.geom._GG as GG
+from .testing_tools import compute_ves_norm
+
 
 # header
 VerbHead = 'tofu.geom.test_01_GG'
@@ -46,28 +43,21 @@ def teardown_module(module):
 ######################################################
 ######################################################
 """
-def compute_vin(vpoly):
-    VIn = VPoly[:, 1:] - VPoly[:, :-1]
-    VIn = np.array([-VIn[1, :], VIn[0, :]])
-    VIn = VIn / np.sqrt(np.sum(VIn ** 2, axis=0))[np.newaxis, :]
-    return VIn
-
-
 def test01_CoordShift():
 
     # Tests 1D input
     Pts = np.array([1., 1., 1.])
-    pts = GG.CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=0.)
+    pts = GG.coord_shift(Pts, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=0.)
     assert pts.shape == (2,) and np.allclose(pts,[np.sqrt(2), 1.])
-    pts = GG.CoordShift(Pts, In='(R,Z,Phi)', Out='(X,Y,Z)', CrossRef=0.)
+    pts = GG.coord_shift(Pts, in_format='(R,Z,Phi)', out_format='(X,Y,Z)', cross_format=0.)
     assert pts.shape == (3,) and np.allclose(pts,[np.cos(1.), np.sin(1.), 1.])
 
     # Test 2D input
     Pts = np.array([[1., 1.],[1., 1.],[1., 1.]])
-    pts = GG.CoordShift(Pts, In='(X,Y,Z)', Out='(R,Phi,Z)', CrossRef=0.)
+    pts = GG.coord_shift(Pts, in_format='(X,Y,Z)', out_format='(R,Phi,Z)', cross_format=0.)
     assert pts.shape == (3, 2) and np.allclose(pts,[[np.sqrt(2.), np.sqrt(2.)],
                                                  [np.pi/4., np.pi/4.],[1., 1.]])
-    pts = GG.CoordShift(Pts, In='(Phi,Z,R)', Out='(X,Y)', CrossRef=0.)
+    pts = GG.coord_shift(Pts, in_format='(Phi,Z,R)', out_format='(X,Y)', cross_format=0.)
     assert pts.shape == (2, 2) and np.allclose(pts,[[np.cos(1.), np.cos(1.)],
                                                  [np.sin(1.), np.sin(1.)]])
 
@@ -185,7 +175,7 @@ def test04_Ves_isInside(VPoly=VPoly):
 def test09_Ves_Smesh_Tor(VPoly=VPoly):
 
     dL, dRPhi = 0.02, 0.05
-    VIn = compute_vin(VPoly)
+    VIn = compute_ves_norm(VPoly)
     DIn = 0.001
     LDPhi = [None, [3.*np.pi/4.,5.*np.pi/4.], [-np.pi/4., np.pi/4.]]
 
@@ -254,7 +244,7 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
 def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
 
     dL, dRPhi = 0.02, 0.05
-    VIn = compute_vin(VPoly)
+    VIn = compute_ves_norm(VPoly)
     DIn = 0.001
     LPhi = [[[-np.pi/4., np.pi/4.], [3.*np.pi/2., np.pi/2.]],
             [[-np.pi/4., np.pi/4.], [0., np.pi/2.]],
@@ -342,7 +332,7 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
     PhiMinMax = np.array([3.*np.pi/4.,5.*np.pi/4.])
     dL, dRPhi = 0.02, 0.05
-    VIn = compute_vin(VPoly)
+    VIn = compute_ves_norm(VPoly)
     DIn = -0.001
     LPhi = [[[-np.pi/4., np.pi/4.], [3.*np.pi/2., np.pi/2.]],
             [[-np.pi/4., np.pi/4.], [0., np.pi/2.]],
@@ -441,7 +431,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
 
     XMinMax = np.array([0., 10.])
     dL, dX = 0.02, 0.05
-    VIn = compute_vin(VPoly)
+    VIn = compute_ves_norm(VPoly)
     DIn = -0.001
     DY, DZ = [0., 2.], [0., 1.]
     LDX = [None,[-1., 2.],[2.,5.],[8., 11.]]
@@ -910,14 +900,7 @@ def test15_LOS_sino_vec():
                    -np.ones((N,)),
                    np.linspace(-0.5, 0.5, N)])
 
-    for iloops in range(100):
-        PMin0 = np.nan * np.ones((3, N))
-        kPMin0 = np.nan * np.ones((N,))
-        RMin0 = np.nan * np.ones((N,))
-        Theta0 = np.nan * np.ones((N,))
-        p0 = np.nan * np.ones((N,))
-        ImpTheta0 = np.nan * np.ones((N,))
-        phi0 = np.nan * np.ones((N,))
+    for _ in range(100):
         res = GG.LOS_sino(Ds, us, RZ, kOut=np.full((N,), np.inf),
                           Mode='LOS', VType='Lin', try_new_algo=True)
         PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = res
@@ -929,6 +912,7 @@ def test15_LOS_sino_vec():
         assert not np.isnan(np.sum(p0))
         assert not np.isnan(np.sum(ImpTheta0))
         assert not np.isnan(np.sum(phi0))
+
 
 def test16_dist_los_vpoly():
     num_rays = 11
