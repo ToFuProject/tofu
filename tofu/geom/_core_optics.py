@@ -296,22 +296,22 @@ class CrystalBragg(utils.ToFuObject):
         if dmat.get('alpha') is not None:
             dmat['alpha'] = np.atleast_1d(dmat['alpha'])
             assert dmat['alpha'].size == 1
-        if dmat.get['beta'] is not None:
+        if dmat.get('beta') is not None:
             dmat['beta'] = np.atleast_1d(dmat['beta'])
             assert dmat['beta'].size == 1
-        if dmat.get['nout'] is not None:
+        if dmat.get('nout') is not None:
             dmat['nout'] = np.atleast_1d(dmat['nout'])
             dmat['nout'] = dmat['nout'] / np.linalg.norm(dmat['nout'])
             assert dmat['nout'].size == 3
-        if dmat.get['nin'] is not None:
+        if dmat.get('nin') is not None:
             dmat['nin'] = np.atleast_1d(dmat['nin'])
             dmat['nin'] = dmat['nin'] / np.linalg.norm(dmat['nin'])
             assert dmat['nin'].size == 3
-        if dmat.get['e1'] is not None:
+        if dmat.get('e1') is not None:
             dmat['e1'] = np.atleast_1d(dmat['e1'])
             dmat['e1'] = dmat['e1'] / np.linalg.norm(dmat['e1'])
             assert dmat['e1'].size == 3
-        if dmat.get['e2'] is not None:
+        if dmat.get('e2') is not None:
             dmat['e2'] = np.atleast_1d(dmat['e2'])
             dmat['e2'] = dmat['e2'] / np.linalg.norm(dmat['e2'])
             assert dmat['e2'].size == 3
@@ -451,7 +451,7 @@ class CrystalBragg(utils.ToFuObject):
 	# adding two new angles in order to compute the new set of unit vectors 
         lk = ['formula', 'density', 'symmetry',
               'lengths', 'angles', 'cut', 'd', 
-		'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
+	      'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
         return lk
 
     @staticmethod
@@ -521,19 +521,31 @@ class CrystalBragg(utils.ToFuObject):
     def set_dmat(self, dmat=None):
         dmat = self._checkformat_dmat(dmat)	
         # adding non-parallelism parameters as defined earlier in dmat dictionnary 
-        if dgeom['nin'] & dmat['alpha'] & dmat['beta'] is not None:
-            if dmat['nin'] is None:
-                dmat['nin'] = dgeom['nin'] / np.cos(dmat['alpha']) 
-        elif dgeom['e1'] & dgeom['e2'] is not None:
-            dmat['nin'] = np.sin(dmat['beta'])*dgeom['e1']+np.cos(dmat['alpha'])*dgeom['e2']
-        elif dmat['nout'] is None:
-            dmat['nout'] = -dmat['nin']
-        if dmat['nin'] & dgeom['nin'] is not None:
+        if all([dgeom[aa] is not None for aa in ['nout', 'e1', 'e2']]):
+            if all([dmat[aa] is not None for aa in ['alpha', 'beta']]):
+                if dmat['nout'] is None:
+                    dmat['nout'] = dgeom['nout']*np.cos(dmat['alpha'])+np.sin(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']+np.sin(dmat['alpha'])*dgeom['e2']) 
+        if dmat['nin'] is None:
+            dmat['nin'] = -dmat['nout']
+        if dgeom['e1'] is not None and dgeom['nout'] is not None:
             if dmat['alpha'] is None:
-		dmat['alpha'] = np.arccos(dgeom['nin'] / dmat['nin'])
-        elif dgeom['e1'] & dgeom['e2'] is not None:
+                # 0 < alpha < pi/2
+                if dgeom['e1'] and dgeom['nout'] >= 0:
+                    dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])
+                if dgeom['e1'] >= 0 and dgeom['nout'] < 0:
+                    dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2)
+                if dgeom['e1'] < 0 and dgeom['nout'] >= 0:
+                    dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2)
+                if dgeom['e1'] and dgeom['nout'] < 0: 
+                    dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(2*np.pi)
+        if dgeom['e1'] & dgeom['e2'] is not None:
             if dmat['beta'] is None:
-                dmat['beta'] = np.arccos(dgeom['e2'] / dmat['nin'])
+                # 0 < beta < 2pi
+                dmat['beta'] = np.arctan2(dgeom['e2'] / dgeom['e1'])
+        if all([dgeom[aa] is not None for aa in ['nout', 'e1', 'e2']]):
+            if all([dmat[aa] is not None for aa in ['alpha', 'beta', 'nout']]):
+                dmat['e1'] = np.cos(dmat['beta'])*dgeom['e1']+np.sin(dmat['beta'])*dgeom['e2']
+                dmat['e2'] = np.cross(dmat['nout'], dmat['e1'])
         self._dmat = dmat
 
     def set_dbragg(self, dbragg=None):
