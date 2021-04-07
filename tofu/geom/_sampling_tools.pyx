@@ -235,8 +235,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
         for ii in range(np-1):
-            v0 = ves_poly[0,ii+1]-ves_poly[0,ii]
-            v1 = ves_poly[1,ii+1]-ves_poly[1,ii]
+            v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
+            v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
@@ -265,11 +265,11 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             for jj in range(ncells[0][ii]):
                 ind[0][last_sz_othr + jj] = last_sz_othr + jj
                 reso[0][last_sz_othr + jj] = loc_resolu[0]
-                rref[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
-                xcross[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
-                ycross[0][last_sz_othr + jj] = ves_poly[1,ii] + ldiscret[jj] * v1
-                xpolybis[0][last_sz_vbis + jj] = ves_poly[0,ii] + jj * rv0
-                ypolybis[0][last_sz_vbis + jj] = ves_poly[1,ii] + jj * rv1
+                rref[0][last_sz_othr + jj] = ves_poly[0, ii] + ldiscret[jj] * v0
+                xcross[0][last_sz_othr + jj] = ves_poly[0, ii] + ldiscret[jj] * v0
+                ycross[0][last_sz_othr + jj] = ves_poly[1, ii] + ldiscret[jj] * v1
+                xpolybis[0][last_sz_vbis + jj] = ves_poly[0, ii] + jj * rv0
+                ypolybis[0][last_sz_vbis + jj] = ves_poly[1, ii] + jj * rv1
         # We close the polygon of VPolybis
         sz_vbis += 1
         xpolybis[0] = <double*>realloc(xpolybis[0], sz_vbis*sizeof(double))
@@ -278,8 +278,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
         ypolybis[0][sz_vbis - 1] = ves_poly[1, 0]
     else:
         for ii in range(np-1):
-            v0 = ves_poly[0,ii+1]-ves_poly[0,ii]
-            v1 = ves_poly[1,ii+1]-ves_poly[1,ii]
+            v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
+            v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
@@ -305,16 +305,16 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = v1 * inv_norm
             rv0 = loc_resolu[0]*v0
             rv1 = loc_resolu[0]*v1
-            shiftx = din*ves_vin[0,ii]
-            shifty = din*ves_vin[1,ii]
+            shiftx = din*ves_vin[0, ii]
+            shifty = din*ves_vin[1, ii]
             for jj in range(ncells[0][ii]):
                 ind[0][last_sz_othr] = last_sz_othr
                 reso[0][last_sz_othr] = loc_resolu[0]
-                rref[0][last_sz_othr]   = ves_poly[0,ii] + ldiscret[jj]*v0
-                xcross[0][last_sz_othr] = ves_poly[0,ii] + ldiscret[jj]*v0 + shiftx
-                ycross[0][last_sz_othr] = ves_poly[1,ii] + ldiscret[jj]*v1 + shifty
-                xpolybis[0][last_sz_vbis + jj] = ves_poly[0,ii] + jj * rv0
-                ypolybis[0][last_sz_vbis + jj] = ves_poly[1,ii] + jj * rv1
+                rref[0][last_sz_othr]   = ves_poly[0, ii] + ldiscret[jj]*v0
+                xcross[0][last_sz_othr] = ves_poly[0, ii] + ldiscret[jj]*v0 + shiftx
+                ycross[0][last_sz_othr] = ves_poly[1, ii] + ldiscret[jj]*v1 + shifty
+                xpolybis[0][last_sz_vbis + jj] = ves_poly[0, ii] + jj * rv0
+                ypolybis[0][last_sz_vbis + jj] = ves_poly[1, ii] + jj * rv1
                 last_sz_othr += 1
         # We close the polygon of VPolybis
         sz_vbis += 1
@@ -366,8 +366,8 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] ves_poly,
         v0 = v0 * inv_norm
         v1 = v1 * inv_norm
         for jj in range(ncells[0]):
-            xcross[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
-            ycross[0][last_sz_othr + jj] = ves_poly[1,ii] + ldiscret[jj] * v1
+            xcross[0][last_sz_othr + jj] = ves_poly[0, ii] + ldiscret[jj] * v0
+            ycross[0][last_sz_othr + jj] = ves_poly[1, ii] + ldiscret[jj] * v1
     # We close the polygon of VPolybis
     new_nb_pts[0] = sz_others
     free(ldiscret)
@@ -553,7 +553,7 @@ cdef inline void middle_rule_abs_var_s2(int nlos,
     cdef int first_index
     cdef double loc_resol
 
-    # Treting ilos= 0 first .......................................
+    # Treating ilos= 0 first .......................................
     first_index = 0
     loc_resol = eff_resolution[0]
     num_raf = los_nraf[0]
@@ -748,7 +748,7 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
     seg_length = los_kmax[0] - los_kmin[0]
     num_raf = <int>(c_ceil(seg_length * inv_resol))
     if num_raf%2==1:
-        num_raf = num_raf + 1
+        num_raf += 1
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -759,7 +759,7 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(c_ceil(seg_length * inv_resol))
         if num_raf%2==1:
-            num_raf = num_raf + 1
+            num_raf += 1
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -909,7 +909,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
     cdef double loc_resol
     num_raf = <int>(c_ceil(1. / resolutions[0]))
     if num_raf%2==1:
-        num_raf = num_raf+1
+        num_raf += 1
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -919,7 +919,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
     for ii in range(1, nlos):
         num_raf = <int>(c_ceil(1. / resolutions[ii]))
         if num_raf%2==1:
-            num_raf = num_raf+1
+            num_raf += 1
         loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1004,7 +1004,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
     seg_length = los_kmax[0] - los_kmin[0]
     num_raf = <int>(c_ceil(seg_length / resolutions[0]))
     if num_raf%2==1:
-        num_raf = num_raf+1
+        num_raf += 1
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -1015,7 +1015,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(c_ceil(seg_length / resolutions[ii]))
         if num_raf%2==1:
-            num_raf = num_raf+1
+            num_raf += 1
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1246,7 +1246,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
         elif n_imode==1:
             # 'simps' quad
             if nraf%2==1:
-                nraf = nraf+1
+                nraf += 1
             invnraf = 1./nraf
             coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
             eff_res[0] = (los_kmax - los_kmin)*invnraf
@@ -1278,7 +1278,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
             seg_length = los_kmax - los_kmin
             nraf = <int>(c_ceil(seg_length / resol))
             if nraf%2==1:
-                nraf = nraf+1
+                nraf += 1
             eff_res[0] = seg_length / nraf
             coeffs[0] = <double*>malloc((nraf+1)*sizeof(double))
             left_rule_single(nraf, los_kmin, eff_res[0],
@@ -1389,43 +1389,38 @@ cdef inline int los_get_sample_core_const_res(int nlos,
                                               long* los_ind,
                                               int num_threads) nogil:
     # ...
-    cdef int N
+    cdef int num_cells
     cdef int ntmp
     if n_dmode==1: # relative
         #         return coeff_arr, dLr, los_ind[:nlos-1]
-        N = <int> c_ceil(1. / val_resol)
+        num_cells = <int> c_ceil(1. / val_resol)
         if n_imode==0: # sum
-            #coeff_arr = np.empty((N*nlos,), dtype=float)
-            coeff_ptr[0] = <double*>malloc(sizeof(double)*N*nlos)
-            middle_rule_rel(nlos, N, los_lim_min, los_lim_max,
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*num_cells*nlos)
+            middle_rule_rel(nlos, num_cells, los_lim_min, los_lim_max,
                             &dl_r[0], coeff_ptr[0], los_ind,
                             num_threads=num_threads)
-            return N*nlos
+            return num_cells*nlos
         elif n_imode==1: #simps
-            N = N if N%2==0 else N+1
-            # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-            coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
-            left_rule_rel(nlos, N,
+            num_cells = num_cells if num_cells%2==0 else num_cells+1
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*(num_cells+1)*nlos)
+            left_rule_rel(nlos, num_cells,
                           los_lim_min, los_lim_max, &dl_r[0],
                           coeff_ptr[0], los_ind,
                           num_threads=num_threads)
-            return (N+1)*nlos
+            return (num_cells+1)*nlos
         elif n_imode==2: #romb
-            N = 2**(<int>c_ceil(c_log2(N)))
-            # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-            coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
-            left_rule_rel(nlos, N,
+            num_cells = 2**(<int>c_ceil(c_log2(num_cells)))
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*(num_cells+1)*nlos)
+            left_rule_rel(nlos, num_cells,
                           los_lim_min, los_lim_max,
                           &dl_r[0], coeff_ptr[0], los_ind,
                           num_threads=num_threads)
-            return (N+1)*nlos
+            return (num_cells+1)*nlos
     else: # absolute
         if n_imode==0: #sum
             middle_rule_abs_s1(nlos, val_resol, los_lim_min, los_lim_max,
                                &dl_r[0], los_ind,
                                num_threads=num_threads)
-            #ntmp = np.sum(los_ind)
-            #coeff_arr = np.empty((ntmp,), dtype=float)
             ntmp = _bgt.sum_naive_int(los_ind, nlos)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*ntmp)
             middle_rule_abs_s2(nlos, los_lim_min, &dl_r[0],
@@ -1654,6 +1649,7 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
 
     return npts_disc
 
+
 cdef inline int vmesh_prepare_tab(long[:, :, ::1] lnp,
                                   long[:, ::1] is_in_vignette,
                                   int sz_r,
@@ -1677,6 +1673,7 @@ cdef inline int vmesh_prepare_tab(long[:, :, ::1] lnp,
                     lnp[ii, zz, kk] = npts_disc
                     npts_disc += 1
     return npts_disc
+
 
 cdef inline void vmesh_assemble_arrays_cart(int ii,
                                             int sz_z,
@@ -1715,6 +1712,7 @@ cdef inline void vmesh_assemble_arrays_cart(int ii,
                 ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
                 dv_mv[npts_disc] = reso_r_z*reso_phi_mv[ii]
     return
+
 
 cdef inline void vmesh_assemble_arrays_polr(int ii,
                                             int sz_z,
@@ -1804,7 +1802,7 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
                                      double* disc_r,
                                      int sz_r, int sz_z,
                                      double twopi_over_dphi,
-                                     double[::1] dRPhirRef,
+                                     double[::1] d_r_phir_ref,
                                      long* tot_nc_plane,
                                      double** phi_tab,
                                      int num_threads) nogil:
@@ -1820,7 +1818,7 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
     loc_nc_rphi = <int>(c_ceil(disc_r[0] * twopi_over_dphi))
     ncells_rphi[0] = loc_nc_rphi
     step_rphi[0] = _TWOPI / loc_nc_rphi
-    dRPhirRef[0] = disc_r[0] * step_rphi[0]
+    d_r_phir_ref[0] = disc_r[0] * step_rphi[0]
     tot_nc_plane[0] = 0
     phi_tab[0] = <double*>malloc(sz_r * (loc_nc_rphi * radius_ratio + 1)
                              * sizeof(double))
@@ -1832,7 +1830,7 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
         loc_nc_rphi = <int>(c_ceil(disc_r[ii] * twopi_over_dphi))
         ncells_rphi[ii] = loc_nc_rphi
         step_rphi[ii] = _TWOPI / loc_nc_rphi
-        dRPhirRef[ii] = disc_r[ii] * step_rphi[ii]
+        d_r_phir_ref[ii] = disc_r[ii] * step_rphi[ii]
         tot_nc_plane[ii] = tot_nc_plane[ii-1] + ncells_rphi[ii-1] * sz_z
         with nogil, parallel(num_threads=num_threads):
             for jj in range(loc_nc_rphi):
@@ -1854,13 +1852,13 @@ cdef inline void vmesh_ind_cart_loop(int np,
                                      double[:, ::1] pts,
                                      double[::1] res3d,
                                      double reso_r_z,
-                                     double[::1] dRPhirRef,
-                                     int[::1] Ru,
-                                     double[::1] dRPhir,
+                                     double[::1] d_r_phir_ref,
+                                     int[::1] ru,
+                                     double[::1] d_r_phir,
                                      int num_threads) nogil:
     cdef int ii
     cdef int jj
-    cdef int iiR, iiZ, iiphi
+    cdef int ii_r, ii_z, iiphi
     cdef double phi
     # we compute the points coordinates from the indices values
     with nogil, parallel(num_threads=num_threads):
@@ -1869,17 +1867,17 @@ cdef inline void vmesh_ind_cart_loop(int np,
             for jj in range(sz_r+1):
                 if ind[ii]-tot_nc_plane[jj]<0:
                     break
-            iiR = jj-1
-            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
-            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
-            phi = phi_tab[iiR + sz_r * iiphi]
-            pts[0,ii] = disc_r[iiR] * c_cos(phi)
-            pts[1,ii] = disc_r[iiR] * c_sin(phi)
-            pts[2,ii] = disc_z[iiZ]
-            res3d[ii] = reso_r_z * dRPhirRef[iiR]
-            if Ru[iiR]==0:
-                dRPhir[iiR] = dRPhirRef[iiR]
-                Ru[iiR] = 1
+            ii_r = jj-1
+            ii_z =  (ind[ii] - tot_nc_plane[ii_r]) // ncells_rphi[ii_r]
+            iiphi = ind[ii] - tot_nc_plane[ii_r] - ii_z * ncells_rphi[ii_r]
+            phi = phi_tab[ii_r + sz_r * iiphi]
+            pts[0, ii] = disc_r[ii_r] * c_cos(phi)
+            pts[1, ii] = disc_r[ii_r] * c_sin(phi)
+            pts[2, ii] = disc_z[ii_z]
+            res3d[ii] = reso_r_z * d_r_phir_ref[ii_r]
+            if ru[ii_r]==0:
+                d_r_phir[ii_r] = d_r_phir_ref[ii_r]
+                ru[ii_r] = 1
     return
 
 
@@ -1894,37 +1892,52 @@ cdef inline void vmesh_ind_polr_loop(int np,
                                      double[:, ::1] pts,
                                      double[::1] res3d,
                                      double reso_r_z,
-                                     double[::1] dRPhirRef,
-                                     int[::1] Ru,
-                                     double[::1] dRPhir,
+                                     double[::1] d_r_phir_ref,
+                                     int[::1] ru,
+                                     double[::1] d_r_phir,
                                      int num_threads) nogil:
     cdef int ii
     cdef int jj
-    cdef int iiR, iiZ, iiphi
+    cdef int ii_r, ii_z, iiphi
     # we compute the points coordinates from the indices values
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(np):
-            jj = 0
             for jj in range(sz_r+1):
                 if ind[ii]-tot_nc_plane[jj]<0:
                     break
-            iiR = jj-1
-            iiZ =  (ind[ii] - tot_nc_plane[iiR]) // ncells_rphi[iiR]
-            iiphi = ind[ii] - tot_nc_plane[iiR] - iiZ * ncells_rphi[iiR]
-            pts[0,ii] = disc_r[iiR]
-            pts[1,ii] = disc_z[iiZ]
-            pts[2,ii] = phi_tab[iiR + sz_r * iiphi]
-            res3d[ii] = reso_r_z * dRPhirRef[iiR]
-            if Ru[iiR]==0:
-                dRPhir[iiR] = dRPhirRef[iiR]
-                Ru[iiR] = 1
+            ii_r = jj-1
+            ii_z =  (ind[ii] - tot_nc_plane[ii_r]) // ncells_rphi[ii_r]
+            iiphi = ind[ii] - tot_nc_plane[ii_r] - ii_z * ncells_rphi[ii_r]
+            pts[0, ii] = disc_r[ii_r]
+            pts[1, ii] = disc_z[ii_z]
+            pts[2, ii] = phi_tab[ii_r + sz_r * iiphi]
+            res3d[ii] = reso_r_z * d_r_phir_ref[ii_r]
+            if ru[ii_r]==0:
+                d_r_phir[ii_r] = d_r_phir_ref[ii_r]
+                ru[ii_r] = 1
     return
-
 
 
 # ==============================================================================
 # == Solid Angle Computation
 # ==============================================================================
+cdef inline int sa_prepare_tab(long[:, ::1] lnp,
+                               long[:, ::1] is_in_vignette,
+                               int sz_r,
+                               int sz_z,
+                               long* sz_phi) nogil:
+    cdef int ii, zz, jj = 0
+    cdef int kk
+    cdef int npts_disc = 0
+    cdef int rem
+    for ii in range(sz_r):
+        for zz in range(sz_z):
+            if is_in_vignette[ii, zz]:
+                lnp[ii, zz] = npts_disc
+                npts_disc += 1
+    return npts_disc
+
+
 # -- utility for discretizing phi ----------------------------------------------
 cdef inline int  sa_disc_phi(int sz_r, int sz_z,
                              long* ncells_rphi,
@@ -1951,9 +1964,8 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
     cdef double max_phi_pi
     cdef double margin_step
     cdef double abs0, abs1
-    cdef int npts_dischi0, nphi1
+    cdef int nphi0, nphi1
     # .. Initialization Variables ..............................................
-    npts_disc = 0
     twopi_over_dphi = _TWOPI / phistep
     min_phi_pi = min_phi + c_pi
     max_phi_pi = max_phi + c_pi
@@ -2078,56 +2090,58 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                     double* disc_r,
                                     double* step_rphi,
                                     double* disc_z,
-                                    long[:, :, ::1] lnp,
+                                    long[:, ::1] lnp,
                                     long* sz_phi,
                                     double* reso_phi,
                                     double[::1] reso_rdrdz,
                                     double[:, ::1] pts_mv,
-                                    long[::1] ind_mv,
+                                    int[::1] ind_mv,
                                     int num_threads) nogil:
     cdef int ii
     cdef int zz
     cdef int jj
     cdef int pp
-    cdef long npts_disc
-    cdef long zrphi
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
     cdef long indiijj
-    cdef double vol
-    cdef double volpi
+    cdef double vol_pi
     cdef double loc_r
     cdef double loc_z
     cdef double loc_phi
-    cdef double* dist = NULL
+    cdef double loc_step_rphi
     cdef long* is_vis
+    cdef double* dist = NULL
 
     dist = <double*> malloc(sz_p * sizeof(double))
     is_vis = <long*> malloc(sz_p * sizeof(long))
-    # ...
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(sz_r):
+            vol_pi = reso_phi[ii] * c_pi
             loc_r = disc_r[ii]
+            loc_size_phi = sz_phi[ii]
+            loc_step_rphi = step_rphi[ii]
+            loc_first_ind = first_ind_mv[ii]
             for zz in range(sz_z):
                 loc_z = disc_z[zz]
-                zrphi = lindex_z[zz] * ncells_rphi[ii]
                 if is_in_vignette[ii, zz]:
-                    for jj in range(sz_phi[ii]):
-                        npts_disc = lnp[ii, zz, jj]
-                        indiijj = indi_mv[ii, first_ind_mv[ii] + jj]
-                        pts_mv[0, npts_disc] = loc_r
-                        pts_mv[1, npts_disc] = loc_z
-                        loc_phi = -c_pi + (0.5 + indiijj) * step_rphi[ii]
-                        ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
-                        reso_rdrdz[npts_disc] = disc_r[ii] *  reso_r_z
-                        vol = reso_phi[ii]
+                    ind_pol = lnp[ii, zz]
+                    ind_mv[ind_pol] = ii * sz_z + zz
+                    reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                    pts_mv[0, ind_pol] = loc_r
+                    pts_mv[1, ind_pol] = loc_z
+                    for jj in range(loc_size_phi):
+                        indiijj = indi_mv[ii, loc_first_ind + jj]
+                        loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
                         # computing distance ....
-                        _bgt.compute_dist_pt_vec(pts_mv[0, npts_disc],
-                                                 pts_mv[1, npts_disc],
+                        _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
+                                                 pts_mv[1, ind_pol],
                                                  loc_phi,
                                                  sz_p, part_coords,
                                                  &dist[0])
                         # checking if visible .....
-                        _rt.is_visible_pt_vec_core(pts_mv[0, npts_disc],
-                                                   pts_mv[1, npts_disc],
+                        _rt.is_visible_pt_vec_core(pts_mv[0, ind_pol],
+                                                   pts_mv[1, ind_pol],
                                                    loc_phi,
                                                    part_coords,
                                                    sz_p,
@@ -2151,12 +2165,11 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                                    eps_uz, eps_a,
                                                    eps_vz, eps_b, eps_plane,
                                                    is_tor, forbid, num_threads)
-                        volpi = vol * c_pi
                         for pp in range(sz_p):
                             if is_vis[pp] :
-                                sa_map[npts_disc, pp] += sa_formula(part_rad[pp],
-                                                             dist[pp],
-                                                             volpi)
+                                sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
+                                                                  dist[pp],
+                                                                  vol_pi)
     return
 
 
@@ -2175,56 +2188,60 @@ cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                             double* disc_r,
                                             double* step_rphi,
                                             double* disc_z,
-                                            long[:, :, ::1] lnp,
+                                            long[:, ::1] lnp,
                                             long* sz_phi,
                                             double* reso_phi,
                                             double[::1] reso_rdrdz,
                                             double[:, ::1] pts_mv,
-                                            long[::1] ind_mv,
+                                            int[::1] ind_mv,
                                             int num_threads) nogil:
     cdef int ii
     cdef int zz
     cdef int jj
     cdef int pp
-    cdef long npts_disc
-    cdef long zrphi
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
     cdef long indiijj
-    cdef double vol
-    cdef double volpi
+    cdef double vol_pi
     cdef double loc_r
     cdef double loc_z
     cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef long* is_vis
     cdef double* dist = NULL
-    # init
-    dist = <double*>malloc(sz_p * sizeof(double))
-    # ...
+
+    dist = <double*> malloc(sz_p * sizeof(double))
+    is_vis = <long*> malloc(sz_p * sizeof(long))
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(sz_r):
+            vol_pi = reso_phi[ii] * c_pi
             loc_r = disc_r[ii]
+            loc_size_phi = sz_phi[ii]
+            loc_step_rphi = step_rphi[ii]
+            loc_first_ind = first_ind_mv[ii]
             for zz in range(sz_z):
                 loc_z = disc_z[zz]
-                zrphi = lindex_z[zz] * ncells_rphi[ii]
                 if is_in_vignette[ii, zz]:
-                    for jj in range(sz_phi[ii]):
-                        npts_disc = lnp[ii, zz, jj]
-                        indiijj = indi_mv[ii, first_ind_mv[ii] + jj]
-                        pts_mv[0, npts_disc] = loc_r
-                        pts_mv[1, npts_disc] = loc_z
-                        loc_phi = -c_pi + (0.5 + indiijj) * step_rphi[ii]
-                        ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
-                        reso_rdrdz[npts_disc] = disc_r[ii] *  reso_r_z
-                        vol = reso_phi[ii]
+                    ind_pol = lnp[ii, zz]
+                    ind_mv[ind_pol] = ii * sz_z + zz
+                    reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                    pts_mv[0, ind_pol] = loc_r
+                    pts_mv[1, ind_pol] = loc_z
+                    for jj in range(loc_size_phi):
+                        indiijj = indi_mv[ii, loc_first_ind + jj]
+                        loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
                         # computing distance ....
-                        _bgt.compute_dist_pt_vec(pts_mv[0, npts_disc],
-                                                 pts_mv[1, npts_disc],
+                        _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
+                                                 pts_mv[1, ind_pol],
                                                  loc_phi,
                                                  sz_p, part_coords,
                                                  &dist[0])
-                        volpi = vol * c_pi
                         for pp in range(sz_p):
-                            sa_map[npts_disc, pp] += sa_formula(part_rad[pp],
-                                                         dist[pp],
-                                                         volpi)
+                            if is_vis[pp] :
+                                sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
+                                                                  dist[pp],
+                                                                  vol_pi)
     return
 
 

@@ -249,6 +249,13 @@ cdef int  sa_disc_phi(int sz_r, int sz_z,
                       int num_threads) nogil
 
 
+cdef int sa_prepare_tab(long[:, ::1] lnp,
+                        long[:, ::1] is_in_vignette,
+                        int sz_r,
+                        int sz_z,
+                        long* sz_phi) nogil
+
+
 cdef void sa_assemble_arrays(double[:, ::1] part_coords,
                              double[::1] part_rad,
                              long[:, ::1] is_in_vignette,
@@ -289,7 +296,7 @@ cdef void sa_assemble_arrays(double[:, ::1] part_coords,
                              double* disc_r,
                              double* step_rphi,
                              double* disc_z,
-                             long[:, :, ::1] lnp,
+                             long[:, ::1] lnp,
                              long* sz_phi,
                              double* reso_phi,
                              double[::1] reso_rdrdz,
@@ -313,7 +320,7 @@ cdef void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                      double* disc_r,
                                      double* step_rphi,
                                      double* disc_z,
-                                     long[:, :, ::1] lnp,
+                                     long[:, ::1] lnp,
                                      long* sz_phi,
                                      double* reso_phi,
                                      double[::1] reso_rdrdz,

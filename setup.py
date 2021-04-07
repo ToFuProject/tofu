@@ -180,6 +180,7 @@ extensions = [
         sources=["tofu/geom/_GG.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
+        language_level="3",
     ),
     Extension(
         name="tofu.geom._basic_geom_tools",
