@@ -1669,8 +1669,12 @@ def test24_is_visible(debug=0):
         _ = ax2.plot(point[0], point[1], markers[ii], label="pointt", ms=5)
         _ = ax.plot(np.sqrt(point[0]**2 + point[1]**2), point[2],
                     markers[ii], ms=5, label="pointt")
+        ax.set_xlabel("R")
+        ax.set_ylabel("Z")
+        ax2.set_xlabel("X")
+        ax2.set_ylabel("Y")
         ax.legend()
-        fig.savefig("test2")
+        fig.savefig("test1")
 
     pt_x = np.r_[2, 6.0, -.5, 4.0, -.5, 6.5]
     pt_y = np.r_[7, 2.0, 7.4, 3.5, 6.5, 6.5]
@@ -1753,6 +1757,10 @@ def test24_is_visible(debug=0):
         _ = ax.plot([np.sqrt(pts2[0, 0]**2 + pts2[1, 0]**2),
                      np.sqrt(pts2[0, 1]**2 + pts2[1, 1]**2)],
                     [pts2[2, 0], pts2[2, 1]])
+        ax.set_xlabel("R")
+        ax.set_ylabel("Z")
+        ax2.set_xlabel("X")
+        ax2.set_ylabel("Y")
         ax.legend()
         fig.savefig("test2")
 

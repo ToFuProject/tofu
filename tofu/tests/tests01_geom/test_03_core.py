@@ -384,8 +384,6 @@ class Test01_Struct(object):
                     continue
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
-                    P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
                     for ii in range(len(ldomain)):
                         try:
                             print("Computing pts 0", ldomain[ii])

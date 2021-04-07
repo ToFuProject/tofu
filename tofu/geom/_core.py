@@ -3920,7 +3920,6 @@ class Config(utils.ToFuObject):
         )
         return dkwd
 
-
     def calc_solidangle_particle(
         self,
         pts=None,

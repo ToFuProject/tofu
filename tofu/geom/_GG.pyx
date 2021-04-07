@@ -4815,8 +4815,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
         sz_phi[0] = nphi1 + 1 - nphi0
         max_sz_phi[0] = sz_phi[0]
-        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
-        indi_mv = indI
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = ind_i
         for jj in range(sz_phi[0]):
             indi_mv[0, jj] = nphi0 + jj
         npts_disc += sz_z * sz_phi[0]
@@ -4848,8 +4848,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
         sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
         max_sz_phi[0] = sz_phi[0]
-        indI = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
-        indi_mv = indI
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = ind_i
         for jj in range(loc_nc_rphi - nphi0):
             indi_mv[0, jj] = nphi0 + jj
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
@@ -4885,14 +4885,14 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     reso_rdrdz = np.empty((new_np, ))
     sa_map = np.zeros((new_np, sz_p))
     pts = np.empty((2, new_np))
-    ind = np.empty((new_np, ), dtype=int)
+    ind = np.empty((npts_disc, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
-    indi_mv = indI
+    indi_mv = ind_i
     reso_rdrdz_mv = reso_rdrdz
     reso_r_z = reso_r[0]*reso_z[0]
-    indI = np.sort(indI, axis=1)
-    first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
+    ind_i = np.sort(ind_i, axis=1)
+    first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(int)
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     # ..............

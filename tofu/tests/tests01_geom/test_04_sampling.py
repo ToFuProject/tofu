@@ -94,7 +94,7 @@ def test02_discretize_vpoly(VPoly=VPoly):
 # =============================================================================
 # Ves  - Vmesh
 # =============================================================================
-def test03_Ves_Vmesh_Tor(VPoly=VPoly):
+def test03_Ves_Vmesh_Tor():
     r_min_max, z_min_max = compute_min_max_r_and_z(VPoly)
     dR, dZ, dRPhi = 0.05, 0.05, 0.05
     LDPhi = [None, [3. * np.pi / 4., 5. * np.pi / 4.], [-np.pi / 4., np.pi / 4.]]
@@ -146,7 +146,7 @@ def test03_Ves_Vmesh_Tor(VPoly=VPoly):
         assert np.allclose(vec_phi_res, dRPhiri)
 
 
-def test04_ves_vmesh_lin(VPoly=VPoly):
+def test04_ves_vmesh_lin():
     XMinMax = np.array([0., 10.])
     YMinMax = np.array([np.min(VPoly[0, :]), np.max(VPoly[0, :])])
     ZMinMax = np.array([np.min(VPoly[1, :]), np.max(VPoly[1, :])])
@@ -199,8 +199,8 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                         Exp="Misc",
                         lStruct=[ves])
 
-    part = np.array([[2.0, 2., 0.], [1.5, 0, 0], [2.5, 0, 0]], order='F').T
-    part_rad = np.r_[0.1, 0.1, 0.1]
+    part = np.array([[3.5, 0, 0], [10, 10, 10]], order='F').T
+    part_rad = np.r_[0.1, 0.1]
     rstep = zstep = 0.01
     phistep = 0.5
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
@@ -213,53 +213,59 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                      )
     pts, sa_map, ind, rdrdz = res
 
-    print(np.shape(sa_map))
+    # check sizes
+    npts_ind = np.size(ind)
+    npts_vol = np.size(rdrdz)
+    dim, npts = np.shape(pts)
+    npts_sa, sz_p = np.shape(sa_map)
 
     if debug > 0:
-        fig = plt.figure(figsize=(14, 8))
-        ax = plt.subplot(121)
-        ax.plot(pts[0, :], pts[1, :], '.b')
-        fig.suptitle("testing")
-
-    # check sizes
-    npts3 = np.size(ind)
-    npts4 = np.size(rdrdz)
-    dim, npts = np.shape(pts)
-    npts2, sz_p = np.shape(sa_map)
-
-    print(f"sa_map is of size {npts2},{sz_p}")
+        print(f"sa_map is of size {npts_sa},{sz_p}")
     assert dim == 2
     assert sz_p == np.shape(part)[1]
-    assert npts == npts2 == npts3 == npts4
+    assert npts == npts_sa == npts_vol
 
     # ... Testing with exact function .........................................
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
                                             limits_r, limits_z,
                                             out_format='(R,Z,Phi)',
                                             margin=1.e-9)
+
     pts_disc, dvol, ind, reso_r, reso_z, reso_phi = res
     npts_disc = np.shape(pts_disc)[1]
-    res = config.calc_solidangle_particle(pts_disc,
-                                          part,
-                                          part_rad)
-    assert (sz_p, npts_disc) == np.shape(res)
-    assert npts_disc == npts
-    print(npts, npts_disc, npts_disc > npts)
-    are_zeros = 0
-    r0 = pts[0, 0]
-    z0 = pts[1, 0]
-    for ii in range(0, npts):
-        # if abs(pts[0, ii] - r0) < 10**-10 and abs(pts[1, ii] - z0) < 10**-10:
-        #     are_zeros += 1
-        if np.count_nonzero(sa_map[ii]) == 0:
-            are_zeros += 1
-        elif ii < 5:
-            print(sa_map[ii])
-    print(f"There are {are_zeros} zero points....")
+    sang = config.calc_solidangle_particle(pts_disc,
+                                           part,
+                                           part_rad,
+                                           approx=False)
 
-    sa_map_py = np.zeros((sz_p, npts))
+    if debug > 0:
+        fig = plt.figure(figsize=(14, 8))
+        ax = plt.subplot(121)
+        ax.plot(pts_disc[0, :], pts_disc[1, :], '.b')
+        fig.suptitle("testing still")
+        plt.savefig("mocomoco")
 
-    assert 1 == 2
+    assert (sz_p, npts_disc) == np.shape(sang)
+    assert npts_disc > npts
+
+    sz_z = np.abs(limits_z[1] - limits_z[0]) // reso_z
+    sz_r = np.abs(limits_r[1] - limits_r[0]) // reso_r
+    assert npts_sa == sz_z * sz_r
+
+    sa_map_py = np.zeros((npts_sa, sz_p))
+
+    for ii in range(npts_disc):
+        i_r = int((pts_disc[0, ii] - limits_r[0]) // reso_r)
+        i_z = int((pts_disc[1, ii] - limits_z[0]) // reso_z)
+        ind_pol = int(i_r * sz_z + i_z)
+        if ind_pol == 39999:
+            print("solid angle = ", sang[0, ii], reso_phi[i_r])
+        for pp in range(sz_p):
+            sa_map_py[ind_pol, pp] += sang[pp, ii] * np.pi * reso_phi[i_r]
+
+    print("reconstructed sa map =", sa_map_py)
+    print("cython computed = ", sa_map)
+    assert np.allclose(sa_map_py, sa_map)
 
     # ...
     return
