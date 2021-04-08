@@ -23,16 +23,11 @@ import matplotlib as mpl
 from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
-try:
-    import tofu.geom._def as _def
-    import tofu.geom._GG as _GG
-    import tofu.geom._comp_optics as _comp_optics
-    import tofu.geom._plot_optics as _plot_optics
-except Exception:
-    from . import _def as _def
-    from . import _GG as _GG
-    from . import _comp_optics as _comp_optics
-    from . import _plot_optics as _plot_optics
+from . import _def as _def
+from . import _GG as _GG
+from . import _check_optics
+from . import _comp_optics as _comp_optics
+from . import _plot_optics as _plot_optics
 
 
 __all__ = ['CrystalBragg']
@@ -208,65 +203,6 @@ class CrystalBragg(utils.ToFuObject):
     ###########
     # Get check and format inputs
     ###########
-
-    @classmethod
-    def _checkformat_dgeom(cls, dgeom=None):
-        if dgeom is None:
-            return
-        assert isinstance(dgeom, dict)
-        lkok = cls._get_keys_dgeom()
-        assert all([isinstance(ss, str) and ss in lkok for ss in dgeom.keys()])
-        for kk in cls._ddef['dgeom'].keys():
-            dgeom[kk] = dgeom.get(kk, cls._ddef['dgeom'][kk])
-        for kk in lkok:
-            dgeom[kk] = dgeom.get(kk, None)
-        if dgeom['center'] is not None:
-            dgeom['center'] = np.atleast_1d(dgeom['center']).ravel()
-            assert dgeom['center'].size == 3
-        else:
-            assert dgeom['summit'] is not None
-            assert dgeom['rcurve'] is not None
-        if dgeom['summit'] is not None:
-            dgeom['summit'] = np.atleast_1d(dgeom['summit']).ravel()
-            assert dgeom['summit'].size == 3
-        else:
-            assert dgeom['center'] is not None
-            assert dgeom['rcurve'] is not None
-        if dgeom['extenthalf'] is not None:
-            dgeom['extenthalf'] = np.atleast_1d(dgeom['extenthalf'])
-            assert dgeom['extenthalf'].size == 2
-        if dgeom['rcurve'] is not None:
-            dgeom['rcurve'] = float(dgeom['rcurve'])
-        if dgeom['nout'] is not None:
-            dgeom['nout'] = np.atleast_1d(dgeom['nout'])
-            dgeom['nout'] = dgeom['nout'] / np.linalg.norm(dgeom['nout'])
-            assert dgeom['nout'].size == 3
-        if dgeom['nin'] is not None:
-            dgeom['nin'] = np.atleast_1d(dgeom['nin'])
-            dgeom['nin'] = dgeom['nin'] / np.linalg.norm(dgeom['nin'])
-            assert dgeom['nin'].size == 3
-        if dgeom['e1'] is not None:
-            dgeom['e1'] = np.atleast_1d(dgeom['e1'])
-            dgeom['e1'] = dgeom['e1'] / np.linalg.norm(dgeom['e1'])
-            assert dgeom['e1'].size == 3
-            assert dgeom['e2'] is not None
-        if dgeom['e2'] is not None:
-            dgeom['e2'] = np.atleast_1d(dgeom['e2'])
-            dgeom['e2'] = dgeom['e2'] / np.linalg.norm(dgeom['e2'])
-            assert dgeom['e2'].size == 3
-        if dgeom['e1'] is not None:
-            assert np.abs(np.sum(dgeom['e1']*dgeom['e2'])) < 1.e-12
-            if dgeom['nout'] is not None:
-                assert np.abs(np.sum(dgeom['e1']*dgeom['nout'])) < 1.e-12
-                assert np.abs(np.sum(dgeom['e2']*dgeom['nout'])) < 1.e-12
-                assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
-                                      - dgeom['nout']) < 1.e-12
-            if dgeom['nin'] is not None:
-                assert np.abs(np.sum(dgeom['e1']*dgeom['nin'])) < 1.e-12
-                assert np.abs(np.sum(dgeom['e2']*dgeom['nin'])) < 1.e-12
-                assert np.linalg.norm(np.cross(dgeom['e1'], dgeom['e2'])
-                                      + dgeom['nin']) < 1.e-12
-        return dgeom
 
     @classmethod
     def _checkformat_dmat(cls, dmat=None):
@@ -490,29 +426,10 @@ class CrystalBragg(utils.ToFuObject):
     ###########
 
     def set_dgeom(self, dgeom=None):
-        dgeom = self._checkformat_dgeom(dgeom)
-        if dgeom['e1'] is not None:
-            if dgeom['nout'] is None:
-                dgeom['nout'] = np.cross(dgeom['e1'], dgeom['e2'])
-            if dgeom['nin'] is None:
-                dgeom['nin'] = -dgeom['nout']
-            if dgeom['center'] is None:
-                dgeom['center'] = (dgeom['summit']
-                                   + dgeom['nin']*dgeom['rcurve'])
-            if dgeom['summit'] is None:
-                dgeom['summit'] = (dgeom['center']
-                                   + dgeom['nout']*dgeom['rcurve'])
-        elif dgeom['center'] is not None and dgeom['summit'] is not None:
-            if dgeom['nout'] is None:
-                nout = (dgeom['summit'] - dgeom['center'])
-                dgeom['nout'] = nout / np.linalg.norm(nout)
-
-        if dgeom['extenthalf'] is not None:
-            if dgeom['Type'] == 'sph' and dgeom['Typeoutline'] == 'rect':
-                ind = np.argmax(dgeom['extenthalf'])
-                dphi = dgeom['extenthalf'][ind]
-                sindtheta = np.sin(dgeom['extenthalf'][ind-1])
-                dgeom['surface'] = 4.*dgeom['rcurve']**2*dphi*sindtheta
+        dgeom = _check_optics._checkformat_dgeom(
+            dgeom=dgeom, ddef=self._ddef['dgeom'],
+            valid_keys=self._get_keys_dgeom(),
+        )
         self._dgeom = dgeom
         if dgeom['move'] is not None:
             self.set_move(move=dgeom['move'], param=dgeom['move_param'],
