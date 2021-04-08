@@ -90,6 +90,7 @@ def _check_orthornormaldirect(e1=None, e2=None, var=None, varname=None):
 # ####################################################################
 #               check dgeom
 # ####################################################################
+# ####################################################################
 
 
 def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
@@ -109,6 +110,7 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
 
     # --------------------
     # Check dict integrity
+    # --------------------
 
     # Check dict type and content (each key is a valid str)
     _check_dict_valid_keys(var=dgeom, varname='dgeom', valid_keys=valid_keys)
@@ -123,6 +125,7 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
 
     # --------------------
     # Check each value independently
+    # --------------------
 
     # Complementarity (center, rcurve) <=> (summit, rcurve)
     dgeom['center'] = _check_flat1darray_size(
@@ -151,7 +154,6 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
 
     # Check consistency between unit vectors
     if dgeom['e1'] is not None:
-
         c0 = (
             dgeom['e2'] is not None
             and np.abs(np.sum(dgeom['e1']*dgeom['e2'])) < 1.e-12
@@ -182,6 +184,7 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
 
     # ----------------------
     # Add missing vectors and parameters
+    # ----------------------
 
     if dgeom['e1'] is not None:
         if dgeom['nout'] is None:
@@ -207,3 +210,118 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
             dgeom['surface'] = 4.*dgeom['rcurve']**2*dphi*sindtheta
 
     return dgeom
+
+
+# ####################################################################
+# ####################################################################
+#               check dmat
+# ####################################################################
+# ####################################################################
+
+
+def _checkformat_dmat(dmat=None, ddef=None, valid_keys=None):
+    """
+    Check the content of dmat
+
+    Crystal parameters : d, formula, density, lengths, angles, cut
+
+    New basis of unit vectors due to non-parallelism (e1, e2, nout) + nin + alpha, beta
+    """	
+
+
+    if dmat is None:
+        return
+
+    #-------------------------
+    # check dict integrity
+    #-------------------------
+
+    # Check dict typeand content (each key is a valid string)
+    _check_dict_valid_keys(var=dmat, varname='dmat', valid_keys=valid_keys)
+
+    # Set default values if any
+    for kk in ddef.keys():
+        dmat[kk] = dmat.get(kk, ddef[kk]) 	
+
+    #-------------------------
+    # check each value independently
+    #-------------------------
+
+    # Check dimension of array and its size 	
+    dmat['lengths'] = _check_flat1darray_size(
+        var=dmat.get('lengths'), varname='lengths', size=1)
+    dmat['angles'] = _check_flat1darray_size(
+        var=dmat.get('angles'), varname='angles', size=1)	
+
+    if dmat['d'] is None:
+        msg = "Arg dmat['d'] must be convertible to a float."
+        raise Exception(msg)
+    dmat['d'] = float(dmat['d'])
+
+    if dmat['density'] is None:
+        msg = "Arg dmat['density'] must be convertible to a float."
+        raise Exception(msg)
+    dmat['density'] = float(dmat['density'])
+    
+    if isinstance(dmat['formula'], str) is False:
+        msg = (
+            """ 
+            Var {} must be a valid string. 
+            
+            Provided 
+                - type: {}  
+            """.format('formula', type(dmat['formula']) 
+
+    if dmat.get('cut') is not None:
+        dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
+        if dmat['cut'].size <= 4:
+            msg = (
+                """
+                Var {} should be convertible to a 1d np.ndarray of minimal size of {}.
+                
+                Provided: {}
+                """.format('cut', 5, dmat.get('cut'))
+
+    # Check all unit vectors
+    for k0 in ['nout', 'nin', 'e1', 'e2',]:
+        dmat[k0] = _check_flat1darray_size(
+            var=dmat.get(k0), varname=k0, size=3, norm=True)
+    
+    # Check all additionnal angles to define the new basis
+    for k0 in ['alpha', 'beta',]:
+        dmat[k0] = _check_flat1darray_size(
+            var=dmat.get(k0), varname=k0, size=1, norm=False)
+
+    # ----------------------
+    # Add missing vectors and parameters according to the new basis 
+    # ----------------------
+
+    if all([dgeom[aa] is not None for aa in ['nout', 'e1', 'e2']]):
+        if all([dmat[aa] is not None for aa in ['alpha', 'beta']]):
+            if dmat['nout'] is None:
+	        dmat['nout'] = dgeom['nout']*np.cos(dmat['alpha'])
+                               +np.sin(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']
+                               +np.sin(dmat['beta'])*dgeom['e2'])
+    if dmat['nin'] is None:
+        dmat['nin'] = -dmat['nout']
+    if dgeom['e1'] is not None and dgeom['nout'] is not None:
+        if dmat['alpha'] is None:
+	    # 0 < alpha < pi/2
+	    if dgeom['e1'] and dgeom['nout'] >= 0:
+	        dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])
+	    if dgeom['e1'] >= 0 and dgeom['nout'] < 0:
+	        dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2)
+	    if dgeom['e1'] < 0 and dgeom['nout'] >= 0:
+	        dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2)
+	    if dgeom['e1'] and dgeom['nout'] < 0:
+	        dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(2*np.pi)
+    if dgeom['e1'] & dgeom['e2'] is not None:
+        if dmat['beta'] is None:
+	    # 0 < beta < 2pi
+	    dmat['beta'] = np.arctan2(dgeom['e2'] / dgeom['e1'])
+    if all([dgeom[aa] is not None for aa in ['nout', 'e1', 'e2']]):
+        if all([dmat[aa] is not None for aa in ['alpha', 'beta', 'nout']]):
+	    dmat['e1'] = np.cos(dmat['beta'])*dgeom['e1']+np.sin(dmat['beta'])*dgeom['e2']
+	    dmat['e2'] = np.cross(dmat['nout'], dmat['e1'])
+
+    return dmat
