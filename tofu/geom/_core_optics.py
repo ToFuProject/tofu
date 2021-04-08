@@ -23,16 +23,11 @@ import matplotlib as mpl
 from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
-try:
-    import tofu.geom._def as _def
-    import tofu.geom._GG as _GG
-    import tofu.geom._comp_optics as _comp_optics
-    import tofu.geom._plot_optics as _plot_optics
-except Exception:
-    from . import _def as _def
-    from . import _GG as _GG
-    from . import _comp_optics as _comp_optics
-    from . import _plot_optics as _plot_optics
+from . import _def as _def
+from . import _GG as _GG
+from . import _check_optics
+from . import _comp_optics as _comp_optics
+from . import _plot_optics as _plot_optics
 
 
 __all__ = ['CrystalBragg']
@@ -108,6 +103,11 @@ class CrystalBragg(utils.ToFuObject):
     # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
         # Python 2
+        super(CrystalBragg,cls).__init_subclass__(**kwdargs)
+        # Python 3
+        #super().__init_subclass__(**kwdargs)
+        cls._ddef = copy.deepcopy(CrystalBragg._ddef)
+        cls._dplot = copy.deepcopy(CrystalBragg._dplot)
         cls._set_color_ddef(cls._color)
 
     @classmethod
@@ -2191,25 +2191,6 @@ class CrystalBragg(utils.ToFuObject):
         # Geometrical transform
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
-    def noise_analysis_scannbs(
-        self, data=None, xi=None, xj=None, n=None,
-        det=None, dtheta=None, psi=None,
-        mask=None, nxerrbin=None,
-        domain=None, nlamb=None,
-        deg=None, knots=None, nbsplines=None, lnbsplines=None,
-        loss=None, max_nfev=None,
-        xtol=None, ftol=None, gtol=None,
-        method=None, tr_solver=None, tr_options=None,
-        verbose=None, plot=None,
-        ms=None, dax=None, fs=None, dmargin=None,
-        wintit=None, tit=None, sublab=None,
-        save_fig=None, name_fig=None, path_fig=None,
-        fmt=None, return_dax=None):
-
-        # ----------------------
-        # Geometrical transform
-        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
-        nxi = xi.size if xi is not None else np.unique(xii).size
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
         # Compute lamb / phi
@@ -2220,48 +2201,36 @@ class CrystalBragg(utils.ToFuObject):
         lamb = self.get_lamb_from_bragg(bragg, n=n)
 
         import tofu.spectro._fit12d as _fit12d
-        return _fit12d.noise_analysis_2d_scannbs(
+        return _fit12d.noise_analysis_2d(
             data, lamb, phi,
-            mask=mask, nxerrbin=nxerrbin, nlamb=nlamb,
-            deg=deg, knots=knots, nbsplines=nbsplines, lnbsplines=lnbsplines,
+            mask=mask, valid_fraction=valid_fraction,
+            margin=margin, nxerrbin=nxerrbin,
+            nlamb=nlamb, deg=deg, knots=knots, nbsplines=nbsplines,
             loss=loss, max_nfev=max_nfev,
             xtol=xtol, ftol=ftol, gtol=gtol,
             method=method, tr_solver=tr_solver, tr_options=tr_options,
             verbose=verbose, plot=plot,
-            ms=ms, dax=dax, fs=fs, dmargin=dmargin,
+            ms=ms, dcolor=dcolor,
+            dax=dax, fs=fs, dmargin=dmargin,
             wintit=wintit, tit=tit, sublab=sublab,
             save_fig=save_fig, name_fig=name_fig, path_fig=path_fig,
             fmt=fmt, return_dax=return_dax)
 
     @staticmethod
-    def noise_analysis_scannbs_plot(
-        dnoise_scan=None, ms=None,
+    def noise_analysis_plot(
+        dnoise=None, margin=None, valid_fraction=None,
+        ms=None, dcolor=None,
         dax=None, fs=None, dmargin=None,
         wintit=None, tit=None, sublab=None,
         save=None, name=None, path=None, fmt=None):
         import tofu.spectro._plot as _plot_spectro
-        return _plot_spectro.plot_noise_analysis_scannbs(
-                dnoise=dnoise_scan, ms=ms,
-                dax=dax, fs=fs, dmargin=dmargin,
-                wintit=wintit, tit=tit, sublab=sublab,
-                save=save, name=name, path=path, fmt=fmt)
+        return _plot_spectro.plot_noise_analysis(
+            dnoise=dnoise, margin=margin, valid_fraction=valid_fraction,
+            ms=ms, dcolor=dcolor,
+            dax=dax, fs=fs, dmargin=dmargin,
+            wintit=wintit, tit=tit, sublab=sublab,
+            save=save, name=name, path=path, fmt=fmt)
 
-"""
-This module is the geometrical part of the ToFu general package
-It includes all functions and object classes necessary for tomography on Tokamaks
-"""
-
-# Built-in
-import sys
-import os
-import warnings
-import copy
-
-
-# Common
-import numpy as np
-import scipy.interpolate as scpinterp
-import scipy.stats as scpstats
     def noise_analysis_scannbs(
         self, data=None, xi=None, xj=None, n=None,
         det=None, dtheta=None, psi=None,
