@@ -199,15 +199,20 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                         Exp="Misc",
                         lStruct=[ves])
 
-    part = np.array([[3.5, 0, 0], [10, 10, 10]], order='F').T
-    part_rad = np.r_[0.1, 0.1]
+    part = np.array([[10., 0, 0]], order='F').T
+    part_rad = np.r_[0.01]
     rstep = zstep = 0.01
-    phistep = 0.5
+    phistep = 0.1
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
+    # DR = [1.75, 2.]
+    # DZ = [-.25, 0.25]
+    # DPhi = [-0.01, 0.01]
 
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
+                                     # DR=DR, DZ=DZ,
+                                     # DPhi=DPhi,
                                      ves_poly=ves_poly,
                                      ves_norm=ves_norm,
                                      )
@@ -215,7 +220,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     # check sizes
     npts_ind = np.size(ind)
-    npts_vol = np.size(rdrdz)
     dim, npts = np.shape(pts)
     npts_sa, sz_p = np.shape(sa_map)
 
@@ -223,11 +227,13 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         print(f"sa_map is of size {npts_sa},{sz_p}")
     assert dim == 2
     assert sz_p == np.shape(part)[1]
-    assert npts == npts_sa == npts_vol
+    assert npts == npts_sa
 
     # ... Testing with exact function .........................................
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
                                             limits_r, limits_z,
+                                            # DR=DR, DZ=DZ,
+                                            # DPhi=DPhi,
                                             out_format='(R,Z,Phi)',
                                             margin=1.e-9)
 
@@ -237,7 +243,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                            part,
                                            part_rad,
                                            approx=False)
-
     if debug > 0:
         fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
@@ -248,24 +253,39 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     assert (sz_p, npts_disc) == np.shape(sang)
     assert npts_disc > npts
 
-    sz_z = np.abs(limits_z[1] - limits_z[0]) // reso_z
-    sz_r = np.abs(limits_r[1] - limits_r[0]) // reso_r
+    sz_z = int(round(np.abs(limits_z[1] - limits_z[0]) / reso_z))
+    sz_r = int(round(np.abs(limits_r[1] - limits_r[0]) / reso_r))
     assert npts_sa == sz_z * sz_r
 
     sa_map_py = np.zeros((npts_sa, sz_p))
 
     for ii in range(npts_disc):
-        i_r = int((pts_disc[0, ii] - limits_r[0]) // reso_r)
-        i_z = int((pts_disc[1, ii] - limits_z[0]) // reso_z)
+        i_r = int(round((pts_disc[0, ii] - limits_r[0]) // reso_r))
+        i_z = int(round((pts_disc[1, ii] - limits_z[0]) // reso_z))
         ind_pol = int(i_r * sz_z + i_z)
-        if ind_pol == 39999:
-            print("solid angle = ", sang[0, ii], reso_phi[i_r])
         for pp in range(sz_p):
-            sa_map_py[ind_pol, pp] += sang[pp, ii] * np.pi * reso_phi[i_r]
+            sa_map_py[ind_pol, pp] += sang[pp, ii] * reso_phi[i_r]
+
+    if debug > 0:
+        fig = plt.figure(figsize=(14, 8))
+        ax = plt.subplot(121)
+        # import pdb; pdb.set_trace()
+        ax.scatter(pts[0, :], pts[1, :],
+                   marker="s", edgecolors="None",
+                   s=10, c=sa_map.flatten(),
+                   vmin=0, vmax=max(sa_map.max(), sa_map_py.max()))
+        ax.set_title("cython function")
+        ax = plt.subplot(122)
+        ax.scatter(pts[0, :], pts[1, :],
+                   marker="s", edgecolors="None",
+                   s=10, c=sa_map_py.flatten(),
+                   vmin=0, vmax=max(sa_map.max(), sa_map_py.max()))
+        ax.set_title("python reconstruction")
+        plt.savefig("comparaison")
 
     print("reconstructed sa map =", sa_map_py)
     print("cython computed = ", sa_map)
-    assert np.allclose(sa_map_py, sa_map)
+    assert np.allclose(sa_map_py, sa_map, atol=1e-05)
 
     # ...
     return

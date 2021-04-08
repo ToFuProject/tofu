@@ -715,9 +715,11 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         return ldiscr, lresol,\
             lindex, resolutions[0], resolutions[1]
 
+
 def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                            double d2, long[::1] ind, str dSMode='abs',
                            double margin=_VSMALL):
+    # TODO : mettre à jour
     cdef int NP = ind.size
     cdef int ii
     cdef double d1r, d2r
@@ -901,6 +903,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             coordinates
         margin(double): tolerance error.
             Defaults to |_VSMALL|
+    Returns
+    ------
+       TODO
+       reso_phi : R*dPhi
     """
     cdef int jj
     cdef int npts_disc = 0
@@ -1069,7 +1075,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                              ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                              min_phi, max_phi, sz_phi, indi_mv,
                              margin, num_threads)
-
     # ... vignetting ...........................................................
     is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
 
@@ -1094,7 +1099,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
     new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
-        assert npts_disc == new_np
+        assert npts_disc == new_np, f"No matching {npts_disc} vs {new_np}"
     else:
         npts_disc = new_np
 
@@ -1109,6 +1114,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     indI = np.sort(indI, axis=1)
     indi_mv = indI
     first_ind_mv = np.argmax(indI > -1, axis=1).astype(int)
+
     _st.vmesh_assemble_arrays(first_ind_mv, indi_mv,
                           is_in_vignette,
                           is_cart, sz_r,
@@ -4663,8 +4669,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         pts:    (2, npts) array of (R, Z) coordinates of viewing points in
                 vignette where solid angle is integrated
         sa_map: (npts, sz_p) array approx solid angle integrated along phi
+                integral (sa * dphi * r)
         ind:    (npts) indices to reconstruct (R,Z) map from sa_map
-        rdrdz:  (npts) volume unit: r_ii*dr*dz
+        rdrdz:  (npts) volume unit: dr*dz
     """
     cdef int jj
     cdef int sz_p
@@ -4888,10 +4895,10 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     ind = np.empty((npts_disc, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
-    indi_mv = ind_i
     reso_rdrdz_mv = reso_rdrdz
     reso_r_z = reso_r[0]*reso_z[0]
     ind_i = np.sort(ind_i, axis=1)
+    indi_mv = ind_i
     first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(int)
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
@@ -4938,7 +4945,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                ncells_rphi, tot_nc_plane,
                                reso_r_z, disc_r, step_rphi,
                                disc_z, lnp, sz_phi,
-                               step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
+                               reso_rdrdz_mv, pts_mv, ind_mv,
                                num_threads)
     else:
         _st.sa_assemble_arrays_unblock(part_coords, part_r,
@@ -4949,7 +4956,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                        ncells_rphi, tot_nc_plane,
                                        reso_r_z, disc_r, step_rphi,
                                        disc_z, lnp, sz_phi,
-                                       step_rphi, reso_rdrdz_mv, pts_mv, ind_mv,
+                                       reso_rdrdz_mv, pts_mv, ind_mv,
                                        num_threads)
     # ... freeing up memory ....................................................
     free(disc_r)
@@ -4961,4 +4968,5 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(ncells_rphi)
     free(tot_nc_plane)
 
-    return pts, sa_map, ind_mv, reso_rdrdz
+    # TODO : remove reso_rdrdz
+    return pts, sa_map, ind_mv, reso_r_z

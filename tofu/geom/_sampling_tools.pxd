@@ -1,3 +1,4 @@
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
@@ -70,9 +71,9 @@ cdef void simple_discretize_vpoly_core(double[:, ::1] VPoly,
 # ==============================================================================
 
 # -- LOS sampling for a single ray ---------------------------------------------
-cdef int get_nb_imode(str imode)
+cpdef int get_nb_imode(str imode)
 
-cdef int get_nb_dmode(str dmode)
+cpdef int get_nb_dmode(str dmode)
 
 cdef int los_get_sample_single(double los_kmin, double los_kmax,
                                double resol, int imethod, int imode,
@@ -298,7 +299,6 @@ cdef void sa_assemble_arrays(double[:, ::1] part_coords,
                              double* disc_z,
                              long[:, ::1] lnp,
                              long* sz_phi,
-                             double* reso_phi,
                              double[::1] reso_rdrdz,
                              double[:, ::1] pts_mv,
                              long[::1] ind_mv,
@@ -322,7 +322,6 @@ cdef void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                      double* disc_z,
                                      long[:, ::1] lnp,
                                      long* sz_phi,
-                                     double* reso_phi,
                                      double[::1] reso_rdrdz,
                                      double[:, ::1] pts_mv,
                                      long[::1] ind_mv,
