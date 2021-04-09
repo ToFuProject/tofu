@@ -15,6 +15,7 @@ __all__ = ['step03_read', 'step03_read_all']
 _DTYPES = {'adf11': ['acd', 'ccd', 'scd', 'plt', 'prb'],
            'adf15': None}
 _DEG = 1
+_PECASFUNC = True
 
 
 # #############################################################################
@@ -395,13 +396,22 @@ def _get_adf15_key(elem, charge, isoel, typ0, typ1):
                                            typ0, typ1)
 
 
-def _read_adf15(pfe, dout=None,
-                lambmin=None,
-                lambmax=None,
-                deg=None):
+def _read_adf15(
+    pfe,
+    dout=None,
+    lambmin=None,
+    lambmax=None,
+    pec_as_func=None,
+    deg=None,
+):
+    """
+    Here lambmin and lambmax are provided in m
+    """
 
     if deg is None:
         deg = _DEG
+    if pec_as_func is None:
+        pec_as_func = _PECASFUNC
     if dout is None:
         dout = {}
 
@@ -490,21 +500,37 @@ def _read_adf15(pfe, dout=None,
                 if ind == pec.size:
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
+                    # PEC rehaping and conversion to cm3/s -> m3/s
+                    pec = pec.reshape((nne, nte)) * 1e-6
                     # log(ne)+6 to convert /cm3 -> /m3
-                    # log(pec)+6 to convert cm3/s -> m3/s
-                    func = scpRectSpl(np.log(ne)+6, np.log(te),
-                                      np.log(pec).reshape((nne, nte))+6,
-                                      kx=deg, ky=deg)
-                    dout[key] = {'lambda': lamb,
-                                 'ION': '{}{}+'.format(elem, charge),
-                                 'symbol': '{}{}-{}'.format(typ0, typ1, isoel),
-                                 'origin': pfe,
-                                 'type': typ[0],
-                                 'ne': ne, 'te': te,
-                                 'pec': {'func': func,
-                                         'type': 'log_nete',
-                                         'units': 'log(m3/s)',
-                                         'source': 'pfe'}}
+                    ne = ne*1e6
+
+                    if pec_as_func is True:
+                        pec_rec = scpRectSpl(
+                            np.log(ne),
+                            np.log(te),
+                            np.log(pec),
+                            kx=deg,
+                            ky=deg)
+                        def pec(Te=None, ne=None, pec_rec=pec_rec):
+                            return np.exp(pec_rec(np.log(ne), np.log(Te)))
+
+                    dout[key] = {
+                        'lambda0': lamb,
+                        'ion': '{}{}+'.format(elem, charge),
+                        'charge': charge,
+                        'element': elem,
+                        'symbol': '{}{}-{}'.format(typ0, typ1, isoel),
+                        'origin': pfe,
+                        'type': typ[0],
+                        'ne': ne,
+                        'ne_units': '/m3',
+                        'te': te,
+                        'te_units': 'eV',
+                        'pec': pec,
+                        'pec_type': 'f(ne, Te)',
+                        'pec_units': 'm3/s',
+                    }
 
             # Get transitions from table at the end
             if 'photon emissivity atomic transitions' in line:
@@ -523,7 +549,7 @@ def _read_adf15(pfe, dout=None,
                            + "\t- line should be present".format(key))
                     raise Exception(msg)
                 if key in dout.keys():
-                    if dout[key]['lambda'] != lamb:
+                    if dout[key]['lambda0'] != lamb:
                         msg = "Inconsistency in file {}".format(pfe)
                         raise Exception(msg)
                     c0 = (dout[key]['type'] not in lstr
