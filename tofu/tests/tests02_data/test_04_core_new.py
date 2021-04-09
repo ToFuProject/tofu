@@ -187,6 +187,7 @@ class Test01_DataCollection(object):
     @classmethod
     def setup(self):
         pass
+
     def teardown(self):
         pass
 
@@ -398,14 +399,32 @@ class Test01_DataCollection(object):
                 os.remove(pfe)
 
 
+# #############################################################################
+# #############################################################################
+#           Specific to SpectralLines
+# #############################################################################
+
+
+class Test01_SpectralLines(object):
+
+    @classmethod
+    def setup_class(cls, Name='data1',  SavePath='./', verb=False):
+        pass
+
+    @classmethod
+    def setup(self):
+        pass
+
+    def teardown(self):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
+
+    def test01_init_from_openadas(self):
+        pass
 
 
 
 
-# class Test02_TimeTraceCollection(Test01_DataCollection):
-
-    # @classmethod
-    # def setup_class(cls, Name=None,  SavePath='./', verb=False):
-        # super(Test02_TimeTraceCollection, cls).setup_class(Name=Name,
-                                                           # SavePath=SavePath,
-                                                           # verb=verb)
