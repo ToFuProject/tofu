@@ -24,7 +24,10 @@ _URL_SEARCH = _URL + '/freeform?searchstring='
 _URL_SEARCH_WAVL = _URL + '/wavelength?'
 _URL_ADF15 = _URL + '/adf15'
 _URL_DOWNLOAD = _URL + '/download'
+_CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+_CUSTOM = os.path.join(_CUSTOM, 'scripts', 'tofucustom.py')
 
+_CREATE_CUSTOM = True
 _INCLUDE_PARTIAL = True
 
 
@@ -361,7 +364,7 @@ def step01_search_online_by_wavelengthA(
 # #############################################################################
 
 
-def _check_exists(filename, update=None):
+def _check_exists(filename, update=None, create_custom=None):
 
     # In case a small modification becomes necessary later
     target = filename
@@ -370,14 +373,20 @@ def _check_exists(filename, update=None):
     # Check whether the local .tofu repo exists, if not recommend tofu-custom
     if path_local is None:
         path = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
-        msg = ("You do not seem to have a local ./tofu repository\n"
-               + "tofu uses that local repository to store all user-specific "
-               + "data and downloads\n"
-               + "In particular, openadas files are downloaded and saved in:\n"
-               + "\t{}\n".format(path)
-               + "  => to set-up your local .tofu repo, run in a terminal:\n"
-               + "\ttofu-custom")
-        raise Exception(msg)
+        if create_custom is None:
+            create_custom = _CREATE_CUSTOM
+        if create_custom is True:
+            os.system('python ' + _CUSTOM)
+            path_local = _get_PATH_LOCAL()
+        else:
+            msg = ("You do not seem to have a local ./tofu repository\n"
+                   + "tofu uses that local repository to store user-specific "
+                   + "data and downloads\n"
+                   + "In particular, openadas files are downloaded in:\n"
+                   + "\t{}\n".format(path)
+                   + "  => to set-up your local .tofu repo, run in terminal:\n"
+                   + "\ttofu custom")
+            raise Exception(msg)
 
     # Parse intermediate repos and create if necessary
     lrep = target.split('/')[1:-1]
@@ -404,11 +413,16 @@ def _check_exists(filename, update=None):
 
 def step02_download(
     filename=None,
-    update=None, verb=None, returnas=None,
+    update=None,
+    create_custom=None,
+    verb=None,
+    returnas=None,
 ):
     """ Download desired file from  https://open.adas.ac.uk
 
     All downloaded files are stored in your local tofu directory (~/.tofu/)
+
+    Automatically runs tofu-custom if create_custom=True
 
     example
     -------
@@ -435,7 +449,10 @@ def step02_download(
         raise Exception(msg)
     url = _URL_DOWNLOAD + filename
 
-    exists, pfe = _check_exists(filename, update=update)
+    exists, pfe = _check_exists(
+        filename, update=update,
+        create_custom=create_custom
+    )
     if exists is True and verb is True:
         msg = ("File already exists, will be downloaded and overwritten:\n"
                + "\t{}".format(pfe))
@@ -464,7 +481,7 @@ def step02_download(
 def step02_download_all(
     files=None, searchstr=None,
     lambmin=None, lambmax=None, element=None,
-    include_partial=None, update=None, verb=None,
+    include_partial=None, update=None, create_custom=None, verb=None,
 ):
     """ Download all desired files from  https://open.adas.ac.uk
 
@@ -475,6 +492,7 @@ def step02_download_all(
         - the input to an online search by wavelength
             (lambmin, lambmax and element fed to search_online_by_wavelengthA)
 
+    Automatically runs tofu-custom if create_custom=True
     All downloaded files are stored in your local tofu directory (~/.tofu/)
 
     example
@@ -535,7 +553,10 @@ def step02_download_all(
         print(msg)
     for ii in range(len(files)):
         try:
-            exists, pfe = _check_exists(files[ii], update=update)
+            exists, pfe = _check_exists(
+                files[ii], update=update,
+                create_custom=create_custom,
+            )
             pfe = step02_download(
                 filename=files[ii], update=update,
                 verb=False, returnas=str,
