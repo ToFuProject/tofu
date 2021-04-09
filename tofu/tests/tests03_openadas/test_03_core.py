@@ -35,7 +35,8 @@ def setup_module():
     if os.path.isdir(_TOFU_USER):
         shutil.rmtree(_TOFU_USER)
     # Recreating clean .tofu
-    out = subprocess.run(_CUSTOM, stdout=PIPE, stderr=PIPE)
+    # out = subprocess.run(_CUSTOM, stdout=PIPE, stderr=PIPE)
+    os.system('python '+_CUSTOM)
 
 
 def teardown_module():
