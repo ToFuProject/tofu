@@ -96,6 +96,119 @@ class SpectralLines(DataCollection):
         pass
 
     # -----------------
+    # from openadas
+    # ------------------
+
+    @staticmethod
+    def _from_openadas(
+        lambmin=None,
+        lambmax=None,
+        element=None,
+        charge=None,
+        online=None,
+        update=None,
+    ):
+        """
+        Load lines and pec from openadas, either:
+            - online = True:  directly from the website
+            - online = False: from pre-downloaded files in ~/.tofu/openadas/
+        """
+
+        # Preliminary import and checks
+        from ..openadas2tofu import _requests
+        from ..openadas2tofu import _read_files
+
+        if online is None:
+            online = False
+
+        # Load from online if relevant
+        if online is True:
+            try:
+                out = _requests.step01_search_online_by_wavelengthA(
+                    lambmin=lambmin,
+                    lambmax=lambmax,
+                    element=element,
+                    charge=charge,
+                    verb=False,
+                    returnas=np.ndarray,
+                )
+                out = _requests.step02_downlad_all(
+                    out,
+                    update=update,
+                    verb=False,
+                )
+            except Exception as err:
+                msg = (
+                    """
+                    {}
+
+                    For some reason data could not be downloaded from openadas
+                        => see error message above
+                        => maybe check your internet connection?
+                    """
+                )
+                raise Exception(msg)
+
+        # Load for local files
+        out = _read_files.read_all(
+            lambmin=lambmin,
+            lambmax=lambmax,
+            element=element,
+            charge=charge,
+            verb=False,
+        )
+        return out
+
+    @classmethod
+    def from_openadas(
+        cls,
+        lambmin=None,
+        lambmax=None,
+        element=None,
+        charge=None,
+        online=None,
+        update=None,
+    ):
+        """
+        Load lines and pec from openadas, either:
+            - online = True:  directly from the website
+            - online = False: from pre-downloaded files in ~/.tofu/openadas/
+        """
+        out = _from_openadas(
+            lambmin=lambmin,
+            lambmax=lambmax,
+            element=element,
+            charge=charge,
+            online=online,
+            update=update,
+        )
+        return cls(ddata=out)
+
+    def add_from_openadas(
+        self,
+        lambmin=None,
+        lambmax=None,
+        element=None,
+        charge=None,
+        online=None,
+        update=None,
+    ):
+        """
+        Load and add lines and pec from openadas, either:
+            - online = True:  directly from the website
+            - online = False: from pre-downloaded files in ~/.tofu/openadas/
+        """
+        out = _from_openadas(
+            lambmin=lambmin,
+            lambmax=lambmax,
+            element=element,
+            charge=charge,
+            online=online,
+            update=update,
+        )
+        self.update(ddata=out)
+
+    # -----------------
     # summary
     # ------------------
 
