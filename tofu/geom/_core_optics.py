@@ -211,11 +211,13 @@ class CrystalBragg(utils.ToFuObject):
         lkok = self._get_keys_dbragg()
         assert all([isinstance(ss, str) for ss in dbragg.keys()])
         assert all([ss in lkok for ss in dbragg.keys()])
+        ## transfered to _check_optics.py
 
         # Set default parameters when necessary
         for kk in self._ddef['dbragg'].keys():
             if dbragg.get(kk) is None:
                 dbragg[kk] = self._ddef['dbragg'][kk]
+        ## transfered to _check_optics.py
 
         # Check braggref
         ltypes = [int, float, np.int_, np.float_]
@@ -227,6 +229,7 @@ class CrystalBragg(utils.ToFuObject):
                    + "\t- should be in [0; pi/2]\n"
                    + "\t- provided: {}".format(dbragg['braggref']))
             raise Exception(msg)
+        ## transfered to _check_optics.py
 
         # Set default lambda if necessary
         user_prov = True
@@ -235,6 +238,7 @@ class CrystalBragg(utils.ToFuObject):
             dbragg['lambref'] = _comp_optics.get_lamb_from_bragg(
                 np.r_[dbragg['braggref']], self._dmat['d'], n=1)[0]
             user_prov = False
+        ## transfered to _check_optics.py
 
         # Check provided lambref is valid
         braggref = _comp_optics.get_bragg_from_lamb(
@@ -247,11 +251,13 @@ class CrystalBragg(utils.ToFuObject):
                    + "\t- wavelength interval (m): {}\n".format(lambok)
                    + "\t- lambref = {}".format(dbragg['lambref']))
             raise Exception(msg)
+        ## transfered to _check_optics.py
 
         # Update braggref according to lambref
         # (if lambref was user-provided)
         if user_prov is True:
             dbragg['braggref'] = braggref
+        ## transfered to _check_optics.py
 
         # Check rocking curve if any
         if dbragg.get('rockingcurve') is not None:
@@ -337,8 +343,8 @@ class CrystalBragg(utils.ToFuObject):
         # maybe put here two angles and/or alternative local basis
 	# adding two new angles in order to compute the new set of unit vectors 
         lk = ['formula', 'density', 'symmetry',
-              'lengths', 'angles', 'cut', 'd', 
-	      'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
+              'lengths', 'angles', 'cut', 'd',
+              'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
         return lk
 
     @staticmethod
