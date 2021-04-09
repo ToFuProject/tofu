@@ -480,7 +480,9 @@ def step02_download_all(
     example
     -------
         >>> import tofu as tf
-        >>> tf.openadas2tofu.step02_download_all(lambmin=3., lambmax=4., element='ar')
+        >>> tf.openadas2tofu.step02_download_all(
+            lambmin=3., lambmax=4., element='ar',
+        )
     """
 
     # Check

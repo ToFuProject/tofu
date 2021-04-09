@@ -53,7 +53,6 @@ def teardown_module():
 
 class Test01_openadas(object):
 
-
     @classmethod
     def setup_class(cls):
         pass
@@ -61,6 +60,7 @@ class Test01_openadas(object):
     @classmethod
     def setup(self):
         pass
+
     def teardown(self):
         pass
 
@@ -107,7 +107,6 @@ class Test01_openadas(object):
             resolveby='transition',
         )
         assert out is None
-
 
     def test02_download(self):
         out = tfoa.step02_download(
