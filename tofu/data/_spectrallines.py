@@ -11,6 +11,9 @@ from . import _plot_spectrallines
 __all__ = ['SpectralLines', 'TimeTraces']
 
 
+_OPENADAS_ONLINE = True
+
+
 #############################################
 #############################################
 #       Spectral Lines
@@ -107,11 +110,24 @@ class SpectralLines(DataCollection):
         charge=None,
         online=None,
         update=None,
+        create_custom=None,
     ):
         """
         Load lines and pec from openadas, either:
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
+
+        Provide wavelengths in m
+
+        Example:
+        --------
+                >>> import tofu as tf
+                >>> lines_mo = tf.data.SpectralLines.from_openadas(
+                    element='Mo',
+                    lambmin=3.94e-10,
+                    lambmax=4e-10,
+                )
+
         """
 
         # Preliminary import and checks
@@ -119,22 +135,25 @@ class SpectralLines(DataCollection):
         from ..openadas2tofu import _read_files
 
         if online is None:
-            online = False
+            online = _OPENADAS_ONLINE
 
         # Load from online if relevant
         if online is True:
             try:
                 out = _requests.step01_search_online_by_wavelengthA(
-                    lambmin=lambmin,
-                    lambmax=lambmax,
+                    lambmin=lambmin*1e10,
+                    lambmax=lambmax*1e10,
                     element=element,
                     charge=charge,
                     verb=False,
                     returnas=np.ndarray,
+                    resolveby='file',
                 )
-                out = _requests.step02_downlad_all(
-                    out,
+                lf = sorted(set([oo[0] for oo in out]))
+                out = _requests.step02_download_all(
+                    files=lf,
                     update=update,
+                    create_custom=create_custom,
                     verb=False,
                 )
             except Exception as err:
@@ -145,12 +164,12 @@ class SpectralLines(DataCollection):
                     For some reason data could not be downloaded from openadas
                         => see error message above
                         => maybe check your internet connection?
-                    """
+                    """.format(err)
                 )
                 raise Exception(msg)
 
         # Load for local files
-        out = _read_files.read_all(
+        out = _read_files.step03_read_all(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -168,20 +187,23 @@ class SpectralLines(DataCollection):
         charge=None,
         online=None,
         update=None,
+        create_custom=None,
     ):
         """
         Load lines and pec from openadas, either:
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        out = _from_openadas(
+        out = cls._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
             charge=charge,
             online=online,
             update=update,
+            create_custom=create_custom,
         )
+        import pdb; pdb.set_trace()     # DB
         return cls(ddata=out)
 
     def add_from_openadas(
@@ -192,19 +214,21 @@ class SpectralLines(DataCollection):
         charge=None,
         online=None,
         update=None,
+        create_custom=None,
     ):
         """
         Load and add lines and pec from openadas, either:
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        out = _from_openadas(
+        out = self._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
             charge=charge,
             online=online,
             update=update,
+            create_custom=create_custom,
         )
         self.update(ddata=out)
 
