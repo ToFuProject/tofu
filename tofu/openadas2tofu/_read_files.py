@@ -501,7 +501,7 @@ def _read_adf15(
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
                     # PEC rehaping and conversion to cm3/s -> m3/s
-                    pec = pec.reshape((nne, nte))) * 1e-6
+                    pec = pec.reshape((nne, nte)) * 1e-6
                     # log(ne)+6 to convert /cm3 -> /m3
                     ne = ne*1e6
 
@@ -514,13 +514,12 @@ def _read_adf15(
                             ky=deg)
                         def pec(Te=None, ne=None, pec_rec=pec_rec):
                             return np.exp(pec_rec(np.log(ne), np.log(Te)))
-                            )
 
                     dout[key] = {
                         'lambda0': lamb,
                         'ion': '{}{}+'.format(elem, charge),
                         'charge': charge,
-                        'element': element,
+                        'element': elem,
                         'symbol': '{}{}-{}'.format(typ0, typ1, isoel),
                         'origin': pfe,
                         'type': typ[0],
@@ -550,7 +549,7 @@ def _read_adf15(
                            + "\t- line should be present".format(key))
                     raise Exception(msg)
                 if key in dout.keys():
-                    if dout[key]['lambda'] != lamb:
+                    if dout[key]['lambda0'] != lamb:
                         msg = "Inconsistency in file {}".format(pfe)
                         raise Exception(msg)
                     c0 = (dout[key]['type'] not in lstr
