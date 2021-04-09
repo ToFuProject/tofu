@@ -9,7 +9,7 @@ import numpy as np
 from scipy.interpolate import RectBivariateSpline as scpRectSpl
 
 
-__all__ = ['read', 'read_all']
+__all__ = ['step03_read', 'step03_read_all']
 
 
 _DTYPES = {'adf11': ['acd', 'ccd', 'scd', 'plt', 'prb'],
@@ -41,7 +41,8 @@ def _get_subdir_from_pattern(path, pattern):
                + "~/.tofu/openadas2tofu/ matching the desired file type:\n"
                + "\t- provided : {}\n".format(pattern)
                + "\t- available: {}\n".format(av)
-               + "  => download the data with tf.openadas2tofu.download()")
+               + "  => download the data with "
+               + "tf.openadas2tofu.step02_download()")
         raise Exception(msg)
     return os.path.join(path, ld[0])
 
@@ -51,7 +52,7 @@ def _get_subdir_from_pattern(path, pattern):
 # #############################################################################
 
 
-def read(adas_path, **kwdargs):
+def step03_read(adas_path, **kwdargs):
     """ Read openadas-formatted files and return a dict with the data
 
     Povide the full adas file name
@@ -61,9 +62,9 @@ def read(adas_path, **kwdargs):
     -------
         >>> import tofu as tf
         >>> fn = '/adf11/scd74/scd74_ar.dat'
-        >>> out = tf.openadas2tofu.read(fn)
+        >>> out = tf.openadas2tofu.step03_read(fn)
         >>> fn = '/adf15/pec40][ar/pec40][ar_ca][ar16.dat'
-        >>> out = tf.openadas2tofu.read(fn)
+        >>> out = tf.openadas2tofu.step03_read(fn)
     """
 
     path_local = _get_PATH_LOCAL()
@@ -93,8 +94,10 @@ def read(adas_path, **kwdargs):
         if not os.path.isfile(pfe):
             msg = ("Provided file does not seem to exist:\n"
                    + "\t{}\n".format(pfe)
-                   + "  => Search it online with tofu.openadas2tofu.search()\n"
-                   + "  => Download it with tofu.openadas2tofu.download()")
+                   + "  => Search it online with "
+                   + "tofu.openadas2tofu.step01_search_online()\n"
+                   + "  => Download it with "
+                   + "tofu.openadas2tofu.step02_download()")
             raise FileNotFoundError(msg)
 
     lc = [ss for ss in _DTYPES.keys() if ss in pfe]
@@ -108,12 +111,16 @@ def read(adas_path, **kwdargs):
     return func(pfe, **kwdargs)
 
 
-def read_all(element=None, charge=None, typ1=None, typ2=None,
-             verb=None, **kwdargs):
+def step03_read_all(
+    element=None, charge=None, typ1=None, typ2=None,
+    verb=None, **kwdargs,
+):
     """ Read all relevant openadas files for chosen typ1
 
     Please specify:
-        - typ1: 'adf11' or 'adf15'
+        - typ1:
+            - 'adf11': ionisation / recombination data
+            - 'adf15': pec data
         - element: the symbol of the element
 
     If typ1 = 'adf11', you can also provide typ2 to specify the coefficients:
@@ -131,10 +138,11 @@ def read_all(element=None, charge=None, typ1=None, typ2=None,
     examples
     --------
         >>> import tofu as tf
-        >>> dout = tf.openadas2tofu.read_all(element='ar', typ1='adf11')
-        >>> dout = tf.openadas2tofu.read_all(element='ar', typ1='adf15',
-                                             charge=16,
-                                             lambmin=3.94e-10, lambmax=4.e-10)
+        >>> dout = tf.openadas2tofu.step03_read_all(element='ar', typ1='adf11')
+        >>> dout = tf.openadas2tofu.step03_read_all(element='ar', typ1='adf15',
+                                                    charge=16,
+                                                    lambmin=3.94e-10,
+                                                    lambmax=4.e-10)
     """
 
     # --------------------
@@ -218,8 +226,8 @@ def read_all(element=None, charge=None, typ1=None, typ2=None,
         if verb is True:
             msg = "\tLoading data from {}".format(pfe)
             print(msg)
-        out = func(pfe, dout=dout, **kwdargs)
-    return out
+        dout = func(pfe, dout=dout, **kwdargs)
+    return dout
 
 
 # #############################################################################
@@ -236,7 +244,7 @@ def _read_adf11(pfe, deg=None, dout=None):
     # Get second order file type
     typ1 = [vv for vv in _DTYPES['adf11'] if vv in pfe]
     if len(typ1) != 1:
-        msg = ("Second order file type culd not be inferred from file name!\n"
+        msg = ("Second order file type could not be inferred from file name!\n"
                + "\t- available: {}\n".format(_DTYPES['adf11'])
                + "\t- provided: {}".format(pfe))
         raise Exception(msg)
@@ -261,12 +269,16 @@ def _read_adf11(pfe, deg=None, dout=None):
                     lstr = line.split('/')
                     lin = [ss for ss in lstr[0].strip().split(' ')
                            if ss.strip() != '']
-                    lc = [len(lin) == 5 and all([ss.isdigit() for ss in lin]),
-                          elem.upper() in lstr[1],
-                          'ADF11' in lstr[2]]
+                    lc = [
+                        len(lin) == 5 and all([ss.isdigit() for ss in lin]),
+                        elem.upper() in lstr[1],
+                        # 'ADF11' in lstr[-1],
+                    ]
                     if not all(lc):
                         msg = ("File header format seems to have changed!\n"
-                               + "\t- lc = {}".format(lc))
+                               + "\t- pfe: {}\n".format(pfe)
+                               + "\t- lc = {}\n".format(lc)
+                               + "\t- lstr = {}".format(lstr))
                         raise Exception(msg)
                     Z, nne, nte, q0, qend = map(int, lin)
                     nelog10 = np.array([])
