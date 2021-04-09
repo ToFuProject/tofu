@@ -176,7 +176,24 @@ class SpectralLines(DataCollection):
             charge=charge,
             verb=False,
         )
-        return out
+
+        # Format to ddata and dref
+        lkothers = [
+            'te', 'te_units', 'ne', 'ne_units',
+            'pec', 'pec_units', 'pec_type']
+
+        # TBF
+        dref = {}
+
+        ddata = {
+            'lines': {
+                k0: {k1: v1 for k1, v1 in v0.items() if k1 not in lkothers}
+                for k0, v0 in out.items()
+            },
+            'data': {
+            },
+        }
+        return ddata, dref
 
     @classmethod
     def from_openadas(
