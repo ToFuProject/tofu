@@ -1703,9 +1703,9 @@ cdef inline void vmesh_assemble_arrays_cart(int ii,
                 npts_disc = lnp[ii,zz,jj]
                 indiijj = iii[jj]
                 phi = -c_pi + (0.5 + indiijj) * step_rphi[ii]
-                pts_mv[0,npts_disc] = disc_r[ii] * c_cos(phi)
-                pts_mv[1,npts_disc] = disc_r[ii] * c_sin(phi)
-                pts_mv[2,npts_disc] = disc_z[zz]
+                pts_mv[0, npts_disc] = disc_r[ii] * c_cos(phi)
+                pts_mv[1, npts_disc] = disc_r[ii] * c_sin(phi)
+                pts_mv[2, npts_disc] = disc_z[zz]
                 ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
                 dv_mv[npts_disc] = reso_r_z*reso_phi_mv[ii]
     return
@@ -1924,14 +1924,14 @@ cdef inline int sa_prepare_tab(long[:, ::1] lnp,
                                int sz_z,
                                long* sz_phi) nogil:
     cdef int ii, zz
-    cdef int npts_disc = 0
+    cdef int npts_pol = 0
 
     for ii in range(sz_r):
         for zz in range(sz_z):
             if is_in_vignette[ii, zz]:
-                lnp[ii, zz] = npts_disc
-                npts_disc += 1
-    return npts_disc
+                lnp[ii, zz] = npts_pol
+                npts_pol += 1
+    return npts_pol
 
 
 # -- utility for discretizing phi ----------------------------------------------
@@ -2265,4 +2265,5 @@ cdef inline double sa_formula(double radius,
         \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
     """
     cdef double r_over_d = radius / distance
-    return (r_over_d ** 2 + r_over_d**4 * 0.25) * volpi
+    # return (r_over_d ** 2 + r_over_d**4 * 0.25) * volpi
+    return (r_over_d ** 2) * volpi

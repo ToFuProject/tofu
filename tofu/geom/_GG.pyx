@@ -1132,7 +1132,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi
+    return pts, res3d, ind, reso_r[0], reso_z[0], reso_phi, sz_r, sz_z
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython(double rstep, double zstep, double phistep,

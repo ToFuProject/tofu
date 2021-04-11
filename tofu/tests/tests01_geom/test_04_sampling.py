@@ -201,22 +201,22 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     part = np.array([[10., 0, 0]], order='F').T
     part_rad = np.r_[0.01]
-    rstep = zstep = 0.01
+    rstep = zstep = 0.1
     phistep = 0.1
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
-    # DR = [1.75, 2.]
-    # DZ = [-.25, 0.25]
-    # DPhi = [-0.01, 0.01]
+    DR = [1.75, 2.]
+    DZ = [-.25, 0.25]
+    DPhi = None # [-0.01, 0.01]
 
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
-                                     # DR=DR, DZ=DZ,
-                                     # DPhi=DPhi,
+                                     DR=DR, DZ=DZ,
+                                     DPhi=DPhi,
                                      ves_poly=ves_poly,
                                      ves_norm=ves_norm,
                                      )
-    pts, sa_map, ind, rdrdz = res
+    pts, sa_map, ind, reso_r_z  = res
 
     # check sizes
     npts_ind = np.size(ind)
@@ -225,24 +225,33 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     if debug > 0:
         print(f"sa_map is of size {npts_sa},{sz_p}")
+
+    # Checking shapes, sizes, types
     assert dim == 2
     assert sz_p == np.shape(part)[1]
     assert npts == npts_sa
+    assert isinstance(reso_r_z, float)
 
     # ... Testing with exact function .........................................
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
                                             limits_r, limits_z,
-                                            # DR=DR, DZ=DZ,
-                                            # DPhi=DPhi,
+                                            DR=DR, DZ=DZ,
+                                            DPhi=DPhi,
                                             out_format='(R,Z,Phi)',
                                             margin=1.e-9)
 
-    pts_disc, dvol, ind, reso_r, reso_z, reso_phi = res
+    pts_disc, dvol, ind, reso_r, reso_z, reso_phi, sz_r, sz_z = res
+
     npts_disc = np.shape(pts_disc)[1]
     sang = config.calc_solidangle_particle(pts_disc,
                                            part,
                                            part_rad,
-                                           approx=False)
+                                           approx=True)
+    sang_ex = config.calc_solidangle_particle(pts_disc,
+                                              part,
+                                              part_rad,
+                                              approx=False)
+
     if debug > 0:
         fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
@@ -251,20 +260,22 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         plt.savefig("mocomoco")
 
     assert (sz_p, npts_disc) == np.shape(sang)
-    assert npts_disc > npts
-
-    sz_z = int(round(np.abs(limits_z[1] - limits_z[0]) / reso_z))
-    sz_r = int(round(np.abs(limits_r[1] - limits_r[0]) / reso_r))
-    assert npts_sa == sz_z * sz_r
+    assert npts_disc >= npts
+    assert reso_r * reso_z == reso_r_z
+    assert npts_sa == sz_z * sz_r, f"sizes r and z = {sz_r}{sz_z}"
 
     sa_map_py = np.zeros((npts_sa, sz_p))
+    sa_map_py_ex = np.zeros((npts_sa, sz_p))
 
+    r0 = pts_disc[0, 0]
+    z0 = pts_disc[1, 0]
     for ii in range(npts_disc):
-        i_r = int(round((pts_disc[0, ii] - limits_r[0]) // reso_r))
-        i_z = int(round((pts_disc[1, ii] - limits_z[0]) // reso_z))
+        i_r = int(np.round(np.abs(r0 - pts_disc[0, ii]) / reso_r))
+        i_z = int(np.round(np.abs(z0 - pts_disc[1, ii]) / reso_z))
         ind_pol = int(i_r * sz_z + i_z)
         for pp in range(sz_p):
             sa_map_py[ind_pol, pp] += sang[pp, ii] * reso_phi[i_r]
+            sa_map_py_ex[ind_pol, pp] += sang_ex[pp, ii] * reso_phi[i_r]
 
     if debug > 0:
         fig = plt.figure(figsize=(14, 8))
@@ -283,8 +294,11 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
-    print("reconstructed sa map =", sa_map_py)
-    print("cython computed = ", sa_map)
+        # print("reconstructed sa map =", sa_map_py)
+        # print("cython computed = ", sa_map)
+    print("max error approx =", np.max(np.abs(sa_map_py - sa_map)))
+    print("max error exacts =", np.max(np.abs(sa_map_py_ex - sa_map)))
+    print("max error python =", np.max(np.abs(sa_map_py - sa_map_py_ex)))
     assert np.allclose(sa_map_py, sa_map, atol=1e-05)
 
     # ...
