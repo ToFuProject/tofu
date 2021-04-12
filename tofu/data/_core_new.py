@@ -155,24 +155,32 @@ class DataCollection(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def update(self, dobj=None, ddata=None, dref=None, dgroup=None):
+    def update(
+        self,
+        dobj=None,
+        ddata=None,
+        dref=None,
+        dref_static=None,
+        dgroup=None,
+    ):
         """ Can be used to set/add data/ref/group
 
         Will update existing attribute with new dict
         """
         # Check consistency
-        self._dgroup, self._dref, self._ddata = _check_inputs._consistency(
-            dobj=dobj, dobj0=self._dobj,
-            ddata=ddata, ddata0=self._ddata,
-            dref=dref, dref0=self._dref,
-            dref_static=dref_static, dref0_static=self._dref_static,
-            dgroup=dgroup, dgroup0=self._dgroup,
-            allowed_groups=self._allowed_groups,
-            reserved_keys=self._reserved_keys,
-            ddefparams=self._ddef['params'],
-            data_none=self._data_none,
-            max_ndim=self._max_ndim,
-        )
+        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+                _check_inputs._consistency(
+                    dobj=dobj, dobj0=self._dobj,
+                    ddata=ddata, ddata0=self._ddata,
+                    dref=dref, dref0=self._dref,
+                    dref_static=dref_static, dref_static0=self._dref_static,
+                    dgroup=dgroup, dgroup0=self._dgroup,
+                    allowed_groups=self._allowed_groups,
+                    reserved_keys=self._reserved_keys,
+                    ddefparams=self._ddef['params'],
+                    data_none=self._data_none,
+                    max_ndim=self._max_ndim,
+                )
 
     # ---------------------
     # Adding group / ref / quantity one by one
@@ -199,7 +207,7 @@ class DataCollection(utils.ToFuObject):
         self.update(ddata=ddata, dref=None, dref_static=None, dgroup=None)
 
     def add_obj(self, key=None, **kwdargs):
-        ddata = {key: **kwdargs}
+        ddata = {key: kwdargs}
         # Check consistency
         self.update(dobj=dobj, dref=None, dref_static=None, dgroup=None)
 
@@ -209,21 +217,28 @@ class DataCollection(utils.ToFuObject):
 
     def remove_group(self, group=None):
         """ Remove a group (or list of groups) and all associated ref, data """
-        self._dgroup, self._dref, self._ddata = _check_inputs._remove_group(
-            group=group,
-            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-            max_ndim=self._max_ndim,
-        )
+        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+                _check_inputs._remove_group(
+                    group=group,
+                    dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+                    dref_static0=self._dref_static,
+                    dobj0=self._dobj,
+                    max_ndim=self._max_ndim,
+                )
 
     def remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
-        self._dgroup, self._dref, self._ddata = _check_inputs._remove_ref(
-            key=key,
-            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-            propagate=propagate,
-            max_ndim=self._max_ndim,
-        )
+        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+                _check_inputs._remove_ref(
+                    key=key,
+                    dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+                    dref_static0=self._dref_static,
+                    dobj0=self._dobj,
+                    propagate=propagate,
+                    max_ndim=self._max_ndim,
+                )
 
+    # TBF
     def remove_ref_static(self, key=None, category=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
         self._dref_static, self._ddata = _check_inputs._remove_ref_static(
@@ -235,12 +250,15 @@ class DataCollection(utils.ToFuObject):
 
     def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
-        self._dgroup, self._dref, self._ddata = _check_inputs._remove_data(
-            key=key,
-            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-            propagate=propagate,
-            max_ndim=self._max_ndim,
-        )
+        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+                _check_inputs._remove_data(
+                    key=key,
+                    dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+                    dref_static0=self._dref_static,
+                    dobj0=self._dobj,
+                    propagate=propagate,
+                    max_ndim=self._max_ndim,
+                )
 
     # TBF
     def remove_obj(self, key=None, propagate=True):
@@ -386,7 +404,7 @@ class DataCollection(utils.ToFuObject):
         dp['data'] = {
             k1: self._ddata[k1]['data'].dtype.name
             if isinstance(self._ddata[k1]['data'], np.ndarray)
-            else: type(self._ddata[k1]['data'])
+            else type(self._ddata[k1]['data'])
             for k1 in self._ddata.keys()
         }
         return dp
@@ -404,9 +422,13 @@ class DataCollection(utils.ToFuObject):
     # General use methods
     ###########
 
-    def to_DataFrame(self):
+    def to_DataFrame_data(self):
         import pandas as pd
-        return pd.DataFrame(self.dparams)
+        return pd.DataFrame(self.dparams_data)
+
+    def to_DataFrame_obj(self):
+        import pandas as pd
+        return pd.DataFrame(self.dparams_obj)
 
     # ---------------------
     # Key selection methods
@@ -429,10 +451,29 @@ class DataCollection(utils.ToFuObject):
             ddata=self._ddata, log=log, returnas=returnas, **kwdargs,
         )
 
-    def _ind_tofrom_key(self, ind=None, key=None, group=None, returnas=int):
+    def select_obj(self, log=None, returnas=None, **kwdargs):
+        """ Return the indices / keys of data matching criteria
+
+        The selection is done comparing the value of all provided parameters
+        The result is a boolean indices array, optionally with the keys list
+        It can include:
+            - log = 'all': only the data matching all criteria
+            - log = 'any': the data matching any criterion
+
+        If log = 'raw', a dict of indices arrays is returned, showing the
+        details for each criterion
+
+        """
+        return _check_inputs._select(
+            ddata=self._dobj, log=log, returnas=returnas, **kwdargs,
+        )
+
+    def _ind_tofrom_key_data(
+        self, ind=None, key=None, group=None, returnas=int,
+    ):
         """ Return ind from key or key from ind for all data """
         return _check_inputs._ind_tofrom_key(
-            ddata=self._ddata, ind=ind, key=key,
+            dd=self._ddata, dd_name='ddata', ind=ind, key=key,
             group=group, dgroup=self._dgroup,
             returnas=returnas,
         )

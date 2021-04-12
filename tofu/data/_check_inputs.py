@@ -65,6 +65,8 @@ def _check_remove(key=None, dkey=None, name=None):
 
 def _remove_group(
     group=None, dgroup0=None, dref0=None, ddata0=None,
+    dref_static0=None,
+    dobj0=None,
     allowed_groups=None,
     reserved_keys=None,
     ddefparams=None,
@@ -89,6 +91,8 @@ def _remove_group(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
+        dref_static=None, dref_static0=dref_static0,
+        dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
@@ -99,7 +103,11 @@ def _remove_group(
 
 
 def _remove_ref(
-    key=None, dgroup0=None, dref0=None, ddata0=None, propagate=None,
+    key=None,
+    dgroup0=None, dref0=None, ddata0=None,
+    dref_static0=None,
+    dobj0=None,
+    propagate=None,
     allowed_groups=None,
     reserved_keys=None,
     ddefparams=None,
@@ -134,6 +142,8 @@ def _remove_ref(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
+        dref_static=None, dref_static0=dref_static0,
+        dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
@@ -144,7 +154,11 @@ def _remove_ref(
 
 
 def _remove_data(
-    key=None, dgroup0=None, dref0=None, ddata0=None, propagate=None,
+    key=None,
+    dgroup0=None, dref0=None, ddata0=None,
+    dref_static0=None,
+    dobj0=None,
+    propagate=None,
     allowed_groups=None,
     reserved_keys=None,
     ddefparams=None,
@@ -180,6 +194,8 @@ def _remove_data(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
+        dref_static=None, dref_static0=dref_static0,
+        dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
@@ -304,8 +320,8 @@ def _check_dref_static(
 
     # ----------------
     # Trivial case
-    if dref _static in [None, {}]:
-        return {}, None, None
+    if dref_static in [None, {}]:
+        return {}
 
     # ----------------
     # Check conformity
@@ -1370,6 +1386,7 @@ def _check_elementioncharge_dict(dref_static):
 def _harmonize_params(
     dd=None,
     dd_name=None,
+    dref_static=None,
     lkeys=None,
     reserved_keys=None,
     ddefparams=None,
@@ -1430,9 +1447,10 @@ def _harmonize_params(
     # ------------------
     # Check against dref_static0
     lkpout = [
-        k0: (k1, v0[k1])
+        (k0, (k1, v0[k1]))
         for k0, v0 in dd.items()
-        if any([v0[k1] not in dref_static[k1].keys() for k1 in lparam])
+        if k1 in dref_static.keys()
+        and any([v0[k1] not in dref_static[k1].keys() for k1 in lparams])
     ]
     if len(lkpout) > 0:
         lpu = sorted(set([pp[1][0] for pp in lkpout]))
@@ -1440,7 +1458,7 @@ def _harmonize_params(
             '\t- {}[{}]: {}'.format(pp[0], pp[1], pp[2]) for pp in lkpout
         ])
         msg1 = '\n'.join([
-            '\t- dref_static[{}]: {}'.format(pp, dref_static0[pp].keys())
+            '\t- dref_static[{}]: {}'.format(pp, dref_static[pp].keys())
             for pp in lpu
         ])
         msg = (
@@ -1464,8 +1482,10 @@ def _harmonize_params(
 
 
 def _consistency(
+    dobj=None, dobj0=None,
     ddata=None, ddata0=None,
     dref=None, dref0=None,
+    dref_static=None, dref_static0=None,
     dgroup=None, dgroup0=None,
     allowed_groups=None,
     reserved_keys=None,
@@ -1519,15 +1539,14 @@ def _consistency(
     # dobj
     dobj = _check_dobj(
         dobj=dobj, dobj0=dobj0,
-        dref_static0=dref_static0,
     )
 
     # --------------
     # params harmonization - ddata
     ddata0 = _harmonize_params(
         dd=ddata0,
-        dd_name='ddata'
-        dref_static0=dref_static0,
+        dd_name='ddata',
+        dref_static=dref_static0,
         ddefparams=ddefparams, reserved_keys=reserved_keys,
     )
 
@@ -1536,7 +1555,7 @@ def _consistency(
     dobj0 = _harmonize_params(
         dd=dobj0,
         dd_name='dobj',
-        dref_static0=dref_static0,
+        dref_static=dref_static0,
         ddefparams=ddefparams, reserved_keys=reserved_keys,
     )
 
@@ -1657,7 +1676,11 @@ def switch_ref(
 # #############################################################################
 
 
-def _get_param(ddata=None, param=None, key=None, ind=None, returnas=np.ndarray):
+def _get_param(
+    dd=None, dd_name=None,
+    param=None, key=None, ind=None,
+    returnas=np.ndarray,
+):
     """ Return the array of the chosen parameter (or list of parameters)
 
     Can be returned as:
@@ -1666,12 +1689,14 @@ def _get_param(ddata=None, param=None, key=None, ind=None, returnas=np.ndarray):
 
     """
     # Trivial case
-    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
+    lp = [kk for kk in list(dd.values())[0].keys()]
+    if dd_name == 'ddata':
+        lp.remove('data')
     if param is None:
         param = lp
 
     # Get key (which data to return param for)
-    key = _ind_tofrom_key(ddata=ddata, key=key, ind=ind, returnas=str)
+    key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
     # Check inputs
     lc = [
@@ -1708,19 +1733,17 @@ def _get_param(ddata=None, param=None, key=None, ind=None, returnas=np.ndarray):
 
     # Get output
     if returnas == dict:
-        out = {
-            k0: {k1: ddata[k1][k0] for k1 in key}
-            for k0 in param
-        }
+        out = {k0: {k1: dd[k1][k0] for k1 in key} for k0 in param}
     else:
-        out = {
-            k0: [ddata[k1][k0] for k1 in key]
-            for k0 in param
-        }
+        out = {k0: [dd[k1][k0] for k1 in key] for k0 in param}
     return out
 
 
-def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
+def _set_param(
+    dd=None, dd_name=None,
+    param=None, value=None,
+    ind=None, key=None,
+):
     """ Set the value of a parameter
 
     values can be:
@@ -1735,9 +1758,12 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
     """
 
     # Check param
-    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
+    lp = [kk for kk in list(dd.values())[0].keys()]
+    if dd_name == 'ddata':
+        lp.remove('data')
     if param is None:
         return
+
     c0 = isinstance(param, str) and param in lp
     if not c0:
         msg = (
@@ -1753,7 +1779,7 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
         raise Exception(msg)
 
     # Check ind / key
-    key = _ind_tofrom_key(ddata=ddata, ind=ind, key=key, returnas='key')
+    key = _ind_tofrom_key(dd=dd, ind=ind, key=key, returnas='key')
 
     # Check value
     ltypes = [str, int, np.int, float, np.float, tuple]
@@ -1764,7 +1790,7 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
         isinstance(value, np.ndarray) and value.shape[0] == len(key),
         isinstance(value, dict)
         and all([
-            kk in ddata.keys() and type(vv) in ltypes
+            kk in dd.keys() and type(vv) in ltypes
             for kk, vv in value.items()
         ])
     ]
@@ -1785,18 +1811,24 @@ def _set_param(ddata=None, param=None, value=None, ind=None, key=None):
     # Update data
     if value is None or lc[0]:
         for kk in key:
-            ddata[kk][param] = value
+            dd[kk][param] = value
     elif lc[1] or lc[2]:
         for ii, kk in enumerate(key):
-            ddata[kk][param] = value[ii]
+            dd[kk][param] = value[ii]
     else:
         for kk, vv in value.items():
-            ddata[kk][param] = vv
+            dd[kk][param] = vv
 
 
-def _add_param(ddata=None, param=None, value=None):
+def _add_param(
+    dd=None, dd_name=None,
+    param=None, value=None,
+):
     """ Add a parameter, optionnally also set its value """
-    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
+    lp = [kk for kk in list(dd.values())[0].keys()]
+    if dd_name == 'ddata':
+        dd.remove('data')
+
     c0 = isinstance(param, str) and param not in lp
     if not c0:
         msg = (
@@ -1813,16 +1845,16 @@ def _add_param(ddata=None, param=None, value=None):
         raise Exception(msg)
 
     # Initialize and set
-    for kk in ddata.keys():
-        ddata[kk][param] = None
-    _set_param(ddata=ddata, param=param, value=value)
+    for kk in dd.keys():
+        dd[kk][param] = None
+    _set_param(dd=dd, param=param, value=value)
 
 
-def _remove_param(ddata=None, param=None):
+def _remove_param(dd=None, dd_name=None, param=None):
     """ Remove a parameter, none by default, all if param = 'all' """
 
     # Check inputs
-    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
     if param is None:
         return
     if param == 'all':
@@ -1834,8 +1866,8 @@ def _remove_param(ddata=None, param=None):
         raise Exception(msg)
 
     # Remove
-    for k0 in ddata.keys():
-        del ddata[k0][param]
+    for k0 in dd.keys():
+        del dd[k0][param]
 
 
 
@@ -1846,7 +1878,7 @@ def _remove_param(ddata=None, param=None):
 
 
 def _ind_tofrom_key(
-    ddata=None, dgroup=None,
+    dd=None, dd_name=None, dgroup=None,
     ind=None, key=None, group=None, returnas=int,
 ):
 
@@ -1854,10 +1886,10 @@ def _ind_tofrom_key(
     # Check / format input
     lc = [ind is not None, key is not None]
     if not np.sum(lc) <= 1:
-        msg = ("Args ind and key cannot be prescribed simulatneously!")
+        msg = ("Args ind and key cannot be prescribed simultaneously!")
         raise Exception(msg)
 
-    if group is not None:
+    if dd_name == 'ddata' and group is not None:
         if not (isinstance(group, str) and group in group.keys()):
             msg = (
                 """
@@ -1887,14 +1919,14 @@ def _ind_tofrom_key(
     # Compute
 
     # Intialize output
-    out = np.zeros((len(ddata),), dtype=bool)
+    out = np.zeros((len(dd),), dtype=bool)
 
-    if not any(lc) and group is not None:
+    if not any(lc) and dd_name == 'ddata' and group is not None:
         key = dgroup[group]['ldata']
         lc[1] = True
 
     # Get output
-    lk = list(ddata.keys())
+    lk = list(dd.keys())
     if lc[0]:
 
         # Check ind
@@ -1903,8 +1935,8 @@ def _ind_tofrom_key(
         c0 = (
             ind.ndim == 1
             and (
-                (ind.dtype == np.bool and ind.size == len(ddata))
-                or (ind.dtype == np.int and ind.size <= len(ddata))
+                (ind.dtype == np.bool and ind.size == len(dd))
+                or (ind.dtype == np.int and ind.size <= len(dd))
         ))
         if not c0:
             msg = "Arg ind must be an iterable of bool or int indices!"
@@ -1932,9 +1964,9 @@ def _ind_tofrom_key(
         if not c0:
             msg = (
                 """
-                key must be valid key to ddata (or list of such)
+                key must be valid key to {} (or list of such)
                 Provided: {}
-                """.format(key)
+                """.format(dd_name, key)
             )
             raise Exception(msg)
 
@@ -1955,7 +1987,7 @@ def _ind_tofrom_key(
     return out
 
 
-def _select(ddata=None, log=None, returnas=None, **kwdargs):
+def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
     """ Return the indices / keys of data matching criteria
 
     The selection is done comparing the value of all provided parameters
@@ -1980,29 +2012,32 @@ def _select(ddata=None, log=None, returnas=None, **kwdargs):
         assert returnas == bool
 
     # Get list of relevant criteria
-    lp = [kk for kk in list(ddata.values())[0].keys() if kk != 'data']
+    lp = [kk for kk in list(dd.values())[0].keys()]
+    if dd_name == 'ddata':
+        lp.remove('data')
+
     lcritout = [ss for ss in kwdargs.keys() if ss not in lp]
     if len(lcritout) > 0:
         msg = (
             """
             The following criteria correspond to no parameters:
                 - {}
-              => only use known parameters (self.dparam.keys()):
+              => only use known parameters (self.dparam_{}.keys()):
                 - {}
-            """.format(lcritout, '\n\t- '.join(lp))
+            """.format(lcritout, dd_name, '\n\t- '.join(lp))
         )
         raise Exception(msg)
 
     # Prepare array of bool indices and populate
-    ind = np.zeros((len(kwdargs), len(ddata)), dtype=bool)
+    ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
     for ii, kk in enumerate(kwdargs.keys()):
         try:
-            par = self.get_param(ddata=ddata, param=kk, returnas=np.ndarray)
+            par = self.get_param(ddata=dd, param=kk, returnas=np.ndarray)
             ind[ii, :] = par == kwdargs[kk]
         except Exception as err:
             try:
                 ind[ii, :] = [
-                    ddata[k0][kk] == kwdargs[kk] for k0 in ddata.keys()
+                    dd[k0][kk] == kwdargs[kk] for k0 in dd.keys()
                 ]
             except Exception as err:
                 pass
@@ -2011,7 +2046,7 @@ def _select(ddata=None, log=None, returnas=None, **kwdargs):
     if log == 'raw':
         if returnas in [str, 'key']:
             ind = {
-                kk: [k0 for jj, k0 in enumerate(ddata.keys()) if ind[ii, jj]]
+                kk: [k0 for jj, k0 in enumerate(dd.keys()) if ind[ii, jj]]
                 for ii, kk in enumerate(kwdargs.keys())
             }
         if returnas == int:
@@ -2030,7 +2065,7 @@ def _select(ddata=None, log=None, returnas=None, **kwdargs):
             ind = ind.nonzero()[0]
         elif returnas in [str, 'key']:
             ind = np.array(
-                [k0 for jj, k0 in enumerate(ddata.keys()) if ind[jj]],
+                [k0 for jj, k0 in enumerate(dd.keys()) if ind[jj]],
                 dtype=str,
             )
     return ind
