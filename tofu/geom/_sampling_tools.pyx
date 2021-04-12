@@ -1,8 +1,8 @@
 # cython: language_level=3
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
-# cython: initializedcheck=True
+# cython: initializedcheck=False
 #
 ################################################################################
 # Utility functions for sampling and discretizating
@@ -2110,9 +2110,9 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
     cdef long* is_vis
     cdef double* dist = NULL
 
-    dist = <double*> malloc(sz_p * sizeof(double))
-    is_vis = <long*> malloc(sz_p * sizeof(long))
     with nogil, parallel(num_threads=num_threads):
+        dist = <double*> malloc(sz_p * sizeof(double))
+        is_vis = <long*> malloc(sz_p * sizeof(long))
         for ii in prange(sz_r):
             loc_r = disc_r[ii]
             vol_pi = step_rphi[ii] * loc_r * c_pi
@@ -2168,8 +2168,8 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                 sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
                                                                   dist[pp],
                                                                   vol_pi)
-    free(dist)
-    free(is_vis)
+        free(dist)
+        free(is_vis)
     return
 
 
@@ -2177,7 +2177,7 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
 cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                             double[::1] part_rad,
                                             long[:, ::1] is_in_vignette,
-                                            double[:, :, ::1] sa_map,
+                                            double[:, ::1] sa_map,
                                             long[::1] first_ind_mv,
                                             long[:, ::1] indi_mv,
                                             int sz_p,
@@ -2240,11 +2240,9 @@ cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                                  &dist[0])
                         for pp in range(sz_p):
                             if dist[pp]  > part_rad[pp]:
-                                sa_map[ind_pol, pp,
-                                       cython.parallel.threadid()] += sa_formula(part_rad[pp],
-                                                                                 dist[pp],
-                                                                                 vol_pi,
-                                                                                 0)
+                                sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
+                                                                  dist[pp],
+                                                                  vol_pi)
         free(dist)
     return
 
@@ -2272,5 +2270,8 @@ cdef inline double sa_formula(double radius,
         \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
     """
     cdef double r_over_d = radius / distance
+    if debug == 1:
+        with gil:
+            print("r, d, v =", radius, distance, volpi)
     # return (r_over_d ** 2 + r_over_d**4 * 0.25) * volpi
     return (r_over_d ** 2) * volpi

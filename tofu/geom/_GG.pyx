@@ -1,7 +1,7 @@
 # cython: language_level=3
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
-# cython: initializedcheck=True
+# cython: initializedcheck=False
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
@@ -4949,10 +4949,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                reso_rdrdz_mv, pts_mv, ind_mv,
                                num_threads)
     else:
-        sa_map_tmp = np.zeros((new_np, sz_p, num_threads))
         _st.sa_assemble_arrays_unblock(part_coords, part_r,
                                        is_in_vignette,
-                                       sa_map_tmp,
+                                       sa_map,
                                        first_ind_mv, indi_mv,
                                        sz_p, sz_r, sz_z, lindex_z,
                                        ncells_rphi, tot_nc_plane,
@@ -4960,7 +4959,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                        disc_z, lnp, sz_phi,
                                        reso_rdrdz_mv, pts_mv, ind_mv,
                                        num_threads)
-        sa_map = np.sum(sa_map_tmp, axis=2)
     # ... freeing up memory ....................................................
     free(disc_r)
     free(disc_z)

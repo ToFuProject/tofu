@@ -1,4 +1,5 @@
 # distutils: language=c++
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
@@ -17,8 +18,8 @@ from libcpp.vector cimport vector as vecpp
 from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt as Csqrt
-cimport _raytracing_tools as _rt
-cimport _basic_geom_tools as _bgt
+from . cimport _raytracing_tools as _rt
+from . cimport _basic_geom_tools as _bgt
 
 
 # ==============================================================================

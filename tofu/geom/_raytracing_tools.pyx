@@ -1,3 +1,4 @@
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
@@ -20,12 +21,12 @@ cimport numpy as np
 import numpy as np
 from cython cimport view
 # importing ToFu functions:
-from _basic_geom_tools cimport _VSMALL
-from _basic_geom_tools cimport is_point_in_path
-from _basic_geom_tools cimport is_point_in_path_vec
-from _basic_geom_tools cimport compute_inv_and_sign
+from ._basic_geom_tools cimport _VSMALL
+from ._basic_geom_tools cimport is_point_in_path
+from ._basic_geom_tools cimport is_point_in_path_vec
+from ._basic_geom_tools cimport compute_inv_and_sign
 # cimport _openmp_tools as _omp_tools
-cimport _basic_geom_tools as _bgt
+from . cimport _basic_geom_tools as _bgt
 
 # ==============================================================================
 # =  3D Bounding box (not Toroidal)

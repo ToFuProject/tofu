@@ -201,7 +201,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     part = np.array([[10., 0, 0]], order='F').T
     part_rad = np.r_[0.01]
-    rstep = zstep = 0.8
+    rstep = zstep = 0.1
     phistep = 0.1
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
     DR = None # [1.75, 2.]
@@ -246,10 +246,12 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     sang = config.calc_solidangle_particle(pts_disc,
                                            part,
                                            part_rad,
+                                           block=False,
                                            approx=True)
     sang_ex = config.calc_solidangle_particle(pts_disc,
                                               part,
                                               part_rad,
+                                              block=False,
                                               approx=False)
 
     if debug > 0:
@@ -279,6 +281,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
             sa_map_py_ex[ind_pol, pp] += sang_ex[pp, ii] * reso_phi[i_r]
 
     if debug > 0:
+        print("")
         fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
         # import pdb; pdb.set_trace()
@@ -295,7 +298,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
-        print(sa_map_py - sa_map)
+        # print(sa_map_py - sa_map)
         # print("reconstructed sa map =", sa_map_py)
         # print("cython computed = ", sa_map)
     print("max error approx =", np.max(np.abs(sa_map_py - sa_map)))
