@@ -1,7 +1,7 @@
 # cython: language_level=3
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
-# cython: initializedcheck=False
+# cython: initializedcheck=True
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
@@ -4567,6 +4567,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
 #                        subtended by a sphere
 #
 # ==============================================================================
+@cython.boundscheck(True)
 def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             double rstep, double zstep, double phistep,
                             double[::1] RMinMax, double[::1] ZMinMax,
@@ -4624,7 +4625,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         surface.
     block: bool, optional
         check if particles are viewable from viewing points or if there is a
-        structural element blocking visibility
+        structural element blocking visibility (False)
     ves_poly : (2, num_vertex) double array
        Coordinates of the vertices of the Polygon defining the 2D poloidal
        cut of the Vessel
@@ -4948,9 +4949,10 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                reso_rdrdz_mv, pts_mv, ind_mv,
                                num_threads)
     else:
+        sa_map_tmp = np.zeros((new_np, sz_p, num_threads))
         _st.sa_assemble_arrays_unblock(part_coords, part_r,
                                        is_in_vignette,
-                                       sa_map,
+                                       sa_map_tmp,
                                        first_ind_mv, indi_mv,
                                        sz_p, sz_r, sz_z, lindex_z,
                                        ncells_rphi, tot_nc_plane,
@@ -4958,6 +4960,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                        disc_z, lnp, sz_phi,
                                        reso_rdrdz_mv, pts_mv, ind_mv,
                                        num_threads)
+        sa_map = np.sum(sa_map_tmp, axis=2)
     # ... freeing up memory ....................................................
     free(disc_r)
     free(disc_z)

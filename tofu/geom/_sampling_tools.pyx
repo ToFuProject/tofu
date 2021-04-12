@@ -1,7 +1,8 @@
 # cython: language_level=3
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=True
 #
 ################################################################################
 # Utility functions for sampling and discretizating
@@ -19,6 +20,7 @@ from cython.parallel cimport parallel
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
+cimport cython
 # tofu libs
 from ._basic_geom_tools cimport _VSMALL
 from ._basic_geom_tools cimport _TWOPI
@@ -2166,13 +2168,16 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                 sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
                                                                   dist[pp],
                                                                   vol_pi)
+    free(dist)
+    free(is_vis)
     return
 
 
+@cython.boundscheck(True)
 cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                             double[::1] part_rad,
                                             long[:, ::1] is_in_vignette,
-                                            double[:, ::1] sa_map,
+                                            double[:, :, ::1] sa_map,
                                             long[::1] first_ind_mv,
                                             long[:, ::1] indi_mv,
                                             int sz_p,
@@ -2203,12 +2208,10 @@ cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
     cdef double loc_z
     cdef double loc_phi
     cdef double loc_step_rphi
-    cdef long* is_vis
     cdef double* dist = NULL
 
-    dist = <double*> malloc(sz_p * sizeof(double))
-    is_vis = <long*> malloc(sz_p * sizeof(long))
     with nogil, parallel(num_threads=num_threads):
+        dist = <double*> malloc(sz_p * sizeof(double))
         for ii in prange(sz_r):
             loc_r = disc_r[ii]
             vol_pi = loc_r * step_rphi[ii] * c_pi
@@ -2236,16 +2239,20 @@ cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                                  sz_p, part_coords,
                                                  &dist[0])
                         for pp in range(sz_p):
-                            if is_vis[pp] and dist[pp]  > part_rad[pp]:
-                                sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
-                                                                  dist[pp],
-                                                                  vol_pi)
+                            if dist[pp]  > part_rad[pp]:
+                                sa_map[ind_pol, pp,
+                                       cython.parallel.threadid()] += sa_formula(part_rad[pp],
+                                                                                 dist[pp],
+                                                                                 vol_pi,
+                                                                                 0)
+        free(dist)
     return
 
 
 cdef inline double sa_formula(double radius,
                               double distance,
-                              double volpi) nogil:
+                              double volpi,
+                              int debug=0) nogil:
     """
     Fourth degree approximation of solid angle computation subtended by a
     sphere of radius `radius` at a distance `distance`.

@@ -201,11 +201,11 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     part = np.array([[10., 0, 0]], order='F').T
     part_rad = np.r_[0.01]
-    rstep = zstep = 0.1
+    rstep = zstep = 0.8
     phistep = 0.1
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
-    DR = [1.75, 2.]
-    DZ = [-.25, 0.25]
+    DR = None # [1.75, 2.]
+    DZ = None # [-.25, 0.25]
     DPhi = None # [-0.01, 0.01]
 
     res = GG.compute_solid_angle_map(part, part_rad,
@@ -269,6 +269,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     r0 = pts_disc[0, 0]
     z0 = pts_disc[1, 0]
+
     for ii in range(npts_disc):
         i_r = int(np.round(np.abs(r0 - pts_disc[0, ii]) / reso_r))
         i_z = int(np.round(np.abs(z0 - pts_disc[1, ii]) / reso_z))
@@ -294,6 +295,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
+        print(sa_map_py - sa_map)
         # print("reconstructed sa map =", sa_map_py)
         # print("cython computed = ", sa_map)
     print("max error approx =", np.max(np.abs(sa_map_py - sa_map)))

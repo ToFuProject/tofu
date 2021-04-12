@@ -1,7 +1,8 @@
-# cython: boundscheck=False
+# cython: language_level=3
+# cython: boundscheck=True
 # cython: wraparound=False
 # cython: cdivision=True
-# cython: initializedcheck=False
+# cython: initializedcheck=True
 #
 from cython.parallel import prange
 from cpython.array cimport array, clone
@@ -298,7 +299,7 @@ cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
     Q_i, where vec = {Q_0, Q_1, ..., Q_npts-1}
     """
     cdef int ii
-    for ii in range(npts):
+    for ii in range(0, npts):
         dist[ii] = c_sqrt((pt0 - vec[0, ii]) * (pt0 - vec[0, ii])
                           + (pt1 - vec[1, ii]) * (pt1 - vec[1, ii])
                           + (pt2 - vec[2, ii]) * (pt2 - vec[2, ii]))
@@ -318,12 +319,12 @@ cdef inline void compute_dist_vec_vec(const int npts1, const int npts2,
 
     for ii in range(npts1):
         for jj in range(npts2):
-            dist[ii,jj] = c_sqrt((vec1[0, ii] - vec2[0, ii])
-                                 * (vec1[0,ii] - vec2[0, ii])
-                                 + (vec1[1,ii] - vec2[1, ii])
-                                 * (vec1[1,ii] - vec2[1, ii])
-                                 + (vec1[2,ii] - vec2[2, ii])
-                                 * (vec1[2,ii] - vec2[2, ii]))
+            dist[ii,jj] = c_sqrt((vec1[0, ii] - vec2[0, jj])
+                                 * (vec1[0,ii] - vec2[0, jj])
+                                 + (vec1[1,ii] - vec2[1, jj])
+                                 * (vec1[1,ii] - vec2[1, jj])
+                                 + (vec1[2,ii] - vec2[2, jj])
+                                 * (vec1[2,ii] - vec2[2, jj]))
     return
 
 
