@@ -12,16 +12,21 @@ from matplotlib.tri import Triangulation as mplTri
 _DRESERVED_KEYS = {
     'dgroup': ['lref', 'ldata'],
     'dref': ['ldata', 'group', 'size', 'ind'],
+    'dref_static': [],
     'ddata': ['ref', 'group', 'shape', 'data'],
+    'dobj': [],
 }
 
 
 _DDEF_PARAMS = {
-    'origin': (str, 'unknown'),
-    'dim':    (str, 'unknown'),
-    'quant':  (str, 'unknown'),
-    'name':   (str, 'unknown'),
-    'units':  (str, 'a.u.'),
+    'ddata': {
+        'source': (str, 'unknown'),
+        'dim':    (str, 'unknown'),
+        'quant':  (str, 'unknown'),
+        'name':   (str, 'unknown'),
+        'units':  (str, 'a.u.'),
+    },
+    'dobj': {},
 }
 
 _DATA_NONE = False
@@ -279,6 +284,70 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
         dgroup = {k0: {'lref': [], 'ldata': []} for k0 in dgroup.keys()}
 
     return dgroup
+
+
+# #############################################################################
+# #############################################################################
+#                           dref_static
+# #############################################################################
+
+
+def _check_dref_static(
+    dref_static=None, dref_static0=None,
+):
+    """ Check and format dref_staytic
+
+    dref_static can be:
+        - dict
+
+    """
+
+    # ----------------
+    # Trivial case
+    if dref _static in [None, {}]:
+        return {}, None, None
+
+    # ----------------
+    # Check conformity
+
+    c0 = (
+        isinstance(dref_static, dict)
+        and all([
+            isinstance(k0, str)
+            and isinstance(v0, dict)
+            for k0, v0 in dref_static.items()
+        ])
+        and all([
+            isinstance(k1, str)
+            and k1 not in dref_static0.get(k0, {}).keys()
+            and isinstance(v1, dict)
+            for k1 in v0.keys()
+        ])
+    )
+
+    # Raise exception if non-conformity
+    if not c0:
+        msg = (
+            """
+            Arg dref_static must be a dict of the form:
+            {
+                'type0': {'k0': {...},
+                          'k1': {...}},
+                'type1': {'k0': {...},
+                          'k1': {...}},
+            }
+
+            Provided:
+            {}
+            """.format(dref_static)
+        )
+        raise Exception(msg)
+
+    # ------------------
+    # Check element / ion / charge
+    _check_elementioncharge_dict(dref_static=dref_static)
+
+    return dref_static
 
 
 # #############################################################################
@@ -765,7 +834,7 @@ def _check_mesh_temp(data=None, key=None):
 # #############################################################################
 
 
-def romanToInt(ss):
+def roman2int(ss):
       """
       :type s: str
       :rtype: int
@@ -797,6 +866,35 @@ def romanToInt(ss):
             num += roman[ss[i]]
             i += 1
       return num
+
+
+def int2roman(num):
+    roman = {
+        1000: "M",
+        900: "CM",
+        500: "D",
+        400: "CD",
+        100: "C",
+        90: "XC",
+        50: "L",
+        40: "XL",
+        10: "X",
+        9: "IX",
+        5: "V",
+        4: "IV",
+        1: "I",
+    }
+
+    def roman_num(num):
+        for r in roman.keys():
+            x, y = divmod(num, r)
+            yield roman[r] * x
+            num -= (r * x)
+            if num <= 0:
+                break
+
+    return "".join([a for a in roman_num(num)])
+
 
 
 # #############################################################################
@@ -871,7 +969,9 @@ def _check_data(data=None, key=None, max_ndim=None):
 
 def _check_ddata(
     ddata=None,
-    ddata0=None, dref0=None, dgroup0=None,
+    ddata0=None,
+    dref0=None,
+    dgroup0=None,
     reserved_keys=None,
     allowed_groups=None,
     data_none=None,
@@ -1107,107 +1207,179 @@ def _check_ddata(
 
 # #############################################################################
 # #############################################################################
+#                           dobj
+# #############################################################################
+
+
+def _check_dobj(
+    dobj=None, dobj0=None,
+):
+
+    # ----------------
+    # Trivial case
+    if dobj in [None, {}]:
+        return {}
+
+    # ----------------
+    # Check conformity
+
+    # Basis
+    c0 = isinstance(dobj, dict)
+    lc = [
+        k0 for k0, v0 in dobj.items()
+        if not (
+            isinstance(k0, str)
+            and k0 not in dbj0.keys()
+            and isinstance(v0, dict)
+            and all([isinstance(ss, str) for ss in v0.keys()])
+        )
+    ]
+    if not (c0 and len(lc) == 0):
+        msg = None
+        raise Exception(msg)
+
+    return dobj
+
+
+# #############################################################################
+# #############################################################################
 #                           Params
 # #############################################################################
 
 
-def _check_elementioncharge(ddata, lparams=None):
+def _check_elementioncharge(
+    ION=None, ion=None,
+    element=None, charge=None,
+    warn=None,
+):
     """ Specific to SpectralLines """
 
+    if warn is None:
+        warn = True
+
     # Assess if relevant
-    c0 = any([ss in lparams for ss in ['ION', 'ion', 'element', 'charge']])
-    if not c0:
-        return
-
-    for k0, v0 in ddata.items():
-
-        # Get element and charge from ION if any
-        if v0.get('ION') is not None:
-            indc = 1
-            if v0['ION'][1].islower():
-                indc = 2
-            element = v0['ION'][:indc]
-            charge = romanToInt(v0['ION'][indc:]) - 1
-            if v0.get('element') is not None and v0['element'] != element:
-                msg = (
-                    """
-                    Inconsistent ION  vs element for key {}:
-                    """.format(k0, v0.get('element'), element)
-                )
-                raise Exception(msg)
-            if v0.get('charge') is not None and v0['charge'] != charge:
-                msg = (
-                    """
-                    Inconsistent ION vs charge for key {}:
-                    """.format(k0, v0.get('charge'), charge)
-                )
-                raise Exception(msg)
-            ddata[k0]['element'] = element
-            ddata[k0]['charge'] = charge
-
-        # Check ion / element / charge consistency
-        lc = [
-            v0.get('ion') is not None,
-            v0.get('element') is not None,
-            v0.get('charge') is not None,
-        ]
-        if not any(lc):
-            continue
-
-        # ion provided -> element and charge
-        if lc[0]:
-            element = ''.join([
-                ss for ss in v0['ion'].strip('+') if not ss.isdigit()
-            ])
-            charge = int(''.join([
-                ss for ss in v0['ion'].strip('+') if ss.isdigit()
-            ]))
-            if lc[1] and v0['element'] != element:
-                msg = (
-                    'Non-matching element for key {}:\n\t{}\n\t{}'.format(
-                        v0['element'], element
-                    )
-                )
-                raise Exception(msg)
-            ddata[k0]['element'] = element
-            if lc[2] and v0['charge'] != charge:
-                msg = (
-                    'Non-matching charge for key {}:\n\t{}\n\t{}'.format(
-                        v0['charge'], charge
-                    )
-                )
-                raise Exception(msg)
-            ddata[k0]['charge'] = charge
-
-        # element and charge provided -> ion
-        elif lc[1] and lc[2]:
-            ddata[k0]['ion'] = '{}{}+'.format(v0['element'], v0['charge'])
-
-        # Lack of info
-        else:
+    lc = [
+        ION is not None,
+        ion is not None,
+        element is not None and charge is not None,
+    ]
+    if not any(lc):
+        if warn is True:
             msg = (
                 """
-                element / charge / ion cannot be infered for {}
-                - element:{}
-                - charge: {}
-                - ion:    {}
-                """.format(
-                    v0.get('element'), v0.get('charge'), v0.get('ion'),
-                )
+                To determine ION, ion, element and charge, provide either:
+                - ION:  {}
+                - ion:  {}
+                - element and charge: {}, {}
+                """.format(ION, ion, element, charge)
+            )
+            warnings.warn(msg)
+        return None, None, None, None
+
+    # Get element and charge from ION if any
+    if lc[0] or lc[1]:
+        indc = 1
+        if ION[1].islower():
+            indc = 2
+
+        # Infer element
+        elementi = ION[:indc]
+        if element is not None and element != elementi:
+            msg = (
+                """
+                Inconsistent ION ({}) vs element ({})
+                """.format(element, elementi)
             )
             raise Exception(msg)
 
+        # Infer charge
+        if lc[0]:
+            chargei = roman2int(ION[indc:]) - 1
+        else:
+            chargei = int(ion[indc:].replace('+', ''))
+        if charge is not None and charge != chargei:
+            msg = (
+                """
+                Inconsistent ION ({}) vs charge ({})
+                """.format(charge, chargei)
+            )
+            raise Exception(msg)
+        element = elementi
+        charge = chargei
+
+    # ion provided -> element and charge
+    elif lc[2]:
+        ioni = '{}{}+'.format(element, charge)
+        IONi = '{}{}'.format(element, int2roman(charge+1))
+        if ion is not None and ion != ioni:
+            msg = (
+                """
+                Inconsistent (element, charge) ({}, {}) vs ion ({})
+                """.format(element, charge, ion)
+            )
+            raise Exception(msg)
+        if ION is not None and ION != IONi:
+            msg = (
+                """
+                Inconsistent (element, charge) ({}, {}) vs ION ({})
+                """.format(element, charge, ION)
+            )
+            raise Exception(msg)
+        ion = ioni
+        ION = IONi
+
+    return ION, ion, element, charge
+
+
+def _check_elementioncharge_dict(dref_static):
+    """ Specific to SpectralLines """
+
+    # Assess if relevant
+    if 'ion' not in dref_static.keys():
+        return
+
+    lerr = []
+    for k0, v0 in dref_static['ion'].items():
+        try:
+            ION, ion, element, charge = _check_elementioncharge(
+                ION=v0.get('ION'),
+                ion=k0,
+                element=v0.get('element'),
+                charge=v0.get('charge'),
+            )
+            if ION is None:
+                continue
+            dref_static['ion'][k0]['ION'] = ION
+            dref_static['ion'][k0]['element'] = element
+            dref_static['ion'][k0]['charge'] = charge
+
+        except Exception as err:
+            lerr.append((k0, str(err)))
+
+    if len(lerr) > 0:
+        lerr = ['\t- {}: {}'.format(pp[0], pp[1]) for pp in lerr]
+        msg = (
+            """
+            The following entries have non-conform ion / ION / element / charge
+            {}
+            """.format('\n'.join(lerr))
+        )
+        raise Exception(msg)
 
 
 def _harmonize_params(
-    ddata=None, lkeys=None, reserved_keys=None, ddefparams=None,
+    dd=None,
+    dd_name=None,
+    lkeys=None,
+    reserved_keys=None,
+    ddefparams=None,
 ):
 
     # Check inputs
     if reserved_keys is None:
-        reserved_keys = _DRESERVED_KEYS['ddata']
+        reserved_keys = _DRESERVED_KEYS[dd_name]
     if ddefparams is None:
-        ddefparams = _DDEF_PARAMS
+        ddefparams = _DDEF_PARAMS[dd_name]
 
     # ------------------
     # list of param keys
@@ -1215,7 +1387,7 @@ def _harmonize_params(
     # Get list of known param keys
     lparams = set(itt.chain.from_iterable([
         [k1 for k1 in v0.keys() if k1 not in reserved_keys]
-        for k0, v0 in ddata.items()
+        for k0, v0 in dd.items()
     ]))
 
     # Add arbitrary params
@@ -1234,31 +1406,55 @@ def _harmonize_params(
     # ------------------
     # dparam
     for k0, v0 in ddefparams.items():
-        for k1, v1 in ddata.items():
+        for k1, v1 in dd.items():
             if k0 not in v1.keys():
-                ddata[k1][k0] = v0[1]
+                dd[k1][k0] = v0[1]
             else:
                 # Check type if already included
-                if not isinstance(ddata[k1][k0], v0[0]):
+                if not isinstance(dd[k1][k0], v0[0]):
                     msg = (
                         """
                         Wrong type for parameter:
-                            - type(ddata[{}][{}]) = {}
+                            - type({}[{}][{}]) = {}
                         - Expected: {}
                         """.format(
-                            k1, k0, type(ddata[k1][k0]), v0[0],
+                            dd_name, k1, k0, type(dd[k1][k0]), v0[0],
                         )
                     )
                     raise Exception(msg)
 
     for k0 in lparams:
-        for k1, v1 in ddata.items():
-            ddata[k1][k0] = ddata[k1].get(k0)
+        for k1, v1 in dd.items():
+            dd[k1][k0] = dd[k1].get(k0)
 
     # ------------------
-    # Check element / ion / charge
-    _check_elementioncharge(ddata, lparams=lparams)
-    return ddata
+    # Check against dref_static0
+    lkpout = [
+        k0: (k1, v0[k1])
+        for k0, v0 in dd.items()
+        if any([v0[k1] not in dref_static[k1].keys() for k1 in lparam])
+    ]
+    if len(lkpout) > 0:
+        lpu = sorted(set([pp[1][0] for pp in lkpout]))
+        msg0 = '\n'.join([
+            '\t- {}[{}]: {}'.format(pp[0], pp[1], pp[2]) for pp in lkpout
+        ])
+        msg1 = '\n'.join([
+            '\t- dref_static[{}]: {}'.format(pp, dref_static0[pp].keys())
+            for pp in lpu
+        ])
+        msg = (
+            """
+            The following parameter have non-identified values in ref_static:
+            {}
+
+            Available values:
+            {}
+            """.format(msg0, msg1)
+        )
+        raise Exception(msg)
+
+    return dd
 
 
 # #############################################################################
@@ -1301,9 +1497,15 @@ def _consistency(
     dref0.update(dref)
 
     # --------------
+    # dref_static
+    dref_static = _check_dref_static()
+    dref_static0.update(dref_static)
+
+    # --------------
     # ddata
     ddata, dref_add, dgroup_add = _check_ddata(
-        ddata=ddata, ddata0=ddata0, dref0=dref0, dgroup0=dgroup0,
+        ddata=ddata, ddata0=ddata0,
+        dref0=dref0, dgroup0=dgroup0,
         reserved_keys=reserved_keys, allowed_groups=allowed_groups,
         data_none=data_none, max_ndim=max_ndim,
     )
@@ -1313,10 +1515,28 @@ def _consistency(
         dref0.update(dref_add)
     ddata0.update(ddata)
 
+    # -----------------
+    # dobj
+    dobj = _check_dobj(
+        dobj=dobj, dobj0=dobj0,
+        dref_static0=dref_static0,
+    )
+
     # --------------
-    # params harmonization
+    # params harmonization - ddata
     ddata0 = _harmonize_params(
-        ddata=ddata0,
+        dd=ddata0,
+        dd_name='ddata'
+        dref_static0=dref_static0,
+        ddefparams=ddefparams, reserved_keys=reserved_keys,
+    )
+
+    # --------------
+    # params harmonization - dobj
+    dobj0 = _harmonize_params(
+        dd=dobj0,
+        dd_name='dobj',
+        dref_static0=dref_static0,
         ddefparams=ddefparams, reserved_keys=reserved_keys,
     )
 
@@ -1346,7 +1566,7 @@ def _consistency(
             if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['group']
         ))
 
-    return dgroup0, dref0, ddata0
+    return dgroup0, dref0, dref_static0, ddata0, dobj0
 
 """
     # --------------
