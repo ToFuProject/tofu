@@ -49,7 +49,7 @@ class DataCollection(utils.ToFuObject):
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
-             'params': {'origin': (str, 'unknown'),
+             'params': {'source': (str, 'unknown'),
                         'dim':    (str, 'unknown'),
                         'quant':  (str, 'unknown'),
                         'name':   (str, 'unknown'),
@@ -69,7 +69,9 @@ class DataCollection(utils.ToFuObject):
 
     _dgroup = {}
     _dref = {}
+    _dref_static = {}
     _ddata = {}
+    _dobj = {}
 
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
@@ -85,7 +87,9 @@ class DataCollection(utils.ToFuObject):
         self,
         dgroup=None,
         dref=None,
+        dref_static=None,
         ddata=None,
+        dobj=None,
         Id=None,
         Name=None,
         fromdict=None,
@@ -105,7 +109,9 @@ class DataCollection(utils.ToFuObject):
         super()._reset()
         self._dgroup = {}
         self._dref = {}
+        self._dref_static = {}
         self._ddata = {}
+        self._dobj = {}
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -127,23 +133,39 @@ class DataCollection(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, dgroup=None, dref=None, ddata=None, **kwargs):
-        self.update(dgroup=dgroup, dref=dref, ddata=ddata)
+    def _init(
+        self,
+        dgroup=None,
+        dref=None,
+        dref_static=None,
+        ddata=None,
+        dobj=None,
+        **kwargs,
+    ):
+        self.update(
+            dgroup=dgroup,
+            dref=dref,
+            dref_static=dref_static,
+            ddata=ddata,
+            dobj=dobj,
+        )
         self._dstrip['strip'] = 0
 
     ###########
     # set dictionaries
     ###########
 
-    def update(self, ddata=None, dref=None, dgroup=None):
+    def update(self, dobj=None, ddata=None, dref=None, dgroup=None):
         """ Can be used to set/add data/ref/group
 
         Will update existing attribute with new dict
         """
         # Check consistency
         self._dgroup, self._dref, self._ddata = _check_inputs._consistency(
+            dobj=dobj, dobj0=self._dobj,
             ddata=ddata, ddata0=self._ddata,
             dref=dref, dref0=self._dref,
+            dref_static=dref_static, dref0_static=self._dref_static,
             dgroup=dgroup, dgroup0=self._dgroup,
             allowed_groups=self._allowed_groups,
             reserved_keys=self._reserved_keys,
@@ -158,17 +180,28 @@ class DataCollection(utils.ToFuObject):
 
     def add_group(self, group=None):
         # Check consistency
-        self.update(ddata=None, dref=None, dgroup=group)
+        self.update(ddata=None, dref=None, dref_static=None, dgroup=group)
 
     def add_ref(self, key=None, group=None, data=None, **kwdargs):
         dref = {key: {'group': group, 'data': data, **kwdargs}}
         # Check consistency
-        self.update(ddata=None, dref=dref, dgroup=None)
+        self.update(ddata=None, dref=dref, dref_static=None, dgroup=None)
+
+    # TBF
+    def add_ref_static(self, key=None, category=None, **kwdargs):
+        dref_static = {key: {'category': category, **kwdargs}}
+        # Check consistency
+        self.update(ddata=None, dref=None, dref_static=dref_static, dgroup=None)
 
     def add_data(self, key=None, data=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
         # Check consistency
-        self.update(ddata=ddata, dref=None, dgroup=None)
+        self.update(ddata=ddata, dref=None, dref_static=None, dgroup=None)
+
+    def add_obj(self, key=None, **kwdargs):
+        ddata = {key: **kwdargs}
+        # Check consistency
+        self.update(dobj=dobj, dref=None, dref_static=None, dgroup=None)
 
     # ---------------------
     # Removing group / ref / quantities
@@ -191,9 +224,28 @@ class DataCollection(utils.ToFuObject):
             max_ndim=self._max_ndim,
         )
 
+    def remove_ref_static(self, key=None, category=None, propagate=None):
+        """ Remove a ref (or list of refs) and all associated data """
+        self._dref_static, self._ddata = _check_inputs._remove_ref_static(
+            key=key,
+            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+            propagate=propagate,
+            max_ndim=self._max_ndim,
+        )
+
     def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
         self._dgroup, self._dref, self._ddata = _check_inputs._remove_data(
+            key=key,
+            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+            propagate=propagate,
+            max_ndim=self._max_ndim,
+        )
+
+    # TBF
+    def remove_obj(self, key=None, propagate=True):
+        """ Remove a data (or list of data) """
+        self._dobj = _check_inputs._remove_obj(
             key=key,
             dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
             propagate=propagate,
@@ -298,28 +350,54 @@ class DataCollection(utils.ToFuObject):
         return self._dref
 
     @property
+    def dref_static(self):
+        """ the dict of references """
+        return self._dref_static
+
+    @property
     def ddata(self):
         """ the dict of data """
         return self._ddata
 
     @property
-    def lparam(self):
+    def dobj(self):
+        """ the dict of obj """
+        return self._dobj
+
+    @property
+    def lparam_data(self):
         return [
             k0 for k0 in list(self._ddata.values())[0].keys() if k0 != 'data'
         ]
 
     @property
-    def dparams(self):
+    def lparam_obj(self):
+        return [
+            k0 for k0 in list(self._dobj.values())[0].keys()
+        ]
+
+    @property
+    def dparams_data(self):
         """ Return a dict of params """
         dp = {
-            k0: {k1: v1 for k1, v1 in v0.items() if k1 != 'data'}
-            for k0, v0 in self._ddata.items()
+            k0: {k1: self._ddata[k1][k0] for k1 in self._ddata.keys()}
+            for k0 in self.lparam_data
         }
-        for k0 in dp.keys():
-            if isinstance(self._ddata[k0]['data'], np.ndarray):
-                dp[k0]['data'] = self._ddata[k0]['data'].dtype.name
-            else:
-                dp[k0]['data'] = type(self._ddata[k0]['data'])
+        dp['data'] = {
+            k1: self._ddata[k1]['data'].dtype.name
+            if isinstance(self._ddata[k1]['data'], np.ndarray)
+            else: type(self._ddata[k1]['data'])
+            for k1 in self._ddata.keys()
+        }
+        return dp
+
+    @property
+    def dparams_obj(self):
+        """ Return a dict of params """
+        dp = {
+            k0: {k1: self._dobj[k1][k0] for k1 in self._dobj.keys()}
+            for k0 in self.lparam_obj
+        }
         return dp
 
     ###########
@@ -334,7 +412,7 @@ class DataCollection(utils.ToFuObject):
     # Key selection methods
     # ---------------------
 
-    def select(self, log=None, returnas=None, **kwdargs):
+    def select_data(self, log=None, returnas=None, **kwdargs):
         """ Return the indices / keys of data matching criteria
 
         The selection is done comparing the value of all provided parameters
@@ -515,7 +593,7 @@ class DataCollection(utils.ToFuObject):
             show_core = self._show_in_summary_core
         if isinstance(show_core, str):
             show_core = [show_core]
-        lp = self.lparam
+        lp = self.lparam_data
         lkcore = ['shape', 'group', 'ref']
         assert all([ss in lp + lkcore for ss in show_core])
         col2 += show_core
