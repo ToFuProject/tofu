@@ -182,18 +182,35 @@ class SpectralLines(DataCollection):
             'te', 'te_units', 'ne', 'ne_units',
             'pec', 'pec_units', 'pec_type']
 
-        # TBF
-        dref = {}
+        # dref
+        dref = {
+        }
 
+        # ddata
         ddata = {
-            'lines': {
-                k0: {k1: v1 for k1, v1 in v0.items() if k1 not in lkothers}
-                for k0, v0 in out.items()
+        }
+
+        # dref_static
+        lions = sorted(set([v0['ion']]))
+        dref_static = {
+            'ion': {
+                ion[0]: {},
             },
-            'data': {
+            'source': {
+                source[0]: {}
             },
         }
-        return ddata, dref
+
+        # dobj (lines)
+        lkout = lkothers + ['element', 'charge', 'ION']
+        dobj = {
+            'lines': {
+                k0: {k1: v1 for k1, v1 in v0.items() if k1 not in lkout}
+                for k0, v0 in out.items()
+            },
+        }
+        import pdb; pdb.set_trace()     # DB
+        return ddata, dref, dref_static, dobj
 
     @classmethod
     def from_openadas(
@@ -211,7 +228,7 @@ class SpectralLines(DataCollection):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        out = cls._from_openadas(
+        ddata, dref, dref_static, dobj = cls._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -220,8 +237,7 @@ class SpectralLines(DataCollection):
             update=update,
             create_custom=create_custom,
         )
-        import pdb; pdb.set_trace()     # DB
-        return cls(ddata=out)
+        return cls(ddata=out, dref=dref, dref_static=dref_static, dobj=dobj)
 
     def add_from_openadas(
         self,
