@@ -292,6 +292,35 @@ def _checkformat_dmat(dmat=None, ddef=None, valid_keys=None):
         dmat[k0] = _check_flat1darray_size(
             var=dmat.get(k0), varname=k0, size=3, norm=True)
     
+    # Check consistency between unit vectors
+    if dmat['e1'] is not None:
+        c0 = (
+            dmat['e2'] is not None
+            and np.abs(np.sum(dmat['e1']*mat['e2'])) < 1.e-12
+        )
+        if not c0:
+            msg = (
+                """
+                If dmat['e1'] is provided, then:
+                    - dmat['e2'] must be provided too
+                    - dmat['e1'] must be perpendicular to dmat['e2']
+
+                Provided:
+                    {}
+                """.format(dmat['e2'])
+            )
+            raise Exception(msg)
+
+        if dmat['nout'] is not None:
+            _check_orthornormaldirect(
+                e1=dmat['e1'], e2=dmat['e2'],
+                var=dmat['nout'], varname='nout',
+            )
+        if dmat['nin'] is not None:
+            _check_orthornormaldirect(
+                e1=dmat['e1'], e2=dmat['e2'],
+                var=-dmat['nin'], varname='-nin',
+            )
     # Check all additionnal angles to define the new basis
     for k0 in ['alpha', 'beta',]:
         dmat[k0] = _check_flat1darray_size(
@@ -301,71 +330,120 @@ def _checkformat_dmat(dmat=None, ddef=None, valid_keys=None):
     # Add missing vectors and parameters according to the new basis 
     # -------------------------------------------------------------
 
-    if all([dgeom[aa] is not None for aa in ['nout', 'e1', 'e2']]):
-        # If alpha & beta not given, parallelism into crystal is imposed on.
-        # If any value is missing, possibility of non-parallelism and error message is
-        #  shown to remedy the situation.
-        # If all values are given, the new basis computation can be done.
-        if all([dmat[aa] is None for aa in ['alpha', 'beta']]):
-            dmat['nout'] = None
-            warnings.warn("Parallelism into crystal will be imposed here if alpha and beta are None.")
-        if any([dmat[aa] is None for aa in ['alpha', 'beta']]):
-            msg = (
-                """
-                Please give two valid values for alpha and beta angles to compute the new basis!
-                Provided:
-                    -{} = {}
-                    -{} = {}
-                """.format('alpha', dmat['alpha'], 'beta', dmat['beta'])
-            )
-            raise Exception(msg)
-        if all([dmat[aa] is not None for aa in ['alpha', 'beta']]):
-            if dmat['nout'] is None:
-	            dmat['nout'] = dgeom['nout']*np.cos(dmat['alpha'])
-                               +np.sin(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']
-                               +np.sin(dmat['beta'])*dgeom['e2'])
+    if all([dgeom[kk] is not None for kk in ['nout', 'e1', 'e2']]):
 
-    if dmat['nin'] is None and dmat['nout'] is not None:
+        # dict of value, comment, default value and type of alpha and beta angles in dmat
+        dpar = {'alpha':
+             {'alpha':alpha, 'com':'non-parallelism amplitude', 'default':0, 'type':float},
+             'beta':
+             {'beta':beta, 'com':'non-parallelism orientation', 'default':0, 'type':float}
+        }
+
+        # dict of value, comment, default value and type of unit vectors in dmat
+        dvec = {'e1':
+             {'e1':e1, 'com':'unit vector (non-parallelism)', 'default':0, 'type':float},
+             'e2':
+             {'e2':e2, 'com':'unit vector (non-parallelism)', 'default':0, 'type':float},
+             'nout':
+             {'nout':nout, 'com':'unit vector (non-parallelism)', 'default':0, 'type':float}
+        }
+
+        # setting to default value if any is None
+        lparNone = [aa for aa in dpar.keys() if dmat(aa) is None]
+        lvecNone = [bb for bb in dvec.keys() if dmat(bb) is None]
+
+        # if any is None, assigning default value and send a warning message 
+        if len(lparNone) > 0:
+            msg = "The following parameters were set to their default values:"
+            for aa in lparNone:
+                dmat[aa] = dpar[aa]['default']
+                msg += "\n\t - {} = {} ({})".format(aa, dpar[aa]['default'], dpar[aa]['com'])
+            warnings.warn(msg)
+
+        if len(lvecNone) > 0:
+            msg = "The following parameters were set to their default values:"
+            for bb in lvecNone:
+                dmat[bb] = dvec[bb]['default']
+                msg += "\n\t - {} = {} ({})".format(bb, dvec[bb]['default'], dvec[bb]['com'])
+            warnings.warn(msg)
+
+        # check conformity of type of parameters
+        lparWrong = []; lvecWrong = []
+        for aa in dpar.keys():
+            try:
+                dmat[aa] = float(dmat[aa])
+            except Exception as err:
+                lparWrong.append(aa)
+        
+        if len(lparWrong) > 0:
+            msg = "The following parameters must be convertible to:"
+            for aa in lparWrong:
+                msg += "\n\t - {} = {} ({})".format(aa, dpar[aa]['type'], type(dpar[aa]['value']))
+            raise Exception(msg)
+
+        for bb in dvec.keys():
+            try:
+                dmat[bb] = np.atleast_1d(dmat[bb]).ravel().astype(int)
+            except Exception as err:
+                lvecWrong.append(bb)
+
+        if len(lvecWrong) > 0:
+            msg = "The following parameters must be convertible to:"
+            for bb in lvecWrong:
+                msg += "\n\t - {} = {} ({})".format(bb, dvec[bb]['type'], type(dvec[bb]['value']))
+            raise Exception(msg)
+
+    if all([dgeom[kk] is not None for kk in ['nout', 'e1', 'e2']]):
+        # Computation of unit vectors nout, nin, e1 and e2  
+        dmat['nout'] = (dgeom['nout']*np.cos(dmat['alpha'])
+                     +np.sin(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']
+                     +np.sin(dmat['beta'])*dgeom['e2'])
+        )
         dmat['nin'] = -dmat['nout']
+        dmat['e1'] = np.sin(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']
+                   +np.sin(dmat['beta'])*dgeom['e2'])
+        dmat['e2'] = np.cross(dmat['nout'], dmat['e1'])
 
-    # warning still to be insered 
-    if all([dgeom[aa] is not None for aa in ['e1', 'nout']]):
-        if dmat['alpha'] is None:
-	    # 0 < alpha < pi/2
-            if dgeom['e1'] and dgeom['nout'] >= 0:
-                dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])
-            if dgeom['e1'] >= 0 and dgeom['nout'] < 0:
-                dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2)
-            if dgeom['e1'] < 0 and dgeom['nout'] >= 0:
-                dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2)
-            if dgeom['e1'] and dgeom['nout'] < 0:
-                dmat['alpha'] = np.arctan(dgeom['e1'] / dgeom['nout'])+(2*np.pi)
+        # 0 < alpha < pi/2
+        if dgeom['e1'] and dgeom['nout'] >= 0:
+            dmat['alpha'] = np.abs(np.arctan(dgeom['e1'] / dgeom['nout']))
+        if dgeom['e1'] >= 0 and dgeom['nout'] < 0:
+            dmat['alpha'] = np.abs(np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2))
+        if dgeom['e1'] < 0 and dgeom['nout'] >= 0:
+            dmat['alpha'] = np.abs(np.arctan(dgeom['e1'] / dgeom['nout'])+(np.pi/2))
+        if dgeom['e1'] and dgeom['nout'] < 0:
+            dmat['alpha'] = np.abs(np.arctan(dgeom['e1'] / dgeom['nout'])+(2*np.pi))
+        # 0 < beta < 2pi
+        dmat['beta'] = np.arctan2(dgeom['e2'], dgeom['e1'])+(np.pi)
 
-    # warning still to be insered
-    if all([dgeom[aa] is not None for aa in ['e1', 'e2']]):
-        if dmat['beta'] is None:
-	    # 0 < beta < 2pi
-	        dmat['beta'] = np.arctan2(dgeom['e2'] / dgeom['e1'])
-
-    if all([dgeom[aa] is not None for aa in ['nout', 'e1', 'e2']]):
-        if all([dmat[aa] is None for aa in ['alpha', 'beta', 'nout']]):
-            dmat['e1'] = None
-            dmat['e2'] = None
-            warnings.warn("Parallelism into crystal will be imposed here if neither alpha, nor beta nor nout are known.")
-        if any([dmat[aa] is None for aa in ['alpha', 'beta', 'nout']]):
+        # check if input parameters verify trigonometry relations between each bases
+        try:
+            np.cos(dmat['alpha']) = np.abs(dgeom['nout'] / dmat['nout'])
+            np.cos(dmat['beta']) = dgeom['e1'] / dmat['e1']
+        except Exception as err:
             msg = (
                 """
-                Please give three valid values for alpha and beta angles plus nout unit vector to compute the new basis!
-                Provided:
-                    -{} = {}
-                    -{} = {}
-                    -{} = {}
-                """.format('alpha', dmat['alpha'], 'beta', dmat['beta'], 'nout', dmat['nout'])
+                Please check your args in input, something seems wrong with conversions:
+                - np.cos(dmat['alpha']) = dgeom['nout'] / dmat['nout']
+                - np.cos(dmat['beta']) = dgeom['e1'] / dmat['e1']
+
+                If angles are provided, alpha should be in [0; pi/2] range and 
+                beta in [0; 2pi] range.
+                If unit vectors are, we've first computed these angles from dgeom[nout, e1, e2]
+                and checked with your inputs dmat[nout, e1, e2].
+
+                Provide:
+                    - {} = {} 
+                    - {} = {} 
+                    - {} = {} 
+                    - {} = {} 
+                """.format(
+                    'alpha', dmat['alpha'],
+                    'beta', dmat['beta'],
+                    'dmat[nout]', dmat['nout'],
+                    'dmat[e1]', dmat['e1'])
             )
             raise Exception(msg)
-        if all([dmat[aa] is not None for aa in ['alpha', 'beta', 'nout']]):
-	        dmat['e1'] = np.cos(dmat['beta'])*dgeom['e1']+np.sin(dmat['beta'])*dgeom['e2']
-	        dmat['e2'] = np.cross(dmat['nout'], dmat['e1'])
     return dmat
 
 
@@ -440,7 +518,7 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
             Var {} is not valid!
             Please check your arguments to calculate the Bragg's law correctly!
             Provided:
-                - crystal inter-plane d = {}
+                - crystal inter-plane d [A] = {}
                 - wavelenght interval [m] : {}
                 - lambref = {}
             """.format('lambref', dmat['d'], lambok, dbragg['lambref'])
@@ -452,4 +530,71 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
     #------------------------------------------------
 
     # Check type dict and content (each key is a valid string)
-    #_check_dict_valid_keys(var=dbragg['rockingcurve'], varname='rockingcurve', valid_keys=valid_keys)
+    drock=dbragg['rockingcurve']
+    lkeyok = ['sigma', 'deltad', 'Rmax', 'dangle', 'lamb', 'value', 'type',
+              'source']
+    _check_dict_valid_keys(var=drock, varname='drock', valid_keys=lkeyok)
+
+    # check type, size and content of each key in drock
+    try:
+        if drock.get('sigma') is not None:
+            dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
+            dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
+            dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
+            dbragg['rockingcurve']['type'] = 'lorentz-log'
+        elif drock.get('dangle') is not None:
+            c2d = (drock.get('lamb') is not None 
+                   and drock.get('value').ndim == 2)
+            if c2d:
+                if drock['value'].shape != (drock['dangle'].size,
+                                            drock['lamb'].size):
+                    msg = (
+                        """ Tabulated 2d rocking curve should be:
+                            shape = (dangle.size, lamb.size)
+                        """)
+                    raise Exception(msg)
+                dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
+                dbragg['rockingcurve']['value'] = drock['value']
+                dbragg['rockingcurve']['type'] = 'tabulated-2d'
+            else:
+                if drock.get('lamb') is None:
+                    msg = (
+                        """Please also specify the lamb for which 
+                            the rocking curve was tabulated""")
+                    raise Exception(msg)
+                dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
+                dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                dbragg['rockingcurve']['value'] = np.r_[drock['value']]
+                dbragg['rockingcurve']['type'] = 'tabulated-1d'
+            if drock.get('source') is None:
+                msg = "Unknown source for the tabulated rocking curve!"
+                warnings.warn(msg)
+            dbragg['rockingcurve']['source'] = drock.get('source')
+    except Exception as err:
+        msg = (
+            """
+            Provide the rocking curve as a dictionnary with either:
+                - parameters of a lorentzian in log10: 
+                  'sigma': float, 'deltad':float, 'Rmax': float
+                - tabulated (dangle, value) with source (url...):
+                  'dangle': np.darray, 'value': np.darray, 'source': str
+            """
+        )
+        raise Exception(msg)
+    return dbragg
+
+
+# ####################################################################
+# ####################################################################
+#               check colors
+# ####################################################################
+# ####################################################################
+
+
+@staticmethod
+def _checkformat_inputs_dmisc(cls, color=None):
+    if color is None:
+        color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
+    assert mpl.colors.is_color_like(color)
+    return tuple(mpl.colors.to_rgba(color))

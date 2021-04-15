@@ -204,6 +204,7 @@ class CrystalBragg(utils.ToFuObject):
     # Get check and format inputs
     ###########
 
+    #### moved to _check_optics.py => need a double check on this
     def _checkformat_dbragg(self, dbragg=None):
         if dbragg is None:
             dbragg = dict.fromkeys(self._get_keys_dbragg())
@@ -211,13 +212,11 @@ class CrystalBragg(utils.ToFuObject):
         lkok = self._get_keys_dbragg()
         assert all([isinstance(ss, str) for ss in dbragg.keys()])
         assert all([ss in lkok for ss in dbragg.keys()])
-        ## transfered to _check_optics.py
 
         # Set default parameters when necessary
         for kk in self._ddef['dbragg'].keys():
             if dbragg.get(kk) is None:
                 dbragg[kk] = self._ddef['dbragg'][kk]
-        ## transfered to _check_optics.py
 
         # Check braggref
         ltypes = [int, float, np.int_, np.float_]
@@ -229,7 +228,6 @@ class CrystalBragg(utils.ToFuObject):
                    + "\t- should be in [0; pi/2]\n"
                    + "\t- provided: {}".format(dbragg['braggref']))
             raise Exception(msg)
-        ## transfered to _check_optics.py
 
         # Set default lambda if necessary
         user_prov = True
@@ -238,7 +236,6 @@ class CrystalBragg(utils.ToFuObject):
             dbragg['lambref'] = _comp_optics.get_lamb_from_bragg(
                 np.r_[dbragg['braggref']], self._dmat['d'], n=1)[0]
             user_prov = False
-        ## transfered to _check_optics.py
 
         # Check provided lambref is valid
         braggref = _comp_optics.get_bragg_from_lamb(
@@ -251,19 +248,17 @@ class CrystalBragg(utils.ToFuObject):
                    + "\t- wavelength interval (m): {}\n".format(lambok)
                    + "\t- lambref = {}".format(dbragg['lambref']))
             raise Exception(msg)
-        ## transfered to _check_optics.py
 
         # Update braggref according to lambref
         # (if lambref was user-provided)
         if user_prov is True:
             dbragg['braggref'] = braggref
-        ## transfered to _check_optics.py
 
         # Check rocking curve if any
         if dbragg.get('rockingcurve') is not None:
             assert isinstance(dbragg['rockingcurve'], dict)
             drock = dbragg['rockingcurve']
-            lkeyok = ['sigam', 'deltad', 'Rmax', 'dangle', 'lamb', 'value',
+            lkeyok = ['sigma', 'deltad', 'Rmax', 'dangle', 'lamb', 'value',
                       'type', 'source']
             lkout = [kk for kk in drock.keys() if kk not in lkeyok]
             if len(lkout) > 0:
@@ -286,7 +281,7 @@ class CrystalBragg(utils.ToFuObject):
                                                     drock['lamb'].size):
                             msg = ("Tabulated 2d rocking curve should be:\n"
                                    + "\tshape = (dangle.size, lamb.size)")
-                            raise Exception(msg)
+                            raise Exception(msg) 
                         dbragg['rockingcurve']['dangle'] = np.r_[
                             drock['dangle']]
                         dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
@@ -303,7 +298,7 @@ class CrystalBragg(utils.ToFuObject):
                         dbragg['rockingcurve']['value'] = np.r_[drock['value']]
                         dbragg['rockingcurve']['type'] = 'tabulated-1d'
                     if drock.get('source') is None:
-                        msg = "Unknonw source for the tabulated rocking curve!"
+                        msg = "Unknown source for the tabulated rocking curve!"
                         warnings.warn(msg)
                     dbragg['rockingcurve']['source'] = drock.get('source')
             except Exception as err:
@@ -319,6 +314,7 @@ class CrystalBragg(utils.ToFuObject):
                 raise Exception(msg)
         return dbragg
 
+    #### moved to _check_optics.py => need a double check on this
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
@@ -382,6 +378,7 @@ class CrystalBragg(utils.ToFuObject):
     # set dictionaries
     ###########
 
+    ##### wrote the right path to _check_optics.py
     def set_dgeom(self, dgeom=None):
         dgeom = _check_optics._checkformat_dgeom(
             dgeom=dgeom, ddef=self._ddef['dgeom'],
@@ -400,11 +397,11 @@ class CrystalBragg(utils.ToFuObject):
         self._dmat = dmat
 
     def set_dbragg(self, dbragg=None):
-        dbragg = self._checkformat_dbragg(dbragg)
+        dbragg = _check_optics._checkformat_dbragg(dbragg)
         self._dbragg = dbragg
 
     def _set_color(self, color=None):
-        color = self._checkformat_inputs_dmisc(color=color)
+        color = _check_optics._checkformat_inputs_dmisc(color=color)
         self._dmisc['color'] = color
         self._dplot['cross']['dP']['color'] = color
         self._dplot['hor']['dP']['color'] = color
@@ -873,12 +870,14 @@ class CrystalBragg(utils.ToFuObject):
     # methods for surface and contour sampling
     # -----------------
 
+    # calling dmat for unit vectors because in _check_optics.py, we compute them in 
+    # order to obtain the same in dgeom if alpha and beta are zero.
     def sample_outline_plot(self, res=None):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
                 func = _comp_optics.CrystBragg_sample_outline_plot_sphrect
-                outline = func(self._dgeom['center'], self.dgeom['nout'],
-                               self._dgeom['e1'], self._dgeom['e2'],
+                outline = func(self._dgeom['center'], self._dmat['nout'],
+                               self._dmat['e1'], self._dmat['e2'],
                                self._dgeom['rcurve'], self._dgeom['extenthalf'],
                                res)
             else:
@@ -886,7 +885,7 @@ class CrystalBragg(utils.ToFuObject):
         else:
             raise NotImplementedError
         return outline
-
+    
     def sample_outline_Rays(self, res=None):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
@@ -897,8 +896,6 @@ class CrystalBragg(utils.ToFuObject):
         else:
             raise NotImplementedError
         return outline
-
-
 
     # -----------------
     # methods for surface and contour sampling
@@ -947,10 +944,11 @@ class CrystalBragg(utils.ToFuObject):
         bragg = bragg[None, ...]
 
         # Prepare
+        # Attribute value of non-parallelism for each unit vector, if alpha and beta are non-null.
         shape = tuple([3] + [1 for ii in range(phi.ndim)])
-        nin = self._dgeom['nin'].reshape(shape)
-        e1 = self._dgeom['e1'].reshape(shape)
-        e2 = self._dgeom['e2'].reshape(shape)
+        nin = self._dmat['nin'].reshape(shape)
+        e1 = self._dmat['e1'].reshape(shape)
+        e2 = self._dmat['e2'].reshape(shape)
 
         # Compute start point (D) and unit vectors (us)
         D = self._dgeom['summit']
@@ -1001,9 +999,11 @@ class CrystalBragg(utils.ToFuObject):
         assert phi.ndim == 1
 
         # Compute
+        # calling dmat for unit vectors because in _check_optics.py, we compute them in 
+        # order to obtain the same in dgeom if alpha and beta are zero.
         func = _comp_optics.CrystBragg_sample_outline_Rays
-        D, us = func(self._dgeom['center'], self._dgeom['nout'],
-                     self._dgeom['e1'], self._dgeom['e2'],
+        D, us = func(self._dgeom['center'], self._dmat['nout'],
+                     self._dmat['e1'], self._dmat['e2'],
                      self._dgeom['rcurve'], self._dgeom['extenthalf'],
                      bragg, phi)
 
@@ -1016,7 +1016,6 @@ class CrystalBragg(utils.ToFuObject):
                 name = self.Id.Name + 'ExtractCam'
             return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
                             Exp=self.Id.Exp, shot=self.Id.shot, config=config)
-
 
 
     # -----------------
@@ -1153,7 +1152,6 @@ class CrystalBragg(utils.ToFuObject):
             lamb = self._dbragg['lambref']
         return _comp_optics.get_bragg_from_lamb(np.atleast_1d(lamb),
                                                 self._dmat['d'], n=n)
-
     def get_lamb_from_bragg(self, bragg=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
@@ -1183,6 +1181,7 @@ class CrystalBragg(utils.ToFuObject):
 
         The detector can be translated towards / away from the crystal
             to make sure the distance between 2 spectral lines
+
             (lamb0 and lamb1) on the detector's plane matches
             a desired distance (dist01, in m)
 
@@ -1237,11 +1236,18 @@ class CrystalBragg(utils.ToFuObject):
             bragg01 = self._checkformat_bragglamb(lamb=np.r_[lamb0, lamb1],
                                                   n=n)
 
-        lf = ['summit', 'nout', 'e1', 'e2']
-        lc = [rcurve is None] + [self._dgeom[kk] is None for kk in lf]
+        # split into 2 different condition because of dmat
+        lc = [rcurve is None] + [self._dgeom['summit'] is None]
         if any(lc):
             msg = ("Some missing fields in dgeom for computation:"
-                   + "\n\t-" + "\n\t-".join(['rcurve'] + lf))
+                   + "\n\t-" + "\n\t-".join(['rcurve'] +'summit'))
+            raise Exception(msg)
+
+        lf = ['nout', 'e1', 'e2']
+        lc = [self._dmat[kk] is None for kk in lf]
+        if any(lc):
+            msg = ("Some missing fields in dmat for computation:"
+                   + "\n\t-" + "\n\t-".join(lf))
             raise Exception(msg)
 
         # Compute crystal-centered parameters in (nout, e1, e2)
@@ -1255,7 +1261,7 @@ class CrystalBragg(utils.ToFuObject):
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
             det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
             self._dgeom['summit'],
-            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            self._dmat['nout'], self._dmat['e1'], self._dmat['e2'],
             ddist=ddist, di=di, dj=dj,
             dtheta=dtheta, dpsi=dpsi, tilt=tilt)
 
@@ -1346,12 +1352,12 @@ class CrystalBragg(utils.ToFuObject):
 
         if nmax == 1 and np.allclose([dtheta, psi], [0., 0.]):
             summ = self._dgeom['summit']
-            nout = self._dgeom['nout']
-            e1, e2 = self._dgeom['e1'], self._dgeom['e2']
+            nout = self._dmat['nout']
+            e1, e2 = self._dmat['e1'], self._dmat['e2']
         else:
             func = _comp_optics.CrystBragg_get_noute1e2_from_psitheta
-            nout, e1, e2 = func(self._dgeom['nout'],
-                                self._dgeom['e1'], self._dgeom['e2'],
+            nout, e1, e2 = func(self._dmat['nout'],
+                                self._dmat['e1'], self._dmat['e2'],
                                 psi, dtheta)
             if nout.ndim == 2:
                 cent = self._dgeom['center'][:, None]
@@ -1679,7 +1685,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta, psi, indnan, indout = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts, self._dgeom['center'], self._dgeom['rcurve'],
             bragg, nlamb, npts,
-            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            self._dmat['nout'], self._dmat['e1'], self._dmat['e2'],
             self._dgeom['extenthalf'], ndtheta=ndtheta)
 
         bragg = np.repeat(np.repeat(bragg[:, None], npts, axis=-1)[..., None],
@@ -2105,7 +2111,7 @@ class CrystalBragg(utils.ToFuObject):
         # spect1d=None, nlambfit=None,
         # plotmode=None, angunits=None, indspect=None,
         # cmap=None, vmin=None, vmax=None):
-        """ Perform 2d fitting of a 2d apectromtere image
+        """ Perform 2d fitting of a 2d spectrometre image
 
         Fit the spectrum by a sum of gaussians
         Modulate each gaussian parameters by bsplines in the spatial direction
