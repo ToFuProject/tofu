@@ -1609,6 +1609,8 @@ def switch_ref(
     ddata=None,
     dref=None,
     dgroup=None,
+    dobj0=None,
+    dref_static0=None,
     allowed_groups=None,
     reserved_keys=None,
     ddefparams=None,
@@ -1662,6 +1664,8 @@ def switch_ref(
         ddata=ddata, ddata0={},
         dref=dref, dref0={},
         dgroup=dgroup, dgroup0={},
+        dobj=None, dobj0=dobj0,
+        dref_static=None, dref_static0=dref_static0,
         allowed_groups=None,
         reserved_keys=None,
         ddefparams=None,
@@ -1827,7 +1831,7 @@ def _add_param(
     """ Add a parameter, optionnally also set its value """
     lp = [kk for kk in list(dd.values())[0].keys()]
     if dd_name == 'ddata':
-        dd.remove('data')
+        lp.remove('data')
 
     c0 = isinstance(param, str) and param not in lp
     if not c0:

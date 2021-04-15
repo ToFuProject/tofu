@@ -303,10 +303,10 @@ class Test01_DataCollection(object):
     def test04_select(self):
         data = self.lobj[0]
 
-        key = data.select(units='s', returnas=str)
+        key = data.select_data(units='s', returnas=str)
         assert key == ['trace10']
 
-        out = data.select(units='a.u.', returnas=int)
+        out = data.select_obj(units='a.u.', returnas=int)
         assert len(out) == 9, out
 
     def tests04_get_summary(self):
@@ -321,7 +321,7 @@ class Test01_DataCollection(object):
         data.add_param('shot', value=np.arange(0, len(data.ddata)))
         assert np.all(data.get_param('shot')['shot'] == np.arange(0, len(data.ddata)))
         data.remove_param('shot')
-        assert 'shot' not in data.lparam
+        assert 'shot' not in data.lparam_data
 
     def tests06_switch_ref(self):
 

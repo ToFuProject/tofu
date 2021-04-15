@@ -283,8 +283,8 @@ class DataCollection(utils.ToFuObject):
 
         """
         return _check_inputs._get_param(
-            ddata=self._ddata, param=param,
-            key=key, ind=ind, returnas=returnas,
+            dd=self._ddata, dd_name='ddata',
+            param=param, key=key, ind=ind, returnas=returnas,
         )
 
     def set_param(self, param=None, value=None, ind=None, key=None):
@@ -300,18 +300,23 @@ class DataCollection(utils.ToFuObject):
 
         """
         _check_inputs._set_param(
-            ddata=self._ddata, param=param, value=value, ind=ind, key=key,
+            dd=self._ddata, dd_name='ddata',
+            param=param, value=value, ind=ind, key=key,
         )
 
     def add_param(self, param, value=None):
         """ Add a parameter, optionnally also set its value """
         _check_inputs._add_param(
-            ddata=self._ddata, param=param, value=value
+            dd=self._ddata, dd_name='ddata',
+            param=param, value=value
         )
 
     def remove_param(self, param=None):
         """ Remove a parameter, none by default, all if param = 'all' """
-        _check_inputs._remove_param(ddata=self._ddata, param=param)
+        _check_inputs._remove_param(
+            dd=self._ddata, dd_name='ddata',
+            param=param,
+        )
 
     ###########
     # strip dictionaries
@@ -448,7 +453,8 @@ class DataCollection(utils.ToFuObject):
 
         """
         return _check_inputs._select(
-            ddata=self._ddata, log=log, returnas=returnas, **kwdargs,
+            dd=self._ddata, dd_name='ddata',
+            log=log, returnas=returnas, **kwdargs,
         )
 
     def select_obj(self, log=None, returnas=None, **kwdargs):
@@ -465,7 +471,8 @@ class DataCollection(utils.ToFuObject):
 
         """
         return _check_inputs._select(
-            ddata=self._dobj, log=log, returnas=returnas, **kwdargs,
+            dd=self._ddata, dd_name='obj',
+            log=log, returnas=returnas, **kwdargs,
         )
 
     def _ind_tofrom_key_data(
@@ -542,15 +549,20 @@ class DataCollection(utils.ToFuObject):
 
     def switch_ref(self, new_ref=None):
         """Use the provided key as ref (if valid) """
-        self._dgroup, self._dref, self._ddata = _check_inputs.switch_ref(
-            new_ref=new_ref,
-            ddata=self._ddata, dref=self._dref, dgroup=self._dgroup,
-            allowed_groups=self._allowed_groups,
-            reserved_keys=self._reserved_keys,
-            ddefparams=self._ddef['params'],
-            data_none=self._data_none,
-            max_ndim=self._max_ndim,
-        )
+        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+                _check_inputs.switch_ref(
+                    new_ref=new_ref,
+                    ddata=self._ddata,
+                    dref=self._dref,
+                    dgroup=self._dgroup,
+                    dobj0=self._dobj,
+                    dref_static0=self._dref_static,
+                    allowed_groups=self._allowed_groups,
+                    reserved_keys=self._reserved_keys,
+                    ddefparams=self._ddef['params'],
+                    data_none=self._data_none,
+                    max_ndim=self._max_ndim,
+                )
 
     # ---------------------
     # Methods for getting a subset of the collection
