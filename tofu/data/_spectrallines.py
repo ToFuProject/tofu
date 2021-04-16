@@ -25,7 +25,7 @@ class SpectralLines(DataCollection):
     _ddef = {'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
              'params': {
                  'lambda0': (float, 0.),
-                 'origin': (str, 'unknown'),
+                 'source': (str, 'unknown'),
                  'transition':    (str, 'unknown'),
                  'element':  (str, 'unknown'),
                  'charge':  (int, 0),
@@ -37,12 +37,10 @@ class SpectralLines(DataCollection):
     _data_none = True
 
     _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = [
-        'data', 'lambda0', 'symbol', 'ion', 'transition', 'origin'
-    ]
+    _show_in_summary = 'all'
 
-    def update(self, ddata=None, dref=None, dgroup=None):
-        super().update(ddata=ddata, dref=dref, dgroup=dgroup)
+    def update(self, **kwdargs):
+        super().update(**kwdargs)
 
         # check data 
         lc = [
@@ -50,7 +48,7 @@ class SpectralLines(DataCollection):
             if v0.get('data') is not None
             and not (
                 isinstance(v0['data'], np.ndarray)
-                and v0['data'].ndim == 2
+                and v0['data'].ndim <= 2
             )
         ]
         if len(lc) > 0:
@@ -70,7 +68,7 @@ class SpectralLines(DataCollection):
         lambda0=None,
         pec=None,
         ref=None,
-        origin=None,
+        source=None,
         transition=None,
         ion=None,
         element=None,
@@ -81,12 +79,12 @@ class SpectralLines(DataCollection):
         """ Add a spectral line by key and rest wavelength, optionally with 
 
         """
-        self.add_data(
+        self.add_obj(
             key=key,
             lambda0=lambda0,
-            data=pec,
+            pec=pec,
             ref=ref,
-            origin=origin,
+            source=source,
             transition=transition,
             ion=ion,
             element=element,
@@ -169,47 +167,45 @@ class SpectralLines(DataCollection):
                 raise Exception(msg)
 
         # Load for local files
-        out = _read_files.step03_read_all(
+        dne, dte, dpec, lion, dsource, dlines = _read_files.step03_read_all(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
             charge=charge,
+            pec_as_func=False,
+            format_for_DataCollection=True,
             verb=False,
         )
 
-        # Format to ddata and dref
-        lkothers = [
-            'te', 'te_units', 'ne', 'ne_units',
-            'pec', 'pec_units', 'pec_type']
 
-        # dref
+        # # dgroup
+        # dgroup = ['Te', 'ne']
+
+        # dref - Te
         dref = {
+            k0: {'data': v0['data'], 'units': v0['units'], 'group': 'Te'}
+            for k0, v0 in dte.items()
         }
 
-        # ddata
-        ddata = {
-        }
+        # dref - ne
+        dref.update({
+            k0: {'data': v0['data'], 'units': v0['units'], 'group': 'ne'}
+            for k0, v0 in dne.items()
+        })
+
+        # ddata - pec
+        ddata = dpec
 
         # dref_static
-        lions = sorted(set([v0['ion']]))
         dref_static = {
-            'ion': {
-                ion[0]: {},
-            },
-            'source': {
-                source[0]: {}
-            },
+            'ion': {k0: {} for k0 in lion},
+            'source': dsource,
         }
 
         # dobj (lines)
-        lkout = lkothers + ['element', 'charge', 'ION']
         dobj = {
-            'lines': {
-                k0: {k1: v1 for k1, v1 in v0.items() if k1 not in lkout}
-                for k0, v0 in out.items()
-            },
+            'lines': dlines,
         }
-        import pdb; pdb.set_trace()     # DB
         return ddata, dref, dref_static, dobj
 
     @classmethod
@@ -237,7 +233,7 @@ class SpectralLines(DataCollection):
             update=update,
             create_custom=create_custom,
         )
-        return cls(ddata=out, dref=dref, dref_static=dref_static, dobj=dobj)
+        return cls(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
 
     def add_from_openadas(
         self,
@@ -269,80 +265,6 @@ class SpectralLines(DataCollection):
     # summary
     # ------------------
 
-    def get_summary(
-        self,
-        show=None, show_core=None,
-        sep='  ', line='-', just='l',
-        table_sep=None, verb=True, return_=False,
-    ):
-
-        # -----------------------
-        # Build for groups
-        col0 = ['group name', 'nb. ref', 'nb. data']
-        ar0 = [(k0,
-                len(self._dgroup[k0]['lref']),
-                len(self._dgroup[k0]['ldata']))
-               for k0 in self._dgroup.keys()]
-
-        # -----------------------
-        # Build for refs
-        col1 = ['ref key', 'group', 'size', 'nb. data']
-        ar1 = [(k0,
-                self._dref[k0]['group'],
-                str(self._dref[k0]['size']),
-                len(self._dref[k0]['ldata']))
-               for k0 in self._dref.keys()]
-
-        # -----------------------
-        # Build for ions
-        ions = sorted(set([
-            v0['ion'] for v0 in self._ddata.values()
-            if v0.get('ion') is not None
-        ]))
-        col2 = ['ions', 'nb. lines', 'lambda0 min', 'lambda0 max']
-        ar2 = [(
-            ion,
-            np.sum([v0.get('ion') == ion for v0 in self._ddata.values()]),
-            np.min([
-                v0['lambda0'] for v0 in self._ddata.values()
-                if v0.get('ion') == ion
-            ]),
-            np.max([
-                v0['lambda0'] for v0 in self._ddata.values()
-                if v0.get('ion') == ion
-            ]),
-        ) for ion in ions]
-
-        # -----------------------
-        # Build for ddata
-        col3 = ['key']
-        if show_core is None:
-            show_core = self._show_in_summary_core
-        if isinstance(show_core, str):
-            show_core = [show_core]
-        lp = self.lparam
-        # lkcore = ['shape', 'group', 'ref']
-        col3 += [ss for ss in show_core if ss in lp]
-
-        if show is None:
-            show = self._show_in_summary
-        if show == 'all':
-            col3 += [pp for pp in lp if pp not in col3]
-        else:
-            if isinstance(show, str):
-                show = [show]
-            show = [ss for ss in show if ss in lp]
-            col3 += [pp for pp in show if pp not in col3]
-
-        ar3 = []
-        for k0 in self._ddata.keys():
-            lu = [k0] + [str(self._ddata[k0][cc]) for cc in col3[1:]]
-            ar3.append(lu)
-
-        return self._get_summary(
-            [ar0, ar1, ar2, ar3], [col0, col1, col2, col3],
-            sep=sep, line=line, table_sep=table_sep,
-            verb=verb, return_=return_)
 
     # -----------------
     # conversion wavelength - energy - frequency

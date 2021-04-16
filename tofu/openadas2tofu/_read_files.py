@@ -19,6 +19,7 @@ _PECASFUNC = True
 
 
 # #############################################################################
+# #############################################################################
 #                       Utility functions
 # #############################################################################
 
@@ -48,12 +49,106 @@ def _get_subdir_from_pattern(path, pattern):
     return os.path.join(path, ld[0])
 
 
+def _format_for_DataCollection_adf15(dout):
+    """
+    Format dout from step03_read_all() for SPectralLines object
+    (separated te, ne, ions, sources, lines)
+    """
+
+    # Get dict of unique Te and ne
+    dte, dne = {}, {}
+    ite, ine = 0, 0
+    for k0, v0 in dout.items():
+
+        # fill dte
+        kte = [
+            kk for kk, vv in dte.items()
+            if np.allclose(v0['te'], vv['data'])
+        ]
+        if len(kte) == 0:
+            keyte = 'Te-{:02}'.format(ite)
+            dte[keyte] = {
+                'data': v0['te'], 'units': v0['te_units'],
+            }
+            ite += 1
+        elif len(kte) == 1:
+            pass
+        else:
+            msg = "len(kte) != 1:\n\t- kte = {}".format(kte)
+            raise Exception(msg)
+        dout[k0]['keyte'] = keyte
+
+        # fill dne
+        kne = [
+            kk for kk, vv in dne.items()
+            if np.allclose(v0['ne'], vv['data'])
+        ]
+        if len(kne) == 0:
+            keyne = 'ne-{:02}'.format(ine)
+            dne[keyne] = {
+                'data': v0['ne'], 'units': v0['ne_units'],
+            }
+            ine += 1
+        elif len(kne) == 1:
+            pass
+        else:
+            msg = "len(kne) != 1:\n\t- kne = {}".format(kne)
+            raise Exception(msg)
+        dout[k0]['keyne'] = keyne
+
+    # Get dict of unique ions
+    lion = sorted(set([v0['ion'] for v0 in dout.values()]))
+
+    # Get dict of unique sources
+    lsource = sorted(set([v0['source'] for v0 in dout.values()]))
+    dsource = {
+        'oa-adf15-{:02}'.format(ii): {'long': ss} for ii, ss in enumerate(lsource)
+    }
+
+    # Get dict of pec
+    dpec = {
+        '{}-pec'.format(k0): {
+            'data': v0['pec'], 'units': v0['pec_units'],
+            'ref': (v0['keyne'], v0['keyte']),
+            'source': [
+                k1 for k1, v1 in dsource.items()
+                if v1['long'] == v0['source']
+            ][0],
+        }
+        for k0, v0 in dout.items()
+    }
+
+    # dlines
+    dlines = {
+        k0: {
+            'ion': v0['ion'],
+            'source': [
+                k1 for k1, v1 in dsource.items()
+                if v1['long'] == v0['source']
+            ][0],
+            'lambda0': v0['lambda0'],
+            'pec': '{}-pec'.format(k0),
+            'symbol': v0['symbol'],
+            'type': v0['type'],
+            'transition': v0['transition'],
+        }
+        for k0, v0 in dout.items()
+    }
+
+    return dne, dte, dpec, lion, dsource, dlines
+
+
+# #############################################################################
 # #############################################################################
 #                       Main functions
 # #############################################################################
 
 
-def step03_read(adas_path, **kwdargs):
+def step03_read(
+    adas_path,
+    pec_as_func=None,
+    **kwdargs,
+):
     """ Read openadas-formatted files and return a dict with the data
 
     Povide the full adas file name
@@ -108,12 +203,17 @@ def step03_read(adas_path, **kwdargs):
                + "\t- supported: {}".format(sorted(_DTYPES.keys())))
         raise Exception(msg)
 
+    if typ1 == 'adf15':
+        kwdargs['pec_as_func'] = pec_as_func
+
     func = eval('_read_{}'.format(lc[0]))
     return func(pfe, **kwdargs)
 
 
 def step03_read_all(
     element=None, charge=None, typ1=None, typ2=None,
+    pec_as_func=None,
+    format_for_DataCollection=None,
     verb=None, **kwdargs,
 ):
     """ Read all relevant openadas files for chosen typ1
@@ -193,6 +293,10 @@ def step03_read_all(
         msg = "charge must be a int!"
         raise Exception(msg)
 
+
+    if format_for_DataCollection is None:
+        format_for_DataCollection = False
+
     if verb is None:
         verb = True
 
@@ -216,8 +320,10 @@ def step03_read_all(
               and element in ff)]
          for path in lpath]))
 
-    if charge is not None and typ1 == 'adf15':
-        lpfe = [ff for ff in lpfe if str(charge) in ff]
+    if typ1 == 'adf15':
+        kwdargs['pec_as_func'] = pec_as_func
+        if charge is not None:
+            lpfe = [ff for ff in lpfe if str(charge) in ff]
 
     # --------------------
     # Extract data from each file
@@ -228,7 +334,11 @@ def step03_read_all(
             msg = "\tLoading data from {}".format(pfe)
             print(msg)
         dout = func(pfe, dout=dout, **kwdargs)
-    return dout
+
+    if typ1 == 'adf15' and format_for_DataCollection is True:
+        return _format_for_DataCollection_adf15(dout)
+    else:
+        return dout
 
 
 # #############################################################################
@@ -458,12 +568,13 @@ def _read_adf15(
                 typ = [ss[ss.index('type=')+len('type='):ss.index('/ispb')]
                        for ss in lstr[3:] if 'type=' in ss]
                 assert len(typ) == 1
-                # To be updated : proper rezading from line
+                # To be updated : proper reading from line
                 in_ne = True
                 ne = np.array([])
                 te = np.array([])
                 pec = np.full((nne*nte,), np.nan)
                 ind = 0
+                # il = 0
                 continue
 
             if 'root partition information' in line and skip is True:
@@ -496,7 +607,9 @@ def _read_adf15(
                 data = np.array(line.rstrip().strip().split(' '),
                                 dtype=float)
                 pec[ind:ind+data.size] = data
+                # pec[il, :] = data
                 ind += data.size
+                # il += 1
                 if ind == pec.size:
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
@@ -521,7 +634,7 @@ def _read_adf15(
                         'charge': charge,
                         'element': elem,
                         'symbol': '{}{}-{}'.format(typ0, typ1, isoel),
-                        'origin': pfe,
+                        'source': pfe,
                         'type': typ[0],
                         'ne': ne,
                         'ne_units': '/m3',

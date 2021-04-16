@@ -26,7 +26,8 @@ _DDEF_PARAMS = {
         'name':   (str, 'unknown'),
         'units':  (str, 'a.u.'),
     },
-    'dobj': {},
+    'dobj': {
+    },
 }
 
 _DATA_NONE = False
@@ -331,13 +332,16 @@ def _check_dref_static(
         and all([
             isinstance(k0, str)
             and isinstance(v0, dict)
+            and all([
+                isinstance(k1, str)
+                and (
+                    k0 not in dref_static0.keys()
+                    or k1 not in dref_static0[k0].keys()
+                )
+                and isinstance(v1, dict)
+                for k1, v1 in v0.items()
+            ])
             for k0, v0 in dref_static.items()
-        ])
-        and all([
-            isinstance(k1, str)
-            and k1 not in dref_static0.get(k0, {}).keys()
-            and isinstance(v1, dict)
-            for k1 in v0.keys()
         ])
     )
 
@@ -971,7 +975,7 @@ def _check_data(data=None, key=None, max_ndim=None):
             raise Exception(msg)
 
     # Check if valid ref candidate
-    refcandidate = bool(
+    monotonous = bool(
         isinstance(data, np.ndarray)
         and data.ndim == 1
         and (
@@ -980,7 +984,7 @@ def _check_data(data=None, key=None, max_ndim=None):
         )
     )
 
-    return data, shape, group, refcandidate
+    return data, shape, group, monotonous
 
 
 def _check_ddata(
@@ -1130,7 +1134,7 @@ def _check_ddata(
         if v0.get('data') is not None:
             (
                 ddata[k0]['data'], ddata[k0]['shape'],
-                group, ddata[k0]['refcandidate']
+                group, ddata[k0]['monot']
             ) = _check_data(
                 data=v0['data'], key=k0, max_ndim=max_ndim,
             )
@@ -1206,16 +1210,28 @@ def _check_ddata(
             c0 = c0 and tuple(shaperef) == v0['shape']
         else:
             c0 = v0['ref'] == (k0,)
-        if not c0:
-            msg = (
-                """
-                Inconsistent shape vs ref for ddata[{0}]:
-                    - ddata['{0}']['ref'] = {1}  ({2})
-                    - ddata['{0}']['shape'] = {3}
 
-                If dict / object it should be its own ref!
-                """.format(k0, v0['ref'], tuple(shaperef), v0['shape'])
-            )
+        # Raise Exception if needed
+        if not c0:
+            if isinstance(v0['shape'], tuple):
+                msg = (
+                    """
+                    Inconsistent shape vs ref for ddata[{0}]:
+                        - ddata['{0}']['ref'] = {1}  ({2})
+                        - ddata['{0}']['shape'] = {3}
+
+                    If dict / object it should be its own ref!
+                    """.format(k0, v0['ref'], tuple(shaperef), v0['shape'])
+                )
+            else:
+                msg = (
+                    "ddata[{0}]['ref'] != ({0},)".format(k0)
+                    + "\n\t- ddata[{}]['ref'] = {}\n\n".format(k0, v0['ref'])
+                    + "... or there might be an issue with:\n"
+                    + "\t- type(ddata[{}]['shape']) = {} ({})".format(
+                        k0, type(v0['shape']), v0['shape'],
+                    )
+                )
             raise Exception(msg)
 
     return ddata, dref_add, dgroup_add
@@ -1239,19 +1255,53 @@ def _check_dobj(
     # ----------------
     # Check conformity
 
-    # Basis
-    c0 = isinstance(dobj, dict)
-    lc = [
-        k0 for k0, v0 in dobj.items()
-        if not (
-            isinstance(k0, str)
-            and k0 not in dbj0.keys()
-            and isinstance(v0, dict)
-            and all([isinstance(ss, str) for ss in v0.keys()])
+    # map possible non-conformities
+    if not isinstance(dobj, dict):
+        msg = (
+            "Arg dobj must be a dict!\n"
+            "\t- Provided: {}".format(type(dobj))
         )
-    ]
-    if not (c0 and len(lc) == 0):
-        msg = None
+        raise Exception(msg)
+
+    # Map possible non-conformities
+    dc = {}
+    for k0, v0 in dobj.items():
+        c1 = isinstance(k0, str) and isinstance(v0, dict)
+        if not c1:
+            dc[k0] = "type(key) != str or type(value) != dict"
+            continue
+
+        if k0 not in dobj0.keys():
+            lc2 = [k1 for k1 in v0.keys() if not isinstance(k1, str)]
+            if len(lc2) > 0:
+                dc[k0] = (
+                    "The following keys of dobj[{}] are not str:\n".format(k0)
+                    + "\n\t- "
+                    + "\n\t- ".join(lc2)
+                )
+                continue
+        else:
+            lc2 = [
+                k1 for k1 in v0.keys()
+                if not isinstance(k1, str)
+                or k1 in dobj0[k0].keys()
+            ]
+            if len(lc2) > 0:
+                dc[k0] = (
+                    "The following keys of dobj[{}] are not str:\n".format(k0)
+                    + "\n\t- "
+                    + "\n\t- ".join(lc2)
+                    + "(or they are already in dobj0[{}]".format(k0)
+                )
+
+    # Raise Exception
+    if len(dc) > 0:
+        msg = (
+            "The following keys of dobj are non-conform:\n"
+            + "\n\n".join([
+                'dobj[{}]: {}'.format(k0, v0) for k0, v0 in dc.items()
+            ])
+        )
         raise Exception(msg)
 
     return dobj
@@ -1295,11 +1345,11 @@ def _check_elementioncharge(
     # Get element and charge from ION if any
     if lc[0] or lc[1]:
         indc = 1
-        if ION[1].islower():
+        if (lc[0] and ION[1].islower()) or (lc[1] and ion[1].islower()):
             indc = 2
 
         # Infer element
-        elementi = ION[:indc]
+        elementi = ION[:indc] if lc[0] else ion[:indc]
         if element is not None and element != elementi:
             msg = (
                 """
@@ -1322,6 +1372,27 @@ def _check_elementioncharge(
             raise Exception(msg)
         element = elementi
         charge = chargei
+        if lc[0]:
+            ioni = '{}{}+'.format(element, charge)
+            if lc[1] and ioni != ion:
+                msg = (
+                    """
+                    Inconsistent ION ({}) vs ion ({})
+                    """.format(ION, ion)
+                )
+                raise Exception(msg)
+            ion = ioni
+
+        elif lc[1]:
+            IONi = '{}{}'.format(element, int2roman(charge+1))
+            if lc[0] and IONi != ION:
+                msg = (
+                    """
+                    Inconsistent ion ({}) vs ION ({})
+                    """.format(ion, ION)
+                )
+                raise Exception(msg)
+            ION = IONi
 
     # ion provided -> element and charge
     elif lc[2]:
@@ -1386,6 +1457,7 @@ def _check_elementioncharge_dict(dref_static):
 def _harmonize_params(
     dd=None,
     dd_name=None,
+    dd_name2=None,
     dref_static=None,
     lkeys=None,
     reserved_keys=None,
@@ -1393,6 +1465,8 @@ def _harmonize_params(
 ):
 
     # Check inputs
+    if dd_name2 is None:
+        dd_name2 = dd_name
     if reserved_keys is None:
         reserved_keys = _DRESERVED_KEYS[dd_name]
     if ddefparams is None:
@@ -1435,7 +1509,7 @@ def _harmonize_params(
                             - type({}[{}][{}]) = {}
                         - Expected: {}
                         """.format(
-                            dd_name, k1, k0, type(dd[k1][k0]), v0[0],
+                            dd_name2, k1, k0, type(dd[k1][k0]), v0[0],
                         )
                     )
                     raise Exception(msg)
@@ -1518,7 +1592,9 @@ def _consistency(
 
     # --------------
     # dref_static
-    dref_static = _check_dref_static()
+    dref_static = _check_dref_static(
+        dref_static=dref_static, dref_static0=dref_static0,
+    )
     dref_static0.update(dref_static)
 
     # --------------
@@ -1540,6 +1616,7 @@ def _consistency(
     dobj = _check_dobj(
         dobj=dobj, dobj0=dobj0,
     )
+    dobj0.update(dobj)
 
     # --------------
     # params harmonization - ddata
@@ -1552,12 +1629,14 @@ def _consistency(
 
     # --------------
     # params harmonization - dobj
-    dobj0 = _harmonize_params(
-        dd=dobj0,
-        dd_name='dobj',
-        dref_static=dref_static0,
-        ddefparams=ddefparams, reserved_keys=reserved_keys,
-    )
+    for k0, v0 in dobj.items():
+        dobj0[k0] = _harmonize_params(
+            dd=v0,
+            dd_name='dobj',
+            dd_name2='dobj[{}]'.format(k0),
+            dref_static=dref_static0,
+            ddefparams=ddefparams, reserved_keys=reserved_keys,
+        )
 
     # --------------
     # Complement
@@ -1622,7 +1701,7 @@ def switch_ref(
     # Check input
     c0 = (
         new_ref in ddata.keys()
-        and ddata[new_ref].get('refcandidate') is True
+        and ddata[new_ref].get('monot') is True
     )
     if not c0:
         strgroup = [
@@ -1630,14 +1709,14 @@ def switch_ref(
                 k0,
                 [
                     k1 for k1 in v0['ldata']
-                    if ddata[k1].get('refcandidate') is True
+                    if ddata[k1].get('monot') is True
                 ]
             )
             for k0, v0 in dgroup.items()
         ]
         msg = (
             """
-            Arg new_ref must be a key to a valid refcandidate!
+            Arg new_ref must be a key to a valid ref candidate (monotonous)!
             - Provided: {}
 
             Available valid ref candidates:

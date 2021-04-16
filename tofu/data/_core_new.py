@@ -622,52 +622,89 @@ class DataCollection(utils.ToFuObject):
         # msg = "The data is not accessible because self.strip(2) was used !"
         # assert self._dstrip['strip']<2, msg
 
+        lcol, lar = [], []
+
         # -----------------------
         # Build for groups
-        col0 = ['group name', 'nb. ref', 'nb. data']
-        ar0 = [(k0,
-                len(self._dgroup[k0]['lref']),
-                len(self._dgroup[k0]['ldata']))
-               for k0 in self._dgroup.keys()]
+        if len(self._dgroup) > 0:
+            lcol.append(['group', 'nb. ref', 'nb. data'])
+            lar.append([
+                (
+                    k0,
+                    len(self._dgroup[k0]['lref']),
+                    len(self._dgroup[k0]['ldata']),
+                )
+                for k0 in self._dgroup.keys()
+            ])
 
         # -----------------------
         # Build for refs
-        col1 = ['ref key', 'group', 'size', 'nb. data']
-        ar1 = [(k0,
-                self._dref[k0]['group'],
-                str(self._dref[k0]['size']),
-                len(self._dref[k0]['ldata']))
-               for k0 in self._dref.keys()]
+        if len(self._dref) > 0:
+            lcol.append(['ref key', 'group', 'size', 'nb. data'])
+            lar.append([
+                (
+                    k0,
+                    self._dref[k0]['group'],
+                    str(self._dref[k0]['size']),
+                    len(self._dref[k0]['ldata'])
+                )
+                for k0 in self._dref.keys()
+            ])
 
         # -----------------------
         # Build for ddata
-        col2 = ['key']
-        if show_core is None:
-            show_core = self._show_in_summary_core
-        if isinstance(show_core, str):
-            show_core = [show_core]
-        lp = self.lparam_data
-        lkcore = ['shape', 'group', 'ref']
-        assert all([ss in lp + lkcore for ss in show_core])
-        col2 += show_core
+        if len(self._ddata) > 0:
+            if show_core is None:
+                show_core = self._show_in_summary_core
+            if isinstance(show_core, str):
+                show_core = [show_core]
+            lp = self.lparam_data
+            lkcore = ['shape', 'group', 'ref']
+            assert all([ss in lp + lkcore for ss in show_core])
+            col2 = ['key'] + show_core
 
-        if show is None:
-            show = self._show_in_summary
-        if show == 'all':
-            col2 += [pp for pp in lp if pp not in col2]
-        else:
-            if isinstance(show, str):
-                show = [show]
-            assert all([ss in lp for ss in show])
-            col2 += [pp for pp in show if pp not in col2]
+            if show is None:
+                show = self._show_in_summary
+            if show == 'all':
+                col2 += [pp for pp in lp if pp not in col2]
+            else:
+                if isinstance(show, str):
+                    show = [show]
+                assert all([ss in lp for ss in show])
+                col2 += [pp for pp in show if pp not in col2]
 
-        ar2 = []
-        for k0 in self._ddata.keys():
-            lu = [k0] + [str(self._ddata[k0].get(cc)) for cc in col2[1:]]
-            ar2.append(lu)
+            ar2 = []
+            for k0 in self._ddata.keys():
+                lu = [k0] + [str(self._ddata[k0].get(cc)) for cc in col2[1:]]
+                ar2.append(lu)
+
+            lcol.append(col2)
+            lar.append(ar2)
+
+        # -----------------------
+        # Build for dref_static
+        if len(self._dref_static) > 0:
+            for k0, v0 in self._dref_static.items():
+                col = [k0] + [pp for pp in list(v0.values())[0].keys()]
+                ar = [
+                    tuple([k1] + [str(vv) for vv in v1.values()])
+                    for k1, v1 in v0.items()
+                ]
+                lcol.append(col)
+                lar.append(ar)
+
+        # -----------------------
+        # Build for dobj
+        if len(self._dobj) > 0:
+            for k0, v0 in self._dobj.items():
+                lcol.append([k0] + [pp for pp in list(v0.values())[0].keys()])
+                lar.append([
+                    tuple([k1] + [str(vv) for vv in v1.values()])
+                    for k1, v1 in v0.items()
+                ])
 
         return self._get_summary(
-            [ar0, ar1, ar2], [col0, col1, col2],
+            lar, lcol,
             sep=sep, line=line, table_sep=table_sep,
             verb=verb, return_=return_)
 
