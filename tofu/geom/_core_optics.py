@@ -397,7 +397,11 @@ class CrystalBragg(utils.ToFuObject):
         self._dmat = dmat
 
     def set_dbragg(self, dbragg=None):
-        dbragg = _check_optics._checkformat_dbragg(dbragg)
+        dbragg = _check_optics._checkformat_dbragg(
+            dbragg,
+            ddef=self._ddef['dbragg'],
+            valid_keys=self._get_keys_dbragg(),
+        )
         self._dbragg = dbragg
 
     def _set_color(self, color=None):

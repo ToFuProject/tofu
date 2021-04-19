@@ -5,6 +5,9 @@ import warnings
 import matplotlib as mpl
 
 
+from . import _comp_optics
+
+
 # ####################################################################
 # ####################################################################
 #               common routines for checking
@@ -445,14 +448,13 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 # ####################################################################
 
 
-def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
+def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
 
     """
     rocking curve, wavelenght of reference and its bragg angle associated
     """
     if dbragg is None:
-        dbragg = dict.fromkeys(_core_optics._get_keys_dbragg())
-
+        dbragg = dict.fromkeys(valid_keys)
 
     #---------------------
     # check dict integrity
@@ -487,21 +489,20 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
             )
         raise Exception(msg)
 
-    # Update braggref according to lambref, if lambref was user-provided
-    if user_prov is True:
-        dbragg['braggref'] = braggref
-
     # Set default lambda if necessary
     user_prov = True
     if dbragg.get('lambref') is None:
         # set to bragg = braggref
         dbragg['lambref'] = _comp_optics.get_lamb_from_bragg(
-                            np.r_[dbragg['braggref']], _core_optics._dmat['d'], n=1)[0]
+            np.r_[dbragg['braggref']],
+            dmat['d'],
+            n=1,
+        )[0]
         user_prov = False
 
     # Set default bragg angle if necessary
     braggref = _comp_optics.get_bragg_from_lamb(
-                            np.r_[dbragg['lambref']], _core_optics._dmat['d'], n=1)[0]
+                            np.r_[dbragg['lambref']], dmat['d'], n=1)[0]
     if np.isnan(braggref):
         lambok = []
         msg = (
@@ -516,23 +517,33 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
         )
         raise Exception(msg)
 
+    # Update braggref according to lambref, if lambref was user-provided
+    if user_prov is True:
+        dbragg['braggref'] = braggref
+
     #------------------------------------------------
     # Check rocking curve value 
     #------------------------------------------------
 
     # Check type dict and content (each key is a valid string)
-    drock=dbragg['rockingcurve']
-    lkeyok = ['sigma', 'deltad', 'Rmax', 'dangle', 'lamb', 'value', 'type',
-              'source']
+    drock = dbragg['rockingcurve']
+    lkeyok = [
+        'sigma', 'deltad', 'Rmax', 'dangle', 'lamb', 'value', 'type', 'source',
+    ]
     _check_dict_valid_keys(var=drock, varname='drock', valid_keys=lkeyok)
 
     # check type, size and content of each key in drock
+    # Rocking curve can be provided as:
+    # - analytical form (Lorentzian-log)
+    # - tabulated in 2d
+    # - tabulated in 1d
     try:
         if drock.get('sigma') is not None:
             dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
             dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
             dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
             dbragg['rockingcurve']['type'] = 'lorentz-log'
+
         elif drock.get('dangle') is not None:
             c2d = (drock.get('lamb') is not None
                    and drock.get('value').ndim == 2)
@@ -548,6 +559,7 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
                 dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
                 dbragg['rockingcurve']['value'] = drock['value']
                 dbragg['rockingcurve']['type'] = 'tabulated-2d'
+
             else:
                 if drock.get('lamb') is None:
                     msg = (
@@ -558,10 +570,12 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
                 dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
                 dbragg['rockingcurve']['value'] = np.r_[drock['value']]
                 dbragg['rockingcurve']['type'] = 'tabulated-1d'
+
             if drock.get('source') is None:
                 msg = "Unknown source for the tabulated rocking curve!"
                 warnings.warn(msg)
             dbragg['rockingcurve']['source'] = drock.get('source')
+
     except Exception as err:
         msg = (
             """
