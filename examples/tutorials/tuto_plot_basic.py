@@ -29,7 +29,7 @@ import tofu as tf
 # structures. `tofu` provides pre-defined ones for your to try, so we're going
 # to do just that:
 
-configB2 = tf.geom.utils.create_config("B2")
+configB2 = tf.load_config("B2")
 
 ###############################################################################
 # The configuration can easily be visualized using the `.plot()` method:
@@ -42,11 +42,11 @@ configB2.plot()
 
 cam1d = tf.geom.utils.create_CamLOS1D(
     config=configB2,
-    P=[3.4, 0, 0],
-    N12=100,
-    F=0.1,
-    D12=0.1,
-    angs=[np.pi, 0, 0],
+    pinhole=[3.4, 0, 0],
+    sensor_nb=100,
+    focal=0.1,
+    sensor_size=0.1,
+    orientation=[np.pi, 0, 0],
     Name="",
     Exp="",
     Diag="",
@@ -60,11 +60,11 @@ cam1d.plot_touch()
 
 cam2d = tf.geom.utils.create_CamLOS2D(
     config=configB2,
-    P=[3.4, 0, 0],
-    N12=100,
-    F=0.1,
-    D12=0.1,
-    angs=[np.pi, 0, 0],
+    pinhole=[3.4, 0, 0],
+    sensor_nb=100,
+    focal=0.1,
+    sensor_size=0.1,
+    orientation=[np.pi, 0, 0],
     Name="",
     Exp="",
     Diag="",

@@ -5,6 +5,7 @@ tofu.dumpro package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
@@ -16,6 +17,7 @@ tofu.dumpro.\_comp module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dumpro.\_comp\_clusters module
 -----------------------------------
@@ -24,6 +26,7 @@ tofu.dumpro.\_comp\_clusters module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dumpro.\_core module
 -------------------------
@@ -32,6 +35,7 @@ tofu.dumpro.\_core module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dumpro.\_def module
 ------------------------
@@ -40,6 +44,7 @@ tofu.dumpro.\_def module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dumpro.\_draft module
 --------------------------
@@ -48,6 +53,7 @@ tofu.dumpro.\_draft module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.dumpro.\_plot module
 -------------------------
@@ -56,4 +62,4 @@ tofu.dumpro.\_plot module
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:

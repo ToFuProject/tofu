@@ -34,7 +34,7 @@ How To Do A Release
    f) Easybuild: try to create a tarball for Jira machines
    g) For IRFM servers, build the conda_recipe by hand:
 
-      .. code-block:: python
+      .. code-block:: console
 
 	 $ if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export VADD="py37"; else export VADD="py36";  fi
          $ export CONDA_BLD_PATH=$(pwd)/conda-bld/ # you should be in the tofu dir

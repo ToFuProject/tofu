@@ -25,11 +25,13 @@ try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
+    import tofu.geom._comp_solidangles as _comp_solidangles
     import tofu.geom._plot as _plot
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
     from . import _comp as _comp
+    from . import _comp_solidangles
     from . import _plot as _plot
 
 __all__ = [
@@ -3915,6 +3917,68 @@ class Config(utils.ToFuObject):
         )
         return dkwd
 
+    def calc_solidangle_particle(
+        self,
+        pts=None,
+        traj=None,
+        rad=None,
+        approx=None,
+        aniso=None,
+        block=None,
+    ):
+        """ Compute the solid angle subtended by a particle along a trajectory
+
+        The particle has radius r, and trajectory (array of points) traj
+        It is observed from pts (array of points)
+        Takes into account blocking of the field of view by structural elements
+
+        traj and pts are (3, N) and (3, M) arrays of cartesian coordinates
+
+        approx = True => use approximation
+        aniso = True => return also unit vector of emission
+        block = True consider LOS collisions (with Ves, Struct...)
+
+        if block:
+            config used for LOS collisions
+
+        Parameters
+        ----------
+        traj:       np.ndarray
+            Array of (3, N) pts coordinates (X, Y, Z) representing the particle
+            positions
+        pts:        np.ndarray
+            Array of (3, M) pts coordinates (X, Y, Z) representing points from
+            which the particle is observed
+        rad:        float / np.ndarray
+            Unique of multiple values for the radius of the spherical particle
+                if multiple, rad is a np.ndarray of shape (N,)
+        approx:     None / bool
+            Flag indicating whether to compute the solid angle using a
+            1st-order series development (in which case the solid angle becomes
+            proportional to the radius of the particle, see Notes_Upgrades/)
+        aniso:      None / bool
+            Flag indicating whether to consider anisotropic emissivity,
+            meaning the routine must also compute and return the unit vector
+            directing the flux from each pts to each position on the trajectory
+        block:      None / bool
+            Flag indicating whether to check for vignetting by structural
+            elements provided by config
+
+        Return:
+        -------
+        sang: np.ndarray
+            (N, M) Array of floats, solid angles
+
+        """
+        return _comp_solidangles.calc_solidangle_particle(
+            pts=pts,
+            traj=traj,
+            rad=rad,
+            config=self,
+            approx=approx,
+            aniso=aniso,
+            block=block,
+        )
 
 """
 ###############################################################################
@@ -4770,29 +4834,42 @@ class Rays(utils.ToFuObject):
 
         # Get reference: lS
         if indStruct is None:
-            indStruct = self.indStruct_computeInOut
-        lS = [
-            ss for ii, ss in enumerate(self.config.lStruct) if ii in indStruct
-        ]
+            indIn, indOut = self.get_indStruct_computeInOut(unique_In=True)
+            indStruct = np.r_[indIn, indOut]
+        else:
+            indIn = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "in"
+            ]
+            if len(indIn) > 1:
+                ind = np.argmin([
+                    self.config.lStruct[ii].dgeom['Surf']
+                    for ii in indIn
+                ])
+                indStruct = [ii for ii in indStruct
+                             if ii not in indIn or ii == ind]
+                indIn = [indIn[ind]]
+            indOut = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "out"
+            ]
 
-        lSIn = [ss for ss in lS if ss._InOut == "in"]
-        if len(lSIn) == 0:
+        if len(indIn) == 0:
             msg = "self.config must have at least a StructIn subclass !"
-            assert len(lSIn) > 0, msg
-        iref = np.argmin([ss.dgeom["Surf"] for ss in lSIn])
-        S = lSIn[iref]
+            raise Exception(msg)
 
+        S = self.config.lStruct[indIn[0]]
         VPoly = S.Poly_closed
         VVIn = S.dgeom["VIn"]
         largs = [D, u, VPoly, VVIn]
 
+        lS = [self.config.lStruct[ii] for ii in indOut]
         if self._method == "ref":
 
             Lim = S.Lim
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
             for ss in lS:
                 lSPoly.append(ss.Poly_closed)
@@ -4826,7 +4903,6 @@ class Rays(utils.ToFuObject):
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPolyx, lSVInx = [], []
             lSPolyy, lSVIny = [], []
             lSLim, lSnLim = [], []
@@ -4856,7 +4932,7 @@ class Rays(utils.ToFuObject):
                 else:
                     num_tot_structs += len(ss.Lim)
 
-            lsnvert = np.asarray(lsnvert, dtype=np.long)
+            lsnvert = np.asarray(lsnvert, dtype=int)
             lSPolyx = np.asarray(lSPolyx)
             lSPolyy = np.asarray(lSPolyy)
             lSVInx = np.asarray(lSVInx)
@@ -4868,7 +4944,7 @@ class Rays(utils.ToFuObject):
                         lstruct_polyx=lSPolyx,
                         lstruct_polyy=lSPolyy,
                         lstruct_lims=lSLim,
-                        lstruct_nlim=np.asarray(lSnLim, dtype=np.long),
+                        lstruct_nlim=np.asarray(lSnLim, dtype=int),
                         lstruct_normx=lSVInx,
                         lstruct_normy=lSVIny,
                         lnvert=lsnvert,
@@ -5560,19 +5636,6 @@ class Rays(utils.ToFuObject):
         return self._dconfig["Config"]
 
     @property
-    def indStruct_computeInOut(self):
-        compute = self.config.get_compute()
-        lS = self.config.lStruct
-        iI, iO = [], []
-        for ii in range(0, len(lS)):
-            if compute[ii]:
-                if lS[ii]._InOut == "in":
-                    iI.append(ii)
-                elif lS[ii]._InOut == "out":
-                    iO.append(ii)
-        return np.r_[iI + iO]
-
-    @property
     def Etendues(self):
         if self._dgeom["Etendues"] is None:
             E = None
@@ -5825,11 +5888,38 @@ class Rays(utils.ToFuObject):
     # public methods
     ###########
 
+    def get_indStruct_computeInOut(self, unique_In=None):
+        """ The indices of structures with compute = True
+
+        The indidces refer to self.config.lStruct
+            - The first array corresponds to Struct of type In
+            - The second array corresponds to Struct of type Out
+        """
+        if unique_In is None:
+            unique_In = False
+
+        compute = self.config.get_compute()
+        indIn = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "in"
+        ], dtype=int)
+        if unique_In is True and indIn.size > 1:
+            iind = np.argmin([
+                self.config.lStruct[ii].dgeom['Surf'] for ii in indIn
+            ])
+            indIn = np.r_[indIn[iind]]
+
+        indOut = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "out"
+        ], dtype=int)
+        return indIn, indOut
+
     def _check_indch(self, ind, out=int):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim == 1
-            assert ind.dtype in [np.int64, np.bool_, np.long]
+            assert ind.dtype in [np.int64, np.bool_, int]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
                 if out is int:
@@ -6028,13 +6118,20 @@ class Rays(utils.ToFuObject):
     def _get_plotL(
         self,
         reflections=True,
-        Lplot="Tot",
-        proj="All",
+        Lplot=None,
+        proj=None,
         ind=None,
         return_pts=False,
         multi=False,
     ):
         """ Get the (R,Z) coordinates of the cross-section projections """
+        # Check inputs
+        if Lplot is None:
+            Lplot = 'tot'
+        if proj is None:
+            proj = 'All'
+
+        # Compute
         ind = self._check_indch(ind)
         if ind.size > 0:
             us = self.u[:, ind]
@@ -7386,8 +7483,8 @@ class Rays(utils.ToFuObject):
         dElt = {}
         lS = self.config.lStruct
         ind = self._check_indch(ind, out=bool)
-        for ii in self.indStruct_computeInOut:
-            kn = "%s_%s" % (lS[ii].__class__.__name__, lS[ii].Id.Name)
+        for ii in np.r_[self.get_indStruct_computeInOut(unique_In=True)]:
+            kn = "{}_{}".format(lS[ii].__class__.__name__, lS[ii].Id.Name)
             indtouch = self.select(touch=kn, out=bool)
             if np.any(indtouch):
                 indok = indtouch & ind
@@ -7404,8 +7501,13 @@ class Rays(utils.ToFuObject):
         return dElt
 
     def get_touch_colors(
-        self, ind=None, dElt=None, cbck=(0.8, 0.8, 0.8), rgba=True
+        self,
+        ind=None,
+        dElt=None,
+        cbck=(0.8, 0.8, 0.8),
+        rgba=True,
     ):
+        """ Get array of colors per LOS (color set by the touched Struct) """
         if dElt is None:
             dElt = self.get_touch_dict(ind=None, out=bool)
         else:
@@ -7432,6 +7534,7 @@ class Rays(utils.ToFuObject):
         self,
         key=None,
         quant="lengths",
+        Lplot=None,
         invert=None,
         ind=None,
         Bck=True,
@@ -7447,7 +7550,15 @@ class Rays(utils.ToFuObject):
         The associated Config is also plotted
         The plot shows which strutural element is touched by each LOS
 
-        In addition, an extra quantity is plotted, depending on quant:
+        In addition, an extra quantity can be mapped to alpha (transparency)
+
+        Parameters
+        ----------
+        key:        None / str
+            Only relevant if self.dchans was defined
+            key is then a key to sekf.dchans
+        quant:      None / str
+            Flag indicating which extra quantity is used to map alpha:
             - 'lengths' (default): the length of each LOS
             - 'angles' : the angle of incidence of each LOS
                          (with respect to the normal of the surface touched,
@@ -7456,6 +7567,26 @@ class Rays(utils.ToFuObject):
                          (useful for checking numbering)
             - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
+        Lplot:      None / str
+            Flag indicating whether to plot:
+                - 'tot': the full length of the LOS
+                - 'in': only the part that is inside the vessel
+        invert:     None / bool
+            Flag indicating whether to plot 2D camera images inverted (pinhole)
+        ind:        None / np.ndarray
+            Array of bool indices used to select only a subset of the LOS
+        Bck:        None / bool
+            Flag indicating whether to plot the background LOS
+        fs:         None / tuple
+            figure size in inches
+        wintit:     None / str
+            Title for the window
+        tit:        None / str
+            Title for the figure
+        connect:    None / bool
+            Flag indicating to connect interactive actuators
+        draw:       None / bool
+            Flag indicating whether to draw the figure
         """
         out = _plot.Rays_plot_touch(
             self,
@@ -7463,6 +7594,7 @@ class Rays(utils.ToFuObject):
             Bck=Bck,
             quant=quant,
             ind=ind,
+            Lplot=Lplot,
             invert=invert,
             connect=connect,
             fs=fs,
