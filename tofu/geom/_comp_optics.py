@@ -56,6 +56,7 @@ def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
     else:
         return vout
 
+
 def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
                                            rcurve, extenthalf, res=None):
     if res is None:
@@ -68,6 +69,7 @@ def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
     vout = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
                                                  e1e2=False, sameshape=False)
     return center[:, None] + rcurve*vout
+
 
 def CrystBragg_sample_outline_Rays(center, nout, e1, e2,
                                    rcurve, extenthalf,
