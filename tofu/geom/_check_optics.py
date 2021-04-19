@@ -400,7 +400,7 @@ def _checkformat_dmat(dmat=None, ddef=None, valid_keys=None):
                      +np.sin(dmat['beta'])*dgeom['e2'])
         )
         dmat['nin'] = -dmat['nout']
-        dmat['e1'] = np.sin(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']
+        dmat['e1'] = np.cos(dmat['alpha'])*(np.cos(dmat['beta'])*dgeom['e1']
                    +np.sin(dmat['beta'])*dgeom['e2'])
         dmat['e2'] = np.cross(dmat['nout'], dmat['e1'])
 
@@ -418,8 +418,8 @@ def _checkformat_dmat(dmat=None, ddef=None, valid_keys=None):
 
         # check if input parameters verify trigonometry relations between each bases
         try:
-            np.cos(dmat['alpha']) = np.abs(dgeom['nout'] / dmat['nout'])
-            np.cos(dmat['beta']) = dgeom['e1'] / dmat['e1']
+            np.cos(dmat['alpha']) == np.abs(dgeom['nout'] / dmat['nout'])
+            np.cos(dmat['beta']) == dgeom['e1'] / dmat['e1']
         except Exception as err:
             msg = (
                 """
