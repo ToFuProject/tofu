@@ -1,6 +1,10 @@
 
 import warnings
 
+
+import matplotlib as mpl
+
+
 # ####################################################################
 # ####################################################################
 #               common routines for checking
@@ -579,9 +583,8 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None):
 # ####################################################################
 
 
-@staticmethod
-def _checkformat_inputs_dmisc(cls, color=None):
+def _checkformat_inputs_dmisc(color=None, ddef=None):
     if color is None:
-        color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
+        color = mpl.colors.to_rgba(ddef['dmisc']['color'])
     assert mpl.colors.is_color_like(color)
     return tuple(mpl.colors.to_rgba(color))

@@ -401,7 +401,9 @@ class CrystalBragg(utils.ToFuObject):
         self._dbragg = dbragg
 
     def _set_color(self, color=None):
-        color = _check_optics._checkformat_inputs_dmisc(color=color)
+        color = _check_optics._checkformat_inputs_dmisc(
+            color=color, ddef=self._ddef,
+        )
         self._dmisc['color'] = color
         self._dplot['cross']['dP']['color'] = color
         self._dplot['hor']['dP']['color'] = color
