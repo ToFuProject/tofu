@@ -3872,9 +3872,7 @@ class Config(utils.ToFuObject):
 
         # Nb of structures and of structures inc. Lims (toroidal occurences)
         num_lim_structs = len(lS)
-        num_tot_structs = int(np.sum([
-            1 if ss.noccur == 0 else ss.noccur for ss in lS
-        ]))
+        num_tot_structs = int(np.sum([max(1, ss.noccur) for ss in lS]))
 
         # build concatenated C-contiguous arrays of x and y coordinates
         lSPolyx = np.concatenate([ss.Poly_closed[0, :] for ss in lS])
