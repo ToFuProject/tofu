@@ -140,19 +140,19 @@ def _format_for_DataCollection_adf15(dout):
 
     # dlines
     inds = np.argsort([v0['lambda0'] for v0 in dout.values()])
-    lk0 = np.array(dout.keys())[inds]
+    lk0 = np.array(list(dout.keys()), dtype=str)[inds]
     dlines = {
         k0: {
             'ion': dout[k0]['ion'],
             'source': [
                 k1 for k1, v1 in dsource.items()
-                if v1['long'] == v0['source']
+                if v1['long'] == dout[k0]['source']
             ][0],
-            'lambda0': v0['lambda0'],
+            'lambda0': dout[k0]['lambda0'],
             'pec': '{}-pec'.format(k0),
-            'symbol': v0['symbol'],
-            'type': v0['type'],
-            'transition': v0['transition'],
+            'symbol': dout[k0]['symbol'],
+            'type': dout[k0]['type'],
+            'transition': dout[k0]['transition'],
         }
         for k0 in lk0
     }
