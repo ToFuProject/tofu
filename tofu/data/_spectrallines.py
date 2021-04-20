@@ -181,17 +181,9 @@ class SpectralLines(DataCollection):
         # # dgroup
         # dgroup = ['Te', 'ne']
 
-        # dref - Te
-        dref = {
-            k0: {'data': v0['data'], 'units': v0['units'], 'group': 'Te'}
-            for k0, v0 in dte.items()
-        }
-
-        # dref - ne
-        dref.update({
-            k0: {'data': v0['data'], 'units': v0['units'], 'group': 'ne'}
-            for k0, v0 in dne.items()
-        })
+        # dref - Te + ne
+        dref = dte
+        dref.update(dne)
 
         # ddata - pec
         ddata = dpec

@@ -55,6 +55,15 @@ def _format_for_DataCollection_adf15(dout):
     (separated te, ne, ions, sources, lines)
     """
 
+    # Get dict of unique ions
+    lion = sorted(set([v0['ion'] for v0 in dout.values()]))
+
+    # Get dict of unique sources
+    lsource = sorted(set([v0['source'] for v0 in dout.values()]))
+    dsource = {
+        'oa-adf15-{:02}'.format(ii): {'long': ss} for ii, ss in enumerate(lsource)
+    }
+
     # Get dict of unique Te and ne
     dte, dne = {}, {}
     ite, ine = 0, 0
@@ -67,8 +76,17 @@ def _format_for_DataCollection_adf15(dout):
         ]
         if len(kte) == 0:
             keyte = 'Te-{:02}'.format(ite)
+            sour = [
+                k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
+            ][0]
             dte[keyte] = {
-                'data': v0['te'], 'units': v0['te_units'],
+                'data': v0['te'],
+                'units': v0['te_units'],
+                'source': sour,
+                'dim': 'temperature',
+                'quant': 'Te',
+                'name': 'Te',
+                'group': 'Te',
             }
             ite += 1
         elif len(kte) == 1:
@@ -85,8 +103,17 @@ def _format_for_DataCollection_adf15(dout):
         ]
         if len(kne) == 0:
             keyne = 'ne-{:02}'.format(ine)
+            sour = [
+                k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
+            ][0]
             dne[keyne] = {
-                'data': v0['ne'], 'units': v0['ne_units'],
+                'data': v0['ne'],
+                'units': v0['ne_units'],
+                'source': sour,
+                'dim': 'density',
+                'quant': 'ne',
+                'name': 'ne',
+                'group': 'ne',
             }
             ine += 1
         elif len(kne) == 1:
@@ -95,15 +122,6 @@ def _format_for_DataCollection_adf15(dout):
             msg = "len(kne) != 1:\n\t- kne = {}".format(kne)
             raise Exception(msg)
         dout[k0]['keyne'] = keyne
-
-    # Get dict of unique ions
-    lion = sorted(set([v0['ion'] for v0 in dout.values()]))
-
-    # Get dict of unique sources
-    lsource = sorted(set([v0['source'] for v0 in dout.values()]))
-    dsource = {
-        'oa-adf15-{:02}'.format(ii): {'long': ss} for ii, ss in enumerate(lsource)
-    }
 
     # Get dict of pec
     dpec = {
@@ -114,6 +132,8 @@ def _format_for_DataCollection_adf15(dout):
                 k1 for k1, v1 in dsource.items()
                 if v1['long'] == v0['source']
             ][0],
+            'dim': '<sigma v>',
+            'quant': 'pec',
         }
         for k0, v0 in dout.items()
     }

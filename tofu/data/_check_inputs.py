@@ -1592,7 +1592,8 @@ def _consistency(
     dgroup=None, dgroup0=None,
     allowed_groups=None,
     reserved_keys=None,
-    ddefparams=None,
+    ddefparams_data=None,
+    ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -1653,7 +1654,7 @@ def _consistency(
         dd=ddata0,
         dd_name='ddata',
         dref_static=dref_static0,
-        ddefparams=ddefparams, reserved_keys=reserved_keys,
+        ddefparams=ddefparams_data, reserved_keys=reserved_keys,
     )
 
     # --------------
@@ -1664,7 +1665,8 @@ def _consistency(
             dd_name='dobj',
             dd_name2='dobj[{}]'.format(k0),
             dref_static=dref_static0,
-            ddefparams=ddefparams, reserved_keys=reserved_keys,
+            ddefparams=ddefparams_obj.get(k0),
+            reserved_keys=reserved_keys,
         )
 
     # --------------

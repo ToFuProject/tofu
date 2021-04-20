@@ -48,12 +48,20 @@ class DataCollection(utils.ToFuObject):
     __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
-             'params': {'source': (str, 'unknown'),
-                        'dim':    (str, 'unknown'),
-                        'quant':  (str, 'unknown'),
-                        'name':   (str, 'unknown'),
-                        'units':  (str, 'a.u.')}}
+    _ddef = {
+        'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
+        'params': {
+            'ddata': {
+                'source': (str, 'unknown'),
+                'dim':    (str, 'unknown'),
+                'quant':  (str, 'unknown'),
+                'name':   (str, 'unknown'),
+                'units':  (str, 'a.u.'),
+            },
+            'dobj': {},
+         },
+    }
+
     _forced_group = None
     if _forced_group is not None:
         _allowed_groups = [_forced_group]
@@ -177,7 +185,8 @@ class DataCollection(utils.ToFuObject):
                     dgroup=dgroup, dgroup0=self._dgroup,
                     allowed_groups=self._allowed_groups,
                     reserved_keys=self._reserved_keys,
-                    ddefparams=self._ddef['params'],
+                    ddefparams_data=self._ddef['params']['ddata'],
+                    ddefparams_obj=self._ddef['params']['dobj'],
                     data_none=self._data_none,
                     max_ndim=self._max_ndim,
                 )
@@ -661,7 +670,7 @@ class DataCollection(utils.ToFuObject):
             lp = self.lparam_data
             lkcore = ['shape', 'group', 'ref']
             assert all([ss in lp + lkcore for ss in show_core])
-            col2 = ['key'] + show_core
+            col2 = ['data key'] + show_core
 
             if show is None:
                 show = self._show_in_summary
