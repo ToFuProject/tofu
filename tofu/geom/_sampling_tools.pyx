@@ -2110,7 +2110,7 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
     cdef long* is_vis
     cdef double* dist = NULL
 
-    with nogil, parallel(num_threads=num_threads):
+    with nogil, parallel(num_threads=1):
         dist = <double*> malloc(sz_p * sizeof(double))
         is_vis = <long*> malloc(sz_p * sizeof(long))
         for ii in prange(sz_r):
@@ -2162,18 +2162,21 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                                    rmin,
                                                    eps_uz, eps_a,
                                                    eps_vz, eps_b, eps_plane,
-                                                   is_tor, forbid, num_threads)
+                                                   is_tor, forbid, 1)
                         for pp in range(sz_p):
                             if is_vis[pp] and dist[pp] > part_rad[pp]:
                                 sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
                                                                   dist[pp],
                                                                   vol_pi)
+                            if ii == zz == pp == ind_pol == 0 and not is_vis[pp]:
+                                with gil:
+                                    print("not vis for :",
+                                          pts_mv[2, ind_pol])
         free(dist)
         free(is_vis)
     return
 
 
-@cython.boundscheck(True)
 cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                             double[::1] part_rad,
                                             long[:, ::1] is_in_vignette,

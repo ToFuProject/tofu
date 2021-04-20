@@ -185,6 +185,8 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     import tofu.geom as tfg
     import matplotlib.pyplot as plt
 
+    block = True
+
     ves_norm = compute_ves_norm(ves_poly)
 
     ves = tfg.Ves(
@@ -208,13 +210,20 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DZ = None # [-.25, 0.25]
     DPhi = None # [-0.01, 0.01]
 
+    kwdargs = config.get_kwdargs_LOS_isVis()
+    # kwdargs["ves_lims"] = None
+    # kwdargs["lstruct_polyx"] = None
+    # kwdargs["lstruct_polyy"] = None
+    kwdargs["lstruct_lims"] = None
+
+
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
                                      DR=DR, DZ=DZ,
                                      DPhi=DPhi,
-                                     ves_poly=ves_poly,
-                                     ves_norm=ves_norm,
+                                     block=block,
+                                     **kwdargs,
                                      )
     pts, sa_map, ind, reso_r_z  = res
 
@@ -246,12 +255,12 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     sang = config.calc_solidangle_particle(pts_disc,
                                            part,
                                            part_rad,
-                                           block=False,
+                                           block=block,
                                            approx=True)
     sang_ex = config.calc_solidangle_particle(pts_disc,
                                               part,
                                               part_rad,
-                                              block=False,
+                                              block=block,
                                               approx=False)
 
     if debug > 0:
@@ -298,13 +307,13 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
-        # print(sa_map_py - sa_map)
-        # print("reconstructed sa map =", sa_map_py)
-        # print("cython computed = ", sa_map)
     print("max error approx =", np.max(np.abs(sa_map_py - sa_map)))
     print("max error exacts =", np.max(np.abs(sa_map_py_ex - sa_map)))
     print("max error python =", np.max(np.abs(sa_map_py - sa_map_py_ex)))
-    assert np.allclose(sa_map_py, sa_map, atol=1e-05)
+
+    assert np.allclose(sa_map, sa_map_py)
+    assert np.allclose(sa_map, sa_map_py_ex)
+    assert np.allclose(sa_map_py, sa_map_py_ex)
 
     # ...
     return

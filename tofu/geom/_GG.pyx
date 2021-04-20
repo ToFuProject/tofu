@@ -2316,7 +2316,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                  and (nstruct_tot > 0) and (nstruct_lim > 0))
             assert (not bool1 or bool2), error_message
     # ==========================================================================
-    sz_ves_lims = np.size(ves_lims)
+    if ves_lims is not None:
+        sz_ves_lims = np.size(ves_lims)
+    else:
+        sz_ves_lims = 0
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
 
     if lstruct_lims is None or np.size(lstruct_lims) == 0:
@@ -4567,7 +4570,6 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
 #                        subtended by a sphere
 #
 # ==============================================================================
-@cython.boundscheck(True)
 def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             double rstep, double zstep, double phistep,
                             double[::1] RMinMax, double[::1] ZMinMax,
@@ -4692,6 +4694,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[::1] ind_mv
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
+    cdef double[::1] lstruct_lims_np
     cdef double[::1] reso_rdrdz_mv
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
@@ -4907,20 +4910,37 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     if block:
         # .. useless tabs .....................................................
         # declared here so that cython can run without gil
+        if ves_lims is not None:
+            sz_ves_lims = np.size(ves_lims)
+        else:
+            sz_ves_lims = 0
+        npts_poly = ves_norm.shape[1]
+        ray_orig = np.zeros((3, sz_p))
+        ray_vdir = np.zeros((3, sz_p))
         vperp_out = clone(array('d'), sz_p * 3, True)
         coeff_inter_in  = clone(array('d'), sz_p, True)
         coeff_inter_out = clone(array('d'), sz_p, True)
         ind_inter_out = clone(array('i'), sz_p * 3, True)
-        sz_ves_lims = np.size(ves_lims)
-        npts_poly = ves_norm.shape[1]
-        ray_orig = np.zeros((3, sz_p))
-        ray_vdir = np.zeros((3, sz_p))
+        if lstruct_lims is None or np.size(lstruct_lims) == 0:
+            lstruct_lims_np = np.array([Cnan])
+        else:
+            flat_list = []
+            for ele in lstruct_lims:
+                if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+                    for elele in ele:
+                        if type(elele) is list:
+                            flat_list += elele
+                        else:
+                            flat_list += elele.flatten().tolist()
+                else:
+                    flat_list += [Cnan]
+            lstruct_lims_np = np.array(flat_list)
+
         # ... copying tab that will be changed
         if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
             lstruct_nlim_copy = None
         else:
             lstruct_nlim_copy = lstruct_nlim.copy()
-
         _st.sa_assemble_arrays(part_coords, part_r,
                                is_in_vignette,
                                sa_map,
@@ -4929,7 +4949,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                lstruct_nlim_copy,
                                lstruct_polyx,
                                lstruct_polyy,
-                               lstruct_lims,
+                               lstruct_lims_np,
                                lstruct_normx,
                                lstruct_normy,
                                lnvert, vperp_out,

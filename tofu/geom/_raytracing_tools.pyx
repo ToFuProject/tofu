@@ -25,7 +25,6 @@ from ._basic_geom_tools cimport _VSMALL
 from ._basic_geom_tools cimport is_point_in_path
 from ._basic_geom_tools cimport is_point_in_path_vec
 from ._basic_geom_tools cimport compute_inv_and_sign
-# cimport _openmp_tools as _omp_tools
 from . cimport _basic_geom_tools as _bgt
 
 # ==============================================================================
@@ -53,6 +52,7 @@ cdef inline void compute_3d_bboxes(const double*const* vignett_poly,
                              &vignett_poly[ivign][2*nvert],
                              &lbounds[ivign*6])
     return
+
 
 cdef inline void comp_bbox_poly3d(const int nvert,
                                   const double* vertx,
@@ -2004,6 +2004,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
                 kin_tab[ii] = kin
     return
 
+
 # ==============================================================================
 # = Checking if points are visible
 # ==============================================================================
@@ -2117,7 +2118,6 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                                         double eps_plane, bint is_tor,
                                         bint forbid,
                                         int num_threads) nogil:
-    cdef int loc_nthreads
     cdef double min_poly_r
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
@@ -2142,6 +2142,7 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     # Get ind
     is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
+
     return
 
 
@@ -2179,7 +2180,6 @@ cdef inline void is_visible_pt_vec_core_nd(double pt0, double pt1, double pt2,
     """
     Same as `is_visible_pt_vec_core` but when distance is not given.
     """
-    cdef int loc_nthreads
     cdef double* dist_arr = NULL
     cdef double min_poly_r
     # --------------------------------------------------------------------------

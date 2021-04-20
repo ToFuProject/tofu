@@ -1,7 +1,7 @@
 # cython: language_level=3
 
 import os
-from openmp_enabled import is_openmp_enabled
+from .openmp_enabled import is_openmp_enabled
 
 IF TOFU_OPENMP_ENABLED:
     cimport openmp
