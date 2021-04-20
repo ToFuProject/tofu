@@ -1549,6 +1549,35 @@ def _harmonize_params(
     return dd
 
 
+def _update_dref_static0(dref_static0=None, ddata0=None, dobj0=None):
+    """ Count nb. of matching ref_static in ddata and dobj """
+
+    for k0, v0 in dref_static0.items():
+
+        # ddata
+        dd = {
+            k2: np.sum([ddata0[k3].get(k0) == k2 for k3 in ddata0.keys()])
+            for k2 in v0.keys()
+            if any([ddata0[k3].get(k0) == k2 for k3 in ddata0.keys()])
+        }
+        if len(dd) > 0:
+            ss = 'nb. data'
+            for k2, v2 in v0.items():
+                dref_static0[k0][k2][ss] = int(dd.get(k2, 0))
+
+        # dobj
+        for k1, v1 in dobj0.items():
+            dd = {
+                k2: np.sum([v1[k3].get(k0) == k2 for k3 in v1.keys()])
+                for k2 in v0.keys()
+                if any([v1[k3].get(k0) == k2 for k3 in v1.keys()])
+            }
+            if len(dd) > 0:
+                ss = 'nb. {}'.format(k1)
+                for k2, v2 in v0.items():
+                    dref_static0[k0][k2][ss] = int(dd.get(k2, 0))
+
+
 # #############################################################################
 # #############################################################################
 #                           Consistency
@@ -1663,6 +1692,9 @@ def _consistency(
             k1 for k1 in ddata0.keys()
             if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['group']
         ))
+
+    # derf_static0
+    _update_dref_static0(dref_static0=dref_static0, ddata0=ddata0, dobj0=dobj0)
 
     return dgroup0, dref0, dref_static0, ddata0, dobj0
 
