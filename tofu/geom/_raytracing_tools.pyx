@@ -2143,17 +2143,6 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
     # Get ind
     is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
 
-    # if (Cabs(pt0 - 1.0504908711763945) < 0.000000001):
-    #     # with gil:
-    #     #     print(">> pts = ", pt1, " 0.9498804212901814")
-    #     if (Cabs(pt1 + 0.9498804212901814) < 0.000000001):
-    #         with gil:
-    #             print(">>>> pt2 = ", pt2, " -1.0315677369996337")
-    #         if (Cabs(pt2 + 1.0315677369996337) < 0.000000001):
-    #             with gil:
-    #                 print(dist[0], coeff_inter_out[0], npts, num_threads)
-
-
     return
 
 
@@ -2273,9 +2262,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                               format="d")
     # We compute for each point in the polygon
     if dist is not None:
-        print("............. dist is not None")
         for ii in range(npts1):
-            print(f"{ii}/{npts1}")
             # ... copying tab that will be changed
             if lstruct_nlim is None:
                 lstruct_nlim_copy = None
@@ -2297,9 +2284,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                    rmin, eps_uz, eps_a, eps_vz, eps_b,
                                    eps_plane, is_tor,
                                    forbid, num_threads)
-        print("..................................")
     else:
-        print("............. dist is None !!!")
         for ii in range(npts1):
             # ... copying tab that will be changed
             if lstruct_nlim is None:

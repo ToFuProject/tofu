@@ -2168,14 +2168,6 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                 sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
                                                                   dist[pp],
                                                                   vol_pi)
-                            if (loc_r == 1.0504908711763945 and
-                                loc_z == -0.9498804212901814):
-                                if loc_phi == -1.0315677369996337:
-                                    with gil:
-                                        print("- ipol, pp, ii, phi:",
-                                              ind_pol, pp, ii, loc_phi,
-                                              is_vis[pp]
-                                              )
         free(dist)
         free(is_vis)
     return
@@ -2277,8 +2269,5 @@ cdef inline double sa_formula(double radius,
         \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
     """
     cdef double r_over_d = radius / distance
-    if debug == 1:
-        with gil:
-            print("r, d, v =", radius, distance, volpi)
     # return (r_over_d ** 2 + r_over_d**4 * 0.25) * volpi
     return (r_over_d ** 2) * volpi
