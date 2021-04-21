@@ -211,9 +211,10 @@ def calc_solidangle_particle(
 
     # block
     if block:
+        print("in python part pts at ii=22", pts[:,22])
         kwdargs = config.get_kwdargs_LOS_isVis()
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            traj, pts, dist=len_v, **kwdargs
+            pts, traj, dist=len_v, **kwdargs
         )
         # Because indvis is an array of int (cf. issue 471)
         iout = indvis == 0

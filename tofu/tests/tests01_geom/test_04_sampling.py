@@ -211,11 +211,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DPhi = None # [-0.01, 0.01]
 
     kwdargs = config.get_kwdargs_LOS_isVis()
-    # kwdargs["ves_lims"] = None
-    # kwdargs["lstruct_polyx"] = None
-    # kwdargs["lstruct_polyy"] = None
-    kwdargs["lstruct_lims"] = None
-
 
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
@@ -257,6 +252,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                            part_rad,
                                            block=block,
                                            approx=True)
+
     sang_ex = config.calc_solidangle_particle(pts_disc,
                                               part,
                                               part_rad,
@@ -287,6 +283,9 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ind_pol = int(i_r * sz_z + i_z)
         for pp in range(sz_p):
             sa_map_py[ind_pol, pp] += sang[pp, ii] * reso_phi[i_r]
+            if sang[pp, 22] == 0:
+                print("*  indpol, pp, ii, i_r =", ind_pol, pp, ii, 
+                      pts_disc[0, ii], pts_disc[1, ii], pts_disc[2, ii], part[:, pp])
             sa_map_py_ex[ind_pol, pp] += sang_ex[pp, ii] * reso_phi[i_r]
 
     if debug > 0:

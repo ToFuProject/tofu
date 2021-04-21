@@ -2168,10 +2168,14 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                 sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
                                                                   dist[pp],
                                                                   vol_pi)
-                            if ii == zz == pp == ind_pol == 0 and not is_vis[pp]:
-                                with gil:
-                                    print("not vis for :",
-                                          pts_mv[2, ind_pol])
+                            if (loc_r == 1.0504908711763945 and
+                                loc_z == -0.9498804212901814):
+                                if loc_phi == -1.0315677369996337:
+                                    with gil:
+                                        print("- ipol, pp, ii, phi:",
+                                              ind_pol, pp, ii, loc_phi,
+                                              is_vis[pp]
+                                              )
         free(dist)
         free(is_vis)
     return
