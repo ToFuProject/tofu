@@ -105,7 +105,10 @@ def dumpro(filename, w_dir, shot_name, vid = True, rate = None,
     #checkign reshaping parameters
     if (hlim == None and tlim == None and wlim == None):
         cropped = im_path
-        reshape = {}
+        n_files = os.listdir(cropped)
+        reshape = {'height' : (0,meta_data.get('frame_height')),
+                   'width' : (0,meta_data.get('frame_height')),
+                   'tlim' : len(n_files)}
     else:
         #reshaping images
         cropped, reshape = reshape_image.reshape_image(im_path, w_dir, 

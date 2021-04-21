@@ -88,3 +88,5 @@ from . import trace_traj
 from . import dumpro_img
 #dumpro video subroutine
 from . import dumpro_vid
+#dumpro subroutine
+from . import dumpro

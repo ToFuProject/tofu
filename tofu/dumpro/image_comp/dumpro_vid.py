@@ -93,7 +93,9 @@ def dumpro_vid(filename, w_dir, shot_name, vid = True, rate = None,
     
     if (hlim == None and tlim == None and wlim == None):
         cropped = im_path
-        reshape = {}
+        frame_width = int(filename.cap.get(3))
+        frame_height = int(filename.cap.get(4))
+        reshape = {'height' : frame_height, 'width' : frame_width, 'tlim' : tlim}
     else:
         #reshaping images
         cropped, reshape = reshape_image.reshape_image(im_path, w_dir, 

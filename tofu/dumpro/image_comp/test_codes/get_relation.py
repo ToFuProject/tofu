@@ -115,6 +115,7 @@ def get_prob(cluster1, prev_frame, d_array, c_id):
     #total number of cluster in the previous frame
     nt = len(prev_frame)
     prob = np.zeros((nt,), dtype = float)
+    real = np.zeros((nt,), dtype = float)
     #looping over clusters in the previous frame
     for tt in range(0, nt):
         #assigning cluster object from previous frame to a variable
@@ -127,13 +128,12 @@ def get_prob(cluster1, prev_frame, d_array, c_id):
         d = d_array[tt]
         #1st term of probability function
         P1 = 1/(d+1)
-       # print('p1',P1)
-        P2, P3 = get_history(cluster2, c_id, cluster1)
-        #print('p2,p3',P2,P3)
+        #getting terms of probability function related to history
+        P2, P3, point = get_history(cluster2, c_id, cluster1)
         #calculating the raw difference in area between the two clusters
         diff_area = abs(area2  - area1)
         P4 = 1/(diff_area+1)
-        #print('p4',P4)
+        #calculation maximum probability
         P = P1*P2*P3*P4
         prob[tt] = P
     max_prob = prob.max()
@@ -212,6 +212,7 @@ def get_history(cluster, c_id, cluster_1):
         #position of cluster
         x1 = int(round(point[0]))
         y1 = int(round(point[1]))
+        point = [x1,y1]
         x2 = cluster_1.center[0]
         y2 = cluster_1.center[1]
         distance = (((x1 - x2)**2)+((y1 - y2))**2)**0.5
@@ -221,4 +222,4 @@ def get_history(cluster, c_id, cluster_1):
         diff_area = abs(cluster_1.area - area)
         P3 = 1/(diff_area+1)
 
-    return P2, P3
+    return P2, P3, point
