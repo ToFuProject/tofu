@@ -2058,7 +2058,7 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                     long[::1] lstruct_nlim,
                                     double[::1] lstruct_polyx,
                                     double[::1] lstruct_polyy,
-                                    list lstruct_lims,
+                                    double[::1] lstruct_lims,
                                     double[::1] lstruct_normx,
                                     double[::1] lstruct_normy,
                                     long[::1] lnvert,
@@ -2168,10 +2168,6 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                 sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
                                                                   dist[pp],
                                                                   vol_pi)
-                            if ii == zz == pp == ind_pol == 0 and not is_vis[pp]:
-                                with gil:
-                                    print("not vis for :",
-                                          pts_mv[2, ind_pol])
         free(dist)
         free(is_vis)
     return
@@ -2273,8 +2269,5 @@ cdef inline double sa_formula(double radius,
         \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
     """
     cdef double r_over_d = radius / distance
-    if debug == 1:
-        with gil:
-            print("r, d, v =", radius, distance, volpi)
     # return (r_over_d ** 2 + r_over_d**4 * 0.25) * volpi
     return (r_over_d ** 2) * volpi

@@ -109,7 +109,7 @@ def test03_Ves_Vmesh_Tor():
                                                 limit_vpoly=VPoly,
                                                 out_format='(R,Z,Phi)',
                                                 margin=1.e-9)
-        pts, vol_res, ind, r_res, z_res, vec_phi_res = out
+        pts, vol_res, ind, r_res, z_res, vec_phi_res, sz_r, sz_z = out
         assert pts.ndim == 2 and pts.shape[0] == 3
         assert np.all(pts[0, :] >= 1.) and np.all(pts[0, :] <= 2.), \
             " X coordinates not in right bounds"
@@ -211,11 +211,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DPhi = None # [-0.01, 0.01]
 
     kwdargs = config.get_kwdargs_LOS_isVis()
-    # kwdargs["ves_lims"] = None
-    # kwdargs["lstruct_polyx"] = None
-    # kwdargs["lstruct_polyy"] = None
-    kwdargs["lstruct_lims"] = None
-
 
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
@@ -257,6 +252,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                            part_rad,
                                            block=block,
                                            approx=True)
+
     sang_ex = config.calc_solidangle_particle(pts_disc,
                                               part,
                                               part_rad,

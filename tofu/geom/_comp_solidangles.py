@@ -213,12 +213,12 @@ def calc_solidangle_particle(
     if block:
         kwdargs = config.get_kwdargs_LOS_isVis()
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            traj, pts, dist=len_v, **kwdargs
+            pts, traj, dist=len_v, **kwdargs
         )
         # Because indvis is an array of int (cf. issue 471)
         iout = indvis == 0
-        sang[iout] = 0.
-        vect[:, iout] = np.nan
+        sang[iout.T] = 0.
+        vect[:, iout.T] = np.nan
 
     ################
     # Return

@@ -76,6 +76,3 @@ pip-wheel-metadata/
 
 # Notebooks checkpoints
 **/.ipynb_checkpoints
-
-# File created at setup
-tofu/geom/openmp_enabled.py

@@ -697,7 +697,9 @@ def _Ves_get_sampleV(
                 (pts, dV, ind,
                  reseff[0],
                  reseff[1],
-                 reseff[2]) = _GG._Ves_Vmesh_Tor_SubFromD_cython(
+                 reseff[2],
+                 sz_r, sz_z,
+                 ) = _GG._Ves_Vmesh_Tor_SubFromD_cython(
                     res[0],
                     res[1],
                     res[2],
