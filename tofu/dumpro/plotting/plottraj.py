@@ -39,7 +39,7 @@ def plot_traj(traj_obs, reshape, w_dir, shot_name):
     for ii in range(0, len(traj_obs)):
         obj = traj_obs.get(ii)
         ax.plot(obj.points[:,0], obj.points[:,1],
-                c = 'r', ls = '-', lw =1, marker = 'x')
+                c = 'r', ls = '-', lw =1, marker = '|')
     ax.invert_yaxis()
     plt.savefig(w_dir + shot_name + 'Trajectory.png')
     #displaying plot
