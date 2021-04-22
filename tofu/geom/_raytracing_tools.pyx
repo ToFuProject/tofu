@@ -2260,6 +2260,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     cdef double[:, ::1] ray_vdir = view.array(shape=(3,npts2),
                                               itemsize=sizeof(double),
                                               format="d")
+    print("........................................... beginning")
     # We compute for each point in the polygon
     if dist is not None:
         for ii in range(npts1):
@@ -2307,4 +2308,5 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                       rmin, eps_uz, eps_a, eps_vz, eps_b,
                                       eps_plane, is_tor,
                                       forbid, num_threads)
+    print("........................................... DONE")
     return

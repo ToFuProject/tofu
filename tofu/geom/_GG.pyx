@@ -4678,11 +4678,14 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     """
     cdef int jj
     cdef int sz_p
-    cdef int npts_disc = 0
+    cdef int sz_r
+    cdef int sz_z
     cdef int new_np
-    cdef int sz_r, sz_z
     cdef int r_ratio
+    cdef int npts_poly
     cdef int ind_loc_r0
+    cdef int sz_ves_lims
+    cdef int npts_disc = 0
     cdef int[1] max_sz_phi
     cdef double min_phi, max_phi
     cdef double min_phi_pi
@@ -4692,6 +4695,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double twopi_over_dphi
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[::1] ind_mv
+    cdef long[::1] lstruct_nlim_copy
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] lstruct_lims_np
@@ -4720,8 +4724,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef array coeff_inter_in
     cdef array coeff_inter_out
     cdef array ind_inter_out
-    cdef int sz_ves_lims
-    cdef int npts_poly
     cdef double[:, ::1] ray_orig
     cdef double[:, ::1] ray_vdir
     #
