@@ -109,7 +109,7 @@ def test03_Ves_Vmesh_Tor():
                                                 limit_vpoly=VPoly,
                                                 out_format='(R,Z,Phi)',
                                                 margin=1.e-9)
-        pts, vol_res, ind, r_res, z_res, vec_phi_res = out
+        pts, vol_res, ind, r_res, z_res, vec_phi_res, sz_r, sz_z = out
         assert pts.ndim == 2 and pts.shape[0] == 3
         assert np.all(pts[0, :] >= 1.) and np.all(pts[0, :] <= 2.), \
             " X coordinates not in right bounds"
