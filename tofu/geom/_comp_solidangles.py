@@ -196,7 +196,7 @@ def calc_solidangle_particle(
     # Main computation
 
     # traj2pts vector, with length (3d array (3, N, M))
-    vect = traj[:, :, None] - pts[:, None, :]
+    vect = pts[:, :, None] - traj[:, None, :]
     len_v = np.ascontiguousarray(np.sqrt(np.sum(vect**2, axis=0)))
 
     # If aniso or block, normalize
@@ -217,8 +217,8 @@ def calc_solidangle_particle(
         )
         # Because indvis is an array of int (cf. issue 471)
         iout = indvis == 0
-        sang[iout.T] = 0.
-        vect[:, iout.T] = np.nan
+        sang[iout] = 0.
+        vect[:, iout] = np.nan
 
     ################
     # Return

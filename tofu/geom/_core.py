@@ -3904,7 +3904,7 @@ class Config(utils.ToFuObject):
             lstruct_polyx=lSPolyx,
             lstruct_polyy=lSPolyy,
             lstruct_lims=lSLim,
-            lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+            lstruct_nlim=np.asarray(lSnLim, dtype=int),
             lstruct_normx=lSVInx,
             lstruct_normy=lSVIny,
             lnvert=lsnvert,

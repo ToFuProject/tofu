@@ -2142,6 +2142,16 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
     # --------------------------------------------------------------------------
     # Get ind
     is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
+    if Cabs(pt0 - 1.05049087) < 0.000001:
+        if Cabs(pt1 + 0.94988042) < 0.000001:
+            if Cabs(pt2 + 1.03156774) < 0.000001:
+                with gil:
+                    print("* is vis, dist, coeff out : ", is_vis[0], dist[0],
+                          coeff_inter_out[0],
+                          ves_poly[0][0],
+                          ves_poly[1][0],
+                          nstruct_tot,
+                          )
 
     return
 
@@ -2208,6 +2218,12 @@ cdef inline void is_visible_pt_vec_core_nd(double pt0, double pt1, double pt2,
     # Get ind
     is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts,
                 num_threads)
+    if Cabs(pt0 - 1.05049087) < 0.000001:
+        if Cabs(pt1 + 0.94988042) < 0.000001:
+            if Cabs(pt2 + 1.03156774) < 0.000001:
+                with gil:
+                    print("* is vis, dist, coeff out : ", is_vis[0], dist_arr[0],
+                          coeff_inter_out[0])
     return
 
 
@@ -2260,7 +2276,6 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     cdef double[:, ::1] ray_vdir = view.array(shape=(3,npts2),
                                               itemsize=sizeof(double),
                                               format="d")
-    print("........................................... beginning")
     # We compute for each point in the polygon
     if dist is not None:
         for ii in range(npts1):
@@ -2308,5 +2323,4 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                       rmin, eps_uz, eps_a, eps_vz, eps_b,
                                       eps_plane, is_tor,
                                       forbid, num_threads)
-    print("........................................... DONE")
     return
