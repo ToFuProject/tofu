@@ -1468,6 +1468,7 @@ cdef inline void raytracing_inout_struct_lin(const int Nl,
                     vperpout_tab[2 + 3 * ii] = normy_tab[indout]
     return
 
+
 cdef inline void compute_inout_tot(const int num_los,
                                    const int npts_poly,
                                    const double[:, ::1] ray_orig,
@@ -1514,16 +1515,19 @@ cdef inline void compute_inout_tot(const int num_los,
     cdef int[1] llim_ves
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
+    if (ray_orig[0,0] == 1.0504908711763945
+            and ray_orig[1,0] == -0.9498804212901814
+            and ray_orig[2,0] == -1.0315677369996337):
+        with gil:
+            print("................................. is tor =", is_tor)
     # ==========================================================================
     if is_tor:
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None or sz_ves_lims == 0:
-            are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
             llim_ves[0] = 1
         else:
-            are_limited = True
             lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
             lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
             llim_ves[0] = 0
@@ -1540,6 +1544,14 @@ cdef inline void compute_inout_tot(const int num_los,
             forbid0, forbidbis = 1, 1
         else:
             forbid0, forbidbis = 0, 0
+        if (ray_orig[0,0] == 1.0504908711763945
+            and ray_orig[1,0] == -0.9498804212901814
+            and ray_orig[2,0] == -1.0315677369996337):
+            with gil:
+                print(" > lbounds_ves = ", lbounds_ves[0], lbounds_ves[1])
+                print(" > llim_ves = ", llim_ves[0])
+                print(" > rmin =", rmin)
+                print(" > forbid and forbidbis =", forbid, forbid0, forbidbis)
         # -- Computing intersection between LOS and Vessel ---------------------
         raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                     coeff_inter_out, coeff_inter_in,
@@ -1645,11 +1657,9 @@ cdef inline void compute_inout_tot(const int num_los,
         # -- Cylindrical case --------------------------------------------------
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None  or sz_ves_lims == 0:
-            are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
         else:
-            are_limited = True
             lbounds_ves[0] = ves_lims[0]
             lbounds_ves[1] = ves_lims[1]
 
@@ -2146,12 +2156,25 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
         if Cabs(pt1 + 0.94988042) < 0.000001:
             if Cabs(pt2 + 1.03156774) < 0.000001:
                 with gil:
-                    print("* is vis, dist, coeff out : ", is_vis[0], dist[0],
-                          coeff_inter_out[0],
-                          ves_poly[0][0],
-                          ves_poly[1][0],
-                          nstruct_tot,
-                          )
+                    print("* is vis, dist, coeff out : ",
+                          pt0,
+                          pt1,
+                          pt2,
+                          is_vis[0])
+
+                    # print(lstruct_nlim_copy)
+                    # print(lstruct_polyx, lstruct_polyy)
+                    # print(lstruct_lims)
+                    # print(lstruct_normx, lstruct_normy)
+                    # print(lnvert, vperp_out)
+                    # print(coeff_inter_in, coeff_inter_out)
+                    # print(ind_inter_out)
+                    # print(npts_poly)
+                    # print(nstruct_tot, nstruct_lim)
+                    # print(rmin, eps_uz, eps_a, eps_vz, eps_b)
+                    # print(eps_plane, is_tor)
+                    # print(forbid, num_threads)
+
 
     return
 
@@ -2218,12 +2241,6 @@ cdef inline void is_visible_pt_vec_core_nd(double pt0, double pt1, double pt2,
     # Get ind
     is_vis_mask(is_vis, dist_arr, coeff_inter_out, npts,
                 num_threads)
-    if Cabs(pt0 - 1.05049087) < 0.000001:
-        if Cabs(pt1 + 0.94988042) < 0.000001:
-            if Cabs(pt2 + 1.03156774) < 0.000001:
-                with gil:
-                    print("* is vis, dist, coeff out : ", is_vis[0], dist_arr[0],
-                          coeff_inter_out[0])
     return
 
 
