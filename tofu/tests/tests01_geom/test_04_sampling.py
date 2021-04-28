@@ -211,7 +211,9 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DPhi = None # [-0.01, 0.01]
 
     kwdargs = config.get_kwdargs_LOS_isVis()
-
+    print()
+    print(kwdargs.keys())
+    print(kwdargs["ves_type"])
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
@@ -221,14 +223,14 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                      **kwdargs,
                                      )
     pts, sa_map, ind, reso_r_z  = res
-
+    assert(False)
     # check sizes
     npts_ind = np.size(ind)
     dim, npts = np.shape(pts)
     npts_sa, sz_p = np.shape(sa_map)
 
-    if debug > 0:
-        print(f"sa_map is of size {npts_sa},{sz_p}")
+    # if debug > 0:
+    #     print(f"sa_map is of size {npts_sa},{sz_p}")
 
     # Checking shapes, sizes, types
     assert dim == 2
@@ -247,18 +249,19 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     pts_disc, dvol, ind, reso_r, reso_z, reso_phi, sz_r, sz_z = res
 
     npts_disc = np.shape(pts_disc)[1]
+    print("######################################")
     sang = config.calc_solidangle_particle(pts_disc,
                                            part,
                                            part_rad,
                                            block=block,
                                            approx=True)
-
+    print("######################################")
     sang_ex = config.calc_solidangle_particle(pts_disc,
                                               part,
                                               part_rad,
                                               block=block,
                                               approx=False)
-
+    print("######################################")
     if debug > 0:
         fig = plt.figure(figsize=(14, 8))
         ax = plt.subplot(121)
@@ -266,7 +269,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         fig.suptitle("testing still")
         plt.savefig("mocomoco")
 
-    assert (sz_p, npts_disc) == np.shape(sang)
+    assert (npts_disc, sz_p) == np.shape(sang)
     assert npts_disc >= npts
     assert reso_r * reso_z == reso_r_z
     assert npts_sa == sz_z * sz_r, f"sizes r and z = {sz_r}{sz_z}"
@@ -282,8 +285,12 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         i_z = int(np.round(np.abs(z0 - pts_disc[1, ii]) / reso_z))
         ind_pol = int(i_r * sz_z + i_z)
         for pp in range(sz_p):
-            sa_map_py[ind_pol, pp] += sang[pp, ii] * reso_phi[i_r]
-            sa_map_py_ex[ind_pol, pp] += sang_ex[pp, ii] * reso_phi[i_r]
+            if ind_pol == sang[ii, pp] == 0:
+                print("not vis at = ", ind_pol, pp, ii, pts_disc[:,ii])
+            if np.allclose(pts_disc[:, ii], np.array([ 1.05049087, -0.94988042, -1.03156774])):
+                print("yeeeeeeeeeeeeeeeeeeeeeep")
+            sa_map_py[ind_pol, pp] += sang[ii, pp] * reso_phi[i_r]
+            sa_map_py_ex[ind_pol, pp] += sang_ex[ii, pp] * reso_phi[i_r]
 
     if debug > 0:
         print("")
