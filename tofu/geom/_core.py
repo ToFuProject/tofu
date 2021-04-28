@@ -3866,22 +3866,32 @@ class Config(utils.ToFuObject):
         # -- Getting OUT structures -------------------------------------------
         lS = [ss for ss in lS if ss._InOut == "out"]
 
-        # Lims
-        lSLim = [ss.Lim for ss in lS]
-        lSnLim = [ss.noccur for ss in lS]
+        if len(lS) == 0:
 
-        # Nb of structures and of structures inc. Lims (toroidal occurences)
-        num_lim_structs = len(lS)
-        num_tot_structs = int(np.sum([max(1, ss.noccur) for ss in lS]))
+            lSLim, lSnLim = None, None
+            num_lim_structs, num_tot_structs = None, None
+            lSPolyx, lSPolyy = None, None
+            lSVInx, lSVIny = None, None
+            lsnvert = None
 
-        # build concatenated C-contiguous arrays of x and y coordinates
-        lSPolyx = np.concatenate([ss.Poly_closed[0, :] for ss in lS])
-        lSPolyy = np.concatenate([ss.Poly_closed[1, :] for ss in lS])
-        lSVInx = np.concatenate([ss.dgeom['VIn'][0, :] for ss in lS])
-        lSVIny = np.concatenate([ss.dgeom['VIn'][1, :] for ss in lS])
+        else:
 
-        # lsnvert = cumulated number of points in the polygon of each Struct
-        lsnvert = np.cumsum([ss.Poly_closed[0].size for ss in lS])
+            # Lims
+            lSLim = [ss.Lim for ss in lS]
+            lSnLim = [ss.noccur for ss in lS]
+
+            # Nb of structures and of structures inc. Lims (toroidal occurences)
+            num_lim_structs = len(lS)
+            num_tot_structs = int(np.sum([max(1, ss.noccur) for ss in lS]))
+
+            # build concatenated C-contiguous arrays of x and y coordinates
+            lSPolyx = np.concatenate([ss.Poly_closed[0, :] for ss in lS])
+            lSPolyy = np.concatenate([ss.Poly_closed[1, :] for ss in lS])
+            lSVInx = np.concatenate([ss.dgeom['VIn'][0, :] for ss in lS])
+            lSVIny = np.concatenate([ss.dgeom['VIn'][1, :] for ss in lS])
+
+            # lsnvert = cumulated number of points in the polygon of each Struct
+            lsnvert = np.cumsum([ss.Poly_closed[0].size for ss in lS])
 
         # Now setting keyword arguments:
         dkwd = dict(
