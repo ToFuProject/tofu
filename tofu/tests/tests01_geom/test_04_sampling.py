@@ -211,9 +211,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DPhi = None # [-0.01, 0.01]
 
     kwdargs = config.get_kwdargs_LOS_isVis()
-    # print()
-    # print(kwdargs.keys())
-    # print(kwdargs["ves_type"])
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,

@@ -3889,7 +3889,7 @@ class Config(utils.ToFuObject):
                 num_tot_structs += 1
             else:
                 num_tot_structs += len(ss.Lim)
-        lsnvert = np.asarray(lsnvert, dtype=np.int64)
+        lsnvert = np.asarray(lsnvert, dtype=int)
         lSPolyx = np.asarray(lSPolyx)
         lSPolyy = np.asarray(lSPolyy)
         lSVInx = np.asarray(lSVInx)
