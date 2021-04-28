@@ -3878,7 +3878,7 @@ class Config(utils.ToFuObject):
 
             # Lims
             lSLim = [ss.Lim for ss in lS]
-            lSnLim = [ss.noccur for ss in lS]
+            lSnLim = np.concatenate([ss.noccur for ss in lS])
 
             # Nb of structures and of structures inc. Lims (toroidal occurences)
             num_lim_structs = len(lS)
@@ -3906,7 +3906,7 @@ class Config(utils.ToFuObject):
             lstruct_polyx=lSPolyx,
             lstruct_polyy=lSPolyy,
             lstruct_lims=lSLim,
-            lstruct_nlim=np.asarray(lSnLim, dtype=int),
+            lstruct_nlim=lSnLim,
             lstruct_normx=lSVInx,
             lstruct_normy=lSVIny,
             lnvert=lsnvert,
