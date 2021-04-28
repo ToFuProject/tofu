@@ -716,25 +716,29 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
             lindex, resolutions[0], resolutions[1]
 
 
-def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
-                           double d2, long[::1] ind, str dSMode='abs',
+def _Ves_meshCross_FromInd(double[::1] MinMax1,
+                           double[::1] MinMax2,
+                           double d1,
+                           double d2,
+                           long[::1] ind,
+                           str dSMode='abs',
                            double margin=_VSMALL):
-    # TODO : mettre à jour
-    cdef int NP = ind.size
+
     cdef int ii
-    cdef double d1r, d2r
-    cdef int N1
     cdef int i1, i2
-    cdef np.ndarray[double,ndim=2] Pts = np.empty((2,NP))
-    cdef np.ndarray[double,ndim=1] dS
+    cdef int ncells1
+    cdef int mode_num
+    cdef int num_pts = ind.size
     cdef long[2] ncells
+    cdef long* dummy = NULL
+    cdef double d1r, d2r
     cdef double[2] resolution
     cdef double[2] dl_array
     cdef double* X1 = NULL
     cdef double* X2 = NULL
-    cdef long* dummy = NULL
     cdef str mode_low = dSMode.lower()
-    cdef int mode_num
+    cdef np.ndarray[double,ndim=2] pts_disc = np.empty((2, num_pts))
+    cdef np.ndarray[double,ndim=1] dS
     # ...
     mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
@@ -752,17 +756,19 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                                &ncells[1])
     d1r = resolution[0]
     d2r = resolution[1]
-    N1 = ncells[0]
-    dS = d1r*d2r*np.ones((NP,))
-    for ii in range(0,NP):
-        i2 = ind[ii] // N1
-        i1 = ind[ii]-i2*N1
-        Pts[0,ii] = X1[i1]
-        Pts[1,ii] = X2[i2]
+    ncells1 = ncells[0]
+    # creating array of resolutions/surfaces
+    dS = d1r*d2r*np.ones((num_pts,))
+    for ii in range(num_pts):
+        i2 = ind[ii] // ncells1
+        i1 = ind[ii] - i2 * ncells1
+        pts_disc[0, ii] = X1[i1]
+        pts_disc[1, ii] = X2[i2]
+    # freeing arrays allocated in discretize_line1d_core
     free(X1)
     free(X2)
     free(dummy)
-    return Pts, dS, d1r, d2r
+    return pts_disc, dS, d1r, d2r
 
 
 def discretize_vpoly(double[:,::1] VPoly, double dL,
@@ -4991,5 +4997,4 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(ncells_rphi)
     free(tot_nc_plane)
 
-    # TODO : remove reso_rdrdz
     return pts, sa_map, ind_mv, reso_r_z
