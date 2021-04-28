@@ -904,15 +904,23 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         DZ: array specifying the actual sub-volume limits to get in `z`
         DPhi: array specifying the actual sub-volume limits to get in `phi`
         limit_vpoly: array-like defining the `(R,Z)` coordinates of the poloidal
-                     cut of the limiting flux surface
-        out_format(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or polar
-            coordinates
+            cut of the limiting flux surface
+        out_format(string): either "(X,Y,Z)" or "(R,Z,Phi)" for cartesian or
+            polar coordinates
         margin(double): tolerance error.
             Defaults to |_VSMALL|
     Returns
     ------
-       TODO
-       reso_phi : R*dPhi
+       pts: (3, npts) array in out_format (cartesian or polar) of
+            discretized volume
+       res3d: (npts) resolution on each point
+       ind:   (npts) indices to reconstruct the points in 3D (useful only if
+              limit_vpoly is not none)
+       reso_r: (double) resolution on r (constant)
+       reso_z: (double) resolution on z (constant)
+       reso_phi : (sz_r) array, resolution R*dPhi, phi resolution on each R
+       sz_r : (int) number of points in r
+       sz_z : (int) number of points in z
     """
     cdef int jj
     cdef int npts_disc = 0
