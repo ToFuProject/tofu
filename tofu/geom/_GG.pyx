@@ -4943,7 +4943,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             lstruct_nlim_copy = None
         else:
             lstruct_nlim_copy = lstruct_nlim.copy()
-
         _st.sa_assemble_arrays(part_coords, part_r,
                                is_in_vignette,
                                sa_map,

@@ -223,7 +223,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                      **kwdargs,
                                      )
     pts, sa_map, ind, reso_r_z  = res
-    assert(False)
+
     # check sizes
     npts_ind = np.size(ind)
     dim, npts = np.shape(pts)

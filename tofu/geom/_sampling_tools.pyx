@@ -2110,66 +2110,65 @@ cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
     cdef long* is_vis
     cdef double* dist = NULL
 
-    with nogil, parallel(num_threads=1):
-        dist = <double*> malloc(sz_p * sizeof(double))
-        is_vis = <long*> malloc(sz_p * sizeof(long))
-        for ii in prange(sz_r):
-            loc_r = disc_r[ii]
-            vol_pi = step_rphi[ii] * loc_r * c_pi
-            loc_size_phi = sz_phi[ii]
-            loc_step_rphi = step_rphi[ii]
-            loc_first_ind = first_ind_mv[ii]
-            for zz in range(sz_z):
-                loc_z = disc_z[zz]
-                ind_mv[ii * sz_z + zz] = -1
-                if is_in_vignette[ii, zz]:
-                    ind_pol = lnp[ii, zz]
-                    ind_mv[ii * sz_z + zz] = ind_pol
-                    reso_rdrdz[ind_pol] = loc_r * reso_r_z
-                    pts_mv[0, ind_pol] = loc_r
-                    pts_mv[1, ind_pol] = loc_z
-                    for jj in range(loc_size_phi):
-                        indiijj = indi_mv[ii, loc_first_ind + jj]
-                        loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
-                        # computing distance ....
-                        _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
-                                                 pts_mv[1, ind_pol],
-                                                 loc_phi,
-                                                 sz_p, part_coords,
-                                                 &dist[0])
-                        # checking if visible .....
-                        _rt.is_visible_pt_vec_core(pts_mv[0, ind_pol],
-                                                   pts_mv[1, ind_pol],
-                                                   loc_phi,
-                                                   part_coords,
-                                                   sz_p,
-                                                   ves_poly, ves_norm,
-                                                   &is_vis[0], dist,
-                                                   ves_lims,
-                                                   lstruct_nlim,
-                                                   lstruct_polyx,
-                                                   lstruct_polyy,
-                                                   lstruct_lims,
-                                                   lstruct_normx,
-                                                   lstruct_normy,
-                                                   lnvert, vperp_out,
-                                                   coeff_inter_in,
-                                                   coeff_inter_out,
-                                                   ind_inter_out, sz_ves_lims,
-                                                   ray_orig, ray_vdir,
-                                                   npts_poly,
-                                                   nstruct_tot, nstruct_lim,
-                                                   rmin,
-                                                   eps_uz, eps_a,
-                                                   eps_vz, eps_b, eps_plane,
-                                                   is_tor, forbid, 1)
-                        for pp in range(sz_p):
-                            if is_vis[pp] and dist[pp] > part_rad[pp]:
-                                sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
-                                                                  dist[pp],
-                                                                  vol_pi)
-        free(dist)
-        free(is_vis)
+    dist = <double*> malloc(sz_p * sizeof(double))
+    is_vis = <long*> malloc(sz_p * sizeof(long))
+    for ii in range(sz_r):
+        loc_r = disc_r[ii]
+        vol_pi = step_rphi[ii] * loc_r * c_pi
+        loc_size_phi = sz_phi[ii]
+        loc_step_rphi = step_rphi[ii]
+        loc_first_ind = first_ind_mv[ii]
+        for zz in range(sz_z):
+            loc_z = disc_z[zz]
+            ind_mv[ii * sz_z + zz] = -1
+            if is_in_vignette[ii, zz]:
+                ind_pol = lnp[ii, zz]
+                ind_mv[ii * sz_z + zz] = ind_pol
+                reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                pts_mv[0, ind_pol] = loc_r
+                pts_mv[1, ind_pol] = loc_z
+                for jj in range(loc_size_phi):
+                    indiijj = indi_mv[ii, loc_first_ind + jj]
+                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    # computing distance ....
+                    _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
+                                             pts_mv[1, ind_pol],
+                                             loc_phi,
+                                             sz_p, part_coords,
+                                             &dist[0])
+                    # checking if visible .....
+                    _rt.is_visible_pt_vec_core(pts_mv[0, ind_pol],
+                                               pts_mv[1, ind_pol],
+                                               loc_phi,
+                                               part_coords,
+                                               sz_p,
+                                               ves_poly, ves_norm,
+                                               &is_vis[0], dist,
+                                               ves_lims,
+                                               lstruct_nlim,
+                                               lstruct_polyx,
+                                               lstruct_polyy,
+                                               lstruct_lims,
+                                               lstruct_normx,
+                                               lstruct_normy,
+                                               lnvert, vperp_out,
+                                               coeff_inter_in,
+                                               coeff_inter_out,
+                                               ind_inter_out, sz_ves_lims,
+                                               ray_orig, ray_vdir,
+                                               npts_poly,
+                                               nstruct_tot, nstruct_lim,
+                                               rmin,
+                                               eps_uz, eps_a,
+                                               eps_vz, eps_b, eps_plane,
+                                               is_tor, forbid, 1)
+                    for pp in range(sz_p):
+                        if is_vis[pp] and dist[pp] > part_rad[pp]:
+                            sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
+                                                              dist[pp],
+                                                              vol_pi)
+    free(dist)
+    free(is_vis)
     return
 
 
