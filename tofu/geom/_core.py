@@ -3869,7 +3869,7 @@ class Config(utils.ToFuObject):
         if len(lS) == 0:
 
             lSLim, lSnLim = None, None
-            num_lim_structs, num_tot_structs = None, None
+            num_lim_structs, num_tot_structs = 0, 0
             lSPolyx, lSPolyy = None, None
             lSVInx, lSVIny = None, None
             lsnvert = None
@@ -3891,7 +3891,10 @@ class Config(utils.ToFuObject):
             lSVIny = np.concatenate([ss.dgeom['VIn'][1, :] for ss in lS])
 
             # lsnvert = cumulated number of points in the polygon of each Struct
-            lsnvert = np.cumsum([ss.Poly_closed[0].size for ss in lS])
+            lsnvert = np.cumsum([
+                ss.Poly_closed[0].size for ss in lS],
+                dtype=int,
+            )
 
         # Now setting keyword arguments:
         dkwd = dict(
