@@ -80,7 +80,10 @@ __all__ = ['coord_shift',
 #       Coordinates handling
 ########################################################
 
-def coord_shift(points, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=None):
+def coord_shift(points,
+                in_format='(X,Y,Z)',
+                out_format='(R,Z)',
+                cross_format=None):
     """ Check the shape of an array of points coordinates and/or converts from
     2D to 3D, 3D to 2D, cylindrical to cartesian...
     (CrossRef is an angle (Tor) or a distance (X for Lin))
@@ -88,8 +91,10 @@ def coord_shift(points, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=No
     cdef str str_ii
     cdef long ncoords = points.shape[0]
     cdef long npts
-    assert all([type(ff) is str and ',' in ff for ff in [in_format, out_format]]), (
-        "Arg In and Out (coordinate format) must be comma-separated  !")
+    assert all([type(ff) is str and ',' in ff
+                for ff in [in_format, out_format]]), (
+                        "Arg In and Out (coordinate format)"
+                        + " must be comma-separated  !")
     assert type(points) is np.ndarray and points.ndim in [1, 2] and \
            ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
                                 "of 2 or 3 coordinates !")
@@ -1111,7 +1116,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
 
     # Preparing an array of indices to associate (r, z, phi) => npts_disc
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
-    new_np = _st.vmesh_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
+    new_np = _st.vmesh_get_index_arrays(lnp, is_in_vignette,
+                                        sz_r, sz_z, sz_phi)
     if limit_vpoly == None:
         assert npts_disc == new_np, f"No matching {npts_disc} vs {new_np}"
     else:
@@ -1395,9 +1401,6 @@ def _getBoundsinter2AngSeg(bool Full, double Phi0, double Phi1,
     return inter, Bounds, Faces
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                                    double[:,::1] VPoly,
                                    DR=None,
@@ -1582,9 +1585,6 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
 
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                                      double[:,::1] VPoly, long[::1] ind,
                                      double DIn=0., VIn=None, PhiMinMax=None,
@@ -1679,9 +1679,6 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
 ########################################################
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
                                          double dRPhi,
                                          double[:,::1] VPoly,
@@ -1832,9 +1829,6 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
 
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
                                            double dRPhi, double[:,::1] VPoly,
                                            np.ndarray[long,ndim=1] ind,
@@ -1961,10 +1955,6 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
     return inter
 
 
-
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
                                    list DX=None,
@@ -2071,13 +2061,13 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
-                                     double[:,::1] VPoly, np.ndarray[long,ndim=1] ind,
-                                     double DIn=0., VIn=None, double margin=_VSMALL):
-    " Return the desired surfacic submesh indicated by ind, for the desired resolution (dX,dL) "
+                                     double[:,::1] VPoly,
+                                     np.ndarray[long,ndim=1] ind,
+                                     double DIn=0., VIn=None,
+                                     double margin=_VSMALL):
+    """ Return the desired surfacic submesh indicated by ind,
+    for the desired resolution (dX,dL) """
     cdef double dXr, dY0r, dZ0r
     cdef int NX, NY0, NZ0, Ln, NR0, nii
     cdef list LPts, LdS
@@ -2086,12 +2076,17 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
     cdef np.ndarray[long,ndim=1] indX, indY0, indZ0, indL, NL, ii
 
     # Get the mesh for the faces
-    Y0, dY0r, bla, NY0 = discretize_line1d(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=None, Lim=True, margin=margin)
-    Z0, dZ0r, bla, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]), dL, DL=None, Lim=True, margin=margin)
+    Y0, dY0r, _, NY0 = discretize_line1d(np.array([np.min(VPoly[0, :]),
+                                                   np.max(VPoly[0,:])]),
+                                         dL, DL=None, Lim=True, margin=margin)
+    Z0, dZ0r, _, NZ0 = discretize_line1d(np.array([np.min(VPoly[1, :]),
+                                                   np.max(VPoly[1,:])]),
+                                         dL, DL=None, Lim=True, margin=margin)
 
     # Get the actual R and Z resolutions and mesh elements
-    X, dXr, bla, NX = discretize_line1d(XMinMax, dX, DL=None, Lim=True, margin=margin)
-    PtsCross, dLr, bla, NL, Rref, VPbis = discretize_vpoly(VPoly, dL,
+    X, dXr, _, NX = discretize_line1d(XMinMax, dX,
+                                      DL=None, Lim=True, margin=margin)
+    PtsCross, dLr, _, NL, Rref, VPbis = discretize_vpoly(VPoly, dL,
                                                            D1=None, D2=None,
                                                            margin=margin,
                                                            DIn=DIn, VIn=VIn)
@@ -2105,9 +2100,11 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         indZ0 = ind[ii] // NY0
         indY0 = (ind[ii]-indZ0*NY0)
         if nii==1:
-            LPts.append( np.array([[XMinMax[0]+DIn], [Y0[indY0]], [Z0[indZ0]]]) )
+            LPts.append( np.array([[XMinMax[0] + DIn],
+                                   [Y0[indY0]], [Z0[indZ0]]]) )
         else:
-            LPts.append( np.array([(XMinMax[0]+DIn)*np.ones((nii,)), Y0[indY0], Z0[indZ0]]) )
+            LPts.append( np.array([(XMinMax[0] + DIn)*np.ones((nii,)),
+                                   Y0[indY0], Z0[indZ0]]) )
         LdS.append( dY0r*dZ0r*np.ones((nii,)) )
 
     # Cylinder
@@ -2117,10 +2114,12 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         indX = (ind[ii]-NY0*NZ0) // Ln
         indL = (ind[ii]-NY0*NZ0 - Ln*indX)
         if nii==1:
-            LPts.append( np.array([[X[indX]], [PtsCross[0,indL]], [PtsCross[1,indL]]]) )
+            LPts.append( np.array([[X[indX]],
+                                   [PtsCross[0,indL]], [PtsCross[1,indL]]]) )
             LdS.append( np.array([dXr*dLr[indL]]) )
         else:
-            LPts.append( np.array([X[indX], PtsCross[0,indL], PtsCross[1,indL]]) )
+            LPts.append( np.array([X[indX],
+                                   PtsCross[0,indL], PtsCross[1,indL]]) )
             LdS.append( dXr*dLr[indL] )
 
     # End face
@@ -2130,9 +2129,11 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
         indZ0 = (ind[ii]-NY0*NZ0-NX*Ln) // NY0
         indY0 = ind[ii]-NY0*NZ0-NX*Ln - NY0*indZ0
         if nii==1:
-            LPts.append( np.array([[XMinMax[1]-DIn], [Y0[indY0]], [Z0[indZ0]]]) )
+            LPts.append( np.array([[XMinMax[1] - DIn],
+                                   [Y0[indY0]], [Z0[indZ0]]]) )
         else:
-            LPts.append( np.array([(XMinMax[1]-DIn)*np.ones((nii,)), Y0[indY0], Z0[indZ0]]) )
+            LPts.append( np.array([(XMinMax[1] - DIn)*np.ones((nii,)),
+                                   Y0[indY0], Z0[indZ0]]) )
         LdS.append( dY0r*dZ0r*np.ones((nii,)) )
 
     # Format output
@@ -2209,20 +2210,26 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        Total number of structures (counting each limited structure as one)
     ves_lims : array
        Contains the limits min and max of vessel
-    lstruct_polyx : list
+    lstruct_polyx : array
        List of x coordinates of the vertices of all structures on poloidal plane
-    lstruct_polyy : list
+       If no structures : None
+    lstruct_polyy : array
        List of y coordinates of the vertices of all structures on poloidal plane
-    lstruct_lims : list
+       If no structures : None
+    lstruct_lims : array
        List of limits of all structures
+       If no structures : None
     lstruct_nlim : array of ints
        List of number of limits for all structures
-    lstruct_normx : list
+       If no structures : None
+    lstruct_normx : array
        List of x coordinates of "inwards" normal vectors of the polygon of all
        the structures
-    lstruct_normy : list
+       If no structures : None
+    lstruct_normy : array
        List of y coordinates of "inwards" normal vectors of the polygon of all
        the structures
+       If no structures : None
     rmin : double
        Minimal radius of vessel to take into consideration
     eps_<val> : double
@@ -4652,20 +4659,26 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
        Total number of structures (counting each limited structure as one)
     ves_lims : array
        Contains the limits min and max of vessel
-    lstruct_polyx : list
+    lstruct_polyx : array
        List of x coordinates of the vertices of all structures on poloidal plane
-    lstruct_polyy : list
+       If no structures : None
+    lstruct_polyy : array
        List of y coordinates of the vertices of all structures on poloidal plane
-    lstruct_lims : list
+       If no structures : None
+    lstruct_lims : array
        List of limits of all structures
+       If no structures : None
     lstruct_nlim : array of ints
        List of number of limits for all structures
+       If no structures : None
     lstruct_normx : double memory-view, optional
        List of x-coordinates of "inwards" normal vectors of the polygon of all
        the structures
+       If no structures : None
     lstruct_normy : double memory-view, optional
        List of y-coordinates of "inwards" normal vectors of the polygon of all
        the structures
+       If no structures : None
     rmin : double, optional
        Minimal radius of vessel to take into consideration
     forbid : bool, optional
@@ -4717,7 +4730,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
     cdef long[:, ::1] indi_mv
-    cdef long[:, ::1] lnp
+    cdef long[:, ::1] ind_rz2pol
     cdef long[:, ::1] is_in_vignette
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
@@ -4901,13 +4914,16 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
         else:
             poly_mv = limit_vpoly
-        _ = _vt.are_in_vignette(sz_r, sz_z,
+        toerase = _vt.are_in_vignette(sz_r, sz_z,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
+
     # .. preparing for actual discretization ...................................
-    lnp = np.empty((sz_r, sz_z), dtype=int)
-    new_np = _st.sa_prepare_tab(lnp, is_in_vignette, sz_r, sz_z, sz_phi)
+    ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
+    new_np = _st.sa_get_index_arrays(ind_rz2pol,
+                                     is_in_vignette,
+                                     sz_r, sz_z)
     # initializing arrays
     reso_rdrdz = np.empty((new_np, ))
     sa_map = np.zeros((new_np, sz_p))
@@ -4981,7 +4997,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                sz_p, sz_r, sz_z, lindex_z,
                                ncells_rphi, tot_nc_plane,
                                reso_r_z, disc_r, step_rphi,
-                               disc_z, lnp, sz_phi,
+                               disc_z, ind_rz2pol, sz_phi,
                                reso_rdrdz_mv, pts_mv, ind_mv,
                                num_threads)
     else:
@@ -4992,7 +5008,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                        sz_p, sz_r, sz_z, lindex_z,
                                        ncells_rphi, tot_nc_plane,
                                        reso_r_z, disc_r, step_rphi,
-                                       disc_z, lnp, sz_phi,
+                                       disc_z, ind_rz2pol,
+                                       sz_phi,
                                        reso_rdrdz_mv, pts_mv, ind_mv,
                                        num_threads)
     # ... freeing up memory ....................................................
