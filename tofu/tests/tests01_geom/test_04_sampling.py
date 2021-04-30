@@ -199,7 +199,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                         Exp="Misc",
                         lStruct=[ves])
 
-    part = np.array([[2., -0.25, 0]], order='F').T
+    part = np.array([[10., -0.0, 0]], order='F').T
     part = np.array([[10., 0.0, 0]], order='F').T
     part_rad = np.r_[0.01]
     rstep = zstep = 0.1
@@ -312,9 +312,9 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
-    print("max error approx =", np.max(np.abs(sa_map_py - sa_map)))
-    print("max error exacts =", np.max(np.abs(sa_map_py_ex - sa_map)))
-    print("max error python =", np.max(np.abs(sa_map_py - sa_map_py_ex)))
+    print("max error approx =", np.max(np.abs(sa_map_py - sa_map)/sa_map_py))
+    print("max error exacts =", np.max(np.abs(sa_map_py_ex - sa_map)/sa_map_py_ex))
+    print("max error python =", np.max(np.abs(sa_map_py - sa_map_py_ex)/sa_map_py_ex))
 
     assert np.allclose(sa_map, sa_map_py, rtol=1)
     assert np.allclose(sa_map, sa_map_py_ex, rtol=1)

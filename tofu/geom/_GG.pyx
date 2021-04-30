@@ -1109,10 +1109,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         else:
             poly_mv = limit_vpoly
 
-        _ = _vt.are_in_vignette(sz_r, sz_z,
+        in_vign = _vt.are_in_vignette(sz_r, sz_z,
                                          poly_mv, npts_vpoly,
                                          disc_r, disc_z,
                                          is_in_vignette)
+        print(">>> for python compt disc points = ", in_vign)
 
     # Preparing an array of indices to associate (r, z, phi) => npts_disc
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
@@ -4903,11 +4904,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
         else:
             poly_mv = limit_vpoly
-        _ = _vt.are_in_vignette(sz_r, sz_z,
+        npts_in_vin = _vt.are_in_vignette(sz_r, sz_z,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
-
+        print("points in vignette = ", npts_in_vin)
     # .. preparing for actual discretization ...................................
     ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
