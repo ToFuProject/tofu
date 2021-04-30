@@ -283,7 +283,35 @@ class DataCollection(utils.ToFuObject):
     # Get / set / add / remove params
     # ---------------------
 
-    def get_param(self, param=None, key=None, ind=None, returnas=np.ndarray):
+    def __check_which(self, which=None, return_dict=None):
+        """ Check which in ['data'] + list(self._dobj.keys() """
+        return _check_inputs._check_which(
+            ddata=self._ddata,
+            dobj=self._dobj,
+            which=which,
+            return_dict=return_dict,
+        )
+
+    def get_lparam(self, which=None):
+        """ Return the list of params for the chosen dict ('data' or dobj[<>])
+        """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
+
+        lp = list(list(dd.values())[0].keys())
+        if which == 'data':
+            lp.remove('data')
+        return lp
+
+    def get_param(
+        self,
+        param=None,
+        key=None,
+        ind=None,
+        returnas=None,
+        which=None,
+    ):
         """ Return the array of the chosen parameter (or list of parameters)
 
         Can be returned as:
@@ -291,12 +319,22 @@ class DataCollection(utils.ToFuObject):
             - np[.ndarray: {param0: np.r_[values0, value1...], ...}
 
         """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         return _check_inputs._get_param(
-            dd=self._ddata, dd_name='ddata',
+            dd=dd, dd_name=which,
             param=param, key=key, ind=ind, returnas=returnas,
         )
 
-    def set_param(self, param=None, value=None, ind=None, key=None):
+    def set_param(
+        self,
+        param=None,
+        value=None,
+        ind=None,
+        key=None,
+        which=None,
+    ):
         """ Set the value of a parameter
 
         value can be:
@@ -308,22 +346,40 @@ class DataCollection(utils.ToFuObject):
         only the value of some key
 
         """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         _check_inputs._set_param(
-            dd=self._ddata, dd_name='ddata',
+            dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
         )
 
-    def add_param(self, param, value=None):
+    def add_param(
+        self,
+        param,
+        value=None,
+        which=None,
+    ):
         """ Add a parameter, optionnally also set its value """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         _check_inputs._add_param(
-            dd=self._ddata, dd_name='ddata',
-            param=param, value=value
+            dd=dd, dd_name=which,
+            param=param, value=value,
         )
 
-    def remove_param(self, param=None):
+    def remove_param(
+        self,
+        param=None,
+        which=None,
+    ):
         """ Remove a parameter, none by default, all if param = 'all' """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         _check_inputs._remove_param(
-            dd=self._ddata, dd_name='ddata',
+            dd=dd, dd_name=which,
             param=param,
         )
 
@@ -356,15 +412,21 @@ class DataCollection(utils.ToFuObject):
         self._strip_ddata(strip=strip, verb=verb)
 
     def _to_dict(self):
-        dout = {'dgroup': {'dict': self._dgroup, 'lexcept': None},
-                'dref': {'dict': self._dref, 'lexcept': None},
-                'ddata': {'dict': self._ddata, 'lexcept': None}}
+        dout = {
+            'dgroup': {'dict': self._dgroup, 'lexcept': None},
+            'dref': {'dict': self._dref, 'lexcept': None},
+            'dref_static': {'dict': self._dref_static, 'lexcept': None},
+            'ddata': {'dict': self._ddata, 'lexcept': None},
+            'dobj': {'dict': self._dobj, 'lexcept': None},
+        }
         return dout
 
     def _from_dict(self, fd):
         self._dgroup.update(**fd['dgroup'])
         self._dref.update(**fd['dref'])
+        self._dref_static.update(**fd['dref_static'])
         self._ddata.update(**fd['ddata'])
+        self._dobj.update(**fd['dobj'])
         self.update()
 
     ###########
@@ -396,59 +458,22 @@ class DataCollection(utils.ToFuObject):
         """ the dict of obj """
         return self._dobj
 
-    @property
-    def lparam_data(self):
-        return [
-            k0 for k0 in list(self._ddata.values())[0].keys() if k0 != 'data'
-        ]
-
-    @property
-    def lparam_obj(self):
-        return [
-            k0 for k0 in list(self._dobj.values())[0].keys()
-        ]
-
-    @property
-    def dparams_data(self):
-        """ Return a dict of params """
-        dp = {
-            k0: {k1: self._ddata[k1][k0] for k1 in self._ddata.keys()}
-            for k0 in self.lparam_data
-        }
-        dp['data'] = {
-            k1: self._ddata[k1]['data'].dtype.name
-            if isinstance(self._ddata[k1]['data'], np.ndarray)
-            else type(self._ddata[k1]['data'])
-            for k1 in self._ddata.keys()
-        }
-        return dp
-
-    @property
-    def dparams_obj(self):
-        """ Return a dict of params """
-        dp = {
-            k0: {k1: self._dobj[k1][k0] for k1 in self._dobj.keys()}
-            for k0 in self.lparam_obj
-        }
-        return dp
-
     ###########
     # General use methods
     ###########
 
-    def to_DataFrame_data(self):
+    def to_DataFrame(self, which=None):
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         import pandas as pd
-        return pd.DataFrame(self.dparams_data)
-
-    def to_DataFrame_obj(self):
-        import pandas as pd
-        return pd.DataFrame(self.dparams_obj)
+        return pd.DataFrame(dd)
 
     # ---------------------
     # Key selection methods
     # ---------------------
 
-    def select_data(self, log=None, returnas=None, **kwdargs):
+    def select(self, which=None, log=None, returnas=None, **kwdargs):
         """ Return the indices / keys of data matching criteria
 
         The selection is done comparing the value of all provided parameters
@@ -461,58 +486,64 @@ class DataCollection(utils.ToFuObject):
         details for each criterion
 
         """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         return _check_inputs._select(
-            dd=self._ddata, dd_name='ddata',
-            log=log, returnas=returnas, **kwdargs,
-        )
-
-    def select_obj(self, log=None, returnas=None, **kwdargs):
-        """ Return the indices / keys of data matching criteria
-
-        The selection is done comparing the value of all provided parameters
-        The result is a boolean indices array, optionally with the keys list
-        It can include:
-            - log = 'all': only the data matching all criteria
-            - log = 'any': the data matching any criterion
-
-        If log = 'raw', a dict of indices arrays is returned, showing the
-        details for each criterion
-
-        """
-        return _check_inputs._select(
-            dd=self._ddata, dd_name='obj',
+            dd=dd, dd_name=which,
             log=log, returnas=returnas, **kwdargs,
         )
 
     def _ind_tofrom_key_data(
-        self, ind=None, key=None, group=None, returnas=int,
+        self,
+        ind=None,
+        key=None,
+        group=None,
+        returnas=int,
+        which=None,
     ):
         """ Return ind from key or key from ind for all data """
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
         return _check_inputs._ind_tofrom_key(
-            dd=self._ddata, dd_name='ddata', ind=ind, key=key,
+            dd=dd, dd_name=which, ind=ind, key=key,
             group=group, dgroup=self._dgroup,
             returnas=returnas,
         )
 
-    def get_sort_index(self, param=None):
+    def _get_sort_index(self, which=None, param=None):
         """ Return sorting index ofself.ddata dict """
 
         if param is None:
             return
+
         if param == 'key':
-            return np.argsort(list(self._ddata.keys()))
+            ind = np.argsort(list(dd.keys()))
         elif isinstance(param, str):
-            return np.argsort(
-                self.get_param(param, returnas=np.ndarray)[param]
+            ind = np.argsort(
+                self.get_param(param, which=which, returnas=np.ndarray)[param]
             )
         else:
             msg = "Arg param must be a valid str\n  Provided: {}".format(param)
             raise Exception(msg)
+        return ind
 
-    def sortby(self, param=None, order=None):
+    def sortby(self, param=None, order=None, which=None):
         """ sort the self.ddata dict by desired parameter """
 
-        c0 = order in [None, 'increasing', 'reverse']
+        # Trivial case
+        if len(self._ddata) == 0 and len(self._dobj) == 0:
+            return
+
+        # --------------
+        # Check inputs
+
+        # order
+        if order is None:
+            order = 'increasing'
+
+        c0 = order in ['increasing', 'reverse']
         if not c0:
             msg = (
                 """
@@ -522,18 +553,32 @@ class DataCollection(utils.ToFuObject):
             )
             raise Exception(msg)
 
-        lk = list(self._ddata.keys())
-        ind = self.get_sort_index(param)
+        # which
+        which, dd = self.__check_which(which, return_dict=True)
+        if which is None:
+            return
+
+        # --------------
+        # sort
+        ind = self._get_sort_index(param, which=which)
+        if ind is None:
+            return
         if order == 'reverse':
-            self._ddata = {lk[ii]: self._ddata[lk[ii]] for ii in ind[::-1]}
+            ind = ind[::-1]
+
+        lk = list(dd.keys())
+        dd = {lk[ii]: dd[lk[ii]] for ii in ind}
+
+        if which == 'data':
+            self._ddata = dd
         else:
-            self._ddata = {lk[ii]: self._ddata[lk[ii]] for ii in ind}
+            self._dobj[which] = dd
 
     # ---------------------
     # Get refs from data key
     # ---------------------
 
-    def get_ref_from_key(self, key=None, group=None):
+    def _get_ref_from_key(self, key=None, group=None):
         """ Get the key of the ref in chosen group """
 
         # Check input
@@ -568,7 +613,7 @@ class DataCollection(utils.ToFuObject):
                     dref_static0=self._dref_static,
                     allowed_groups=self._allowed_groups,
                     reserved_keys=self._reserved_keys,
-                    ddefparams=self._ddef['params'],
+                    ddefparams_data=self._ddef['params'].get('data'),
                     data_none=self._data_none,
                     max_ndim=self._max_ndim,
                 )
@@ -667,7 +712,7 @@ class DataCollection(utils.ToFuObject):
                 show_core = self._show_in_summary_core
             if isinstance(show_core, str):
                 show_core = [show_core]
-            lp = self.lparam_data
+            lp = self.get_lparam(which='data')
             lkcore = ['shape', 'group', 'ref']
             assert all([ss in lp + lkcore for ss in show_core])
             col2 = ['data key'] + show_core

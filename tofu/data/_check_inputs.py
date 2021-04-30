@@ -38,6 +38,52 @@ _DATA_NONE = False
 # #############################################################################
 
 
+def _check_which(ddata=None, dobj=None, which=None, return_dict=None):
+    """ Check which in ['data'] + list(self._dobj.keys() """
+
+    # --------------
+    # Check inputs
+
+    if return_dict is None:
+        return_dict = True
+
+    # Trivial case
+    if len(ddata) == 0 and len(dobj) == 0:
+        if return_dict is True:
+            return None, None
+        else:
+            return
+
+    # which ('data', or keys of dobj)
+    if which is None:
+        if len(dobj) == 0:
+            which = 'data'
+        elif len(dobj) == 1:
+            which = list(dobj.keys())[0]
+
+    c0 = which in ['data'] + list(dobj.keys())
+    if not c0:
+        msg = (
+            "Please specify whether to sort:\n"
+            + "\t- 'data': the content of self.ddata\n\t- "
+            + "\n\t- ".join([
+                "'{0}': the content of self.dobj['{0}']".format(k0)
+                for k0 in dobj.keys()
+            ])
+            + "\nProvided:\n\t- {}".format(which)
+        )
+        raise Exception(msg)
+
+    if return_dict is True:
+        if which == 'data':
+            dd = ddata
+        else:
+            dd = dobj[which]
+        return which, dd
+    else:
+        return which
+
+
 def _check_remove(key=None, dkey=None, name=None):
     c0 = isinstance(key, str) and key in dkey.keys()
     c1 = (
@@ -70,7 +116,8 @@ def _remove_group(
     dobj0=None,
     allowed_groups=None,
     reserved_keys=None,
-    ddefparams=None,
+    ddefparams_data=None,
+    ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -97,7 +144,8 @@ def _remove_group(
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
-        ddefparams=ddefparams,
+        ddefparams_data=ddefparams_data,
+        ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
     )
@@ -111,7 +159,8 @@ def _remove_ref(
     propagate=None,
     allowed_groups=None,
     reserved_keys=None,
-    ddefparams=None,
+    ddefparams_data=None,
+    ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -148,7 +197,8 @@ def _remove_ref(
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
-        ddefparams=ddefparams,
+        ddefparams_data=ddefparams_data,
+        ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
     )
@@ -162,7 +212,8 @@ def _remove_data(
     propagate=None,
     allowed_groups=None,
     reserved_keys=None,
-    ddefparams=None,
+    ddefparams_data=None,
+    ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -200,7 +251,8 @@ def _remove_data(
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
-        ddefparams=ddefparams,
+        ddefparams_data=ddefparams_data,
+        ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
     )
@@ -1726,7 +1778,7 @@ def switch_ref(
     dref_static0=None,
     allowed_groups=None,
     reserved_keys=None,
-    ddefparams=None,
+    ddefparams_data=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -1781,7 +1833,8 @@ def switch_ref(
         dref_static=None, dref_static0=dref_static0,
         allowed_groups=None,
         reserved_keys=None,
-        ddefparams=None,
+        ddefparams_data=ddefparams_data,
+        ddefparams_obj=None,
         data_none=None,
         max_ndim=None,
     )
@@ -1796,7 +1849,7 @@ def switch_ref(
 def _get_param(
     dd=None, dd_name=None,
     param=None, key=None, ind=None,
-    returnas=np.ndarray,
+    returnas=None,
 ):
     """ Return the array of the chosen parameter (or list of parameters)
 
@@ -1805,6 +1858,7 @@ def _get_param(
         - np[.ndarray: {param0: np.r_[values0, value1...], ...}
 
     """
+
     # Trivial case
     lp = [kk for kk in list(dd.values())[0].keys()]
     if dd_name == 'ddata':
@@ -1815,7 +1869,10 @@ def _get_param(
     # Get key (which data to return param for)
     key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
+    # ---------------
     # Check inputs
+
+    # param
     lc = [
         isinstance(param, str) and param in lp and param != 'data',
         isinstance(param, list)
@@ -1823,20 +1880,19 @@ def _get_param(
     ]
     if not any(lc):
         msg = (
-            """
-            Arg param must a valid param key of a list of such (except 'data')
-
-            Valid params:
-            {}
-
-            Provided:
-            {}
-            """.format('\t- ' + '\n\t- '.join(lp), param)
+            "Arg param must a valid param key of a list of such "
+            + "(except 'data')\n\n"
+            + "Valid params:\n\t- {}\n\n".format('\n\t- '.join(lp))
+            + "Provided:\n\t- {}\n".format(param)
         )
         raise Exception(msg)
 
     if lc[0]:
         param = [param]
+
+    # returnas
+    if returnas is None:
+        returnas = np.ndarray
 
     c0 = returnas in [np.ndarray, dict]
     if not c0:
@@ -1848,11 +1904,14 @@ def _get_param(
         )
         raise Exception(msg)
 
+    # -------------
     # Get output
+
     if returnas == dict:
         out = {k0: {k1: dd[k1][k0] for k1 in key} for k0 in param}
     else:
         out = {k0: [dd[k1][k0] for k1 in key] for k0 in param}
+
     return out
 
 

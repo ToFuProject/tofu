@@ -170,17 +170,23 @@ class Test01_DataCollection(object):
         dref = {'t0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
                 't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
                }
-        ddata = {
-            'l0': {'lambda0': 5e-10, 'origin': '[1]', 'transition': 'A->B'},
-            'l1': {'lambda0': 5e-10, 'origin': '[2]', 'transition': 'B->C'},
+        dref_static = {
+            'source': {
+                '[1]': 'blabla',
+                '[2]': 'blibli',
+            }
+        }
+        dobj = {
+            'l0': {'lambda0': 5e-10, 'source': '[1]', 'transition': 'A->B'},
+            'l1': {'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C'},
             'l2': {
                 'data': t0[:, None]*t1[None, :], 'ref': ('t0', 't1'),
-                'lambda0': 5e-10, 'origin': '[2]', 'transition': 'B->C',
+                'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C',
             },
         }
         sl = tfd.DataCollection()
         sl._data_none = True
-        sl.update(dref=dref, ddata=ddata)
+        sl.update(dref=dref, dobj=dobj)
 
         cls.lobj = [data, sl]
 
@@ -303,10 +309,10 @@ class Test01_DataCollection(object):
     def test04_select(self):
         data = self.lobj[0]
 
-        key = data.select_data(units='s', returnas=str)
+        key = data.select(which='data', units='s', returnas=str)
         assert key == ['trace10']
 
-        out = data.select_obj(units='a.u.', returnas=int)
+        out = data.select(units='a.u.', returnas=int)
         assert len(out) == 9, out
 
     def tests04_get_summary(self):
