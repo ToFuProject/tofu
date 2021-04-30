@@ -4707,7 +4707,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef int sz_p
     cdef int sz_r
     cdef int sz_z
-    cdef int new_np
+    cdef int npts_pol
     cdef int r_ratio
     cdef int npts_poly
     cdef int ind_loc_r0
@@ -4733,7 +4733,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef long[:, ::1] ind_rz2pol
     cdef long[:, ::1] is_in_vignette
     cdef long*  ncells_rphi  = NULL
-    cdef long*  tot_nc_plane = NULL
     cdef long*  lindex   = NULL
     cdef long*  lindex_z = NULL
     cdef long*  sz_phi = NULL
@@ -4803,6 +4802,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_z, reso_z, &lindex_z,
                                       ncells_z)
+    free(lindex_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
     # .. in the proper quadrants ...............................................
     if DPhi is None:
@@ -4815,13 +4815,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         max_phi = Catan2(Csin(max_phi), Ccos(max_phi))
     # .. Initialization ........................................................
     sz_phi = <long*>malloc(sz_r*sizeof(long))
-    tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
     ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
     step_rphi    = <double*>malloc(sz_r*sizeof(double))
     r_ratio = <int>(Cceil(disc_r[sz_r - 1] / disc_r[0]))
     twopi_over_dphi = _TWOPI / phistep
     ind_loc_r0 = 0
-    ncells_rphi0 = 0
     min_phi_pi = min_phi + Cpi
     max_phi_pi = max_phi + Cpi
     abs0 = Cabs(min_phi_pi)
@@ -4833,15 +4831,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         loc_nc_rphi = ncells_rphi[0]
         step_rphi[0] = _TWOPI / ncells_rphi[0]
         inv_drphi = 1. / step_rphi[0]
-        tot_nc_plane[0] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
             if disc_r0[jj]==disc_r[0]:
                 ind_loc_r0 = jj
                 break
-            else:
-                ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
-                tot_nc_plane[0] = ncells_rphi0 * ncells_z[0]
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
         # be created within those limits
@@ -4866,15 +4860,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         loc_nc_rphi = ncells_rphi[0]
         step_rphi[0] = _TWOPI / ncells_rphi[0]
         inv_drphi = 1. / step_rphi[0]
-        tot_nc_plane[0] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
             if disc_r0[jj]==disc_r[0]:
                 ind_loc_r0 = jj
                 break
-            else:
-                ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
-                tot_nc_plane[0] = ncells_rphi0 * ncells_z[0]
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
         # be created within those limits
@@ -4897,9 +4887,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         npts_disc += sz_z * sz_phi[0]
     # ... doing the others .....................................................
     npts_disc += _st.sa_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
-                                 ncells_rphi0,
                                  disc_r, disc_r0, step_rphi,
-                                 tot_nc_plane, ind_loc_r0,
+                                 ind_loc_r0,
                                  ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                                  min_phi, max_phi, sz_phi, indi_mv,
                                  margin, num_threads)
@@ -4914,21 +4903,21 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
         else:
             poly_mv = limit_vpoly
-        toerase = _vt.are_in_vignette(sz_r, sz_z,
+        _ = _vt.are_in_vignette(sz_r, sz_z,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
 
     # .. preparing for actual discretization ...................................
     ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
-    new_np = _st.sa_get_index_arrays(ind_rz2pol,
+    npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
                                      is_in_vignette,
                                      sz_r, sz_z)
     # initializing arrays
-    reso_rdrdz = np.empty((new_np, ))
-    sa_map = np.zeros((new_np, sz_p))
-    pts = np.empty((2, new_np))
-    ind = np.empty((npts_disc, ), dtype=int)
+    reso_rdrdz = np.empty((npts_pol, ))
+    sa_map = np.zeros((npts_pol, sz_p))
+    pts = np.empty((2, npts_pol))
+    ind = np.empty((npts_pol, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
     reso_rdrdz_mv = reso_rdrdz
@@ -4939,87 +4928,50 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     # ..............
-    if block:
-        # .. useless tabs .....................................................
-        # declared here so that cython can run without gil
-        if ves_lims is not None:
-            sz_ves_lims = np.size(ves_lims)
-        else:
-            sz_ves_lims = 0
-        npts_poly = ves_norm.shape[1]
-        ray_orig = np.zeros((3, sz_p))
-        ray_vdir = np.zeros((3, sz_p))
-        vperp_out = clone(array('d'), sz_p * 3, True)
-        coeff_inter_in  = clone(array('d'), sz_p, True)
-        coeff_inter_out = clone(array('d'), sz_p, True)
-        ind_inter_out = clone(array('i'), sz_p * 3, True)
-        if lstruct_lims is None or np.size(lstruct_lims) == 0:
-            lstruct_lims_np = np.array([Cnan])
-        else:
-            flat_list = []
-            for ele in lstruct_lims:
-                if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                    for elele in ele:
-                        if type(elele) is list:
-                            flat_list += elele
-                        else:
-                            flat_list += elele.flatten().tolist()
-                else:
-                    flat_list += [Cnan]
-            lstruct_lims_np = np.array(flat_list)
-
-        # ... copying tab that will be changed
-        if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-            lstruct_nlim_copy = None
-        else:
-            lstruct_nlim_copy = lstruct_nlim.copy()
-        _st.sa_assemble_arrays(part_coords, part_r,
-                               is_in_vignette,
-                               sa_map,
-                               ves_poly, ves_norm,
-                               ves_lims,
-                               lstruct_nlim_copy,
-                               lstruct_polyx,
-                               lstruct_polyy,
-                               lstruct_lims_np,
-                               lstruct_normx,
-                               lstruct_normy,
-                               lnvert, vperp_out,
-                               coeff_inter_in, coeff_inter_out,
-                               ind_inter_out, sz_ves_lims,
-                               ray_orig, ray_vdir, npts_poly,
-                               nstruct_tot, nstruct_lim,
-                               rmin,
-                               eps_uz, eps_a,
-                               eps_vz, eps_b, eps_plane,
-                               ves_type.lower()=='tor', forbid,
-                               first_ind_mv, indi_mv,
-                               sz_p, sz_r, sz_z, lindex_z,
-                               ncells_rphi, tot_nc_plane,
-                               reso_r_z, disc_r, step_rphi,
-                               disc_z, ind_rz2pol, sz_phi,
-                               reso_rdrdz_mv, pts_mv, ind_mv,
-                               num_threads)
-    else:
-        _st.sa_assemble_arrays_unblock(part_coords, part_r,
-                                       is_in_vignette,
-                                       sa_map,
-                                       first_ind_mv, indi_mv,
-                                       sz_p, sz_r, sz_z, lindex_z,
-                                       ncells_rphi, tot_nc_plane,
-                                       reso_r_z, disc_r, step_rphi,
-                                       disc_z, ind_rz2pol,
-                                       sz_phi,
-                                       reso_rdrdz_mv, pts_mv, ind_mv,
-                                       num_threads)
+    use_approx=True
+    _st.sa_assemble_arrays(block,
+                           use_approx,
+                           part_coords,
+                           part_r,
+                           is_in_vignette,
+                           sa_map,
+                           ves_poly,
+                           ves_norm,
+                           ves_lims,
+                           lstruct_nlim,
+                           lstruct_polyx,
+                           lstruct_polyy,
+                           lstruct_lims,
+                           lstruct_normx,
+                           lstruct_normy,
+                           lnvert,
+                           nstruct_tot,
+                           nstruct_lim,
+                           rmin,
+                           eps_uz, eps_a,
+                           eps_vz, eps_b,
+                           eps_plane,
+                           forbid,
+                           first_ind_mv,
+                           indi_mv,
+                           sz_p, sz_r, sz_z,
+                           ncells_rphi,
+                           reso_r_z,
+                           disc_r,
+                           step_rphi,
+                           disc_z,
+                           ind_rz2pol,
+                           sz_phi,
+                           reso_rdrdz_mv,
+                           pts_mv,
+                           ind_mv,
+                           num_threads)
     # ... freeing up memory ....................................................
     free(disc_r)
     free(disc_z)
     free(disc_r0)
     free(sz_phi)
-    free(lindex_z)
     free(step_rphi)
     free(ncells_rphi)
-    free(tot_nc_plane)
 
     return pts, sa_map, ind_mv, reso_r_z

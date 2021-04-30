@@ -185,7 +185,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     import tofu.geom as tfg
     import matplotlib.pyplot as plt
 
-    block = True
+    block = False
 
     ves = tfg.Ves(
         Name="DebugVessel",
@@ -200,6 +200,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                         lStruct=[ves])
 
     part = np.array([[2., -0.25, 0]], order='F').T
+    part = np.array([[10., 0.0, 0]], order='F').T
     part_rad = np.r_[0.01]
     rstep = zstep = 0.1
     phistep = 0.1
@@ -209,7 +210,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DPhi = None # [-0.01, 0.01]
 
     kwdargs = config.get_kwdargs_LOS_isVis()
-    vpoly = kwdargs["ves_poly"]
+    vpoly = None#kwdargs["ves_poly"]
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
@@ -268,7 +269,8 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax2 = plt.subplot(122)
         ax2.plot(pts[0, :], pts[1, :], '.b')
         ax2.plot(part[0, :], part[1, :], '*r')
-        ax2.plot(vpoly[0, :], vpoly[1, :])
+        if vpoly is not None:
+            ax2.plot(vpoly[0, :], vpoly[1, :])
         fig.suptitle("Discretization points and particle traj")
         plt.savefig("discretization_and_traj")
 
@@ -287,7 +289,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     for ii in range(npts_disc):
         i_r = int(np.round(np.abs(r0 - pts_disc[0, ii]) / reso_r))
         i_z = int(np.round(np.abs(z0 - pts_disc[1, ii]) / reso_z))
-        ind_pol = int(i_r * sz_z + i_z)
+        ind_pol = int(i_r + sz_r * i_z)
         for pp in range(sz_p):
             sa_map_py[ind_pol, pp] += sang[ii, pp] * reso_phi[i_r]
             sa_map_py_ex[ind_pol, pp] += sang_ex[ii, pp] * reso_phi[i_r]
