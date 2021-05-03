@@ -159,10 +159,10 @@ cdef int  vmesh_disc_phi(int sz_r, int sz_z,
                          int num_threads) nogil
 
 cdef int vmesh_get_index_arrays(long[:, :, ::1] lnp,
-                           long[:, ::1] is_in_vignette,
-                           int sz_r,
-                           int sz_z,
-                           long* sz_phi) nogil
+                                long[:, ::1] is_in_vignette,
+                                int sz_r,
+                                int sz_z,
+                                long* sz_phi) nogil
 
 cdef void vmesh_assemble_arrays(long[::1] first_ind_mv,
                                 long[:, ::1] indi_mv,
@@ -249,9 +249,9 @@ cdef int  sa_disc_phi(int sz_r, int sz_z,
 
 
 cdef int sa_get_index_arrays(long[:, ::1] lnp,
-                        long[:, ::1] is_in_vignette,
-                        int sz_r,
-                        int sz_z) nogil
+                             long[:, ::1] is_in_vignette,
+                             int sz_r,
+                             int sz_z) nogil
 
 cdef void sa_assemble_arrays(int block,
                              int use_approx,

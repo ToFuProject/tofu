@@ -1656,11 +1656,11 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     return npts_disc
 
 
-cdef inline int vmesh_get_index_arrays(long[:, :, ::1] lnp,
-                                  long[:, ::1] is_in_vignette,
-                                  int sz_r,
-                                  int sz_z,
-                                  long* sz_phi) nogil:
+cdef inline int vmesh_get_index_arrays(long[:, :, ::1] ind_rzphi2dic,
+                                       long[:, ::1] is_in_vignette,
+                                       int sz_r,
+                                       int sz_z,
+                                       long* sz_phi) nogil:
     cdef int rr, zz, pp
     cdef int npts_disc = 0
     cdef int loc_sz_phi
@@ -1670,12 +1670,12 @@ cdef inline int vmesh_get_index_arrays(long[:, :, ::1] lnp,
         for zz in range(sz_z):
             if is_in_vignette[rr, zz]:
                 for pp in range(loc_sz_phi):
-                    lnp[rr, zz, pp] = npts_disc
+                    ind_rzphi2dic[rr, zz, pp] = npts_disc
                     npts_disc += 1
     return npts_disc
 
 
-cdef inline void vmesh_assemble_arrays_cart(int ii,
+cdef inline void vmesh_assemble_arrays_cart(int rr,
                                             int sz_z,
                                             long* lindex_z,
                                             long[::1] is_in_vignette,
@@ -1685,7 +1685,7 @@ cdef inline void vmesh_assemble_arrays_cart(int ii,
                                             double* step_rphi,
                                             double* disc_r,
                                             double* disc_z,
-                                            long[:, :, ::1] lnp,
+                                            long[:, :, ::1] ind_rzphi2dic,
                                             long* sz_phi,
                                             long[::1] iii,
                                             double[::1] dv_mv,
@@ -1700,21 +1700,21 @@ cdef inline void vmesh_assemble_arrays_cart(int ii,
     cdef long npts_disc
     # ..
     for zz in range(sz_z):
-        zrphi = lindex_z[zz] * ncells_rphi[ii]
+        zrphi = lindex_z[zz] * ncells_rphi[rr]
         if is_in_vignette[zz]:
-            for jj in range(sz_phi[ii]):
-                npts_disc = lnp[ii,zz,jj]
+            for jj in range(sz_phi[rr]):
+                npts_disc = ind_rzphi2dic[rr, zz, jj]
                 indiijj = iii[jj]
-                phi = -c_pi + (0.5 + indiijj) * step_rphi[ii]
-                pts_mv[0, npts_disc] = disc_r[ii] * c_cos(phi)
-                pts_mv[1, npts_disc] = disc_r[ii] * c_sin(phi)
+                phi = -c_pi + (0.5 + indiijj) * step_rphi[rr]
+                pts_mv[0, npts_disc] = disc_r[rr] * c_cos(phi)
+                pts_mv[1, npts_disc] = disc_r[rr] * c_sin(phi)
                 pts_mv[2, npts_disc] = disc_z[zz]
-                ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
-                dv_mv[npts_disc] = reso_r_z*reso_phi_mv[ii]
+                ind_mv[npts_disc] = tot_nc_plane[rr] + zrphi + indiijj
+                dv_mv[npts_disc] = reso_r_z*reso_phi_mv[rr]
     return
 
 
-cdef inline void vmesh_assemble_arrays_polr(int ii,
+cdef inline void vmesh_assemble_arrays_polr(int rr,
                                             int sz_z,
                                             long* lindex_z,
                                             long[::1] is_in_vignette,
@@ -1724,7 +1724,7 @@ cdef inline void vmesh_assemble_arrays_polr(int ii,
                                             double* step_rphi,
                                             double* disc_r,
                                             double* disc_z,
-                                            long[:, :, ::1] lnp,
+                                            long[:, :, ::1] ind_rzphi2dic,
                                             long* sz_phi,
                                             long[::1] iii,
                                             double[::1] dv_mv,
@@ -1738,16 +1738,16 @@ cdef inline void vmesh_assemble_arrays_polr(int ii,
     cdef long indiijj
     # ..
     for zz in range(sz_z):
-        zrphi = lindex_z[zz] * ncells_rphi[ii]
+        zrphi = lindex_z[zz] * ncells_rphi[rr]
         if is_in_vignette[zz]:
-            for jj in range(sz_phi[ii]):
-                npts_disc = lnp[ii,zz,jj]
+            for jj in range(sz_phi[rr]):
+                npts_disc = ind_rzphi2dic[rr, zz, jj]
                 indiijj = iii[jj]
-                pts_mv[0, npts_disc] = disc_r[ii]
+                pts_mv[0, npts_disc] = disc_r[rr]
                 pts_mv[1, npts_disc] = disc_z[zz]
-                pts_mv[2, npts_disc] = -c_pi + (0.5 + indiijj) * step_rphi[ii]
-                ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
-                dv_mv[npts_disc] = reso_r_z * reso_phi_mv[ii]
+                pts_mv[2, npts_disc] = -c_pi + (0.5 + indiijj) * step_rphi[rr]
+                ind_mv[npts_disc] = tot_nc_plane[rr] + zrphi + indiijj
+                dv_mv[npts_disc] = reso_r_z * reso_phi_mv[rr]
     return
 
 
@@ -1765,34 +1765,36 @@ cdef inline void vmesh_assemble_arrays(long[::1] first_ind_mv,
                                        double* step_rphi,
                                        double* disc_r,
                                        double* disc_z,
-                                       long[:, :, ::1] lnp,
+                                       long[:, :, ::1] ind_rzphi2dic,
                                        long* sz_phi,
                                        double[::1] dv_mv,
                                        double[::1] reso_phi_mv,
                                        double[:, ::1] pts_mv,
                                        long[::1] ind_mv,
                                        int num_threads) nogil:
-    cdef int ii
+    cdef int rr
     # ...
     with nogil, parallel(num_threads=num_threads):
         if is_cart:
-            for ii in prange(sz_r):
+            for rr in prange(sz_r):
                 # To make sure the indices are in increasing order
-                vmesh_assemble_arrays_cart(ii, sz_z, lindex_z,
-                                           is_in_vignette[ii],
+                vmesh_assemble_arrays_cart(rr, sz_z, lindex_z,
+                                           is_in_vignette[rr],
                                            ncells_rphi, tot_nc_plane,
                                            reso_r_z, step_rphi,
-                                           disc_r, disc_z, lnp, sz_phi,
-                                           indi_mv[ii,first_ind_mv[ii]:],
+                                           disc_r, disc_z, ind_rzphi2dic,
+                                           sz_phi,
+                                           indi_mv[rr,first_ind_mv[rr]:],
                                            dv_mv, reso_phi_mv, pts_mv, ind_mv)
         else:
-            for ii in prange(sz_r):
-                vmesh_assemble_arrays_polr(ii, sz_z, lindex_z,
-                                           is_in_vignette[ii],
+            for rr in prange(sz_r):
+                vmesh_assemble_arrays_polr(rr, sz_z, lindex_z,
+                                           is_in_vignette[rr],
                                            ncells_rphi, tot_nc_plane,
                                            reso_r_z, step_rphi,
-                                           disc_r, disc_z, lnp, sz_phi,
-                                           indi_mv[ii,first_ind_mv[ii]:],
+                                           disc_r, disc_z, ind_rzphi2dic,
+                                           sz_phi,
+                                           indi_mv[rr,first_ind_mv[rr]:],
                                            dv_mv, reso_phi_mv, pts_mv, ind_mv)
     return
 
@@ -1806,7 +1808,7 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
                                      long* tot_nc_plane,
                                      double** phi_tab,
                                      int num_threads) nogil:
-    cdef int ii
+    cdef int rr
     cdef int jj
     cdef int radius_ratio
     cdef int loc_nc_rphi
@@ -1826,15 +1828,15 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
         for jj in prange(loc_nc_rphi):
             phi_tab[0][jj * sz_r] = -c_pi + (0.5 + jj) * step_rphi[0]
     # now we do the rest of the loop
-    for ii in range(1, sz_r):
-        loc_nc_rphi = <int>(c_ceil(disc_r[ii] * twopi_over_dphi))
-        ncells_rphi[ii] = loc_nc_rphi
-        step_rphi[ii] = _TWOPI / loc_nc_rphi
-        d_r_phir_ref[ii] = disc_r[ii] * step_rphi[ii]
-        tot_nc_plane[ii] = tot_nc_plane[ii-1] + ncells_rphi[ii-1] * sz_z
+    for rr in range(1, sz_r):
+        loc_nc_rphi = <int>(c_ceil(disc_r[rr] * twopi_over_dphi))
+        ncells_rphi[rr] = loc_nc_rphi
+        step_rphi[rr] = _TWOPI / loc_nc_rphi
+        d_r_phir_ref[rr] = disc_r[rr] * step_rphi[rr]
+        tot_nc_plane[rr] = tot_nc_plane[rr-1] + ncells_rphi[rr-1] * sz_z
         with nogil, parallel(num_threads=num_threads):
             for jj in range(loc_nc_rphi):
-                phi_tab[0][ii + sz_r * jj] = -c_pi + (0.5 + jj) * step_rphi[ii]
+                phi_tab[0][rr + sz_r * jj] = -c_pi + (0.5 + jj) * step_rphi[rr]
 
     tot_nc_plane[sz_r] = tot_nc_plane[sz_r-1] + ncells_rphi[sz_r-1] * sz_z
     free(step_rphi)
@@ -1921,17 +1923,17 @@ cdef inline void vmesh_ind_polr_loop(int np,
 # ==============================================================================
 # == Solid Angle Computation
 # ==============================================================================
-cdef inline int sa_get_index_arrays(long[:, ::1] lnp,
-                               long[:, ::1] is_in_vignette,
-                               int sz_r,
-                               int sz_z) nogil:
-    cdef int ii, zz
+cdef inline int sa_get_index_arrays(long[:, ::1] ind_rz2pol,
+                                    long[:, ::1] is_in_vignette,
+                                    int sz_r,
+                                    int sz_z) nogil:
+    cdef int rr, zz
     cdef int npts_pol = 0
 
-    for ii in range(sz_r):
+    for rr in range(sz_r):
         for zz in range(sz_z):
-            if is_in_vignette[ii, zz]:
-                lnp[ii, zz] = npts_pol
+            if is_in_vignette[rr, zz]:
+                ind_rz2pol[rr, zz] = npts_pol
                 npts_pol += 1
     return npts_pol
 
@@ -1953,7 +1955,7 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
                              long[:, ::1] indi_mv,
                              double margin,
                              int num_threads) nogil:
-    cdef int ii, jj
+    cdef int rr, jj
     cdef int npts_disc = 0
     cdef int loc_nc_rphi
     cdef double min_phi_pi
@@ -1970,71 +1972,71 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
     #
     # .. Discretizing Phi (with respect to the corresponding radius R) .........
     if min_phi < max_phi:
-        for ii in range(1, sz_r):
+        for rr in range(1, sz_r):
             # Get the actual RPhi resolution and Phi mesh elements
             # (depends on R!)
-            ncells_rphi[ii] = <int>c_ceil(twopi_over_dphi * disc_r[ii])
-            loc_nc_rphi = ncells_rphi[ii]
-            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            ncells_rphi[rr] = <int>c_ceil(twopi_over_dphi * disc_r[rr])
+            loc_nc_rphi = ncells_rphi[rr]
+            step_rphi[rr] = _TWOPI / ncells_rphi[rr]
             # Get index and cumulated indices from background
             for jj in range(ind_loc_r0, ncells_r0):
-                if disc_r0[jj]==disc_r[ii]:
+                if disc_r0[jj]==disc_r[rr]:
                     ind_loc_r0 = jj
                     break
 
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
             # be created within those limits
-            margin_step = margin * step_rphi[ii]
-            if abs0 - step_rphi[ii]*c_floor(abs0 / step_rphi[ii]) < margin_step:
-                nphi0 = int(c_round(min_phi_pi / step_rphi[ii]))
+            margin_step = margin * step_rphi[rr]
+            if abs0 - step_rphi[rr]*c_floor(abs0 / step_rphi[rr]) < margin_step:
+                nphi0 = int(c_round(min_phi_pi / step_rphi[rr]))
             else:
-                nphi0 = int(c_floor(min_phi_pi / step_rphi[ii]))
-            if abs1-step_rphi[ii]*c_floor(abs1 / step_rphi[ii]) < margin_step:
-                nphi1 = int(c_round(max_phi_pi / step_rphi[ii]) - 1)
+                nphi0 = int(c_floor(min_phi_pi / step_rphi[rr]))
+            if abs1-step_rphi[rr]*c_floor(abs1 / step_rphi[rr]) < margin_step:
+                nphi1 = int(c_round(max_phi_pi / step_rphi[rr]) - 1)
             else:
-                nphi1 = int(c_floor(max_phi_pi / step_rphi[ii]))
-            sz_phi[ii] = nphi1 + 1 - nphi0
-            if max_sz_phi[0] < sz_phi[ii]:
-                max_sz_phi[0] = sz_phi[ii]
+                nphi1 = int(c_floor(max_phi_pi / step_rphi[rr]))
+            sz_phi[rr] = nphi1 + 1 - nphi0
+            if max_sz_phi[0] < sz_phi[rr]:
+                max_sz_phi[0] = sz_phi[rr]
             with nogil, parallel(num_threads=num_threads):
-                for jj in prange(sz_phi[ii]):
-                    indi_mv[ii,jj] = nphi0 + jj
-            npts_disc += sz_z * sz_phi[ii]
+                for jj in prange(sz_phi[rr]):
+                    indi_mv[rr, jj] = nphi0 + jj
+            npts_disc += sz_z * sz_phi[rr]
     else:
-        for ii in range(1, sz_r):
+        for rr in range(1, sz_r):
             # Get the actual RPhi resolution and Phi mesh elements
             # (depends on R!)
-            ncells_rphi[ii] = <int>c_ceil(twopi_over_dphi * disc_r[ii])
-            loc_nc_rphi = ncells_rphi[ii]
-            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
-            #reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            ncells_rphi[rr] = <int>c_ceil(twopi_over_dphi * disc_r[rr])
+            loc_nc_rphi = ncells_rphi[rr]
+            step_rphi[rr] = _TWOPI / ncells_rphi[rr]
+            #reso_phi_mv[rr] = step_rphi[rr] * disc_r[rr]
             # Get index and cumulated indices from background
             for jj in range(ind_loc_r0, ncells_r0):
-                if disc_r0[jj]==disc_r[ii]:
+                if disc_r0[jj]==disc_r[rr]:
                     ind_loc_r0 = jj
                     break
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
             # be created within those limits
-            margin_step = margin*step_rphi[ii]
-            if abs0 - step_rphi[ii]*c_floor(abs0 / step_rphi[ii]) < margin_step:
-                nphi0 = int(c_round(min_phi_pi / step_rphi[ii]))
+            margin_step = margin*step_rphi[rr]
+            if abs0 - step_rphi[rr]*c_floor(abs0 / step_rphi[rr]) < margin_step:
+                nphi0 = int(c_round(min_phi_pi / step_rphi[rr]))
             else:
-                nphi0 = int(c_floor(min_phi_pi / step_rphi[ii]))
-            if abs1-step_rphi[ii]*c_floor(abs1 / step_rphi[ii]) < margin_step:
-                nphi1 = int(c_round(max_phi_pi / step_rphi[ii]) - 1)
+                nphi0 = int(c_floor(min_phi_pi / step_rphi[rr]))
+            if abs1-step_rphi[rr]*c_floor(abs1 / step_rphi[rr]) < margin_step:
+                nphi1 = int(c_round(max_phi_pi / step_rphi[rr]) - 1)
             else:
-                nphi1 = int(c_floor(max_phi_pi / step_rphi[ii]))
-            sz_phi[ii] = nphi1 + 1 + loc_nc_rphi - nphi0
-            if max_sz_phi[0] < sz_phi[ii]:
-                max_sz_phi[0] = sz_phi[ii]
+                nphi1 = int(c_floor(max_phi_pi / step_rphi[rr]))
+            sz_phi[rr] = nphi1 + 1 + loc_nc_rphi - nphi0
+            if max_sz_phi[0] < sz_phi[rr]:
+                max_sz_phi[0] = sz_phi[rr]
             with nogil, parallel(num_threads=num_threads):
                 for jj in prange(loc_nc_rphi - nphi0):
-                    indi_mv[ii, jj] = nphi0 + jj
-                for jj in prange(loc_nc_rphi - nphi0, sz_phi[ii]):
-                    indi_mv[ii, jj] = jj - (loc_nc_rphi - nphi0)
-            npts_disc += sz_z * sz_phi[ii]
+                    indi_mv[rr, jj] = nphi0 + jj
+                for jj in prange(loc_nc_rphi - nphi0, sz_phi[rr]):
+                    indi_mv[rr, jj] = jj - (loc_nc_rphi - nphi0)
+            npts_disc += sz_z * sz_phi[rr]
     return npts_disc
 
 
@@ -2195,7 +2197,7 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                           double[:, ::1] pts_mv,
                                           long[::1] ind_mv,
                                           int num_threads) nogil:
-    cdef int ii
+    cdef int rr
     cdef int zz
     cdef int jj
     cdef int pp
@@ -2213,22 +2215,22 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
 
     dist = <double*> malloc(sz_p * sizeof(double))
     is_vis = <long*> malloc(sz_p * sizeof(long))
-    for ii in range(sz_r):
-        loc_r = disc_r[ii]
-        vol_pi = step_rphi[ii] * loc_r * c_pi
-        loc_size_phi = sz_phi[ii]
-        loc_step_rphi = step_rphi[ii]
-        loc_first_ind = first_ind_mv[ii]
+    for rr in range(sz_r):
+        loc_r = disc_r[rr]
+        vol_pi = step_rphi[rr] * loc_r * c_pi
+        loc_size_phi = sz_phi[rr]
+        loc_step_rphi = step_rphi[rr]
+        loc_first_ind = first_ind_mv[rr]
         for zz in range(sz_z):
             loc_z = disc_z[zz]
-            if is_in_vignette[ii, zz]:
-                ind_pol = ind_rz2pol[ii, zz]
-                ind_mv[ind_pol] = ii + sz_r * zz
+            if is_in_vignette[rr, zz]:
+                ind_pol = ind_rz2pol[rr, zz]
+                ind_mv[ind_pol] = rr + sz_r * zz
                 reso_rdrdz[ind_pol] = loc_r * reso_r_z
                 pts_mv[0, ind_pol] = loc_r
                 pts_mv[1, ind_pol] = loc_z
                 for jj in range(loc_size_phi):
-                    indiijj = indi_mv[ii, loc_first_ind + jj]
+                    indiijj = indi_mv[rr, loc_first_ind + jj]
                     loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
                     # computing distance ....
                     _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
@@ -2293,7 +2295,7 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                                             double[:, ::1] pts_mv,
                                             long[::1] ind_mv,
                                             int num_threads) nogil:
-    cdef int ii
+    cdef int rr
     cdef int zz
     cdef int jj
     cdef int pp
@@ -2310,22 +2312,22 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
 
     with nogil, parallel(num_threads=num_threads):
         dist = <double*> malloc(sz_p * sizeof(double))
-        for ii in prange(sz_r):
-            loc_r = disc_r[ii]
-            vol_pi = loc_r * step_rphi[ii] * c_pi
-            loc_size_phi = sz_phi[ii]
-            loc_step_rphi = step_rphi[ii]
-            loc_first_ind = first_ind_mv[ii]
+        for rr in prange(sz_r):
+            loc_r = disc_r[rr]
+            vol_pi = loc_r * step_rphi[rr] * c_pi
+            loc_size_phi = sz_phi[rr]
+            loc_step_rphi = step_rphi[rr]
+            loc_first_ind = first_ind_mv[rr]
             for zz in range(sz_z):
                 loc_z = disc_z[zz]
-                if is_in_vignette[ii, zz]:
-                    ind_pol = ind_rz2pol[ii, zz]
-                    ind_mv[ind_pol] = ii + sz_r * zz
+                if is_in_vignette[rr, zz]:
+                    ind_pol = ind_rz2pol[rr, zz]
+                    ind_mv[ind_pol] = rr + sz_r * zz
                     reso_rdrdz[ind_pol] = loc_r * reso_r_z
                     pts_mv[0, ind_pol] = loc_r
                     pts_mv[1, ind_pol] = loc_z
                     for jj in range(loc_size_phi):
-                        indiijj = indi_mv[ii, loc_first_ind + jj]
+                        indiijj = indi_mv[rr, loc_first_ind + jj]
                         loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
                         # computing distance ....
                         _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],

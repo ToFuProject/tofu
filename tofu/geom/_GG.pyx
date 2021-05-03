@@ -80,7 +80,9 @@ __all__ = ['coord_shift',
 #       Coordinates handling
 ########################################################
 
-def coord_shift(points, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=None):
+def coord_shift(points, in_format='(X,Y,Z)',
+                out_format='(R,Z)',
+                cross_format=None):
     """ Check the shape of an array of points coordinates and/or converts from
     2D to 3D, 3D to 2D, cylindrical to cartesian...
     (CrossRef is an angle (Tor) or a distance (X for Lin))
@@ -88,8 +90,10 @@ def coord_shift(points, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=No
     cdef str str_ii
     cdef long ncoords = points.shape[0]
     cdef long npts
-    assert all([type(ff) is str and ',' in ff for ff in [in_format, out_format]]), (
-        "Arg In and Out (coordinate format) must be comma-separated  !")
+    assert all([type(ff) is str and ',' in ff
+                for ff in [in_format, out_format]]), (
+                        "Arg In and Out (coordinate format) "
+                        + "must be comma-separated  !")
     assert type(points) is np.ndarray and points.ndim in [1, 2] and \
            ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
                                 "of 2 or 3 coordinates !")
@@ -4892,11 +4896,10 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
             poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
         else:
             poly_mv = limit_vpoly
-        npts_in_vin = _vt.are_in_vignette(sz_r, sz_z,
+        _ = _vt.are_in_vignette(sz_r, sz_z,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
-        print("points in vignette = ", npts_in_vin)
     # .. preparing for actual discretization ...................................
     ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
