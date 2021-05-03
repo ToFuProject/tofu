@@ -4588,6 +4588,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython_old(double dR, double dZ, double dRPhi,
 def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                             double rstep, double zstep, double phistep,
                             double[::1] RMinMax, double[::1] ZMinMax,
+                            bint approx=True,
                             list DR=None, list DZ=None, DPhi=None,
                             double[:,::1] limit_vpoly=None,
                             bint block=False,
@@ -4626,9 +4627,12 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
         refinement along height `z`
     phistep: double
         refinement along toroidal direction `phi`
-    RMinMax: double memory-view, optional
+    approx: bool
+        do you want to use approximation (2nd order) or exact formula ?
+        default: True
+    RMinMax: double memory-view
         limits min and max in `r`
-    ZMinMax: double memory-view, optional
+    ZMinMax: double memory-view
         limits min and max in `z`
     DR: double memory-view, optional
         actual sub-volume limits to get in `r`
@@ -4703,9 +4707,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef int sz_z
     cdef int npts_pol
     cdef int r_ratio
-    cdef int npts_poly
     cdef int ind_loc_r0
-    cdef int sz_ves_lims
     cdef int npts_disc = 0
     cdef int[1] max_sz_phi
     cdef double min_phi, max_phi
@@ -4716,10 +4718,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double twopi_over_dphi
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[::1] ind_mv
-    cdef long[::1] lstruct_nlim_copy
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
-    cdef double[::1] lstruct_lims_np
     cdef double[::1] reso_rdrdz_mv
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
@@ -4740,12 +4740,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef np.ndarray[double, ndim=1] reso_rdrdz
     cdef np.ndarray[double, ndim=2] pts
     cdef np.ndarray[double, ndim=2] sa_map
-    cdef array vperp_out
-    cdef array coeff_inter_in
-    cdef array coeff_inter_out
-    cdef array ind_inter_out
-    cdef double[:, ::1] ray_orig
-    cdef double[:, ::1] ray_vdir
     #
     # == Testing inputs ========================================================
     if test:
@@ -4920,9 +4914,8 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     # ..............
-    use_approx=True
     _st.sa_assemble_arrays(block,
-                           use_approx,
+                           approx,
                            part_coords,
                            part_r,
                            is_in_vignette,

@@ -209,6 +209,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     DZ = None # [-.25, 0.25]
     DPhi = None # [-0.01, 0.01]
 
+    # -- Getting cython APPROX computation ------------------------------------
     kwdargs = config.get_kwdargs_LOS_isVis()
     vpoly = None#kwdargs["ves_poly"]
     res = GG.compute_solid_angle_map(part, part_rad,
@@ -220,23 +221,47 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                      **kwdargs,
                                      limit_vpoly=vpoly
                                      )
-    pts, sa_map, ind, reso_r_z  = res
+    pts, sa_map_cy, ind, reso_r_z = res
 
     # check sizes
     npts_ind = np.size(ind)
     dim, npts = np.shape(pts)
-    npts_sa, sz_p = np.shape(sa_map)
+    npts_sa, sz_p = np.shape(sa_map_cy)
 
-    # if debug > 0:
-    #     print(f"sa_map is of size {npts_sa},{sz_p}")
+    if debug > 2:
+        print(f"sa_map_cy is of size {npts_sa},{sz_p}")
 
     # Checking shapes, sizes, types
     assert dim == 2
     assert sz_p == np.shape(part)[1]
+    assert npts_ind == npts
     assert npts == npts_sa
     assert isinstance(reso_r_z, float)
 
-    # ... Testing with exact function .........................................
+    # -- Getting cython EXACT computation -------------------------------------
+    kwdargs = config.get_kwdargs_LOS_isVis()
+    vpoly = None
+    res = GG.compute_solid_angle_map(part, part_rad,
+                                     rstep, zstep, phistep,
+                                     limits_r, limits_z,
+                                     approx=False,
+                                     DR=DR, DZ=DZ,
+                                     DPhi=DPhi,
+                                     block=block,
+                                     **kwdargs,
+                                     limit_vpoly=vpoly
+                                     )
+    pts_ex, sa_map_cy_ex, ind_ex, reso_r_z_ex = res
+
+    if debug > 2:
+        print(f"sa_map_cy_ex is of size {npts_sa},{sz_p}")
+
+    # Checking if pts, indices and resolution same as with approx
+    assert np.allclose(pts_ex, pts)
+    assert np.allclose(ind_ex, ind)
+    assert reso_r_z_ex == reso_r_z
+
+    # ... Testing with python function ........................................
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
                                             limits_r, limits_z,
                                             limit_vpoly=vpoly,
@@ -301,23 +326,29 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         # import pdb; pdb.set_trace()
         ax.scatter(pts[0, :], pts[1, :],
                    marker="s", edgecolors="None",
-                   s=10, c=sa_map.flatten(),
-                   vmin=0, vmax=max(sa_map.max(), sa_map_py.max()))
+                   s=10, c=sa_map_cy.flatten(),
+                   vmin=0, vmax=max(sa_map_cy.max(), sa_map_py.max()))
         ax.set_title("cython function")
         ax = plt.subplot(122)
         ax.scatter(pts[0, :], pts[1, :],
                    marker="s", edgecolors="None",
                    s=10, c=sa_map_py.flatten(),
-                   vmin=0, vmax=max(sa_map.max(), sa_map_py.max()))
+                   vmin=0, vmax=max(sa_map_cy.max(), sa_map_py.max()))
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
-    print("max error approx =", np.max(np.abs(sa_map_py - sa_map)/sa_map_py))
-    print("max error exacts =", np.max(np.abs(sa_map_py_ex - sa_map)/sa_map_py_ex))
-    print("max error python =", np.max(np.abs(sa_map_py - sa_map_py_ex)/sa_map_py_ex))
+    print("max error approx py vs cy =",
+          np.max(np.abs(sa_map_py - sa_map_cy) / sa_map_py))
+    print("max error exacts py vs cy =",
+          np.max(np.abs(sa_map_py_ex - sa_map_cy_ex) / sa_map_py_ex))
+    print("max error python approx vs exact =",
+          np.max(np.abs(sa_map_py - sa_map_py_ex) / sa_map_py_ex))
+    print("max error cython approx vs exact =",
+          np.max(np.abs(sa_map_cy - sa_map_cy_ex) / sa_map_cy_ex))
 
-    assert np.allclose(sa_map, sa_map_py, rtol=1)
-    assert np.allclose(sa_map, sa_map_py_ex, rtol=1)
+    assert np.allclose(sa_map_cy, sa_map_py, rtol=1)
+    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, rtol=1)
+    assert np.allclose(sa_map_cy, sa_map_cy_ex, rtol=1)
     assert np.allclose(sa_map_py, sa_map_py_ex, rtol=1)
 
     # ...
