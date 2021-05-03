@@ -205,8 +205,8 @@ class DataCollection(utils.ToFuObject):
         self.update(ddata=None, dref=dref, dref_static=None, dgroup=None)
 
     # TBF
-    def add_ref_static(self, key=None, category=None, **kwdargs):
-        dref_static = {key: {'category': category, **kwdargs}}
+    def add_ref_static(self, key=None, which=None, **kwdargs):
+        dref_static = {which: {key: **kwdargs}}
         # Check consistency
         self.update(ddata=None, dref=None, dref_static=dref_static, dgroup=None)
 
@@ -248,7 +248,7 @@ class DataCollection(utils.ToFuObject):
                 )
 
     # TBF
-    def remove_ref_static(self, key=None, category=None, propagate=None):
+    def remove_ref_static(self, key=None, which=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
         self._dref_static, self._ddata = _check_inputs._remove_ref_static(
             key=key,
@@ -270,7 +270,7 @@ class DataCollection(utils.ToFuObject):
                 )
 
     # TBF
-    def remove_obj(self, key=None, propagate=True):
+    def remove_obj(self, key=None, which=None, propagate=True):
         """ Remove a data (or list of data) """
         self._dobj = _check_inputs._remove_obj(
             key=key,

@@ -321,11 +321,15 @@ class Test01_DataCollection(object):
         out = data.select(units='a.u.', returnas=int)
         assert len(out) == 9, out
 
-    def tests04_get_summary(self):
+    def test05_sortby(self):
+        for oo in self.lobj:
+            oo.sortby(which='data', param='units')
+
+    def test06_get_summary(self):
         for oo in self.lobj:
             oo.get_summary()
 
-    def tests05_getsetaddremove_param(self):
+    def test07_getsetaddremove_param(self):
         data = self.lobj[0]
 
         out = data.get_param('units')
@@ -335,7 +339,7 @@ class Test01_DataCollection(object):
         data.remove_param('shot')
         assert 'shot' not in data.get_lparam(which='data')
 
-    def tests06_switch_ref(self):
+    def test08_switch_ref(self):
 
         data = self.lobj[0]
         data.switch_ref('trace00')
@@ -353,7 +357,7 @@ class Test01_DataCollection(object):
         # .. but still in data
         assert 't0' in data.ddata.keys()
 
-    def tests10_convert_spectral(self):
+    def test09_convert_spectral(self):
         coef, inv = self.lobj[0].convert_spectral(
             units_in='eV', units_out='J', returnas='coef',
         )
