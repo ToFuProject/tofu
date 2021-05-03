@@ -289,7 +289,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     for ii in range(npts_disc):
         i_r = int(np.round(np.abs(r0 - pts_disc[0, ii]) / reso_r))
         i_z = int(np.round(np.abs(z0 - pts_disc[1, ii]) / reso_z))
-        ind_pol = int(i_r + sz_r * i_z)
+        ind_pol = int(i_r * sz_z + i_z)
         for pp in range(sz_p):
             sa_map_py[ind_pol, pp] += sang[ii, pp] * reso_phi[i_r]
             sa_map_py_ex[ind_pol, pp] += sang_ex[ii, pp] * reso_phi[i_r]

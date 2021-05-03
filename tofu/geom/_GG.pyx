@@ -80,10 +80,7 @@ __all__ = ['coord_shift',
 #       Coordinates handling
 ########################################################
 
-def coord_shift(points,
-                in_format='(X,Y,Z)',
-                out_format='(R,Z)',
-                cross_format=None):
+def coord_shift(points, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=None):
     """ Check the shape of an array of points coordinates and/or converts from
     2D to 3D, 3D to 2D, cylindrical to cartesian...
     (CrossRef is an angle (Tor) or a distance (X for Lin))
@@ -91,10 +88,8 @@ def coord_shift(points,
     cdef str str_ii
     cdef long ncoords = points.shape[0]
     cdef long npts
-    assert all([type(ff) is str and ',' in ff
-                for ff in [in_format, out_format]]), (
-                        "Arg In and Out (coordinate format)"
-                        + " must be comma-separated  !")
+    assert all([type(ff) is str and ',' in ff for ff in [in_format, out_format]]), (
+        "Arg In and Out (coordinate format) must be comma-separated  !")
     assert type(points) is np.ndarray and points.ndim in [1, 2] and \
            ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
                                 "of 2 or 3 coordinates !")
@@ -1109,11 +1104,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         else:
             poly_mv = limit_vpoly
 
-        in_vign = _vt.are_in_vignette(sz_r, sz_z,
-                                         poly_mv, npts_vpoly,
-                                         disc_r, disc_z,
-                                         is_in_vignette)
-        print(">>> for python compt disc points = ", in_vign)
+        _ = _vt.are_in_vignette(sz_r, sz_z,
+                                poly_mv, npts_vpoly,
+                                disc_r, disc_z,
+                                is_in_vignette)
 
     # Preparing an array of indices to associate (r, z, phi) => npts_disc
     lnp = np.empty((sz_r, sz_z, max_sz_phi[0]), dtype=int)
@@ -1585,7 +1579,6 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     return np.ascontiguousarray(pts), dS, ind.astype(int), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
 
 
-
 def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                                      double[:,::1] VPoly, long[::1] ind,
                                      double DIn=0., VIn=None, PhiMinMax=None,
@@ -1678,7 +1671,6 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
 ########################################################
 #       Meshing - Surface - TorStruct
 ########################################################
-
 
 def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
                                          double dRPhi,
@@ -1829,7 +1821,6 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
     return Pts, dS, ind, NL, dLr, Rref, dR0r, dZ0r, dRPhir, VPbis
 
 
-
 def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
                                            double dRPhi, double[:,::1] VPoly,
                                            np.ndarray[long,ndim=1] ind,
@@ -1955,7 +1946,6 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
                 DL[1] = None
     return inter
 
-
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
                                    list DX=None,
@@ -2059,7 +2049,6 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
         dXr, dY0r, dZ0r, VPbis = 0., 0., 0., np.ones((3,0))
 
     return Pts, dS, ind, NL, dLr, Rref, dXr, dY0r, dZ0r, VPbis
-
 
 
 def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
@@ -4803,7 +4792,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_z, reso_z, &lindex_z,
                                       ncells_z)
-    free(lindex_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
     # .. in the proper quadrants ...............................................
     if DPhi is None:
@@ -4930,79 +4918,45 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     num_threads = _ompt.get_effective_num_threads(num_threads)
     # ..............
     use_approx=True
-    if block:
-        # .. useless tabs .....................................................
-        # declared here so that cython can run without gil
-        if ves_lims is not None:
-            sz_ves_lims = np.size(ves_lims)
-        else:
-            sz_ves_lims = 0
-        npts_poly = ves_norm.shape[1]
-        ray_orig = np.zeros((3, sz_p))
-        ray_vdir = np.zeros((3, sz_p))
-        vperp_out = clone(array('d'), sz_p * 3, True)
-        coeff_inter_in  = clone(array('d'), sz_p, True)
-        coeff_inter_out = clone(array('d'), sz_p, True)
-        ind_inter_out = clone(array('i'), sz_p * 3, True)
-        if lstruct_lims is None or np.size(lstruct_lims) == 0:
-            lstruct_lims_np = np.array([Cnan])
-        else:
-            flat_list = []
-            for ele in lstruct_lims:
-                if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                    for elele in ele:
-                        if type(elele) is list:
-                            flat_list += elele
-                        else:
-                            flat_list += elele.flatten().tolist()
-                else:
-                    flat_list += [Cnan]
-            lstruct_lims_np = np.array(flat_list)
-
-        # ... copying tab that will be changed
-        if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-            lstruct_nlim_copy = None
-        else:
-            lstruct_nlim_copy = lstruct_nlim.copy()
-        _st.sa_assemble_arrays(part_coords, part_r,
-                               is_in_vignette,
-                               sa_map,
-                               ves_poly, ves_norm,
-                               ves_lims,
-                               lstruct_nlim_copy,
-                               lstruct_polyx,
-                               lstruct_polyy,
-                               lstruct_lims_np,
-                               lstruct_normx,
-                               lstruct_normy,
-                               lnvert, vperp_out,
-                               coeff_inter_in, coeff_inter_out,
-                               ind_inter_out, sz_ves_lims,
-                               ray_orig, ray_vdir, npts_poly,
-                               nstruct_tot, nstruct_lim,
-                               rmin,
-                               eps_uz, eps_a,
-                               eps_vz, eps_b, eps_plane,
-                               ves_type.lower()=='tor', forbid,
-                               first_ind_mv, indi_mv,
-                               sz_p, sz_r, sz_z, lindex_z,
-                               ncells_rphi,
-                               reso_r_z, disc_r, step_rphi,
-                               disc_z, ind_rz2pol, sz_phi,
-                               reso_rdrdz_mv, pts_mv, ind_mv,
-                               num_threads)
-    else:
-        _st.sa_assemble_arrays_unblock(part_coords, part_r,
-                                       is_in_vignette,
-                                       sa_map,
-                                       first_ind_mv, indi_mv,
-                                       sz_p, sz_r, sz_z, lindex_z,
-                                       ncells_rphi,
-                                       reso_r_z, disc_r, step_rphi,
-                                       disc_z, ind_rz2pol, sz_phi,
-                                       reso_rdrdz_mv, pts_mv, ind_mv,
-                                       num_threads)
+    _st.sa_assemble_arrays(block,
+                           use_approx,
+                           part_coords,
+                           part_r,
+                           is_in_vignette,
+                           sa_map,
+                           ves_poly,
+                           ves_norm,
+                           ves_lims,
+                           lstruct_nlim,
+                           lstruct_polyx,
+                           lstruct_polyy,
+                           lstruct_lims,
+                           lstruct_normx,
+                           lstruct_normy,
+                           lnvert,
+                           nstruct_tot,
+                           nstruct_lim,
+                           rmin,
+                           eps_uz, eps_a,
+                           eps_vz, eps_b,
+                           eps_plane,
+                           forbid,
+                           first_ind_mv,
+                           indi_mv,
+                           sz_p, sz_r, sz_z,
+                           ncells_rphi,
+                           reso_r_z,
+                           disc_r,
+                           step_rphi,
+                           disc_z,
+                           ind_rz2pol,
+                           sz_phi,
+                           reso_rdrdz_mv,
+                           pts_mv,
+                           ind_mv,
+                           num_threads)
     # ... freeing up memory ....................................................
+    free(lindex_z)
     free(disc_r)
     free(disc_z)
     free(disc_r0)
