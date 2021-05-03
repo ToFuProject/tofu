@@ -2,6 +2,7 @@
 
 # Standard
 import itertools as itt
+import warnings
 
 # Common
 import numpy as np
@@ -82,6 +83,54 @@ def _check_which(ddata=None, dobj=None, which=None, return_dict=None):
         return which, dd
     else:
         return which
+
+
+def _check_conflicts(dd=None, dd0=None, dd_name=None):
+    """ Detect conflict with existing entries
+    """
+    dupdate = {}
+    dconflict = {}
+    for k0, v0 in dd.items():
+        if k0 not in dd0.keys():
+            continue
+        # conflicts
+        lk = set(v0.keys()).intersection(dd0[k0].keys())
+        lk = [
+            kk for kk in lk
+            if not (
+                np.allclose(v0[kk], dd0[k0][kk])
+                if isinstance(v0[kk], np.ndarray)
+                else v0[kk] == dd0[k0][kk]
+            )
+        ]
+        if len(lk) > 0:
+            dconflict[k0] = lk
+        # updates
+        lk = [kk for kk in dd0[k0].keys() if kk not in v0.keys()]
+        if len(lk) > 0:
+            dupdate[k0] = lk
+
+    # Conflicts => Exception
+    if len(dconflict) > 0:
+        msg = (
+            "Conflicts with existing values found in {}:\n".format(dd_name)
+            + "\n".join([
+                "\t- {}[{}]: {}".format(dd_name, k0, v0)
+                for k0, v0 in dconflict.items()
+            ])
+        )
+        raise Exception(msg)
+
+    # Updates => Warning
+    if len(dupdate) > 0:
+        msg = (
+            "Existing {} keys will be overwritten:\n".format(dd_name)
+            + "\n".join([
+                "\t- {}[{}]: {}".format(dd_name, k0, v0)
+                for k0, v0 in dupdate.items()
+            ])
+        )
+        warnings.warn(msg)
 
 
 def _check_remove(key=None, dkey=None, name=None):
@@ -386,10 +435,6 @@ def _check_dref_static(
             and isinstance(v0, dict)
             and all([
                 isinstance(k1, str)
-                and (
-                    k0 not in dref_static0.keys()
-                    or k1 not in dref_static0[k0].keys()
-                )
                 and isinstance(v1, dict)
                 for k1, v1 in v0.items()
             ])
@@ -414,6 +459,50 @@ def _check_dref_static(
             """.format(dref_static)
         )
         raise Exception(msg)
+
+    # raise except if conflict with existing entry
+    dupdate = {}
+    dconflict = {}
+    for k0, v0 in dref_static.items():
+        if k0 not in dref_static0.keys():
+            continue
+        for k1, v1 in v0.items():
+            if k1 not in dref_static0[k0].keys():
+                continue
+            # conflicts
+            lk = set(v1.keys()).intersection(dref_static0[k0][k1].keys())
+            lk = [kk for kk in lk if v1[kk] != dref_static0[k0][k1][kk]]
+            if len(lk) > 0:
+                dconflict[k0] = (k1, lk)
+            # updates
+            lk = [
+                kk for kk in dref_static0[k0][k1].keys()
+                if kk not in v1.keys()
+            ]
+            if len(lk) > 0:
+                dupdate[k0] = (k1, lk)
+
+    # Conflicts => Exception
+    if len(dconflict) > 0:
+        msg = (
+            "The following dref_static keys are conflicting existing values:\n"
+            + "\n".join([
+                "\t- dref_static[{}][{}]: {}".format(k0, v0[0], v0[1])
+                for k0, v0 in dconflict.items()
+            ])
+        )
+        raise Exception(msg)
+
+    # Updates => Warning
+    if len(dupdate) > 0:
+        msg = (
+            "The following existing dref_static keys will be forgotten:\n"
+            + "\n".join([
+                "\t- dref_static[{}][{}]: {}".format(k0, v0[0], v0[1])
+                for k0, v0 in dupdate.items()
+            ])
+        )
+        warnings.warn(msg)
 
     # ------------------
     # Check element / ion / charge
@@ -517,7 +606,7 @@ def _check_dref(
         k0 for k0, v0 in dref.items()
         if not (
             isinstance(k0, str)
-            and k0 not in dref0.keys()
+            # and k0 not in dref0.keys()
             and (
                 (
                     ngroup == 1
@@ -577,6 +666,10 @@ def _check_dref(
     for k0, v0 in dref.items():
         if not isinstance(v0, dict):
             dref[k0] = {'data': v0}
+
+    # -----------------------
+    # raise except if conflict with existing entry
+    _check_conflicts(dd=dref, dd0=dref0, dd_name='dref')
 
     # ----------------
     # Add size / data if relevant
@@ -1070,7 +1163,7 @@ def _check_ddata(
         k0 for k0, v0 in ddata.items()
         if not (
             isinstance(k0, str)
-            and k0 not in ddata0.keys()
+            # and k0 not in ddata0.keys()
             and (
                 (
                     nref == 1
@@ -1157,6 +1250,10 @@ def _check_ddata(
             + '\t- '+'\n\t- '.join(lc)
         )
         raise Exception(msg)
+
+    # -----------------------
+    # raise except if conflict with existing entry
+    _check_conflicts(dd=ddata, dd0=ddata0, dd_name='ddata')
 
     # ----------------
     # Convert and/or add ref if necessary
@@ -1860,9 +1957,7 @@ def _get_param(
     """
 
     # Trivial case
-    lp = [kk for kk in list(dd.values())[0].keys()]
-    if dd_name == 'ddata':
-        lp.remove('data')
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
     if param is None:
         param = lp
 

@@ -242,7 +242,7 @@ class SpectralLines(DataCollection):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        out = self._from_openadas(
+        ddata, dref, dref_static, dobj = self._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -251,7 +251,55 @@ class SpectralLines(DataCollection):
             update=update,
             create_custom=create_custom,
         )
-        self.update(ddata=out)
+
+        # -------------------------------
+        # Check vs existing lines and ref
+
+        # # ref
+        # lkout = []
+        # for k0, v0 in dref.items():
+            # if k0 in self._dref.keys():
+                # lk = set(v0.keys()).intersection(self._dref[k0].keys())
+                # lc = [v0[kk] != self._dref[k0][kk] for kk in lk]
+                # if 'data' in v0.keys():
+                    # if not np.allclose(v0['data'], self._ddata[k0]['data']):
+                        # lc.append('data')
+                # if len(lc) > 0:
+                    # msg = (
+                        # "Conflict detected between new and previous key:\n"
+                        # + "\t- dref[{0}] vs self.dref[{0}]\n".format(k0)
+                        # + "The following keys have different values:\n"
+                        # + "\n".join(["\t- {}".format(kk) for kk in lc])
+                    # )
+                    # raise Exception(msg)
+                # lkout.append(k0)
+        # dref = {k0: v0 for k0, v0 in dref.items() if k0 not in lkout}
+
+        # # data
+        # lkout = []
+        # for k0, v0 in ddata.items():
+            # if k0 in self._ddata.keys():
+                # lk = set(v0.keys()).intersection(self._ddata[k0].keys())
+                # lc = [
+                    # kk for kk in lk
+                    # if (
+                        # not np.allclose(v0[kk], self._ddata[k0][kk])
+                        # if isinstance(v0[kk], np.ndarray) else
+                        # v0[kk] != self._ddata[k0][kk]
+                    # )
+                # ]
+                # if len(lc) > 0:
+                    # msg = (
+                        # "Conflict detected between new and previous key:\n"
+                        # + "\t- ddata[{0}] vs self.ddata[{0}]\n".format(k0)
+                        # + "The following keys have different values:\n"
+                        # + "\n".join(["\t- {}".format(kk) for kk in lc])
+                    # )
+                    # raise Exception(msg)
+                # lkout.append(k0)
+        # ddata = {k0: v0 for k0, v0 in ddata.items() if k0 not in lkout}
+
+        self.update(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
 
     # -----------------
     # summary
@@ -278,7 +326,7 @@ class SpectralLines(DataCollection):
             'lambda0', key=key, returnas=np.ndarray,
         )['lambda0']
         return self.convert_spectral(
-            data_in=lamb_in, units_in='m', units_out=units, returnas=returnas,
+            data=lamb_in, units_in='m', units_out=units, returnas=returnas,
         )
 
     # -----------------

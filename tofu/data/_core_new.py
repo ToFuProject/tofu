@@ -492,7 +492,7 @@ class DataCollection(utils.ToFuObject):
             log=log, returnas=returnas, **kwdargs,
         )
 
-    def _ind_tofrom_key_data(
+    def _ind_tofrom_key(
         self,
         ind=None,
         key=None,

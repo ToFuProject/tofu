@@ -417,11 +417,15 @@ class Test01_DataCollection(object):
 # #############################################################################
 
 
-class Test01_SpectralLines(object):
+class Test02_SpectralLines(object):
 
     @classmethod
     def setup_class(cls, Name='data1',  SavePath='./', verb=False):
-        pass
+        cls.sl = tfd.SpectralLines.from_openadas(
+            lambmin=3.94e-10,
+            lambmax=4e-10,
+            element='Ar',
+        )
 
     @classmethod
     def setup(self):
@@ -434,9 +438,13 @@ class Test01_SpectralLines(object):
     def teardown_class(cls):
         pass
 
-    def test01_init_from_openadas(self):
-        pass
+    def test01_add_from_openadas(self):
+        self.sl.add_from_openadas(
+            lambmin=3.90e-10,
+            lambmax=3.96e-10,
+            element='Ar',
+        )
 
-
-
+    def test02_convert_lines(self):
+        self.sl.convert_lines(units='Hz')
 
