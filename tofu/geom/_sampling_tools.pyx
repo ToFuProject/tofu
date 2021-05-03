@@ -17,7 +17,6 @@ from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from cpython.array cimport array, clone
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
@@ -394,7 +393,6 @@ cdef inline void middle_rule_single(int num_raf,
         los_coeffs[jj] = los_kmin + (0.5 + jj)*loc_resol
     return
 
-
 cdef inline void middle_rule_rel(int nlos, int num_raf,
                                  double* los_kmin,
                                  double* los_kmax,
@@ -426,7 +424,6 @@ cdef inline void middle_rule_rel(int nlos, int num_raf,
             middle_rule_single(num_raf, los_kmin[ii],
                                loc_resol, &los_coeffs[first_index])
     return
-
 
 cdef inline void middle_rule_abs_s1_single(double inv_resol,
                                           double los_kmin,
@@ -1658,11 +1655,11 @@ cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
     return npts_disc
 
 
-cdef inline int vmesh_get_index_arrays(long[:, :, ::1] ind_rzphi2dic,
-                                       long[:, ::1] is_in_vignette,
-                                       int sz_r,
-                                       int sz_z,
-                                       long* sz_phi) nogil:
+cdef inline int vmesh_get_index_arrays(long[:, :, ::1] lnp,
+                                  long[:, ::1] is_in_vignette,
+                                  int sz_r,
+                                  int sz_z,
+                                  long* sz_phi) nogil:
     cdef int rr, zz, pp
     cdef int npts_disc = 0
     cdef int loc_sz_phi
@@ -1672,12 +1669,12 @@ cdef inline int vmesh_get_index_arrays(long[:, :, ::1] ind_rzphi2dic,
         for zz in range(sz_z):
             if is_in_vignette[rr, zz]:
                 for pp in range(loc_sz_phi):
-                    ind_rzphi2dic[rr, zz, pp] = npts_disc
+                    lnp[rr, zz, pp] = npts_disc
                     npts_disc += 1
     return npts_disc
 
 
-cdef inline void vmesh_assemble_arrays_cart(int rr,
+cdef inline void vmesh_assemble_arrays_cart(int ii,
                                             int sz_z,
                                             long* lindex_z,
                                             long[::1] is_in_vignette,
@@ -1687,7 +1684,7 @@ cdef inline void vmesh_assemble_arrays_cart(int rr,
                                             double* step_rphi,
                                             double* disc_r,
                                             double* disc_z,
-                                            long[:, :, ::1] ind_rzphi2dic,
+                                            long[:, :, ::1] lnp,
                                             long* sz_phi,
                                             long[::1] iii,
                                             double[::1] dv_mv,
@@ -1702,21 +1699,21 @@ cdef inline void vmesh_assemble_arrays_cart(int rr,
     cdef long npts_disc
     # ..
     for zz in range(sz_z):
-        zrphi = lindex_z[zz] * ncells_rphi[rr]
+        zrphi = lindex_z[zz] * ncells_rphi[ii]
         if is_in_vignette[zz]:
-            for jj in range(sz_phi[rr]):
-                npts_disc = ind_rzphi2dic[rr, zz, jj]
+            for jj in range(sz_phi[ii]):
+                npts_disc = lnp[ii,zz,jj]
                 indiijj = iii[jj]
-                phi = -c_pi + (0.5 + indiijj) * step_rphi[rr]
-                pts_mv[0, npts_disc] = disc_r[rr] * c_cos(phi)
-                pts_mv[1, npts_disc] = disc_r[rr] * c_sin(phi)
+                phi = -c_pi + (0.5 + indiijj) * step_rphi[ii]
+                pts_mv[0, npts_disc] = disc_r[ii] * c_cos(phi)
+                pts_mv[1, npts_disc] = disc_r[ii] * c_sin(phi)
                 pts_mv[2, npts_disc] = disc_z[zz]
-                ind_mv[npts_disc] = tot_nc_plane[rr] + zrphi + indiijj
-                dv_mv[npts_disc] = reso_r_z*reso_phi_mv[rr]
+                ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
+                dv_mv[npts_disc] = reso_r_z*reso_phi_mv[ii]
     return
 
 
-cdef inline void vmesh_assemble_arrays_polr(int rr,
+cdef inline void vmesh_assemble_arrays_polr(int ii,
                                             int sz_z,
                                             long* lindex_z,
                                             long[::1] is_in_vignette,
@@ -1726,7 +1723,7 @@ cdef inline void vmesh_assemble_arrays_polr(int rr,
                                             double* step_rphi,
                                             double* disc_r,
                                             double* disc_z,
-                                            long[:, :, ::1] ind_rzphi2dic,
+                                            long[:, :, ::1] lnp,
                                             long* sz_phi,
                                             long[::1] iii,
                                             double[::1] dv_mv,
@@ -1740,16 +1737,16 @@ cdef inline void vmesh_assemble_arrays_polr(int rr,
     cdef long indiijj
     # ..
     for zz in range(sz_z):
-        zrphi = lindex_z[zz] * ncells_rphi[rr]
+        zrphi = lindex_z[zz] * ncells_rphi[ii]
         if is_in_vignette[zz]:
-            for jj in range(sz_phi[rr]):
-                npts_disc = ind_rzphi2dic[rr, zz, jj]
+            for jj in range(sz_phi[ii]):
+                npts_disc = lnp[ii,zz,jj]
                 indiijj = iii[jj]
-                pts_mv[0, npts_disc] = disc_r[rr]
+                pts_mv[0, npts_disc] = disc_r[ii]
                 pts_mv[1, npts_disc] = disc_z[zz]
-                pts_mv[2, npts_disc] = -c_pi + (0.5 + indiijj) * step_rphi[rr]
-                ind_mv[npts_disc] = tot_nc_plane[rr] + zrphi + indiijj
-                dv_mv[npts_disc] = reso_r_z * reso_phi_mv[rr]
+                pts_mv[2, npts_disc] = -c_pi + (0.5 + indiijj) * step_rphi[ii]
+                ind_mv[npts_disc] = tot_nc_plane[ii] + zrphi + indiijj
+                dv_mv[npts_disc] = reso_r_z * reso_phi_mv[ii]
     return
 
 
@@ -1767,36 +1764,34 @@ cdef inline void vmesh_assemble_arrays(long[::1] first_ind_mv,
                                        double* step_rphi,
                                        double* disc_r,
                                        double* disc_z,
-                                       long[:, :, ::1] ind_rzphi2dic,
+                                       long[:, :, ::1] lnp,
                                        long* sz_phi,
                                        double[::1] dv_mv,
                                        double[::1] reso_phi_mv,
                                        double[:, ::1] pts_mv,
                                        long[::1] ind_mv,
                                        int num_threads) nogil:
-    cdef int rr
+    cdef int ii
     # ...
     with nogil, parallel(num_threads=num_threads):
         if is_cart:
-            for rr in prange(sz_r):
+            for ii in prange(sz_r):
                 # To make sure the indices are in increasing order
-                vmesh_assemble_arrays_cart(rr, sz_z, lindex_z,
-                                           is_in_vignette[rr],
+                vmesh_assemble_arrays_cart(ii, sz_z, lindex_z,
+                                           is_in_vignette[ii],
                                            ncells_rphi, tot_nc_plane,
                                            reso_r_z, step_rphi,
-                                           disc_r, disc_z, ind_rzphi2dic,
-                                           sz_phi,
-                                           indi_mv[rr,first_ind_mv[rr]:],
+                                           disc_r, disc_z, lnp, sz_phi,
+                                           indi_mv[ii,first_ind_mv[ii]:],
                                            dv_mv, reso_phi_mv, pts_mv, ind_mv)
         else:
-            for rr in prange(sz_r):
-                vmesh_assemble_arrays_polr(rr, sz_z, lindex_z,
-                                           is_in_vignette[rr],
+            for ii in prange(sz_r):
+                vmesh_assemble_arrays_polr(ii, sz_z, lindex_z,
+                                           is_in_vignette[ii],
                                            ncells_rphi, tot_nc_plane,
                                            reso_r_z, step_rphi,
-                                           disc_r, disc_z, ind_rzphi2dic,
-                                           sz_phi,
-                                           indi_mv[rr,first_ind_mv[rr]:],
+                                           disc_r, disc_z, lnp, sz_phi,
+                                           indi_mv[ii,first_ind_mv[ii]:],
                                            dv_mv, reso_phi_mv, pts_mv, ind_mv)
     return
 
@@ -1810,7 +1805,7 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
                                      long* tot_nc_plane,
                                      double** phi_tab,
                                      int num_threads) nogil:
-    cdef int rr
+    cdef int ii
     cdef int jj
     cdef int radius_ratio
     cdef int loc_nc_rphi
@@ -1830,15 +1825,15 @@ cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
         for jj in prange(loc_nc_rphi):
             phi_tab[0][jj * sz_r] = -c_pi + (0.5 + jj) * step_rphi[0]
     # now we do the rest of the loop
-    for rr in range(1, sz_r):
-        loc_nc_rphi = <int>(c_ceil(disc_r[rr] * twopi_over_dphi))
-        ncells_rphi[rr] = loc_nc_rphi
-        step_rphi[rr] = _TWOPI / loc_nc_rphi
-        d_r_phir_ref[rr] = disc_r[rr] * step_rphi[rr]
-        tot_nc_plane[rr] = tot_nc_plane[rr-1] + ncells_rphi[rr-1] * sz_z
+    for ii in range(1, sz_r):
+        loc_nc_rphi = <int>(c_ceil(disc_r[ii] * twopi_over_dphi))
+        ncells_rphi[ii] = loc_nc_rphi
+        step_rphi[ii] = _TWOPI / loc_nc_rphi
+        d_r_phir_ref[ii] = disc_r[ii] * step_rphi[ii]
+        tot_nc_plane[ii] = tot_nc_plane[ii-1] + ncells_rphi[ii-1] * sz_z
         with nogil, parallel(num_threads=num_threads):
             for jj in range(loc_nc_rphi):
-                phi_tab[0][rr + sz_r * jj] = -c_pi + (0.5 + jj) * step_rphi[rr]
+                phi_tab[0][ii + sz_r * jj] = -c_pi + (0.5 + jj) * step_rphi[ii]
 
     tot_nc_plane[sz_r] = tot_nc_plane[sz_r-1] + ncells_rphi[sz_r-1] * sz_z
     free(step_rphi)
@@ -1925,17 +1920,17 @@ cdef inline void vmesh_ind_polr_loop(int np,
 # ==============================================================================
 # == Solid Angle Computation
 # ==============================================================================
-cdef inline int sa_get_index_arrays(long[:, ::1] ind_rz2pol,
-                                    long[:, ::1] is_in_vignette,
-                                    int sz_r,
-                                    int sz_z) nogil:
+cdef inline int sa_get_index_arrays(long[:, ::1] lnp,
+                               long[:, ::1] is_in_vignette,
+                               int sz_r,
+                               int sz_z) nogil:
     cdef int ii, zz
     cdef int npts_pol = 0
 
     for ii in range(sz_r):
         for zz in range(sz_z):
             if is_in_vignette[ii, zz]:
-                ind_rz2pol[ii, zz] = npts_pol
+                lnp[ii, zz] = npts_pol
                 npts_pol += 1
     return npts_pol
 
@@ -1978,6 +1973,7 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
             # Get the actual RPhi resolution and Phi mesh elements
             # (depends on R!)
             ncells_rphi[ii] = <int>c_ceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
             step_rphi[ii] = _TWOPI / ncells_rphi[ii]
             # Get index and cumulated indices from background
             for jj in range(ind_loc_r0, ncells_r0):
@@ -2041,9 +2037,7 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
     return npts_disc
 
 
-cdef inline void sa_assemble_arrays(int block,
-                                    int use_approx,
-                                    double[:, ::1] part_coords,
+cdef inline void sa_assemble_arrays(double[:, ::1] part_coords,
                                     double[::1] part_rad,
                                     long[:, ::1] is_in_vignette,
                                     double[:, ::1] sa_map,
@@ -2057,147 +2051,38 @@ cdef inline void sa_assemble_arrays(int block,
                                     double[::1] lstruct_normx,
                                     double[::1] lstruct_normy,
                                     long[::1] lnvert,
+                                    double[::1] vperp_out,
+                                    double[::1] coeff_inter_in,
+                                    double[::1] coeff_inter_out,
+                                    int[::1] ind_inter_out,
+                                    int sz_ves_lims,
+                                    double[:, ::1] ray_orig,
+                                    double[:, ::1] ray_vdir,
+                                    int npts_poly,
                                     int nstruct_tot,
                                     int nstruct_lim,
                                     double rmin,
                                     double eps_uz, double eps_a,
                                     double eps_vz, double eps_b,
-                                    double eps_plane,
+                                    double eps_plane, bint is_tor,
                                     bint forbid,
-                                    long[::1] first_ind,
+                                    long[::1] first_ind_mv,
                                     long[:, ::1] indi_mv,
                                     int sz_p,
                                     int sz_r, int sz_z,
+                                    long* lindex_z,
                                     long* ncells_rphi,
+                                    long* tot_nc_plane,
                                     double reso_r_z,
                                     double* disc_r,
                                     double* step_rphi,
                                     double* disc_z,
-                                    long[:, ::1] ind_rz2pol,
+                                    long[:, ::1] lnp,
                                     long* sz_phi,
                                     double[::1] reso_rdrdz,
                                     double[:, ::1] pts_mv,
                                     long[::1] ind_mv,
-                                    int num_threads):
-    if block:
-        # .. useless tabs .....................................................
-        # declared here so that cython can run without gil
-        if ves_lims is not None:
-            sz_ves_lims = np.size(ves_lims)
-        else:
-            sz_ves_lims = 0
-        npts_poly = ves_norm.shape[1]
-        ray_orig = np.zeros((3, sz_p))
-        ray_vdir = np.zeros((3, sz_p))
-        vperp_out = clone(array('d'), sz_p * 3, True)
-        coeff_inter_in  = clone(array('d'), sz_p, True)
-        coeff_inter_out = clone(array('d'), sz_p, True)
-        ind_inter_out = clone(array('i'), sz_p * 3, True)
-        if lstruct_lims is None or np.size(lstruct_lims) == 0:
-            lstruct_lims_np = np.array([CNAN])
-        else:
-            flat_list = []
-            for ele in lstruct_lims:
-                if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                    for elele in ele:
-                        if type(elele) is list:
-                            flat_list += elele
-                        else:
-                            flat_list += elele.flatten().tolist()
-                else:
-                    flat_list += [CNAN]
-            lstruct_lims_np = np.array(flat_list)
-
-        # ... copying tab that will be changed
-        if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-            lstruct_nlim_copy = None
-        else:
-            lstruct_nlim_copy = lstruct_nlim.copy()
-        assemble_block_approx(part_coords, part_rad,
-                              is_in_vignette,
-                              sa_map,
-                              ves_poly, ves_norm,
-                              ves_lims,
-                              lstruct_nlim_copy,
-                              lstruct_polyx,
-                              lstruct_polyy,
-                              lstruct_lims_np,
-                              lstruct_normx,
-                              lstruct_normy,
-                              lnvert, vperp_out,
-                              coeff_inter_in, coeff_inter_out,
-                              ind_inter_out, sz_ves_lims,
-                              ray_orig, ray_vdir, npts_poly,
-                              nstruct_tot, nstruct_lim,
-                              rmin,
-                              eps_uz, eps_a,
-                              eps_vz, eps_b, eps_plane,
-                              forbid,
-                              first_ind, indi_mv,
-                              sz_p, sz_r, sz_z,
-                              ncells_rphi,
-                              reso_r_z, disc_r, step_rphi,
-                              disc_z, ind_rz2pol, sz_phi,
-                              reso_rdrdz, pts_mv, ind_mv,
-                              num_threads)
-    else:
-        assemble_unblock_approx(part_coords, part_rad,
-                                is_in_vignette,
-                                sa_map,
-                                first_ind, indi_mv,
-                                sz_p, sz_r, sz_z,
-                                ncells_rphi,
-                                reso_r_z, disc_r, step_rphi,
-                                disc_z, ind_rz2pol,
-                                sz_phi,
-                                reso_rdrdz, pts_mv, ind_mv,
-                                num_threads)
-    return
-
-cdef inline void assemble_block_approx(double[:, ::1] part_coords,
-                                          double[::1] part_rad,
-                                          long[:, ::1] is_in_vignette,
-                                          double[:, ::1] sa_map,
-                                          double[:, ::1] ves_poly,
-                                          double[:, ::1] ves_norm,
-                                          double[::1] ves_lims,
-                                          long[::1] lstruct_nlim,
-                                          double[::1] lstruct_polyx,
-                                          double[::1] lstruct_polyy,
-                                          double[::1] lstruct_lims,
-                                          double[::1] lstruct_normx,
-                                          double[::1] lstruct_normy,
-                                          long[::1] lnvert,
-                                          double[::1] vperp_out,
-                                          double[::1] coeff_inter_in,
-                                          double[::1] coeff_inter_out,
-                                          int[::1] ind_inter_out,
-                                          int sz_ves_lims,
-                                          double[:, ::1] ray_orig,
-                                          double[:, ::1] ray_vdir,
-                                          int npts_poly,
-                                          int nstruct_tot,
-                                          int nstruct_lim,
-                                          double rmin,
-                                          double eps_uz, double eps_a,
-                                          double eps_vz, double eps_b,
-                                          double eps_plane,
-                                          bint forbid,
-                                          long[::1] first_ind_mv,
-                                          long[:, ::1] indi_mv,
-                                          int sz_p,
-                                          int sz_r, int sz_z,
-                                          long* ncells_rphi,
-                                          double reso_r_z,
-                                          double* disc_r,
-                                          double* step_rphi,
-                                          double* disc_z,
-                                          long[:, ::1] ind_rz2pol,
-                                          long* sz_phi,
-                                          double[::1] reso_rdrdz,
-                                          double[:, ::1] pts_mv,
-                                          long[::1] ind_mv,
-                                          int num_threads) nogil:
+                                    int num_threads) nogil:
     cdef int ii
     cdef int zz
     cdef int jj
@@ -2224,9 +2109,10 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
         loc_first_ind = first_ind_mv[ii]
         for zz in range(sz_z):
             loc_z = disc_z[zz]
+            ind_mv[ii * sz_z + zz] = -1
             if is_in_vignette[ii, zz]:
-                ind_pol = ind_rz2pol[ii, zz]
-                ind_mv[ind_pol] = ii + sz_r * zz
+                ind_pol = lnp[ii, zz]
+                ind_mv[ii * sz_z + zz] = ind_pol
                 reso_rdrdz[ind_pol] = loc_r * reso_r_z
                 pts_mv[0, ind_pol] = loc_r
                 pts_mv[1, ind_pol] = loc_z
@@ -2264,20 +2150,18 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                                rmin,
                                                eps_uz, eps_a,
                                                eps_vz, eps_b, eps_plane,
-                                               1, # is toroidal
-                                               forbid, 1)
+                                               is_tor, forbid, 1)
                     for pp in range(sz_p):
                         if is_vis[pp] and dist[pp] > part_rad[pp]:
-                            sa_map[ind_pol,
-                                   pp] += sa_approx_formula(part_rad[pp],
-                                                            dist[pp],
-                                                            vol_pi)
+                            sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
+                                                              dist[pp],
+                                                              vol_pi)
     free(dist)
     free(is_vis)
     return
 
 
-cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
+cdef inline void sa_assemble_arrays_unblock(double[:, ::1] part_coords,
                                             double[::1] part_rad,
                                             long[:, ::1] is_in_vignette,
                                             double[:, ::1] sa_map,
@@ -2285,12 +2169,14 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                                             long[:, ::1] indi_mv,
                                             int sz_p,
                                             int sz_r, int sz_z,
+                                            long* lindex_z,
                                             long* ncells_rphi,
+                                            long* tot_nc_plane,
                                             double reso_r_z,
                                             double* disc_r,
                                             double* step_rphi,
                                             double* disc_z,
-                                            long[:, ::1] ind_rz2pol,
+                                            long[:, ::1] lnp,
                                             long* sz_phi,
                                             double[::1] reso_rdrdz,
                                             double[:, ::1] pts_mv,
@@ -2321,9 +2207,12 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
             loc_first_ind = first_ind_mv[ii]
             for zz in range(sz_z):
                 loc_z = disc_z[zz]
+                # TODO : mettre des indices uniques correspondant au numero de
+                # point dans le plan (R, Z)
+                ind_mv[ii * sz_z + zz] = -1
                 if is_in_vignette[ii, zz]:
-                    ind_pol = ind_rz2pol[ii, zz]
-                    ind_mv[ind_pol] = ii + sz_r * zz
+                    ind_pol = lnp[ii, zz]
+                    ind_mv[ii * sz_z + zz] = ind_pol
                     reso_rdrdz[ind_pol] = loc_r * reso_r_z
                     pts_mv[0, ind_pol] = loc_r
                     pts_mv[1, ind_pol] = loc_z
@@ -2338,15 +2227,14 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                                                  &dist[0])
                         for pp in range(sz_p):
                             if dist[pp]  > part_rad[pp]:
-                                sa_map[ind_pol,
-                                       pp] += sa_approx_formula(part_rad[pp],
-                                                                dist[pp],
-                                                                vol_pi)
+                                sa_map[ind_pol, pp] += sa_formula(part_rad[pp],
+                                                                  dist[pp],
+                                                                  vol_pi)
         free(dist)
     return
 
 
-cdef inline double sa_approx_formula(double radius,
+cdef inline double sa_formula(double radius,
                               double distance,
                               double volpi,
                               int debug=0) nogil:
