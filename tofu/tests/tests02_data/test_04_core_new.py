@@ -177,12 +177,18 @@ class Test01_DataCollection(object):
             }
         }
         dobj = {
-            'l0': {'lambda0': 5e-10, 'source': '[1]', 'transition': 'A->B'},
-            'l1': {'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C'},
-            'l2': {
-                'data': t0[:, None]*t1[None, :], 'ref': ('t0', 't1'),
-                'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C',
-            },
+            'lines': {
+                'l0': {
+                    'lambda0': 5e-10, 'source': '[1]', 'transition': 'A->B',
+                },
+                'l1': {
+                    'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C',
+                },
+                'l2': {
+                    'data': t0[:, None]*t1[None, :], 'ref': ('t0', 't1'),
+                    'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C',
+                },
+            }
         }
         sl = tfd.DataCollection()
         sl._data_none = True
@@ -327,7 +333,7 @@ class Test01_DataCollection(object):
         data.add_param('shot', value=np.arange(0, len(data.ddata)))
         assert np.all(data.get_param('shot')['shot'] == np.arange(0, len(data.ddata)))
         data.remove_param('shot')
-        assert 'shot' not in data.lparam_data
+        assert 'shot' not in data.get_lparam(which='data')
 
     def tests06_switch_ref(self):
 

@@ -422,11 +422,9 @@ class DataCollection(utils.ToFuObject):
         return dout
 
     def _from_dict(self, fd):
-        self._dgroup.update(**fd['dgroup'])
-        self._dref.update(**fd['dref'])
-        self._dref_static.update(**fd['dref_static'])
-        self._ddata.update(**fd['ddata'])
-        self._dobj.update(**fd['dobj'])
+        for k0 in ['dgroup', 'dref', 'ddata', 'dref_static', 'dobj']:
+            if fd.get(k0) is not None:
+                getattr(self, '_'+k0).update(**fd[k0])
         self.update()
 
     ###########
