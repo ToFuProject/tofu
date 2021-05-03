@@ -109,6 +109,10 @@ class SpectralLines(DataCollection):
         online=None,
         update=None,
         create_custom=None,
+        dsource0=None,
+        dref0=None,
+        ddata0=None,
+        dlines0=None,
     ):
         """
         Load lines and pec from openadas, either:
@@ -174,6 +178,10 @@ class SpectralLines(DataCollection):
             charge=charge,
             pec_as_func=False,
             format_for_DataCollection=True,
+            dsource0=dsource0,
+            dref0=dref0,
+            ddata0=ddata0,
+            dlines0=dlines0,
             verb=False,
         )
 
@@ -250,55 +258,11 @@ class SpectralLines(DataCollection):
             online=online,
             update=update,
             create_custom=create_custom,
+            dsource0=self._dref_static.get('source'),
+            dref0=self._dref,
+            ddata0=self._ddata,
+            dlines0=self._dobj.get('lines'),
         )
-
-        # -------------------------------
-        # Check vs existing lines and ref
-
-        # # ref
-        # lkout = []
-        # for k0, v0 in dref.items():
-            # if k0 in self._dref.keys():
-                # lk = set(v0.keys()).intersection(self._dref[k0].keys())
-                # lc = [v0[kk] != self._dref[k0][kk] for kk in lk]
-                # if 'data' in v0.keys():
-                    # if not np.allclose(v0['data'], self._ddata[k0]['data']):
-                        # lc.append('data')
-                # if len(lc) > 0:
-                    # msg = (
-                        # "Conflict detected between new and previous key:\n"
-                        # + "\t- dref[{0}] vs self.dref[{0}]\n".format(k0)
-                        # + "The following keys have different values:\n"
-                        # + "\n".join(["\t- {}".format(kk) for kk in lc])
-                    # )
-                    # raise Exception(msg)
-                # lkout.append(k0)
-        # dref = {k0: v0 for k0, v0 in dref.items() if k0 not in lkout}
-
-        # # data
-        # lkout = []
-        # for k0, v0 in ddata.items():
-            # if k0 in self._ddata.keys():
-                # lk = set(v0.keys()).intersection(self._ddata[k0].keys())
-                # lc = [
-                    # kk for kk in lk
-                    # if (
-                        # not np.allclose(v0[kk], self._ddata[k0][kk])
-                        # if isinstance(v0[kk], np.ndarray) else
-                        # v0[kk] != self._ddata[k0][kk]
-                    # )
-                # ]
-                # if len(lc) > 0:
-                    # msg = (
-                        # "Conflict detected between new and previous key:\n"
-                        # + "\t- ddata[{0}] vs self.ddata[{0}]\n".format(k0)
-                        # + "The following keys have different values:\n"
-                        # + "\n".join(["\t- {}".format(kk) for kk in lc])
-                    # )
-                    # raise Exception(msg)
-                # lkout.append(k0)
-        # ddata = {k0: v0 for k0, v0 in ddata.items() if k0 not in lkout}
-
         self.update(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
 
     # -----------------

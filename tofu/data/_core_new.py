@@ -558,7 +558,7 @@ class DataCollection(utils.ToFuObject):
 
         # --------------
         # sort
-        ind = self._get_sort_index(param, which=which)
+        ind = self._get_sort_index(param=param, which=which)
         if ind is None:
             return
         if order == 'reverse':

@@ -487,7 +487,7 @@ def _check_dref_static(
         msg = (
             "The following dref_static keys are conflicting existing values:\n"
             + "\n".join([
-                "\t- dref_static[{}][{}]: {}".format(k0, v0[0], v0[1])
+                "\t- dref_static['{}']['{}']: {}".format(k0, v0[0], v0[1])
                 for k0, v0 in dconflict.items()
             ])
         )
@@ -498,7 +498,7 @@ def _check_dref_static(
         msg = (
             "The following existing dref_static keys will be forgotten:\n"
             + "\n".join([
-                "\t- dref_static[{}][{}]: {}".format(k0, v0[0], v0[1])
+                "\t- dref_static['{}']['{}']: {}".format(k0, v0[0], v0[1])
                 for k0, v0 in dupdate.items()
             ])
         )
@@ -1774,7 +1774,11 @@ def _consistency(
     dref_static = _check_dref_static(
         dref_static=dref_static, dref_static0=dref_static0,
     )
-    dref_static0.update(dref_static)
+    for k0, v0 in dref_static.items():
+        if k0 not in dref_static0.keys():
+            dref_static0[k0] = v0
+        else:
+            dref_static0[k0].update(v0)
 
     # --------------
     # ddata
@@ -1795,7 +1799,11 @@ def _consistency(
     dobj = _check_dobj(
         dobj=dobj, dobj0=dobj0,
     )
-    dobj0.update(dobj)
+    for k0, v0 in dobj.items():
+        if k0 not in dobj0.keys():
+            dobj0[k0] = v0
+        else:
+            dobj0[k0].update(v0)
 
     # --------------
     # params harmonization - ddata
@@ -1808,7 +1816,7 @@ def _consistency(
 
     # --------------
     # params harmonization - dobj
-    for k0, v0 in dobj.items():
+    for k0, v0 in dobj0.items():
         dobj0[k0] = _harmonize_params(
             dd=v0,
             dd_name='dobj',
@@ -1844,7 +1852,7 @@ def _consistency(
             if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['group']
         ))
 
-    # derf_static0
+    # dref_static0
     _update_dref_static0(dref_static0=dref_static0, ddata0=ddata0, dobj0=dobj0)
 
     return dgroup0, dref0, dref_static0, ddata0, dobj0

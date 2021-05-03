@@ -49,24 +49,92 @@ def _get_subdir_from_pattern(path, pattern):
     return os.path.join(path, ld[0])
 
 
-def _format_for_DataCollection_adf15(dout):
+def _format_for_DataCollection_adf15(
+    dout,
+    dsource0=None,
+    dref0=None,
+    ddata0=None,
+    dlines0=None,
+):
     """
     Format dout from step03_read_all() for SPectralLines object
     (separated te, ne, ions, sources, lines)
     """
 
-    # Get dict of unique ions
-    lion = sorted(set([v0['ion'] for v0 in dout.values()]))
+    # Remove already known lines of dlines0 provided
+    if dlines0 is not None:
+        # Check for mistakes
+        lk0 = [
+            k0 for k0, v0 in dout.items()
+            if any([
+                np.sum([(
+                    v1['ion'] == v0['ion']
+                    and v1['transition'] == v0['transition'],
+                    v1['ion'] == v0['ion'] and v1['symbol'] == v0['symbol']
+                )]) == 1
+                for v1 in dlines0.values()
+            ])
+        ]
+        if len(lk0) > 0:
+            msg = (
+                "Error in openadas detected,\n"
+                + "the following lines have same ion and transition but "
+                + "different symbol (typ0typ1-isoel):\n"
+                + "\n".join(["\t- {}".format(k0) for k0 in lk0])
+            )
+            raise Exception(msg)
+
+        dout = {
+            k0: v0 for k0, v0 in dout.items()
+            if not any([
+                v1['ion'] == v0['ion'] and v1['transition'] == v0['transition']
+                for v1 in dlines0.values()
+            ])
+        }
 
     # Get dict of unique sources
     lsource = sorted(set([v0['source'] for v0 in dout.values()]))
-    dsource = {
-        'oa-adf15-{:02}'.format(ii): {'long': ss} for ii, ss in enumerate(lsource)
-    }
+    dsource = {}
+    if dsource0 is None:
+        dsource = {
+            'oa-adf15-{:02}'.format(ii): {'long': ss}
+            for ii, ss in enumerate(lsource)
+        }
+
+    else:
+        # Check against existing sources
+        nmax = int(np.max([
+            int(k0.split('-')[-1])
+            for k0 in dsource0.keys() if 'oa-adf15' in k0
+        ])) + 1
+        for ii, ss in enumerate(lsource):
+            lk0 = [k0 for k0, v0 in dsource0.items() if v0['long'] == ss]
+            if len(lk0) == 0:
+                k0 = 'oa-adf15-{:02}'.format(nmax)
+                nmax += 1
+            elif len(lk0) == 1:
+                k0 = lk0[0]
+            else:
+                msg = (
+                    "Multiple possible matches for source {}".format(ss)
+                )
+                raise Exception(msg)
+            dsource[k0] = {'long': ss}
 
     # Get dict of unique Te and ne
     dte, dne = {}, {}
-    ite, ine = 0, 0
+    if dref0 is None:
+        ite, ine = 0, 0
+    else:
+        ite = int(np.max([
+            int(k0.split('-')[-1]) for k0 in dref0.keys()
+            if 'Te-' in k0 and 'oa-adf15' in ddata0[k0]['source']
+        ])) + 1
+        ine = int(np.max([
+            int(k0.split('-')[-1]) for k0 in dref0.keys()
+            if 'ne-' in k0 and 'oa-adf15' in ddata0[k0]['source']
+        ])) + 1
+
     for k0, v0 in dout.items():
 
         # fill dte
@@ -74,26 +142,55 @@ def _format_for_DataCollection_adf15(dout):
             kk for kk, vv in dte.items()
             if np.allclose(v0['te'], vv['data'])
         ]
-        if len(kte) == 0:
-            keyte = 'Te-{:02}'.format(ite)
-            sour = [
-                k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
-            ][0]
-            dte[keyte] = {
-                'data': v0['te'],
-                'units': v0['te_units'],
-                'source': sour,
-                'dim': 'temperature',
-                'quant': 'Te',
-                'name': 'Te',
-                'group': 'Te',
-            }
-            ite += 1
-        elif len(kte) == 1:
-            pass
-        else:
-            msg = "len(kte) != 1:\n\t- kte = {}".format(kte)
-            raise Exception(msg)
+        sour = [
+            k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
+        ][0]
+        normal = dref0 is None
+        if normal is False:
+            # Check vs existing Te
+            lk0 = [
+                k1 for k1, v1 in dref0.items()
+                if ddata0[k1]['source'] == sour
+                and np.allclose(v0['te'], ddata0[k1]['data'])
+            ]
+            if len(lk0) == 0:
+                normal = True
+            elif len(lk0) == 1:
+                keyte = lk0[0]
+                dte[keyte] = {
+                    'data': ddata0[k1]['data'],
+                    'units': v0['te_units'],
+                    'source': sour,
+                    'dim': 'temperature',
+                    'quant': 'Te',
+                    'name': 'Te',
+                    'group': 'Te',
+                }
+            elif len(lk0) > 1:
+                msg = (
+                    "Multiple matches for dout[{}] in dref0:\n".format(k0)
+                    + "\t- {}".format(lk0)
+                )
+                raise Exception(msg)
+
+        if normal is True:
+            if len(kte) == 0:
+                keyte = 'Te-{:02}'.format(ite)
+                dte[keyte] = {
+                    'data': v0['te'],
+                    'units': v0['te_units'],
+                    'source': sour,
+                    'dim': 'temperature',
+                    'quant': 'Te',
+                    'name': 'Te',
+                    'group': 'Te',
+                }
+                ite += 1
+            elif len(kte) == 1:
+                pass
+            else:
+                msg = "len(kte) != 1:\n\t- kte = {}".format(kte)
+                raise Exception(msg)
         dout[k0]['keyte'] = keyte
 
         # fill dne
@@ -101,26 +198,52 @@ def _format_for_DataCollection_adf15(dout):
             kk for kk, vv in dne.items()
             if np.allclose(v0['ne'], vv['data'])
         ]
-        if len(kne) == 0:
-            keyne = 'ne-{:02}'.format(ine)
-            sour = [
-                k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
-            ][0]
-            dne[keyne] = {
-                'data': v0['ne'],
-                'units': v0['ne_units'],
-                'source': sour,
-                'dim': 'density',
-                'quant': 'ne',
-                'name': 'ne',
-                'group': 'ne',
-            }
-            ine += 1
-        elif len(kne) == 1:
-            pass
-        else:
-            msg = "len(kne) != 1:\n\t- kne = {}".format(kne)
-            raise Exception(msg)
+        normal = dref0 is None
+        if normal is False:
+            # Check vs existing ne
+            lk0 = [
+                k1 for k1, v1 in dref0.items()
+                if ddata0[k1]['source'] == sour
+                and np.allclose(v0['ne'], ddata0[k1]['data'])
+            ]
+            if len(lk0) == 0:
+                normal = True
+            elif len(lk0) == 1:
+                keyne = lk0[0]
+                dne[keyne] = {
+                    'data': ddata0[k1]['data'],
+                    'units': v0['ne_units'],
+                    'source': sour,
+                    'dim': 'density',
+                    'quant': 'ne',
+                    'name': 'ne',
+                    'group': 'ne',
+                }
+            elif len(lk0) > 1:
+                msg = (
+                    "Multiple matches for dout[{}] in dref0:\n".format(k0)
+                    + "\t- {}".format(lk0)
+                )
+                raise Exception(msg)
+
+        if normal is True:
+            if len(kne) == 0:
+                keyne = 'ne-{:02}'.format(ine)
+                dne[keyne] = {
+                    'data': v0['ne'],
+                    'units': v0['ne_units'],
+                    'source': sour,
+                    'dim': 'density',
+                    'quant': 'ne',
+                    'name': 'ne',
+                    'group': 'ne',
+                }
+                ine += 1
+            elif len(kne) == 1:
+                pass
+            else:
+                msg = "len(kne) != 1:\n\t- kne = {}".format(kne)
+                raise Exception(msg)
         dout[k0]['keyne'] = keyne
 
     # Get dict of pec
@@ -156,6 +279,9 @@ def _format_for_DataCollection_adf15(dout):
         }
         for k0 in lk0
     }
+
+    # Get dict of unique ions
+    lion = sorted(set([v0['ion'] for v0 in dout.values()]))
 
     return dne, dte, dpec, lion, dsource, dlines
 
@@ -236,6 +362,10 @@ def step03_read_all(
     element=None, charge=None, typ1=None, typ2=None,
     pec_as_func=None,
     format_for_DataCollection=None,
+    dsource0=None,
+    dref0=None,
+    ddata0=None,
+    dlines0=None,
     verb=None, **kwdargs,
 ):
     """ Read all relevant openadas files for chosen typ1
@@ -358,7 +488,13 @@ def step03_read_all(
         dout = func(pfe, dout=dout, **kwdargs)
 
     if typ1 == 'adf15' and format_for_DataCollection is True:
-        return _format_for_DataCollection_adf15(dout)
+        return _format_for_DataCollection_adf15(
+            dout,
+            dsource0=dsource0,
+            dref0=dref0,
+            ddata0=ddata0,
+            dlines0=dlines0,
+        )
     else:
         return dout
 
@@ -524,8 +660,7 @@ def _read_adf11(pfe, deg=None, dout=None):
 
 
 def _get_adf15_key(elem, charge, isoel, typ0, typ1):
-    return '{}{}_{}_openadas_{}_{}'.format(elem, charge, isoel,
-                                           typ0, typ1)
+    return '{}{}_{}_oa_{}_{}'.format(elem, charge, isoel, typ0, typ1)
 
 
 def _read_adf15(
@@ -635,7 +770,7 @@ def _read_adf15(
                 if ind == pec.size:
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
-                    # PEC rehaping and conversion to cm3/s -> m3/s
+                    # PEC reshaping and conversion to cm3/s -> m3/s
                     pec = pec.reshape((nne, nte)) * 1e-6
                     # log(ne)+6 to convert /cm3 -> /m3
                     ne = ne*1e6

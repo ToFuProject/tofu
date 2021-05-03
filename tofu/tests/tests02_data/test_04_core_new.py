@@ -439,12 +439,17 @@ class Test02_SpectralLines(object):
         pass
 
     def test01_add_from_openadas(self):
+        lines = self.sl.dobj['lines']
         self.sl.add_from_openadas(
             lambmin=3.90e-10,
             lambmax=3.96e-10,
             element='Ar',
         )
+        assert all([k0 in self.sl.dobj['lines'].keys() for k0 in lines.keys()])
 
-    def test02_convert_lines(self):
+    def test02_sortby(self):
+        self.sl.sortby(param='lambda0', which='lines')
+        self.sl.sortby(param='ion', which='lines')
+
+    def test03_convert_lines(self):
         self.sl.convert_lines(units='Hz')
-
