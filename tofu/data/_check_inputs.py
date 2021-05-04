@@ -9,7 +9,6 @@ import numpy as np
 from matplotlib.tri import Triangulation as mplTri
 
 
-
 _DRESERVED_KEYS = {
     'dgroup': ['lref', 'ldata'],
     'dref': ['ldata', 'group', 'size', 'ind'],
@@ -31,7 +30,9 @@ _DDEF_PARAMS = {
     },
 }
 
+
 _DATA_NONE = False
+
 
 # #############################################################################
 # #############################################################################
@@ -137,12 +138,12 @@ def _check_remove(key=None, dkey=None, name=None):
     c0 = isinstance(key, str) and key in dkey.keys()
     c1 = (
         isinstance(key, list)
-        and all([isinstance(kk, str) and kk in dkey.keys()])
+        and all([isinstance(kk, str) and kk in dkey.keys() for kk in key])
     )
-    if not c0:
+    if not (c0 or c1):
         msg = (
             """
-            Removed {} must be a str already in self.d{}
+            Removed param must be a str already in self.d{}
             It can also be a list of such
             \t- provided: {}
             \t- already available: {}
@@ -253,6 +254,109 @@ def _remove_ref(
     )
 
 
+def _remove_ref_static(
+    key=None,
+    which=None,
+    propagate=None,
+    dref_static0=None,
+    ddata0=None,
+    dobj0=None,
+):
+    """ Remove a static ref (or list) or a whole category
+
+    key os provided:
+        => remove only the desired key(s)
+            works only if key is not used in ddata and dobj
+
+    which is provided:
+        => treated as param, the whole category of ref_static is removed
+            if propagate, the parameter is removed from ddata and dobj
+    """
+
+    lc = [
+        key is not None,
+        which is not None,
+    ]
+    if np.sum(lc) != 1:
+        msg = "Please provide either key xor which!"
+        raise Exception(msg)
+
+    if key is not None:
+        if isinstance(key, str):
+            key = [key]
+
+        lk0 = [
+            k0 for k0, v0 in dref_static0.items()
+            if all([kk in v0.keys() for kk in key])
+        ]
+        if len(lk0) != 1:
+            msg = (
+                "No / several matches for '{}' in ref_static:\n".format(key)
+                + "\n".join([
+                    "\t- dref_static[{}][{}]".format(k0, key) for k0 in lk0
+                ])
+            )
+            raise Exception(msg)
+        k0 = lk0[0]
+        key = _check_remove(
+            key=key,
+            dkey=dref_static0[k0],
+            name='ref_static[{}]'.format(k0),
+        )
+
+        # Make sure key is not used (condition for removing)
+        for kk in key:
+            lk1 = [
+                k1 for k1, v1 in ddata0.items()
+                if kk == v1.get(k0)
+            ]
+            lk2 = [
+                k1 for k1, v1 in dobj0.items()
+                if any([kk == v2.get(k0) for v2 in v1.values()])
+            ]
+            if len(lk1) > 0 or len(lk2) >0:
+                msg = (
+                    "Provided ref_static key ({}) is used in:\n".format(kk)
+                    + "\n".join(
+                        ["\t- self.ddata['{}']".format(k1) for k1 in lk1]
+                        + [
+                            "\t- self.dobj['{}']['{}']".format(k2, k0)
+                            for k2 in lk2
+                        ]
+                    )
+                )
+                raise Exception(msg)
+            del dref_static0[k0][kk]
+
+    elif which is not None:
+        if which not in dref_static0.keys():
+            msg = (
+                "Provided which not in dref_static.keys():\n"
+                + "\t- Available: {}\n".format(sorted(dref_static0.keys()))
+                + "\t- Provided: {}".format(which)
+            )
+            raise Exception(msg)
+        del dref_static0[which]
+
+        # Propagate (delete as partam in ddata and dobj)
+        if propagate is None:
+            propagate = True
+
+        if propagate is True:
+            # ddata
+            if which in list(ddata0.values())[0].keys():
+                _remove_param(dd=ddata0, dd_name='ddata', param=which)
+
+            # dobj0
+            for k0 in dobj0.keys():
+                if which in list(dobj0[k0].values())[0].keys():
+                    _remove_param(
+                        dd=dobj0[k0],
+                        dd_name="ddobj['{}']".format(k0),
+                        param=which,
+                    )
+
+
 def _remove_data(
     key=None,
     dgroup0=None, dref0=None, ddata0=None,
@@ -305,6 +409,87 @@ def _remove_data(
         data_none=data_none,
         max_ndim=max_ndim,
     )
+
+
+def _remove_obj(
+    key=None,
+    which=None,
+    dobj0=None,
+    ddata0=None,
+    dref0=None,
+    dref_static0=None,
+    dgroup0=None,
+    allowed_groups=None,
+    reserved_keys=None,
+    ddefparams_data=None,
+    ddefparams_obj=None,
+    data_none=None,
+    max_ndim=None,
+):
+
+    # ------------
+    # Check inputs
+
+    lc = [
+        key is not None,
+        which is not None,
+    ]
+    if np.sum(lc) != 1:
+        msg = "Please provide either key xor which!"
+        raise Exception(msg)
+
+    if key is not None:
+        # key => delete list of obj
+        if isinstance(key, str):
+            key = [key]
+
+        lk0 = [
+            k0 for k0, v0 in dobj0.items()
+            if all([kk in v0.keys() for kk in key])
+        ]
+        if len(lk0) != 1:
+            msg = (
+                "No / several matches for '{}' in dobj:\n".format(key)
+                + "\n".join([
+                    "\t- dobj[{}][{}]".format(k0, key) for k0 in lk0
+                ])
+            )
+            raise Exception(msg)
+        k0 = lk0[0]
+        key = _check_remove(
+            key=key,
+            dkey=dobj0[k0],
+            name='dobj[{}]'.format(k0),
+        )
+        for kk in key:
+            del dobj0[k0][kk]
+
+    elif which is not None:
+        if which not in dobj0.keys():
+           msg = (
+               "Provided which is not a valid self.dobj.keys()!\n"
+               + "\t- provided: {}\n".format(which)
+               + "\t- available: {}\n".format(sorted(dobj0.keys()))
+           )
+           raise Exception(msg)
+
+        del dobj0[which]
+
+    return _consistency(
+        ddata=None, ddata0=ddata0,
+        dref=None, dref0=dref0,
+        dref_static=None, dref_static0=dref_static0,
+        dobj=None, dobj0=dobj0,
+        dgroup=None, dgroup0=dgroup0,
+        allowed_groups=allowed_groups,
+        reserved_keys=reserved_keys,
+        ddefparams_data=ddefparams_data,
+        ddefparams_obj=ddefparams_obj,
+        data_none=data_none,
+        max_ndim=max_ndim,
+    )
+
+
 
 # #############################################################################
 # #############################################################################
@@ -2141,7 +2326,7 @@ def _remove_param(dd=None, dd_name=None, param=None):
 
     c0 = isinstance(param, str) and param in lp
     if not c0:
-        msg = ()
+        msg = "Param {} is not a parameter of {}!".format(param, dd_name)
         raise Exception(msg)
 
     # Remove

@@ -206,7 +206,7 @@ class DataCollection(utils.ToFuObject):
 
     # TBF
     def add_ref_static(self, key=None, which=None, **kwdargs):
-        dref_static = {which: {key: **kwdargs}}
+        dref_static = {which: {key: kwdargs}}
         # Check consistency
         self.update(ddata=None, dref=None, dref_static=dref_static, dgroup=None)
 
@@ -232,6 +232,11 @@ class DataCollection(utils.ToFuObject):
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
                     dref_static0=self._dref_static,
                     dobj0=self._dobj,
+                    allowed_groups=self._allowed_groups,
+                    reserved_keys=self._reserved_keys,
+                    ddefparams_data=self._ddef['params']['ddata'],
+                    ddefparams_obj=self._ddef['params']['dobj'],
+                    data_none=self._data_none,
                     max_ndim=self._max_ndim,
                 )
 
@@ -244,17 +249,32 @@ class DataCollection(utils.ToFuObject):
                     dref_static0=self._dref_static,
                     dobj0=self._dobj,
                     propagate=propagate,
+                    allowed_groups=self._allowed_groups,
+                    reserved_keys=self._reserved_keys,
+                    ddefparams_data=self._ddef['params']['ddata'],
+                    ddefparams_obj=self._ddef['params']['dobj'],
+                    data_none=self._data_none,
                     max_ndim=self._max_ndim,
                 )
 
-    # TBF
     def remove_ref_static(self, key=None, which=None, propagate=None):
-        """ Remove a ref (or list of refs) and all associated data """
-        self._dref_static, self._ddata = _check_inputs._remove_ref_static(
+        """ Remove a static ref (or list) or a whole category
+
+        key os provided:
+            => remove only the desired key(s)
+                works only if key is not used in ddata and dobj
+
+        which is provided:
+            => treated as param, the whole category of ref_static is removed
+                if propagate, the parameter is removed from ddata and dobj
+        """
+        _check_inputs._remove_ref_static(
             key=key,
-            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
+            which=which,
             propagate=propagate,
-            max_ndim=self._max_ndim,
+            dref_static0=self._dref_static,
+            ddata0=self._ddata,
+            dobj0=self._dobj,
         )
 
     def remove_data(self, key=None, propagate=True):
@@ -266,18 +286,32 @@ class DataCollection(utils.ToFuObject):
                     dref_static0=self._dref_static,
                     dobj0=self._dobj,
                     propagate=propagate,
+                    allowed_groups=self._allowed_groups,
+                    reserved_keys=self._reserved_keys,
+                    ddefparams_data=self._ddef['params']['ddata'],
+                    ddefparams_obj=self._ddef['params']['dobj'],
+                    data_none=self._data_none,
                     max_ndim=self._max_ndim,
                 )
 
-    # TBF
     def remove_obj(self, key=None, which=None, propagate=True):
         """ Remove a data (or list of data) """
-        self._dobj = _check_inputs._remove_obj(
-            key=key,
-            dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-            propagate=propagate,
-            max_ndim=self._max_ndim,
-        )
+        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+                _check_inputs._remove_obj(
+                    key=key,
+                    which=which,
+                    dobj0=self._dobj,
+                    ddata0=self._ddata,
+                    dgroup0=self._dgroup,
+                    dref0=self._dref,
+                    dref_static0=self._dref_static,
+                    allowed_groups=self._allowed_groups,
+                    reserved_keys=self._reserved_keys,
+                    ddefparams_data=self._ddef['params']['ddata'],
+                    ddefparams_obj=self._ddef['params']['dobj'],
+                    data_none=self._data_none,
+                    max_ndim=self._max_ndim,
+                )
 
     # ---------------------
     # Get / set / add / remove params
