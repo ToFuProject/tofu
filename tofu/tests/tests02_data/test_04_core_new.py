@@ -472,3 +472,8 @@ class Test02_SpectralLines(object):
 
     def test03_convert_lines(self):
         self.sl.convert_lines(units='Hz')
+
+    def test04_plot(self):
+        ax = self.sl.plot()
+        plt.close('all')
+

@@ -978,6 +978,69 @@ class DataCollection(utils.ToFuObject):
                                        draw=draw, legend=legend,
                                        connect=connect, lib=lib)
 
+
+    def _plot_axvlines(
+        self,
+        which=None,
+        key=None,
+        ind=None,
+        param_x=None,
+        param_txt=None,
+        sortby=None,
+        sortby_def=None,
+        sortby_lok=None,
+        ax=None,
+        ymin=None,
+        ymax=None,
+        ls=None,
+        lw=None,
+        fontsize=None,
+        side=None,
+        dcolor=None,
+        fraction=None,
+        figsize=None,
+        dmargin=None,
+        wintit=None,
+        tit=None,
+    ):
+        """ plot rest wavelengths as vertical lines """
+
+        # Check inputs
+        which, dd = self.__check_which(
+            which=which, return_dict=True,
+        )
+        key = self._ind_tofrom_key(which=which, key=key, ind=ind, returnas=str)
+
+        if sortby is None:
+            sortby = sortby_def
+        if sortby not in sortby_lok:
+            msg = (
+                """
+                For plotting, sorting can be done only by:
+                {}
+
+                You provided:
+                {}
+                """.format(sortby_lok, sortby)
+            )
+            raise Exception(msg)
+
+        return _plot_new.plot_axvline(
+            din=dd,
+            key=key,
+            param_x='lambda0',
+            param_txt='symbol',
+            sortby=sortby,
+            ax=ax, ymin=ymin, ymax=ymax,
+            ls=ls, lw=lw, fontsize=fontsize,
+            side=side, dcolor=dcolor, fraction=fraction,
+            figsize=figsize, dmargin=dmargin,
+            wintit=wintit, tit=tit,
+        )
+
+
+
+
     # ---------------------
     # saving => get rid of function
     # ---------------------

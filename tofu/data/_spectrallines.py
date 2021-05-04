@@ -5,7 +5,6 @@ import numpy as np
 
 from ._core_new import DataCollection
 from . import _comp_spectrallines
-from . import _plot_spectrallines
 
 
 __all__ = ['SpectralLines', 'TimeTraces']
@@ -303,6 +302,7 @@ class SpectralLines(DataCollection):
         ind=None,
         ax=None,
         sortby=None,
+        param_txt=None,
         ymin=None,
         ymax=None,
         ls=None,
@@ -317,24 +317,17 @@ class SpectralLines(DataCollection):
         tit=None,
     ):
         """ plot rest wavelengths as vertical lines """
+        if param_txt is None:
+            param_txt = 'symbol'
 
-        key = self._ind_tofrom_key(key=key, ind=ind, returnas=str)
-        if sortby is None:
-            sortby = 'ion'
-        lok = ['ion', 'element']
-        if sortby not in lok:
-            msg = (
-                """
-                For plotting, sorting can be done only by:
-                {}
-
-                You provided:
-                {}
-                """.format(lok, param)
-            )
-            raise Exception(msg)
-        return _plot_spectrallines.plot_axvline(
-            dlines=self._dobj['lines'], key=key, sortby=sortby,
+        return super()._plot_axvlines(
+            which='lines',
+            key=key,
+            param_x='lambda0',
+            param_txt=param_txt,
+            sortby=sortby,
+            sortby_def='ion',
+            sortby_lok=['ion', 'source'],
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
             side=side, dcolor=dcolor, fraction=fraction,
