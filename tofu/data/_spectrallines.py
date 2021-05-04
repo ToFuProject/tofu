@@ -334,11 +334,11 @@ class SpectralLines(DataCollection):
             )
             raise Exception(msg)
         return _plot_spectrallines.plot_axvline(
-            ddata=self._ddata, key=key, sortby=sortby,
+            dlines=self._dobj['lines'], key=key, sortby=sortby,
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
             side=side, dcolor=dcolor, fraction=fraction,
-            figsize=figsize, dmargin=dnargin,
+            figsize=figsize, dmargin=dmargin,
             wintit=wintit, tit=tit,
         )
 

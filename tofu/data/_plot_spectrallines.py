@@ -109,7 +109,7 @@ def _ax_axvline(
 
 
 def plot_axvline(
-    ddata=None, key=None, sortby=None,
+    dlines=None, key=None, sortby=None,
     ax=None, ymin=None, ymax=None,
     ls=None, lw=None, fontsize=None,
     side=None, dcolor=None,
@@ -128,7 +128,7 @@ def plot_axvline(
     )
 
     # Prepare data
-    unique = sorted(set([ddata[k0][sortby] for k0 in key]))
+    unique = sorted(set([dlines[k0][sortby] for k0 in key]))
     ny = len(unique)
     dy = (ymax-ymin)/ny
     ly = [(ymin+ii*dy, ymin+(ii+1)*dy) for ii in range(ny)]
@@ -140,7 +140,7 @@ def plot_axvline(
         dcolor = {uu: lcol[ii%len(lcol)] for ii, uu in enumerate(unique)}
 
     # plot preparation
-    lamb = [ddata[k0]['lambda0'] for k0 in key]
+    lamb = [dlines[k0]['lambda0'] for k0 in key]
     Dlamb = np.nanmax(lamb) - np.nanmin(lamb)
     xlim = [np.nanmin(lamb) - 0.05*Dlamb, np.nanmax(lamb) + 0.05*Dlamb]
     ax = _ax_axvline(
@@ -155,10 +155,10 @@ def plot_axvline(
 
     # plot
     for ii, uu in enumerate(unique):
-        lk = [k0 for k0 in key if ddata[k0][sortby] == uu]
+        lk = [k0 for k0 in key if dlines[k0][sortby] == uu]
         for k0 in lk:
             l = ax.axvline(
-                x=ddata[k0]['lambda0'],
+                x=dlines[k0]['lambda0'],
                 ymin=ly[ii][0],
                 ymax=ly[ii][0] + fraction*dy,
                 c=dcolor[uu],
@@ -166,9 +166,9 @@ def plot_axvline(
                 lw=lw,
             )
             ax.text(
-                ddata[k0]['lambda0'],
+                dlines[k0]['lambda0'],
                 ly[ii][1],
-                ddata[k0]['symbol'],
+                dlines[k0]['symbol'],
                 color=dcolor[uu],
                 horizontalalignment='center',
                 verticalalignment='top',
