@@ -44,6 +44,7 @@ _RETURN_COPY = False
 ###############################################################################
                         Ves class and functions
 ###############################################################################
+###############################################################################
 """
 
 
@@ -256,7 +257,6 @@ class CrystalBragg(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    ##### wrote the right path to _check_optics.py
     def set_dgeom(self, dgeom=None):
         self._dgeom = _check_optics._checkformat_dgeom(
             dgeom=dgeom, ddef=self._ddef['dgeom'],
@@ -271,13 +271,14 @@ class CrystalBragg(utils.ToFuObject):
 
     def set_dmat(self, dmat=None):
         self._dmat = _check_optics._checkformat_dmat(
-            dmat=dmat, ddef=self._ddef['dmat'],
+            dmat=dmat, dgeom=self._dgeom,
+            ddef=self._ddef['dmat'],
             valid_keys=self._get_keys_dmat()
         )
 
     def set_dbragg(self, dbragg=None):
         self._dbragg = _check_optics._checkformat_dbragg(
-            dbragg,
+            dbragg=dbragg,
             ddef=self._ddef['dbragg'],
             valid_keys=self._get_keys_dbragg(),
             dmat=self._dmat,
@@ -780,8 +781,6 @@ class CrystalBragg(utils.ToFuObject):
     # methods for surface and contour sampling
     # -----------------
 
-    # calling dmat for unit vectors because in _check_optics.py, we compute them in 
-    # order to obtain the same in dgeom if alpha and beta are zero.
     def sample_outline_plot(self, res=None):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
@@ -917,13 +916,12 @@ class CrystalBragg(utils.ToFuObject):
         )
         assert phi.ndim == 1
 
-        # Compute
-        # calling dmat for unit vectors because in _check_optics.py, we compute them in 
-        # order to obtain the same in dgeom if alpha and beta are zero.
+        # choice of basis
         nout, e1, e2 = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism
         )
 
+        # Compute
         func = _comp_optics.CrystBragg_sample_outline_Rays
         D, us = func(self._dgeom['center'],
                      nout, e1, e2,
@@ -1085,7 +1083,7 @@ class CrystalBragg(utils.ToFuObject):
             bragg = self._dbragg['braggref']
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
-    # TBF
+
     def get_detector_approx(self, bragg=None, lamb=None,
                             rcurve=None, n=None,
                             ddist=None, di=None, dj=None,
@@ -1183,7 +1181,6 @@ class CrystalBragg(utils.ToFuObject):
                 )
             raise Exception(msg)
 
-        # TBF (check inside the functions)
         # Compute crystal-centered parameters in (nout, e1, e2)
         (det_dist, n_crystdet_rel,
          det_nout_rel, det_ei_rel) = _comp_optics.get_approx_detector_rel(
@@ -1194,8 +1191,7 @@ class CrystalBragg(utils.ToFuObject):
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
             det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
-            self._dgeom['summit'],
-            nout, e1, e2,
+            self._dgeom['summit'],nout, e1, e2,
             ddist=ddist, di=di, dj=dj,
             dtheta=dtheta, dpsi=dpsi, tilt=tilt)
 
@@ -1247,18 +1243,18 @@ class CrystalBragg(utils.ToFuObject):
                 det[k0] = np.atleast_1d(det[k0]).ravel()
         return det
 
-    # TBF
     def get_local_noute1e2(self, dtheta, psi, use_non_parallelism=None):
         """ Return (nout, e1, e2) associated to pts on the crystal's surface
 
         All points on the spherical crystal's surface are identified
             by (dtheta, psi) coordinates, where:
                 - theta  = np.pi/2 + dtheta (dtheta=0 by default) for the center
+                (for the diffracted beam)
                 - psi = 0 for the center
             They are the spherical coordinates from a sphere centered on the
             crystal's center of curvature.
 
-        Return the pts themselves and the 3 perpendicular unti vectors
+        Return the pts themselves and the 3 perpendicular unit vectors
             (nout, e1, e2), where nout is towards the outside of the sphere and
             nout = np.cross(e1, e2)
 
@@ -1289,16 +1285,13 @@ class CrystalBragg(utils.ToFuObject):
             use_non_parallelism=use_non_parallelism,
         )
 
-        # TBF
         if nmax == 1 and np.allclose([dtheta, psi], [0., 0.]):
             summ = self._dgeom['summit']
-            nout = self._dmat['nout']
-            e1, e2 = self._dmat['e1'], self._dmat['e2']
+            nout = nout 
+            e1, e2 = e1, e2 
         else:
             func = _comp_optics.CrystBragg_get_noute1e2_from_psitheta
-            nout, e1, e2 = func(self._dmat['nout'],
-                                self._dmat['e1'], self._dmat['e2'],
-                                psi, dtheta)
+            nout, e1, e2 = func(nout, e1, e2, psi, dtheta)
             if nout.ndim == 2:
                 cent = self._dgeom['center'][:, None]
             elif nout.ndim == 3:
@@ -1622,7 +1615,8 @@ class CrystalBragg(utils.ToFuObject):
             ndtheta = 10
 
         # Compute dtheta, psi, indnan
-        dtheta, psi, indnan, indout = _comp_optics.calc_dthetapsiphi_from_lambpts(
+        (dtheta, psi,
+         indnan, indout) = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts, self._dgeom['center'], self._dgeom['rcurve'],
             bragg, nlamb, npts,
             self._dmat['nout'], self._dmat['e1'], self._dmat['e2'],
@@ -1642,8 +1636,9 @@ class CrystalBragg(utils.ToFuObject):
                                      xi_bounds=None, xj_bounds=None, nphi=None,
                                      det=None, n=None, ndtheta=None,
                                      johann=False, lpsi=None, ldtheta=None,
-                                     rocking=False, plot=None, fs=None, dmargin=None,
-                                     wintit=None, tit=None, proj=None,
+                                     rocking=False, plot=None, fs=None,
+                                     dmargin=None, wintit=None,
+                                     tit=None, proj=None,
                                      legend=None, draw=None, returnas=None):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
 
@@ -1707,7 +1702,6 @@ class CrystalBragg(utils.ToFuObject):
             if returnas == 'ax':
                 return ax
         return xi, xj
-
 
     def _calc_spect1d_from_data2d(self, data, lamb, phi,
                                   nlambfit=None, nphifit=None,
