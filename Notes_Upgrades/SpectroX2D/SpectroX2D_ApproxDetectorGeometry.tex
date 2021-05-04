@@ -1,0 +1,136 @@
+\documentclass[a4paper,11pt,twoside,openright]{article}
+
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage[margin=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{epsfig,amsfonts}
+\usepackage{xcolor,import}
+
+\usepackage{subcaption}
+\usepackage{amsmath,amssymb}  % Better maths support & more symbols
+\usepackage{textcomp} % provide lots of new symbols\usepackage{natbib}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{array,multirow,makecell}
+\usepackage{gensymb}
+\setcellgapes{1pt}
+\makegapedcells
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash }b{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash }b{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash }b{#1}}
+\usepackage{geometry}
+\geometry{hmargin=1.5cm,vmargin=2cm}
+
+\pagestyle{plain}
+
+\newcommand{\ud}[1]{\underline{#1}}
+\newcommand{\e}[1]{\underline{e}_{#1}}
+\newcommand{\lt}{\left}
+\newcommand{\rt}{\right}
+\DeclareMathOperator{\n}{\underline{n}}
+\DeclareMathOperator{\ei}{\underline{e}_1}
+\DeclareMathOperator{\et}{\underline{e}_2}
+\DeclareMathOperator{\ex}{\underline{e}_x}
+\DeclareMathOperator{\ey}{\underline{e}_y}
+\DeclareMathOperator{\ez}{\underline{e}_z}
+\DeclareMathOperator{\nin}{\underline{n}_{in}}
+\DeclareMathOperator{\nout}{\underline{n}_{out}}
+\DeclareMathOperator{\np}{\underline{n}_{P}}
+\DeclareMathOperator{\bragg}{\theta_{bragg}}
+\DeclareMathOperator{\DD}{\cos(\theta)^2 - \sin(\psi)^2}
+\newcommand{\wdg}{\wedge}
+\newcommand{\hypot}[1]{\textbf{\textcolor{green}{#1}}}
+
+
+\begin{document}
+
+\title{ToFu geometric tools \\ Non-parallelism consequences on diffracted rays and the detector's position}
+\author{Adrien Da Ros}
+\date{04/05/2021}
+\maketitle
+
+\tableofcontents
+\newpage
+\section{Consequences on diffracted rays}
+In \textit{SpectroX2D-UnitVectors}, we summarized the trigonometrical solution we found to compute the new basis ($n_{out}$, $e_{1}$, $e_{2}$) when the crystal mesh and the dioptre are not parallel. Then, we need to correct the approximate detector geometry. \\
+Originally, in the ToFu code, some modules can return the position and orientation of a detector if it is placed ideally on the Rowland circle, centered on the desired Bragg angle (in rad) or wavelength (in m). The detector can be tangential to the Rowland circle or perpendicular to the direct line between the crystal and it. These configurations are shown Fig.\ref{fig:rowland} with a tangential position of the detector and the main parameters needed to the computation.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{get_detector_approx.PNG}
+    \caption{Configuration describing detector and crystal's places on Rowland sphere and tangent. we placed the detector tangent to the Rowland sphere.}
+    \label{fig:rowland}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{montage_source_cristal_det_rotation_cristal.PNG}
+    \caption{Geometry of a Johann spectrometer with a spherical bent crystal. Are shown the source point and random diffraction point at the mesh crystal and at the detector, also the incident photon vector $\overrightarrow{S}$ and the diffracted one $\overrightarrow{K}$. $O_{C}$ represents the center of curvature of the crystal at its original configuration, tangential to the Rowland sphere, and $O'_{C}$ the new, caused by the non-parallelism between mesh and dioptre.}
+    \label{fig:diffracted}
+\end{figure}\\
+In Fig.\ref{fig:diffracted},  we have shown the directions of propagation of the photon before and after being diffracted by the Bragg crystal. The source point is described as located at ($x_{0}$, $y_{0}$, $z_{0}$). The photon emission vector is represented by $\overrightarrow{S}$ and cut the crystal plane at the coordinates ($x_{k}$, $y_{k}$, $z_{k}$). Then, the diffracted photon vector will impact the detector at ($x_{D}$, $y_{D}$, $z_{D}$).
+Because of $\alpha$ and $\beta$ are non-null, axes describing the mesh can be transformed quite radically from the old basis, which means the diffraction point at the crystal mesh should be now written:
+$$
+\lt\{
+	\begin{array}{ll}
+		x_{k} & = x_{0} + S_{x}.t + \Delta x_{k} \\
+		y_{k} & = y_{0} + S_{y}.t + \Delta y_{k} \\
+		z_{k} & = z_{0} + S_{z}.t + \Delta z_{k} \\
+		R_{C}^{2} & = (x_{k}-x_{c}-\Delta  x_{c})^{2} + (y_{k}-y_{c}-\Delta  y_{c})^{2} + (z_{k}-z_{c}-\Delta  z_{c})^{2}\\
+	\end{array}
+\rt.
+$$
+wit a $\Delta$ of position induced by the $\alpha$ and $\beta$ consequences on the crystal mesh. The latest relation establish the equation of the spherical bend, verifying the new center of curvature. It's appropriate to remind that the Rowland circle can be also established with a curvature radius \textit{$r_{curve}$}, a specific point S (summit of the crystal) and a tangential vector, here by $\ei$.
+There is the coordinates of the Rowland's circle center of the mesh, which could be written now as:
+$$
+\lt\{
+	\begin{array}{ll}
+		O_{c} & = (x_{c}, y_{c}, z_{c}) \\
+		O'_{c} & = (x_{c}+\Delta  x_{c}, y_{c}+\Delta  y_{c}, z_{c}+\Delta  z_{c}) \\
+	\end{array}
+\rt.
+$$
+Then, the coordinates on the detector can be expressed now by:
+$$
+\lt\{
+	\begin{array}{ll}
+		x_{D} & = x_{k} + K_{x}.t = x_{0} + S_{x}.t + \Delta x_{k} + K_{x}.t \\
+		y_{D} & = y_{k} + K_{y}.t = y_{0} + S_{y}.t + \Delta y_{k} + K_{y}.t \\
+		z_{D} & = z_{k} + K_{z}.t = z_{0} + S_{z}.t + \Delta z_{k} + K_{z}.t \\
+		0 & = (\gamma +\Delta \gamma)x_{D} + (\phi +\Delta \phi)y_{D} + (\psi +\Delta \psi)z_{D} + (\Omega +\Delta \Omega)\\
+	\end{array}
+\rt.
+$$
+where $\gamma$, $\phi$, $\psi$, $\Omega$ the parameters describing the location of the detector surface on the Rowland circle for a specific Bragg angle. \\
+In this two-dimensional representation, only the effect of the $\alpha$ angle is presented and it implies that the detector location has to be reviewed in the vertical plane in order to adjust it in relation to the the Bragg angle at the crystal mesh.\\
+
+\section{Relative position of the detector}
+The purpose here is now to define how much it will affect the original position of the detector on the Rowland circle. 
+To do that, let's take from Vezinet et al. (2020) the properties of the first crystal of Ar XVII: thickness = 197 $\mu$m, inter-planar distance d = 2,454 ang, dimensions (mm.mm) : (2x40)x100.
+First, we can deduce a approximate number of layers into the crystal, as almost $8.10^{5}$. Second, we can compute the distance of a point placed at the edge of the crystal when it's rotated of 3 arc-min.\\
+The circle arc relation is : $x = \frac{2\pi}{360}.L.\theta$. With L= 40 mm and $\theta$= 3' = 0.048°, $x = 33 \mum$, almost 6 times thinner than the crystal's thickness. \\
+We can then deduce that the relative position of the detector will not be much affected by the non-parallelism that lies in the crystal. A first approximation is made at this point in order to valid a first position of the detector.\\
+But, the center of the Rowland sphere where lies the positions of both the detector and the crystal, still has been changed and not to be neglected. \\
+The aim now will be to work on the absolute position of the detector according the whole diagnostic basis, from the relative one deduced earlier.
+
+\section{Absolute position of the detector}
+
+We have defined and constrain the angle \textit{bragg} in the code to be the angle between the incident photon vector and the crystal mesh. So into the module \textit{compt optics}, we have a new position of the detector relatively to the crystal thanks to the method \textit{get detector approx rel}. 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{transfo_dmat_dgeom_absolute_location_det.PNG}
+    \caption{Sketch of different photon vectors around the crystal. In green, incident and diffracted vectors at angle $\bragg$ due to non-parallelism, in blue the diffracted vector with a different angle $\bragg$ due to basis transformation.}
+    \label{fig:new_vector}
+\end{figure}
+
+Even if the rate of non-parallelism cannot be large enough to cause a shift in the position of the detector up to a few centimeters, we now have the ideal position of the detector according crystal's defaults.
+
+
+
+
+
+
+
+\end{document}
