@@ -351,9 +351,6 @@ def step03_read(
                + "\t- supported: {}".format(sorted(_DTYPES.keys())))
         raise Exception(msg)
 
-    if typ1 == 'adf15':
-        kwdargs['pec_as_func'] = pec_as_func
-
     func = eval('_read_{}'.format(lc[0]))
     return func(pfe, **kwdargs)
 
@@ -437,14 +434,37 @@ def step03_read_all(
                + "\t- available for {}: {}".format(typ1, _DTYPES[typ1]))
         raise Exception(msg)
 
-    if not isinstance(element, str):
+    # element
+    c0 = (
+        isinstance(element, str)
+        or (
+            isinstance(element, list)
+            and all([isinstance(ee, str) for ee in element])
+        )
+    )
+    if not c0:
         msg = "Please choose an element!"
         raise Exception(msg)
-    element = element.lower()
-    if charge is not None and not isinstance(charge, int):
-        msg = "charge must be a int!"
-        raise Exception(msg)
+    if isinstance(element, str):
+        element = [element]
+    element = [ee.lower() for ee in element]
 
+    # charge
+    if charge is not None:
+        c0 = (
+            isinstance(charge, int)
+            or (
+                isinstance(charge, list)
+                and all([isinstance(cc, int) for cc in charge])
+            )
+        )
+        if not c0:
+            msg = ("Arg charge must be a int oif list (e.g.: charge=16 or [0])\n"
+                   + "\t- provided: {}".format(charge))
+            raise Exception(msg)
+        if isinstance(charge, int):
+            charge = [charge]
+        charge = ['{}.dat'.format(cc) for cc in charge]
 
     if format_for_DataCollection is None:
         format_for_DataCollection = False
@@ -461,21 +481,26 @@ def step03_read_all(
     if typ1 == 'adf11':
         lpath = [_get_subdir_from_pattern(path, tt) for tt in typ2]
     elif typ1 == 'adf15':
-        lpath = [_get_subdir_from_pattern(path, element)]
+        lpath = [
+            _get_subdir_from_pattern(path, ee) for ee in element
+        ]
 
     # --------------------
     # Get list of relevant files pfe
-    lpfe = list(itt.chain.from_iterable(
-        [[os.path.join(path, ff) for ff in os.listdir(path)
-          if (os.path.isfile(os.path.join(path, ff))
-              and ff[-4:] == '.dat'
-              and element in ff)]
-         for path in lpath]))
+    lpfe = list(itt.chain.from_iterable([[
+        os.path.join(path, ff) for ff in os.listdir(path)
+        if (
+            os.path.isfile(os.path.join(path, ff))
+            and ff[-4:] == '.dat'
+            and any(['][{}'.format(ee) in ff for ee in element])
+        )]
+        for path in lpath
+    ]))
 
     if typ1 == 'adf15':
         kwdargs['pec_as_func'] = pec_as_func
         if charge is not None:
-            lpfe = [ff for ff in lpfe if str(charge) in ff]
+            lpfe = [ff for ff in lpfe if any([cc in ff for cc in charge])]
 
     # --------------------
     # Extract data from each file
