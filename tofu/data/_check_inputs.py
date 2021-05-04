@@ -632,13 +632,15 @@ def _check_dref_static(
         msg = (
             """
             Arg dref_static must be a dict of the form:
-            {
+            dict(
                 'type0': {'k0': {...},
                           'k1': {...}},
                 'type1': {'k0': {...},
                           'k1': {...}},
-            }
-
+            )
+            """
+            +
+            """
             Provided:
             {}
             """.format(dref_static)

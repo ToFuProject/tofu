@@ -172,9 +172,13 @@ class Test01_DataCollection(object):
                }
         dref_static = {
             'source': {
-                '[1]': 'blabla',
-                '[2]': 'blibli',
-            }
+                '[1]': {'long': 'blabla'},
+                '[2]': {'long': 'blibli'},
+            },
+            'ion': {
+                'O3+': {'element': 'O'},
+                'Ca6+': {'element': 'Ca'},
+            },
         }
         dobj = {
             'lines': {
@@ -192,7 +196,7 @@ class Test01_DataCollection(object):
         }
         sl = tfd.DataCollection()
         sl._data_none = True
-        sl.update(dref=dref, dobj=dobj)
+        sl.update(dref=dref, dref_static=dref_static, dobj=dobj)
 
         cls.lobj = [data, sl]
 
@@ -278,7 +282,7 @@ class Test01_DataCollection(object):
             err = True
         assert err, "Exception was not detected properly!"
 
-    def test03_add_remove_refdata(self):
+    def test03_add_remove_refdataobj(self):
         data = self.lobj[0]
 
         data.add_ref(key='r0', data=self.lr[0], group='radius', foo='bar')
@@ -311,6 +315,17 @@ class Test01_DataCollection(object):
         data.add_ref(key='mesh0', data=self.lmesh[0])
         data.add_data(key='mesh1', data=self.lmesh[1])
         data.add_data(key='trace51', data=self.ltrace[-1], ref=('mesh1', 't1'))
+
+        # Add / remove obj and ref_static
+        self.lobj[1].add_ref_static(key='[3]', which='source', long='bloblo')
+        self.lobj[1].add_obj(
+            which='lines', key='l3',
+            lambda0=5e-10, source='[3]', transition='C->D',
+        )
+        self.lobj[1].remove_obj(key='l3')
+        self.lobj[1].remove_ref_static(key='[3]')
+        self.lobj[1].remove_ref_static(which='ion')
+
 
     def test04_select(self):
         data = self.lobj[0]

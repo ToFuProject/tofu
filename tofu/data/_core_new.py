@@ -215,8 +215,8 @@ class DataCollection(utils.ToFuObject):
         # Check consistency
         self.update(ddata=ddata, dref=None, dref_static=None, dgroup=None)
 
-    def add_obj(self, key=None, **kwdargs):
-        ddata = {key: kwdargs}
+    def add_obj(self, which=None, key=None, **kwdargs):
+        dobj = {which: {key: kwdargs}}
         # Check consistency
         self.update(dobj=dobj, dref=None, dref_static=None, dgroup=None)
 
