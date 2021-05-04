@@ -239,7 +239,8 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
     Crystal parameters : d, formula, density, lengths, angles, cut
 
-    New basis of unit vectors due to non-parallelism (e1, e2, nout) + nin + alpha, beta
+    New basis of unit vectors due to non-parallelism (e1, e2, nout)
+    + nin + alpha, beta
     """
 
 
@@ -293,7 +294,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
         if dmat['cut'].size <= 4:
             msg = (
                 """
-                Var {} should be convertible to a 1d np.ndarray of minimal size of {}.
+                Var {} should be convertible to a 1d array of minimal size {}.
 
                 Provided: {}
                 """.format('cut', 5, dmat.get('cut'))
@@ -314,7 +315,8 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
     if all([dgeom[kk] is not None for kk in ['nout', 'e1', 'e2']]):
 
-        # dict of value, comment, default value and type of alpha and beta angles in dmat
+        # dict of value, comment, default value and type of
+        #  alpha and beta angles in dmat
         dpar = {
             'alpha': {
                 'alpha': alpha,
@@ -332,7 +334,6 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
         # setting to default value if any is None
         lparNone = [aa for aa in dpar.keys() if dmat.get(aa) is None]
-        lvecNone = [bb for bb in dvec.keys() if dmat.get(bb) is None]
 
         # if any is None, assigning default value and send a warning message 
         if len(lparNone) > 0:
@@ -376,7 +377,9 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
             raise Exception(msg)
 
 
-        # dict of value, comment, default value and type of unit vectors in dmat
+        # dict of value, comment, default value and type of unit vectors in
+        #  dmat, computting default value of unit vectors, corresponding to
+        #  dgeom values if angles are 0.
         dvec = {
             'e1': {
                 'e1': e1,
@@ -412,6 +415,10 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
             }
         }
 
+        # setting to default value if any is None
+        lvecNone = [bb for bb in dvec.keys() if dmat.get(bb) is None]
+
+        # if any is None, assigning default value
         if len(lvecNone) > 0:
             for bb in lvecNone:
                 dmat[bb] = dvec[bb]['default']
@@ -510,7 +517,7 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
             Var {} is not valid!
             Please check your arguments to calculate the Bragg's law correctly!
             Provided:
-                - crystal inter-plane d [A] = {}
+                - crystal inter-plane d [m] = {}
                 - wavelenght interval [m] : {}
                 - lambref = {}
             """.format('lambref', dmat['d'], lambok, dbragg['lambref'])
