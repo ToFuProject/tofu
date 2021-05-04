@@ -168,11 +168,10 @@ def test04_ves_vmesh_lin():
                 np.unique(ind).size == ind.size,
                 np.all(ind == np.unique(ind)), np.all(ind >= 0)])
 
-    Ptsi, dVi, \
-    dXri, dYri, \
-    dZri = GG._Ves_Vmesh_Lin_SubFromInd_cython(dX, dY, dZ,
-                                               XMinMax, YMinMax, ZMinMax,
-                                               ind, margin=1.e-9)
+    out = GG._Ves_Vmesh_Lin_SubFromInd_cython(dX, dY, dZ,
+                                              XMinMax, YMinMax, ZMinMax,
+                                              ind, margin=1.e-9)
+    Ptsi, dVi, dXri, dYri, dZri = out
     assert np.allclose(Pts, Ptsi)
     assert np.allclose(dV, dVi)
     assert dXr == dXri and dYr == dYri and dZr == dZri
@@ -199,7 +198,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                         Exp="Misc",
                         lStruct=[ves])
 
-    part = np.array([[10., -0.0, 0]], order='F').T
     part = np.array([[10., 0.0, 0]], order='F').T
     part_rad = np.r_[0.01]
     rstep = zstep = 0.1
@@ -211,7 +209,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     # -- Getting cython APPROX computation ------------------------------------
     kwdargs = config.get_kwdargs_LOS_isVis()
-    vpoly = None#kwdargs["ves_poly"]
+    vpoly = kwdargs["ves_poly"]
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
@@ -240,7 +238,6 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
 
     # -- Getting cython EXACT computation -------------------------------------
     kwdargs = config.get_kwdargs_LOS_isVis()
-    vpoly = None
     res = GG.compute_solid_angle_map(part, part_rad,
                                      rstep, zstep, phistep,
                                      limits_r, limits_z,
@@ -270,7 +267,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                             out_format='(R,Z,Phi)',
                                             margin=1.e-9)
 
-    pts_disc, dvol, ind, reso_r, reso_z, reso_phi, sz_r, sz_z = res
+    pts_disc, dvol, ind_disc, reso_r, reso_z, reso_phi, sz_r, sz_z = res
 
     npts_disc = np.shape(pts_disc)[1]
 
@@ -287,15 +284,32 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                                               approx=False)
 
     if debug > 0:
-        fig = plt.figure(figsize=(14, 8))
-        ax = plt.subplot(121)
+        # to erase..............
+        res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
+                                                limits_r, limits_z,
+                                                DR=DR, DZ=DZ,
+                                                DPhi=DPhi,
+                                                out_format='(r, z, phi)',
+                                                margin=1.e-9)
+        pts_comp, _, ind_comp, _, _, _, _, _ = res
+        ##############
+        fig = plt.figure(figsize=(25, 10))
+        ax = plt.subplot(131)
         ax.plot(pts_disc[0, :], pts_disc[1, :], '.b')
-        ax.plot(part[0, :], part[1, :], '*r')
-        ax2 = plt.subplot(122)
+        # ax.plot(part[0, :], part[1, :], '*r')
+        ax2 = plt.subplot(132)
         ax2.plot(pts[0, :], pts[1, :], '.b')
-        ax2.plot(part[0, :], part[1, :], '*r')
+        for ii in range(npts):
+            ax2.text(pts[0, ii], pts[1, ii], str(ii))
+        # ax2.plot(part[0, :], part[1, :], '*r')
         if vpoly is not None:
             ax2.plot(vpoly[0, :], vpoly[1, :])
+        ax3 = plt.subplot(133)
+        ax3.plot(pts_comp[0, :], pts_comp[1, :], '.r')
+        ax3.plot(pts_disc[0, :], pts_disc[1, :], '.b')
+        for ii in range(npts):
+            ax3.text(pts[0, ii], pts[1, ii], str(ind[ii]))
+
         fig.suptitle("Discretization points and particle traj")
         plt.savefig("discretization_and_traj")
 
@@ -308,16 +322,24 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     sa_map_py = np.zeros((npts_sa, sz_p))
     sa_map_py_ex = np.zeros((npts_sa, sz_p))
 
-    r0 = pts_disc[0, 0]
-    z0 = pts_disc[1, 0]
+    r0 = limits_r[0]
+    z0 = limits_z[0]
 
+    lvisited = []
     for ii in range(npts_disc):
-        i_r = int(np.round(np.abs(r0 - pts_disc[0, ii]) / reso_r))
-        i_z = int(np.round(np.abs(z0 - pts_disc[1, ii]) / reso_z))
+        i_r = int(np.abs(r0 - pts_disc[0, ii]) // reso_r)
+        i_z = int(np.abs(z0 - pts_disc[1, ii]) // reso_z)
         ind_pol = int(i_r * sz_z + i_z)
+        if vpoly is not None:
+            wh_eq = np.where(ind == ind_pol)
+            ind_pol_u = wh_eq[0][0]
+        else:
+            ind_pol_u = ind_pol
+        if ind_pol_u not in lvisited:
+            lvisited.append(ind_pol_u)
         for pp in range(sz_p):
-            sa_map_py[ind_pol, pp] += sang[ii, pp] * reso_phi[i_r]
-            sa_map_py_ex[ind_pol, pp] += sang_ex[ii, pp] * reso_phi[i_r]
+            sa_map_py[ind_pol_u, pp] += sang[ii, pp] * reso_phi[i_r]
+            sa_map_py_ex[ind_pol_u, pp] += sang_ex[ii, pp] * reso_phi[i_r]
 
     if debug > 0:
         print("")
@@ -346,10 +368,14 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     print("max error cython approx vs exact =",
           np.max(np.abs(sa_map_cy - sa_map_cy_ex) / sa_map_cy_ex))
 
-    assert np.allclose(sa_map_cy, sa_map_py, rtol=1)
-    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, rtol=1)
-    assert np.allclose(sa_map_cy, sa_map_cy_ex, rtol=1)
-    assert np.allclose(sa_map_py, sa_map_py_ex, rtol=1)
+    assert np.allclose(sa_map_cy, sa_map_py, atol=0, rtol=1e-14,
+                       equal_nan=True)
+    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=0, rtol=1e-14,
+                       equal_nan=True)
+    assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=0, rtol=1e-14,
+                       equal_nan=True)
+    assert np.allclose(sa_map_py, sa_map_py_ex, atol=0, rtol=1e-14,
+                       equal_nan=True)
 
     # ...
     return

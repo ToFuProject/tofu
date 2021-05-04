@@ -4903,7 +4903,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     reso_rdrdz = np.empty((npts_pol, ))
     sa_map = np.zeros((npts_pol, sz_p))
     pts = np.empty((2, npts_pol))
-    ind = np.empty((npts_pol, ), dtype=int)
+    ind = -np.ones((npts_pol, ), dtype=int)
     pts_mv = pts
     ind_mv = ind
     reso_rdrdz_mv = reso_rdrdz
@@ -4960,4 +4960,4 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(step_rphi)
     free(ncells_rphi)
 
-    return pts, sa_map, ind_mv, reso_r_z
+    return pts, sa_map, ind, reso_r_z

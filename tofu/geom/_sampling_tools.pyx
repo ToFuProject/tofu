@@ -2299,7 +2299,7 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
             loc_z = disc_z[zz]
             if is_in_vignette[rr, zz]:
                 ind_pol = ind_rz2pol[rr, zz]
-                ind_mv[ind_pol] = rr + sz_r * zz
+                ind_mv[ind_pol] = rr * sz_z + zz
                 reso_rdrdz[ind_pol] = loc_r * reso_r_z
                 pts_mv[0, ind_pol] = loc_r
                 pts_mv[1, ind_pol] = loc_z
@@ -2396,7 +2396,7 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                 loc_z = disc_z[zz]
                 if is_in_vignette[rr, zz]:
                     ind_pol = ind_rz2pol[rr, zz]
-                    ind_mv[ind_pol] = rr + sz_r * zz
+                    ind_mv[ind_pol] = rr * sz_z + zz
                     reso_rdrdz[ind_pol] = loc_r * reso_r_z
                     pts_mv[0, ind_pol] = loc_r
                     pts_mv[1, ind_pol] = loc_z
@@ -2443,7 +2443,7 @@ cdef inline double sa_approx_formula(double radius,
     """
     cdef double r_over_d = radius / distance
 
-    return (r_over_d ** 2) * volpi
+    return (r_over_d ** 2 + r_over_d ** 4) * volpi
 
 
 # -----------------------------------------------------------------------------
@@ -2521,7 +2521,7 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
             loc_z = disc_z[zz]
             if is_in_vignette[rr, zz]:
                 ind_pol = ind_rz2pol[rr, zz]
-                ind_mv[ind_pol] = rr + sz_r * zz
+                ind_mv[ind_pol] = rr * sz_z + zz
                 reso_rdrdz[ind_pol] = loc_r * reso_r_z
                 pts_mv[0, ind_pol] = loc_r
                 pts_mv[1, ind_pol] = loc_z
@@ -2618,7 +2618,7 @@ cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
                 loc_z = disc_z[zz]
                 if is_in_vignette[rr, zz]:
                     ind_pol = ind_rz2pol[rr, zz]
-                    ind_mv[ind_pol] = rr + sz_r * zz
+                    ind_mv[ind_pol] = rr * sz_z + zz
                     reso_rdrdz[ind_pol] = loc_r * reso_r_z
                     pts_mv[0, ind_pol] = loc_r
                     pts_mv[1, ind_pol] = loc_z
