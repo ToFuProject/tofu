@@ -1253,7 +1253,7 @@ def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
 
 
 def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
-                    invert=None, Bck=True, cbck=_cbck, Lplot='In',
+                    invert=None, Bck=True, cbck=_cbck, Lplot=None,
                     incch=[1,10], ms=4, cmap='touch', vmin=None, vmax=None,
                     fmt_ch='02.0f', labelpad=_labelpad, dmargin=None,
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
@@ -1372,7 +1372,7 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
 
 
 def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
-                      Bck=True, lcch=_lcch, cbck=_cbck, Lplot='In',
+                      Bck=True, lcch=_lcch, cbck=_cbck, Lplot=None,
                       incch=[1,5], ms=4, plotmethod='imshow',
                       cmap=None, vmin=None, vmax=None,
                       fmt_ch='01.0f', invert=True, Dlab=None,

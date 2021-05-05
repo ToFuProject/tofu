@@ -27,7 +27,7 @@ VerbHead = 'tofu.data.test_03_core'
 #
 #######################################################
 
-def setup_module(module):
+def setup_module():
     print("") # this is to get a newline after the dots
     LF = os.listdir(_here)
     LF = [lf for lf in LF if all([ss in lf for ss in ['TFD_','Test','.npz']])]
@@ -38,7 +38,7 @@ def setup_module(module):
         os.remove(os.path.join(_here,lf))
     #print("setup_module before anything in this file")
 
-def teardown_module(module):
+def teardown_module():
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
     #print("teardown_module after everything in this file")
@@ -230,10 +230,10 @@ class Test01_DataCam12D(object):
     def test04_select_ch(self):
         for oo in self.lobj:
             if oo.dgeom['lCam'] is not None:
-                name = [(ii,k) for ii,k in
+                name = [(ii, k) for ii, k in
                         enumerate(oo.config.dStruct['lorder'])
                         if 'Ves' in k or 'PlasmaDomain' in k]
-                assert len(name) == 1
+                # assert len(name) == 1  # There can be several Ves now
                 ind = oo.select_ch(touch=name[0][1], out=bool)
                 assert ind.sum() > 0, (ind.sum(), ind)
                 assert np.allclose(ind, oo.select_ch(touch=name[0][0],
@@ -305,7 +305,7 @@ class Test01_DataCam12D(object):
 
     def test10_dtreat_set_interp_indch(self):
         for oo in self.lobj:
-            ind = np.arange(0, oo.nch, 10, dtype=np.long)
+            ind = np.arange(0, oo.nch, 10, dtype=int)
             oo.set_dtreat_interp_indch( ind )
             assert oo._dtreat['interp-indch'].sum() == ind.size
 

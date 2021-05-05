@@ -312,7 +312,6 @@ LOSdict = dict(Lax=None, Proj='All', Lplot=LOSLplot, Elt='LDIORP', EltVes='', Le
 
 
 
-
 #####################################################################
 #################  CrystalBragg class  ##############################
 #####################################################################
@@ -357,10 +356,6 @@ _DET_PLOT_DDICT = {
 #####################################################################
 
 
-
-
-
-
 # -------------- Figures ------------------------
 
 def Plot_Lens_Alone_DefAxes(fs=None, wintit='tofu'):
@@ -375,9 +370,6 @@ def Plot_Lens_Alone_DefAxes(fs=None, wintit='tofu'):
     ax.set_xlabel(r"x (m)")
     ax.set_ylabel(r"y (m)")
     return ax
-
-
-
 
 #####################################################################
 ###################### Detect class  ################################
@@ -615,12 +607,5 @@ def Plot_GDetect_Resolution_DefAxes(VType='Tor', fs=None, wintit='tofu'):
     ax3.set_ylabel(r"Signal (mW)")
     ax1.set_aspect(aspect='equal',adjustable='datalim')
     return ax1, ax2, ax3
-
-
-
-
-
-
-
 
 """

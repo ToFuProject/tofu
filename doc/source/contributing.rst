@@ -16,6 +16,7 @@ information that might be helpful to us (OS, server, how you installed
 **tofu**), a minimal example to recreate the bug (if possible), and the log
 files or errors you might have got.
 
+For known bugs, :ref:`scroll down to the last section <Knownbugs>`.
 
 
 Developping in the code
@@ -133,3 +134,37 @@ check your coding style.
 .. _pep8speaks: https://pep8speaks.com/
 
 .. image:: images/pep8speaks.png
+
+
+
+.. _Knownbugs:
+
+Known bugs
+-----------
+
+``numpy.ndarayy size changed``
+""""""""""""""""""""""""""""""
+
+`NumPy 1.20 <https://numpy.org/devdocs/release/1.20.0-notes.html#the-pyarray-descrcheck-macro-is-modified>`_
+introduced a different ABI (application binary interface, basically changing the
+binary size of its objects), Cython librairies compiled with older version but
+using this new version for building its wheels, will encounter the error below:
+
+::
+
+   ValueError: numpy.ndarray size changed, may indicate binary incompatibility. Expected 88 from C header, got 80 from PyObject
+
+So we recommend using the latest version of ``NumPy (>= 1.20)``.
+If that's not possible for whatever reasons, there are still some workarounds
+you can try (see `this post for example
+<https://github.com/scikit-learn-contrib/hdbscan/issues/457#issuecomment-773671043>`_).
+The one that has worked best for us is using the following line
+to compile ``tofu``
+
+::
+
+   pip install tofu --no-build-isolation --no-cache-dir --no-binary :all:
+
+If you still encounter this issue, if you have questions, or want to
+suggests other solutions, you can comment in the issue opened on github
+for this matter: `here <https://github.com/ToFuProject/tofu/issues/483>`_.

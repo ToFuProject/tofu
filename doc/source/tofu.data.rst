@@ -5,6 +5,7 @@ tofu.data package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
@@ -16,6 +17,7 @@ tofu.data.\_comp module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.data.\_core module
 -----------------------
@@ -24,6 +26,7 @@ tofu.data.\_core module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.data.\_core\_new module
 ----------------------------
@@ -32,6 +35,7 @@ tofu.data.\_core\_new module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.data.\_def module
 ----------------------
@@ -40,6 +44,7 @@ tofu.data.\_def module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.data.\_plot module
 -----------------------
@@ -48,6 +53,7 @@ tofu.data.\_plot module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.data.\_spectrafit2d module
 -------------------------------
@@ -56,4 +62,4 @@ tofu.data.\_spectrafit2d module
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:
