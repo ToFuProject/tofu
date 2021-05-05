@@ -2468,14 +2468,28 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
     """
 
     # Format and check input
-    if returnas is None:
-        returnas = int
     if log is None:
         log = 'all'
-    assert returnas in [int, bool, str, 'key']
-    assert log in ['all', 'any', 'raw']
-    if log == 'raw':
-        assert returnas == bool
+    if returnas is None:
+        returnas = bool if log == 'raw' else int
+    if log not in ['all', 'any', 'raw']:
+        msg = (
+            "Arg log must be:\n"
+            + "\t- 'all': all criteria should match\n"
+            + "\t- 'any': any criterion should match\n"
+            + "\t- 'raw': return the full 2d array of boolean indices\n\n"
+            + "Provided:\n\t{}".format(log)
+        )
+        raise Exception(msg)
+    if returnas not in [int, bool, str, 'key']:
+        msg = (
+            "Arg returnas must be:\n"
+            + "\t- bool: array of boolean indices\n"
+            + "\t- int: array of int indices\n"
+            + "\t- str / 'key': array of keys\n\n"
+            + "Provided:\n\t{}".format(returnas)
+        )
+        raise Exception(msg)
 
     # Get list of relevant criteria
     lp = [kk for kk in list(dd.values())[0].keys()]
@@ -2535,3 +2549,68 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                 dtype=str,
             )
     return ind
+
+# TBF
+def _get_keyingroup_data(
+    dd=None, dd_name='data',
+    key=None, group=None,
+    msgstr=None, raise_=False,
+):
+    """ Return the unique data key matching key in desired group in ddata
+
+    Here, key can be interpreted as name / source / units / quant...
+    All are tested using select() and a unique match is returned
+    If not unique match an error message is either returned or raised
+
+    """
+
+    # ------------------------
+    # Trivial case: key is actually a ddata key
+    if key in dd.keys():
+        lg = dd[key]['group']
+        if group is None or group in lg:
+            return key, None
+        else:
+            msg = ("Required data key does not have matching group:\n"
+                   + "\t- {}[{}]['group'] = {}\n".format(dd_name, key, lg)
+                   + "\t- Expected group:  {}".format(group))
+            if raise_:
+                raise Exception(msg)
+
+    # ------------------------
+    # Non-trivial: check for a unique match on other params
+
+    ind, akeys = _select(
+        dd=dd, dd_name=dd_name,
+        dim=key, quant=key, name=key, units=key, source=key, group=group,
+        log='raw', returnas=bool,
+    )
+
+    # Remove ref and group
+    ind = ind[:5, :] & ind[-1, :]
+
+    # Any perfect match ?
+    nind = np.sum(ind, axis=1)
+    sol = (nind == 1).nonzero()[0]
+    key, msg = None, None
+    if sol.size > 0:
+        if np.unique(sol).size == 1:
+            indkey = ind[sol[0],:].nonzero()[0]
+            key = akeys[indkey][0]
+        else:
+            lstr = "[dim,quant,name,units,origin]"
+            msg = "Several possible matches in {} for {}".format(lstr, key)
+    else:
+        lstr = "[dim,quant,name,units,origin]"
+        msg = "No match in {} for {} in group {}".format(lstr, key, group)
+
+    # Complement error msg and optionally raise
+    if msg is not None:
+        msg += (
+            "\n\nRequested {} could not be identified!\n".format(msgstr)
+            + "Please provide a valid (unique) key/name/quant/dim:\n\n"
+            + self.get_summary(verb=False, return_='msg')
+        )
+        if raise_:
+            raise Exception(msg)
+    return key, msg

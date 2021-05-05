@@ -820,8 +820,216 @@ class DataCollection(utils.ToFuObject):
         )
 
     # ---------------------
-    # Method for interpolating on ref
+    # Method for interpolation - inputs checks
     # ---------------------
+
+    def _get_ldata(
+        self, dim=None, quant=None, name=None,
+        units=None, source=None,
+        ref=None, group=None, log='all', return_key=True,
+    ):
+        """ Get list of data key matching any/all dim/units/name/...  """
+        assert log in ['all', 'any', 'raw']
+        lid = np.array(list(self._ddata.keys()))
+        ind = np.ones((7,len(lid)),dtype=bool)
+        if dim is not None:
+            ind[0,:] = [self._ddata[id_]['dim'] == dim for id_ in lid]
+        if quant is not None:
+            ind[1,:] = [self._ddata[id_]['quant'] == quant for id_ in lid]
+        if name is not None:
+            ind[2,:] = [self._ddata[id_]['name'] == name for id_ in lid]
+        if units is not None:
+            ind[3,:] = [self._ddata[id_]['units'] == units for id_ in lid]
+        if source is not None:
+            ind[4,:] = [self._ddata[id_]['source'] == source for id_ in lid]
+        if ref is not None:
+            ind[5,:] = [depend in self._ddata[id_]['ref'] for id_ in lid]
+        if group is not None:
+            ind[6,:] = [group in self._ddata[id_]['group'] for id_ in lid]
+
+        if log == 'all':
+            ind = np.all(ind, axis=0)
+        elif log == 'any':
+            ind = np.any(ind, axis=0)
+
+        if return_key:
+            if np.any(ind):
+                out = lid[ind.nonzero()[0]]
+            else:
+                out = np.array([],dtype=int)
+        else:
+            out = ind, lid
+        return out
+
+    def _get_keyingroup(self, key=None, group=None, msgstr=None, raise_=False):
+
+        if key in self._ddata.keys():
+            lg = self._ddata[key]['group']
+            if group is None or group in lg:
+                return key, None
+            else:
+                msg = ("Required data key does not have matching group:\n"
+                       + "\t- ddata[{}]['group'] = {}\n".format(key, lg)
+                       + "\t- Expected group:  {}".format(group))
+                if raise_:
+                    raise Exception(msg)
+
+        ind, akeys = self.select(dim=key, quant=key, name=key, units=key,
+                                 source=key, group=group, log='raw',
+                                 returnas=bool)
+        # Remove indref and group
+        ind = ind[:5,:] & ind[-1,:]
+
+        # Any perfect match ?
+        nind = np.sum(ind, axis=1)
+        sol = (nind == 1).nonzero()[0]
+        key, msg = None, None
+        if sol.size > 0:
+            if np.unique(sol).size == 1:
+                indkey = ind[sol[0],:].nonzero()[0]
+                key = akeys[indkey][0]
+            else:
+                lstr = "[dim,quant,name,units,origin]"
+                msg = "Several possible matches in {} for {}".format(lstr, key)
+        else:
+            lstr = "[dim,quant,name,units,origin]"
+            msg = "No match in {} for {} in group {}".format(lstr, key, group)
+
+        if msg is not None:
+            msg += "\n\nRequested {} could not be identified!\n".format(msgstr)
+            msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
+            msg += self.get_summary(verb=False, return_='msg')
+            if raise_:
+                raise Exception(msg)
+        return key, msg
+
+    def _checkformat_qr12RPZ(
+        self,
+        quant=None,
+        ref1d=None,
+        ref2d=None,
+        q2dR=None,
+        q2dPhi=None,
+        q2dZ=None,
+    ):
+        lc0 = [quant is None, ref1d is None, ref2d is None]
+        lc1 = [q2dR is None, q2dPhi is None, q2dZ is None]
+        if np.sum([all(lc0), all(lc1)]) != 1:
+            msg = (
+                "Please provide either (xor):\n"
+                + "\t- a scalar field (isotropic emissivity):\n"
+                + "\t\tquant : scalar quantity to interpolate\n"
+                + "\t\t\tif quant is 1d, intermediate reference\n"
+                + "\t\t\tfields are necessary for 2d interpolation\n"
+                + "\t\tref1d : 1d reference field on which to interpolate\n"
+                + "\t\tref2d : 2d reference field on which to interpolate\n"
+                + "\t- a vector (R,Phi,Z) field (anisotropic emissivity):\n"
+                + "\t\tq2dR :  R component of the vector field\n"
+                + "\t\tq2dPhi: R component of the vector field\n"
+                + "\t\tq2dZ :  Z component of the vector field\n"
+                + "\t\t=> all components have the same time and mesh!\n"
+            )
+            raise Exception(msg)
+
+        # Check requested quant is available in 2d or 1d
+        if all(lc1):
+            idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
+            idq2dR, idq2dPhi, idq2dZ = None, None, None
+            ani = False
+        else:
+            idq2dR, msg   = self._get_keyingroup(
+                key=q2dR, group='mesh', msgstr='quant', raise_=True,
+            )
+            idq2dPhi, msg = self._get_keyingroup(
+                key=q2dPhi, group='mesh', msgstr='quant', raise_=True,
+            )
+            idq2dZ, msg   = self._get_keyingroup(
+                key=q2dZ, group='mesh', msgstr='quant', raise_=True,
+            )
+            idquant, idref1d, idref2d = None, None, None
+            ani = True
+        return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
+
+    # ---------------------
+    # Method for interpolation
+    # ---------------------
+
+
+    # TBF
+    def _interp_2dto1d_quant(
+        self,
+        pts=None,
+        vect=None,
+        t=None,
+        quant=None,
+        ref1d=None,
+        ref2d=None,
+        q2dR=None,
+        q2dPhi=None,
+        q2dZ=None,
+        interp_t=None,
+        interp_space=None,
+        fill_value=None,
+        Type=None,
+    ):
+        """ Return the value of the desired 1d quantity at 2d points
+
+        For the desired inputs points (pts):
+            - pts are in (X, Y, Z) coordinates
+            - space interpolation is linear on the 1d profiles
+        At the desired input times (t):
+            - using a nearest-neighbourg approach for time
+
+        """
+        # Check inputs
+        # msg = "Only 'nearest' available so far for interp_t!"
+        # assert interp_t == 'nearest', msg
+
+        # Check requested quant is available in 2d or 1d
+        out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                        q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
+
+        # Check the pts is (3,...) array of floats
+        if pts is None:
+            if ani:
+                idmesh = [id_ for id_ in self._ddata[idq2dR]['depend']
+                          if self._dindref[id_]['group'] == 'mesh'][0]
+            else:
+                if idref1d is None:
+                    idmesh = [id_ for id_ in self._ddata[idquant]['depend']
+                              if self._dindref[id_]['group'] == 'mesh'][0]
+                else:
+                    idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
+                              if self._dindref[id_]['group'] == 'mesh'][0]
+            if self.dmesh[idmesh]['data']['type'] == 'rect':
+                if self.dmesh[idmesh]['data']['shapeRZ'] == ('R', 'Z'):
+                    R = np.repeat(self.dmesh[idmesh]['data']['R'],
+                                  self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.tile(self.dmesh[idmesh]['data']['Z'],
+                                self.dmesh[idmesh]['data']['nR'])
+                else:
+                    R = np.tile(self.dmesh[idmesh]['data']['R'],
+                                self.dmesh[idmesh]['data']['nZ'])
+                    Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
+                                  self.dmesh[idmesh]['data']['nR'])
+                pts = np.array(
+                    [R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
+            else:
+                pts = self.dmesh[idmesh]['data']['nodes']
+                pts = np.array(
+                    [pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1]])
+
+        pts = np.atleast_2d(pts)
+        if pts.shape[0] != 3:
+            msg = "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
+            msg += "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
+            msg += "    - Expected shape : (3,...)\n"
+            msg += "    - Provided shape : %s"%str(pts.shape)
+            raise Exception(msg)
+
+
+
 
     # TBC
     def _interp_one_dim(x=None, ind=None, key=None, group=None,
@@ -959,11 +1167,6 @@ class DataCollection(utils.ToFuObject):
     # ---------------------
     # Methods for plotting data
     # ---------------------
-
-    # To be overloaded
-    @abstractmethod
-    def plot(self):
-        pass
 
     def _plot_timetraces(self, ntmax=1, group='time',
                          key=None, ind=None, Name=None,
