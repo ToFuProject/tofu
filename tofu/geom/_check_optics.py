@@ -1,7 +1,7 @@
 
 import warnings
 
-
+import numpy as np
 import matplotlib as mpl
 
 
@@ -98,7 +98,7 @@ def _check_orthornormaldirect(e1=None, e2=None, var=None, varname=None):
 def _check_dict_unitvector(dd=None, dd_name=None):
 
     # Check all unit vectors
-    for k0, v0 in ['nout', 'nin', 'e1', 'e2']:
+    for k0 in ['nout', 'nin', 'e1', 'e2']:
         dd[k0] = _check_flat1darray_size(
             var=dd.get(k0), varname=k0, size=3, norm=True)
 
@@ -167,7 +167,7 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
         dgeom[kk] = dgeom.get(kk, ddef[kk])
 
     # Set default values to None of not provided
-    for kk in lkok:
+    for kk in valid_keys:
         dgeom[kk] = dgeom.get(kk, None)
 
     # ------------------------------
@@ -264,9 +264,9 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
     # Check dimension of array and its size 	
     dmat['lengths'] = _check_flat1darray_size(
-        var=dmat.get('lengths'), varname='lengths', size=1)
+        var=dmat.get('lengths'), varname='lengths', size=3)
     dmat['angles'] = _check_flat1darray_size(
-        var=dmat.get('angles'), varname='angles', size=1)
+        var=dmat.get('angles'), varname='angles', size=3)
 
     if dmat['d'] is None:
         msg = "Arg dmat['d'] must be convertible to a float."
@@ -291,13 +291,13 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
     if dmat.get('cut') is not None:
         dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
-        if dmat['cut'].size <= 4:
+        if dmat['cut'].size < 4:
             msg = (
                 """
                 Var {} should be convertible to a 1d array of minimal size {}.
 
                 Provided: {}
-                """.format('cut', 5, dmat.get('cut'))
+                """.format('cut', 4, dmat.get('cut'))
             )
             raise Exception(msg)
 
@@ -319,13 +319,13 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
         #  alpha and beta angles in dmat
         dpar = {
             'alpha': {
-                'alpha': alpha,
+                # 'alpha': alpha,
                 'com': 'non-parallelism amplitude',
                 'default': 0.,
                 'type': float,
             },
             'beta': {
-                'beta': beta,
+                # 'beta': beta,
                 'com': 'non-parallelism orientation',
                 'default': 0.,
                 'type': float,
@@ -382,7 +382,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
         #  dgeom values if angles are 0.
         dvec = {
             'e1': {
-                'e1': e1,
+                # 'e1': e1,
                 'com': 'unit vector (non-parallelism)',
                 'default': (
                     np.cos(dmat['alpha'])*(
@@ -394,7 +394,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
                 'type': float,
             },
             'e2': {
-                'e2': e2,
+                # 'e2': e2,
                 'com': 'unit vector (non-parallelism)',
                 'default': (
                     np.cos(dmat['beta'])*dgeom['e2']
@@ -403,7 +403,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
                 'type': float,
             },
             'nout': {
-                'nout': nout,
+                # 'nout': nout,
                 'com': 'outward unit vector (normal to non-parallel mesh)',
                 'default': (
                     np.cos(dmat['alpha'])*dgeom['nout']
@@ -412,6 +412,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
                         + np.sin(dmat['beta'])*dgeom['e2']
                     )
                 ),
+                'type': float,
             }
         }
 
@@ -437,7 +438,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
             msg = "The following parameters must be convertible to:"
             for bb in lvecWrong:
                 msg += "\n\t - {} = {} ({})".format(
-                    bb, dvec[bb]['type'], type(dvec[bb]),
+                    bb, dvec[bb]['type'], type(dmat[bb]),
                 )
             msg += "\nAnd (nout , e1, e2) must be an orthonormal direct basis"
             raise Exception(msg)

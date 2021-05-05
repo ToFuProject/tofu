@@ -169,7 +169,7 @@ def get_approx_detector_rel(rcurve, bragg,
 
     # det_nout and det_e1 in (nout, e1, e2) (det_e2 = e2)
     n_crystdet_rel = np.r_[-np.sin(bragg), np.cos(bragg), 0.]
-    if tangent_to_rowland is true:
+    if tangent_to_rowland is True:
         bragg2 = 2.*bragg
         det_nout_rel = np.r_[-np.cos(bragg2), -np.sin(bragg2), 0.]
         det_ei_rel = np.r_[np.sin(bragg2), -np.cos(bragg2), 0.]
@@ -178,13 +178,13 @@ def get_approx_detector_rel(rcurve, bragg,
         det_ei_rel = np.r_[np.cos(bragg), np.sin(bragg), 0]
 
     # update with bragg01 and dist01
-    if bragg01 is not none:
+    if bragg01 is not None:
         ang = np.diff(np.sort(bragg01))
         # h = l1 tan(theta1) = l2 tan(theta2)
         # l = l2 (tan(theta1) + tan(theta2)) / tan(theta1)
         # l = l2 / cos(theta2)
         # l = l tan(theta1) / (cos(theta2) * (tan(theta1) + tan(theta2)))
-        theta2 = bragg  if tangent_to_rowland is true else np.pi/2
+        theta2 = bragg  if tangent_to_rowland is True else np.pi/2
         theta1 = np.abs(bragg-bragg01[0])
         tan1 = np.tan(theta1)
         d0 = det_dist * tan1 / (np.cos(theta2) * (tan1+np.tan(theta2)))
