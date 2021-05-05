@@ -184,7 +184,7 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     import tofu.geom as tfg
     import matplotlib.pyplot as plt
 
-    block = False
+    block = True
 
     ves = tfg.Ves(
         Name="DebugVessel",
@@ -198,8 +198,8 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
                         Exp="Misc",
                         lStruct=[ves])
 
-    part = np.array([[10., 0.0, 0]], order='F').T
-    part_rad = np.r_[0.01]
+    part = np.array([[10., 0, 0]], order='F').T
+    part_rad = np.r_[0.09]
     rstep = zstep = 0.1
     phistep = 0.1
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
@@ -359,6 +359,8 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
         ax.set_title("python reconstruction")
         plt.savefig("comparaison")
 
+    print("error at 0 approx py vs cy =",
+          np.abs(sa_map_py[0] - sa_map_cy[0]) / sa_map_py[0])
     print("max error approx py vs cy =",
           np.max(np.abs(sa_map_py - sa_map_cy) / sa_map_py))
     print("max error exacts py vs cy =",
@@ -368,13 +370,13 @@ def test25_sa_integ_map(ves_poly=VPoly, debug=1):
     print("max error cython approx vs exact =",
           np.max(np.abs(sa_map_cy - sa_map_cy_ex) / sa_map_cy_ex))
 
-    assert np.allclose(sa_map_cy, sa_map_py, atol=0, rtol=1e-14,
+    assert np.allclose(sa_map_cy, sa_map_py, atol=0, rtol=1e-12,
                        equal_nan=True)
-    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=0, rtol=1e-14,
+    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=0, rtol=1e-12,
                        equal_nan=True)
-    assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=0, rtol=1e-14,
+    assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=0, rtol=1e-12,
                        equal_nan=True)
-    assert np.allclose(sa_map_py, sa_map_py_ex, atol=0, rtol=1e-14,
+    assert np.allclose(sa_map_py, sa_map_py_ex, atol=0, rtol=1e-12,
                        equal_nan=True)
 
     # ...

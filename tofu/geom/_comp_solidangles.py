@@ -203,7 +203,8 @@ def calc_solidangle_particle(
 
     # Solid angle
     if approx:
-        sang = np.pi * rad[:, None]**2 / len_v**2
+        r_d = rad[:, None] / len_v
+        sang = np.pi * (r_d**2 + r_d**4 / 4. + r_d**6 / 8. + r_d**8 * 5 / 64)
     else:
         sang = 2.*np.pi * (1 - np.sqrt(1. - rad[:, None]**2 / len_v**2))
 
@@ -213,7 +214,6 @@ def calc_solidangle_particle(
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
             pts, traj, dist=len_v, **kwdargs
         )
-        # Because indvis is an array of int (cf. issue 471)
         iout = indvis == 0
         sang[iout] = 0.
         vect[:, iout] = np.nan

@@ -2443,7 +2443,9 @@ cdef inline double sa_approx_formula(double radius,
     """
     cdef double r_over_d = radius / distance
 
-    return (r_over_d ** 2 + r_over_d ** 4) * volpi
+    # return r_over_d ** 2 * volpi
+    return (r_over_d ** 2 + r_over_d ** 4 * 0.25 + r_over_d**6 * 0.125
+            + r_over_d ** 8 * 0.078125) * volpi
 
 
 # -----------------------------------------------------------------------------
