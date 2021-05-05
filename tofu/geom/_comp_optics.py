@@ -430,13 +430,13 @@ def _calc_spect1d_from_data2d(ldata, lamb, phi,
     # Check / format inputs
     if spect1d is None:
         spect1d = 'mean'
- P   if isinstance(ldata, np.ndarray):
+    if isinstance(ldata, np.ndarray):
         ldata = [ldata]
     lc = [isinstance(spect1d, tuple) and len(spect1d) == 2,
-  [MaP        (isinstance(spect1d, list)
+          (isinstance(spect1d, list)
            and all([isinstance(ss, tuple) and len(ss) == 2
                     for ss in spect1d])),
-      [MaPP    spect1d in ['mean', 'cent']]
+          spect1d in ['mean', 'cent']]
     if lc[0]:
         spect1d = [spect1d]
     elif lc[1]:
