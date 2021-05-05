@@ -56,7 +56,7 @@ def _check_flat1darray_size(var=None, varname=None, size=None, norm=None):
         raise Exception(msg)
 
     # Normalize ?
-    if norm is True
+    if norm is True:
         var = var / np.linalg.norm(var)
     return var
 
