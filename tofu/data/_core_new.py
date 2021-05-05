@@ -907,7 +907,7 @@ class DataCollection(utils.ToFuObject):
         if all(lc1):
             idquant, idref1d, idref2d = _check_inputs._get_quantref_12d_keys(
                 dd=self._ddata,
-                qq=quant, ref1d=ref1d, ref2d=ref2d,
+                key=quant, ref1d=ref1d, ref2d=ref2d,
                 group1d=group1d,
                 group2d=group2d,
             )

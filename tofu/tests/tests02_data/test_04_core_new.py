@@ -124,7 +124,9 @@ class Test01_DataCollection(object):
         trace30, trace31 = np.cos(r2), t0[:, None]*np.sin(r2)
         trace40 = t2[:, None, None]*r1[None, :, None]*ch0[None, None, :]
         trace41 = t2[None, None, :]*r2[:, None, None]*ch1[None, :, None]
-        trace50 = mesh0['R'][:, None]*mesh0['Z'][None, :]
+        trace50 = np.cos(t0)[:, None, None]*(
+            mesh0['R'][None, :, None]*mesh0['Z'][None, None, :]
+        )
         trace51 = mesh1['faces'][:, 0:1]*t1[None, :]
         cls.ltrace = [trace00, trace01, trace10, trace11,
                       trace20, trace21, trace30, trace31,
@@ -157,18 +159,30 @@ class Test01_DataCollection(object):
         # conf1 = tfg.utils.create_config(case='B3')
 
         dref = {
-            't0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
-            't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+            't0': {
+                'data': cls.lt[0], 'group': 'time', 'units': 's',
+                'quant': 'time',
+            },
+            't1': {
+                'data': cls.lt[1], 'group': 'time', 'units': 'min',
+                'quant': 'time',
+            },
             'r2': {
                 'data': cls.lr[2],
                 'group': 'radius', 'units': 'm', 'quant': 'rho',
-            }
+            },
+            'mesh0': {
+                'data': mesh0,
+            },
         }
-        ddata = {'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
+        ddata = {
+                 'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
                  'trace10': {'data': cls.ltrace[2], 'ref': ('t1',), 'units': 's'},
                  'trace11': {'data': cls.ltrace[3], 'ref': ('t1', 't0')},
                  'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
-                 'trace31': {'data': cls.ltrace[7], 'ref': ('t0', 'r2')}}
+                 'trace31': {'data': cls.ltrace[7], 'ref': ('t0', 'r2')},
+                 'trace50': {'data': trace50, 'ref': ('t0', 'mesh0')},
+        }
         data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
 
         # Spectrallines
@@ -246,15 +260,16 @@ class Test01_DataCollection(object):
 
         # Try with meshes
         dref = {
+            't0': {'data': self.lt[0], 'group': 'time', 'units': 's'},
             't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
             'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'},
             'mesh1': {'data': self.lmesh[1], 'foo': 'bar', 'quant': 'rho'},
         }
         ddata = {
             'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
-            'trace50': {'data': self.ltrace[-2], 'ref': 'mesh0'},
+            'trace50': {'data': self.ltrace[-2], 'ref': ('t0', 'mesh0')},
             'trace51': {'data': self.ltrace[-1], 'ref': ('mesh1', 't1')},
-            'mesh0': {'data': self.lmesh[0], 'foo': 'bar'},
+            'mesh0': {'data': self.lmesh[0], 'foo': 'bar', 'group': 'mesh2d'},
         }
         data = tfd.DataCollection(
             dref=dref, ddata=ddata,
@@ -317,9 +332,12 @@ class Test01_DataCollection(object):
                     for tt in ['trace00', 'trace11', 'trace31']])
 
         # Add/remove mesh
-        data.add_ref(key='mesh0', data=self.lmesh[0])
+        data.add_ref(key='mesh0', data=self.lmesh[0], group='mesh2d')
         data.add_data(key='mesh1', data=self.lmesh[1], quant='rho')
-        data.add_data(key='trace51', data=self.ltrace[-1], ref=('mesh1', 't1'))
+        data.add_data(
+            key='trace51', data=self.ltrace[-1],
+            ref=('mesh1', 't1'), quant='rho',
+        )
 
         # Add / remove obj and ref_static
         self.lobj[1].add_ref_static(key='[3]', which='source', long='bloblo')
@@ -430,7 +448,32 @@ class Test01_DataCollection(object):
             and all([out[ii] is None for ii in [3, 4, 5]])
         )
 
+        # Get 1d quant from 2d
+        out = data._check_qr12RPZ(
+             quant='trace30', ref1d='r2', ref2d='trace51',
+             q2dR=None, q2dPhi=None, q2dZ=None,
+         )
+        assert (
+            out[0] == 'trace30' and out[1] == 'r2' and out[2] == 'trace51'
+            and all([out[ii] is None for ii in [3, 4, 5]])
+        )
 
+        # Get 1d quant from 2d
+        out = data._check_qr12RPZ(
+             quant='trace30', ref1d=None, ref2d=None,
+             q2dR=None, q2dPhi=None, q2dZ=None,
+         )
+        assert (
+            out[0] == 'trace30' and out[1] == 'trace30' and out[2] == 'mesh0'
+            and all([out[ii] is None for ii in [3, 4, 5]])
+        )
+
+
+    def test11_get_finterp(self):
+        pass
+
+    def test12_interp_pts2d_to_quant1d(self):
+        pass
 
     # ------------------------
     #   Generic TofuObject methods

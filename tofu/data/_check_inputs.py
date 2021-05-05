@@ -116,7 +116,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         msg = (
             "Conflicts with existing values found in {}:\n".format(dd_name)
             + "\n".join([
-                "\t- {}[{}]: {}".format(dd_name, k0, v0)
+                "\t- {}['{}']: {}".format(dd_name, k0, v0)
                 for k0, v0 in dconflict.items()
             ])
         )
@@ -1307,15 +1307,16 @@ def _check_data(data=None, key=None, max_ndim=None):
             raise Exception(msg)
 
     # Check if valid ref candidate
-    monotonous = bool(
-        isinstance(data, np.ndarray)
-        and data.ndim == 1
-        and (
-            np.all(np.diff(data) > 0.)
-            or np.all(np.diff(data) < 0.)
-        )
-    )
-
+    if isinstance(data, np.ndarray):
+        monotonous = tuple([
+            bool(
+                np.all(np.diff(data, axis=aa) > 0.)
+                or np.all(np.diff(data, axis=aa) < 0.)
+            )
+            for aa in range(data.ndim)
+        ])
+    else:
+        monotonous = (False,)
     return data, shape, group, monotonous
 
 
@@ -1542,8 +1543,9 @@ def _check_ddata(
                 or any([isinstance(ss, tuple) for ss in shaperef])
             )
             if c1:
-                shaperef = np.r_[shaperef].ravel()
-            c0 = c0 and tuple(shaperef) == v0['shape']
+                shaperef = np.r_[tuple(shaperef)].ravel()
+            shaperef = tuple(shaperef)
+            c0 = c0 and shaperef == v0['shape']
         else:
             c0 = v0['ref'] == (k0,)
 
@@ -1557,7 +1559,7 @@ def _check_ddata(
                         - ddata['{0}']['shape'] = {3}
 
                     If dict / object it should be its own ref!
-                    """.format(k0, v0['ref'], tuple(shaperef), v0['shape'])
+                    """.format(k0, v0['ref'], shaperef, v0['shape'])
                 )
             else:
                 msg = (
@@ -2079,7 +2081,7 @@ def switch_ref(
     # Check input
     c0 = (
         new_ref in ddata.keys()
-        and ddata[new_ref].get('monot') is True
+        and ddata[new_ref].get('monot') == (True,)
     )
     if not c0:
         strgroup = [
@@ -2087,19 +2089,16 @@ def switch_ref(
                 k0,
                 [
                     k1 for k1 in v0['ldata']
-                    if ddata[k1].get('monot') is True
+                    if ddata[k1].get('monot') == (True,)
                 ]
             )
             for k0, v0 in dgroup.items()
         ]
         msg = (
-            """
-            Arg new_ref must be a key to a valid ref candidate (monotonous)!
-            - Provided: {}
-
-            Available valid ref candidates:
-            - {}
-            """.format(new_ref, '\n\t- '.join(strgroup))
+            "\nArg new_ref must be a key to a valid ref (monotonous)!\n"
+            + "\t- Provided: {}\n\n".format(new_ref)
+            + "Available valid ref candidates:\n"
+            + "\t- {}".format('\n\t- '.join(strgroup))
         )
         raise Exception(msg)
 
@@ -2529,7 +2528,6 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                     )
                 )
                 raise Exception(msg)
-    import pdb; pdb.set_trace()     # DB
 
     # Format output ind
     if log == 'raw':
@@ -2638,9 +2636,10 @@ def _get_keyingroup_ddata(
 
 
 # TBC again
+#def _get_possible_ref12d(
 def _get_quantref_12d_keys(
     dd=None,
-    qq=None, ref1d=None, ref2d=None,
+    key=None, ref1d=None, ref2d=None,
     group1d='radius',
     group2d='mesh2d',
 ):
@@ -2648,7 +2647,7 @@ def _get_quantref_12d_keys(
     # Get relevant lists
     kq, msg = _get_keyingroup_ddata(
         dd=dd,
-        key=qq, group=group2d, msgstr='quant', raise_=False,
+        key=key, group=group2d, msgstr='quant', raise_=False,
     )
 
     if kq is not None:
@@ -2659,61 +2658,110 @@ def _get_quantref_12d_keys(
         # Check if the desired quantity is 1d
         kq, msg = _get_keyingroup_ddata(
             dd=dd,
-            key=qq, group=group1d,
+            key=key, group=group1d,
             msgstr='quant', raise_=True,
         )
 
-        if dd[kq]['monot'] is True:
-            if ref1d is None:
-                ref1d = kq
+        # Get dict of possible {ref1d: lref2d}
+        ref = [rr for rr in dd[kq]['ref'] if dd[rr]['group'] == (group1d,)][0]
+        lref1d = [
+            k0 for k0, v0 in dd.items()
+            if ref in v0['ref'] and v0['monot'][v0['ref'].index(ref)] is True
+        ]
 
-        # Then it needs a 1d and a 2d ref for interpolation
-        if ref1d is None and ref2d is None:
+        # Get matching ref2d with same quant and good group
+        lquant = list(set([dd[kk]['quant'] for kk in lref1d]))
+        dref2d = {
+            k0: [
+                kk for kk in _select(
+                    dd=dd, quant=dd[k0]['quant'],
+                    log='all', returnas=str,
+                )
+                if group2d in dd[kk]['group']
+            ]
+            for k0 in lref1d
+        }
+        dref2d = {k0: v0 for k0, v0 in dref2d.items() if len(v0) > 0}
+
+        if len(dref2d) == 0:
             msg = (
-                "quant {} needs refs (1d + 2d) for interp.\n".format(qq)
-                + "  => ref1d and ref2d cannot be both None !"
+                "No match for (ref1d, ref2d) for ddata['{}']".format(kq)
             )
             raise Exception(msg)
 
-        # Identify 1d ref (should be monotonic)
+        # check ref1d
         if ref1d is None:
-            ref1d = ref2d
-        k1d, msg = _get_keyingroup_ddata(
-            dd=dd,
-            key=ref1d, group=group1d, monot=True,
-            msgstr='ref1d', raise_=False,
-        )
-        if k1d is None:
-            msg += (
-                "\n\nInterpolation of {}:\n".format(qq)
-                + "  ref could not be identified among 1d quantities\n"
-                + "    - ref1d : {}".format(ref1d)
+            if ref2d is not None:
+                lk = [k0 for k0, v0 in dref2d.items() if ref2d in v0]
+                if len(lk) == 0:
+                    msg = (
+                        "\nNon-valid interpolation intermediate\n"
+                        + "\t- provided:\n"
+                        + "\t\t- ref1d = {}, ref2d = {}\n".format(ref1d, ref2d)
+                        + "\t- valid:\n{}".format(
+                            '\n'.join([
+                                '\t\t- ref1d = {}  =>  ref2d in {}'.format(
+                                    k0, v0
+                                )
+                                for k0, v0 in dref2d.items()
+                            ])
+                        )
+                    )
+                    raise Exception(msg)
+                if kq in lk:
+                    ref1d = kq
+                else:
+                    ref1d = lk[0]
+            else:
+                if kq in dref2d.keys():
+                    ref1d = kq
+                else:
+                    ref1d = list(dref2d.keys())[0]
+        else:
+            ref1d, msg = _get_keyingroup_ddata(
+                dd=dd,
+                key=ref1d, group=group1d,
+                msgstr='ref1d', raise_=False,
             )
-            raise Exception(msg)
-
-        # Identify 2d ref
-        if ref2d is None:
-            ref2d = ref1d
-        k2d, msg = _get_keyingroup_ddata(
-            dd=dd,
-            key=ref2d, group=group2d, msgstr='ref2d', raise_=False,
-        )
-        if k2d is None:
-            msg += (
-                "\n\nInterpolation of {}:\n".format(qq)
-                + "  ref could not be identified among 2d quantities\n"
-                + "    - ref2d: {}".format(ref2d)
-            )
-            raise Exception(msg)
-
-        # Check both references are the same quantity
-        q1d, q2d = dd[k1d]['quant'], dd[k2d]['quant']
-        if q1d != q2d:
+        if ref1d not in dref2d.keys():
             msg = (
-                "ref1d and ref2d must be of the same quantity!\n"
-                + "    - ref1d ({}):   {}\n".format(ref1d, q1d)
-                + "    - ref2d ({}):   {}".format(ref2d, q2d)
+                "\nNon-valid interpolation intermediate\n"
+                + "\t- provided:\n"
+                + "\t\t- ref1d = {}, ref2d = {}\n".format(ref1d, ref2d)
+                + "\t- valid:\n{}".format(
+                    '\n'.join([
+                        '\t\t- ref1d = {}  =>  ref2d in {}'.format(
+                            k0, v0
+                        )
+                        for k0, v0 in dref2d.items()
+                    ])
+                )
             )
             raise Exception(msg)
 
-    return kq, k1d, k2d
+        # check ref2d
+        if ref2d is None:
+            ref2d = dref2d[ref1d][0]
+        else:
+            ref2d, msg = _get_keyingroup_ddata(
+                dd=dd,
+                key=ref2d, group=group2d,
+                msgstr='ref2d', raise_=False,
+            )
+        if ref2d not in dref2d[ref1d]:
+            msg = (
+                "\nNon-valid interpolation intermediate\n"
+                + "\t- provided:\n"
+                + "\t\t- ref1d = {}, ref2d = {}\n".format(ref1d, ref2d)
+                + "\t- valid:\n{}".format(
+                    '\n'.join([
+                        '\t\t- ref1d = {}  =>  ref2d in {}'.format(
+                            k0, v0
+                        )
+                        for k0, v0 in dref2d.items()
+                    ])
+                )
+            )
+            raise Exception(msg)
+
+    return kq, ref1d, ref2d
