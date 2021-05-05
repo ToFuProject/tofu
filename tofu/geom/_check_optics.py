@@ -194,9 +194,6 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
     dgeom['extenthalf'] = _check_flat1darray_size(
         var=dgeom.get('extenthalf'), varname='extenthalf', size=2)
 
-    # Check orthonormal direct basis
-    _check_dict_unitvector(dd=dgeom, dd_name='dgeom')
-
     # ----------------------------------
     # Add missing vectors and parameters
     # ----------------------------------
@@ -216,6 +213,17 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
         if dgeom['nout'] is None:
             nout = (dgeom['summit'] - dgeom['center'])
             dgeom['nout'] = nout / np.linalg.norm(nout)
+        if dgeom['e1'] is None:
+            dgeom['e1'] = np.cross(np.r_[0, 0, 1], dgeom['nout'])
+            dgeom['e1'] = dgeom['e1'] / np.linalg.norm(dgeom['e1'])
+            msg = (
+                "dgeom['e1'] was not provided!\n"
+                + "  => setting e1 to horizontal by default!\n"
+            )
+            warnings.warn(msg)
+        if dgeom['e2'] is None:
+            dgeom['e2'] = np.cross(dgeom['nout'], dgeom['e1'])
+            dgeom['e2'] = dgeom['e2'] / np.linalg.norm(dgeom['e2'])
 
     if dgeom['extenthalf'] is not None:
         if dgeom['Type'] == 'sph' and dgeom['Typeoutline'] == 'rect':
@@ -223,6 +231,10 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
             dphi = dgeom['extenthalf'][ind]
             sindtheta = np.sin(dgeom['extenthalf'][ind-1])
             dgeom['surface'] = 4.*dgeom['rcurve']**2*dphi*sindtheta
+
+    # Check orthonormal direct basis
+    _check_dict_unitvector(dd=dgeom, dd_name='dgeom')
+
     return dgeom
 
 
@@ -534,67 +546,71 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
     #------------------------------------------------
 
     # Check type dict and content (each key is a valid string)
-    drock = dbragg['rockingcurve']
-    lkeyok = [
-        'sigma', 'deltad', 'Rmax', 'dangle', 'lamb', 'value', 'type', 'source',
-    ]
-    _check_dict_valid_keys(var=drock, varname='drock', valid_keys=lkeyok)
+    drock = dbragg.get('rockingcurve')
+    if drock is not None:
+        lkeyok = [
+            'sigma', 'deltad', 'Rmax', 'dangle', 'lamb',
+            'value', 'type', 'source',
+        ]
+        _check_dict_valid_keys(var=drock, varname='drock', valid_keys=lkeyok)
 
-    # check type, size and content of each key in drock
-    # Rocking curve can be provided as:
-    # - analytical form (Lorentzian-log)
-    # - tabulated in 2d
-    # - tabulated in 1d
-    try:
-        if drock.get('sigma') is not None:
-            dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
-            dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
-            dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
-            dbragg['rockingcurve']['type'] = 'lorentz-log'
+        # check type, size and content of each key in drock
+        # Rocking curve can be provided as:
+        # - analytical form (Lorentzian-log)
+        # - tabulated in 2d
+        # - tabulated in 1d
+        try:
+            if drock.get('sigma') is not None:
+                dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
+                dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
+                dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
+                dbragg['rockingcurve']['type'] = 'lorentz-log'
 
-        elif drock.get('dangle') is not None:
-            c2d = (drock.get('lamb') is not None
-                   and drock.get('value').ndim == 2)
-            if c2d:
-                if drock['value'].shape != (drock['dangle'].size,
-                                            drock['lamb'].size):
-                    msg = (
-                        """ Tabulated 2d rocking curve should be:
-                            shape = (dangle.size, lamb.size)
-                        """)
-                    raise Exception(msg)
-                dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
-                dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
-                dbragg['rockingcurve']['value'] = drock['value']
-                dbragg['rockingcurve']['type'] = 'tabulated-2d'
+            elif drock.get('dangle') is not None:
+                c2d = (drock.get('lamb') is not None
+                       and drock.get('value').ndim == 2)
+                if c2d:
+                    if drock['value'].shape != (drock['dangle'].size,
+                                                drock['lamb'].size):
+                        msg = (
+                            """ Tabulated 2d rocking curve should be:
+                                shape = (dangle.size, lamb.size)
+                            """)
+                        raise Exception(msg)
+                    dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                    dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
+                    dbragg['rockingcurve']['value'] = drock['value']
+                    dbragg['rockingcurve']['type'] = 'tabulated-2d'
 
-            else:
-                if drock.get('lamb') is None:
-                    msg = (
-                        """Please also specify the lamb for which
-                            the rocking curve was tabulated""")
-                    raise Exception(msg)
-                dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
-                dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
-                dbragg['rockingcurve']['value'] = np.r_[drock['value']]
-                dbragg['rockingcurve']['type'] = 'tabulated-1d'
+                else:
+                    if drock.get('lamb') is None:
+                        msg = (
+                            """Please also specify the lamb for which
+                                the rocking curve was tabulated""")
+                        raise Exception(msg)
+                    dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
+                    dbragg['rockingcurve']['dangle'] = np.r_[drock['dangle']]
+                    dbragg['rockingcurve']['value'] = np.r_[drock['value']]
+                    dbragg['rockingcurve']['type'] = 'tabulated-1d'
 
-            if drock.get('source') is None:
-                msg = "Unknown source for the tabulated rocking curve!"
-                warnings.warn(msg)
-            dbragg['rockingcurve']['source'] = drock.get('source')
+                if drock.get('source') is None:
+                    msg = "Unknown source for the tabulated rocking curve!"
+                    warnings.warn(msg)
+                dbragg['rockingcurve']['source'] = drock.get('source')
 
-    except Exception as err:
-        msg = (
-            """
-            Provide the rocking curve as a dictionnary with either:
-                - parameters of a lorentzian in log10:
-                  'sigma': float, 'deltad':float, 'Rmax': float
-                - tabulated (dangle, value) with source (url...):
-                  'dangle': np.darray, 'value': np.darray, 'source': str
-            """
-        )
-        raise Exception(msg)
+        except Exception as err:
+            msg = (
+                """
+                Provide the rocking curve as a dictionnary with either:
+                    - parameters of a lorentzian in log10:
+                      'sigma': float, 'deltad':float, 'Rmax': float
+                    - tabulated (dangle, value) with source (url...):
+                      'dangle': np.darray, 'value': np.darray, 'source': str
+                """
+            )
+            raise Exception(msg)
+    else:
+        dbragg['rockingcurve'] = None
     return dbragg
 
 
