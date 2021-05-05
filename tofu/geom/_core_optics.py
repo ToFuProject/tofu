@@ -44,6 +44,7 @@ _RETURN_COPY = False
 ###############################################################################
                         Ves class and functions
 ###############################################################################
+###############################################################################
 """
 
 
@@ -201,151 +202,6 @@ class CrystalBragg(utils.ToFuObject):
         return largs
 
     ###########
-    # Get check and format inputs
-    ###########
-
-    @classmethod
-    def _checkformat_dmat(cls, dmat=None):
-        if dmat is None:
-            return
-        assert isinstance(dmat, dict)
-        lkok = cls._get_keys_dmat()
-        assert all([isinstance(ss, str) for ss in dmat.keys()])
-        assert all([ss in lkok for ss in dmat.keys()])
-        for kk in cls._ddef['dmat'].keys():
-            dmat[kk] = dmat.get(kk, cls._ddef['dmat'][kk])
-        if dmat.get('d') is not None:
-            dmat['d'] = float(dmat['d'])
-        if dmat.get('formula') is not None:
-            assert isinstance(dmat['formula'], str)
-        if dmat.get('density') is not None:
-            dmat['density'] = float(dmat['density'])
-        if dmat.get('lengths') is not None:
-            dmat['lengths'] = np.atleast_1d(dmat['lengths']).ravel()
-        if dmat.get('angles') is not None:
-            dmat['angles'] = np.atleast_1d(dmat['angles']).ravel()
-        if dmat.get('cut') is not None:
-            dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
-            assert dmat['cut'].size <= 4
-        return dmat
-
-    def _checkformat_dbragg(self, dbragg=None):
-        if dbragg is None:
-            dbragg = dict.fromkeys(self._get_keys_dbragg())
-        assert isinstance(dbragg, dict)
-        lkok = self._get_keys_dbragg()
-        assert all([isinstance(ss, str) for ss in dbragg.keys()])
-        assert all([ss in lkok for ss in dbragg.keys()])
-
-        # Set default parameters when necessary
-        for kk in self._ddef['dbragg'].keys():
-            if dbragg.get(kk) is None:
-                dbragg[kk] = self._ddef['dbragg'][kk]
-
-        # Check braggref
-        ltypes = [int, float, np.int_, np.float_]
-        c0 = bool(type(dbragg.get('braggref')) in ltypes
-                  and dbragg['braggref'] >= 0.
-                  and dbragg['braggref'] <= np.pi/2.)
-        if c0 is not True:
-            msg = ("dbragg['braggref'] is not valid!\n"
-                   + "\t- should be in [0; pi/2]\n"
-                   + "\t- provided: {}".format(dbragg['braggref']))
-            raise Exception(msg)
-
-        # Set default lambda if necessary
-        user_prov = True
-        if dbragg.get('lambref') is None:
-            # set to bragg = braggref
-            dbragg['lambref'] = _comp_optics.get_lamb_from_bragg(
-                np.r_[dbragg['braggref']], self._dmat['d'], n=1)[0]
-            user_prov = False
-
-        # Check provided lambref is valid
-        braggref = _comp_optics.get_bragg_from_lamb(
-            np.r_[dbragg['lambref']], self._dmat['d'], n=1)[0]
-        if np.isnan(braggref):
-            lambok = []
-            msg = ("dbragg['lambref'] is not valid, "
-                   + "wavelength is out of accessible interval:\n"
-                   + "\t- crystal inter-plane d = {}\n".format(self._dmat['d'])
-                   + "\t- wavelength interval (m): {}\n".format(lambok)
-                   + "\t- lambref = {}".format(dbragg['lambref']))
-            raise Exception(msg)
-
-        # Update braggref according to lambref
-        # (if lambref was user-provided)
-        if user_prov is True:
-            dbragg['braggref'] = braggref
-
-        # Check rocking curve if any
-        if dbragg.get('rockingcurve') is not None:
-            assert isinstance(dbragg['rockingcurve'], dict)
-            drock = dbragg['rockingcurve']
-            lkeyok = ['sigam', 'deltad', 'Rmax', 'dangle', 'lamb', 'value',
-                      'type', 'source']
-            lkout = [kk for kk in drock.keys() if kk not in lkeyok]
-            if len(lkout) > 0:
-                msg = ("Unauthorized keys in dbrag['rockingcurve']:\n"
-                       + "\t-" + "\n\t-".join(lkout))
-                raise Exception(msg)
-            try:
-                if drock.get('sigma') is not None:
-                    dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
-                    dbragg['rockingcurve']['deltad'] = float(
-                        drock.get('deltad', 0.))
-                    dbragg['rockingcurve']['Rmax'] = float(
-                        drock.get('Rmax', 1.))
-                    dbragg['rockingcurve']['type'] = 'lorentz-log'
-                elif drock.get('dangle') is not None:
-                    c2d = (drock.get('lamb') is not None
-                           and drock.get('value').ndim == 2)
-                    if c2d:
-                        if drock['value'].shape != (drock['dangle'].size,
-                                                    drock['lamb'].size):
-                            msg = ("Tabulated 2d rocking curve should be:\n"
-                                   + "\tshape = (dangle.size, lamb.size)")
-                            raise Exception(msg)
-                        dbragg['rockingcurve']['dangle'] = np.r_[
-                            drock['dangle']]
-                        dbragg['rockingcurve']['lamb'] = np.r_[drock['lamb']]
-                        dbragg['rockingcurve']['value'] = drock['value']
-                        dbragg['rockingcurve']['type'] = 'tabulated-2d'
-                    else:
-                        if drock.get('lamb') is None:
-                            msg = ("Please also specify the lamb for which "
-                                   + "the rocking curve was tabulated!")
-                            raise Exception(msg)
-                        dbragg['rockingcurve']['lamb'] = float(drock['lamb'])
-                        dbragg['rockingcurve']['dangle'] = np.r_[
-                            drock['dangle']]
-                        dbragg['rockingcurve']['value'] = np.r_[drock['value']]
-                        dbragg['rockingcurve']['type'] = 'tabulated-1d'
-                    if drock.get('source') is None:
-                        msg = "Unknonw source for the tabulated rocking curve!"
-                        warnings.warn(msg)
-                    dbragg['rockingcurve']['source'] = drock.get('source')
-            except Exception as err:
-                msg = ("Provide the rocking curve as a dict with either:\n"
-                       + "\t- parameters of a lorentzian in log10:\n"
-                       + "\t\t{'sigma': float,\n"
-                       + "\t\t 'deltad': float,\n"
-                       + "\t\t 'Rmax': float}\n"
-                       + "\t- tabulated (dangle, value), with source (url...)"
-                       + "\t\t{'dangle': np.ndarray,\n"
-                       + "\t\t 'value': np.ndarray,\n"
-                       + "\t\t 'source': str}")
-                raise Exception(msg)
-        return dbragg
-
-    @classmethod
-    def _checkformat_inputs_dmisc(cls, color=None):
-        if color is None:
-            color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
-        assert mpl.colors.is_color_like(color)
-        return tuple(mpl.colors.to_rgba(color))
-
-    ###########
     # Get keys of dictionnaries
     ###########
 
@@ -360,7 +216,8 @@ class CrystalBragg(utils.ToFuObject):
     @staticmethod
     def _get_keys_dmat():
         lk = ['formula', 'density', 'symmetry',
-              'lengths', 'angles', 'cut', 'd']
+              'lengths', 'angles', 'cut', 'd',
+              'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
         return lk
 
     @staticmethod
@@ -399,25 +256,36 @@ class CrystalBragg(utils.ToFuObject):
     ###########
 
     def set_dgeom(self, dgeom=None):
-        dgeom = _check_optics._checkformat_dgeom(
+        self._dgeom = _check_optics._checkformat_dgeom(
             dgeom=dgeom, ddef=self._ddef['dgeom'],
             valid_keys=self._get_keys_dgeom(),
         )
-        self._dgeom = dgeom
-        if dgeom['move'] is not None:
-            self.set_move(move=dgeom['move'], param=dgeom['move_param'],
-                          **dgeom['move_kwdargs'])
+        if self._dgeom['move'] is not None:
+            self.set_move(
+                move=self._dgeom['move'],
+                param=self._dgeom['move_param'],
+                **self._dgeom['move_kwdargs'],
+            )
 
     def set_dmat(self, dmat=None):
-        dmat = self._checkformat_dmat(dmat)
-        self._dmat = dmat
+        self._dmat = _check_optics._checkformat_dmat(
+            dmat=dmat, dgeom=self._dgeom,
+            ddef=self._ddef['dmat'],
+            valid_keys=self._get_keys_dmat()
+        )
 
     def set_dbragg(self, dbragg=None):
-        dbragg = self._checkformat_dbragg(dbragg)
-        self._dbragg = dbragg
+        self._dbragg = _check_optics._checkformat_dbragg(
+            dbragg=dbragg,
+            ddef=self._ddef['dbragg'],
+            valid_keys=self._get_keys_dbragg(),
+            dmat=self._dmat,
+        )
 
     def _set_color(self, color=None):
-        color = self._checkformat_inputs_dmisc(color=color)
+        color = _check_optics._checkformat_inputs_dmisc(
+            color=color, ddef=self._ddef,
+        )
         self._dmisc['color'] = color
         self._dplot['cross']['dP']['color'] = color
         self._dplot['hor']['dP']['color'] = color
@@ -554,21 +422,21 @@ class CrystalBragg(utils.ToFuObject):
     def dmisc(self):
         return self._dmisc
 
-    @property
-    def nin(self):
-        return self._dgeom['nin']
+    # @property
+    # def nin(self):
+        # return self._dgeom['nin']
 
-    @property
-    def nout(self):
-        return self._dgeom['nout']
+    # @property
+    # def nout(self):
+        # return self._dgeom['nout']
 
-    @property
-    def e1(self):
-        return self._dgeom['e1']
+    # @property
+    # def e1(self):
+        # return self._dgeom['e1']
 
-    @property
-    def e2(self):
-        return self._dgeom['e2']
+    # @property
+    # def e2(self):
+        # return self._dgeom['e2']
 
     @property
     def summit(self):
@@ -588,6 +456,31 @@ class CrystalBragg(utils.ToFuObject):
             if self._dbragg['rockingcurve'].get('type') is not None:
                 return self._dbragg['rockingcurve']
         raise Exception("rockingcurve was not set!")
+
+    # --------------------------------------
+    # methods for getting unit vectors basis
+    # --------------------------------------
+
+    def get_unit_vectors(self, use_non_parallelism=None):
+        """ Return the unit vectors (direct orthonormal basis)
+
+        Depending on:
+            use_non_parallelism: True  => return the geometrical basis
+            use_non_parallelism: False  => return the mesh basis
+
+        """
+        if use_non_parallelism is None:
+            use_non_parallelism = True
+
+        if use_non_parallelism is True:
+            nout = self._dmat['nout']
+            e1 = self._dmat['e1']
+            e2 = self._dmat['e2']
+        else:
+            nout = self._dgeom['nout']
+            e1 = self._dgeom['e1']
+            e2 = self._dgeom['e2']
+        return nout, e1, e2
 
     # -----------------
     # methods for color
@@ -824,8 +717,8 @@ class CrystalBragg(utils.ToFuObject):
     def get_rockingcurve_func(self, lamb=None, n=None):
         """ Return the rocking curve function
 
-        Also return the wavelength (lamb) for which it was computed
-            and the associated reference bragg angle
+        Also return the wavelength (lamb) (in meters) for which it was computed
+            and the associated reference bragg angle (in rad)
 
         """
         drock = self.rockingcurve
@@ -890,7 +783,7 @@ class CrystalBragg(utils.ToFuObject):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
                 func = _comp_optics.CrystBragg_sample_outline_plot_sphrect
-                outline = func(self._dgeom['center'], self.dgeom['nout'],
+                outline = func(self._dgeom['center'], self._dgeom['nout'],
                                self._dgeom['e1'], self._dgeom['e2'],
                                self._dgeom['rcurve'], self._dgeom['extenthalf'],
                                res)
@@ -910,8 +803,6 @@ class CrystalBragg(utils.ToFuObject):
         else:
             raise NotImplementedError
         return outline
-
-
 
     # -----------------
     # methods for surface and contour sampling
@@ -950,6 +841,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def get_Rays_from_summit(self, phi=None, bragg=None,
                              lamb=None, n=None,
+                             use_non_parallelism=None,
                              returnas=object, config=None, name=None):
 
         # Check inputs
@@ -959,11 +851,9 @@ class CrystalBragg(utils.ToFuObject):
         phi = phi[None, ...]
         bragg = bragg[None, ...]
 
-        # Prepare
-        shape = tuple([3] + [1 for ii in range(phi.ndim)])
-        nin = self._dgeom['nin'].reshape(shape)
-        e1 = self._dgeom['e1'].reshape(shape)
-        e2 = self._dgeom['e2'].reshape(shape)
+        nout, e1, e2 = self.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism
+        )
 
         # Compute start point (D) and unit vectors (us)
         D = self._dgeom['summit']
@@ -982,9 +872,12 @@ class CrystalBragg(utils.ToFuObject):
             return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
                             Exp=self.Id.Exp, shot=self.Id.shot, config=config)
 
-    def get_Rays_from_summit_to_det(self, phi=None, bragg=None,
-                                    lamb=None, n=None,
-                                    returnas=object, det=None):
+    def get_Rays_from_summit_to_det(
+        self, phi=None, bragg=None,
+        lamb=None, n=None,
+        use_non_parallelism=None,
+        returnas=object, det=None,
+    ):
 
         # Check input 
         det = self._checkformat_det(det)
@@ -993,9 +886,12 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         # Get starting point and vectors
-        D, us = self.get_Rays_from_summit(phi=phi, bragg=bragg,
-                                          lamb=lamb, n=n,
-                                          returnas=tuple)
+        D, us = self.get_Rays_from_summit(
+            phi=phi, bragg=bragg,
+            use_non_parallelism=use_non_parallelism,
+            lamb=lamb, n=n,
+            returnas=tuple,
+        )
 
         # Compute pts on det surface
         k = (np.sum((det['cent']-D)*det['nout'], axis=0)
@@ -1005,18 +901,28 @@ class CrystalBragg(utils.ToFuObject):
         # Format output
         return (D, pts)
 
-    def get_Rays_envelop(self,
-                         phi=None, bragg=None, lamb=None, n=None,
-                         returnas=object, config=None, name=None):
+    def get_Rays_envelop(
+        self,
+        phi=None, bragg=None, lamb=None, n=None,
+        use_non_parallelism=None,
+        returnas=object, config=None, name=None,
+    ):
         # Check inputs
-        phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg,
-                                                     lamb=lamb, n=n)
+        phi, bragg = self._checkformat_get_Rays_from(
+            phi=phi, bragg=bragg,
+            lamb=lamb, n=n,
+        )
         assert phi.ndim == 1
+
+        # choice of basis
+        nout, e1, e2 = self.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism
+        )
 
         # Compute
         func = _comp_optics.CrystBragg_sample_outline_Rays
-        D, us = func(self._dgeom['center'], self._dgeom['nout'],
-                     self._dgeom['e1'], self._dgeom['e2'],
+        D, us = func(self._dgeom['center'],
+                     nout, e1, e2,
                      self._dgeom['rcurve'], self._dgeom['extenthalf'],
                      bragg, phi)
 
@@ -1029,7 +935,6 @@ class CrystalBragg(utils.ToFuObject):
                 name = self.Id.Name + 'ExtractCam'
             return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
                             Exp=self.Id.Exp, shot=self.Id.shot, config=config)
-
 
 
     # -----------------
@@ -1166,7 +1071,6 @@ class CrystalBragg(utils.ToFuObject):
             lamb = self._dbragg['lambref']
         return _comp_optics.get_bragg_from_lamb(np.atleast_1d(lamb),
                                                 self._dmat['d'], n=n)
-
     def get_lamb_from_bragg(self, bragg=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
@@ -1183,6 +1087,7 @@ class CrystalBragg(utils.ToFuObject):
                             ddist=None, di=None, dj=None,
                             dtheta=None, dpsi=None, tilt=None,
                             lamb0=None, lamb1=None, dist01=None,
+                            use_non_parallelism=None,
                             tangent_to_rowland=None, plot=False):
         """ Return approximate ideal detector geometry
 
@@ -1196,6 +1101,7 @@ class CrystalBragg(utils.ToFuObject):
 
         The detector can be translated towards / away from the crystal
             to make sure the distance between 2 spectral lines
+
             (lamb0 and lamb1) on the detector's plane matches
             a desired distance (dist01, in m)
 
@@ -1227,9 +1133,12 @@ class CrystalBragg(utils.ToFuObject):
                     defining second coordinate in detector's plane
         """
 
+        # ---------------------
         # Check / format inputs
+
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
+
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         if np.all(np.isnan(bragg)):
             msg = ("There is no available bragg angle!\n"
@@ -1250,11 +1159,24 @@ class CrystalBragg(utils.ToFuObject):
             bragg01 = self._checkformat_bragglamb(lamb=np.r_[lamb0, lamb1],
                                                   n=n)
 
-        lf = ['summit', 'nout', 'e1', 'e2']
-        lc = [rcurve is None] + [self._dgeom[kk] is None for kk in lf]
+        # split into 2 different condition because of dmat
+        lc = [rcurve is None, self._dgeom['summit'] is None]
         if any(lc):
             msg = ("Some missing fields in dgeom for computation:"
-                   + "\n\t-" + "\n\t-".join(['rcurve'] + lf))
+                   + "\n\t-" + "\n\t-".join(['rcurve'] +'summit'))
+            raise Exception(msg)
+
+        nout, e1, e2 = self.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism,
+        )
+
+        lc = [cc is None for cc in [nout, e1, e2]]
+        if any(lc):
+            msg = (
+                """
+                Field 'nout', 'e1', 'e2' missing!
+                """
+                )
             raise Exception(msg)
 
         # Compute crystal-centered parameters in (nout, e1, e2)
@@ -1267,8 +1189,7 @@ class CrystalBragg(utils.ToFuObject):
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
             det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
-            self._dgeom['summit'],
-            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            self._dgeom['summit'],nout, e1, e2,
             ddist=ddist, di=di, dj=dj,
             dtheta=dtheta, dpsi=dpsi, tilt=tilt)
 
@@ -1320,18 +1241,18 @@ class CrystalBragg(utils.ToFuObject):
                 det[k0] = np.atleast_1d(det[k0]).ravel()
         return det
 
-
-    def get_local_noute1e2(self, dtheta, psi):
+    def get_local_noute1e2(self, dtheta, psi, use_non_parallelism=None):
         """ Return (nout, e1, e2) associated to pts on the crystal's surface
 
         All points on the spherical crystal's surface are identified
             by (dtheta, psi) coordinates, where:
                 - theta  = np.pi/2 + dtheta (dtheta=0 by default) for the center
+                (for the diffracted beam)
                 - psi = 0 for the center
             They are the spherical coordinates from a sphere centered on the
             crystal's center of curvature.
 
-        Return the pts themselves and the 3 perpendicular unti vectors
+        Return the pts themselves and the 3 perpendicular unit vectors
             (nout, e1, e2), where nout is towards the outside of the sphere and
             nout = np.cross(e1, e2)
 
@@ -1357,15 +1278,18 @@ class CrystalBragg(utils.ToFuObject):
         nmax = max(psi.size, dtheta.size)
         assert psi.size in [1, nmax] and dtheta.size in [1, nmax]
 
+        # Get local basis at crystal summit
+        nout, e1, e2 = self.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism,
+        )
+
         if nmax == 1 and np.allclose([dtheta, psi], [0., 0.]):
             summ = self._dgeom['summit']
-            nout = self._dgeom['nout']
-            e1, e2 = self._dgeom['e1'], self._dgeom['e2']
+            nout = nout 
+            e1, e2 = e1, e2 
         else:
             func = _comp_optics.CrystBragg_get_noute1e2_from_psitheta
-            nout, e1, e2 = func(self._dgeom['nout'],
-                                self._dgeom['e1'], self._dgeom['e2'],
-                                psi, dtheta)
+            nout, e1, e2 = func(nout, e1, e2, psi, dtheta)
             if nout.ndim == 2:
                 cent = self._dgeom['center'][:, None]
             elif nout.ndim == 3:
@@ -1689,10 +1613,11 @@ class CrystalBragg(utils.ToFuObject):
             ndtheta = 10
 
         # Compute dtheta, psi, indnan
-        dtheta, psi, indnan, indout = _comp_optics.calc_dthetapsiphi_from_lambpts(
+        (dtheta, psi,
+         indnan, indout) = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts, self._dgeom['center'], self._dgeom['rcurve'],
             bragg, nlamb, npts,
-            self._dgeom['nout'], self._dgeom['e1'], self._dgeom['e2'],
+            self._dmat['nout'], self._dmat['e1'], self._dmat['e2'],
             self._dgeom['extenthalf'], ndtheta=ndtheta)
 
         bragg = np.repeat(np.repeat(bragg[:, None], npts, axis=-1)[..., None],
@@ -1709,8 +1634,9 @@ class CrystalBragg(utils.ToFuObject):
                                      xi_bounds=None, xj_bounds=None, nphi=None,
                                      det=None, n=None, ndtheta=None,
                                      johann=False, lpsi=None, ldtheta=None,
-                                     rocking=False, plot=None, fs=None, dmargin=None,
-                                     wintit=None, tit=None, proj=None,
+                                     rocking=False, plot=None, fs=None,
+                                     dmargin=None, wintit=None,
+                                     tit=None, proj=None,
                                      legend=None, draw=None, returnas=None):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
 
@@ -1774,7 +1700,6 @@ class CrystalBragg(utils.ToFuObject):
             if returnas == 'ax':
                 return ax
         return xi, xj
-
 
     def _calc_spect1d_from_data2d(self, data, lamb, phi,
                                   nlambfit=None, nphifit=None,
@@ -2118,7 +2043,7 @@ class CrystalBragg(utils.ToFuObject):
         # spect1d=None, nlambfit=None,
         # plotmode=None, angunits=None, indspect=None,
         # cmap=None, vmin=None, vmax=None):
-        """ Perform 2d fitting of a 2d apectromtere image
+        """ Perform 2d fitting of a 2d spectrometre image
 
         Fit the spectrum by a sum of gaussians
         Modulate each gaussian parameters by bsplines in the spatial direction

@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 #           sampling
 # ###############################################
 
-def CrystBragg_sample_outline_sphrect(extent_psi, extent_dtheta, npsi=None, ntheta=None):
+def CrystBragg_sample_outline_sphrect(extent_psi, extent_dtheta, npsi=None, 
+                                      ntheta=None):
     psi = extent_psi*np.linspace(-1, 1., npsi)
     dtheta = extent_dtheta*np.linspace(-1, 1., ntheta)
     psimin = np.full((ntheta,), psi[0])
@@ -28,6 +29,7 @@ def CrystBragg_sample_outline_sphrect(extent_psi, extent_dtheta, npsi=None, nthe
                              dthetamax, dtheta[::-1]))
     return psi, dtheta
 
+
 def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
                                           e1e2=True, sameshape=False):
     # Prepare
@@ -38,7 +40,8 @@ def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
         if psi.ndim == 1:
             nout, e1, e2 = nout[:, None], e1[:, None], e2[:, None]
         elif psi.ndim == 2:
-            nout, e1, e2 = nout[:, None, None], e1[:, None, None], e2[:, None, None]
+            nout, e1, e2 = (nout[:, None, None], 
+                            e1[:, None, None], e2[:, None, None])
         else:
             nout = nout[:, None, None, None]
             e1, e2 = e1[:, None, None, None], e2[:, None, None, None]
@@ -46,7 +49,9 @@ def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
     psi = psi[None, ...]
 
     # Compute
-    vout = ((np.cos(psi)*nout + np.sin(psi)*e1)*np.sin(theta) + np.cos(theta)*e2)
+    vout = (
+         (np.cos(psi)*nout + np.sin(psi)*e1)*np.sin(theta) + np.cos(theta)*e2
+         )
     if e1e2:
         ve1 = -np.sin(psi)*nout + np.cos(psi)*e1
         ve2 = np.array([vout[1, ...]*ve1[2, ...] - vout[2, ...]*ve1[1, ...],
@@ -55,6 +60,7 @@ def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
         return vout, ve1, ve2
     else:
         return vout
+
 
 def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
                                            rcurve, extenthalf, res=None):
@@ -68,6 +74,7 @@ def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
     vout = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
                                                  e1e2=False, sameshape=False)
     return center[:, None] + rcurve*vout
+
 
 def CrystBragg_sample_outline_Rays(center, nout, e1, e2,
                                    rcurve, extenthalf,
@@ -105,7 +112,12 @@ def CrystBragg_sample_outline_Rays(center, nout, e1, e2,
 # ###############################################
 
 def get_bragg_from_lamb(lamb, d, n=None):
-    """ n*lamb = 2d*sin(bragg) """
+    """ n*lamb = 2d*sin(bragg)
+    The angle bragg is defined as the angle of incidence of the emissed photon
+    vector and the crystal mesh, and not the crystal dioptre.
+    For record, both are parallel and coplanar when is defined parallelism
+    into the crystal.
+    """
     if n is None:
         n = 1
     bragg= np.full(lamb.shape, np.nan)
@@ -115,7 +127,12 @@ def get_bragg_from_lamb(lamb, d, n=None):
     return bragg
 
 def get_lamb_from_bragg(bragg, d, n=None):
-    """ n*lamb = 2d*sin(bragg) """
+    """ n*lamb = 2d*sin(bragg)
+    The angle bragg is defined as the angle of incidence of the emissed photon
+    vector and the crystal mesh, and not the crystal dioptre.
+    For record, both are parallel and coplanar when is defined parallelism
+    into the crystal.
+    """
     if n is None:
         n = 1
     return 2*d*np.sin(bragg) / n
@@ -129,11 +146,25 @@ def get_approx_detector_rel(rcurve, bragg,
                             braggref=None, xiref=None,
                             bragg01=None, dist01=None,
                             tangent_to_rowland=None):
+    """ Return the approximative detector position on the Rowland circle
+    relatively to the Bragg crystal.
+    Possibility to define tangential position of the detector to the Rowland
+    circle or not.
+    On WEST, the maximum non-parallelism between two halves can be up to few
+    arcmin so here, doesn't need to define the precise location of the detector.
+    The bragg angle is provided and naturally defined as the angle between the
+    emissed photon vector and the crystal mesh.
+    So, if non parallelism approuved, bragg is relative
+    to the vector basis dmat(nout,e1,e2).
+    The position of the detector, relatively to the crystal, will be so in
+    another Rowland circle with its center shifted from the original one.
+    """
 
     if tangent_to_rowland is None:
         tangent_to_rowland = True
 
     # distance crystal - det_center
+    ## bragg between incident vector and mesh
     det_dist = rcurve*np.sin(bragg)
 
     # det_nout and det_e1 in (nout, e1, e2) (det_e2 = e2)
@@ -146,13 +177,13 @@ def get_approx_detector_rel(rcurve, bragg,
         det_nout_rel = -n_crystdet_rel
         det_ei_rel = np.r_[np.cos(bragg), np.sin(bragg), 0]
 
-    # Update with bragg01 and dist01
+    # update with bragg01 and dist01
     if bragg01 is not None:
         ang = np.diff(np.sort(bragg01))
-        # h = L1 tan(theta1) = L2 tan(theta2)
-        # L = L2 (tan(theta1) + tan(theta2)) / tan(theta1)
-        # l = L2 / cos(theta2)
-        # l = L tan(theta1) / (cos(theta2) * (tan(theta1) + tan(theta2)))
+        # h = l1 tan(theta1) = l2 tan(theta2)
+        # l = l2 (tan(theta1) + tan(theta2)) / tan(theta1)
+        # l = l2 / cos(theta2)
+        # l = l tan(theta1) / (cos(theta2) * (tan(theta1) + tan(theta2)))
         theta2 = bragg  if tangent_to_rowland is True else np.pi/2
         theta1 = np.abs(bragg-bragg01[0])
         tan1 = np.tan(theta1)
@@ -173,7 +204,15 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
                          summit, nout, e1, e2,
                          ddist=None, di=None, dj=None,
                          dtheta=None, dpsi=None, tilt=None):
-    # Reference
+    """ Return the absolute detector position, according to tokamak's frame,
+    on the Rowland circle from its relative position to the Bragg crystal.
+    If non parallelism approuved, bragg is relative to the vector basis
+    dmat(nout,e1,e2).
+    The position of the detector, relatively to the crystal, will be so in
+    another Rowland circle with its center shifted from the original one.
+    """
+  
+    # Reference on detector
     det_nout = (det_nout_rel[0]*nout
                 + det_nout_rel[1]*e1 + det_nout_rel[2]*e2)
     det_ei = (det_ei_rel[0]*nout
@@ -218,6 +257,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
 # ###############################################
 #           Coordinates transforms
 # ###############################################
+
 
 def checkformat_vectang(Z, nn, frame_cent, frame_ang):
     # Check / format inputs
