@@ -26,7 +26,12 @@ from . import _def
 from . import _comp_spectrallines
 
 __all__ = ['DataCollection'] # , 'TimeTraceCollection']
+
+
 _INTERPT = 'zero'
+_GROUP_0D = 'time'
+_GROUP_1D = 'radius'
+_GROUP_2D = 'mesh2d'
 
 
 #############################################
@@ -80,6 +85,10 @@ class DataCollection(utils.ToFuObject):
     _dref_static = {}
     _ddata = {}
     _dobj = {}
+
+    _group0d = _GROUP_0D
+    _group1d = _GROUP_1D
+    _group2d = _GROUP_2D
 
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
@@ -819,91 +828,46 @@ class DataCollection(utils.ToFuObject):
             returnas=returnas,
         )
 
+    # -----------------
+    # Get common ref
+    # ------------------
+
+    def _get_common_ref_data_nearest(
+        self,
+        group=None,
+        lkey=None,
+        return_all=None,
+    ):
+        """ Typically used to get a common (intersection) time vector
+
+        Returns a time vector that contains all time points from all data
+        Also return a dict of indices to easily remap each time vector to tall
+            such that t[ind] = tall (with nearest approximation)
+
+        """
+        return _comp_new._get_unique_ref_dind(
+            dd=self._ddata, group=group,
+            lkey=lkey, return_all=return_all,
+        )
+
     # ---------------------
     # Method for interpolation - inputs checks
     # ---------------------
 
-    def _get_ldata(
-        self, dim=None, quant=None, name=None,
-        units=None, source=None,
-        ref=None, group=None, log='all', return_key=True,
-    ):
-        """ Get list of data key matching any/all dim/units/name/...  """
-        assert log in ['all', 'any', 'raw']
-        lid = np.array(list(self._ddata.keys()))
-        ind = np.ones((7,len(lid)),dtype=bool)
-        if dim is not None:
-            ind[0,:] = [self._ddata[id_]['dim'] == dim for id_ in lid]
-        if quant is not None:
-            ind[1,:] = [self._ddata[id_]['quant'] == quant for id_ in lid]
-        if name is not None:
-            ind[2,:] = [self._ddata[id_]['name'] == name for id_ in lid]
-        if units is not None:
-            ind[3,:] = [self._ddata[id_]['units'] == units for id_ in lid]
-        if source is not None:
-            ind[4,:] = [self._ddata[id_]['source'] == source for id_ in lid]
-        if ref is not None:
-            ind[5,:] = [depend in self._ddata[id_]['ref'] for id_ in lid]
-        if group is not None:
-            ind[6,:] = [group in self._ddata[id_]['group'] for id_ in lid]
+    # Useful?
+    @property
+    def _get_lquant_both(self, group1d=None, group2d=None):
+        """ Return list of quantities available both in 1d and 2d """
+        lq1 = [
+            self._ddata[vd]['quant'] for vd in self._dgroup[group1d]['ldata']
+        ]
+        lq2 = [
+            self._ddata[vd]['quant'] for vd in self._dgroup[group2d]['ldata']
+        ]
+        lq = list(set(lq1).intersection(lq2))
+        return lq
 
-        if log == 'all':
-            ind = np.all(ind, axis=0)
-        elif log == 'any':
-            ind = np.any(ind, axis=0)
-
-        if return_key:
-            if np.any(ind):
-                out = lid[ind.nonzero()[0]]
-            else:
-                out = np.array([],dtype=int)
-        else:
-            out = ind, lid
-        return out
-
-    def _get_keyingroup(self, key=None, group=None, msgstr=None, raise_=False):
-
-        if key in self._ddata.keys():
-            lg = self._ddata[key]['group']
-            if group is None or group in lg:
-                return key, None
-            else:
-                msg = ("Required data key does not have matching group:\n"
-                       + "\t- ddata[{}]['group'] = {}\n".format(key, lg)
-                       + "\t- Expected group:  {}".format(group))
-                if raise_:
-                    raise Exception(msg)
-
-        ind, akeys = self.select(dim=key, quant=key, name=key, units=key,
-                                 source=key, group=group, log='raw',
-                                 returnas=bool)
-        # Remove indref and group
-        ind = ind[:5,:] & ind[-1,:]
-
-        # Any perfect match ?
-        nind = np.sum(ind, axis=1)
-        sol = (nind == 1).nonzero()[0]
-        key, msg = None, None
-        if sol.size > 0:
-            if np.unique(sol).size == 1:
-                indkey = ind[sol[0],:].nonzero()[0]
-                key = akeys[indkey][0]
-            else:
-                lstr = "[dim,quant,name,units,origin]"
-                msg = "Several possible matches in {} for {}".format(lstr, key)
-        else:
-            lstr = "[dim,quant,name,units,origin]"
-            msg = "No match in {} for {} in group {}".format(lstr, key, group)
-
-        if msg is not None:
-            msg += "\n\nRequested {} could not be identified!\n".format(msgstr)
-            msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
-            msg += self.get_summary(verb=False, return_='msg')
-            if raise_:
-                raise Exception(msg)
-        return key, msg
-
-    def _checkformat_qr12RPZ(
+    def _check_qr12RPZ(
         self,
         quant=None,
         ref1d=None,
@@ -911,7 +875,15 @@ class DataCollection(utils.ToFuObject):
         q2dR=None,
         q2dPhi=None,
         q2dZ=None,
+        group1d=None,
+        group2d=None,
     ):
+
+        if group1d is None:
+            group1d = self._group1d
+        if group2d is None:
+            group2d = self._group2d
+
         lc0 = [quant is None, ref1d is None, ref2d is None]
         lc1 = [q2dR is None, q2dPhi is None, q2dZ is None]
         if np.sum([all(lc0), all(lc1)]) != 1:
@@ -933,18 +905,23 @@ class DataCollection(utils.ToFuObject):
 
         # Check requested quant is available in 2d or 1d
         if all(lc1):
-            idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
+            idquant, idref1d, idref2d = _check_inputs._get_quantref_12d_keys(
+                dd=self._ddata,
+                qq=quant, ref1d=ref1d, ref2d=ref2d,
+                group1d=group1d,
+                group2d=group2d,
+            )
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, msg   = self._get_keyingroup(
-                key=q2dR, group='mesh', msgstr='quant', raise_=True,
+            idq2dR, msg   = _check_inputs._get_keyingroup_ddata(
+                key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dPhi, msg = self._get_keyingroup(
-                key=q2dPhi, group='mesh', msgstr='quant', raise_=True,
+            idq2dPhi, msg =_check_inputs._get_keyingroup_ddata(
+                key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dZ, msg   = self._get_keyingroup(
-                key=q2dZ, group='mesh', msgstr='quant', raise_=True,
+            idq2dZ, msg   = _check_inputs._get_keyingroup_ddata(
+                key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
             idquant, idref1d, idref2d = None, None, None
             ani = True
@@ -954,9 +931,112 @@ class DataCollection(utils.ToFuObject):
     # Method for interpolation
     # ---------------------
 
+    def _get_finterp(
+        self,
+        idquant=None, idref1d=None, idref2d=None, idmesh=None,
+        idq2dR=None, idq2dPhi=None, idq2dZ=None,
+        interp_t=None, interp_space=None,
+        fill_value=None, ani=False, Type=None,
+        group0d=None, group2d=None,
+    ):
 
-    # TBF
-    def _interp_2dto1d_quant(
+        if interp_t is None:
+            interp_t = 'nearest'
+        if interp_t != 'nearest':
+            msg = "'nearest' is the only time-interpolation method available"
+            raise NotImplementedError(msg)
+        if group0d is None:
+            group0d = self._group0d
+        if group2d is None:
+            group2d = self._group2d
+
+        # Get idmesh
+        if idmesh is None:
+            if idquant is not None:
+                # isotropic
+                if idref1d is None:
+                    lidmesh = [qq for qq in self._ddata[idquant]['ref']
+                               if self._dindref[qq]['group'] == group_mesh]
+                else:
+                    lidmesh = [qq for qq in self._ddata[idref2d]['ref']
+                               if self._dindref[qq]['group'] == group_mesh]
+            else:
+                # anisotropic
+                assert idq2dR is not None
+                lidmesh = [qq for qq in self._ddata[idq2dR]['ref']
+                           if self._dindref[qq]['group'] == group_mesh]
+            assert len(lidmesh) == 1
+            idmesh = lidmesh[0]
+
+        # Get common time indices
+        if interp_t == 'nearest':
+            tall, tbinall, ntall, dind = _comp_new._get_tcom(
+                idquant, idref1d, idref2d, idq2dR,
+                dd=self._ddata, group=group0d,
+            )
+
+        # Get mesh
+        if self._ddata[idmesh]['data']['type'] == 'rect':
+            mpltri = None
+            trifind = self._ddata[idmesh]['data']['trifind']
+        else:
+            mpltri = self._ddata[idmesh]['data']['mpltri']
+            trifind = mpltri.get_trifinder()
+
+        # # Prepare output
+
+        # Interpolate
+        # Note : Maybe consider using scipy.LinearNDInterpolator ?
+        if idquant is not None:
+            vquant = self._ddata[idquant]['data']
+            c0 = (
+                self._ddata[idmesh]['data']['type'] == 'quadtri'
+                and self._ddata[idmesh]['data']['ntri'] > 1
+            )
+            if c0:
+                vquant = np.repeat(
+                    vquant,
+                    self._ddata[idmesh]['data']['ntri'],
+                    axis=0,
+                )
+        else:
+            vq2dR   = self._ddata[idq2dR]['data']
+            vq2dPhi = self._ddata[idq2dPhi]['data']
+            vq2dZ   = self._ddata[idq2dZ]['data']
+
+        if interp_space is None:
+            interp_space = self._ddata[idmesh]['data']['ftype']
+
+        # get interpolation function
+        if ani:
+            # Assuming same mesh and time vector for all 3 components
+            func = _comp.get_finterp_ani(
+                self, idq2dR, idq2dPhi, idq2dZ,
+                interp_t=interp_t,
+                interp_space=interp_space,
+                fill_value=fill_value,
+                idmesh=idmesh, vq2dR=vq2dR,
+                vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
+                tall=tall, tbinall=tbinall, ntall=ntall,
+                indtq=dind[idquant],
+                trifind=trifind, Type=Type, mpltri=mpltri,
+            )
+        else:
+            func = _comp.get_finterp_isotropic(
+                self, idquant, idref1d, idref2d,
+                interp_t=interp_t,
+                interp_space=interp_space,
+                fill_value=fill_value,
+                idmesh=idmesh, vquant=vquant,
+                tall=tall, tbinall=tbinall, ntall=ntall,
+                mpltri=mpltri, trifind=trifind,
+                indtq=dind[idquant],
+                indtr1=dind[idref1d], indtr2=idind[idref2d],
+            )
+
+        return func
+
+    def _interp_pts2d_to_quant1d(
         self,
         pts=None,
         vect=None,
@@ -971,6 +1051,7 @@ class DataCollection(utils.ToFuObject):
         interp_space=None,
         fill_value=None,
         Type=None,
+        group_mesh=None,
     ):
         """ Return the value of the desired 1d quantity at 2d points
 
@@ -982,26 +1063,31 @@ class DataCollection(utils.ToFuObject):
 
         """
         # Check inputs
+        if group_mesh is None:
+            group_mesh = self._GROUP_MESH
         # msg = "Only 'nearest' available so far for interp_t!"
         # assert interp_t == 'nearest', msg
 
         # Check requested quant is available in 2d or 1d
-        out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+        out = self._check_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
                                         q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
         idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
 
         # Check the pts is (3,...) array of floats
         if pts is None:
+            # Identify mesh to get default points
             if ani:
-                idmesh = [id_ for id_ in self._ddata[idq2dR]['depend']
-                          if self._dindref[id_]['group'] == 'mesh'][0]
+                idmesh = [id_ for id_ in self._ddata[idq2dR]['ref']
+                          if self._dindref[id_]['group'] == group_mesh][0]
             else:
                 if idref1d is None:
-                    idmesh = [id_ for id_ in self._ddata[idquant]['depend']
-                              if self._dindref[id_]['group'] == 'mesh'][0]
+                    idmesh = [id_ for id_ in self._ddata[idquant]['ref']
+                              if self._dindref[id_]['group'] == group_mesh][0]
                 else:
-                    idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
-                              if self._dindref[id_]['group'] == 'mesh'][0]
+                    idmesh = [id_ for id_ in self._ddata[idref2d]['ref']
+                              if self._dindref[id_]['group'] == group_mesh][0]
+
+            # Derive pts
             if self.dmesh[idmesh]['data']['type'] == 'rect':
                 if self.dmesh[idmesh]['data']['shapeRZ'] == ('R', 'Z'):
                     R = np.repeat(self.dmesh[idmesh]['data']['R'],
@@ -1013,20 +1099,44 @@ class DataCollection(utils.ToFuObject):
                                 self.dmesh[idmesh]['data']['nZ'])
                     Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
                                   self.dmesh[idmesh]['data']['nR'])
-                pts = np.array(
-                    [R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z])
+                pts = np.array([
+                    R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z,
+                ])
             else:
                 pts = self.dmesh[idmesh]['data']['nodes']
-                pts = np.array(
-                    [pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1]])
+                pts = np.array([
+                    pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1],
+                ])
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:
-            msg = "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
-            msg += "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
-            msg += "    - Expected shape : (3,...)\n"
-            msg += "    - Provided shape : %s"%str(pts.shape)
+            msg = (
+                "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
+                + "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
+                + "    - Expected shape : (3,...)\n"
+                + "    - Provided shape : {}".format(pts.shape)
+            )
             raise Exception(msg)
+
+        # Check t
+        lc = [t is None, type(t) is str, type(t) is np.ndarray]
+        assert any(lc)
+        if lc[1]:
+            assert t in self._ddata.keys()
+            t = self._ddata[t]['data']
+
+        # Interpolation (including time broadcasting)
+        # this is the second slowest step (~0.08 s)
+        func = self._get_finterp(
+            idquant=idquant, idref1d=idref1d, idref2d=idref2d,
+            idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value, ani=ani, Type=Type,
+        )
+
+        # This is the slowest step (~1.8 s)
+        val, t = func(pts, vect=vect, t=t)
+        return val, t
 
 
 

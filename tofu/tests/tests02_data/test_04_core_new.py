@@ -156,9 +156,14 @@ class Test01_DataCollection(object):
         # conf0 = tfg.utils.create_config(case='B2')
         # conf1 = tfg.utils.create_config(case='B3')
 
-        dref = {'t0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
-                't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
-                'r2': {'data': cls.lr[2], 'group': 'radius', 'units': 'm'}}
+        dref = {
+            't0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
+            't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+            'r2': {
+                'data': cls.lr[2],
+                'group': 'radius', 'units': 'm', 'quant': 'rho',
+            }
+        }
         ddata = {'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
                  'trace10': {'data': cls.ltrace[2], 'ref': ('t1',), 'units': 's'},
                  'trace11': {'data': cls.ltrace[3], 'ref': ('t1', 't0')},
@@ -243,7 +248,7 @@ class Test01_DataCollection(object):
         dref = {
             't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
             'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'},
-            'mesh1': {'data': self.lmesh[1], 'foo': 'bar'},
+            'mesh1': {'data': self.lmesh[1], 'foo': 'bar', 'quant': 'rho'},
         }
         ddata = {
             'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
@@ -313,7 +318,7 @@ class Test01_DataCollection(object):
 
         # Add/remove mesh
         data.add_ref(key='mesh0', data=self.lmesh[0])
-        data.add_data(key='mesh1', data=self.lmesh[1])
+        data.add_data(key='mesh1', data=self.lmesh[1], quant='rho')
         data.add_data(key='trace51', data=self.ltrace[-1], ref=('mesh1', 't1'))
 
         # Add / remove obj and ref_static
@@ -390,6 +395,42 @@ class Test01_DataCollection(object):
             units_in='A', units_out='MHz',
         )
         assert out.shape == (4, 1)
+
+    # ------------------------
+    #   Interpolation tools
+    # ------------------------
+
+    def test10_check_qr12RPZ(self):
+        data = self.lobj[0]
+        # Directly get 2d quant
+        out = data._check_qr12RPZ(
+             quant='mesh0', ref1d=None, ref2d=None,
+             q2dR=None, q2dPhi=None, q2dZ=None,
+         )
+        assert (
+            out[0] == 'mesh0'
+            and all([out[ii] is None for ii in [1, 2, 3, 4, 5]])
+        )
+        out = data._check_qr12RPZ(
+             quant='trace51', ref1d=None, ref2d=None,
+             q2dR=None, q2dPhi=None, q2dZ=None,
+         )
+        assert (
+            out[0] == 'trace51'
+            and all([out[ii] is None for ii in [1, 2, 3, 4, 5]])
+        )
+
+        # Get 1d quant
+        out = data._check_qr12RPZ(
+             quant='r2', ref1d='r2', ref2d='mesh1',
+             q2dR=None, q2dPhi=None, q2dZ=None,
+         )
+        assert (
+            out[0] == 'r2' and out[1] == 'r2' and out[2] == 'mesh1'
+            and all([out[ii] is None for ii in [3, 4, 5]])
+        )
+
+
 
     # ------------------------
     #   Generic TofuObject methods

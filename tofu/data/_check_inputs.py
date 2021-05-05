@@ -2491,6 +2491,8 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
         )
         raise Exception(msg)
 
+    kwdargs = {k0: v0 for k0, v0 in kwdargs.items() if v0 is not None}
+
     # Get list of relevant criteria
     lp = [kk for kk in list(dd.values())[0].keys()]
     if dd_name == 'ddata':
@@ -2520,7 +2522,14 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                     dd[k0][kk] == kwdargs[kk] for k0 in dd.keys()
                 ]
             except Exception as err:
-                pass
+                msg = (
+                    "Could not determine whether:\n"
+                    + "\t- {}['{}'] == {}".format(
+                        dd_name, kk, kwdargs[kk],
+                    )
+                )
+                raise Exception(msg)
+    import pdb; pdb.set_trace()     # DB
 
     # Format output ind
     if log == 'raw':
@@ -2550,10 +2559,10 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
             )
     return ind
 
-# TBF
-def _get_keyingroup_data(
+
+def _get_keyingroup_ddata(
     dd=None, dd_name='data',
-    key=None, group=None,
+    key=None, group=None, monot=None,
     msgstr=None, raise_=False,
 ):
     """ Return the unique data key matching key in desired group in ddata
@@ -2572,7 +2581,7 @@ def _get_keyingroup_data(
             return key, None
         else:
             msg = ("Required data key does not have matching group:\n"
-                   + "\t- {}[{}]['group'] = {}\n".format(dd_name, key, lg)
+                   + "\t- {}['{}']['group'] = {}\n".format(dd_name, key, lg)
                    + "\t- Expected group:  {}".format(group))
             if raise_:
                 raise Exception(msg)
@@ -2580,37 +2589,131 @@ def _get_keyingroup_data(
     # ------------------------
     # Non-trivial: check for a unique match on other params
 
-    ind, akeys = _select(
+    dind = _select(
         dd=dd, dd_name=dd_name,
-        dim=key, quant=key, name=key, units=key, source=key, group=group,
+        dim=key, quant=key, name=key, units=key, source=key,
+        group=group, monot=monot,
         log='raw', returnas=bool,
     )
-
-    # Remove ref and group
-    ind = ind[:5, :] & ind[-1, :]
+    ind = np.array([ind for kk, ind in dind.items() if kk != 'group'])
+    if group is not None:
+        ind &= dind['group'][None, :]
 
     # Any perfect match ?
     nind = np.sum(ind, axis=1)
     sol = (nind == 1).nonzero()[0]
-    key, msg = None, None
+    key_out, msg = None, None
     if sol.size > 0:
         if np.unique(sol).size == 1:
-            indkey = ind[sol[0],:].nonzero()[0]
-            key = akeys[indkey][0]
+            indkey = ind[sol[0], :].nonzero()[0]
+            key_out = list(dd.keys())[indkey]
         else:
-            lstr = "[dim,quant,name,units,origin]"
+            lstr = "[dim, quant, name, units, source]"
             msg = "Several possible matches in {} for {}".format(lstr, key)
     else:
-        lstr = "[dim,quant,name,units,origin]"
+        lstr = "[dim, quant, name, units, source]"
         msg = "No match in {} for {} in group {}".format(lstr, key, group)
 
     # Complement error msg and optionally raise
     if msg is not None:
+        lk = ['dim', 'quant', 'name', 'units', 'source']
+        dk = {
+            kk: (
+                dind[kk].sum(),
+                sorted(set([vv[kk] for vv in dd.values()]))
+            ) for kk in lk
+        }
         msg += (
             "\n\nRequested {} could not be identified!\n".format(msgstr)
-            + "Please provide a valid (unique) key/name/quant/dim:\n\n"
-            + self.get_summary(verb=False, return_='msg')
+            + "Please provide a valid (unique) key/name/dim/quant/units:\n\n"
+            + '\n'.join([
+                '\t- {} ({} matches): {}'.format(kk, dk[kk][0], dk[kk][1])
+                for kk in lk
+            ])
+            + "\nProvided:\n\t'{}'".format(key)
         )
         if raise_:
             raise Exception(msg)
-    return key, msg
+    return key_out, msg
+
+
+# TBC again
+def _get_quantref_12d_keys(
+    dd=None,
+    qq=None, ref1d=None, ref2d=None,
+    group1d='radius',
+    group2d='mesh2d',
+):
+
+    # Get relevant lists
+    kq, msg = _get_keyingroup_ddata(
+        dd=dd,
+        key=qq, group=group2d, msgstr='quant', raise_=False,
+    )
+
+    if kq is not None:
+        # The desired quantity is already 2d
+        k1d, k2d = None, None
+
+    else:
+        # Check if the desired quantity is 1d
+        kq, msg = _get_keyingroup_ddata(
+            dd=dd,
+            key=qq, group=group1d,
+            msgstr='quant', raise_=True,
+        )
+
+        if dd[kq]['monot'] is True:
+            if ref1d is None:
+                ref1d = kq
+
+        # Then it needs a 1d and a 2d ref for interpolation
+        if ref1d is None and ref2d is None:
+            msg = (
+                "quant {} needs refs (1d + 2d) for interp.\n".format(qq)
+                + "  => ref1d and ref2d cannot be both None !"
+            )
+            raise Exception(msg)
+
+        # Identify 1d ref (should be monotonic)
+        if ref1d is None:
+            ref1d = ref2d
+        k1d, msg = _get_keyingroup_ddata(
+            dd=dd,
+            key=ref1d, group=group1d, monot=True,
+            msgstr='ref1d', raise_=False,
+        )
+        if k1d is None:
+            msg += (
+                "\n\nInterpolation of {}:\n".format(qq)
+                + "  ref could not be identified among 1d quantities\n"
+                + "    - ref1d : {}".format(ref1d)
+            )
+            raise Exception(msg)
+
+        # Identify 2d ref
+        if ref2d is None:
+            ref2d = ref1d
+        k2d, msg = _get_keyingroup_ddata(
+            dd=dd,
+            key=ref2d, group=group2d, msgstr='ref2d', raise_=False,
+        )
+        if k2d is None:
+            msg += (
+                "\n\nInterpolation of {}:\n".format(qq)
+                + "  ref could not be identified among 2d quantities\n"
+                + "    - ref2d: {}".format(ref2d)
+            )
+            raise Exception(msg)
+
+        # Check both references are the same quantity
+        q1d, q2d = dd[k1d]['quant'], dd[k2d]['quant']
+        if q1d != q2d:
+            msg = (
+                "ref1d and ref2d must be of the same quantity!\n"
+                + "    - ref1d ({}):   {}\n".format(ref1d, q1d)
+                + "    - ref2d ({}):   {}".format(ref2d, q2d)
+            )
+            raise Exception(msg)
+
+    return kq, k1d, k2d

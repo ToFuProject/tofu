@@ -13,6 +13,210 @@ import numpy as np
 
 
 
+#############################################
+#############################################
+#############################################
+#   common reference (e.g.: time vectors)
+#############################################
+#############################################
+
+
+def _get_unique_ref_dind(
+    dd=None, dd_name='data', group='time',
+    lkey=None,
+    return_all=None,
+):
+    """ Typically used to get a common (intersection) time vector
+
+    Returns a time vector that contains all time points from all data
+    Also return a dict of indices to easily remap each time vector to tall
+            such that t[ind] = tall (with nearest approximation)
+
+    """
+
+    if return_all is None:
+        return_all = False
+
+    assert isinstance(lkey, list) and all([k0 in dd.keys() for k0 in lkey])
+    c0 = (
+        isinstance(lkey, list)
+        and all([k0 in dd.keys() for k0 in lkey])
+        and all([group in dd[k0]['ref'] for k0 in lkey])
+    )
+    if not c0:
+        msg = ""
+        raise Exception(msg)
+
+    # get list of ref from desired group (e.g.: time vectors id)
+    did = {
+        k0: [
+            id_ for id_ in dd[k0]['ref'] if dd[id_]['group'] == (group,)
+        ][0]
+        for k0 in lkey
+    }
+    lidu = list(set([vv for vv in did.values()]))
+
+    # Create common time base 
+    if len(lidu) == 1:
+        tall = dd[lidu[0]]['data']
+
+    else:
+        tall = np.unique([dd[kt]['data'] for kt in lidu])
+
+    # Get dict if indices for fast mapping each t to tall 
+    for k0 in lkey:
+        dind[k0] = np.searchsorted(
+            0.5*(dd[did[k0]]['data'][1:] + dd[did[k0]]['data'][:-1]),
+            tall,
+        )
+
+    # Other output
+    if return_all is True:
+        tbinall = 0.5*(tall[1:] + tall[:-1])
+        ntall = tall.size
+        return tall, tbinall, ntall, dind
+    else:
+        return tall, dind
+
+
+def _get_indtmult(
+    dd=None, dd_name='data', group='time',
+    idquant=None, idref1d=None, idref2d=None,
+):
+
+    # Get time vectors and bins
+    idtq = [
+        id_ for id_ in dd[idquant]['ref'] if dd[id_]['group'] == (group,)
+    ][0]
+    tq = dd[idtq]['data']
+    tbinq = 0.5*(tq[1:] + tq[:-1])
+
+    # Get time vectors for ref1d and ref2d if any
+    if idref1d is not None:
+        idtr1 = [
+            id_ for id_ in dd[idref1d]['ref'] if dd[id_]['group'] == (group,)
+        ][0]
+        tr1 = dd[idtr1]['data']
+        tbinr1 = 0.5*(tr1[1:] + tr1[:-1])
+
+    if idref2d is not None and idref2d != idref1d:
+        idtr2 = [
+            id_ for id_ in dd[idref2d]['ref'] if dd[id_]['group'] == (group,)
+        ][0]
+        tr2 = dd[idtr2]['data']
+        tbinr2 = 0.5*(tr2[1:] + tr2[:-1])
+
+    # Get tbinall and tall
+    if idref1d is None:
+        tbinall = tbinq
+        tall = tq
+    else:
+        if idref2d is None:
+            tbinall = np.unique(np.r_[tbinq, tbinr1])
+        else:
+            tbinall = np.unique(np.r_[tbinq, tbinr1, tbinr2])
+        tall = np.r_[tbinall[0] - 0.5*(tbinall[1]-tbinall[0]),
+                     0.5*(tbinall[1:]+tbinall[:-1]),
+                     tbinall[-1] + 0.5*(tbinall[-1]-tbinall[-2])]
+
+    # Get indtqr1r2 (tall with respect to tq, tr1, tr2)
+    indtq, indtr1, indtr2 = None, None, None
+    if tbinq.size > 0:
+        indtq = np.digitize(tall, tbinq)
+    else:
+        indtq = np.r_[0]
+
+    if idref1d is None:
+        assert np.all(indtq == np.arange(0,tall.size))
+    if idref1d is not None:
+        if tbinr1.size > 0:
+            indtr1 = np.digitize(tall, tbinr1)
+        else:
+            indtr1 = np.r_[0]
+
+    if idref2d is not None:
+        if tbinr2.size > 0:
+            indtr2 = np.digitize(tall, tbinr2)
+        else:
+            indtr2 = np.r_[0]
+
+    ntall = tall.size
+    return tall, tbinall, ntall, indtq, indtr1, indtr2
+
+
+def _get_indtu(
+    t=None,
+    tall=None,
+    tbinall=None,
+    idref1d=None, idref2d=None,
+    indtr1=None, indtr2=None,
+):
+    # Get indt (t with respect to tbinall)
+    indt, indtu = None, None
+    if t is not None:
+        if len(t) == len(tall) and np.allclose(t, tall):
+            indt = np.arange(0, tall.size)
+            indtu = indt
+        else:
+            indt = np.digitize(t, tbinall)
+            indtu = np.unique(indt)
+            # Update
+            tall = tall[indtu]
+
+        if idref1d is not None:
+            assert indtr1 is not None
+            indtr1 = indtr1[indtu]
+        if idref2d is not None:
+            assert indtr2 is not None
+            indtr2 = indtr2[indtu]
+    ntall = tall.size
+    return tall, ntall, indt, indtu, indtr1, indtr2
+
+def get_tcommon(self, lq, prefer='finer'):
+    """ Check if common t, else choose according to prefer
+
+    By default, prefer the finer time resolution
+
+    """
+    if type(lq) is str:
+        lq = [lq]
+    t = []
+    for qq in lq:
+        ltr = [kk for kk in self._ddata[qq]['depend']
+               if self._dindref[kk]['group'] == 'time']
+        assert len(ltr) <= 1
+        if len(ltr) > 0 and ltr[0] not in t:
+            t.append(ltr[0])
+    assert len(t) >= 1
+    if len(t) > 1:
+        dt = [np.nanmean(np.diff(self._ddata[tt]['data'])) for tt in t]
+        if prefer == 'finer':
+            ind = np.argmin(dt)
+        else:
+            ind = np.argmax(dt)
+    else:
+        ind = 0
+    return t[ind], t
+
+def _get_tcom(
+    idquant=None, idref1d=None,
+    idref2d=None, idq2dR=None,
+    dd=None, group=None,
+):
+    if idquant is not None:
+        out = _get_unique_ref_dind(
+            dd=dd, group=group,
+            lkey=[idquant, idref1d, idref2d],
+            return_all=True,
+        )
+    else:
+        out = _get_unique_ref_dind(
+            dd=dd, group=group,
+            lkey=[idq2dR],
+            return_all=True,
+        )
+    return out
+
 
 #############################################
 #############################################
