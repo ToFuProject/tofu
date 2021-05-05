@@ -215,8 +215,6 @@ class CrystalBragg(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dmat():
-        # maybe put here two angles and/or alternative local basis
-	# adding two new angles in order to compute the new set of unit vectors 
         lk = ['formula', 'density', 'symmetry',
               'lengths', 'angles', 'cut', 'd',
               'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
@@ -719,8 +717,8 @@ class CrystalBragg(utils.ToFuObject):
     def get_rockingcurve_func(self, lamb=None, n=None):
         """ Return the rocking curve function
 
-        Also return the wavelength (lamb) for which it was computed
-            and the associated reference bragg angle
+        Also return the wavelength (lamb) (in meters) for which it was computed
+            and the associated reference bragg angle (in rad)
 
         """
         drock = self.rockingcurve
