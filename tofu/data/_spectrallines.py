@@ -12,6 +12,11 @@ __all__ = ['SpectralLines', 'TimeTraces']
 
 _OPENADAS_ONLINE = True
 
+_GROUP_LINES = 'lines'
+_GROUP_NE = 'ne'
+_GROUP_TE = 'Te'
+_UNITS_LAMBDA0 = 'm'
+
 
 #############################################
 #############################################
@@ -32,34 +37,40 @@ class SpectralLines(DataCollection):
                  'symbol':   (str, 'unknown'),
                  },
             }
-    _forced_group = ['Te', 'ne']
+    _forced_group = [_GROUP_NE, _GROUP_TE]
     _data_none = True
 
     _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    def update(self, **kwdargs):
-        super().update(**kwdargs)
+    _grouplines = _GROUP_LINES
+    _groupne = _GROUP_NE
+    _groupte = _GROUP_TE
 
-        # check data 
-        lc = [
-            k0 for k0, v0 in self._ddata.items()
-            if v0.get('data') is not None
-            and not (
-                isinstance(v0['data'], np.ndarray)
-                and v0['data'].ndim <= 2
-            )
-        ]
-        if len(lc) > 0:
-            msg = (
-                """
-                The data provided for a line must be a tabulation of its pec
+    _units_lambda0 = _UNITS_LAMBDA0
 
-                The following lines have non-conform data:
-                {}
-                """.format(lc)
-            )
-            raise Exception(msg)
+    # def update(self, **kwdargs):
+        # super().update(**kwdargs)
+
+        # # check data 
+        # lc = [
+            # k0 for k0, v0 in self._ddata.items()
+            # if v0.get('data') is not None
+            # and not (
+                # isinstance(v0['data'], np.ndarray)
+                # and v0['data'].ndim <= 2
+            # )
+        # ]
+        # if len(lc) > 0:
+            # msg = (
+                # """
+                # The data provided for a line must be a tabulation of its pec
+
+                # The following lines have non-conform data:
+                # {}
+                # """.format(lc)
+            # )
+            # raise Exception(msg)
 
     def add_line(
         self,
@@ -99,8 +110,9 @@ class SpectralLines(DataCollection):
     # from openadas
     # ------------------
 
-    @staticmethod
+    @classmethod
     def _from_openadas(
+        cls,
         lambmin=None,
         lambmax=None,
         element=None,
@@ -112,6 +124,7 @@ class SpectralLines(DataCollection):
         dref0=None,
         ddata0=None,
         dlines0=None,
+        grouplines=None,
     ):
         """
         Load lines and pec from openadas, either:
@@ -137,6 +150,10 @@ class SpectralLines(DataCollection):
 
         if online is None:
             online = _OPENADAS_ONLINE
+        if grouplines is None:
+            grouplines = cls._grouplines
+        else:
+            cls._grouplines = grouplines
 
         # Load from online if relevant
         if online is True:
@@ -184,7 +201,6 @@ class SpectralLines(DataCollection):
             verb=False,
         )
 
-
         # # dgroup
         # dgroup = ['Te', 'ne']
 
@@ -203,7 +219,7 @@ class SpectralLines(DataCollection):
 
         # dobj (lines)
         dobj = {
-            'lines': dlines,
+            grouplines: dlines,
         }
         return ddata, dref, dref_static, dobj
 
@@ -217,6 +233,7 @@ class SpectralLines(DataCollection):
         online=None,
         update=None,
         create_custom=None,
+        grouplines=None,
     ):
         """
         Load lines and pec from openadas, either:
@@ -231,6 +248,7 @@ class SpectralLines(DataCollection):
             online=online,
             update=update,
             create_custom=create_custom,
+            grouplines=grouplines,
         )
         return cls(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
 
@@ -283,14 +301,205 @@ class SpectralLines(DataCollection):
 
         Can also just return the conversion coef if returnas='coef'
         """
+        if units is None:
+            units = self._units_lambda0
 
-        key = self._ind_tofrom_key(key=key, ind=ind, returnas=str)
+        key = self._ind_tofrom_key(
+            which=self._grouplines, key=key, ind=ind, returnas=str,
+        )
         lamb_in = self.get_param(
             'lambda0', key=key, returnas=np.ndarray,
         )['lambda0']
         return self.convert_spectral(
             data=lamb_in, units_in='m', units_out=units, returnas=returnas,
         )
+
+    # -----------------
+    # PEC interpolation
+    # ------------------
+
+    def calc_pec(
+        self,
+        key=None,
+        ind=None,
+        ne=None,
+        Te=None,
+        deg=None,
+        grid=None,
+    ):
+        """ Compute the pec (<sigma v>) by interpolation for chosen lines
+
+        Assumes Maxwellian electron distribution
+
+        Provide ne and Te and 1d np.ndarrays
+
+        if grid=False:
+            - ne is a (n,) 1d array
+            - Te is a (n,) 1d array
+          => the result is a dict of (n,) 1d array
+
+        if grid=True:
+            - ne is a (n1,) 1d array
+            - Te is a (n2,) 1d array
+          => the result is a dict of (n1, n2) 2d array
+        """
+
+        # Check keys
+        key = self._ind_tofrom_key(
+            which=self._grouplines, key=key, ind=ind, returnas=str,
+        )
+        dlines = self._dobj[self._grouplines]
+
+        if deg is None:
+            deg = 2
+
+        # Check data conformity
+        lg = (self._groupne, self._groupte)
+        lc = [
+            k0 for k0 in key
+            if (
+                dlines[k0].get('pec') is None
+                or self._ddata[dlines[k0]['pec']]['group'] != lg
+            )
+        ]
+        if len(lc) > 0:
+            msg = (
+                "The following lines have non-conform pec data:\n"
+                + "\t- {}\n\n".format(lc)
+                + "  => pec data should be tabulated vs (ne, Te)"
+            )
+            raise Exception(msg)
+
+        # Interpolate
+        dout = {}
+        derr = {}
+        for k0 in key:
+            try:
+                ne0 = [
+                    kk for kk in self._ddata[dlines[k0]['pec']]['ref']
+                    if self._ddata[kk]['group'] == (self._groupne,)
+                ][0]
+                ne0 = self._ddata[ne0]['data']
+                Te0 = [
+                    kk for kk in self._ddata[dlines[k0]['pec']]['ref']
+                    if self._ddata[kk]['group'] == (self._groupte,)
+                ][0]
+                Te0 = self._ddata[Te0]['data']
+
+                dout[k0] = _comp_spectrallines._interp_pec(
+                    ne0=ne0,
+                    Te0=Te0,
+                    pec0=self._ddata[dlines[k0]['pec']]['data'],
+                    ne=ne,
+                    Te=Te,
+                    deg=deg,
+                    grid=grid,
+                )
+            except Exception as err:
+                derr[k0] = str(err)
+
+        if len(derr) > 0:
+            msg = (
+                "The pec could not be interpolated for the following lines:\n"
+                + "\n".join([
+                    '\t- {} : {}'.format(k0, v0) for k0, v0 in derr.items()
+                ])
+            )
+            raise Exception(msg)
+
+        return dout
+
+    def calc_intensity(
+        self,
+        key=None,
+        ind=None,
+        ne=None,
+        Te=None,
+        concentration=None,
+        deg=None,
+        grid=None,
+    ):
+        """ Compute the lines intensities by pec interpolation for chosen lines
+
+        Assumes Maxwellian electron distribution
+
+        Provide ne and Te and 1d np.ndarrays
+
+        Provide concentration as:
+            - a np.ndarray (same concentration assumed for all lines)
+            - a dict of {key: np.ndarray}
+
+        if grid=False:
+            - ne is a (n,) 1d array
+            - Te is a (n,) 1d array
+            - concentration is a (dict of) (n,) 1d array(s)
+          => the result is a dict of (n1, n2) 2d array
+
+        if grid=True:
+            - ne is a (n1,) 1d array
+            - Te is a (n2,) 1d array
+            - concentration is a (dict of) (n1, n2) 2d array(s)
+          => the result is a dict of (n1, n2) 2d array
+
+
+        """
+
+        # check inputs
+        if grid is None:
+            grid = ne.size != Te.size
+
+        # Check keys
+        key = self._ind_tofrom_key(
+            which=self._grouplines, key=key, ind=ind, returnas=str,
+        )
+
+        if isinstance(concentration, np.ndarray):
+            concentration = {k0: concentration for k0 in key}
+        c0 = (
+            isinstance(concentration, dict)
+            and all([
+                k0 in key
+                and isinstance(cc, np.ndarray)
+                and (
+                    (grid is False and cc.shape == ne.shape == Te.shape)
+                    or
+                    (grid is True and cc.shape == (ne.size, Te.size))
+                )
+                and np.all((cc > 0.) & (cc <= 1.))
+                for k0, cc in concentration.items()
+            ])
+        )
+        if not c0:
+            shape = ne.shape if grid is False else (ne.size, Te.size)
+            msg = (
+                "Arg concentration is non-conform:\n"
+                + "\t- Expected: dict of {} arrays in [0, 1]\n".format(shape)
+                + "\t- Provided: {}".format(concentration)
+            )
+            raise Exception(msg)
+
+        # interpolate pec
+        dpec = self.calc_pec(
+            key=key,
+            ind=ind,
+            ne=ne,
+            Te=Te,
+            grid=grid,
+            deg=deg,
+        )
+
+        # ne for broadcasting
+        if grid is True:
+            neb = ne[:, None]
+        else:
+            neb = ne
+
+        # Derive intensity
+        dint = {
+            k0: v0*neb**2*concentration[k0] for k0, v0 in dpec.items()
+        }
+        return dint
+
 
     # -----------------
     # plotting

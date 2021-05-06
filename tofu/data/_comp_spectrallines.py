@@ -6,6 +6,7 @@ import itertools as itt
 # common
 import numpy as np
 import scipy.constants as scpct
+from scipy.interpolate import RectBivariateSpline as scpRectSpl
 
 
 _SPECTRAL_DUNITS = {
@@ -232,3 +233,28 @@ def convert_spectral(
             return coef * data_in
     else:
         return coef, inv
+
+
+# #############################################################################
+# #############################################################################
+#                       Units conversion 
+# #############################################################################
+
+
+def _interp_pec(
+    ne0=None,
+    Te0=None,
+    pec0=None,
+    ne=None,
+    Te=None,
+    deg=None,
+    grid=None,
+):
+    """ Interpolate the pec tabulated on a (ne, te) grid """
+    return np.exp(scpRectSpl(
+        np.log(ne0),
+        np.log(Te0),
+        np.log(pec0),
+        kx=deg,
+        ky=deg,
+    )(np.log(ne), np.log(Te), grid=grid))

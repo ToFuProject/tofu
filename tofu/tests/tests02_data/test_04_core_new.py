@@ -628,7 +628,46 @@ class Test02_SpectralLines(object):
     def test03_convert_lines(self):
         self.sl.convert_lines(units='Hz')
 
-    def test04_plot(self):
+    def test04_calc_pec(self):
+        ne = np.r_[1e15, 1e18, 1e21]
+        Te = np.r_[1e3, 2e3, 3e3, 4e3, 5e3]
+        dpec = self.sl.calc_pec(ne=ne, Te=Te[:ne.size], grid=False)
+        dpec = self.sl.calc_pec(
+            key='Ar16_9_oa_pec40_cl', ne=ne, Te=Te[:ne.size], grid=False,
+        )
+        dpec = self.sl.calc_pec(ne=ne, Te=Te, grid=True)
+        dpec = self.sl.calc_pec(
+            key='Ar16_9_oa_pec40_cl', ne=ne, Te=Te[:ne.size], grid=False,
+        )
+
+    def test05_calc_intensity(self):
+        ne = np.r_[1e15, 1e18, 1e21]
+        Te = np.r_[1e3, 2e3, 3e3, 4e3, 5e3]
+
+        concentration = np.r_[0.1, 0.2, 0.3]
+        dint = self.sl.calc_intensity(
+            ne=ne, Te=Te[:ne.size], concentration=concentration, grid=False,
+        )
+
+        key = ['Ar16_9_oa_pec40_cl']
+        concentration = {k0: np.r_[0.1, 0.2, 0.3] for k0 in key}
+        dint = self.sl.calc_intensity(
+            key=key,
+            ne=ne, Te=Te[:ne.size], concentration=concentration, grid=False,
+        )
+
+        concentration = np.random.random((ne.size, Te.size))
+        dint = self.sl.calc_intensity(
+            ne=ne, Te=Te, concentration=concentration, grid=True,
+        )
+
+        key = ['Ar16_9_oa_pec40_cl']
+        concentration = {k0: concentration for k0 in key}
+        dint = self.sl.calc_intensity(
+            key=key,
+            ne=ne, Te=Te, concentration=concentration, grid=True,
+        )
+
+    def test06_plot(self):
         ax = self.sl.plot()
         plt.close('all')
-
