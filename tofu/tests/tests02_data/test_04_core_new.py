@@ -27,6 +27,7 @@ VerbHead = 'tofu.data.DataCollection'
 #
 #######################################################
 
+
 def setup_module(module):
     print("") # this is to get a newline after the dots
     LF = os.listdir(_here)
@@ -37,6 +38,7 @@ def setup_module(module):
     for lf in LF:
         os.remove(os.path.join(_here,lf))
     #print("setup_module before anything in this file")
+
 
 def teardown_module(module):
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
@@ -127,10 +129,25 @@ class Test01_DataCollection(object):
         trace50 = np.cos(t0)[:, None, None]*(
             mesh0['R'][None, :, None]*mesh0['Z'][None, None, :]
         )
-        trace51 = mesh1['faces'][:, 0:1]*t1[None, :]
+        trace51 = t1[:, None]*(mesh1['faces'][:, 0:1]).T
         cls.ltrace = [trace00, trace01, trace10, trace11,
                       trace20, trace21, trace30, trace31,
                       trace40, trace41, trace50, trace51]
+
+        # Anisotropic rect + tri
+        BRr = np.cos(t1)[:, None, None]*(
+            mesh0['R'][None, :, None]*mesh0['Z'][None, None, :]
+        )
+        BPhir = np.cos(t1)[:, None, None]*(
+            mesh0['R'][None, :, None]*mesh0['Z'][None, None, :]
+        )
+        BZr = np.cos(t1)[:, None, None]*(
+            mesh0['R'][None, :, None]*mesh0['Z'][None, None, :]
+        )
+        BRt = t0[:, None]*(mesh1['faces'][:, 0:1]).T
+        BPhit = t0[:, None]*(mesh1['faces'][:, 0:1]).T
+        BZt = t0[:, None]*(mesh1['faces'][:, 0:1]).T
+        cls.lB = [BRr, BPhir, BZr, BRt, BPhit, BZt]
 
         # polygons
         lpoly0 = [np.ones((2, 5)), np.ones((2, 8))]
@@ -174,14 +191,23 @@ class Test01_DataCollection(object):
             'mesh0': {
                 'data': mesh0,
             },
+            'mesh1': {
+                'data': mesh1,
+            },
         }
         ddata = {
-                 'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
-                 'trace10': {'data': cls.ltrace[2], 'ref': ('t1',), 'units': 's'},
-                 'trace11': {'data': cls.ltrace[3], 'ref': ('t1', 't0')},
-                 'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
-                 'trace31': {'data': cls.ltrace[7], 'ref': ('t0', 'r2')},
-                 'trace50': {'data': trace50, 'ref': ('t0', 'mesh0')},
+            'trace00': {'data': cls.ltrace[0], 'ref': ('t0',)},
+            'trace10': {'data': cls.ltrace[2], 'ref': ('t1',), 'units': 's'},
+            'trace11': {'data': cls.ltrace[3], 'ref': ('t1', 't0')},
+            'trace30': {'data': cls.ltrace[6], 'ref': ('r2',)},
+            'trace31': {'data': cls.ltrace[7], 'ref': ('t0', 'r2')},
+            'trace50': {'data': trace50, 'ref': ('t0', 'mesh0')},
+            'BRr': {'data': BRr, 'ref': ('t1', 'mesh0'), 'quant': 'BR'},
+            'BPhir': {'data': BPhir, 'ref': ('t1', 'mesh0'), 'quant': 'BPhi'},
+            'BZr': {'data': BZr, 'ref': ('t1', 'mesh0'), 'quant': 'BZ'},
+            'BRt': {'data': BRt, 'ref': ('t0', 'mesh1'), 'quant': 'BR'},
+            'BPhit': {'data': BPhit, 'ref': ('t0', 'mesh1'), 'quant': 'BPhi'},
+            'BZt': {'data': BZt, 'ref': ('t0', 'mesh1'), 'quant': 'BZ'},
         }
         data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
 
@@ -268,7 +294,7 @@ class Test01_DataCollection(object):
         ddata = {
             'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
             'trace50': {'data': self.ltrace[-2], 'ref': ('t0', 'mesh0')},
-            'trace51': {'data': self.ltrace[-1], 'ref': ('mesh1', 't1')},
+            'trace51': {'data': self.ltrace[-1], 'ref': ('t1', 'mesh1')},
             'mesh0': {'data': self.lmesh[0], 'foo': 'bar', 'group': 'mesh2d'},
         }
         data = tfd.DataCollection(
@@ -333,10 +359,21 @@ class Test01_DataCollection(object):
 
         # Add/remove mesh
         data.add_ref(key='mesh0', data=self.lmesh[0], group='mesh2d')
-        data.add_data(key='mesh1', data=self.lmesh[1], quant='rho')
         data.add_data(
             key='trace51', data=self.ltrace[-1],
-            ref=('mesh1', 't1'), quant='rho',
+            ref=('t1', 'mesh1'), quant='rho',
+        )
+        data.add_data(
+            key='BRt', data=self.lB[3], ref=('t0', 'mesh1'),
+            quant='BR', units='T',
+        )
+        data.add_data(
+            key='BPhit', data=self.lB[4], ref=('t0', 'mesh1'),
+            quant='BPhi', units='T',
+        )
+        data.add_data(
+            key='BZt', data=self.lB[5], ref=('t0', 'mesh1'),
+            quant='BZ', units='T',
         )
 
         # Add / remove obj and ref_static
@@ -357,7 +394,7 @@ class Test01_DataCollection(object):
         assert key == ['trace10']
 
         out = data.select(units='a.u.', returnas=int)
-        assert len(out) == 9, out
+        assert len(out) == 12, out
 
     def test05_sortby(self):
         for oo in self.lobj:
@@ -440,11 +477,11 @@ class Test01_DataCollection(object):
 
         # Get 1d quant
         out = data._check_qr12RPZ(
-             quant='r2', ref1d='r2', ref2d='mesh1',
+             quant='r2', ref1d='r2', ref2d='trace51',
              q2dR=None, q2dPhi=None, q2dZ=None,
          )
         assert (
-            out[0] == 'r2' and out[1] == 'r2' and out[2] == 'mesh1'
+            out[0] == 'r2' and out[1] == 'r2' and out[2] == 'trace51'
             and all([out[ii] is None for ii in [3, 4, 5]])
         )
 
@@ -464,16 +501,50 @@ class Test01_DataCollection(object):
              q2dR=None, q2dPhi=None, q2dZ=None,
          )
         assert (
-            out[0] == 'trace30' and out[1] == 'trace30' and out[2] == 'mesh0'
+            out[0] == 'trace30' and out[1] == 'r2' and out[2] == 'trace51'
             and all([out[ii] is None for ii in [3, 4, 5]])
         )
 
+    def test11_interp_pts2d_to_quant1d(self):
+        data = self.lobj[0]
 
-    def test11_get_finterp(self):
-        pass
+        # Not specifying points
+        val, dout = data._interp_pts2d_to_quant1d(quant='trace30')
 
-    def test12_interp_pts2d_to_quant1d(self):
-        pass
+        # Specifying wrong ref2d
+        error = False
+        try:
+            val, dout = data._interp_pts2d_to_quant1d(
+                quant='trace30', ref2d='mesh1',
+            )
+        except Exception as err:
+            error = err
+        assert isinstance(error, Exception) and 'Non-valid' in str(error)
+
+        # Specifying points and time
+        pts = np.copy(dout['pts'])*0.5
+        val, dout = data._interp_pts2d_to_quant1d(
+            quant='trace30', pts=pts, t=np.linspace(1, 5, 10),
+        )
+
+        # Not specifying points
+        val, t = data._interp_pts2d_to_quant1d(quant='trace30')
+
+        # anisotropic rect with time
+        pts = data._get_pts_from_mesh(key='mesh0')
+        vect = pts
+        val, t = data._interp_pts2d_to_quant1d(
+            q2dR='BRr', q2dZ='BZr', q2dPhi='BPhir',
+            pts=pts, vect=vect, t=np.linspace(2, 5, 10),
+        )
+
+        # anisotropic tri
+        pts = data._get_pts_from_mesh(key='mesh1')
+        vect = pts
+        val, t = data._interp_pts2d_to_quant1d(
+            q2dR='BRt', q2dZ='BZt', q2dPhi='BPhit',
+            pts=pts, vect=vect,
+        )
 
     # ------------------------
     #   Generic TofuObject methods

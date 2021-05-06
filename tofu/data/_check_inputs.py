@@ -114,7 +114,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
     # Conflicts => Exception
     if len(dconflict) > 0:
         msg = (
-            "Conflicts with existing values found in {}:\n".format(dd_name)
+            "Conflicts with pre-existing values found in {}:\n".format(dd_name)
             + "\n".join([
                 "\t- {}['{}']: {}".format(dd_name, k0, v0)
                 for k0, v0 in dconflict.items()
@@ -1096,14 +1096,17 @@ def _check_mesh_temp(data=None, key=None):
         ):
             indR = np.searchsorted(Rbin, r)
             indZ = np.searchsorted(Zbin, z)
-            if shapeRZ == ('R', 'Z'):
-                indpts = indR*nZ + indZ
-            else:
-                indpts = indZ*nR + indR
-            indout = ((r < R[0]) | (r > R[-1])
-                      | (z < Z[0]) | (z > Z[-1]))
-            indpts[indout] = -1
-            return indpts
+            indR[(r < R[0]) | (r > R[-1])] = -1
+            indZ[(z < Z[0]) | (z > Z[-1])] = -1
+            return indR, indZ
+            # if shapeRZ == ('R', 'Z'):
+                # indpts = indR*nZ + indZ
+            # else:
+                # indpts = indZ*nR + indR
+            # indout = ((r < R[0]) | (r > R[-1])
+                      # | (z < Z[0]) | (z > Z[-1]))
+            # indpts[indout] = -1
+            # return indpts
 
         data['R'] = R
         data['Z'] = Z
@@ -1509,8 +1512,8 @@ def _check_ddata(
         for v0 in ddata.values() if (
             'ref' in v0.keys() and v0.get('data') is not None
         )
-    ]
-    ))
+    ]))
+
     if lref_add is not None:
         lref += lref_add
 
@@ -1529,25 +1532,38 @@ def _check_ddata(
         c0 = (
             isinstance(v0['ref'], tuple)
             and all([
-                ss in dref0.keys() or ss in dref_add.keys() for ss in v0['ref']
+                ss in dref0.keys()
+                or (dref_add is not None and ss in dref_add.keys())
+                for ss in v0['ref']
             ])
         )
-        if isinstance(v0['shape'], tuple):
-            shaperef = [
-                dref0[rr]['size'] if rr in dref0.keys()
-                else dref_add[rr]['size']
-                for rr in v0['ref']
-            ]
-            c1 = (
-                len(shaperef) > 1
-                or any([isinstance(ss, tuple) for ss in shaperef])
+        if not c0:
+            msg = (
+                "ddata['{}']['ref'] contains unknown ref:\n"
+                + "\t- ddata['{}']['ref'] = {}\n".format(k0, v0['ref'])
+                + "\t- dref0.keys() = {}\n".format(sorted(dref0.keys()))
+                + "\t- dref_add.keys() = {}".format(
+                    None if dref_add is None else sorted(dref_add.keys())
+                )
             )
-            if c1:
-                shaperef = np.r_[tuple(shaperef)].ravel()
-            shaperef = tuple(shaperef)
-            c0 = c0 and shaperef == v0['shape']
-        else:
-            c0 = v0['ref'] == (k0,)
+            raise Exception(msg)
+        if c0:
+            if isinstance(v0['shape'], tuple):
+                shaperef = [
+                    dref0[rr]['size'] if rr in dref0.keys()
+                    else dref_add[rr]['size']
+                    for rr in v0['ref']
+                ]
+                c1 = (
+                    len(shaperef) > 1
+                    or any([isinstance(ss, tuple) for ss in shaperef])
+                )
+                if c1:
+                    shaperef = np.r_[tuple(shaperef)].ravel()
+                shaperef = tuple(shaperef)
+                c0 = c0 and shaperef == v0['shape']
+            else:
+                c0 = v0['ref'] == (k0,)
 
         # Raise Exception if needed
         if not c0:
@@ -2043,6 +2059,19 @@ def _consistency(
 
     # dref_static0
     _update_dref_static0(dref_static0=dref_static0, ddata0=ddata0, dobj0=dobj0)
+
+    # --------------
+    # Check conventions
+    for k0, v0 in ddata0.items():
+        if v0.get('data') is None:
+            continue
+        if 'time' in v0['group'] and v0['group'].index('time') != 0:
+            msg = (
+                "ref 'time' must be placed at dimension 0!\n"
+                + "\t- ddata['{}']['ref'] = {}\n".format(k0, v0['ref'])
+                + "\t- ddata['{}']['group'] = {}".format(k0, v0['group'])
+            )
+            raise Exception(msg)
 
     return dgroup0, dref0, dref_static0, ddata0, dobj0
 
@@ -2635,9 +2664,7 @@ def _get_keyingroup_ddata(
     return key_out, msg
 
 
-# TBC again
-#def _get_possible_ref12d(
-def _get_quantref_12d_keys(
+def _get_possible_ref12d(
     dd=None,
     key=None, ref1d=None, ref2d=None,
     group1d='radius',
@@ -2678,6 +2705,7 @@ def _get_quantref_12d_keys(
                     log='all', returnas=str,
                 )
                 if group2d in dd[kk]['group']
+                and not isinstance(dd[kk]['data'], dict)
             ]
             for k0 in lref1d
         }

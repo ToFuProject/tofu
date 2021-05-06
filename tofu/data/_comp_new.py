@@ -30,22 +30,36 @@ def _get_unique_ref_dind(
 
     Returns a time vector that contains all time points from all data
     Also return a dict of indices to easily remap each time vector to tall
-            such that t[ind] = tall (with nearest approximation)
+            such that tall[ind] => t (with nearest approximation)
+            so ind contains indices of t such that tall falls in t
+
+    dind[k0] = np.searchsorted(tbin, tall)
 
     """
 
     if return_all is None:
         return_all = False
+    if isinstance(lkey, str):
+        lkey = [lkey]
 
-    assert isinstance(lkey, list) and all([k0 in dd.keys() for k0 in lkey])
     c0 = (
         isinstance(lkey, list)
         and all([k0 in dd.keys() for k0 in lkey])
-        and all([group in dd[k0]['ref'] for k0 in lkey])
     )
     if not c0:
-        msg = ""
+        msg = "Non-valid keys provided:\n{}".format(
+            [kk for kk in lkey if kk not in dd.keys()]
+        )
         raise Exception(msg)
+
+    # Only keep keys with group
+    lkey = [kk for kk in lkey if group in dd[kk]['group']]
+    dind = dict.fromkeys(lkey)
+    if len(lkey) == 0:
+        if return_all is True:
+            return None, None, 1, dind
+        else:
+            return None, dind
 
     # get list of ref from desired group (e.g.: time vectors id)
     did = {
@@ -148,29 +162,53 @@ def _get_indtu(
     t=None,
     tall=None,
     tbinall=None,
-    idref1d=None, idref2d=None,
-    indtr1=None, indtr2=None,
+    indtq=None, indtr1=None, indtr2=None,
 ):
+    """ Return relevent time indices
+
+    Typically:
+        indt = np.searchsorted(tbinall, t)
+        t[indt] => tall
+        indtu = np.unique(indt)
+
+        tq[indtq[ii]] = tall[ii]
+        tr1[indtr1[ii]] = tall[ii]
+        tr2[indtr2[ii]] = tall[ii]
+
+    """
+
     # Get indt (t with respect to tbinall)
-    indt, indtu = None, None
-    if t is not None:
+    if tall is not None and t is not None:
         if len(t) == len(tall) and np.allclose(t, tall):
             indt = np.arange(0, tall.size)
             indtu = indt
         else:
-            indt = np.digitize(t, tbinall)
+            indt = np.searchsorted(tbinall, t)
             indtu = np.unique(indt)
-            # Update
-            tall = tall[indtu]
+    elif tall is not None and t is None:
+        indt = np.arange(0, tall.size)
+        indtu = indt
+    elif tall is None and t is not None:
+        indtu = np.array([0], dtype=int)
+        indt = np.zeros((t.size,), dtype=int)
+    else:
+        indtu = np.array([0], dtype=int)
+        indt = indtu
 
-        if idref1d is not None:
-            assert indtr1 is not None
-            indtr1 = indtr1[indtu]
-        if idref2d is not None:
-            assert indtr2 is not None
-            indtr2 = indtr2[indtu]
-    ntall = tall.size
-    return tall, ntall, indt, indtu, indtr1, indtr2
+    # indices for ref1d and ref2d
+    if indtq is None:
+        indtq = np.zeros((tall.size,), dtype=int)
+    if indtr1 is None:
+        indtr1 = np.zeros((tall.size,), dtype=int)
+    if indtr2 is None:
+        indtr2 = np.zeros((tall.size,), dtype=int)
+
+    # Update
+    tall = tall[indtu]
+    ntall = indtu.size
+
+    return tall, ntall, indt, indtu, indtq, indtr1, indtr2
+
 
 def get_tcommon(self, lq, prefer='finer'):
     """ Check if common t, else choose according to prefer

@@ -20,6 +20,7 @@ import scipy.interpolate as scpinterp
 # from tofu import __version__ as __version__
 import tofu.utils as utils
 from . import _check_inputs
+from . import _comp
 from . import _comp_new
 from . import _plot_new
 from . import _def
@@ -850,6 +851,41 @@ class DataCollection(utils.ToFuObject):
             lkey=lkey, return_all=return_all,
         )
 
+    def _get_pts_from_mesh(self, key=None):
+        """ Get default pts from a mesh """
+
+        # Check key is relevant
+        c0 = (
+            key in self._ddata.keys()
+            and isinstance(self._ddata[key].get('data'), dict)
+            and 'type' in self._ddata[key]['data'].keys()
+        )
+        if not c0:
+            msg = (
+                "ddata['{}'] does not exist or is not a mesh".format(key)
+            )
+            raise Exception(msg)
+
+        if self.ddata[key]['data']['type'] == 'rect':
+            if self.ddata[key]['data']['shapeRZ'] == ('R', 'Z'):
+                R = np.repeat(self.ddata[key]['data']['R'],
+                              self.ddata[key]['data']['nZ'])
+                Z = np.tile(self.ddata[key]['data']['Z'],
+                            self.ddata[key]['data']['nR'])
+            else:
+                R = np.tile(self.ddata[key]['data']['R'],
+                            self.ddata[key]['data']['nZ'])
+                Z = np.repeat(self.ddata[key]['data']['Z'],
+                              self.ddata[key]['data']['nR'])
+            pts = np.array([R, np.zeros((R.size,)), Z])
+        else:
+            pts = self.ddata[key]['data']['nodes']
+            pts = np.array([
+                pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1],
+            ])
+        return pts
+
+
     # ---------------------
     # Method for interpolation - inputs checks
     # ---------------------
@@ -905,7 +941,7 @@ class DataCollection(utils.ToFuObject):
 
         # Check requested quant is available in 2d or 1d
         if all(lc1):
-            idquant, idref1d, idref2d = _check_inputs._get_quantref_12d_keys(
+            idquant, idref1d, idref2d = _check_inputs._get_possible_ref12d(
                 dd=self._ddata,
                 key=quant, ref1d=ref1d, ref2d=ref2d,
                 group1d=group1d,
@@ -915,12 +951,15 @@ class DataCollection(utils.ToFuObject):
             ani = False
         else:
             idq2dR, msg   = _check_inputs._get_keyingroup_ddata(
+                dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
             idq2dPhi, msg =_check_inputs._get_keyingroup_ddata(
+                dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
             idq2dZ, msg   = _check_inputs._get_keyingroup_ddata(
+                dd=self._ddata,
                 key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
             idquant, idref1d, idref2d = None, None, None
@@ -936,7 +975,7 @@ class DataCollection(utils.ToFuObject):
         idquant=None, idref1d=None, idref2d=None, idmesh=None,
         idq2dR=None, idq2dPhi=None, idq2dZ=None,
         interp_t=None, interp_space=None,
-        fill_value=None, ani=False, Type=None,
+        fill_value=None, ani=None, Type=None,
         group0d=None, group2d=None,
     ):
 
@@ -956,15 +995,15 @@ class DataCollection(utils.ToFuObject):
                 # isotropic
                 if idref1d is None:
                     lidmesh = [qq for qq in self._ddata[idquant]['ref']
-                               if self._dindref[qq]['group'] == group_mesh]
+                               if self._dref[qq]['group'] == group2d]
                 else:
                     lidmesh = [qq for qq in self._ddata[idref2d]['ref']
-                               if self._dindref[qq]['group'] == group_mesh]
+                               if self._dref[qq]['group'] == group2d]
             else:
                 # anisotropic
                 assert idq2dR is not None
                 lidmesh = [qq for qq in self._ddata[idq2dR]['ref']
-                           if self._dindref[qq]['group'] == group_mesh]
+                           if self._dref[qq]['group'] == group2d]
             assert len(lidmesh) == 1
             idmesh = lidmesh[0]
 
@@ -999,10 +1038,29 @@ class DataCollection(utils.ToFuObject):
                     self._ddata[idmesh]['data']['ntri'],
                     axis=0,
                 )
+            vr1 = self._ddata[idref1d]['data'] if idref1d is not None else None
+            vr2 = self._ddata[idref2d]['data'] if idref2d is not None else None
+
+            # add time dimension if none
+            if vquant.ndim == 1:
+                vquant = vquant[None, :]
+            if vr1.ndim == 1:
+                vr1 = vr1[None, :]
+            if vr2.ndim == 1:
+                vr2 = vr2[None, :]
+
         else:
             vq2dR   = self._ddata[idq2dR]['data']
             vq2dPhi = self._ddata[idq2dPhi]['data']
             vq2dZ   = self._ddata[idq2dZ]['data']
+
+            # add time dimension if none
+            if vq2dR.ndim == 1:
+                vq2dR = vq2dR[None, :]
+            if vq2dPhi.ndim == 1:
+                vq2dPhi = vq2dPhi[None, :]
+            if vq2dZ.ndim == 1:
+                vq2dZ = vq2dZ[None, :]
 
         if interp_space is None:
             interp_space = self._ddata[idmesh]['data']['ftype']
@@ -1011,27 +1069,28 @@ class DataCollection(utils.ToFuObject):
         if ani:
             # Assuming same mesh and time vector for all 3 components
             func = _comp.get_finterp_ani(
-                self, idq2dR, idq2dPhi, idq2dZ,
+                idq2dR, idq2dPhi, idq2dZ,
                 interp_t=interp_t,
                 interp_space=interp_space,
                 fill_value=fill_value,
                 idmesh=idmesh, vq2dR=vq2dR,
                 vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
                 tall=tall, tbinall=tbinall, ntall=ntall,
-                indtq=dind[idquant],
+                indtq=dind.get(idquant),
                 trifind=trifind, Type=Type, mpltri=mpltri,
             )
         else:
             func = _comp.get_finterp_isotropic(
-                self, idquant, idref1d, idref2d,
+                idquant, idref1d, idref2d,
+                vquant=vquant, vr1=vr1, vr2=vr2,
                 interp_t=interp_t,
                 interp_space=interp_space,
                 fill_value=fill_value,
-                idmesh=idmesh, vquant=vquant,
+                idmesh=idmesh,
                 tall=tall, tbinall=tbinall, ntall=ntall,
                 mpltri=mpltri, trifind=trifind,
-                indtq=dind[idquant],
-                indtr1=dind[idref1d], indtr2=idind[idref2d],
+                indtq=dind.get(idquant),
+                indtr1=dind.get(idref1d), indtr2=dind.get(idref2d),
             )
 
         return func
@@ -1051,7 +1110,10 @@ class DataCollection(utils.ToFuObject):
         interp_space=None,
         fill_value=None,
         Type=None,
-        group_mesh=None,
+        group0d=None,
+        group1d=None,
+        group2d=None,
+        return_all=None,
     ):
         """ Return the value of the desired 1d quantity at 2d points
 
@@ -1063,50 +1125,40 @@ class DataCollection(utils.ToFuObject):
 
         """
         # Check inputs
-        if group_mesh is None:
-            group_mesh = self._GROUP_MESH
+        if group0d is None:
+            group0d = self._group0d
+        if group1d is None:
+            group1d = self._group1d
+        if group2d is None:
+            group2d = self._group2d
         # msg = "Only 'nearest' available so far for interp_t!"
         # assert interp_t == 'nearest', msg
 
         # Check requested quant is available in 2d or 1d
-        out = self._check_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
-                                        q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
-        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = \
+                self._check_qr12RPZ(
+                    quant=quant, ref1d=ref1d, ref2d=ref2d,
+                    q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                    group1d=group1d, group2d=group2d,
+                )
 
         # Check the pts is (3,...) array of floats
+        idmesh = None
         if pts is None:
             # Identify mesh to get default points
             if ani:
                 idmesh = [id_ for id_ in self._ddata[idq2dR]['ref']
-                          if self._dindref[id_]['group'] == group_mesh][0]
+                          if self._dref[id_]['group'] == group2d][0]
             else:
                 if idref1d is None:
                     idmesh = [id_ for id_ in self._ddata[idquant]['ref']
-                              if self._dindref[id_]['group'] == group_mesh][0]
+                              if self._dref[id_]['group'] == group2d][0]
                 else:
                     idmesh = [id_ for id_ in self._ddata[idref2d]['ref']
-                              if self._dindref[id_]['group'] == group_mesh][0]
+                              if self._dref[id_]['group'] == group2d][0]
 
             # Derive pts
-            if self.dmesh[idmesh]['data']['type'] == 'rect':
-                if self.dmesh[idmesh]['data']['shapeRZ'] == ('R', 'Z'):
-                    R = np.repeat(self.dmesh[idmesh]['data']['R'],
-                                  self.dmesh[idmesh]['data']['nZ'])
-                    Z = np.tile(self.dmesh[idmesh]['data']['Z'],
-                                self.dmesh[idmesh]['data']['nR'])
-                else:
-                    R = np.tile(self.dmesh[idmesh]['data']['R'],
-                                self.dmesh[idmesh]['data']['nZ'])
-                    Z = np.repeat(self.dmesh[idmesh]['data']['Z'],
-                                  self.dmesh[idmesh]['data']['nR'])
-                pts = np.array([
-                    R, np.zeros((self.dmesh[idmesh]['data']['size'],)), Z,
-                ])
-            else:
-                pts = self.dmesh[idmesh]['data']['nodes']
-                pts = np.array([
-                    pts[:, 0], np.zeros((pts.shape[0],)), pts[:, 1],
-                ])
+            pts = self._get_pts_from_mesh(key=idmesh)
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:
@@ -1130,13 +1182,51 @@ class DataCollection(utils.ToFuObject):
         func = self._get_finterp(
             idquant=idquant, idref1d=idref1d, idref2d=idref2d,
             idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+            idmesh=idmesh,
             interp_t=interp_t, interp_space=interp_space,
             fill_value=fill_value, ani=ani, Type=Type,
+            group0d=group0d, group2d=group2d,
         )
+
+        # Check vect of ani
+        c0 = (
+            ani is True
+            and (
+                vect is None
+                or not (
+                    isinstance(vect, np.ndarray)
+                    and vect.shape == pts.shape
+                )
+            )
+        )
+        if c0:
+            msg = (
+                "Anisotropic field interpolation needs a field of local vect\n"
+                + "  => Please provide vect as (3, npts) np.ndarray!"
+            )
+            raise Exception(msg)
 
         # This is the slowest step (~1.8 s)
         val, t = func(pts, vect=vect, t=t)
-        return val, t
+
+        # return
+        if return_all is None:
+            return_all = True
+        if return_all is True:
+            dout = {
+                't': t,
+                'pts': pts,
+                'ref1d': idref1d,
+                'ref2d': idref2d,
+                'q2dR': idq2dR,
+                'q2dPhi': idq2dPhi,
+                'q2dZ': idq2dZ,
+                'interp_t': interp_t,
+                'interp_space': interp_space,
+            }
+            return val, dout
+        else:
+            return val
 
 
 
