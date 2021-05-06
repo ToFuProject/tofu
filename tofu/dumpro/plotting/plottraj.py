@@ -9,7 +9,7 @@ Created on Tue Aug 20 15:51:26 2019
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_traj(traj_obs, reshape, w_dir, shot_name):
+def plot_traj(traj_obs, metadata, w_dir, shot_name):
     """This subroutine plots all the trajectories
     
     Parameters
@@ -22,8 +22,8 @@ def plot_traj(traj_obs, reshape, w_dir, shot_name):
     None
     """
     #getting frame dimensions from reshape dictionary
-    height = reshape.get('height')
-    width = reshape.get('width') 
+    height = metadata.get('frame_height')
+    width = metadata.get('frame_width') 
     print('Plotting trajectories ... \n')
     #creating new figure
     fig = plt.figure()
@@ -39,8 +39,8 @@ def plot_traj(traj_obs, reshape, w_dir, shot_name):
     for ii in range(0, len(traj_obs)):
         obj = traj_obs.get(ii)
         ax.plot(obj.points[:,0], obj.points[:,1],
-                c = 'r', ls = '-', lw =1, marker = '|')
-    ax.invert_yaxis()
+                c = 'r', ls = '-', lw =1, marker = 'x')
+    ax.invert_xaxis()
     plt.savefig(w_dir + shot_name + 'Trajectory.png')
     #displaying plot
     plt.show()

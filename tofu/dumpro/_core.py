@@ -820,7 +820,7 @@ class Vid_img(object):
         #plotting framewise dust distribution
         _plot.f_density_dist.num_dist(self.infocluster, self.w_dir, self.shotname)
         #plotting trajectories
-        _plot.plottraj.plot_traj(self.traj, self.reshape, self.w_dir, self.shotname)
+        _plot.plottraj.plot_traj(self.traj, self.meta_data, self.w_dir, self.shotname)
         
         return None
     
