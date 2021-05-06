@@ -2052,7 +2052,7 @@ cdef inline void sa_assemble_arrays(int block,
                                     long[::1] lstruct_nlim,
                                     double[::1] lstruct_polyx,
                                     double[::1] lstruct_polyy,
-                                    double[::1] lstruct_lims,
+                                    list lstruct_lims,
                                     double[::1] lstruct_normx,
                                     double[::1] lstruct_normy,
                                     long[::1] lnvert,
@@ -2112,6 +2112,10 @@ cdef inline void sa_assemble_arrays(int block,
             lstruct_nlim_copy = None
         else:
             lstruct_nlim_copy = lstruct_nlim.copy()
+        print("print with gil: ")
+        print("lstruct_nlim \n ", np.shape(lstruct_nlim_copy))
+        print("lstruct_lims \n ", lstruct_lims_np)
+        print("lnvert \n", np.shape(lnvert))
         assemble_block_approx(part_coords, part_rad,
                               is_in_vignette,
                               sa_map,
@@ -2345,6 +2349,18 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                    pp] += sa_approx_formula(part_rad[pp],
                                                             dist[pp],
                                                             vol_pi)
+                        #     if ind_pol == 1:
+                        #         with gil:
+                        #             print("<<< rad, dist, volpi, sa = ",
+                        #                   rr, zz, loc_phi,
+                        #                   #part_rad[pp], dist[pp], vol_pi,
+                        #                   sa_approx_formula(part_rad[pp],
+                        #                                     dist[pp],
+                        #                                     vol_pi))
+                        # elif dist[pp] < part_rad[pp]:
+                        #     with gil:
+                        #         print("")
+                        #         print("<<< cy : ", ind_pol)
     free(dist)
     free(is_vis)
     return

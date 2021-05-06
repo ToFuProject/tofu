@@ -202,11 +202,18 @@ def calc_solidangle_particle(
         vect = vect / len_v[None, :, :]
 
     # Solid angle
+    r_d = rad[:, None] / len_v
+    where_zero = len_v <= rad[:, None]
+    r_d[where_zero] = 0.  # temporary value
     if approx:
-        r_d = rad[:, None] / len_v
         sang = np.pi * (r_d**2 + r_d**4 / 4. + r_d**6 / 8. + r_d**8 * 5 / 64)
     else:
-        sang = 2.*np.pi * (1 - np.sqrt(1. - rad[:, None]**2 / len_v**2))
+        sang = 2.*np.pi * (1 - np.sqrt(1. - r_d ** 2))
+
+    # when particle in mesh point, distance len_v = 0 thus sang neglected
+    print(">>> py : ", np.sum(where_zero))
+    print(">>> py : ", np.where(where_zero))
+    sang[where_zero] = 0.
 
     # block
     if block:
@@ -215,6 +222,7 @@ def calc_solidangle_particle(
             pts, traj, dist=len_v, **kwdargs
         )
         iout = indvis == 0
+        print("iout = ", iout)
         sang[iout] = 0.
         vect[:, iout] = np.nan
 

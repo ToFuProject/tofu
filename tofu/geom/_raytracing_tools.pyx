@@ -1538,6 +1538,7 @@ cdef inline void compute_inout_tot(const int num_los,
             forbid0, forbidbis = 1, 1
         else:
             forbid0, forbidbis = 0, 0
+
         # -- Computing intersection between LOS and Vessel ---------------------
         raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                     coeff_inter_out, coeff_inter_in,
@@ -1552,6 +1553,13 @@ cdef inline void compute_inout_tot(const int num_los,
                                     &ves_norm[1][0],
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
+        if (ray_orig[0,0] == 1.8354439533593998 and
+            ray_orig[1,0] == -0.3565928529411765 and
+            ray_orig[2,0] == -3.114509958300226):
+            with gil:
+                print(">>>>>>>> ",
+                      ray_vdir[0,0],ray_vdir[1,0],ray_vdir[2,0],
+                      coeff_inter_in[0], coeff_inter_out[0])
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
             ind_struct = 0
@@ -2132,12 +2140,26 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                       sz_ves_lims, min_poly_r, rmin,
                       eps_uz, eps_a, eps_vz, eps_b,
                       eps_plane, is_tor,
-                      forbid, num_threads,
+                      forbid, 1,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
     # --------------------------------------------------------------------------
     # Get ind
     is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
+    # if (pt0 == 1.8354439533593998 and
+    #     pt1 == -0.3565928529411765 and
+    #     pt2 == -3.114509958300226):
+    #     with gil:
+    #         #           lstruct_polyx, lstruct_polyy,
+    #         #           lstruct_normx,
+    #         #           lstruct_normy,
+    #         #           forbid, num_threads,
+    #         print("............. is_vis, dist, coeff_inter_out, =",
+    #               is_vis[0], 
+    #               forbid, npts, lnvert[0], lnvert[1], lnvert[2]
+    #               )
+    #         print("ray_orig = ", ray_orig[0, 0], ray_orig[1, 0], ray_orig[2, 0])
+    #         print("ray_vdir = ", ray_vdir[0, 0], ray_vdir[1, 0], ray_vdir[2, 0])
     return
 
 
