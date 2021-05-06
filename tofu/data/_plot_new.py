@@ -447,6 +447,11 @@ def plot_axvline(
                 ls=ls,
                 lw=lw,
             )
+
+            # Add marker if relevant
+            if dmarker is not None:
+                ax.plot()
+
             ax.text(
                 din[k0][param_x],
                 ly[ii][1],

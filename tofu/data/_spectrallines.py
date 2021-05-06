@@ -370,6 +370,20 @@ class SpectralLines(DataCollection):
             )
             raise Exception(msg)
 
+        # Check ne, Te
+        ltype = [int, float, np.int_, np.float_]
+        dnTe = {'ne': ne, 'Te': Te}
+        for k0, v0 in dnTe.items():
+            if type(v0) in ltype:
+                dnTe[k0] = np.r_[v0]
+            if isinstance(dnTe[k0], list) or isinstance(dnTe[k0], tuple):
+                dnTe[k0] = np.array([dnTe[k0]])
+            if not (isinstance(dnTe[k0], np.ndarray) and dnTe[k0].ndim == 1):
+                msg = (
+                    "Arg {} should be a 1d np.ndarray!".format(k0)
+                )
+                raise Exception(msg)
+
         # Interpolate
         dout = {}
         derr = {}
@@ -390,8 +404,8 @@ class SpectralLines(DataCollection):
                     ne0=ne0,
                     Te0=Te0,
                     pec0=self._ddata[dlines[k0]['pec']]['data'],
-                    ne=ne,
-                    Te=Te,
+                    ne=dnTe['ne'],
+                    Te=dnTe['Te'],
                     deg=deg,
                     grid=grid,
                 )
@@ -545,10 +559,73 @@ class SpectralLines(DataCollection):
         )
 
 
-    def plot_pec(self):
-        raise NotImplementedError
+    def plot_pec_single(
+        self,
+        key=None,
+        ind=None,
+        ne=None,
+        Te=None,
+        ax=None,
+        sortby=None,
+        param_txt=None,
+        ymin=None,
+        ymax=None,
+        ls=None,
+        lw=None,
+        fontsize=None,
+        side=None,
+        dcolor=None,
+        fraction=None,
+        figsize=None,
+        dmargin=None,
+        wintit=None,
+        tit=None,
+    ):
 
+        # Check input
+        if param_txt is None:
+            param_txt = 'symbol'
 
+        # Check ne, Te
+        ltypes = [int, float, np.int_, np.float_]
+        dnTe = {'ne': ne, 'Te': Te}
+        lc = [
+            k0 for k0, v0 in dnTe.items()
+            if (
+                type(v0) not in ltypes
+                or len(v0) != 1
+            )
+        ]
+        if len(lc) > 0:
+            msg = (
+                ""
+            )
+            raise Exception(msg)
+
+        # Get dpec
+        dpec = self.calc_pec(
+            key=key,
+            ind=ind,
+            ne=ne,
+            Te=Te,
+            deg=deg,
+            grid=grid,
+        )
+
+        return super()._plot_axvlines(
+            which='lines',
+            key=key,
+            param_x='lambda0',
+            param_txt=param_txt,
+            sortby=sortby,
+            sortby_def='ion',
+            sortby_lok=['ion', 'source'],
+            ax=ax, ymin=ymin, ymax=ymax,
+            ls=ls, lw=lw, fontsize=fontsize,
+            side=side, dcolor=dcolor, fraction=fraction,
+            figsize=figsize, dmargin=dmargin,
+            wintit=wintit, tit=tit,
+        )
 
 
 #############################################
