@@ -1,5 +1,7 @@
 
 
+import os
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -287,6 +289,109 @@ class SpectralLines(DataCollection):
         self.update(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
 
     # -----------------
+    # from file (.py)
+    # ------------------
+
+    @staticmethod
+    def _check_extract_dict_from_mod(mod, k0):
+        lk1 = [
+            k0, k0.upper(),
+            '_'+k0, '_'+k0.upper(),
+            '_d'+k0, '_D'+k0.upper(),
+            'd'+k0, 'D'+k0.upper(),
+            k0+'s', k0.upper()+'S'
+            '_d'+k0+'s', '_D'+k0.upper()+'S',
+            'd'+k0+'s', 'D'+k0.upper()+'S',
+        ]
+        lk1 = [k1 for k1 in lk1 if hasattr(mod, k1)]
+        if len(lk1) > 1:
+            msg = "Ambiguous attributes: {}".format(lk1)
+            raise Exception(msg)
+        elif len(lk1) == 0:
+            return
+
+        if hasattr(mod, lk1[0]):
+            return getattr(mod, lk1[0])
+        else:
+            return
+
+    @classmethod
+    def from_module(cls, pfe=None):
+
+        # Check input
+        c0 = (
+            os.path.isfile(pfe)
+            and pfe[-3:] == '.py'
+        )
+        if not c0:
+            msg = (
+                "\nProvided Path-File-Extension (pfe) not valid!\n"
+                + "\t- expected: absolute path to python module\n"
+                + "\t- provided: {}".format(pfe)
+            )
+            raise Exception(msg)
+        pfe = os.path.abspath(pfe)
+
+        # Load module
+        path, fid = os.path.split(pfe)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(fid[:-3], pfe)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        # extract dref_static
+        dref_static = {}
+        for k0 in ['source', 'transition', 'ion', 'element']:
+            dd = cls._check_extract_dict_from_mod(mod, k0)
+            if dd is not None:
+                dref_static[k0] = dd
+
+        # add ion
+        if 'ion' not in dref_static.keys():
+            lions = np.array([
+                    v0['ion'] for k0, v0 in mod.dlines.items()
+                    if 'ion' in v0.keys()
+            ]).ravel()
+            if len(lions) > 0:
+                dref_static['ion'] = {
+                    k0: {'ion': k0} for k0 in lions
+                }
+            else:
+                lIONS = np.array([
+                        v0['ION'] for k0, v0 in mod.dlines.items()
+                        if 'ION' in v0.keys()
+                ]).ravel()
+                if len(lIONS) > 0:
+                    dref_static['ION'] = {
+                        k0: {'ION': k0} for k0 in lIONS
+                    }
+
+        # extract lines
+        dobj = {
+            'lines': mod.dlines
+        }
+
+        # Create collection
+        out = cls(dref_static=dref_static, dobj=dobj)
+
+        # Replace ION by ion if relevant
+        c0 = (
+            'ion' in out.dref_static.keys()
+            and 'ion' not in out.get_lparam(which='lines')
+            and 'ION' in out.get_lparam(which='lines')
+        )
+        if c0:
+            for k0, v0 in out._dobj['lines'].items():
+                ion = [
+                    k1 for k1, v1 in out._dref_static['ion'].items()
+                    if out._dobj['lines'][k0]['ION'] == v1['ION']
+                ][0]
+                out._dobj['lines'][k0]['ion'] = ion
+                del out._dobj['lines'][k0]['ION']
+        return out
+
+
+    # -----------------
     # summary
     # ------------------
 
@@ -554,7 +659,7 @@ class SpectralLines(DataCollection):
             param_txt=param_txt,
             sortby=sortby,
             sortby_def='ion',
-            sortby_lok=['ion', 'source'],
+            sortby_lok=['ion', 'ION', 'source'],
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
             side=side, dcolor=dcolor, fraction=fraction,
@@ -627,14 +732,21 @@ class SpectralLines(DataCollection):
             for k0, v0 in dpec.items()
         }
 
+        sortby_lok = ['ion', 'ION', 'source']
+        ls = [k0 for k0 in sortby_lok if k0 in self._dref_static.keys()]
+        if len(ls) > 0:
+            sortby_def = ls[0]
+        else:
+            sortby_def = None
+
         return super()._plot_axvlines(
             which='lines',
             key=key,
             param_x='lambda0',
             param_txt=param_txt,
             sortby=sortby,
-            sortby_def='ion',
-            sortby_lok=['ion', 'source'],
+            sortby_def=sortby_def,
+            sortby_lok=sortby_lok,
             dsize=dsize,
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,

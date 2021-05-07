@@ -1785,26 +1785,50 @@ def _check_elementioncharge_dict(dref_static):
     """ Specific to SpectralLines """
 
     # Assess if relevant
-    if 'ion' not in dref_static.keys():
+    lk = [kk for kk in ['ion', 'ION'] if kk in dref_static.keys()]
+    if len(lk) == 0:
         return
+    kion = lk[0]
+    kION = 'ION' if kion == 'ion' else 'ion'
+    if kion == 'ION':
+        dref_static['ion'] = {}
 
     lerr = []
-    for k0, v0 in dref_static['ion'].items():
+    for k0, v0 in dref_static[kion].items():
         try:
-            ION, ion, element, charge = _check_elementioncharge(
-                ION=v0.get('ION'),
-                ion=k0,
-                element=v0.get('element'),
-                charge=v0.get('charge'),
-            )
+            if kion == 'ION':
+                ION, ion, element, charge = _check_elementioncharge(
+                    ION=k0,
+                    ion=v0.get('ion'),
+                    element=v0.get('element'),
+                    charge=v0.get('charge'),
+                )
+            else:
+                ION, ion, element, charge = _check_elementioncharge(
+                    ION=v0.get('ION'),
+                    ion=k0,
+                    element=v0.get('element'),
+                    charge=v0.get('charge'),
+                )
+
             if ION is None:
                 continue
-            dref_static['ion'][k0]['ION'] = ION
-            dref_static['ion'][k0]['element'] = element
-            dref_static['ion'][k0]['charge'] = charge
+            if kion == 'ION':
+                dref_static['ion'][ion] = {
+                    'ION': ION,
+                    'element': element,
+                    'charge': charge,
+                }
+            else:
+                dref_static['ion'][k0]['ION'] = ION
+                dref_static['ion'][k0]['element'] = element
+                dref_static['ion'][k0]['charge'] = charge
 
         except Exception as err:
             lerr.append((k0, str(err)))
+            import pdb; pdb.set_trace()     # DB
+
+    del dref_static['ION']
 
     if len(lerr) > 0:
         lerr = ['\t- {}: {}'.format(pp[0], pp[1]) for pp in lerr]
