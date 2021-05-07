@@ -317,7 +317,7 @@ def _remove_ref_static(
                 k1 for k1, v1 in dobj0.items()
                 if any([kk == v2.get(k0) for v2 in v1.values()])
             ]
-            if len(lk1) > 0 or len(lk2) >0:
+            if len(lk1) > 0 or len(lk2) > 0:
                 msg = (
                     "Provided ref_static key ({}) is used in:\n".format(kk)
                     + "\n".join(
@@ -469,10 +469,10 @@ def _remove_obj(
 
     elif which is not None:
         if which not in dobj0.keys():
-           msg = (
-               "Provided which is not a valid self.dobj.keys()!\n"
-               + "\t- provided: {}\n".format(which)
-               + "\t- available: {}\n".format(sorted(dobj0.keys()))
+            msg = (
+                "Provided which is not a valid self.dobj.keys()!\n"
+                + "\t- provided: {}\n".format(which)
+                + "\t- available: {}\n".format(sorted(dobj0.keys()))
            )
            raise Exception(msg)
 
@@ -491,7 +491,6 @@ def _remove_obj(
         data_none=data_none,
         max_ndim=max_ndim,
     )
-
 
 
 # #############################################################################
@@ -565,7 +564,7 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
         elif c1:
             lg = [k0 for k0 in dgroup if k0 not in allowed_groups]
         else:
-            lg = [k0 for k0 in dgroup>keys() if k0 not in allowed_groups]
+            lg = [k0 for k0 in dgroup > keys() if k0 not in allowed_groups]
         if len(lg) > 0:
             msg = (
                 """
@@ -751,7 +750,6 @@ def _check_dataref(data=None, key=None):
                     size = size[0]
                 group = 'mesh2d'
             except Exception as err:
-                import pdb; pdb.set_trace()     # DB
                 size = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
@@ -833,7 +831,7 @@ def _check_dref(
     ]
 
     # Raise exception if non-conformity
-    if not (c0 and len(lc)==0):
+    if not (c0 and len(lc) == 0):
         msg = (
             """
             Arg dref must be a dict of the form:
@@ -1109,11 +1107,11 @@ def _check_mesh_temp(data=None, key=None):
             indZ[(z < Z[0]) | (z > Z[-1])] = -1
             return indR, indZ
             # if shapeRZ == ('R', 'Z'):
-                # indpts = indR*nZ + indZ
+            #     indpts = indR*nZ + indZ
             # else:
-                # indpts = indZ*nR + indR
+            #     indpts = indZ*nR + indR
             # indout = ((r < R[0]) | (r > R[-1])
-                      # | (z < Z[0]) | (z > Z[-1]))
+            #           | (z < Z[0]) | (z > Z[-1]))
             # indpts[indout] = -1
             # return indpts
 
@@ -1199,37 +1197,37 @@ def _check_mesh_temp(data=None, key=None):
 
 
 def roman2int(ss):
-      """
-      :type s: str
-      :rtype: int
+    """
+    :type s: str
+    :rtype: int
 
-      source: https://www.tutorialspoint.com/roman-to-integer-in-python
-      """
-      roman = {
-          'I': 1,
-          'V': 5,
-          'X': 10,
-          'L': 50,
-          'C': 100,
-          'D': 500,
-          'M': 1000,
-          'IV': 4,
-          'IX': 9,
-          'XL': 40,
-          'XC': 90,
-          'CD': 400,
-          'CM': 900,
-      }
-      i = 0
-      num = 0
-      while i < len(ss):
-         if i+1 < len(ss) and ss[i:i+2] in roman:
+    source: https://www.tutorialspoint.com/roman-to-integer-in-python
+    """
+    roman = {
+        'I': 1,
+        'V': 5,
+        'X': 10,
+        'L': 50,
+        'C': 100,
+        'D': 500,
+        'M': 1000,
+        'IV': 4,
+        'IX': 9,
+        'XL': 40,
+        'XC': 90,
+        'CD': 400,
+        'CM': 900,
+    }
+    i = 0
+    num = 0
+    while i < len(ss):
+        if i+1 < len(ss) and ss[i:i+2] in roman:
             num += roman[ss[i:i+2]]
             i += 2
-         else:
+        else:
             num += roman[ss[i]]
             i += 1
-      return num
+    return num
 
 
 def int2roman(num):
@@ -1476,7 +1474,6 @@ def _check_ddata(
                         else:
                             lref_add.append(k0)
                     ddata[k0]['ref'] = (k0,)
-
 
     # Check data and ref vs shape - and optionnally add to ref if mesh2d
     for k0, v0 in ddata.items():
@@ -2395,7 +2392,6 @@ def _remove_param(dd=None, dd_name=None, param=None):
     # Remove
     for k0 in dd.keys():
         del dd[k0][param]
-
 
 
 # #############################################################################

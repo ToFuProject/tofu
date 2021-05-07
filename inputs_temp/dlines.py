@@ -62,7 +62,7 @@ _DSOURCES = {
             'Wavelength computed from the solid references '
             + 'ArXVII_w_Bruhns and ArXVII_z_Amaro and from the '
             + 'detector position optimized from them using shots='
-            +  '[54044, 54045, 54046, 54047, 54049, 54061, 55076], '
+            + '[54044, 54045, 54046, 54047, 54049, 54061, 55076], '
             + 'indt=[2,4,5,6,8], indxj=None on 08.04.2020, using '
             + 'Vainshtein for x, y and Goryaev for k, j, q, r, a'
         ),
@@ -316,8 +316,6 @@ dtransitions = {
 }
 
 
-
-
 dlines = {
     # --------------------------
     # Ar
@@ -436,11 +434,13 @@ dlines = {
     'ArXVI_k_Kallne': {'charge': 15, 'ION': 'ArXVI',
                        'lambda0': 3.9892e-10,
                        'transition': ('Li-like', 'k'),
-                       'source': 'Kallne', 'comment': 'Dielect. recomb. from ArXVII'},
+                       'source': 'Kallne',
+                       'comment': 'Dielect. recomb. from ArXVII'},
     'ArXVI_k_NIST': {'charge': 15, 'ION': 'ArXVI',
                      'lambda0': 3.9898e-10,
                      'transition': ('Li-like', 'k'),
-                     'source': 'NIST', 'comment': 'Dielect. recomb. from ArXVII'},
+                     'source': 'NIST',
+                     'comment': 'Dielect. recomb. from ArXVII'},
     'ArXVI_k_Goryaev': {'charge': 15, 'ION': 'ArXVI',
                         'lambda0': 3.9899e-10,
                         'transition': ('Li-like', 'k'),
@@ -816,44 +816,54 @@ dlines = {
     # --------------------------
 
     'W_adhoc_Adhoc200513': {'charge': 43, 'ION': 'WXLIV',
-                            'symbol':'adhoc', 'lambda0': 3.97509e-10,
+                            'symbol': 'adhoc', 'lambda0': 3.97509e-10,
                             'transition': ['?', '?'],
                             'source': 'Adhoc 200513'},
     'WXLIV_0_NIST': {'charge': 43, 'ION': 'WXLIV',
-                     'symbol':'0', 'lambda0': 3.9635e-10,
+                     'symbol': '0', 'lambda0': 3.9635e-10,
                      'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
                                     '3d^94s^24p(3/2,1/2)^0_16f(1,5/2)3/2'],
                      'source': 'NIST'},
     'WXLIV_1_NIST': {'charge': 43, 'ION': 'WXLIV',
-                     'symbol':'1', 'lambda0': 3.9635e-10,
+                     'symbol': '1', 'lambda0': 3.9635e-10,
                      'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
                                     '3d^94s^24p(3/2,1/2)^0_26f(2,5/2)1/2'],
                      'source': 'NIST'},
     'WXLIV_2_NIST': {'charge': 43, 'ION': 'WXLIV',
-                     'symbol':'2', 'lambda0': 4.017e-10,
-                     'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
-                                    '3p^53d^{10}4s^24p(3/2,1/2)_25d(2,5/2)3/2'],
+                     'symbol': '2', 'lambda0': 4.017e-10,
+                     'transition': [
+                         '3d^{10}4s^24p(^2P^0_{1/2})',
+                         '3p^53d^{10}4s^24p(3/2,1/2)_25d(2,5/2)3/2'
+                     ],
                      'source': 'NIST'},
     'WXLIV_3_NIST': {'charge': 43, 'ION': 'WXLIV',
-                     'symbol':'3', 'lambda0': 4.017e-10,
-                     'transition': ['3d^{10}4s^24p(^2P^0_{1/2})',
-                                    '3p^53d^{10}4s^24p(3/2,1/2)_25d(2,5/2)1/2'],
+                     'symbol': '3', 'lambda0': 4.017e-10,
+                     'transition': [
+                         '3d^{10}4s^24p(^2P^0_{1/2})',
+                         '3p^53d^{10}4s^24p(3/2,1/2)_25d(2,5/2)1/2'
+                     ],
                      'source': 'NIST'},
     'WXLV_0_NIST': {'charge': 44, 'ION': 'WXLV',
-                    'symbol':'0', 'lambda0': 3.9730e-10,
-                    'transition': ['3d^{10}4s^2(^1S_{0})',
-                                   '3p^5(^2P^0_{3/2})3d^{10}4s^25d(3/2,5/2)^01'],
+                    'symbol': '0', 'lambda0': 3.9730e-10,
+                    'transition': [
+                        '3d^{10}4s^2(^1S_{0})',
+                        '3p^5(^2P^0_{3/2})3d^{10}4s^25d(3/2,5/2)^01'
+                    ],
                     'source': 'NIST'},
     'WXLV_1_NIST': {'charge': 44, 'ION': 'WXLV',
-                    'symbol':'1', 'lambda0': 3.9895e-10,
+                    'symbol': '1', 'lambda0': 3.9895e-10,
                     'transition': ['3d^{10}4s^2(^1S_{0})',
                                    '3d^9(^2D_{5/2})4s^26f(5/2,7/2)^01'],
                     'source': 'NIST'},
-    'WLIII_0_NIST': {'charge': 52, 'ION': 'WLIII',
-                    'symbol':'0', 'lambda0': 4.017e-10,
-                    'transition': ['3d^{10}4s^24p^2(^3P_{0})',
-                                   '3d^9(^2D_{3/2})4s^24p^2(^3P^0)(3/2,0)_{3/2}6f(3/2,5/2)^01'],
-                    'source': 'NIST'},
+    'WLIII_0_NIST': {
+        'charge': 52, 'ION': 'WLIII',
+        'symbol': '0', 'lambda0': 4.017e-10,
+        'transition': [
+            '3d^{10}4s^24p^2(^3P_{0})',
+            '3d^9(^2D_{3/2})4s^24p^2(^3P^0)(3/2,0)_{3/2}6f(3/2,5/2)^01'
+        ],
+        'source': 'NIST'
+    },
 }
 
 
@@ -866,6 +876,6 @@ for k0, v0 in dlines.items():
         dlines[k0][k1] = v1
     if isinstance(v0['transition'], tuple):
         trans = v0['transition'][0].split('-')[0] + '-' + v0['transition'][1]
-        #trans = dtransitions[v0['transition'][0]][v0['transition'][1]]
+        # trans = dtransitions[v0['transition'][0]][v0['transition'][1]]
         dlines[k0]['symbol'] = trans[trans.index('-')+1:]
         dlines[k0]['transition'] = trans

@@ -26,7 +26,8 @@ from . import _plot_new
 from . import _def
 from . import _comp_spectrallines
 
-__all__ = ['DataCollection'] # , 'TimeTraceCollection']
+
+__all__ = ['DataCollection']    # , 'TimeTraceCollection']
 
 
 _INTERPT = 'zero'
@@ -218,7 +219,9 @@ class DataCollection(utils.ToFuObject):
     def add_ref_static(self, key=None, which=None, **kwdargs):
         dref_static = {which: {key: kwdargs}}
         # Check consistency
-        self.update(ddata=None, dref=None, dref_static=dref_static, dgroup=None)
+        self.update(
+            ddata=None, dref=None, dref_static=dref_static, dgroup=None,
+        )
 
     def add_data(self, key=None, data=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
@@ -383,7 +386,7 @@ class DataCollection(utils.ToFuObject):
 
         value can be:
             - None
-            - a unique value (int, float, bool, str, tuple) => common to all keys
+            - a unique value (int, float, bool, str, tuple) common to all keys
             - an iterable of vlues (array, list) => one for each key
 
         A subset of keys can be chosen (ind, key, fed to self.select()) to set
@@ -693,7 +696,9 @@ class DataCollection(utils.ToFuObject):
     # TBC
     def to_PlotCollection(self, key=None, ind=None, group=None, Name=None,
                           dnmax=None, lib='mpl'):
-        dref, ddata = self.get_drefddata_as_input(key=key, ind=ind, group=group)
+        dref, ddata = self.get_drefddata_as_input(
+            key=key, ind=ind, group=group,
+        )
         if Name is None and self.Id.Name is not None:
             Name = self.Id.Name + '-plot'
         import tofu.data._core_plot as _core_plot
@@ -804,7 +809,6 @@ class DataCollection(utils.ToFuObject):
             sep=sep, line=line, table_sep=table_sep,
             verb=verb, return_=return_)
 
-
     # -----------------
     # conversion wavelength - energy - frequency
     # ------------------
@@ -885,7 +889,6 @@ class DataCollection(utils.ToFuObject):
             ])
         return pts
 
-
     # ---------------------
     # Method for interpolation - inputs checks
     # ---------------------
@@ -950,7 +953,7 @@ class DataCollection(utils.ToFuObject):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, msg   = _check_inputs._get_keyingroup_ddata(
+            idq2dR, msg = _check_inputs._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
@@ -958,7 +961,7 @@ class DataCollection(utils.ToFuObject):
                 dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dZ, msg   = _check_inputs._get_keyingroup_ddata(
+            idq2dZ, msg = _check_inputs._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
@@ -1050,9 +1053,9 @@ class DataCollection(utils.ToFuObject):
                 vr2 = vr2[None, :]
 
         else:
-            vq2dR   = self._ddata[idq2dR]['data']
+            vq2dR = self._ddata[idq2dR]['data']
             vq2dPhi = self._ddata[idq2dPhi]['data']
-            vq2dZ   = self._ddata[idq2dZ]['data']
+            vq2dZ = self._ddata[idq2dZ]['data']
 
             # add time dimension if none
             if vq2dR.ndim == 1:
@@ -1164,7 +1167,7 @@ class DataCollection(utils.ToFuObject):
         if pts.shape[0] != 3:
             msg = (
                 "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
-                + "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
+                + "Can be multi-dimensional, but 1st dimension is (X,Y,Z)\n"
                 + "    - Expected shape : (3,...)\n"
                 + "    - Provided shape : {}".format(pts.shape)
             )
@@ -1228,9 +1231,6 @@ class DataCollection(utils.ToFuObject):
         else:
             return val
 
-
-
-
     # TBC
     def _interp_one_dim(x=None, ind=None, key=None, group=None,
                         kind=None, bounds_error=None, fill_value=None):
@@ -1261,8 +1261,8 @@ class DataCollection(utils.ToFuObject):
         if isinstance(x) is str:
             if x not in self.lref:
                 msg = "If x is a str, it must be a valid ref!\n"
-                msg += "    - x: %s\n"%str(x)
-                msg += "    - self.lref: %s"%str(self.lref)
+                msg += "    - x: {}\n".format(x)
+                msg += "    - self.lref: {}".format(self.lref)
                 raise Exception(msg)
             group = self._dref[x]['group']
             x = self._ddata[x]['data']
@@ -1363,7 +1363,6 @@ class DataCollection(utils.ToFuObject):
 
         return dout
 
-
     # ---------------------
     # Methods for plotting data
     # ---------------------
@@ -1375,12 +1374,13 @@ class DataCollection(utils.ToFuObject):
                          legend=None, draw=None, connect=None, lib=None):
         plotcoll = self.to_PlotCollection(ind=ind, key=key, group=group,
                                           Name=Name, dnmax={group:ntmax})
-        return _plot_new.plot_DataColl(plotcoll,
-                                       color=color, ls=ls, marker=marker, ax=ax,
-                                       axgrid=axgrid, fs=fs, dmargin=dmargin,
-                                       draw=draw, legend=legend,
-                                       connect=connect, lib=lib)
-
+        return _plot_new.plot_DataColl(
+            plotcoll,
+            color=color, ls=ls, marker=marker, ax=ax,
+            axgrid=axgrid, fs=fs, dmargin=dmargin,
+            draw=draw, legend=legend,
+            connect=connect, lib=lib,
+        )
 
     def _plot_axvlines(
         self,
@@ -1442,9 +1442,6 @@ class DataCollection(utils.ToFuObject):
             figsize=figsize, dmargin=dmargin,
             wintit=wintit, tit=tit,
         )
-
-
-
 
     # ---------------------
     # saving => get rid of function

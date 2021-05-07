@@ -12,7 +12,6 @@ import numpy as np
 # import scipy.stats as scpstats
 
 
-
 #############################################
 #############################################
 #############################################
@@ -99,14 +98,14 @@ def _get_unique_ref_dind(
     }
     lidu = list(set([vv for vv in did.values()]))
 
-    # Create common time base 
+    # Create common time base
     if len(lidu) == 1:
         tall = dd[lidu[0]]['data']
 
     else:
         tall = np.unique([dd[kt]['data'] for kt in lidu])
 
-    # Get dict if indices for fast mapping each t to tall 
+    # Get dict if indices for fast mapping each t to tall
     for k0 in lkey:
         dind[k0] = np.searchsorted(
             0.5*(dd[did[k0]]['data'][1:] + dd[did[k0]]['data'][:-1]),
@@ -170,7 +169,7 @@ def _get_indtmult(
         indtq = np.r_[0]
 
     if idref1d is None:
-        assert np.all(indtq == np.arange(0,tall.size))
+        assert np.all(indtq == np.arange(0, tall.size))
     if idref1d is not None:
         if tbinr1.size > 0:
             indtr1 = np.digitize(tall, tbinr1)
@@ -265,6 +264,7 @@ def get_tcommon(self, lq, prefer='finer'):
         ind = 0
     return t[ind], t
 
+
 def _get_tcom(
     idquant=None, idref1d=None,
     idref2d=None, idq2dR=None,
@@ -298,9 +298,7 @@ def fit_1d(data, x=None, axis=None, Type=None, func=None,
     lc = [Type is not None, func is not None]
     assert np.sum(lc) == 1
 
-
     if lc[0]:
-
 
         # Pre-defined models dict
         # ------------------------
@@ -315,8 +313,8 @@ def fit_1d(data, x=None, axis=None, Type=None, func=None,
 
         if Type not in dTypes.keys():
             msg = "Chosen Type not available:\n"
-            msg += "    - provided: %s\n"%str(Type)
-            msg += "    - Available: %s"%str(list(dTypes.keys()))
+            msg += "    - provided: {}\n".format(Type)
+            msg += "    - Available: {}".format(list(dTypes.keys()))
             raise Exception(msg)
 
         dout = dTypes[Type](data, x=x, axis=axis, **kwdargs)
@@ -331,10 +329,10 @@ def fit_1d(data, x=None, axis=None, Type=None, func=None,
     return dout
 
 
-
 # -------------------------------------------
 #       1d fit models
 # -------------------------------------------
+
 
 def _fit1d_staircase(data, x=None, axis=None):
     """ Model data as a staircase (ramps + plateaux)
@@ -346,5 +344,4 @@ def _fit1d_staircase(data, x=None, axis=None):
         - to be discussed.... ?
 
     """
-
     pass
