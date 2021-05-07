@@ -31,19 +31,21 @@ __all__ = [
 ]
 
 
-#__author_email__ = 'didier.vezinet@cea.fr'
+# __author_email__ = 'didier.vezinet@cea.fr'
 __github = 'https://github.com/ToFuProject/tofu/issues'
-_WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
+_WINTIT = 'tofu-%s        report issues / requests at {}'.format(
+    __version__, __github,
+)
 _nchMax, _ntMax, _nfMax, _nlbdMax = 4, 3, 3, 3
 _fontsize = 8
 _labelpad = 0
-_lls = ['-','--','-.',':']
-_lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
-_lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
-_lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
+_lls = ['-', '--', '-.', ':']
+_lct = [plt.cm.tab20.colors[ii] for ii in [0, 2, 4, 1, 3, 5]]
+_lcch = [plt.cm.tab20.colors[ii] for ii in [6, 8, 10, 7, 9, 11]]
+_lclbd = [plt.cm.tab20.colors[ii] for ii in [12, 16, 18, 13, 17, 19]]
 _lcm = _lclbd
-_cbck = (0.8,0.8,0.8)
-_dmarker = {'ax':'o', 'x':'x'}
+_cbck = (0.8, 0.8, 0.8)
+_dmarker = {'ax': 'o', 'x': 'x'}
 
 
 _OVERHEAD = True
@@ -105,7 +107,6 @@ def _check_proj(proj=None, allowed=None):
 #############################################
 
 
-
 def _get_fig_dax_mpl(dcases=None, axgrid=None,
                      overhead=False, novert=1, noverch=1,
                      ntmax=None, nchmax=None,
@@ -131,7 +132,7 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
         axgrid = _AXGRID
     if axgrid is None:
         axgrid = False
-    if axgrid != False:
+    if axgrid is not False:
         assert dim == 1
     if dmargin is None:
         dmargin = _def.dmargin1D
@@ -140,7 +141,7 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
     # Check all cases
     # -----------------
 
-    if axgrid != False:
+    if axgrid is not False:
         # Only time traces
         assert all([vv['dim'] == 1 for vv in dcases.values()])
         ncases = len(dcases)
@@ -168,21 +169,20 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
     # (E) cam1dspectral with or w/o cross + overhead, nch = 1, 2
     # (F) profile2d with or w/o cross + overhead, nch = 1, 2
 
-
     # -----------------
     # Make figure
     # -----------------
 
     fs = utils.get_figuresize(fs)
     fig = plt.figure(facecolor=bckcolor, figsize=fs)
-    if wintit != False:
+    if wintit is not False:
         fig.canvas.set_window_title(wintit)
 
     # -----------------
     # Check all cases
     # -----------------
 
-    dax = {'lkey': 0, 'dict':{}}
+    dax = {'lkey': 0, 'dict': {}}
     if axgrid is False:
         if isspectral:
             naxvgrid = nchMax + 1 + overhead
@@ -197,17 +197,17 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
         # Create overead t and ch
         if overhead:
             for ii in range(novert):
-                key = 'over-t%'%str(ii)
+                key = 'over-t{}'.format(ii)
                 i0, i1 = ii*novert, (ii+1)*novert
                 dax['dict'][key] = fig.add_subplot(gridax[i0:i1, :2])
             for ii in range(noverch):
-                key = 'over-ch%'%str(ii)
+                key = 'over-ch{}'.format(ii)
                 i0, i1 = ii*noverch, (ii+1)*noverch
                 dax['dict'][key] = fig.add_subplot(gridax[i0:i1, 2:4])
 
             # Add hor
             if cross:
-                dax['dict']['hor'] = fig.add_subplot(gridax[:2,4:])
+                dax['dict']['hor'] = fig.add_subplot(gridax[:2, 4:])
 
         # Create cross
         i0 = 2*overhead
@@ -216,13 +216,13 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
                 dax['dict']['cross'] = fig.add_subplot(gridax[i0:, 4:])
             else:
                 for ii in range(ncases):
-                    key = 'cross%s'%str(ii)
+                    key = 'cross{}'.format(ii)
                     ii0 = i0+ii*2
                     dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, 4:])
 
         # Create time and channel axes
         for ii in range(ncases):
-            key = 't%s'%str(ii)
+            key = 't{}'.format(ii)
             ii0 = i0+ii*2
             dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, :2])
 
@@ -231,16 +231,16 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
             if dcases[lcases[ii]].get('is2D', False) == True:
                 ii0 = i0+ii*2
                 for jj in range(nchmax):
-                    key = 'ch%s-%s'%(str(ii), str(jj))
+                    key = 'ch{}-{}'.format(ii, jj)
                     dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, 2+jj])
             else:
                 for ii in range(ncases):
-                    key = 'ch%s'%str(ii)
+                    key = 'ch{}'.format(ii)
                     ii0 = i0+ii*2
                     dax['dict'][key] = fig.add_subplot(gridax[ii0:ii0+2, 2:4])
 
     else:
-        if axgrid == True:
+        if axgrid is True:
             nax = int(np.ceil(np.sqrt(ncases)))
             naxvgrid = nax
             naxhgrid = int(np.ceil(ncases / nax))
@@ -251,7 +251,7 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
         for ii in range(ncase):
             i0 = ii % naxvgrid
             i1 = ii - i0*naxhgrid
-            key = 't%s-%s'%(i0, i1)
+            key = 't{}-{}'.format(i0, i1)
             dax['dict'][key] = fig.add_subplot(gridax[i0, i1])
 
         if cross:
@@ -261,7 +261,6 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
     dax['fig'] = fig
     dax['can'] = fig.canvas
     return dax
-
 
 
 def plot_DataColl(coll, overhead=None,
@@ -292,7 +291,6 @@ def plot_DataColl(coll, overhead=None,
 
     assert lib == 'mpl', 'Only matplotlib available so far !'
 
-
     # --------------------
     # Get keys of data to plot
     # --------------------
@@ -306,7 +304,6 @@ def plot_DataColl(coll, overhead=None,
     # --------------------
     # Get graphics dict of keys
     # --------------------
-
 
     # Case with time traces only
     daxg, lparam = {}, coll.lparam
@@ -364,7 +361,6 @@ def plot_DataColl(coll, overhead=None,
     collplot = None
 
     return collplot
-
 
 
 # #############################################################################
@@ -458,12 +454,12 @@ def plot_axvline(
     ny = len(unique)
     dy = (ymax-ymin)/ny
     ly = [(ymin+ii*dy, ymin+(ii+1)*dy) for ii in range(ny)]
-    xside = 1.01 if side=='right' else -0.01
-    ha = 'left' if side=='right' else 'right'
+    xside = 1.01 if side == 'right' else -0.01
+    ha = 'left' if side == 'right' else 'right'
 
     if dcolor is None:
         lcol = plt.rcParams['axes.prop_cycle'].by_key()['color']
-        dcolor = {uu: lcol[ii%len(lcol)] for ii, uu in enumerate(unique)}
+        dcolor = {uu: lcol[ii % len(lcol)] for ii, uu in enumerate(unique)}
 
     if dsize is not None:
         x, y = [], []
@@ -502,7 +498,7 @@ def plot_axvline(
     for ii, uu in enumerate(unique):
         lk = [k0 for k0 in key if din[k0][sortby] == uu]
         for k0 in lk:
-            l = ax.axvline(
+            ll = ax.axvline(
                 x=din[k0][param_x],
                 ymin=ly[ii][0],
                 ymax=ly[ii][0] + fraction*dy,
