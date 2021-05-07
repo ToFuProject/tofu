@@ -32,17 +32,18 @@ _UNITS_LAMBDA0 = 'm'
 
 class SpectralLines(DataCollection):
 
-    _ddef = {'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
-             'params': {
-                 'lambda0': (float, 0.),
-                 'source': (str, 'unknown'),
-                 'transition':    (str, 'unknown'),
-                 'element':  (str, 'unknown'),
-                 'charge':  (int, 0),
-                 'ion':  (str, 'unknown'),
-                 'symbol':   (str, 'unknown'),
-                 },
-            }
+    _ddef = {
+        'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
+        'params': {
+            'lambda0': (float, 0.),
+            'source': (str, 'unknown'),
+            'transition':    (str, 'unknown'),
+            'element':  (str, 'unknown'),
+            'charge':  (int, 0),
+            'ion':  (str, 'unknown'),
+            'symbol':   (str, 'unknown'),
+        },
+    }
     _forced_group = [_GROUP_NE, _GROUP_TE]
     _data_none = True
 
@@ -54,29 +55,6 @@ class SpectralLines(DataCollection):
     _groupte = _GROUP_TE
 
     _units_lambda0 = _UNITS_LAMBDA0
-
-    # def update(self, **kwdargs):
-        # super().update(**kwdargs)
-
-        # # check data 
-        # lc = [
-            # k0 for k0, v0 in self._ddata.items()
-            # if v0.get('data') is not None
-            # and not (
-                # isinstance(v0['data'], np.ndarray)
-                # and v0['data'].ndim <= 2
-            # )
-        # ]
-        # if len(lc) > 0:
-            # msg = (
-                # """
-                # The data provided for a line must be a tabulation of its pec
-
-                # The following lines have non-conform data:
-                # {}
-                # """.format(lc)
-            # )
-            # raise Exception(msg)
 
     def add_line(
         self,
@@ -390,11 +368,9 @@ class SpectralLines(DataCollection):
                 del out._dobj['lines'][k0]['ION']
         return out
 
-
     # -----------------
     # summary
     # ------------------
-
 
     # -----------------
     # conversion wavelength - energy - frequency
@@ -667,7 +643,6 @@ class SpectralLines(DataCollection):
             wintit=wintit, tit=tit,
         )
 
-
     def plot_pec_single(
         self,
         key=None,
@@ -929,7 +904,6 @@ class TimeTraces(DataCollection):
                                 'units':  (str, 's')}}
     _plot_vignettes = False
 
-
     def fit(self, ind=None, key=None,
             Type='staircase', func=None,
             plot=True, fs=None, ax=None, draw=True, **kwdargs):
@@ -954,9 +928,6 @@ class TimeTraces(DataCollection):
         self.plateaux = None
         if verb:
             msg = ""
-
-
-
 
     def plot(self, **kwdargs):
         return self._plot_timetraces(**kwdargs)
