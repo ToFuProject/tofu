@@ -107,7 +107,10 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         if len(lk) > 0:
             dconflict[k0] = lk
         # updates
-        lk = [kk for kk in dd0[k0].keys() if kk not in v0.keys()]
+        lk = [
+            kk for kk in dd0[k0].keys()
+            if kk not in v0.keys() and kk not in ['ldata', 'size']
+        ]
         if len(lk) > 0:
             dupdate[k0] = lk
 
@@ -125,7 +128,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
     # Updates => Warning
     if len(dupdate) > 0:
         msg = (
-            "Existing {} keys will be overwritten:\n".format(dd_name)
+            "\nExisting {} keys will be overwritten:\n".format(dd_name)
             + "\n".join([
                 "\t- {}[{}]: {}".format(dd_name, k0, v0)
                 for k0, v0 in dupdate.items()
@@ -651,8 +654,12 @@ def _check_dref_static(
     dupdate = {}
     dconflict = {}
     for k0, v0 in dref_static.items():
+        lkout = ['nb. data']
+        if k0 == 'ion':
+            lkout += ['ION', 'charge', 'element']
         if k0 not in dref_static0.keys():
             continue
+
         for k1, v1 in v0.items():
             if k1 not in dref_static0[k0].keys():
                 continue
@@ -665,6 +672,8 @@ def _check_dref_static(
             lk = [
                 kk for kk in dref_static0[k0][k1].keys()
                 if kk not in v1.keys()
+                and kk not in lkout
+                and 'nb. ' not in kk
             ]
             if len(lk) > 0:
                 dupdate[k0] = (k1, lk)
@@ -683,7 +692,7 @@ def _check_dref_static(
     # Updates => Warning
     if len(dupdate) > 0:
         msg = (
-            "The following existing dref_static keys will be forgotten:\n"
+            "\nThe following existing dref_static keys will be forgotten:\n"
             + "\n".join([
                 "\t- dref_static['{}']['{}']: {}".format(k0, v0[0], v0[1])
                 for k0, v0 in dupdate.items()

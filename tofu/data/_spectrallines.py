@@ -1,10 +1,14 @@
 
 
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 
 from ._core_new import DataCollection
 from . import _comp_spectrallines
+from . import _comp_new
+from . import _plot_new
 
 
 __all__ = ['SpectralLines', 'TimeTraces']
@@ -565,6 +569,9 @@ class SpectralLines(DataCollection):
         ind=None,
         ne=None,
         Te=None,
+        concentration=None,
+        deg=None,
+        grid=None,
         ax=None,
         sortby=None,
         param_txt=None,
@@ -589,17 +596,11 @@ class SpectralLines(DataCollection):
         # Check ne, Te
         ltypes = [int, float, np.int_, np.float_]
         dnTe = {'ne': ne, 'Te': Te}
-        lc = [
-            k0 for k0, v0 in dnTe.items()
-            if (
-                type(v0) not in ltypes
-                or len(v0) != 1
-            )
-        ]
-        if len(lc) > 0:
-            msg = (
-                ""
-            )
+        single = all([
+            type(v0) in ltypes or len(v0) == 1 for v0 in dnTe.values()
+        ])
+        if not single:
+            msg = ("Arg ne and Te must be floats!")
             raise Exception(msg)
 
         # Get dpec
@@ -612,6 +613,20 @@ class SpectralLines(DataCollection):
             grid=grid,
         )
 
+        ne = float(ne)
+        Te = float(Te)
+        tit = (
+            r'$n_e$' + '= {} '.format(ne) + r'$/m^3$'
+            + r' -  $T_e$ = ' + '{} keV'.format(Te/1000.)
+        )
+
+        pmax = np.max([np.log10(v0) for v0 in dpec.values()])
+        pmin = np.min([np.log10(v0) for v0 in dpec.values()])
+        dsize = {
+            k0: (np.log10(v0)-pmin)/(pmax-pmin)*19 + 1
+            for k0, v0 in dpec.items()
+        }
+
         return super()._plot_axvlines(
             which='lines',
             key=key,
@@ -620,11 +635,167 @@ class SpectralLines(DataCollection):
             sortby=sortby,
             sortby_def='ion',
             sortby_lok=['ion', 'source'],
+            dsize=dsize,
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
             side=side, dcolor=dcolor, fraction=fraction,
             figsize=figsize, dmargin=dmargin,
             wintit=wintit, tit=tit,
+        )
+
+    def plot_pec(
+        self,
+        key=None,
+        ind=None,
+        ne=None,
+        Te=None,
+        norder=None,
+        ne_scale=None,
+        Te_scale=None,
+        param_txt=None,
+        param_color=None,
+        deg=None,
+        dax=None,
+        proj=None,
+        ymin=None,
+        ymax=None,
+        ls=None,
+        lw=None,
+        fontsize=None,
+        side=None,
+        dcolor=None,
+        fraction=None,
+        figsize=None,
+        dmargin=None,
+        dtit=None,
+        tit=None,
+        wintit=None,
+    ):
+
+        # Check input
+        if param_txt is None:
+            param_txt = 'symbol'
+        if param_color is None:
+            param_color = 'ion'
+        if norder is None:
+            norder = 0
+
+        if ne_scale is None:
+            ne_scale = 'log'
+        if Te_scale is None:
+            Te_scale = 'linear'
+
+        # Check ne, Te
+        ltypes = [int, float, np.int_, np.float_]
+        dnTe = {
+            'ne': type(ne) in ltypes or len(ne) == 1,
+            'Te': type(Te) in ltypes or len(Te) == 1,
+        }
+        if all([v0 for v0 in dnTe.values()]):
+            msg = (
+                "For a single point in (ne, Te) space, use plot_pec_singe()"
+            )
+            raise Exception(msg)
+        elif dnTe['ne']:
+            ne = np.r_[ne].ravel()
+            ne = np.full((Te.size), ne[0])
+        elif dnTe['Te']:
+            Te = np.r_[Te].ravel()
+            Te = np.full((ne.size), Te[0])
+
+        if len(ne) != len(Te):
+            msg = (
+                "Please provide ne and Te as vectors of same size!"
+            )
+            raise Exception(msg)
+
+        # Get dpec
+        dpec = self.calc_pec(
+            key=key,
+            ind=ind,
+            ne=ne,
+            Te=Te,
+            deg=deg,
+            grid=False,
+        )
+        damp = {k0: {'data': v0} for k0, v0 in dpec.items()}
+
+        # Create grid
+        ne_grid = _comp_new._get_grid1d(
+            ne, scale=ne_scale, npts=ne.size*2, nptsmin=3,
+        )
+        Te_grid = _comp_new._get_grid1d(
+            Te, scale=Te_scale, npts=Te.size*2, nptsmin=3,
+        )
+
+        dpec_grid = self.calc_pec(
+            key=key,
+            ind=ind,
+            ne=ne_grid,
+            Te=Te_grid,
+            deg=deg,
+            grid=True,
+        )
+
+        # Get dcolor
+        lcol = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        dcolor = {}
+        if param_color != 'key':
+            lion = [self._dobj['lines'][k0][param_color] for k0 in dpec.keys()]
+            for ii, k0 in enumerate(set(lion)):
+                dcolor[k0] = mcolors.to_rgb(lcol[ii%len(lcol)])
+                lk1 = [
+                    k2 for k2 in dpec.keys()
+                    if self._dobj['lines'][k2][param_color] == k0
+                ]
+                for k1 in lk1:
+                    damp[k1]['color'] = k0
+        else:
+            for ii, k0 in enumerate(dpec.keys()):
+                dcolor[k0] = mcolors.to_rgb(lcol[ii%len(lcoil)])
+                damp[k0]['color'] = k0
+
+        # Create image
+        im_data = np.full((ne_grid.size, Te_grid.size), np.nan)
+        im = np.full((ne_grid.size, Te_grid.size, 4), np.nan)
+        dom_val = np.concatenate(
+            [v0[None, :, :] for v0 in dpec_grid.values()],
+            axis=0,
+        )
+
+        if norder == 0:
+            im_ind = np.nanargmax(dom_val, axis=0)
+        else:
+            im_ind = np.argsort(dom_val, axis=0)[-norder, :, :]
+
+        for ii in np.unique(im_ind):
+            ind = im_ind == ii
+            im_data[ind] = dom_val[ii, ind]
+
+        pmin = np.nanmin(np.log10(im_data))
+        pmax = np.nanmax(np.log10(im_data))
+
+        for ii, k0 in enumerate(dpec_grid.keys()):
+            if ii in np.unique(im_ind):
+                ind = im_ind == ii
+                im[ind, :-1] = dcolor[damp[k0]['color']]
+                im[ind, -1] = (np.log10(im_data[ind])-pmin)/(pmax-pmin)*0.9 + 0.1
+        extent = (ne_grid.min(), ne_grid.max(), Te_grid.min(), Te_grid.max())
+
+        if tit is None:
+            tit = 'spectral lines PEC interpolations'
+        if dtit is None:
+            dtit = {'map': 'norder = {}'.format(norder)}
+
+        return _plot_new.plot_dominance_map(
+            din=self._dobj['lines'], im=im, extent=extent,
+            xval=ne, yval=Te, damp=damp,
+            x_scale=ne_scale, y_scale=Te_scale, amp_scale='log',
+            param_txt='symbol',
+            dcolor=dcolor,
+            dax=dax, proj=proj,
+            figsize=figsize, dmargin=dmargin,
+            wintit=wintit, tit=tit, dtit=dtit,
         )
 
 

@@ -16,6 +16,35 @@ import numpy as np
 #############################################
 #############################################
 #############################################
+#       utilities
+#############################################
+#############################################
+
+
+def _get_grid1d(val, scale=None, npts=None, nptsmin=None):
+
+    npts = max(nptsmin, npts)
+
+    if scale == 'log':
+        vmin = np.floor(np.log10(np.nanmin(val)))
+        vmax = np.ceil(np.log10(np.nanmax(val)))
+        if vmin == vmax:
+            vmin -= 1
+            vmax += 1
+        grid = np.logspace(vmin, vmax, npts)
+    else:
+        vmin = np.nanmin(val)
+        vmax = np.nanmax(val)
+        if vmin == vmax:
+            vmin /= 10
+            vmax *= 10
+        grid = np.linspace(vmin, vmax, npts)
+    return grid
+
+
+#############################################
+#############################################
+#############################################
 #   common reference (e.g.: time vectors)
 #############################################
 #############################################

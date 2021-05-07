@@ -3,6 +3,7 @@
 import os
 import re
 import itertools as itt
+import warnings
 
 # Common
 import numpy as np
@@ -64,25 +65,29 @@ def _format_for_DataCollection_adf15(
     # Remove already known lines of dlines0 provided
     if dlines0 is not None:
         # Check for mistakes
-        lk0 = [
-            k0 for k0, v0 in dout.items()
-            if any([
-                np.sum([(
+        dk0 = {
+            k0: [
+                k1 for k1, v1 in dlines0.items()
+                if np.sum([(
                     v1['ion'] == v0['ion']
                     and v1['transition'] == v0['transition'],
                     v1['ion'] == v0['ion'] and v1['symbol'] == v0['symbol']
                 )]) == 1
-                for v1 in dlines0.values()
-            ])
-        ]
-        if len(lk0) > 0:
+            ]
+            for k0, v0 in dout.items()
+        }
+        dk0 = {k0: v0 for k0, v0 in dk0.items() if len(v0) > 0}
+        if len(dk0) > 0:
             msg = (
-                "Error in openadas detected,\n"
+                "\nPossible error in openadas detected,\n"
                 + "the following lines have same ion and transition but "
                 + "different symbol (typ0typ1-isoel):\n"
-                + "\n".join(["\t- {}".format(k0) for k0 in lk0])
+                + "\n".join([
+                    "\t- {}: {}".format(k0, v0) for k0, v0 in dk0.items()
+                ])
+                + "\n\n  => There might be redundancy / errors in openadas"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
 
         dout = {
             k0: v0 for k0, v0 in dout.items()
@@ -116,7 +121,7 @@ def _format_for_DataCollection_adf15(
                 k0 = lk0[0]
             else:
                 msg = (
-                    "Multiple possible matches for source {}".format(ss)
+                    "\nMultiple possible matches for source {}".format(ss)
                 )
                 raise Exception(msg)
             dsource[k0] = {'long': ss}
@@ -137,20 +142,25 @@ def _format_for_DataCollection_adf15(
 
     for k0, v0 in dout.items():
 
-        # fill dte
-        kte = [
-            kk for kk, vv in dte.items()
-            if np.allclose(v0['te'], vv['data'])
-        ]
+        # Get source
         sour = [
             k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
         ][0]
+
+        # fill dte
+        kte = [
+            kk for kk, vv in dte.items()
+            if v0['te'].shape == vv['data'].shape
+            and np.allclose(v0['te'], vv['data'])
+            and sour == vv['source']
+        ]
         normal = dref0 is None
         if normal is False:
             # Check vs existing Te
             lk0 = [
                 k1 for k1, v1 in dref0.items()
                 if ddata0[k1]['source'] == sour
+                and v0['te'].shape == ddata0[k1]['data'].shape
                 and np.allclose(v0['te'], ddata0[k1]['data'])
             ]
             if len(lk0) == 0:
@@ -158,7 +168,7 @@ def _format_for_DataCollection_adf15(
             elif len(lk0) == 1:
                 keyte = lk0[0]
                 dte[keyte] = {
-                    'data': ddata0[k1]['data'],
+                    'data': ddata0[lk0[0]]['data'],
                     'units': v0['te_units'],
                     'source': sour,
                     'dim': 'temperature',
@@ -189,14 +199,19 @@ def _format_for_DataCollection_adf15(
             elif len(kte) == 1:
                 pass
             else:
-                msg = "len(kte) != 1:\n\t- kte = {}".format(kte)
+                msg = (
+                    "len(kte) != 1:\n"
+                    + "\t- kte = {}\n".format(kte)
+                )
                 raise Exception(msg)
         dout[k0]['keyte'] = keyte
 
         # fill dne
         kne = [
             kk for kk, vv in dne.items()
-            if np.allclose(v0['ne'], vv['data'])
+            if v0['ne'].shape == vv['data'].shape
+            and np.allclose(v0['ne'], vv['data'])
+            and sour == vv['source']
         ]
         normal = dref0 is None
         if normal is False:
@@ -204,6 +219,7 @@ def _format_for_DataCollection_adf15(
             lk0 = [
                 k1 for k1, v1 in dref0.items()
                 if ddata0[k1]['source'] == sour
+                and v0['ne'].shape == ddata0[k1]['data'].shape
                 and np.allclose(v0['ne'], ddata0[k1]['data'])
             ]
             if len(lk0) == 0:
@@ -211,7 +227,7 @@ def _format_for_DataCollection_adf15(
             elif len(lk0) == 1:
                 keyne = lk0[0]
                 dne[keyne] = {
-                    'data': ddata0[k1]['data'],
+                    'data': ddata0[lk0[0]]['data'],
                     'units': v0['ne_units'],
                     'source': sour,
                     'dim': 'density',
@@ -242,7 +258,10 @@ def _format_for_DataCollection_adf15(
             elif len(kne) == 1:
                 pass
             else:
-                msg = "len(kne) != 1:\n\t- kne = {}".format(kne)
+                msg = (
+                    "len(kne) != 1:\n"
+                    + "\t- kne = {}\n".format(kne)
+                )
                 raise Exception(msg)
         dout[k0]['keyne'] = keyne
 

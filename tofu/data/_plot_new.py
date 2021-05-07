@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
 import matplotlib.transforms as transforms
+import matplotlib.lines as mlines
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # tofu
@@ -52,6 +53,49 @@ _CONNECT = True
 _AXGRID = False
 _LIB = 'mpl'
 _BCKCOLOR = 'w'
+
+
+#############################################
+#############################################
+#       TimeTraceCollection plots
+#############################################
+#############################################
+
+
+def _check_proj(proj=None, allowed=None):
+    """ Return validated proj as a list of keys """
+
+    # Check allowed
+    c0 = (
+        isinstance(allowed, list)
+        and all([isinstance(ss, str) for ss in allowed])
+    )
+    if not c0:
+        msg = (
+            "Arg allowed must be list of str!\n"
+            + "\t- provided: {}".format(allowed)
+        )
+        raise Exception(msg)
+
+    # Check proj
+    if proj is None:
+        proj = 'all'
+    if proj == 'all':
+        proj = allowed
+    if isinstance(proj, str):
+        proj = [proj]
+    c0 = (
+        isinstance(proj, list)
+        and all([isinstance(ss, str) and ss in allowed for ss in proj])
+    )
+    if not c0:
+        msg = (
+            "Arg proj must be a list of str from {}\n".format(allowed)
+            + "\t- provided: {}".format(proj)
+        )
+        raise Exception(msg)
+
+    return proj
 
 
 #############################################
@@ -390,12 +434,12 @@ def _ax_axvline(
 
 def plot_axvline(
     din=None, key=None,
-    sortby=None,
+    sortby=None, dsize=None,
     param_x=None, param_txt=None,
     ax=None, ymin=None, ymax=None,
     ls=None, lw=None, fontsize=None,
     side=None, dcolor=None,
-    fraction=None,
+    fraction=None, units=None,
     figsize=None, dmargin=None,
     wintit=None, tit=None,
 ):
@@ -421,13 +465,32 @@ def plot_axvline(
         lcol = plt.rcParams['axes.prop_cycle'].by_key()['color']
         dcolor = {uu: lcol[ii%len(lcol)] for ii, uu in enumerate(unique)}
 
+    if dsize is not None:
+        x, y = [], []
+        colors = []
+        sizes = []
+        for ii, uu in enumerate(unique):
+            lk = [
+                k0 for k0 in key
+                if din[k0][sortby] == uu and k0 in dsize.keys()
+            ]
+            x.append([din[k0][param_x] for k0 in lk])
+            y.append([ly[ii][0]+fraction*dy/2. for k0 in lk])
+            colors.append([dcolor[uu] for ii in range(len(lk))])
+            sizes.append([dsize[k0] for k0 in lk])
+
+        x = np.concatenate(x).ravel()
+        y = np.concatenate(y).ravel()
+        sizes = np.concatenate(sizes).ravel()
+        colors = np.concatenate(colors).ravel()
+
     # plot preparation
     lamb = [din[k0][param_x] for k0 in key]
     Dlamb = np.nanmax(lamb) - np.nanmin(lamb)
     xlim = [np.nanmin(lamb) - 0.05*Dlamb, np.nanmax(lamb) + 0.05*Dlamb]
     ax = _ax_axvline(
         ax=ax, figsize=figsize, dmargin=dmargin,
-        quant='wavelength', units='m', xlim=xlim,
+        quant=param_x, units=units, xlim=xlim,
         wintit=wintit, tit=tit,
     )
 
@@ -447,10 +510,6 @@ def plot_axvline(
                 ls=ls,
                 lw=lw,
             )
-
-            # Add marker if relevant
-            if dmarker is not None:
-                ax.plot()
 
             ax.text(
                 din[k0][param_x],
@@ -475,7 +534,190 @@ def plot_axvline(
             transform=blend,
         )
 
+    # Add markers
+    if dsize is not None:
+        ax.scatter(
+            x, y, s=sizes**2, c=colors,
+            marker='o', edgecolors='None',
+        )
+
     return ax
 
 
+# #############################################################################
+# #############################################################################
+#               Dominance map
+# #############################################################################
 
+
+def _ax_dominance_map(
+    dax=None, figsize=None, dmargin=None,
+    x_scale=None, y_scale=None, amp_scale=None,
+    quant=None, units=None,
+    wintit=None, tit=None, dtit=None,
+    proj=None, dlabel=None,
+):
+
+    allowed = ['map', 'spect', 'amp', 'prof']
+    if dax is None:
+
+        proj = _check_proj(proj=proj, allowed=allowed)
+        dax = {}
+
+        if figsize is None:
+            figsize = (15, 9)
+        if dmargin is None:
+            dmargin = {
+                'left': 0.05, 'right': 0.90,
+                'bottom': 0.08, 'top': 0.90,
+                'hspace': 0.20, 'wspace': 0.50,
+            }
+        if wintit is None:
+            wintit = _WINTIT
+        if tit is None:
+            tit = ''
+        if dtit is None:
+            dtit = {}
+
+        fig = plt.figure(figsize=figsize)
+        fig.canvas.set_window_title(wintit)
+        fig.suptitle(tit, size=12, fontweight='bold')
+
+        if len(proj) == 1:
+            gs = gridspec.GridSpec(1, 1, **dmargin)
+            for k0 in allowed:
+                dax[k0] = fig.add_subplot(gs[0, 0])
+        else:
+            gs = gridspec.GridSpec(3, 5, **dmargin)
+            shx, shy = None, None
+            k0 = 'map'
+            if k0 in proj:
+                dax[k0] = fig.add_subplot(
+                    gs[:, :2], xscale=x_scale, yscale=y_scale,
+                )
+            if 'spect' in proj:
+                dax['spect'] = fig.add_subplot(
+                    gs[0, 2:], yscale=amp_scale,
+                )
+                shy = dax['spect']
+            if 'amp' in proj:
+                dax['amp'] = fig.add_subplot(
+                    gs[1, 2:], sharey=shy, yscale=amp_scale,
+                )
+                shx = dax['amp']
+            if 'prof' in proj:
+                dax['prof'] = fig.add_subplot(
+                    gs[2, 2:], yscale=x_scale, sharex=shx,
+                )
+
+        for k0 in proj:
+            if dtit is not None and dtit.get(k0) is not None:
+                dax[k0].set_title(dtit[k0])
+
+        for k0 in proj:
+            if dlabel is not None and dlabel.get(k0) is not None:
+                dax[k0].set_xlabel(dlabel[k0]['x'])
+                dax[k0].set_ylabel(dlabel[k0]['y'])
+
+    else:
+        c0 = (
+            isinstance(dax, dict)
+            and all([ss in allowed for ss in dax.keys()])
+        )
+        if not c0:
+            msg = (
+                "\nArg dax must be a dict with the following allowed keys:\n"
+                + "\t- allowed:  {}\n".format(allowed)
+                + "\t- provided: {}".format(sorted(dax.keys()))
+            )
+            raise Exception(msg)
+
+    return dax
+
+
+def plot_dominance_map(
+    din=None, key=None,
+    im=None, extent=None,
+    xval=None, yval=None, damp=None,
+    x_scale=None, y_scale=None, amp_scale=None,
+    sortby=None, dsize=None,
+    param_x=None, param_txt=None,
+    dax=None, proj=None,
+    ls=None, lw=None, fontsize=None,
+    side=None, dcolor=None,
+    fraction=None, units=None,
+    figsize=None, dmargin=None,
+    wintit=None, tit=None, dtit=None, dlabel=None,
+):
+
+    # Check inputs
+
+    # Prepare dax
+    dax = _ax_dominance_map(
+        dax=dax, proj=proj, figsize=figsize, dmargin=dmargin,
+        quant=param_x, units=units,
+        wintit=wintit, tit=tit, dtit=dtit, dlabel=dlabel,
+        x_scale=x_scale, y_scale=y_scale, amp_scale=amp_scale,
+    )
+
+    if any([ss in dax.keys() for ss in ['spect', 'prof', 'amp']]):
+        ind = np.arange(0, xval.size)
+
+    k0 = 'map'
+    if dax.get(k0) is not None:
+        dax[k0].imshow(
+            np.swapaxes(im, 0, 1),
+            extent=extent,
+            origin='lower',
+            aspect='auto',
+        )
+        dax[k0].plot(xval, yval, ls='-', marker='.', lw=1., c='k')
+
+    k0 = 'prof'
+    if dax.get(k0) is not None:
+        dax[k0].plot(ind, xval, ls='-', marker='.', lw=1., c='k')
+        dax[k0].plot(ind, yval, ls='-', marker='.', lw=1., c='k')
+
+    k0 = 'amp'
+    if dax.get(k0) is not None:
+        for k1 in damp.keys():
+            dax[k0].plot(
+                ind, damp[k1]['data'],
+                ls='-', marker='.', lw=1., c=dcolor[damp[k1]['color']],
+            )
+
+    k0 = 'spect'
+    if dax.get(k0) is not None:
+        lamb = np.ones((list(damp.values())[0]['data'].size,))
+        blend = transforms.blended_transform_factory(
+            dax[k0].transData, dax[k0].transAxes
+        )
+        for k1 in damp.keys():
+            lamb0 = din[k1]['lambda0']
+            dax[k0].plot(
+                lamb0*lamb, damp[k1]['data'],
+                ls='None', marker='.', lw=1., c=dcolor[damp[k1]['color']],
+            )
+            dax[k0].text(
+                lamb0,
+                1.,
+                din[k1][param_txt],
+                color=dcolor[damp[k1]['color']],
+                horizontalalignment='left',
+                verticalalignment='bottom',
+                fontsize=fontsize,
+                fontweight='normal',
+                transform=blend,
+                rotation=60,
+            )
+
+        handles = [
+            mlines.Line2D([], [], color=v0, label=k0)
+            for k0, v0 in dcolor.items()
+        ]
+        dax[k0].legend(
+            handles=handles,
+            loc=2, bbox_to_anchor=(1., 1.),
+        )
+
+    return dax

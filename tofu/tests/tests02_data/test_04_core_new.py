@@ -598,7 +598,7 @@ class Test02_SpectralLines(object):
         cls.sl = tfd.SpectralLines.from_openadas(
             lambmin=3.94e-10,
             lambmax=4e-10,
-            element='Ar',
+            element=['Ar', 'W'],
         )
 
     @classmethod
@@ -617,7 +617,7 @@ class Test02_SpectralLines(object):
         self.sl.add_from_openadas(
             lambmin=3.90e-10,
             lambmax=3.96e-10,
-            element='Ar',
+            element='W',
         )
         assert all([k0 in self.sl.dobj['lines'].keys() for k0 in lines.keys()])
 
@@ -670,4 +670,17 @@ class Test02_SpectralLines(object):
 
     def test06_plot(self):
         ax = self.sl.plot()
+        plt.close('all')
+
+    def test07_plot_pec_single(self):
+        Te = 1.e3
+        ne = 1.e20
+        ax = self.sl.plot_pec_single(Te=Te, ne=ne)
+
+    def test08_plot_pec(self):
+        Te = np.linspace(1, 7, 7)*1e3
+        ne = np.logspace(15, 21, 7)
+        ax = self.sl.plot_pec(Te=1e3, ne=ne)
+        ax = self.sl.plot_pec(Te=Te, ne=1e19)
+        ax = self.sl.plot_pec(Te=Te, ne=ne)
         plt.close('all')
