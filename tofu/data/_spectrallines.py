@@ -733,9 +733,9 @@ class SpectralLines(DataCollection):
         }
 
         sortby_lok = ['ion', 'ION', 'source']
-        ls = [k0 for k0 in sortby_lok if k0 in self._dref_static.keys()]
-        if len(ls) > 0:
-            sortby_def = ls[0]
+        lk0 = [k0 for k0 in sortby_lok if k0 in self._dref_static.keys()]
+        if len(lk0) > 0:
+            sortby_def = lk0[0]
         else:
             sortby_def = None
 

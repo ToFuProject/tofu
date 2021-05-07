@@ -1826,9 +1826,9 @@ def _check_elementioncharge_dict(dref_static):
 
         except Exception as err:
             lerr.append((k0, str(err)))
-            import pdb; pdb.set_trace()     # DB
 
-    del dref_static['ION']
+    if kion == 'ION':
+        del dref_static['ION']
 
     if len(lerr) > 0:
         lerr = ['\t- {}: {}'.format(pp[0], pp[1]) for pp in lerr]
