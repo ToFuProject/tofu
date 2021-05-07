@@ -2562,7 +2562,7 @@ class ToFuObject(ToFuObjectBase):
              compressed=False, verb=True, return_pfe=False):
 
         if name is None and self.Id.Name is None:
-            msg = "Please set a unique name of the instance before saving using:\n"
+            msg = "Please set a unique instance name before saving using:\n"
             msg += "    self.Id.set_Name( name )\n\n"
             msg += "  => (to avoid saving of different instances with no name)"
             raise Exception(msg)

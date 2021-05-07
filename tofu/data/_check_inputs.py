@@ -473,8 +473,8 @@ def _remove_obj(
                 "Provided which is not a valid self.dobj.keys()!\n"
                 + "\t- provided: {}\n".format(which)
                 + "\t- available: {}\n".format(sorted(dobj0.keys()))
-           )
-           raise Exception(msg)
+            )
+            raise Exception(msg)
 
         del dobj0[which]
 

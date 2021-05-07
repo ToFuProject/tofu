@@ -264,12 +264,12 @@ def step01_search_online_by_wavelengthA(
             )
         )
         if not c0:
-            msg = ("Arg charge must be a int oif list (e.g.: charge=16 or [0])\n"
+            msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
                    + "\t- provided: {}".format(charge))
             raise Exception(msg)
         if isinstance(charge, int):
             charge = [charge]
-        charge = ['0' if cc==0 else '{}+'.format(cc) for cc in charge]
+        charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
 
     # ---------------
     # prepare request

@@ -18,7 +18,7 @@ _SPECTRAL_DUNITS = {
 
 # #############################################################################
 # #############################################################################
-#                       Units conversion 
+#                       Units conversion
 # #############################################################################
 
 
@@ -53,7 +53,7 @@ def _check_convert_spectral(
             except Exception as err:
                 msg = "Arg data shall be convertible to a np.ndarray!"
                 raise Exception(msg)
-        if not data_in.dtype in [np.int, np.float]:
+        if data_in.dtype not in [np.int, np.float]:
             msg = (
                 """
                 Arg data must be a np.ndarray of dtype int or float!
@@ -237,7 +237,7 @@ def convert_spectral(
 
 # #############################################################################
 # #############################################################################
-#                       Units conversion 
+#                       Units conversion
 # #############################################################################
 
 

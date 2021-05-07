@@ -957,7 +957,7 @@ class DataCollection(utils.ToFuObject):
                 dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dPhi, msg =_check_inputs._get_keyingroup_ddata(
+            idq2dPhi, msg = _check_inputs._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
@@ -1270,9 +1270,11 @@ class DataCollection(utils.ToFuObject):
             try:
                 x = np.atleast_1d(x).ravel()
             except Exception:
-                msg = "The reference with which to interpolate, x, should be:\n"
-                msg += "    - a key to an existing ref\n"
-                msg += "    - a 1d np.ndarray"
+                msg = (
+                    "The reference with which to interpolate, x, should be:\n"
+                    + "    - a key to an existing ref\n"
+                    + "    - a 1d np.ndarray"
+                )
                 raise Exception(x)
             if group not in self.lgroup:
                 msg = "Interpolation must be with respect to a group\n"
@@ -1373,7 +1375,7 @@ class DataCollection(utils.ToFuObject):
                          axgrid=None, fs=None, dmargin=None,
                          legend=None, draw=None, connect=None, lib=None):
         plotcoll = self.to_PlotCollection(ind=ind, key=key, group=group,
-                                          Name=Name, dnmax={group:ntmax})
+                                          Name=Name, dnmax={group: ntmax})
         return _plot_new.plot_DataColl(
             plotcoll,
             color=color, ls=ls, marker=marker, ax=ax,

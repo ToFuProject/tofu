@@ -39,7 +39,6 @@ _SAVEPATH = os.path.abspath('./')
 
 class DataCollectionPlot_mpl(_core_new.DataCollection):
 
-
     _DTYPES = {'vline': 'set_xdata',
                'hline': 'set_ydata',
                'xline': 'set_xdata',
@@ -62,8 +61,8 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
         c0 = c0 and all([kk in dnmax.keys() for kk in self._dgroup['lkey']])
         if not c0:
             msg = "dnmax must be a dict associating an int to each group\n"
-            msg += "    - self.dgroup.keys(): %s\n"%str(self._dgroup.keys())
-            msg += "    - dnmax: %s"%str(dnmax)
+            msg += "\t- self.dgroup.keys(): {}\n".format(self._dgroup.keys())
+            msg += "\t- dnmax: {}".format(dnmax)
             raise Exception(msg)
 
         for kk, vv in dnmax.items():
@@ -95,9 +94,11 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
         c0 = c0 and all([all([ss in vv.keys() for ss in ls]) for vv in
                          dax.values()])
         if not c0:
-            msg = "dax must be a dict with unique keys\n"
-            msg += "Values must be dict with keys:\n"
-            msg += "    - %s"%str(ls)
+            msg = (
+                "dax must be a dict with unique keys\n"
+                + "Values must be dict with keys:\n"
+                + "\t- {}".format(ls)
+            )
             raise Exception(msg)
 
         # ----------------------
@@ -110,9 +111,11 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
         c0 = c0 and all([all([ss in vv.keys() for ss in ls]) for vv in
                          dobj.values()])
         if not c0:
-            msg = "dax must be a dict with unique keys\n"
-            msg += "Values must be dict with keys:\n"
-            msg += "    - %s"%str(ls)
+            msg = (
+                "dax must be a dict with unique keys\n"
+                + "Values must be dict with keys:\n"
+                + "\t- {}".format(ls)
+            )
             raise Exception(msg)
 
         # ----------------------
@@ -197,7 +200,9 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
             if isinstance(show_core, str):
                 show_core = [show_core]
             lkcore = ['shape', 'groups', 'refs']
-            assert all([ss in self._ddata['lparam'] + lkcore for ss in show_core])
+            assert all([
+                ss in self._ddata['lparam'] + lkcore for ss in show_core
+            ])
             col2 += show_core
 
             if show is None:
@@ -238,7 +243,6 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
             col3 = None
             ar3 = None
 
-
         # -----------------------
         # Build for dobj
         if len(self._dobj) > 0:
@@ -267,9 +271,11 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
             lar.append(ar4)
             lcol.append(col4)
 
-        return self._get_summary(lar, lcol,
+        return self._get_summary(
+            lar, lcol,
             sep=sep, line=line, table_sep=table_sep,
-            verb=verb, return_=return_)
+            verb=verb, return_=return_,
+        )
 
     # ---------------------
     # Method for getting corresponding nearest index in != ref
@@ -280,8 +286,12 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
             ind = [self._dref['dict'][kr]['ind']
                    for kr in self._ddata['dict'][key]['refs']]
         else:
-            ind = [self._dref['dict'][kr]['ind'][self._dobj['dict'][obj]['indi'][kr]]
-                   for kr in self._ddata['dict'][key]['refs']]
+            ind = [
+                self._dref['dict'][kr]['ind'][
+                    self._dobj['dict'][obj]['indi'][kr]
+                ]
+                for kr in self._ddata['dict'][key]['refs']
+            ]
         return ind
 
     def _get_current_data_along_axis(self, key, axis=None, obj=None):
@@ -292,7 +302,7 @@ class DataCollectionPlot_mpl(_core_new.DataCollection):
             ind = self._get_current_ind_for_data(key)
             if dim == 2:
                 if axis == 0:
-                    return self._ddata['dict'][key]['data'][:,ind[1]]
+                    return self._ddata['dict'][key]['data'][:, ind[1]]
                 else:
                     return self._ddata['dict'][key]['data'][ind[0]]
             elif dim == 3:
