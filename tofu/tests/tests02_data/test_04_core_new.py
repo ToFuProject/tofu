@@ -29,51 +29,55 @@ VerbHead = 'tofu.data.DataCollection'
 
 
 def setup_module(module):
-    print("") # this is to get a newline after the dots
+    print("")   # this is to get a newline after the dots
     LF = os.listdir(_here)
-    LF = [lf for lf in LF if all([ss in lf for ss in ['TFD_','Test','.npz']])]
-    LF = [lf for lf in LF if not lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
+    lss = ['TFD_', 'Test', '.npz']
+    LF = [lf for lf in LF if all([ss in lf for ss in lss])]
+    LF = [
+        lf for lf in LF
+        if not lf[lf.index('_Vv')+2:lf.index('_U')]==__version__
+    ]
     print("Removing the following previous test files:")
     print (LF)
     for lf in LF:
-        os.remove(os.path.join(_here,lf))
-    #print("setup_module before anything in this file")
+        os.remove(os.path.join(_here, lf))
+    # print("setup_module before anything in this file")
 
 
 def teardown_module(module):
-    #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
-    #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
-    #print("teardown_module after everything in this file")
-    #print("") # this is to get a newline
+    # os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
+    # os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
+    # print("teardown_module after everything in this file")
+    # print("") # this is to get a newline
     LF = os.listdir(_here)
-    LF = [lf for lf in LF if all([ss in lf for ss in ['TFD_','Test','.npz']])]
-    LF = [lf for lf in LF if lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
+    lss = ['TFD_', 'Test', '.npz']
+    LF = [lf for lf in LF if all([ss in lf for ss in lss])]
+    LF = [
+        lf for lf in LF
+        if lf[lf.index('_Vv')+2:lf.index('_U')] == __version__
+    ]
     print("Removing the following test files:")
     print (LF)
     for lf in LF:
-        os.remove(os.path.join(_here,lf))
+        os.remove(os.path.join(_here, lf))
     pass
 
 
-#def my_setup_function():
+# def my_setup_function():
 #    print ("my_setup_function")
 
-#def my_teardown_function():
+# def my_teardown_function():
 #    print ("my_teardown_function")
 
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_numbers_3_4():
+# @with_setup(my_setup_function, my_teardown_function)
+# def test_numbers_3_4():
 #    print 'test_numbers_3_4  <============================ actual test code'
 #    assert multiply(3,4) == 12
 
-#@with_setup(my_setup_function, my_teardown_function)
-#def test_strings_a_3():
+# @with_setup(my_setup_function, my_teardown_function)
+# def test_strings_a_3():
 #    print 'test_strings_a_3  <============================ actual test code'
 #    assert multiply('a',3) == 'aaa'
-
-
-
-
 
 
 #######################################################
@@ -95,9 +99,9 @@ class Test01_DataCollection(object):
         cls.lt = [t0, t1, t2]
 
         # radii vectors
-        r0 = np.linspace(0,1,10)
-        r1 = np.linspace(0,1,50)
-        r2 = np.linspace(0,1,200)
+        r0 = np.linspace(0, 1, 10)
+        r1 = np.linspace(0, 1, 50)
+        r2 = np.linspace(0, 1, 200)
         cls.lr = [r0, r1, r2]
 
         # chan
@@ -108,8 +112,8 @@ class Test01_DataCollection(object):
         # meshes
         mesh0 = {
             'type': 'rect',
-            'R': np.r_[0,1,2,3],
-            'Z': np.r_[0,1,2],
+            'R': np.r_[0, 1, 2, 3],
+            'Z': np.r_[0, 1, 2],
             'shapeRZ': ('R', 'Z'),
         }
         mesh1 = {
@@ -273,12 +277,13 @@ class Test01_DataCollection(object):
         dref = {'t0': {'data': self.lt[0], 'group': 'time'},
                 't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
                 'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'}}
-        ddata = {'trace00': {'data': self.ltrace[0], 'ref': 't0'},
-                 'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
-                 'trace11': {'data': self.ltrace[3], 'ref': ('t1', 't0')},
-                 'trace30': {'data': self.ltrace[6], 'ref': ('r2',), 'foo': 'bar'},
-                 'trace31': {'data': self.ltrace[7], 'ref': ('t0', 'r2')}
-                }
+        ddata = {
+            'trace00': {'data': self.ltrace[0], 'ref': 't0'},
+            'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
+            'trace11': {'data': self.ltrace[3], 'ref': ('t1', 't0')},
+            'trace30': {'data': self.ltrace[6], 'ref': ('r2',), 'foo': 'bar'},
+            'trace31': {'data': self.ltrace[7], 'ref': ('t0', 'r2')}
+        }
         data = tfd.DataCollection(
             dgroup=None, dref=dref, ddata=ddata,
             Name='data',
@@ -385,7 +390,6 @@ class Test01_DataCollection(object):
         self.lobj[1].remove_obj(key='l3')
         self.lobj[1].remove_ref_static(key='[3]')
         self.lobj[1].remove_ref_static(which='ion')
-
 
     def test04_select(self):
         data = self.lobj[0]
