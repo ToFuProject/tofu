@@ -1279,7 +1279,7 @@ class DataCollection(utils.ToFuObject):
             if group not in self.lgroup:
                 msg = "Interpolation must be with respect to a group\n"
                 msg += "Provided group is not in self.lgroup:\n"
-                msg += "    - group: %s"%str(group)
+                msg += "    - group: {}".format(group)
                 raise Exception(msg)
 
         # Get keys to interpolate
@@ -1297,7 +1297,7 @@ class DataCollection(utils.ToFuObject):
                 # msg += "    - self.ddata[%s]['groups'] = %s"%(kk,str(gps))
                 # msg += "    - Interpolation group: %s"%group
                 # raise Exception(msg)
-                dfail[kk] = "Not dependent on group %s"%group
+                dfail[kk] = "Not dependent on group {}".format(group)
             else:
                 dind[kk] = self._ddata[kk]['groups'].index(group)
 

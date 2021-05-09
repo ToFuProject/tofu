@@ -35,10 +35,10 @@ def setup_module(module):
     LF = [lf for lf in LF if all([ss in lf for ss in lss])]
     LF = [
         lf for lf in LF
-        if not lf[lf.index('_Vv')+2:lf.index('_U')]==__version__
+        if not lf[lf.index('_Vv')+2:lf.index('_U')] == __version__
     ]
     print("Removing the following previous test files:")
-    print (LF)
+    print(LF)
     for lf in LF:
         os.remove(os.path.join(_here, lf))
     # print("setup_module before anything in this file")
@@ -57,7 +57,7 @@ def teardown_module(module):
         if lf[lf.index('_Vv')+2:lf.index('_U')] == __version__
     ]
     print("Removing the following test files:")
-    print (LF)
+    print(LF)
     for lf in LF:
         os.remove(os.path.join(_here, lf))
     pass
@@ -216,9 +216,10 @@ class Test01_DataCollection(object):
         data = tfd.DataCollection(dref=dref, ddata=ddata, Name=Name)
 
         # Spectrallines
-        dref = {'t0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
-                't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
-               }
+        dref = {
+            't0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
+            't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+        }
         dref_static = {
             'source': {
                 '[1]': {'long': 'blabla'},
@@ -265,9 +266,10 @@ class Test01_DataCollection(object):
         # Try with minimalist input (implicit with n = 1)
         dgroup = 'time'
         dref = {'t0': self.lt[0]}
-        ddata = {'trace00': self.ltrace[0],
-                 'trace01': {'data': self.ltrace[1], 'units': 'a.u.'},
-                }
+        ddata = {
+            'trace00': self.ltrace[0],
+            'trace01': {'data': self.ltrace[1], 'units': 'a.u.'},
+        }
         data = tfd.DataCollection(
             dgroup=dgroup, dref=dref, ddata=ddata,
             Name='data',
@@ -317,12 +319,14 @@ class Test01_DataCollection(object):
 
     def test02_wrong_init(self):
         # Try with minimalist input
-        dref = {'t0': {'data': self.lt[0], 'group': 'time'},
-                't1': {'data': self.lt[1], 'group': 'time'},
-               }
-        ddata = {'trace00': self.ltrace[0], 'ref': 't0',
-                 'trace11': self.ltrace[3], 'ref': ('t0', 't1'),
-                }
+        dref = {
+            't0': {'data': self.lt[0], 'group': 'time'},
+            't1': {'data': self.lt[1], 'group': 'time'},
+        }
+        ddata = {
+            'trace00': self.ltrace[0], 'ref': 't0',
+            'trace11': self.ltrace[3], 'ref': ('t0', 't1'),
+        }
         err = False
         try:
             data = tfd.DataCollection(
@@ -414,7 +418,9 @@ class Test01_DataCollection(object):
         out = data.get_param('units')
         data.set_param('units', value='T', key='trace00')
         data.add_param('shot', value=np.arange(0, len(data.ddata)))
-        assert np.all(data.get_param('shot')['shot'] == np.arange(0, len(data.ddata)))
+        assert np.all(
+            data.get_param('shot')['shot'] == np.arange(0, len(data.ddata))
+        )
         data.remove_param('shot')
         assert 'shot' not in data.get_lparam(which='data')
 
@@ -570,7 +576,7 @@ class Test01_DataCollection(object):
             for ii in lok:
                 oo.strip(ii, verb=verb)
                 nb[ii] = oo.get_nbytes()[0]
-            assert np.all(np.diff(nb)<=0.), nb
+            assert np.all(np.diff(nb) <= 0.), nb
             for ii in lok[::-1]:
                 oo.strip(ii, verb=verb)
 

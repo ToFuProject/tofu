@@ -70,7 +70,7 @@ class SpectralLines(DataCollection):
         symbol=None,
         **kwdargs,
     ):
-        """ Add a spectral line by key and rest wavelength, optionally with 
+        """ Add a spectral line by key and rest wavelength, optionally with
 
         """
         self.add_obj(
@@ -599,7 +599,6 @@ class SpectralLines(DataCollection):
         }
         return dint
 
-
     # -----------------
     # plotting
     # ------------------
@@ -830,7 +829,7 @@ class SpectralLines(DataCollection):
         if param_color != 'key':
             lion = [self._dobj['lines'][k0][param_color] for k0 in dpec.keys()]
             for ii, k0 in enumerate(set(lion)):
-                dcolor[k0] = mcolors.to_rgb(lcol[ii%len(lcol)])
+                dcolor[k0] = mcolors.to_rgb(lcol[ii % len(lcol)])
                 lk1 = [
                     k2 for k2 in dpec.keys()
                     if self._dobj['lines'][k2][param_color] == k0
@@ -839,7 +838,7 @@ class SpectralLines(DataCollection):
                     damp[k1]['color'] = k0
         else:
             for ii, k0 in enumerate(dpec.keys()):
-                dcolor[k0] = mcolors.to_rgb(lcol[ii%len(lcoil)])
+                dcolor[k0] = mcolors.to_rgb(lcol[ii % len(lcoil)])
                 damp[k0]['color'] = k0
 
         # Create image
@@ -866,7 +865,9 @@ class SpectralLines(DataCollection):
             if ii in np.unique(im_ind):
                 ind = im_ind == ii
                 im[ind, :-1] = dcolor[damp[k0]['color']]
-                im[ind, -1] = (np.log10(im_data[ind])-pmin)/(pmax-pmin)*0.9 + 0.1
+                im[ind, -1] = (
+                    (np.log10(im_data[ind])-pmin)/(pmax-pmin)*0.9 + 0.1
+                )
         extent = (ne_grid.min(), ne_grid.max(), Te_grid.min(), Te_grid.max())
 
         if tit is None:
@@ -897,11 +898,14 @@ class TimeTraces(DataCollection):
     """ A generic class for handling multiple time traces """
 
     _forced_group = 'time'
-    _dallowed_params = {'time':{'origin': (str, 'unknown'),
-                                'dim':    (str, 'time'),
-                                'quant':  (str, 't'),
-                                'name':   (str, 't'),
-                                'units':  (str, 's')}}
+    _dallowed_params = {
+        'time': {
+            'origin': (str, 'unknown'),
+            'dim':    (str, 'time'),
+            'quant':  (str, 't'),
+            'name':   (str, 't'),
+            'units':  (str, 's')},
+    }
     _plot_vignettes = False
 
     def fit(self, ind=None, key=None,
@@ -921,8 +925,9 @@ class TimeTraces(DataCollection):
         return dout
 
     def add_plateaux(self, verb=False):
-        dout = self.fit(ind=ind, key=key, group=group,
-                       Type='staircase')
+        dout = self.fit(
+            ind=ind, key=key, group=group, Type='staircase',
+        )
 
         # Make Pandas Dataframe attribute
         self.plateaux = None

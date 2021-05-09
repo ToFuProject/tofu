@@ -228,7 +228,7 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
 
         dax['ch'] = []
         for ii in range(ncases):
-            if dcases[lcases[ii]].get('is2D', False) == True:
+            if dcases[lcases[ii]].get('is2D', False):
                 ii0 = i0+ii*2
                 for jj in range(nchmax):
                     key = 'ch{}-{}'.format(ii, jj)
@@ -307,7 +307,8 @@ def plot_DataColl(coll, overhead=None,
 
     # Case with time traces only
     daxg, lparam = {}, coll.lparam
-    for ss, vv in [('ax', ax), ('color', color), ('ls', ls), ('marker', marker)]:
+    laxt = [('ax', ax), ('color', color), ('ls', ls), ('marker', marker)]
+    for ss, vv in laxt:
         if vv is None:
             daxg[ss] = None
             continue
@@ -343,12 +344,9 @@ def plot_DataColl(coll, overhead=None,
                                  cross=cross, overhead=overhead,
                                  ntmax=ntmax, nchmax=nchmax)
 
-
     # --------------------
     # Populate axes with static
     # --------------------
-
-
 
     # --------------------
     # Populate axes with dynamic (dobj)
