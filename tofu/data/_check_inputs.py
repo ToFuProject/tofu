@@ -1258,7 +1258,6 @@ def int2roman(num):
     return "".join([a for a in roman_num(num)])
 
 
-
 # #############################################################################
 # #############################################################################
 #                           ddata
@@ -1457,23 +1456,23 @@ def _check_ddata(
     # Convert and/or add ref if necessary
     lref_add = None
     for k0, v0 in ddata.items():
-            if not isinstance(v0, dict):
-                ddata[k0] = {'ref': (refref,), 'data': v0}
-            else:
-                if v0.get('data') is None:
-                    continue
-                if v0.get('ref') is None:
-                    if not isinstance(v0['data'], dict):
-                        ddata[k0]['ref'] = (refref,)
-                elif isinstance(v0['ref'], str):
-                    ddata[k0]['ref'] = (v0['ref'],)
-                elif v0['ref'] is True:
-                    if k0 not in dref0.keys():
-                        if lref_add is None:
-                            lref_add = [k0]
-                        else:
-                            lref_add.append(k0)
-                    ddata[k0]['ref'] = (k0,)
+        if not isinstance(v0, dict):
+            ddata[k0] = {'ref': (refref,), 'data': v0}
+        else:
+            if v0.get('data') is None:
+                continue
+            if v0.get('ref') is None:
+                if not isinstance(v0['data'], dict):
+                    ddata[k0]['ref'] = (refref,)
+            elif isinstance(v0['ref'], str):
+                ddata[k0]['ref'] = (v0['ref'],)
+            elif v0['ref'] is True:
+                if k0 not in dref0.keys():
+                    if lref_add is None:
+                        lref_add = [k0]
+                    else:
+                        lref_add.append(k0)
+                ddata[k0]['ref'] = (k0,)
 
     # Check data and ref vs shape - and optionnally add to ref if mesh2d
     for k0, v0 in ddata.items():
@@ -2104,6 +2103,7 @@ def _consistency(
             raise Exception(msg)
 
     return dgroup0, dref0, dref_static0, ddata0, dobj0
+
 
 """
     # --------------
