@@ -2741,8 +2741,6 @@ class Plasma2D(utils.ToFuObject):
         return lref
 
 
-
-
     def _set_dindrefdatagroup(self, dtime=None, dradius=None, dmesh=None,
                               d0d=None, d1d=None, d2d=None):
 
