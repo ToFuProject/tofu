@@ -61,12 +61,9 @@ class SpectralLines(DataCollection):
         key=None,
         lambda0=None,
         pec=None,
-        ref=None,
         source=None,
         transition=None,
         ion=None,
-        element=None,
-        charge=None,
         symbol=None,
         **kwdargs,
     ):
@@ -74,21 +71,36 @@ class SpectralLines(DataCollection):
 
         """
         self.add_obj(
+            which='lines',
             key=key,
             lambda0=lambda0,
             pec=pec,
-            ref=ref,
             source=source,
             transition=transition,
             ion=ion,
-            element=element,
-            charge=charge,
             symbol=symbol,
             **kwdargs,
         )
 
     def add_pec(self, key=None, pec=None, ref=None):
         pass
+
+
+    def remove_line(
+        self,
+        key=None,
+        ion=None,
+        source=None,
+        lambda0=None,
+    ):
+        # Check inputs
+        lc = [
+            key is not None,
+            ion is not None or source is not None or lambda0 is not None,
+        ]
+        raise NotImplementedError
+
+
 
     # -----------------
     # from openadas
