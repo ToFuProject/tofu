@@ -191,7 +191,12 @@ def _checkformat_dconstraints(dconstraints=None, defconst=None):
     c0= (isinstance(dconstraints, dict)
          and all([k0 in lk for k0 in dconstraints.keys()]))
     if not c0:
-        msg = "dconstraints must be a dict of constraints for spectrum fitting"
+        msg = (
+            "\ndconstraints should contain constraints for spectrum fitting\n"
+            + "It be a dict with the following keys:\n"
+            + "\t- available keys: {}\n".format(lk)
+            + "\t- provided keys: {}".format(dconstraints.keys())
+        )
         raise Exception(msg)
 
     # copy to avoid modifying reference
@@ -224,34 +229,55 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
     # ------------------------
     # Prepare error message
     msg = ''
+    pavail = sorted(set(itt.chain.from_iterable([
+        v0.keys() for v0 in dlines.values()
+    ])))
 
     # ------------------------
     # Check case
     c0 = indict is False
-    c1 = isinstance(indict, str)
-    c2 = (isinstance(indict, dict)
-          and all([isinstance(k0, str)
-                   and ((isinstance(v0, str) and v0 in keys)
-                        or (isinstance(v0, list)
-                            and all([isinstance(v1, str)
-                                     and v1 in keys
-                                     for v1 in v0])))
-                   for k0, v0 in indict.items()]))
-    c3 = (isinstance(indict, dict)
-          and all([(ss in keys
-                    and isinstance(vv, dict)
-                    and all([s1 in ['key', 'coef', 'offset']
-                             for s1 in vv.keys()])
-                    and isinstance(vv['key'], str))
-                   for ss, vv in indict.items()]))
-    c4 = (isinstance(indict, dict)
-          and isinstance(indict.get('keys'), list)
-          and isinstance(indict.get('ind'), np.ndarray))
+    c1 = (
+        isinstance(indict, str)
+        and indict in pavail
+    )
+    c2 = (
+        isinstance(indict, dict)
+        and all([
+            isinstance(k0, str)
+            and (
+                (isinstance(v0, str) and v0 in keys)
+                or (
+                    isinstance(v0, list)
+                    and all([
+                        isinstance(v1, str) and v1 in keys for v1 in v0
+                    ])
+                )
+            )
+            for k0, v0 in indict.items()
+        ])
+    )
+    c3 = (
+        isinstance(indict, dict)
+        and all([
+            ss in keys
+            and isinstance(vv, dict)
+            and all([s1 in ['key', 'coef', 'offset'] for s1 in vv.keys()])
+            and isinstance(vv['key'], str)
+            for ss, vv in indict.items()
+        ])
+    )
+    c4 = (
+        isinstance(indict, dict)
+        and isinstance(indict.get('keys'), list)
+        and isinstance(indict.get('ind'), np.ndarray)
+    )
     if not any([c0, c1, c2, c3, c4]):
         msg = (
             "dconstraints['{}'] shoud be either:\n".format(k0)
             + "\t- False ({}): no constraint\n".format(c0)
-            + "\t- str ({}): key from dlines['<lines>'] to be used as criterion\n".format(c1)
+            + "\t- str ({}): key from dlines['<lines>'] ".format(c1)
+            + "to be used as criterion\n"
+            + "\t\t available crit: {}\n".format(pavail)
             + "\t- dict ({}): ".format(c2)
             + "{str: line_keyi or [line_keyi, ..., line_keyj}\n"
             + "\t- dict ({}): ".format(c3)
@@ -334,6 +360,7 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
         assert np.all(np.sum(outdict['ind'], axis=0) == 1)
         assert outdict['coefs'].shape == (nlines,)
         assert outdict['offset'].shape == (nlines,)
+
     return outdict
 
 
@@ -1213,6 +1240,21 @@ def fit1d_dinput(
     valid_return_fract=None,
     dscales=None, dx0=None, dbounds=None,
     defconst=_DCONSTRAINTS):
+    """ Check and format a dict of inputs to be fed to fit1d()
+
+    This dict will contain all information relevant for solving the fit:
+        - dlines: dict of lines (with 'lambda0': wavelength at rest)
+        - lamb: vector of wavelength of the experimental spectrum
+        - data: experimental spectrum, possibly 2d (time-varying)
+        - dconstraints: dict of constraints on lines (amp, width, shift)
+        - pos: bool, consider only positive data (False => replace <0 with nan)
+        - domain:
+        - mask: 
+        - subset:
+        - same_spectrum: 
+        - focus: 
+
+    """
 
     # ------------------------
     # Check / format dprepare
@@ -1228,7 +1270,8 @@ def fit1d_dinput(
     # ------------------------
     dlines, lines_keys, lines_lamb = _checkformat_dlines(
         dlines=dlines,
-        domain=dprepare['domain'])
+        domain=dprepare['domain'],
+    )
     nlines = lines_lamb.size
 
     # Check same_spectrum
@@ -1241,14 +1284,16 @@ def fit1d_dinput(
         if same_spectrum_dlamb is None:
             same_spectrum_dlamb = min(
                 2*np.diff(dprepare['domain']['lamb']['minmax']),
-                dprepare['domain']['lamb']['minmax'][0])
+                dprepare['domain']['lamb']['minmax'][0],
+            )
 
     # ------------------------
     # Check / format dconstraints
     # ------------------------
 
-    dconstraints = _checkformat_dconstraints(dconstraints=dconstraints,
-                                             defconst=defconst)
+    dconstraints = _checkformat_dconstraints(
+        dconstraints=dconstraints, defconst=defconst,
+    )
     ltypes = [int, float, np.int_, np.float_]
     dinput = {}
 
@@ -1355,7 +1400,7 @@ def fit1d_dinput(
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales,
                                        dinput=dinput)
-    dinput['dx0'] = fit12d_dx0(dinput=dinput)       # TBF
+    dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)       # TBF
     # dinput['dbounds'] = fit12d_dbounds()
     return dinput
 
@@ -1986,12 +2031,13 @@ def _checkformat_dx0(dx0=None, dinput=None):
                    for k1 in dinput[kk].keys()}
 
     # double
-    if dinput['doube'] is not False:
+    if dinput['double'] is not False:
         dx0['dratio'] = dx0.get('dratio', 1.)
         dx0['dshift'] = dx0.get('dshift', 0.)
     return dx0
 
 
+# DEPRECATED ?
 def multigausfit12d_from_dlines_x0(dind=None, nbs=None,
                                    double=None, dx0=None,
                                    nspect=None, keys=None):
@@ -2018,6 +2064,36 @@ def multigausfit12d_from_dlines_x0(dind=None, nbs=None,
             if double.get('dshift') is None:
                 x0_scale[:, dind['dshift']['x']] = 0.7
     return x0_scale
+
+
+# TBC / TBF
+def fit12d_dx0(dx0=None, dinput=None):
+
+    dx0 = _checkformat_dx0(dx0=dx0, dinput=dinput, scales=scales)
+
+    # Only difference between 1d and 2d
+    iax = dind['amp']['x']
+    if nbs is not None:
+        dx0['amp'] = np.repeat(dx0['amp'], nbs)
+        iax = iax.T.ravel()
+
+    # Each x0 should be understood as x0*scale
+    x0_scale = np.full((nspect, dind['sizex']), np.nan)
+    x0_scale[:, iax] = dx0['amp'] # / scales[?]
+    x0_scale[:, dind['bck']['x']] = 1.
+    x0_scale[:, dind['width']['x']] = dx0['width']
+    x0_scale[:, dind['shift']['x']] = dx0['shift']
+    if double is not False:
+        if double is True:
+            x0_scale[:, dind['dratio']['x']] = 0.7
+            x0_scale[:, dind['dshift']['x']] = 0.7
+        else:
+            if double.get('dratio') is None:
+                x0_scale[:, dind['dratio']['x']] = 0.7
+            if double.get('dshift') is None:
+                x0_scale[:, dind['dshift']['x']] = 0.7
+    return dx0
+
 
 
 ###########################################################
@@ -2163,7 +2239,7 @@ def multigausfit1d_from_dlines(dinput=None, dx0=None,
     # ---------------------------
     # Check format options
     (chain, method, tr_solver, tr_options,
-     xtol, ftol, gtol, loss, max_nfev,
+    xtol, ftol, gtol, loss, max_nfev,
      verbose, verbscp) = _checkformat_options(
          chain, method, tr_solver, tr_options,
          xtol, ftol, gtol, loss, max_nfev, verbose)
@@ -2627,7 +2703,7 @@ def fit1d(
         return_dax = False
 
     # ----------------------
-    # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
+    # Get dinput for 1d fitting from dlines, dconstraints, dprepare...
     if not isinstance(dinput, dict):
         msg = ("Please provide a properly formatted dict of inputs!\n"
                + "fit1d() needs the problem to be given as a dinput dict\n"
