@@ -786,9 +786,10 @@ class DataCollection(utils.ToFuObject):
         # Build for dref_static
         if len(self._dref_static) > 0:
             for k0, v0 in self._dref_static.items():
-                col = [k0] + [pp for pp in list(v0.values())[0].keys()]
+                lk = list(list(v0.values())[0].keys())
+                col = [k0] + [pp for pp in lk]
                 ar = [
-                    tuple([k1] + [str(vv) for vv in v1.values()])
+                    tuple([k1] + [str(v1[kk]) for kk in lk])
                     for k1, v1 in v0.items()
                 ]
                 lcol.append(col)
@@ -798,9 +799,10 @@ class DataCollection(utils.ToFuObject):
         # Build for dobj
         if len(self._dobj) > 0:
             for k0, v0 in self._dobj.items():
-                lcol.append([k0] + [pp for pp in list(v0.values())[0].keys()])
+                lk = self.get_lparam(which=k0)
+                lcol.append([k0] + [pp for pp in lk])
                 lar.append([
-                    tuple([k1] + [str(vv) for vv in v1.values()])
+                    tuple([k1] + [str(v1[kk]) for kk in lk])
                     for k1, v1 in v0.items()
                 ])
 
