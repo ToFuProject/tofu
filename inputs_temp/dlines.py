@@ -315,7 +315,6 @@ dtransitions = {
     },
 
     # Unknown
-
     'unknown': {
         'isoel': '?',
         'trans': ['?', '?'],
@@ -552,7 +551,7 @@ dlines = {
     # Li-like n=3 satellites
     'ArXVI_n3a1_Goryaev': {'charge': 15, 'ION': 'ArXVI',
                            'lambda0': 3.9473e-10,
-                           'transition': 'Li-n3-a1'),
+                           'transition': 'Li-n3-a1',
                            'source': 'Goryaev 17'},
     'ArXVI_n3a2_Goryaev': {'charge': 15, 'ION': 'ArXVI',
                            'lambda0': 3.9484e-10,
@@ -874,6 +873,13 @@ dlines = {
 }
 
 
+# #############################################################################
+# #############################################################################
+#           Complement
+# #############################################################################
+
+
+ii = 0
 for k0, v0 in dlines.items():
     elem = v0['ION'][:2]
     if elem[1].isupper():
@@ -884,29 +890,29 @@ for k0, v0 in dlines.items():
 
     c0 = (
         isinstance(v0['transition'], list)
+        and all([isinstance(ss, str) for ss in v0['transition']])
         or (
             isinstance(v0['transition'], str)
-            and v0['transition'] not in dtransition.keys()
+            and v0['transition'] in dtransitions.keys()
         )
     )
     if not c0:
         msg = (
-            "dlines['{}']['transition'] should be either:\n"
+            "dlines['{}']['transition'] should be either:\n".format(k0)
             + "\t- list of 2 str (states), e.g. ['1s2p^2', '1s^22p']\n"
-            + "\t- str (key of dtransition)\n"
+            + "\t- str (key of dtransitions)\n"
             + "\t- provided: {}".format(v0['transition'])
         )
         raise Exception(msg)
 
-    ii = 0
     if isinstance(v0['transition'], list):
         lc = [
-            k1 for k1, v1 in dtransition.items()
+            k1 for k1, v1 in dtransitions.items()
             if v1['trans'] == v0['transition']
         ]
-        if len(lc) == in [0, 1]:
+        if len(lc) in [0, 1]:
             key = 'custom-{}'.format(ii)
-            assert key not in dtransition.keys()
+            assert key not in dtransitions.keys()
             if len(lc) == 0:
                 dtransitions[key] = {
                     'isoel': '?',
