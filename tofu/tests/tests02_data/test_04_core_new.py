@@ -233,10 +233,10 @@ class Test01_DataCollection(object):
         dobj = {
             'lines': {
                 'l0': {
-                    'lambda0': 5e-10, 'source': '[1]', 'transition': 'A->B',
+                    'lambda0': 3e-10, 'source': '[1]', 'transition': 'A->B',
                 },
                 'l1': {
-                    'lambda0': 5e-10, 'source': '[2]', 'transition': 'B->C',
+                    'lambda0': 4e-10, 'source': '[2]', 'transition': 'B->C',
                 },
                 'l2': {
                     'data': t0[:, None]*t1[None, :], 'ref': ('t0', 't1'),
@@ -403,6 +403,13 @@ class Test01_DataCollection(object):
 
         out = data.select(units='a.u.', returnas=int)
         assert len(out) == 12, out
+
+        # test quantitative param selection
+        out = self.lobj[1].select(which='lines', lambda0=[3.5e-10, 6e-10])
+        assert len(out) == 2
+
+        out = self.lobj[1].select(which='lines', lambda0=(3.5e-10, 6e-10))
+        assert len(out) == 1
 
     def test05_sortby(self):
         for oo in self.lobj:
