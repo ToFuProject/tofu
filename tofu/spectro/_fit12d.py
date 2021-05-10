@@ -2000,13 +2000,18 @@ def _checkformat_dx0(dx0=None, dinput=None):
     # Check preliminary
     ltypes = [int, float, np.int_, np.float_]
     c0 = dx0 is None
-    c1 = (isinstance(dx0, dict)
-          and all([(k0 in ['amp', 'width', 'shift']
-                    and isinstance(v0, dict)
-                    and all([k1 in dinput[k0].keys()
-                             and type(v1) in ltypes
-                             for k1 in v0.keys()]))
-                   for k0, v0 in dx0.items()]))
+    c1 = (
+        isinstance(dx0, dict)
+        and all([
+            k0 in ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
+            and isinstance(v0, dict)
+            and all([
+                k1 in dinput[k0].keys() and type(v1) in ltypes
+                for k1 in v0.keys()
+            ])
+            for k0, v0 in dx0.items()
+        ])
+    )
 
     if not any([c0, c1]):
         msg = ("dx0 must be None or a dict of the form:\n"
@@ -2027,8 +2032,10 @@ def _checkformat_dx0(dx0=None, dinput=None):
 
     dx0['bck'] = dx0.get('bck', 1.)
     for kk, vv in [('amp', 1.), ('width', 1.), ('shift', 0.)]:
-        dx0[kk] = {k1: dx0.get(kk, {kk: {k1: vv}}).get(k1, vv)
-                   for k1 in dinput[kk].keys()}
+        dx0[kk] = {
+            k1: dx0.get(kk, {kk: {k1: vv}}).get(k1, vv)
+            for k1 in dinput[kk].keys()
+        }
 
     # double
     if dinput['double'] is not False:
@@ -2092,6 +2099,10 @@ def fit12d_dx0(dx0=None, dinput=None):
                 x0_scale[:, dind['dratio']['x']] = 0.7
             if double.get('dshift') is None:
                 x0_scale[:, dind['dshift']['x']] = 0.7
+
+    # Include at least like dscales: bck amp, shift, width, dratio, dshift
+
+
     return dx0
 
 
