@@ -464,7 +464,7 @@ def _remove_obj(
             dkey=dobj0[k0],
             name='dobj[{}]'.format(k0),
         )
-        for kk in key:
+        for kk in set(key).intersection(dobj0[k0].keys()):
             del dobj0[k0][kk]
 
     elif which is not None:
