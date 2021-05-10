@@ -802,7 +802,7 @@ class DataCollection(utils.ToFuObject):
                 lk = self.get_lparam(which=k0)
                 lcol.append([k0] + [pp for pp in lk])
                 lar.append([
-                    tuple([k1] + [str(v1[k2]) for k2 in lk])
+                    tuple([k1] + [str(v1[kk]) for kk in lk])
                     for k1, v1 in v0.items()
                 ])
 

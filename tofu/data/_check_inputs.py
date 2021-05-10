@@ -464,7 +464,7 @@ def _remove_obj(
             dkey=dobj0[k0],
             name='dobj[{}]'.format(k0),
         )
-        for kk in key:
+        for kk in set(key).intersection(dobj0[k0].keys()):
             del dobj0[k0][kk]
 
     elif which is not None:
@@ -2258,7 +2258,7 @@ def _get_param(
     if returnas == dict:
         out = {k0: {k1: dd[k1][k0] for k1 in key} for k0 in param}
     else:
-        out = {k0: [dd[k1][k0] for k1 in key] for k0 in param}
+        out = {k0: np.array([dd[k1][k0] for k1 in key]) for k0 in param}
 
     return out
 
@@ -2568,11 +2568,33 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
         raise Exception(msg)
 
     # Prepare array of bool indices and populate
+    ltypes = [float, np.float_]
+    lquant = [
+        kk for kk in kwdargs.keys()
+        if any([type(dd[k0][kk]) in ltypes for k0 in dd.keys()])
+    ]
+
     ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
     for ii, kk in enumerate(kwdargs.keys()):
         try:
-            par = self.get_param(ddata=dd, param=kk, returnas=np.ndarray)
-            ind[ii, :] = par == kwdargs[kk]
+            par = _get_param(
+                dd=dd, dd_name=dd_name,
+                param=kk,
+                returnas=np.ndarray,
+            )[kk]
+            if kk in lquant:
+                if isinstance(kwdargs[kk], list) and len(kwdargs[kk]) == 2:
+                    ind[ii, :] = (
+                        (kwdargs[kk][0] <= par) & (par <= kwdargs[kk][1])
+                    )
+                elif isinstance(kwdargs[kk], tuple) and len(kwdargs[kk]) == 2:
+                    ind[ii, :] = (
+                        (kwdargs[kk][0] > par) | (par > kwdargs[kk][1])
+                    )
+                else:
+                    ind[ii, :] = par == kwdargs[kk]
+            else:
+                ind[ii, :] = par == kwdargs[kk]
         except Exception as err:
             try:
                 ind[ii, :] = [
