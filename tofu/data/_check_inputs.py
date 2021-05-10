@@ -1422,7 +1422,7 @@ def _check_ddata(
     ]
 
     # Raise exception if non-conformity
-    if not (c0 and len(lc)==0):
+    if not (c0 and len(lc) == 0):
         msg = (
             """
             Arg ddata must be a dict of the form:

@@ -377,17 +377,39 @@ class SpectralLines(DataCollection):
     # ------------------
 
     def convert_lines(self, units=None, key=None, ind=None, returnas=None):
-        """ Convert wavelength (m) to other units or other quantities (energy)
+        """ Convert wavelength (m) to other units or other quantities
 
         Avalaible units:
             wavelength: km, m, mm, um, nm, pm, A
             energy:     J, eV, keV, MeV, GeV
             frequency:  Hz, kHz, MHz, GHz, THz
 
+        Return the result as a np.ndarray (returnas = 'data')
+
         Can also just return the conversion coef if returnas='coef'
+        In that case, a bool is also returned indicating whether the result is
+        the proportional to the inverse of lambda0::
+            - False: data = coef * lambda0
+            - True: data = coef / lambda0
         """
         if units is None:
             units = self._units_lambda0
+        if returnas is None:
+            returnas = dict
+
+        lok = [dict, np.ndarray, 'data', 'coef']
+        if returnas not in lok:
+            msg = (
+                "Arg returnas must be in:\n"
+                + "\t- {}\n".format(lok)
+                + "\t- provided: {}".format(returnas)
+            )
+            raise Exception(msg)
+        if returnas in [dict, np.ndarray, 'data']:
+            returnas2 = 'data'
+        else:
+            returnas2 = 'coef'
+
 
         key = self._ind_tofrom_key(
             which=self._grouplines, key=key, ind=ind, returnas=str,
@@ -395,9 +417,12 @@ class SpectralLines(DataCollection):
         lamb_in = self.get_param(
             'lambda0', key=key, returnas=np.ndarray,
         )['lambda0']
-        return self.convert_spectral(
-            data=lamb_in, units_in='m', units_out=units, returnas=returnas,
+        out = self.convert_spectral(
+            data=lamb_in, units_in='m', units_out=units, returnas=returnas2,
         )
+        if returnas is dict:
+            out = {k0: out[ii] for ii, k0 in enumerate(key)}
+        return out
 
     # -----------------
     # PEC interpolation
