@@ -1170,20 +1170,20 @@ def _checkformat_dlines(dlines=None, domain=None):
     c0 = (isinstance(dlines, dict)
           and all([(isinstance(k0, str)
                     and isinstance(v0, dict)
-                    and 'lambda' in v0.keys())
+                    and 'lambda0' in v0.keys())
                    for k0, v0 in dlines.items()]))
     if c0 is not True:
         msg = ("Arg dlines must be a dict of the form:\n"
-               + "\t{'line0': {'lambda': float},\n"
-               + "\t 'line1': {'lambda': float},\n"
+               + "\t{'line0': {'lambda0': float},\n"
+               + "\t 'line1': {'lambda0': float},\n"
                + "\t  ...\n"
-               + "\t 'lineN': {'lambda': float}}\n"
+               + "\t 'lineN': {'lambda0': float}}\n"
                + "  You provided: {}".format(dlines))
         raise Exception(msg)
 
     # Select relevant lines (keys, lamb)
     lines_keys = np.array([k0 for k0 in dlines.keys()])
-    lines_lamb = np.array([dlines[k0]['lambda'] for k0 in lines_keys])
+    lines_lamb = np.array([dlines[k0]['lambda0'] for k0 in lines_keys])
     if domain not in [None, False]:
         ind = ((lines_lamb >= domain['lamb']['minmax'][0])
                & (lines_lamb <= domain['lamb']['minmax'][1]))

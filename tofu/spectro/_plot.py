@@ -78,13 +78,13 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     if dlines is not None:
         lines = [k0 for k0, v0 in dlines.items()
-                 if (v0['lambda'] >= lambfit[0]
-                     and v0['lambda'] <= lambfit[-1])]
+                 if (v0['lambda0'] >= lambfit[0]
+                     and v0['lambda0'] <= lambfit[-1])]
         lions = sorted(set([dlines[k0]['ION'] for k0 in lines]))
         nions = len(lions)
         dions = {k0: [k1 for k1 in lines if dlines[k1]['ION'] == k0]
                  for k0 in lions}
-        dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
+        dions = {k0: {'lamb': np.array([dlines[k1]['lambda0']
                                         for k1 in dions[k0]]),
                       'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]]}
                  for k0 in lions}
