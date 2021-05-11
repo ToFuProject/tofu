@@ -109,6 +109,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
                       color=None, dP=None,
                       pts0=None, pts1=None, rays_color=None, rays_npts=None,
                       dleg=None, draw=True, fs=None, dmargin=None,
+                      use_non_parallelism=None,
                       wintit=None, tit=None):
 
     # ---------------------
@@ -144,6 +145,12 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
                + "\t- {}\n".format(lelement)
                + "You provided: {}".format(element))
         raise Exception(msg)
+
+    # vectors
+    nout, e1, e2 = cryst.get_unit_vectors(
+                    use_non_parallelism=use_non_parallelism,
+                    )
+    nin = -nout
 
     # det
     if det is None:
@@ -233,6 +240,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         dax = _CrystalBragg_plot_crosshor(
             cryst=cryst, dcryst=dcryst,
             det=det, ddet=ddet,
+            nout=nout, nin=nin, e1=e1, e2=e2,
             proj=proj, res=res, dax=dax, element=element,
             pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
             draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
@@ -258,6 +266,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
 
 def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                                 det=None, ddet=None,
+                                nout=None, nin=None, e1=None, e2=None,
                                 proj=None, dax=None,
                                 element=None, res=None,
                                 pts0=None, pts1=None,
@@ -284,10 +293,10 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
     if 'r' in element:
         ang = np.linspace(0, 2.*np.pi, 200)
         rr = 0.5*cryst._dgeom['rcurve']
-        row = cryst._dgeom['center'] + rr*cryst._dgeom['nout']
+        row = cryst._dgeom['center'] + rr*nout
         row = (row[:, None]
-               + rr*(np.cos(ang)[None, :]*cryst._dgeom['nout'][:, None]
-                     + np.sin(ang)[None, :]*cryst._dgeom['e1'][:, None]))
+               + rr*(np.cos(ang)[None, :]*nout[:, None]
+                     + np.sin(ang)[None, :]*e1[:, None]))
 
     # ---------------------
     # plot
@@ -332,8 +341,8 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                             label=cryst.Id.NameLTX+' rowland',
                             **dcryst['rowland'])
     if 'v' in element:
-        nin = cryst._dgeom['nin']
-        e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
+        #nin = cryst._dgeom['nin']
+        #e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
         if cross:

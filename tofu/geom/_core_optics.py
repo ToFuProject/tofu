@@ -945,6 +945,7 @@ class CrystalBragg(utils.ToFuObject):
              dax=None, proj=None, res=None, element=None,
              color=None, det=None, ddet=None,
              dleg=None, draw=True, dmargin=None,
+             use_non_parallelism=None,
              fs=None, wintit=None):
         """ Plot the crystal in desired axes
 
@@ -998,6 +999,11 @@ class CrystalBragg(utils.ToFuObject):
         dleg:       None / dict
             dict of properties to be passed to plt.legend()
             if False legend is not plotted
+        use_non_parallelism:    None / str
+            Return the unit vectors (direct orthonormal basis)
+            Depending on:
+                - use_non_parallelism: True  => return the geometrical basis
+                - use_non_parallelism: False  => return the mesh basis
         """
         kwdargs = locals()
         lout = ['self']
@@ -1006,6 +1012,7 @@ class CrystalBragg(utils.ToFuObject):
         if det is None:
             det = False
         det = self._checkformat_det(det)
+
         return _plot_optics.CrystalBragg_plot(self, **kwdargs)
 
     def plot_rays_from_summit(self, phi=None, bragg=None, lamb=None,
