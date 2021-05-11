@@ -1630,16 +1630,16 @@ def test24_is_visible(debug=0):
             shot=0
         )
         s1 = tfg.PFC(Name="S1",
-                     Poly=[SP0x, SP0y],
+                     Poly=[SP0x[:-1], SP0y[:-1]],
                      Exp="Misc",
                      shot=0)
         s2 = tfg.PFC(Name="S2",
-                     Poly=[SP1x, SP1y],
+                     Poly=[SP1x[:-1], SP1y[:-1]],
                      Exp="Misc",
                      shot=0,
                      Lim=SL1)
         s3 = tfg.PFC(Name="S3",
-                     Poly=[SP2x, SP2y],
+                     Poly=[SP2x[:-1], SP2y[:-1]],
                      Exp="Misc",
                      shot=0,
                      Lim=SL2)
