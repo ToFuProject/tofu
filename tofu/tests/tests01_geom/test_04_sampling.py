@@ -181,7 +181,7 @@ def test04_ves_vmesh_lin():
 # =============================================================================
 # Ves  - Solid angles
 # =============================================================================
-def test05_sa_integ_map(ves_poly=VPoly, debug=1):
+def test05_sa_integ_map(ves_poly=VPoly, debug=0):
     import matplotlib.pyplot as plt
     print()
 
@@ -196,7 +196,7 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=1):
                      [3, 0.1, 0.]], order='F').T
     part_rad = np.r_[0.001,
                      0.0012]
-    rstep = zstep = 0.02
+    rstep = zstep = 0.015
     phistep = 0.08
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
     DR = None
