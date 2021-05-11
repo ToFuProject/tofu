@@ -38,6 +38,7 @@ requirements:
     - Cython >=0.26
     - pytest
     - pygments
+    - requests
 
 test:
   requires:

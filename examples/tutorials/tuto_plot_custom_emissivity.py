@@ -17,11 +17,11 @@ configB2 = tf.geom.utils.create_config("B2")
 
 cam2d = tf.geom.utils.create_CamLOS2D(
     config=configB2,
-    P=[3.4, 0, 0],
-    N12=100,
-    F=0.1,
-    D12=0.1,
-    angs=[np.pi, np.pi/6, 0],
+    pinhole=[3.4, 0, 0],
+    sensor_nb=100,
+    focal=0.1,
+    sensor_size=0.1,
+    orientation=[np.pi, np.pi/6, 0],
     Name="",
     Exp="",
     Diag="",

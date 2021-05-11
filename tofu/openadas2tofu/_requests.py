@@ -9,8 +9,13 @@ import warnings
 import numpy as np
 
 
-__all__ = ['search_online', 'search_online_by_wavelengthA',
-           'download', 'download_all', 'clean_downloads']
+__all__ = [
+    'step01_search_online',
+    'step01_search_online_by_wavelengthA',
+    'step02_download',
+    'step02_download_all',
+    'clear_downloads',
+]
 
 
 # Check whether a local .tofu/ repo exists
@@ -19,7 +24,10 @@ _URL_SEARCH = _URL + '/freeform?searchstring='
 _URL_SEARCH_WAVL = _URL + '/wavelength?'
 _URL_ADF15 = _URL + '/adf15'
 _URL_DOWNLOAD = _URL + '/download'
+_CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+_CUSTOM = os.path.join(_CUSTOM, 'scripts', 'tofucustom.py')
 
+_CREATE_CUSTOM = True
 _INCLUDE_PARTIAL = True
 
 
@@ -87,20 +95,23 @@ class FileAlreayExistsException(Exception):
     pass
 
 
-def search_online(searchstr=None, returnas=None,
-                  include_partial=None, verb=None):
+def step01_search_online(
+    searchstr=None, returnas=None,
+    include_partial=None, verb=None,
+):
     """ Perform an online freeform search on https://open.adas.ac.uk
 
     Pass searchstr to the online freeform search
     Prints the results (if verb=True)
+
     Optionally return the result as:
-        - a char array (returnas = np.ndarray)
-        - a formatted str (returnas = str)
+        - np.ndarray    : a char array
+        - str           : a formatted str
 
     example
     -------
         >>> import tofu as tf
-        >>> tf.openadas2tofu.search_online('ar+16 ADF15')
+        >>> tf.openadas2tofu.step01_search_online('ar+16 ADF15')
     """
 
     # Check input
@@ -176,24 +187,34 @@ def search_online(searchstr=None, returnas=None,
     return arr
 
 
-def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
-                                 element=None, charge=None,
-                                 returnas=None, verb=None):
+def step01_search_online_by_wavelengthA(
+    lambmin=None, lambmax=None,
+    element=None, charge=None, resolveby=None,
+    returnas=None, verb=None,
+):
     """ Perform an online search by wavelength on https://open.adas.ac.uk
 
     Pass the min / max wavelength (in Angstrom) to the online wavelength search
     Prints the results (if verb=True)
-    Optionally return the result as:
-        - a char array (returnas = np.ndarray)
-        - a formatted str (returnas = str)
 
-    The result can be resolve by transition or by adas file
-    Optionally filter by element to return only the results of one element
+    Optionally return the result as:
+        - np.ndarray    : a char array
+        - str           : a formatted str
+
+    The result can be resolved by:
+        - 'transition'  : by spectral transition
+        - 'file'        : by adas file
+
+    Optionally filter by element and charge
 
     example
     -------
         >>> import tofu as tf
-        >>> tf.openadas2tofu.search_online_by_wavelengthA(3., 4., element='ar')
+        >>> tf.openadas2tofu.step01_earch_online_by_wavelengthA(3., 4., 'ar')
+        >>> tf.openadas2tofu.step01_earch_online_by_wavelengthA(
+            3., 4., 'w',
+            resolveby='file',
+        )
     """
 
     # Check input
@@ -208,7 +229,7 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
     if resolveby is None:
         resolveby = 'transition'
     if resolveby not in ['transition', 'file']:
-        msg = ("Arg resolveeby must be:\n"
+        msg = ("Arg resolveby must be:\n"
                + "\t- 'transition': list all available transitions\n"
                + "\t- 'file': list all files containing relevant transitions")
         raise Exception(msg)
@@ -250,38 +271,88 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
     col = [kk.replace('<tr><th>', '').replace('</th>', '').strip()
            for kk in out[0].split('</th><th>')]
     ncol = len(col)
-    colex = ['Wavelength', 'Ion', 'Data Type', 'Transition', 'File Details']
-    if col != colex:
+    if resolveby == 'transition':
+        dcolex = {
+            'Wavelength': 0,
+            'Ion': 1,
+            'Data Type': 2,
+            'Transition': 3,
+            'File Details': 4,
+        }
+    else:
+        dcolex = {
+            'Ion': 0,
+            'Data Type': 1,
+            'Minimum Wavelength': 2,
+            'Maximum Wavelength': 3,
+            'File Details': 4,
+        }
+    if col != list(dcolex.keys()):
         msg = ("Format of table columns in html seems to have changed!\n"
                + "\t- expected: {}\n".format(colex)
                + "\t- observed: {}".format(col))
         raise Exception(msg)
 
     lout = []
-    for ii in range(0, nresults):
-        lstri = out[ii+1].split('</td><td>')
-        assert len(lstri) == ncol
-        lamb = lstri[0].replace('&Aring;', '')
-        elm, charg = lstri[1].replace('</sup>', '').split('<sup>')
-        if charg == '+':
-            charg = '1+'
-        if element is not None and elm.lower() != element.lower():
-            continue
-        if charge is not None and charg != charge:
-            continue
-        typ = lstri[2].replace('</span>', '').split('>')[1]
-        trans = lstri[3].replace('&nbsp;', ' ')
-        trans = trans.replace('<sup>', '^{').replace('</sup>', '}')
-        trans = trans.replace('<sub>', '_{').replace('</sub>', '}')
-        trans = trans.replace('&rarr;', '->')
-        fil = lstri[4][lstri[4].index('detail')+len('detail'):]
-        fil = fil[:fil.index('.dat')+len('.dat')]
-        lout.append([lamb, elm, charg, typ, trans, fil])
+    if resolveby == 'transition':
+        for ii in range(0, nresults):
+            lstri = out[ii+1].split('</td><td>')
+            assert len(lstri) == ncol
+            elm, charg = (
+                lstri[dcolex['Ion']].replace('</sup>', '').split('<sup>')
+            )
+            if charg == '+':
+                charg = '1+'
+            if element is not None and elm.lower() != element.lower():
+                continue
+            if charge is not None and charg != charge:
+                continue
+            lamb = lstri[dcolex['Wavelength']].replace('&Aring;', '')
+            typ = (
+                lstri[dcolex['Data Type']].replace('</span>', '').split('>')[1]
+            )
+            trans = lstri[dcolex['Transition']].replace('&nbsp;', ' ')
+            trans = trans.replace('<sup>', '^{').replace('</sup>', '}')
+            trans = trans.replace('<sub>', '_{').replace('</sub>', '}')
+            trans = trans.replace('&rarr;', '->')
+            fil = lstri[dcolex['File Details']]
+            fil = fil[fil.index('detail')+len('detail'):]
+            fil = fil[:fil.index('.dat')+len('.dat')]
+            lout.append([lamb, elm, charg, typ, trans, fil])
+    else:
+        for ii in range(0, nresults):
+            lstri = out[ii+1].split('</td><td>')
+            elm, charg = (
+                lstri[dcolex['Ion']].replace('</sup>', '').split('<sup>')
+            )
+            if charg == '+':
+                charg = '1+'
+            if element is not None and elm.lower() != element.lower():
+                continue
+            if charge is not None and charg != charge:
+                continue
+            typ = (
+                lstri[dcolex['Data Type']].replace('</span>', '')
+            )
+            lambmin = (
+                lstri[dcolex['Minimum Wavelength']].replace('&Aring;', '')
+            )
+            lambmax = (
+                lstri[dcolex['Maximum Wavelength']].replace('&Aring;', '')
+            )
+            fil = lstri[dcolex['File Details']]
+            fil = fil[fil.index('detail')+len('detail'):]
+            fil = fil[:fil.index('.dat')+len('.dat')]
+            lout.append([fil, lambmin, lambmax, elm, charg, typ])
 
     # Format output
     char = np.array(lout)
-    col = ['Wavelength', 'Element', 'Charge', 'Data Type',
-           'Transition', 'Full file name']
+    if resolveby == 'transition':
+        col = ['Wavelength', 'Element', 'Charge', 'Data Type',
+               'Transition', 'Full file name']
+    else:
+        col = ['Full file name', 'Wavelength min', 'Wavelength max',
+               'Element', 'Charge', 'Data Type']
     arr = _getcharray(char, col=col,
                       sep='  ', line='-', just='l',
                       returnas=returnas, verb=verb)
@@ -293,7 +364,7 @@ def search_online_by_wavelengthA(lambmin=None, lambmax=None, resolveby=None,
 # #############################################################################
 
 
-def _check_exists(filename, update=None):
+def _check_exists(filename, update=None, create_custom=None):
 
     # In case a small modification becomes necessary later
     target = filename
@@ -302,14 +373,20 @@ def _check_exists(filename, update=None):
     # Check whether the local .tofu repo exists, if not recommend tofu-custom
     if path_local is None:
         path = os.path.join(os.path.expanduser('~'), '.tofu', 'openadas2tofu')
-        msg = ("You do not seem to have a local ./tofu repository\n"
-               + "tofu uses that local repository to store all user-specific "
-               + "data and downloads\n"
-               + "In particular, openadas files are downloaded and saved in:\n"
-               + "\t{}\n".format(path)
-               + "  => to set-up your local .tofu repo, run in a terminal:\n"
-               + "\ttofu-custom")
-        raise Exception(msg)
+        if create_custom is None:
+            create_custom = _CREATE_CUSTOM
+        if create_custom is True:
+            os.system('python ' + _CUSTOM)
+            path_local = _get_PATH_LOCAL()
+        else:
+            msg = ("You do not seem to have a local ./tofu repository\n"
+                   + "tofu uses that local repository to store user-specific "
+                   + "data and downloads\n"
+                   + "In particular, openadas files are downloaded in:\n"
+                   + "\t{}\n".format(path)
+                   + "  => to set-up your local .tofu repo, run in terminal:\n"
+                   + "\ttofu custom")
+            raise Exception(msg)
 
     # Parse intermediate repos and create if necessary
     lrep = target.split('/')[1:-1]
@@ -334,17 +411,24 @@ def _check_exists(filename, update=None):
         return False, pfe
 
 
-def download(filename=None,
-             update=None, verb=None, returnas=None):
+def step02_download(
+    filename=None,
+    update=None,
+    create_custom=None,
+    verb=None,
+    returnas=None,
+):
     """ Download desired file from  https://open.adas.ac.uk
 
     All downloaded files are stored in your local tofu directory (~/.tofu/)
+
+    Automatically runs tofu-custom if create_custom=True
 
     example
     -------
         >>> import tofu as tf
         >>> filename = '/adf15/pec40][ar/pec40][ar_ls][ar16.dat'
-        >>> tf.openadas2tofu.download(filename)
+        >>> tf.openadas2tofu.step02_download(filename)
     """
 
     # ---------------------------
@@ -360,11 +444,15 @@ def download(filename=None,
           or filename[:4] != '/adf' or filename[-4:] != '.dat')
     if c0:
         msg = ("filename must be a str (full file name) of the form:\n"
-               + "\t/adf.../.../....dat")
+               + "\t/adf.../.../....dat\n"
+               + "\nProvided:\n\t{}".format(filename))
         raise Exception(msg)
     url = _URL_DOWNLOAD + filename
 
-    exists, pfe = _check_exists(filename, update=update)
+    exists, pfe = _check_exists(
+        filename, update=update,
+        create_custom=create_custom
+    )
     if exists is True and verb is True:
         msg = ("File already exists, will be downloaded and overwritten:\n"
                + "\t{}".format(pfe))
@@ -390,25 +478,31 @@ def download(filename=None,
         return pfe
 
 
-def download_all(files=None, searchstr=None,
-                 lambmin=None, lambmax=None, element=None,
-                 include_partial=None, update=None, verb=None):
+def step02_download_all(
+    files=None, searchstr=None,
+    lambmin=None, lambmax=None, element=None,
+    include_partial=None, update=None, create_custom=None, verb=None,
+):
     """ Download all desired files from  https://open.adas.ac.uk
 
     The files to download can be provided either as:
         - a list of full openadas file names (files)
         - the result of an online freeform search
             (searchstr fed to search_online)
-        - the result of an online search by wavelength
+        - the input to an online search by wavelength
             (lambmin, lambmax and element fed to search_online_by_wavelengthA)
 
+    Automatically runs tofu-custom if create_custom=True
     All downloaded files are stored in your local tofu directory (~/.tofu/)
 
     example
     -------
         >>> import tofu as tf
-        >>> tf.openadas2tofu.download_all(lambmin=3., lambmax=4., element='ar')
+        >>> tf.openadas2tofu.step02_download_all(
+            lambmin=3., lambmax=4., element='ar',
+        )
     """
+
     # Check
     if include_partial is None:
         include_partial = False
@@ -423,8 +517,9 @@ def download_all(files=None, searchstr=None,
         msg = (
             "Please either searchstr xor (lambmin, lambmax, element)\n"
             + "\t- files: list of full file names to be downloaded\n"
-            + "\t- searchstr: uses search_online()\n"
-            + "\t- lambmin, lambmax, element: search_online_by_wavelengthA")
+            + "\t- searchstr: uses step01_search_online()\n"
+            + "\t- lambmin, lambmax, element: "
+            + "uses step01_search_online_by_wavelengthA()")
         raise Exception(msg)
 
     # Get list of files
@@ -436,15 +531,20 @@ def download_all(files=None, searchstr=None,
             msg = "files must be a list of full openadas file names!"
             raise Exception(msg)
     elif lc[1]:
-        arr = search_online(searchstr=searchstr,
-                            include_partial=include_partial,
-                            verb=False, returnas=np.ndarray)
+        arr = step01_search_online(
+            searchstr=searchstr,
+            include_partial=include_partial,
+            verb=False,
+            returnas=np.ndarray,
+        )
         files = arr[:, -1]
     elif lc[2]:
-        arr = search_online_by_wavelengthA(lambmin=lambmin,
-                                           lambmax=lambmax,
-                                           element=element, verb=False,
-                                           returnas=np.ndarray)
+        arr = step01_search_online_by_wavelengthA(
+            lambmin=lambmin,
+            lambmax=lambmax,
+            element=element, verb=False,
+            returnas=np.ndarray,
+        )
         files = np.unique(arr[:, -1])
 
     # Download
@@ -453,9 +553,14 @@ def download_all(files=None, searchstr=None,
         print(msg)
     for ii in range(len(files)):
         try:
-            exists, pfe = _check_exists(files[ii], update=update)
-            pfe = download(filename=files[ii], update=update,
-                           verb=False, returnas=str)
+            exists, pfe = _check_exists(
+                files[ii], update=update,
+                create_custom=create_custom,
+            )
+            pfe = step02_download(
+                filename=files[ii], update=update,
+                verb=False, returnas=str,
+            )
             if exists is True:
                 msg = "\toverwritten:   \t{}".format(files[ii])
             else:
@@ -471,7 +576,7 @@ def download_all(files=None, searchstr=None,
             print(msg)
 
 
-def clean_downloads():
+def clear_downloads():
     """ Delete all openadas files downloaded in your ~/.tofu/ directory """
     path_local = _get_PATH_LOCAL()
     if path_local is None:
