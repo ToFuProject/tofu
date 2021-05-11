@@ -2112,10 +2112,6 @@ cdef inline void sa_assemble_arrays(int block,
             lstruct_nlim_copy = None
         else:
             lstruct_nlim_copy = lstruct_nlim.copy()
-        print("print with gil: ")
-        print("lstruct_nlim \n ", np.shape(lstruct_nlim_copy))
-        print("lstruct_lims \n ", lstruct_lims_np)
-        print("lnvert \n", np.shape(lnvert))
         assemble_block_approx(part_coords, part_rad,
                               is_in_vignette,
                               sa_map,
@@ -2284,6 +2280,8 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
     cdef int loc_size_phi
     cdef long indiijj
     cdef double vol_pi
+    cdef double loc_x
+    cdef double loc_y
     cdef double loc_r
     cdef double loc_z
     cdef double loc_phi
@@ -2310,16 +2308,14 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                 for jj in range(loc_size_phi):
                     indiijj = indi_mv[rr, loc_first_ind + jj]
                     loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
                     # computing distance ....
-                    _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
-                                             pts_mv[1, ind_pol],
-                                             loc_phi,
+                    _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
                                              sz_p, part_coords,
                                              &dist[0])
                     # checking if visible .....
-                    _rt.is_visible_pt_vec_core(pts_mv[0, ind_pol],
-                                               pts_mv[1, ind_pol],
-                                               loc_phi,
+                    _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
                                                part_coords,
                                                sz_p,
                                                ves_poly, ves_norm,
@@ -2343,24 +2339,35 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                                eps_vz, eps_b, eps_plane,
                                                1, # is toroidal
                                                forbid, 1)
+
+                    # TODO : add a tolerance value for comparing
+
+                    if (c_abs(loc_x - 0.8627940248679472) < 0.00000001 and
+                        c_abs(loc_y + 1.7261660125401586) < 0.00000001 and
+                        c_abs(loc_z + 0.6508436176470589) < 0.00000001):
+                        with gil:
+                            print("cy >> is vis = ", is_vis[0])
+
                     for pp in range(sz_p):
                         if is_vis[pp] and dist[pp] > part_rad[pp]:
+                            # if ind_pol == 10:
+                            #     with gil:
+                            #         print("cy >> ", jj,
+                            #               loc_x, loc_y, loc_z,
+                            #               pts_mv[0, ind_pol],
+                            #               pts_mv[1, ind_pol],
+                            #               loc_phi,
+                            #               # "dist = ",
+                            #               # dist[pp],
+                            #               # "vol_pi = ", vol_pi,
+                            #               "sa app = ",
+                            #               sa_approx_formula(part_rad[pp],
+                            #                                 dist[pp],
+                            #                                 vol_pi))
                             sa_map[ind_pol,
                                    pp] += sa_approx_formula(part_rad[pp],
                                                             dist[pp],
                                                             vol_pi)
-                        #     if ind_pol == 1:
-                        #         with gil:
-                        #             print("<<< rad, dist, volpi, sa = ",
-                        #                   rr, zz, loc_phi,
-                        #                   #part_rad[pp], dist[pp], vol_pi,
-                        #                   sa_approx_formula(part_rad[pp],
-                        #                                     dist[pp],
-                        #                                     vol_pi))
-                        # elif dist[pp] < part_rad[pp]:
-                        #     with gil:
-                        #         print("")
-                        #         print("<<< cy : ", ind_pol)
     free(dist)
     free(is_vis)
     return
@@ -2394,6 +2401,8 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
     cdef int loc_size_phi
     cdef long indiijj
     cdef double vol_pi
+    cdef double loc_x
+    cdef double loc_y
     cdef double loc_r
     cdef double loc_z
     cdef double loc_phi
@@ -2419,9 +2428,11 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                     for jj in range(loc_size_phi):
                         indiijj = indi_mv[rr, loc_first_ind + jj]
                         loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                        loc_x = loc_r * c_cos(loc_phi)
+                        loc_y = loc_r * c_sin(loc_phi)
                         # computing distance ....
-                        _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
-                                                 pts_mv[1, ind_pol],
+                        _bgt.compute_dist_pt_vec(loc_x,
+                                                 loc_y,
                                                  loc_phi,
                                                  sz_p, part_coords,
                                                  &dist[0])
@@ -2522,6 +2533,8 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
     cdef double vol_pi
     cdef double loc_r
     cdef double loc_z
+    cdef double loc_x
+    cdef double loc_y
     cdef double loc_phi
     cdef double loc_step_rphi
     cdef long* is_vis
@@ -2546,16 +2559,16 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
                 for jj in range(loc_size_phi):
                     indiijj = indi_mv[rr, loc_first_ind + jj]
                     loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
                     # computing distance ....
-                    _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
-                                             pts_mv[1, ind_pol],
-                                             loc_phi,
+                    _bgt.compute_dist_pt_vec(loc_x,
+                                             loc_y,
+                                             loc_z,
                                              sz_p, part_coords,
                                              &dist[0])
                     # checking if visible .....
-                    _rt.is_visible_pt_vec_core(pts_mv[0, ind_pol],
-                                               pts_mv[1, ind_pol],
-                                               loc_phi,
+                    _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
                                                part_coords,
                                                sz_p,
                                                ves_poly, ves_norm,
@@ -2581,6 +2594,14 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
                                                forbid, 1)
                     for pp in range(sz_p):
                         if is_vis[pp] and dist[pp] > part_rad[pp]:
+                            # if ind_pol == 10:
+                            #     with gil:
+                            #         print("cy >> dist = ", dist[pp],
+                            #               "vol_pi = ", vol_pi,
+                            #               "sa ex =", sa_exact_formula(part_rad[pp],
+                            #                                dist[pp],
+                            #                                vol_pi))
+
                             sa_map[ind_pol,
                                    pp] += sa_exact_formula(part_rad[pp],
                                                            dist[pp],
@@ -2619,6 +2640,8 @@ cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
     cdef long indiijj
     cdef double vol_pi
     cdef double loc_r
+    cdef double loc_x
+    cdef double loc_y
     cdef double loc_z
     cdef double loc_phi
     cdef double loc_step_rphi
@@ -2643,10 +2666,12 @@ cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
                     for jj in range(loc_size_phi):
                         indiijj = indi_mv[rr, loc_first_ind + jj]
                         loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                        loc_x = loc_r * c_cos(loc_phi)
+                        loc_y = loc_r * c_sin(loc_phi)
                         # computing distance ....
-                        _bgt.compute_dist_pt_vec(pts_mv[0, ind_pol],
-                                                 pts_mv[1, ind_pol],
-                                                 loc_phi,
+                        _bgt.compute_dist_pt_vec(loc_x,
+                                                 loc_y,
+                                                 loc_z,
                                                  sz_p, part_coords,
                                                  &dist[0])
                         for pp in range(sz_p):

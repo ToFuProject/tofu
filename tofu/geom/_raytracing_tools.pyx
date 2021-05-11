@@ -579,7 +579,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
                                              double[::1] coeff_inter_out,
                                              double[::1] coeff_inter_in,
                                              double[::1] vperp_out,
-                                             const long[::1] lstruct_nlim,
+                                             const long* lstruct_nlim,
                                              int[::1] ind_inter_out,
                                              const bint forbid0,
                                              const bint forbidbis_org,
@@ -1474,7 +1474,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                    const double[:, ::1] ray_vdir,
                                    const double[:, ::1] ves_poly,
                                    const double[:, ::1] ves_norm,
-                                   long[::1] lstruct_nlim,
+                                   const long[::1] lstruct_nlim_org,
                                    const double[::1] ves_lims,
                                    const double[::1] lstruct_polyx,
                                    const double[::1] lstruct_polyy,
@@ -1511,6 +1511,7 @@ cdef inline void compute_inout_tot(const int num_los,
     cdef double *langles = <double *>malloc(nstruct_tot * 2 * sizeof(double))
     cdef int *llimits = NULL
     cdef long *lsz_lim = NULL
+    cdef long* lstruct_nlim = NULL
     cdef int[1] llim_ves
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
@@ -1542,7 +1543,7 @@ cdef inline void compute_inout_tot(const int num_los,
         # -- Computing intersection between LOS and Vessel ---------------------
         raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                     coeff_inter_out, coeff_inter_in,
-                                    vperp_out, None, ind_inter_out,
+                                    vperp_out, NULL, ind_inter_out,
                                     forbid0, forbidbis,
                                     rmin, rmin2, crit2_base,
                                     npts_poly,  NULL, lbounds_ves,
@@ -1553,18 +1554,51 @@ cdef inline void compute_inout_tot(const int num_los,
                                     &ves_norm[1][0],
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
-        if (ray_orig[0,0] == 1.8354439533593998 and
-            ray_orig[1,0] == -0.3565928529411765 and
-            ray_orig[2,0] == -3.114509958300226):
+        if (Cabs(ray_orig[0, 0] - 0.8627940248679472) < 0.00000001 and
+            Cabs(ray_orig[1, 0] + 1.7261660125401586) < 0.00000001 and
+            Cabs(ray_orig[2, 0] + 0.6508436176470589) < 0.00000001):
             with gil:
-                print(">>>>>>>> ",
-                      ray_vdir[0,0],ray_vdir[1,0],ray_vdir[2,0],
-                      coeff_inter_in[0], coeff_inter_out[0])
+                import matplotlib.pyplot as plt
+                import tofu as tf
+                import numpy as np
+                plt.clf()
+                config = tf.load_config("A1")
+                a1, a2 = config.plot()
+
+                original = np.array([ray_orig[0, 0],
+                                     ray_orig[1, 0],
+                                     ray_orig[2, 0]],
+                                    )
+
+                in_rzp = tf.geom._GG.coord_shift(original,
+                                             out_format="(r,z)")
+
+                a1.plot(in_rzp[0], in_rzp[1], "r*")
+                a2.plot(ray_orig[0,0], ray_orig[1, 0], 'r*')
+
+                a1.plot(3, 0, "bo")
+                a2.plot(3, 0, "bo")
+
+                dest = np.r_[ray_orig[0, 0] + coeff_inter_out[0] * ray_vdir[0, 0],
+                             ray_orig[1, 0] + coeff_inter_out[0] * ray_vdir[0, 1],
+                             ray_orig[2, 0] + coeff_inter_out[0] * ray_vdir[0, 2]]
+                in_rzp2 = tf.geom._GG.coord_shift(dest,
+                                             out_format="(r,z)")
+
+                a1.plot([in_rzp[0], in_rzp2[0]],
+                        [in_rzp[1], in_rzp2[1]])
+
+                a2.plot([ray_orig[0, 0], dest[0]],
+                        [ray_orig[1, 0], dest[1]])
+
+                plt.savefig("checking_vis")
+
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
             ind_struct = 0
             llimits = <int *>malloc(nstruct_tot * sizeof(int))
             lsz_lim = <long *>malloc(nstruct_lim * sizeof(long))
+            lstruct_nlim = <long *>malloc(nstruct_lim * sizeof(long))
             for ii in range(nstruct_lim):
                 # We get the number of vertices and limits of the struct's poly
                 if ii == 0:
@@ -1573,11 +1607,13 @@ cdef inline void compute_inout_tot(const int num_los,
                     ind_min = 0
                 else:
                     nvert = lnvert[ii] - lnvert[ii - 1]
-                    lsz_lim[ii] = lstruct_nlim[ii-1] + lsz_lim[ii-1]
+                    lsz_lim[ii] = lstruct_nlim_org[ii-1] + lsz_lim[ii-1]
                     ind_min = lnvert[ii-1]
                 # For fast accessing
-                len_lim = lstruct_nlim[ii]
+                len_lim = lstruct_nlim_org[ii]
+
                 # We get the limits if any
+                lstruct_nlim[ii] = lstruct_nlim_org[ii]
                 if len_lim == 0:
                     lstruct_nlim[ii] = lstruct_nlim[ii] + 1
                     # computing structure bounding box (no limits)
@@ -1605,6 +1641,20 @@ cdef inline void compute_inout_tot(const int num_los,
                                            &lstruct_polyy[ind_min],
                                            &lbounds[ind_struct*6],
                                            lim_min, lim_max)
+                    if (Cabs(ray_orig[0, 0] - 0.8627940248679472) < 0.00000001 and
+                        Cabs(ray_orig[1, 0] + 1.7261660125401586) < 0.00000001 and
+                        Cabs(ray_orig[2, 0] + 0.6508436176470589) < 0.00000001):
+                        if nvert == 47 :
+                            with gil:
+                                print("lbounds trouves :",
+                                      lbounds[ind_struct*6],
+                                      lbounds[ind_struct*6 + 1],
+                                      lbounds[ind_struct*6 + 2],
+                                      lbounds[ind_struct*6 + 3],
+                                      lbounds[ind_struct*6 + 4],
+                                      lbounds[ind_struct*6 + 5],
+                                      )
+
                     langles[ind_struct*2] = lim_min
                     langles[ind_struct*2 + 1] = lim_max
                     ind_struct = 1 + ind_struct
@@ -1630,7 +1680,7 @@ cdef inline void compute_inout_tot(const int num_los,
             # -- Computing intersection between structures and LOS -------------
             raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                         coeff_inter_out, coeff_inter_in,
-                                        vperp_out, lstruct_nlim,
+                                        vperp_out, &lstruct_nlim[0],
                                         ind_inter_out,
                                         forbid0, forbidbis,
                                         rmin, rmin2, crit2_base,
@@ -1645,6 +1695,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                         eps_b, eps_plane,
                                         num_threads,
                                         True) # the structure is "OUT"
+
             free(lsz_lim)
             free(llimits)
     else:
@@ -1676,10 +1727,9 @@ cdef inline void compute_inout_tot(const int num_los,
                     nvert = lnvert[ii] - lnvert[ii - 1]
                     ind_min = lnvert[ii-1]
                 # getting number limits
-                len_lim = lstruct_nlim[ii]
+                len_lim = lstruct_nlim_org[ii]
                 # We get the limits if any
                 if len_lim == 0:
-                    lstruct_nlim[ii] = lstruct_nlim[ii] + 1
                     raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
                                                 nvert-1,
                                                 &lstruct_polyx[ind_min],
@@ -2143,23 +2193,47 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                       forbid, 1,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
+    # if (Cabs(pt0 - 0.8627940248679472) < 0.00000001 and
+    #     Cabs(pt1 + 1.7261660125401586) < 0.00000001 and
+    #     Cabs(pt2 + 0.6508436176470589) < 0.00000001):
+    #     with gil:
+    #         print("destiny point =>>>>>>> ",
+    #               pts[0,0],
+    #               pts[1,0],
+    #               pts[2,0],
+    #               )
+    #         print("vdir =>>>>>>> ",
+    #               ray_vdir[0,0],
+    #               ray_vdir[1,0],
+    #               ray_vdir[2,0],
+    #               )
+    #         print("found >>>>>>>>>>> kout =", coeff_inter_out[0])
+    # if (Cabs(pt0 - 3.0) < 0.00000001 and
+    #     Cabs(pt1 - 0.0) < 0.00000001 and
+    #     Cabs(pt2 - 0.0) < 0.00000001):
+    #     with gil:
+    #         print("is 3, 0, 0 !!!!!!!!!!!!! npts1, npts2 = ")
+    #         print("origin point =>>>>>>> ",
+    #               ray_orig[0,0],
+    #               ray_orig[1,0],
+    #               ray_orig[2,0],
+    #               )
+    #         print("destiny point =>>>>>>> ",
+    #               pts[0,0],
+    #               pts[1,0],
+    #               pts[2,0],
+    #               )
+    #         print("vdir =>>>>>>> ",
+    #               ray_vdir[0,0],
+    #               ray_vdir[1,0],
+    #               ray_vdir[2,0],
+    #               )
+    #         print("found >>>>>>>>>>> kout =", coeff_inter_out[0])
+
     # --------------------------------------------------------------------------
     # Get ind
     is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
-    # if (pt0 == 1.8354439533593998 and
-    #     pt1 == -0.3565928529411765 and
-    #     pt2 == -3.114509958300226):
-    #     with gil:
-    #         #           lstruct_polyx, lstruct_polyy,
-    #         #           lstruct_normx,
-    #         #           lstruct_normy,
-    #         #           forbid, num_threads,
-    #         print("............. is_vis, dist, coeff_inter_out, =",
-    #               is_vis[0], 
-    #               forbid, npts, lnvert[0], lnvert[1], lnvert[2]
-    #               )
-    #         print("ray_orig = ", ray_orig[0, 0], ray_orig[1, 0], ray_orig[2, 0])
-    #         print("ray_vdir = ", ray_vdir[0, 0], ray_vdir[1, 0], ray_vdir[2, 0])
+
     return
 
 

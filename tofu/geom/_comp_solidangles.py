@@ -128,6 +128,7 @@ def calc_solidangle_particle(
     approx=None,
     aniso=None,
     block=None,
+    get_is_vis=False,
 ):
     """ Compute the solid angle subtended by a particle along a trajectory
 
@@ -230,6 +231,8 @@ def calc_solidangle_particle(
     # Return
     if aniso:
         return sang, vect
+    elif get_is_vis and block:
+        return sang, indvis
     else:
         return sang
 

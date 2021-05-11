@@ -94,9 +94,10 @@ def coord_shift(points, in_format='(X,Y,Z)',
                 for ff in [in_format, out_format]]), (
                         "Arg In and Out (coordinate format) "
                         + "must be comma-separated  !")
-    assert type(points) is np.ndarray and points.ndim in [1, 2] and \
-           ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
-                                "of 2 or 3 coordinates !")
+    assert type(points) is np.ndarray, "Points must be a np.ndarray "
+    assert points.ndim in [1, 2], "Points must be a 1D or 2D np.ndarray"
+    assert ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
+                              "of 2 or 3 coordinates !")
     ok_types = [int,float,np.int64,np.float64]
     assert cross_format is None or type(cross_format) in ok_types, (
         "Arg CrossRef must be a float !")
