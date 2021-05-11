@@ -217,7 +217,7 @@ class CrystalBragg(utils.ToFuObject):
     def _get_keys_dmat():
         lk = ['formula', 'density', 'symmetry',
               'lengths', 'angles', 'cut', 'd',
-              'alpha', 'beta', 'nout', 'nin', 'e1', 'e2']
+              'alpha', 'beta', 'nin', 'nout', 'e1', 'e2']
         return lk
 
     @staticmethod
@@ -1089,6 +1089,23 @@ class CrystalBragg(utils.ToFuObject):
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
 
+    def update_non_parallelism(self, alpha=None, beta=None):
+            """Compute new values of unit vectors nout, e1 and e2 into
+            dmat basis, due to non parallelism.
+            Update new values into dmat dict."""
+            if alpha is None:
+                    alpha = 0
+            if beta is None:
+                    beta = 0
+                
+            (self._dmat['nin'], self._dmat['nout'], self._dmat['e1'],
+             self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
+                             alpha, beta,
+                             self._dgeom['nout'], self._dgeom['e1'],
+                             self._dgeom['e2']
+                             )
+            self._dmat['alpha'], self._dmat['beta'] = alpha, beta
+
     def get_detector_approx(self, bragg=None, lamb=None,
                             rcurve=None, n=None,
                             ddist=None, di=None, dj=None,
@@ -1196,7 +1213,7 @@ class CrystalBragg(utils.ToFuObject):
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
             det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
-            self._dgeom['summit'],nout, e1, e2,
+            self._dgeom['summit'], nout, e1, e2,
             ddist=ddist, di=di, dj=dj,
             dtheta=dtheta, dpsi=dpsi, tilt=tilt)
 
