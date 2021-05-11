@@ -2411,7 +2411,7 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                         # computing distance ....
                         _bgt.compute_dist_pt_vec(loc_x,
                                                  loc_y,
-                                                 loc_phi,
+                                                 loc_z,
                                                  sz_p, part_coords,
                                                  &dist[0])
                         for pp in range(sz_p):

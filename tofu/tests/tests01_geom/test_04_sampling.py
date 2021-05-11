@@ -87,8 +87,10 @@ def test02_discretize_vpoly(VPoly=VPoly):
                                                              margin=1.e-9,
                                                              DIn=-0.05,
                                                              VIn=VIn)
-    assert np.all(PtsCross[0, :] >= 0. - 0.05) and np.all(PtsCross[0, :] <= 2.)
-    assert np.all(PtsCross[1, :] >= -2. - 0.05) and np.all(PtsCross[1, :] <= 0.)
+    assert np.all(PtsCross[0, :] >= 0. - 0.05)
+    assert np.all(PtsCross[0, :] <= 2.)
+    assert np.all(PtsCross[1, :] >= -2. - 0.05)
+    assert np.all(PtsCross[1, :] <= 0.)
     assert np.all(~Path(VPoly.T).contains_points(PtsCross.T))
 
 
@@ -98,7 +100,9 @@ def test02_discretize_vpoly(VPoly=VPoly):
 def test03_Ves_Vmesh_Tor():
     r_min_max, z_min_max = compute_min_max_r_and_z(VPoly)
     dR, dZ, dRPhi = 0.05, 0.05, 0.05
-    LDPhi = [None, [3. * np.pi / 4., 5. * np.pi / 4.], [-np.pi / 4., np.pi / 4.]]
+    LDPhi = [None,
+             [3. * np.pi / 4., 5. * np.pi / 4.],
+             [-np.pi / 4., np.pi / 4.]]
 
     for ii in range(len(LDPhi)):
         out = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
@@ -185,175 +189,178 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=0):
     import matplotlib.pyplot as plt
     print()
 
-    block = True
+    lblock = [False, True]
+    lstep_rz = [0.015, 0.02]
 
-    config = tf.load_config("A1")
-    kwdargs = config.get_kwdargs_LOS_isVis()
-    ves_poly = kwdargs["ves_poly"]
+    for (block, step_rz) in zip(lblock, lstep_rz):
 
-    # coordonnées en x,y,z:
-    part = np.array([[3, 0.1, 0.1],
-                     [3, 0.1, 0.]], order='F').T
-    part_rad = np.r_[0.001,
-                     0.0012]
-    rstep = zstep = 0.015
-    phistep = 0.08
-    limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
-    DR = None
-    DZ = None
-    DPhi = [-0.1, 0.1]
+        config = tf.load_config("A1")
+        kwdargs = config.get_kwdargs_LOS_isVis()
+        ves_poly = kwdargs["ves_poly"]
 
-    # -- Getting cython APPROX computation ------------------------------------
-    res = GG.compute_solid_angle_map(part, part_rad,
-                                     rstep, zstep, phistep,
-                                     limits_r, limits_z,
-                                     DR=DR, DZ=DZ,
-                                     DPhi=DPhi,
-                                     block=block,
-                                     limit_vpoly=ves_poly,
-                                     **kwdargs,
-                                     )
-    pts, sa_map_cy, ind, reso_r_z = res
+        # coordonnées en x,y,z:
+        part = np.array([[3, 0.1, 0.1],
+                         [3, 0.1, 0.]], order='F').T
+        part_rad = np.r_[0.001,
+                         0.0012]
+        rstep = zstep = step_rz
+        phistep = 0.08
+        limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
+        DR = None
+        DZ = None
+        DPhi = [-0.1, 0.1]
 
-    # check sizes
-    npts_ind = np.size(ind)
-    dim, npts = np.shape(pts)
-    npts_sa, sz_p = np.shape(sa_map_cy)
+        # -- Getting cython APPROX computation --------------------------------
+        res = GG.compute_solid_angle_map(part, part_rad,
+                                         rstep, zstep, phistep,
+                                         limits_r, limits_z,
+                                         DR=DR, DZ=DZ,
+                                         DPhi=DPhi,
+                                         block=block,
+                                         limit_vpoly=ves_poly,
+                                         **kwdargs,
+                                         )
+        pts, sa_map_cy, ind, reso_r_z = res
 
-    if debug > 2:
-        print(f"sa_map_cy is of size {npts_sa},{sz_p}")
+        # check sizes
+        npts_ind = np.size(ind)
+        dim, npts = np.shape(pts)
+        npts_sa, sz_p = np.shape(sa_map_cy)
 
-    # Checking shapes, sizes, types
-    assert dim == 2
-    assert sz_p == np.shape(part)[1]
-    assert npts_ind == npts
-    assert npts == npts_sa
-    assert isinstance(reso_r_z, float)
+        if debug > 2:
+            print(f"sa_map_cy is of size {npts_sa},{sz_p}")
 
-    # -- Getting cython EXACT computation -------------------------------------
-    kwdargs = config.get_kwdargs_LOS_isVis()
-    res = GG.compute_solid_angle_map(part, part_rad,
-                                     rstep, zstep, phistep,
-                                     limits_r, limits_z,
-                                     approx=False,
-                                     DR=DR, DZ=DZ,
-                                     DPhi=DPhi,
-                                     block=block,
-                                     **kwdargs,
-                                     limit_vpoly=ves_poly
-                                     )
-    pts_ex, sa_map_cy_ex, ind_ex, reso_r_z_ex = res
+        # Checking shapes, sizes, types
+        assert dim == 2
+        assert sz_p == np.shape(part)[1]
+        assert npts_ind == npts
+        assert npts == npts_sa
+        assert isinstance(reso_r_z, float)
 
-    if debug > 2:
-        print(f"sa_map_cy_ex is of size {npts_sa},{sz_p}")
+        # -- Getting cython EXACT computation ---------------------------------
+        kwdargs = config.get_kwdargs_LOS_isVis()
+        res = GG.compute_solid_angle_map(part, part_rad,
+                                         rstep, zstep, phistep,
+                                         limits_r, limits_z,
+                                         approx=False,
+                                         DR=DR, DZ=DZ,
+                                         DPhi=DPhi,
+                                         block=block,
+                                         **kwdargs,
+                                         limit_vpoly=ves_poly
+                                         )
+        pts_ex, sa_map_cy_ex, ind_ex, reso_r_z_ex = res
 
-    # Checking if pts, indices and resolution same as with approx
-    assert np.allclose(pts_ex, pts)
-    assert np.allclose(ind_ex, ind)
-    assert reso_r_z_ex == reso_r_z
+        if debug > 2:
+            print(f"sa_map_cy_ex is of size {npts_sa},{sz_p}")
 
-    # ... Testing with python function ........................................
-    res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
-                                            limits_r, limits_z,
-                                            limit_vpoly=ves_poly,
-                                            DR=DR, DZ=DZ,
-                                            DPhi=DPhi,
-                                            out_format='(X,Y,Z)',
-                                            margin=1.e-9)
+        # Checking if pts, indices and resolution same as with approx
+        assert np.allclose(pts_ex, pts)
+        assert np.allclose(ind_ex, ind)
+        assert reso_r_z_ex == reso_r_z
 
-    pts_disc_xyz, dvol, ind_disc, reso_r, reso_z, reso_phi, sz_r, sz_z = res
+        # ... Testing with python function ....................................
+        res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
+                                                limits_r, limits_z,
+                                                limit_vpoly=ves_poly,
+                                                DR=DR, DZ=DZ,
+                                                DPhi=DPhi,
+                                                out_format='(X,Y,Z)',
+                                                margin=1.e-9)
 
-    npts_disc = np.shape(pts_disc_xyz)[1]
+        pts_xyz, dvol, ind_disc, reso_r, reso_z, reso_phi, sz_r, sz_z = res
 
-    sang = config.calc_solidangle_particle(pts_disc_xyz,
-                                           part,
-                                           part_rad,
-                                           block=block,
-                                           approx=True)
+        npts_disc = np.shape(pts_xyz)[1]
 
-    sang_ex = config.calc_solidangle_particle(pts_disc_xyz,
-                                              part,
-                                              part_rad,
-                                              block=block,
-                                              approx=False)
+        sang = config.calc_solidangle_particle(pts_xyz,
+                                               part,
+                                               part_rad,
+                                               block=block,
+                                               approx=True)
 
-    pts_disc = GG.coord_shift(pts_disc_xyz, in_format='(X,Y,Z)',
-                              out_format='(R,Z)')
+        sang_ex = config.calc_solidangle_particle(pts_xyz,
+                                                  part,
+                                                  part_rad,
+                                                  block=block,
+                                                  approx=False)
 
-    assert (npts_disc, sz_p) == np.shape(sang)
-    assert npts_disc >= npts
-    assert reso_r * reso_z == reso_r_z
-    if ves_poly is None:
-        assert npts_sa == sz_z * sz_r, f"sizes r and z = {sz_r}{sz_z}"
+        pts_disc = GG.coord_shift(pts_xyz, in_format='(X,Y,Z)',
+                                  out_format='(R,Z)')
 
-    sa_map_py = np.zeros((npts_sa, sz_p))
-    sa_map_py_ex = np.zeros((npts_sa, sz_p))
+        assert (npts_disc, sz_p) == np.shape(sang)
+        assert npts_disc >= npts
+        assert reso_r * reso_z == reso_r_z
+        if ves_poly is None:
+            assert npts_sa == sz_z * sz_r, f"sizes r and z = {sz_r}{sz_z}"
 
-    r0 = limits_r[0]
-    z0 = limits_z[0]
+        sa_map_py = np.zeros((npts_sa, sz_p))
+        sa_map_py_ex = np.zeros((npts_sa, sz_p))
 
-    lvisited = []
-    for ii in range(npts_disc):
-        i_r = int(np.abs(r0 - pts_disc[0, ii]) // reso_r)
-        i_z = int(np.abs(z0 - pts_disc[1, ii]) // reso_z)
-        ind_pol = int(i_r * sz_z + i_z)
-        if ves_poly is not None:
-            wh_eq = np.where(ind == ind_pol)
-            ind_pol_u = wh_eq[0][0]
-        else:
-            ind_pol_u = ind_pol
-        if ind_pol_u not in lvisited:
-            lvisited.append(ind_pol_u)
-        for pp in range(sz_p):
-            sa_map_py[ind_pol_u, pp] += sang[ii, pp] * reso_phi[i_r]
-            sa_map_py_ex[ind_pol_u, pp] += sang_ex[ii, pp] * reso_phi[i_r]
+        r0 = limits_r[0]
+        z0 = limits_z[0]
 
-    if debug > 0:
-        for pp in range(sz_p):
-            fig = plt.figure(figsize=(14, 8))
-            ax = plt.subplot(121)
-            # import pdb; pdb.set_trace()
-            ax.scatter(pts[0, :], pts[1, :],
-                       marker="s", edgecolors="None",
-                       s=10, c=sa_map_cy[:, pp].flatten(),
-                       vmin=0, vmax=max(sa_map_cy[:, pp].max(),
-                                        sa_map_py[:, pp].max()))
-            ax.set_title("cython function")
-            ax = plt.subplot(122)
-            im = ax.scatter(pts[0, :], pts[1, :],
-                            marker="s", edgecolors="None",
-                            s=10, c=sa_map_py[:, pp].flatten(),
-                            vmin=0, vmax=max(sa_map_cy[:, pp].max(),
-                                             sa_map_py[:, pp].max()))
-            fig.colorbar(im, ax=ax)
-            ax.set_title("python reconstruction")
-            plt.savefig("comparaison_part"+str(pp))
+        lvisited = []
+        for ii in range(npts_disc):
+            i_r = int(np.abs(r0 - pts_disc[0, ii]) // reso_r)
+            i_z = int(np.abs(z0 - pts_disc[1, ii]) // reso_z)
+            ind_pol = int(i_r * sz_z + i_z)
+            if ves_poly is not None:
+                wh_eq = np.where(ind == ind_pol)
+                ind_pol_u = wh_eq[0][0]
+            else:
+                ind_pol_u = ind_pol
+            if ind_pol_u not in lvisited:
+                lvisited.append(ind_pol_u)
+            for pp in range(sz_p):
+                sa_map_py[ind_pol_u, pp] += sang[ii, pp] * reso_phi[i_r]
+                sa_map_py_ex[ind_pol_u, pp] += sang_ex[ii, pp] * reso_phi[i_r]
 
-    max_py = np.max(sa_map_py)
-    max_cy = np.max(sa_map_cy)
-    max_py_ex = np.max(sa_map_py_ex)
-    max_cy_ex = np.max(sa_map_cy_ex)
+        if debug > 0:
+            for pp in range(sz_p):
+                fig = plt.figure(figsize=(14, 8))
+                ax = plt.subplot(121)
+                # import pdb; pdb.set_trace()
+                ax.scatter(pts[0, :], pts[1, :],
+                           marker="s", edgecolors="None",
+                           s=10, c=sa_map_cy[:, pp].flatten(),
+                           vmin=0, vmax=max(sa_map_cy[:, pp].max(),
+                                            sa_map_py[:, pp].max()))
+                ax.set_title("cython function")
+                ax = plt.subplot(122)
+                im = ax.scatter(pts[0, :], pts[1, :],
+                                marker="s", edgecolors="None",
+                                s=10, c=sa_map_py[:, pp].flatten(),
+                                vmin=0, vmax=max(sa_map_cy[:, pp].max(),
+                                                 sa_map_py[:, pp].max()))
+                fig.colorbar(im, ax=ax)
+                ax.set_title("python reconstruction")
+                plt.savefig("comparaison_part"+str(pp))
 
-    err = np.abs(sa_map_py - sa_map_cy) / max(max_py, max_cy)
-    print("max error approx py vs cy =", np.max(err))
+        max_py = np.max(sa_map_py)
+        max_cy = np.max(sa_map_cy)
+        max_py_ex = np.max(sa_map_py_ex)
+        max_cy_ex = np.max(sa_map_cy_ex)
 
-    err = np.abs(sa_map_py_ex - sa_map_cy_ex) / max(max_py_ex, max_cy_ex)
-    print("max error exacts py vs cy =", np.max(err))
+        err = np.abs(sa_map_py - sa_map_cy) / max(max_py, max_cy)
+        print("max error approx py vs cy =", np.max(err))
 
-    err = np.abs(sa_map_py_ex - sa_map_py) / max(max_py, max_py_ex)
-    print("max error python approx vs exact =", np.max(err))
+        err = np.abs(sa_map_py_ex - sa_map_cy_ex) / max(max_py_ex, max_cy_ex)
+        print("max error exacts py vs cy =", np.max(err))
 
-    err = np.abs(sa_map_cy_ex - sa_map_cy) / max(max_cy, max_cy_ex)
-    print("max error cython approx vs exact =", np.max(err))
+        err = np.abs(sa_map_py_ex - sa_map_py) / max(max_py, max_py_ex)
+        print("max error python approx vs exact =", np.max(err))
 
-    assert np.allclose(sa_map_cy, sa_map_py, atol=1e-16, rtol=1e-16,
-                       equal_nan=True)
-    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=1e-16, rtol=1e-16,
-                       equal_nan=True)
-    assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=1e-14, rtol=1e-16,
-                       equal_nan=True)
-    assert np.allclose(sa_map_py, sa_map_py_ex, atol=1e-14, rtol=1e-16,
-                       equal_nan=True)
+        err = np.abs(sa_map_cy_ex - sa_map_cy) / max(max_cy, max_cy_ex)
+        print("max error cython approx vs exact =", np.max(err))
+
+        assert np.allclose(sa_map_cy, sa_map_py, atol=1e-16, rtol=1e-16,
+                           equal_nan=True)
+        assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=1e-16, rtol=1e-16,
+                           equal_nan=True)
+        assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=1e-14, rtol=1e-16,
+                           equal_nan=True)
+        assert np.allclose(sa_map_py, sa_map_py_ex, atol=1e-14, rtol=1e-16,
+                           equal_nan=True)
 
     # ...
     return
