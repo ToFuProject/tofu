@@ -3930,7 +3930,6 @@ class Config(utils.ToFuObject):
         approx=None,
         aniso=None,
         block=None,
-            get_is_vis=False,
     ):
         """ Compute the solid angle subtended by a particle along a trajectory
 
@@ -3984,7 +3983,6 @@ class Config(utils.ToFuObject):
             approx=approx,
             aniso=aniso,
             block=block,
-            get_is_vis=get_is_vis,
         )
 
 """

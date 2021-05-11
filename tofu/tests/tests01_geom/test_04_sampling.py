@@ -153,14 +153,14 @@ def test04_ves_vmesh_lin():
     ZMinMax = np.array([np.min(VPoly[1, :]), np.max(VPoly[1, :])])
     dX, dY, dZ = 0.05, 0.05, 0.05
 
-    Pts, dV, ind, \
-    dXr, dYr, dZr = GG._Ves_Vmesh_Lin_SubFromD_cython(dX, dY, dZ, XMinMax,
-                                                      YMinMax, ZMinMax,
-                                                      DX=[8., 15.],
-                                                      DY=[0.5, 2.],
-                                                      DZ=[0., 1.2],
-                                                      limit_vpoly=VPoly,
-                                                      margin=1.e-9)
+    out = GG._Ves_Vmesh_Lin_SubFromD_cython(dX, dY, dZ, XMinMax,
+                                            YMinMax, ZMinMax,
+                                            DX=[8., 15.],
+                                            DY=[0.5, 2.],
+                                            DZ=[0., 1.2],
+                                            limit_vpoly=VPoly,
+                                            margin=1.e-9)
+    Pts, dV, ind, dXr, dYr, dZr = out
     assert Pts.ndim == 2 and Pts.shape[0] == 3
     assert np.all(Pts[0, :] >= 8.) and np.all(Pts[0, :] <= 10.) and \
            np.all(Pts[1, :] >= 1.) and np.all(Pts[1, :] <= 2.) and \
@@ -192,14 +192,16 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=1):
     ves_poly = kwdargs["ves_poly"]
 
     # coordonnées en x,y,z:
-    part = np.array([[3., 0., 0]], order='F').T
-    part_rad = np.r_[0.001]
-    rstep = zstep = 0.1
-    phistep = 0.1
+    part = np.array([[3, 0.1, 0.1],
+                     [3, 0.1, 0.]], order='F').T
+    part_rad = np.r_[0.001,
+                     0.0012]
+    rstep = zstep = 0.02
+    phistep = 0.08
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
-    DR = None # [1.75, 2.]
-    DZ = None # [-.25, 0.25]
-    DPhi = None # [-0.01, 0.01]
+    DR = None
+    DZ = None
+    DPhi = [-0.1, 0.1]
 
     # -- Getting cython APPROX computation ------------------------------------
     res = GG.compute_solid_angle_map(part, part_rad,
@@ -250,11 +252,6 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=1):
     assert np.allclose(ind_ex, ind)
     assert reso_r_z_ex == reso_r_z
 
-    print("")
-    print("=================================================")
-    print("           PYTHON RECONSTRUCTION")
-    print("=================================================")
-    print("")
     # ... Testing with python function ........................................
     res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
                                             limits_r, limits_z,
@@ -268,12 +265,11 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=1):
 
     npts_disc = np.shape(pts_disc_xyz)[1]
 
-    sang, isvis = config.calc_solidangle_particle(pts_disc_xyz,
+    sang = config.calc_solidangle_particle(pts_disc_xyz,
                                            part,
                                            part_rad,
                                            block=block,
-                                           approx=True,
-                                           get_is_vis=True)
+                                           approx=True)
 
     sang_ex = config.calc_solidangle_particle(pts_disc_xyz,
                                               part,
@@ -281,42 +277,8 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=1):
                                               block=block,
                                               approx=False)
 
-    print("are all not nans or infs = ",
-          np.sum(np.isfinite(sang)) == np.size(sang))
-
     pts_disc = GG.coord_shift(pts_disc_xyz, in_format='(X,Y,Z)',
-                              out_format='(R,Z,Phi)')
-    # TODO : phi only necessary for debugging
-
-    if debug > 0:
-        # to erase..............
-        res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
-                                                limits_r, limits_z,
-                                                DR=DR, DZ=DZ,
-                                                DPhi=DPhi,
-                                                out_format='(r, z, phi)',
-                                                margin=1.e-9)
-        pts_comp, _, ind_comp, _, _, _, _, _ = res
-        ##############
-        fig = plt.figure(figsize=(25, 10))
-        ax = plt.subplot(131)
-        ax.plot(pts_disc[0, :], pts_disc[1, :], '.b')
-        # ax.plot(part[0, :], part[1, :], '*r')
-        ax2 = plt.subplot(132)
-        ax2.plot(pts[0, :], pts[1, :], '.b')
-        for ii in range(npts):
-            ax2.text(pts[0, ii], pts[1, ii], str(ii))
-        ax2.plot(part[0, :], part[1, :], '*r')
-        if ves_poly is not None:
-            ax2.plot(ves_poly[0, :], ves_poly[1, :])
-        ax3 = plt.subplot(133)
-        ax3.plot(pts_comp[0, :], pts_comp[1, :], '.r')
-        ax3.plot(pts_disc[0, :], pts_disc[1, :], '.b')
-        for ii in range(npts):
-            ax3.text(pts[0, ii], pts[1, ii], str(ind[ii]))
-
-        fig.suptitle("Discretization points and particle traj")
-        plt.savefig("discretization_and_traj")
+                              out_format='(R,Z)')
 
     assert (npts_disc, sz_p) == np.shape(sang)
     assert npts_disc >= npts
@@ -346,104 +308,51 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=1):
             sa_map_py[ind_pol_u, pp] += sang[ii, pp] * reso_phi[i_r]
             sa_map_py_ex[ind_pol_u, pp] += sang_ex[ii, pp] * reso_phi[i_r]
 
-
-    print("are there zerooooos = ",
-          np.sum(sa_map_py == 0.),
-          np.where(sa_map_py == 0.)
-          )
-    print(sa_map_py[102],
-          sa_map_py[119],
-          sa_map_py[104],
-          )
-    # plt.clf()
-    # print("pts  disc = ", pts_disc[:, 116])  # origin
-    # print("part disc = ", part[:, 0])
-    # diff = part[:, 0] - pts_disc[:, 116]
-    # print("vdir in (r,z,phi)= ", diff / np.sqrt(np.sum(diff**2)))
-
-    # pts_in_xyz = GG.coord_shift(pts_disc[:, 116], in_format="(r,z,phi)",
-    #                             out_format="(x,y,z)")
-    # part_in_xyz = GG.coord_shift(part[:, 0], in_format="(r,z,phi)",
-    #                              out_format="(x,y,z)")
-    # diff = part_in_xyz - pts_in_xyz
-    # py_vdir = diff / np.sqrt(np.sum(diff**2))
-    # print("py orig in xyz = ", pts_in_xyz)
-    # print("py vdir in xyz = ", py_vdir)
-    # print("py dest in xyz = ", pts_in_xyz + py_vdir)
-    # r_vdir = np.r_[.3482339472481397, 0.10663096645146221, 0.9313232279813529]
-    # r_orgi = np.r_[1.8354439533593998, -0.3565928529411765, -3.114509958300226]
-    # org_xyz = GG.coord_shift(r_orgi, in_format="(r,z,phi)",
-    #                          out_format="(x,y,z)")
-    # vdir_xyz =  GG.coord_shift(r_vdir, in_format="(r,z,phi)",
-    #                            out_format="(x,y,z)")
-    # dst_xyz =  GG.coord_shift(r_orgi + r_vdir, in_format="(r,z,phi)",
-    #                           out_format="(x,y,z)")
-    # print("org in rzp = ", r_orgi)
-    # print("org in xyz = ", org_xyz)
-    # print("vdir in rzp = ", r_vdir)
-    # print("vdir in xyz = ", vdir_xyz)
-    # print("dst in xyz = ", dst_xyz)
-    # a1, a2 = config.plot()
-    # a1.plot(pts_disc[0, 116], pts_disc[1, 116], "r*")
-    # a1.plot(part[0, :], part[1, :], "b.")
-    # a2.plot(pts_in_xyz[0], pts_in_xyz[1], "r*")
-    # a2.plot(part_in_xyz[0], part_in_xyz[1], "b.")
-    # a1.plot([r_orgi[0], r_orgi[0] + r_vdir[0]],
-    #         [r_orgi[1], r_orgi[1] + r_vdir[1]])
-    # a2.plot([org_xyz[0], dst_xyz[0]],
-    #         [org_xyz[1], dst_xyz[1]])
-
-    # plt.savefig("particule_and_pt_in_config")
-
     if debug > 0:
-        print("")
-        fig = plt.figure(figsize=(14, 8))
-        ax = plt.subplot(121)
-        # import pdb; pdb.set_trace()
-        ax.scatter(pts[0, :], pts[1, :],
-                   marker="s", edgecolors="None",
-                   s=10, c=sa_map_cy.flatten(),
-                   vmin=0, vmax=max(sa_map_cy.max(), sa_map_py.max()))
-        ax.set_title("cython function")
-        ax = plt.subplot(122)
-        ax.scatter(pts[0, :], pts[1, :],
-                   marker="s", edgecolors="None",
-                   s=10, c=sa_map_py.flatten(),
-                   vmin=0, vmax=max(sa_map_cy.max(), sa_map_py.max()))
-        ax.set_title("python reconstruction")
-        plt.savefig("comparaison")
+        for pp in range(sz_p):
+            fig = plt.figure(figsize=(14, 8))
+            ax = plt.subplot(121)
+            # import pdb; pdb.set_trace()
+            ax.scatter(pts[0, :], pts[1, :],
+                       marker="s", edgecolors="None",
+                       s=10, c=sa_map_cy[:, pp].flatten(),
+                       vmin=0, vmax=max(sa_map_cy[:, pp].max(),
+                                        sa_map_py[:, pp].max()))
+            ax.set_title("cython function")
+            ax = plt.subplot(122)
+            im = ax.scatter(pts[0, :], pts[1, :],
+                            marker="s", edgecolors="None",
+                            s=10, c=sa_map_py[:, pp].flatten(),
+                            vmin=0, vmax=max(sa_map_cy[:, pp].max(),
+                                             sa_map_py[:, pp].max()))
+            fig.colorbar(im, ax=ax)
+            ax.set_title("python reconstruction")
+            plt.savefig("comparaison_part"+str(pp))
 
-    max_err = np.argmax(np.abs(sa_map_py - sa_map_cy))
-    print(" where error is max = ", max_err, sa_map_py[max_err], sa_map_cy[max_err])
+    max_py = np.max(sa_map_py)
+    max_cy = np.max(sa_map_cy)
+    max_py_ex = np.max(sa_map_py_ex)
+    max_cy_ex = np.max(sa_map_cy_ex)
 
-    map_py_zero = sa_map_py == 0.
-    err = np.abs(sa_map_py - sa_map_cy) / sa_map_py
-    err[map_py_zero] = np.abs(sa_map_py[map_py_zero] - sa_map_cy[map_py_zero])
+    err = np.abs(sa_map_py - sa_map_cy) / max(max_py, max_cy)
     print("max error approx py vs cy =", np.max(err))
-    max_err = np.argmax(err)
-    print(" where error is max = ", max_err, err[max_err], sa_map_py[max_err], sa_map_cy[max_err])
 
-    map_py_zero = sa_map_py_ex == 0.
-    err = np.abs(sa_map_py_ex - sa_map_cy_ex) / sa_map_py_ex
-    err[map_py_zero] = np.abs(sa_map_py_ex[map_py_zero] - sa_map_cy_ex[map_py_zero])
+    err = np.abs(sa_map_py_ex - sa_map_cy_ex) / max(max_py_ex, max_cy_ex)
     print("max error exacts py vs cy =", np.max(err))
 
-    err = np.abs(sa_map_py_ex - sa_map_py) / sa_map_py_ex
-    err[map_py_zero] = np.abs(sa_map_py_ex[map_py_zero] - sa_map_py[map_py_zero])
+    err = np.abs(sa_map_py_ex - sa_map_py) / max(max_py, max_py_ex)
     print("max error python approx vs exact =", np.max(err))
 
-    map_cy_zero = sa_map_cy_ex == 0.
-    err = np.abs(sa_map_cy_ex - sa_map_cy) / sa_map_cy_ex
-    err[map_cy_zero] = np.abs(sa_map_cy_ex[map_cy_zero] - sa_map_cy[map_cy_zero])
+    err = np.abs(sa_map_cy_ex - sa_map_cy) / max(max_cy, max_cy_ex)
     print("max error cython approx vs exact =", np.max(err))
 
-    assert np.allclose(sa_map_cy, sa_map_py, atol=0, rtol=1e-12,
+    assert np.allclose(sa_map_cy, sa_map_py, atol=1e-16, rtol=1e-16,
                        equal_nan=True)
-    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=0, rtol=1e-12,
+    assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=1e-16, rtol=1e-16,
                        equal_nan=True)
-    assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=0, rtol=1e-12,
+    assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=1e-14, rtol=1e-16,
                        equal_nan=True)
-    assert np.allclose(sa_map_py, sa_map_py_ex, atol=0, rtol=1e-12,
+    assert np.allclose(sa_map_py, sa_map_py_ex, atol=1e-14, rtol=1e-16,
                        equal_nan=True)
 
     # ...

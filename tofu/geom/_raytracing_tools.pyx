@@ -1554,44 +1554,6 @@ cdef inline void compute_inout_tot(const int num_los,
                                     &ves_norm[1][0],
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
-        if (Cabs(ray_orig[0, 0] - 0.8627940248679472) < 0.00000001 and
-            Cabs(ray_orig[1, 0] + 1.7261660125401586) < 0.00000001 and
-            Cabs(ray_orig[2, 0] + 0.6508436176470589) < 0.00000001):
-            with gil:
-                import matplotlib.pyplot as plt
-                import tofu as tf
-                import numpy as np
-                plt.clf()
-                config = tf.load_config("A1")
-                a1, a2 = config.plot()
-
-                original = np.array([ray_orig[0, 0],
-                                     ray_orig[1, 0],
-                                     ray_orig[2, 0]],
-                                    )
-
-                in_rzp = tf.geom._GG.coord_shift(original,
-                                             out_format="(r,z)")
-
-                a1.plot(in_rzp[0], in_rzp[1], "r*")
-                a2.plot(ray_orig[0,0], ray_orig[1, 0], 'r*')
-
-                a1.plot(3, 0, "bo")
-                a2.plot(3, 0, "bo")
-
-                dest = np.r_[ray_orig[0, 0] + coeff_inter_out[0] * ray_vdir[0, 0],
-                             ray_orig[1, 0] + coeff_inter_out[0] * ray_vdir[0, 1],
-                             ray_orig[2, 0] + coeff_inter_out[0] * ray_vdir[0, 2]]
-                in_rzp2 = tf.geom._GG.coord_shift(dest,
-                                             out_format="(r,z)")
-
-                a1.plot([in_rzp[0], in_rzp2[0]],
-                        [in_rzp[1], in_rzp2[1]])
-
-                a2.plot([ray_orig[0, 0], dest[0]],
-                        [ray_orig[1, 0], dest[1]])
-
-                plt.savefig("checking_vis")
 
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
@@ -1641,20 +1603,6 @@ cdef inline void compute_inout_tot(const int num_los,
                                            &lstruct_polyy[ind_min],
                                            &lbounds[ind_struct*6],
                                            lim_min, lim_max)
-                    if (Cabs(ray_orig[0, 0] - 0.8627940248679472) < 0.00000001 and
-                        Cabs(ray_orig[1, 0] + 1.7261660125401586) < 0.00000001 and
-                        Cabs(ray_orig[2, 0] + 0.6508436176470589) < 0.00000001):
-                        if nvert == 47 :
-                            with gil:
-                                print("lbounds trouves :",
-                                      lbounds[ind_struct*6],
-                                      lbounds[ind_struct*6 + 1],
-                                      lbounds[ind_struct*6 + 2],
-                                      lbounds[ind_struct*6 + 3],
-                                      lbounds[ind_struct*6 + 4],
-                                      lbounds[ind_struct*6 + 5],
-                                      )
-
                     langles[ind_struct*2] = lim_min
                     langles[ind_struct*2 + 1] = lim_max
                     ind_struct = 1 + ind_struct
@@ -2193,43 +2141,6 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                       forbid, 1,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
-    # if (Cabs(pt0 - 0.8627940248679472) < 0.00000001 and
-    #     Cabs(pt1 + 1.7261660125401586) < 0.00000001 and
-    #     Cabs(pt2 + 0.6508436176470589) < 0.00000001):
-    #     with gil:
-    #         print("destiny point =>>>>>>> ",
-    #               pts[0,0],
-    #               pts[1,0],
-    #               pts[2,0],
-    #               )
-    #         print("vdir =>>>>>>> ",
-    #               ray_vdir[0,0],
-    #               ray_vdir[1,0],
-    #               ray_vdir[2,0],
-    #               )
-    #         print("found >>>>>>>>>>> kout =", coeff_inter_out[0])
-    # if (Cabs(pt0 - 3.0) < 0.00000001 and
-    #     Cabs(pt1 - 0.0) < 0.00000001 and
-    #     Cabs(pt2 - 0.0) < 0.00000001):
-    #     with gil:
-    #         print("is 3, 0, 0 !!!!!!!!!!!!! npts1, npts2 = ")
-    #         print("origin point =>>>>>>> ",
-    #               ray_orig[0,0],
-    #               ray_orig[1,0],
-    #               ray_orig[2,0],
-    #               )
-    #         print("destiny point =>>>>>>> ",
-    #               pts[0,0],
-    #               pts[1,0],
-    #               pts[2,0],
-    #               )
-    #         print("vdir =>>>>>>> ",
-    #               ray_vdir[0,0],
-    #               ray_vdir[1,0],
-    #               ray_vdir[2,0],
-    #               )
-    #         print("found >>>>>>>>>>> kout =", coeff_inter_out[0])
-
     # --------------------------------------------------------------------------
     # Get ind
     is_vis_mask(is_vis, dist, coeff_inter_out, npts, num_threads)
