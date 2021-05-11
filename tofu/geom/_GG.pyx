@@ -2585,11 +2585,11 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     bint test=True,
                                     int num_threads=16):
     """
-    Return an array of booleans indicating whether each point in pts1 is
-    visible from each point in pts2 considering vignetting a given
+    Return an array of booleans indicating whether each point in pts1 can see
+    each point in pts2 considering vignetting a given
     configuration.
-        pts1 : (3, npts) cartesian coordinates of viewing points
-        pts2 : (3, npts) cartesian coordinates of points to check if viewable
+        pts1 : (3, npts1) cartesian coordinates of viewing points
+        pts2 : (3, npts2) cartesian coordinates of points to check if viewable
         dist : optional argument : distance between the points pts1, pts2
         ves_* : vessel descriptors (poly, norm, limits)
         lstruct_* : config's structure descriptors (poly, limits, norms,
@@ -2651,6 +2651,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         lstruct_nlim_copy = None
     else:
         lstruct_nlim_copy = lstruct_nlim.copy()
+
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,

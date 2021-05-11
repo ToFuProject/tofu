@@ -1569,7 +1569,7 @@ cdef inline void compute_inout_tot(const int num_los,
                     ind_min = 0
                 else:
                     nvert = lnvert[ii] - lnvert[ii - 1]
-                    lsz_lim[ii] = lstruct_nlim_org[ii-1] + lsz_lim[ii-1]
+                    lsz_lim[ii] = lstruct_nlim[ii-1] + lsz_lim[ii-1]
                     ind_min = lnvert[ii-1]
                 # For fast accessing
                 len_lim = lstruct_nlim_org[ii]
@@ -2055,7 +2055,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                   pts, npts,
                                   ves_poly, ves_norm,
                                   is_vis, ves_lims,
-                                  lstruct_nlim,
+                                  lstruct_nlim_copy,
                                   lstruct_polyx, lstruct_polyy,
                                   lstruct_lims,
                                   lstruct_normx, lstruct_normy,
@@ -2138,7 +2138,7 @@ cdef inline void is_visible_pt_vec_core(double pt0, double pt1, double pt2,
                       sz_ves_lims, min_poly_r, rmin,
                       eps_uz, eps_a, eps_vz, eps_b,
                       eps_plane, is_tor,
-                      forbid, 1,
+                      forbid, num_threads,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
     # --------------------------------------------------------------------------

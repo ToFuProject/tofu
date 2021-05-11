@@ -1688,6 +1688,24 @@ def test24_is_visible(debug=0):
     others[:, 0:2] = pts2[:, 0:2]
     others[:, 2:] = pts2[:, 3:5]
 
+    if debug == 2:
+        print(pts2)
+        print(others)
+        markers = ["bo", "b*", "b^", "bs", "bp", "bv"]
+        for ii in range(npts2):
+            _ = ax2.plot(pts2[0, ii], pts2[1, ii],
+                         markers[ii], label="pt"+str(ii), ms=5)
+            _ = ax.plot(np.sqrt(pts2[0, ii]**2 + pts2[1, ii]**2), pts2[2, ii],
+                        markers[ii], ms=5, label="pt"+str(ii))
+        markers = ["ro", "r*", "r^", "rs", "rp", "rv"]
+
+        ax.set_xlabel("R")
+        ax.set_ylabel("Z")
+        ax2.set_xlabel("X")
+        ax2.set_ylabel("Y")
+        ax.legend()
+        fig.savefig("test2")
+
     are_vis = GG.LOS_areVis_PtsFromPts_VesStruct(pts2,
                                                  others,
                                                  ves_poly=VP,
@@ -1703,6 +1721,7 @@ def test24_is_visible(debug=0):
                                                  lstruct_normx=lsvinx,
                                                  lstruct_normy=lsviny,
                                                  ves_type='Tor', test=True)
+
     assert np.allclose(are_vis, [[True, False, False, True],
                                  [False, True, False, False],
                                  [True, False, False, False],
@@ -1743,7 +1762,7 @@ def test24_is_visible(debug=0):
                                  [True, True, True, True]])
     assert np.shape(are_vis) == (npts2, 4)
 
-    if debug == 2:
+    if debug == 3:
         print(pts2)
         print(others)
         markers = ["o", "*", "^", "s", "p", "v"]
@@ -1762,7 +1781,7 @@ def test24_is_visible(debug=0):
         ax2.set_xlabel("X")
         ax2.set_ylabel("Y")
         ax.legend()
-        fig.savefig("test2")
+        fig.savefig("test3")
 
         print(are_vis)
         print(np.shape(are_vis))
