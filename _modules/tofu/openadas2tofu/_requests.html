@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.openadas2tofu._requests &#8212; Tofu 1.4.10</title>
+    <title>tofu.openadas2tofu._requests &#8212; Tofu 1.4.9-233-gb0679bc0</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9-233-gb0679bc0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -127,8 +127,13 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;search_online&#39;</span><span class="p">,</span> <span class="s1">&#39;search_online_by_wavelengthA&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;download&#39;</span><span class="p">,</span> <span class="s1">&#39;download_all&#39;</span><span class="p">,</span> <span class="s1">&#39;clean_downloads&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;step01_search_online&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;step01_search_online_by_wavelengthA&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;step02_download&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;step02_download_all&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;clear_downloads&#39;</span><span class="p">,</span>
+<span class="p">]</span>
 
 
 <span class="c1"># Check whether a local .tofu/ repo exists</span>
@@ -137,7 +142,10 @@
 <span class="n">_URL_SEARCH_WAVL</span> <span class="o">=</span> <span class="n">_URL</span> <span class="o">+</span> <span class="s1">&#39;/wavelength?&#39;</span>
 <span class="n">_URL_ADF15</span> <span class="o">=</span> <span class="n">_URL</span> <span class="o">+</span> <span class="s1">&#39;/adf15&#39;</span>
 <span class="n">_URL_DOWNLOAD</span> <span class="o">=</span> <span class="n">_URL</span> <span class="o">+</span> <span class="s1">&#39;/download&#39;</span>
+<span class="n">_CUSTOM</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)))</span>
+<span class="n">_CUSTOM</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_CUSTOM</span><span class="p">,</span> <span class="s1">&#39;scripts&#39;</span><span class="p">,</span> <span class="s1">&#39;tofucustom.py&#39;</span><span class="p">)</span>
 
+<span class="n">_CREATE_CUSTOM</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">_INCLUDE_PARTIAL</span> <span class="o">=</span> <span class="kc">True</span>
 
 
@@ -205,20 +213,23 @@
     <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="search_online"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.search_online">[docs]</a><span class="k">def</span> <span class="nf">search_online</span><span class="p">(</span><span class="n">searchstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">include_partial</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="step01_search_online"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.step01_search_online">[docs]</a><span class="k">def</span> <span class="nf">step01_search_online</span><span class="p">(</span>
+    <span class="n">searchstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">include_partial</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Perform an online freeform search on https://open.adas.ac.uk</span>
 
 <span class="sd">    Pass searchstr to the online freeform search</span>
 <span class="sd">    Prints the results (if verb=True)</span>
+
 <span class="sd">    Optionally return the result as:</span>
-<span class="sd">        - a char array (returnas = np.ndarray)</span>
-<span class="sd">        - a formatted str (returnas = str)</span>
+<span class="sd">        - np.ndarray    : a char array</span>
+<span class="sd">        - str           : a formatted str</span>
 
 <span class="sd">    example</span>
 <span class="sd">    -------</span>
 <span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
-<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.search_online(&#39;ar+16 ADF15&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.step01_search_online(&#39;ar+16 ADF15&#39;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Check input</span>
@@ -294,24 +305,34 @@
     <span class="k">return</span> <span class="n">arr</span></div>
 
 
-<div class="viewcode-block" id="search_online_by_wavelengthA"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.search_online_by_wavelengthA">[docs]</a><span class="k">def</span> <span class="nf">search_online_by_wavelengthA</span><span class="p">(</span><span class="n">lambmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lambmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolveby</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                 <span class="n">element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                 <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="step01_search_online_by_wavelengthA"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.step01_search_online_by_wavelengthA">[docs]</a><span class="k">def</span> <span class="nf">step01_search_online_by_wavelengthA</span><span class="p">(</span>
+    <span class="n">lambmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lambmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolveby</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Perform an online search by wavelength on https://open.adas.ac.uk</span>
 
 <span class="sd">    Pass the min / max wavelength (in Angstrom) to the online wavelength search</span>
 <span class="sd">    Prints the results (if verb=True)</span>
-<span class="sd">    Optionally return the result as:</span>
-<span class="sd">        - a char array (returnas = np.ndarray)</span>
-<span class="sd">        - a formatted str (returnas = str)</span>
 
-<span class="sd">    The result can be resolve by transition or by adas file</span>
-<span class="sd">    Optionally filter by element to return only the results of one element</span>
+<span class="sd">    Optionally return the result as:</span>
+<span class="sd">        - np.ndarray    : a char array</span>
+<span class="sd">        - str           : a formatted str</span>
+
+<span class="sd">    The result can be resolved by:</span>
+<span class="sd">        - &#39;transition&#39;  : by spectral transition</span>
+<span class="sd">        - &#39;file&#39;        : by adas file</span>
+
+<span class="sd">    Optionally filter by element and charge</span>
 
 <span class="sd">    example</span>
 <span class="sd">    -------</span>
 <span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
-<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.search_online_by_wavelengthA(3., 4., element=&#39;ar&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.step01_earch_online_by_wavelengthA(3., 4., &#39;ar&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.step01_earch_online_by_wavelengthA(</span>
+<span class="sd">            3., 4., &#39;w&#39;,</span>
+<span class="sd">            resolveby=&#39;file&#39;,</span>
+<span class="sd">        )</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Check input</span>
@@ -326,7 +347,7 @@
     <span class="k">if</span> <span class="n">resolveby</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">resolveby</span> <span class="o">=</span> <span class="s1">&#39;transition&#39;</span>
     <span class="k">if</span> <span class="n">resolveby</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;transition&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">]:</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg resolveeby must be:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg resolveby must be:</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;transition&#39;: list all available transitions</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;file&#39;: list all files containing relevant transitions&quot;</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -368,38 +389,88 @@
     <span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="n">kk</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;tr&gt;&lt;th&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/th&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;/th&gt;&lt;th&gt;&#39;</span><span class="p">)]</span>
     <span class="n">ncol</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
-    <span class="n">colex</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Wavelength&#39;</span><span class="p">,</span> <span class="s1">&#39;Ion&#39;</span><span class="p">,</span> <span class="s1">&#39;Data Type&#39;</span><span class="p">,</span> <span class="s1">&#39;Transition&#39;</span><span class="p">,</span> <span class="s1">&#39;File Details&#39;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">col</span> <span class="o">!=</span> <span class="n">colex</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">resolveby</span> <span class="o">==</span> <span class="s1">&#39;transition&#39;</span><span class="p">:</span>
+        <span class="n">dcolex</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Wavelength&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;Ion&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;Data Type&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;Transition&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s1">&#39;File Details&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dcolex</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Ion&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;Data Type&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;Minimum Wavelength&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;Maximum Wavelength&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s1">&#39;File Details&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">if</span> <span class="n">col</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dcolex</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Format of table columns in html seems to have changed!</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- expected: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">colex</span><span class="p">)</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- observed: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="n">lout</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nresults</span><span class="p">):</span>
-        <span class="n">lstri</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;/td&gt;&lt;td&gt;&#39;</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lstri</span><span class="p">)</span> <span class="o">==</span> <span class="n">ncol</span>
-        <span class="n">lamb</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;Aring;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-        <span class="n">elm</span><span class="p">,</span> <span class="n">charg</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;sup&gt;&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">charg</span> <span class="o">==</span> <span class="s1">&#39;+&#39;</span><span class="p">:</span>
-            <span class="n">charg</span> <span class="o">=</span> <span class="s1">&#39;1+&#39;</span>
-        <span class="k">if</span> <span class="n">element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">elm</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="n">element</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-            <span class="k">continue</span>
-        <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">charg</span> <span class="o">!=</span> <span class="n">charge</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">typ</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/span&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">trans</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;nbsp;&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
-        <span class="n">trans</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;^{&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">)</span>
-        <span class="n">trans</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;sub&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;_{&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sub&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">)</span>
-        <span class="n">trans</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;rarr;&#39;</span><span class="p">,</span> <span class="s1">&#39;-&gt;&#39;</span><span class="p">)</span>
-        <span class="n">fil</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="n">lstri</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;detail&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;detail&#39;</span><span class="p">):]</span>
-        <span class="n">fil</span> <span class="o">=</span> <span class="n">fil</span><span class="p">[:</span><span class="n">fil</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">)]</span>
-        <span class="n">lout</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">lamb</span><span class="p">,</span> <span class="n">elm</span><span class="p">,</span> <span class="n">charg</span><span class="p">,</span> <span class="n">typ</span><span class="p">,</span> <span class="n">trans</span><span class="p">,</span> <span class="n">fil</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">resolveby</span> <span class="o">==</span> <span class="s1">&#39;transition&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nresults</span><span class="p">):</span>
+            <span class="n">lstri</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;/td&gt;&lt;td&gt;&#39;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lstri</span><span class="p">)</span> <span class="o">==</span> <span class="n">ncol</span>
+            <span class="n">elm</span><span class="p">,</span> <span class="n">charg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Ion&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;sup&gt;&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">charg</span> <span class="o">==</span> <span class="s1">&#39;+&#39;</span><span class="p">:</span>
+                <span class="n">charg</span> <span class="o">=</span> <span class="s1">&#39;1+&#39;</span>
+            <span class="k">if</span> <span class="n">element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">elm</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="n">element</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">charg</span> <span class="o">!=</span> <span class="n">charge</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">lamb</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Wavelength&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;Aring;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Data Type&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/span&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Transition&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;nbsp;&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;^{&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">)</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;sub&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;_{&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sub&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">)</span>
+            <span class="n">trans</span> <span class="o">=</span> <span class="n">trans</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;rarr;&#39;</span><span class="p">,</span> <span class="s1">&#39;-&gt;&#39;</span><span class="p">)</span>
+            <span class="n">fil</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;File Details&#39;</span><span class="p">]]</span>
+            <span class="n">fil</span> <span class="o">=</span> <span class="n">fil</span><span class="p">[</span><span class="n">fil</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;detail&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;detail&#39;</span><span class="p">):]</span>
+            <span class="n">fil</span> <span class="o">=</span> <span class="n">fil</span><span class="p">[:</span><span class="n">fil</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">)]</span>
+            <span class="n">lout</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">lamb</span><span class="p">,</span> <span class="n">elm</span><span class="p">,</span> <span class="n">charg</span><span class="p">,</span> <span class="n">typ</span><span class="p">,</span> <span class="n">trans</span><span class="p">,</span> <span class="n">fil</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nresults</span><span class="p">):</span>
+            <span class="n">lstri</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;/td&gt;&lt;td&gt;&#39;</span><span class="p">)</span>
+            <span class="n">elm</span><span class="p">,</span> <span class="n">charg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Ion&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/sup&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;sup&gt;&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">charg</span> <span class="o">==</span> <span class="s1">&#39;+&#39;</span><span class="p">:</span>
+                <span class="n">charg</span> <span class="o">=</span> <span class="s1">&#39;1+&#39;</span>
+            <span class="k">if</span> <span class="n">element</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">elm</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="n">element</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">charg</span> <span class="o">!=</span> <span class="n">charge</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Data Type&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;/span&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">lambmin</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Minimum Wavelength&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;Aring;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">lambmax</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;Maximum Wavelength&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&amp;Aring;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">fil</span> <span class="o">=</span> <span class="n">lstri</span><span class="p">[</span><span class="n">dcolex</span><span class="p">[</span><span class="s1">&#39;File Details&#39;</span><span class="p">]]</span>
+            <span class="n">fil</span> <span class="o">=</span> <span class="n">fil</span><span class="p">[</span><span class="n">fil</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;detail&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;detail&#39;</span><span class="p">):]</span>
+            <span class="n">fil</span> <span class="o">=</span> <span class="n">fil</span><span class="p">[:</span><span class="n">fil</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">)]</span>
+            <span class="n">lout</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">fil</span><span class="p">,</span> <span class="n">lambmin</span><span class="p">,</span> <span class="n">lambmax</span><span class="p">,</span> <span class="n">elm</span><span class="p">,</span> <span class="n">charg</span><span class="p">,</span> <span class="n">typ</span><span class="p">])</span>
 
     <span class="c1"># Format output</span>
     <span class="n">char</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lout</span><span class="p">)</span>
-    <span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Wavelength&#39;</span><span class="p">,</span> <span class="s1">&#39;Element&#39;</span><span class="p">,</span> <span class="s1">&#39;Charge&#39;</span><span class="p">,</span> <span class="s1">&#39;Data Type&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;Transition&#39;</span><span class="p">,</span> <span class="s1">&#39;Full file name&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">resolveby</span> <span class="o">==</span> <span class="s1">&#39;transition&#39;</span><span class="p">:</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Wavelength&#39;</span><span class="p">,</span> <span class="s1">&#39;Element&#39;</span><span class="p">,</span> <span class="s1">&#39;Charge&#39;</span><span class="p">,</span> <span class="s1">&#39;Data Type&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;Transition&#39;</span><span class="p">,</span> <span class="s1">&#39;Full file name&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Full file name&#39;</span><span class="p">,</span> <span class="s1">&#39;Wavelength min&#39;</span><span class="p">,</span> <span class="s1">&#39;Wavelength max&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;Element&#39;</span><span class="p">,</span> <span class="s1">&#39;Charge&#39;</span><span class="p">,</span> <span class="s1">&#39;Data Type&#39;</span><span class="p">]</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">_getcharray</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
                       <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">just</span><span class="o">=</span><span class="s1">&#39;l&#39;</span><span class="p">,</span>
                       <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
@@ -411,7 +482,7 @@
 <span class="c1"># #############################################################################</span>
 
 
-<span class="k">def</span> <span class="nf">_check_exists</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_check_exists</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_custom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
     <span class="c1"># In case a small modification becomes necessary later</span>
     <span class="n">target</span> <span class="o">=</span> <span class="n">filename</span>
@@ -420,14 +491,20 @@
     <span class="c1"># Check whether the local .tofu repo exists, if not recommend tofu-custom</span>
     <span class="k">if</span> <span class="n">path_local</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">),</span> <span class="s1">&#39;.tofu&#39;</span><span class="p">,</span> <span class="s1">&#39;openadas2tofu&#39;</span><span class="p">)</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;You do not seem to have a local ./tofu repository</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;tofu uses that local repository to store all user-specific &quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;data and downloads</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;In particular, openadas files are downloaded and saved in:</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-               <span class="o">+</span> <span class="s2">&quot;  =&gt; to set-up your local .tofu repo, run in a terminal:</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">tofu-custom&quot;</span><span class="p">)</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">create_custom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">create_custom</span> <span class="o">=</span> <span class="n">_CREATE_CUSTOM</span>
+        <span class="k">if</span> <span class="n">create_custom</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s1">&#39;python &#39;</span> <span class="o">+</span> <span class="n">_CUSTOM</span><span class="p">)</span>
+            <span class="n">path_local</span> <span class="o">=</span> <span class="n">_get_PATH_LOCAL</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;You do not seem to have a local ./tofu repository</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;tofu uses that local repository to store user-specific &quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;data and downloads</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;In particular, openadas files are downloaded in:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; to set-up your local .tofu repo, run in terminal:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">tofu custom&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c1"># Parse intermediate repos and create if necessary</span>
     <span class="n">lrep</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -452,17 +529,24 @@
         <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">pfe</span>
 
 
-<div class="viewcode-block" id="download"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.download">[docs]</a><span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">update</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="step02_download"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.step02_download">[docs]</a><span class="k">def</span> <span class="nf">step02_download</span><span class="p">(</span>
+    <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">update</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">create_custom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Download desired file from  https://open.adas.ac.uk</span>
 
 <span class="sd">    All downloaded files are stored in your local tofu directory (~/.tofu/)</span>
+
+<span class="sd">    Automatically runs tofu-custom if create_custom=True</span>
 
 <span class="sd">    example</span>
 <span class="sd">    -------</span>
 <span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
 <span class="sd">        &gt;&gt;&gt; filename = &#39;/adf15/pec40][ar/pec40][ar_ls][ar16.dat&#39;</span>
-<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.download(filename)</span>
+<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.step02_download(filename)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># ---------------------------</span>
@@ -478,11 +562,15 @@
           <span class="ow">or</span> <span class="n">filename</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;/adf&#39;</span> <span class="ow">or</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">!=</span> <span class="s1">&#39;.dat&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">c0</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;filename must be a str (full file name) of the form:</span><span class="se">\n</span><span class="s2">&quot;</span>
-               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">/adf.../.../....dat&quot;</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">/adf.../.../....dat</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Provided:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">url</span> <span class="o">=</span> <span class="n">_URL_DOWNLOAD</span> <span class="o">+</span> <span class="n">filename</span>
 
-    <span class="n">exists</span><span class="p">,</span> <span class="n">pfe</span> <span class="o">=</span> <span class="n">_check_exists</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
+    <span class="n">exists</span><span class="p">,</span> <span class="n">pfe</span> <span class="o">=</span> <span class="n">_check_exists</span><span class="p">(</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span>
+        <span class="n">create_custom</span><span class="o">=</span><span class="n">create_custom</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">exists</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;File already exists, will be downloaded and overwritten:</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
@@ -508,25 +596,31 @@
         <span class="k">return</span> <span class="n">pfe</span></div>
 
 
-<div class="viewcode-block" id="download_all"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.download_all">[docs]</a><span class="k">def</span> <span class="nf">download_all</span><span class="p">(</span><span class="n">files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">searchstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">lambmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lambmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">include_partial</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="step02_download_all"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.step02_download_all">[docs]</a><span class="k">def</span> <span class="nf">step02_download_all</span><span class="p">(</span>
+    <span class="n">files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">searchstr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">lambmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lambmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">include_partial</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_custom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Download all desired files from  https://open.adas.ac.uk</span>
 
 <span class="sd">    The files to download can be provided either as:</span>
 <span class="sd">        - a list of full openadas file names (files)</span>
 <span class="sd">        - the result of an online freeform search</span>
 <span class="sd">            (searchstr fed to search_online)</span>
-<span class="sd">        - the result of an online search by wavelength</span>
+<span class="sd">        - the input to an online search by wavelength</span>
 <span class="sd">            (lambmin, lambmax and element fed to search_online_by_wavelengthA)</span>
 
+<span class="sd">    Automatically runs tofu-custom if create_custom=True</span>
 <span class="sd">    All downloaded files are stored in your local tofu directory (~/.tofu/)</span>
 
 <span class="sd">    example</span>
 <span class="sd">    -------</span>
 <span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
-<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.download_all(lambmin=3., lambmax=4., element=&#39;ar&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tf.openadas2tofu.step02_download_all(</span>
+<span class="sd">            lambmin=3., lambmax=4., element=&#39;ar&#39;,</span>
+<span class="sd">        )</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Check</span>
     <span class="k">if</span> <span class="n">include_partial</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">include_partial</span> <span class="o">=</span> <span class="kc">False</span>
@@ -541,8 +635,9 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;Please either searchstr xor (lambmin, lambmax, element)</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- files: list of full file names to be downloaded</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- searchstr: uses search_online()</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- lambmin, lambmax, element: search_online_by_wavelengthA&quot;</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- searchstr: uses step01_search_online()</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- lambmin, lambmax, element: &quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;uses step01_search_online_by_wavelengthA()&quot;</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c1"># Get list of files</span>
@@ -554,15 +649,20 @@
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;files must be a list of full openadas file names!&quot;</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">search_online</span><span class="p">(</span><span class="n">searchstr</span><span class="o">=</span><span class="n">searchstr</span><span class="p">,</span>
-                            <span class="n">include_partial</span><span class="o">=</span><span class="n">include_partial</span><span class="p">,</span>
-                            <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">step01_search_online</span><span class="p">(</span>
+            <span class="n">searchstr</span><span class="o">=</span><span class="n">searchstr</span><span class="p">,</span>
+            <span class="n">include_partial</span><span class="o">=</span><span class="n">include_partial</span><span class="p">,</span>
+            <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">returnas</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">files</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">search_online_by_wavelengthA</span><span class="p">(</span><span class="n">lambmin</span><span class="o">=</span><span class="n">lambmin</span><span class="p">,</span>
-                                           <span class="n">lambmax</span><span class="o">=</span><span class="n">lambmax</span><span class="p">,</span>
-                                           <span class="n">element</span><span class="o">=</span><span class="n">element</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                           <span class="n">returnas</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">step01_search_online_by_wavelengthA</span><span class="p">(</span>
+            <span class="n">lambmin</span><span class="o">=</span><span class="n">lambmin</span><span class="p">,</span>
+            <span class="n">lambmax</span><span class="o">=</span><span class="n">lambmax</span><span class="p">,</span>
+            <span class="n">element</span><span class="o">=</span><span class="n">element</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">returnas</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="c1"># Download</span>
@@ -571,9 +671,14 @@
         <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">exists</span><span class="p">,</span> <span class="n">pfe</span> <span class="o">=</span> <span class="n">_check_exists</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
-            <span class="n">pfe</span> <span class="o">=</span> <span class="n">download</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">files</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span>
-                           <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+            <span class="n">exists</span><span class="p">,</span> <span class="n">pfe</span> <span class="o">=</span> <span class="n">_check_exists</span><span class="p">(</span>
+                <span class="n">files</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span>
+                <span class="n">create_custom</span><span class="o">=</span><span class="n">create_custom</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">pfe</span> <span class="o">=</span> <span class="n">step02_download</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">files</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span>
+                <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnas</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="k">if</span> <span class="n">exists</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">overwritten:   </span><span class="se">\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
@@ -589,7 +694,7 @@
             <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="clean_downloads"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.clean_downloads">[docs]</a><span class="k">def</span> <span class="nf">clean_downloads</span><span class="p">():</span>
+<div class="viewcode-block" id="clear_downloads"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._requests.clear_downloads">[docs]</a><span class="k">def</span> <span class="nf">clear_downloads</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Delete all openadas files downloaded in your ~/.tofu/ directory &quot;&quot;&quot;</span>
     <span class="n">path_local</span> <span class="o">=</span> <span class="n">_get_PATH_LOCAL</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">path_local</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -619,8 +724,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Mar 04, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+      Last updated on May 12, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>
 </footer>

@@ -106,6 +106,27 @@ This directory contains tutorial examples for `tofu`.
    :hidden:
 
    /auto_examples/tutorials/tuto_plot_gallery_fusion_machines
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="\int_\Phi \Omega R d \Phi">
+
+.. only:: html
+
+ .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_solid_angles_thumb.png
+     :alt: Computing the integrated solid angle of a particle
+
+     :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_solid_angles.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/tutorials/tuto_plot_solid_angles
 .. raw:: html
 
     <div class="sphx-glr-clear"></div>

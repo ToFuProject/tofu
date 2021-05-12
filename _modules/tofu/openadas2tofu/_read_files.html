@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.openadas2tofu._read_files &#8212; Tofu 1.4.10</title>
+    <title>tofu.openadas2tofu._read_files &#8212; Tofu 1.4.9-233-gb0679bc0</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9-233-gb0679bc0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -127,12 +127,13 @@
 <span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">RectBivariateSpline</span> <span class="k">as</span> <span class="n">scpRectSpl</span>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="s1">&#39;read_all&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;step03_read&#39;</span><span class="p">,</span> <span class="s1">&#39;step03_read_all&#39;</span><span class="p">]</span>
 
 
 <span class="n">_DTYPES</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;adf11&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;acd&#39;</span><span class="p">,</span> <span class="s1">&#39;ccd&#39;</span><span class="p">,</span> <span class="s1">&#39;scd&#39;</span><span class="p">,</span> <span class="s1">&#39;plt&#39;</span><span class="p">,</span> <span class="s1">&#39;prb&#39;</span><span class="p">],</span>
            <span class="s1">&#39;adf15&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
 <span class="n">_DEG</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">_PECASFUNC</span> <span class="o">=</span> <span class="kc">True</span>
 
 
 <span class="c1"># #############################################################################</span>
@@ -159,7 +160,8 @@
                <span class="o">+</span> <span class="s2">&quot;~/.tofu/openadas2tofu/ matching the desired file type:</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided : </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- available: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">av</span><span class="p">)</span>
-               <span class="o">+</span> <span class="s2">&quot;  =&gt; download the data with tf.openadas2tofu.download()&quot;</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;  =&gt; download the data with &quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;tf.openadas2tofu.step02_download()&quot;</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">ld</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
@@ -169,7 +171,7 @@
 <span class="c1"># #############################################################################</span>
 
 
-<div class="viewcode-block" id="read"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._read_files.read">[docs]</a><span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="n">adas_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+<div class="viewcode-block" id="step03_read"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._read_files.step03_read">[docs]</a><span class="k">def</span> <span class="nf">step03_read</span><span class="p">(</span><span class="n">adas_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Read openadas-formatted files and return a dict with the data</span>
 
 <span class="sd">    Povide the full adas file name</span>
@@ -179,9 +181,9 @@
 <span class="sd">    -------</span>
 <span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
 <span class="sd">        &gt;&gt;&gt; fn = &#39;/adf11/scd74/scd74_ar.dat&#39;</span>
-<span class="sd">        &gt;&gt;&gt; out = tf.openadas2tofu.read(fn)</span>
+<span class="sd">        &gt;&gt;&gt; out = tf.openadas2tofu.step03_read(fn)</span>
 <span class="sd">        &gt;&gt;&gt; fn = &#39;/adf15/pec40][ar/pec40][ar_ca][ar16.dat&#39;</span>
-<span class="sd">        &gt;&gt;&gt; out = tf.openadas2tofu.read(fn)</span>
+<span class="sd">        &gt;&gt;&gt; out = tf.openadas2tofu.step03_read(fn)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">path_local</span> <span class="o">=</span> <span class="n">_get_PATH_LOCAL</span><span class="p">()</span>
@@ -211,8 +213,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">):</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Provided file does not seem to exist:</span><span class="se">\n</span><span class="s2">&quot;</span>
                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
-                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Search it online with tofu.openadas2tofu.search()</span><span class="se">\n</span><span class="s2">&quot;</span>
-                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Download it with tofu.openadas2tofu.download()&quot;</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Search it online with &quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;tofu.openadas2tofu.step01_search_online()</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Download it with &quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;tofu.openadas2tofu.step02_download()&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">_DTYPES</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">pfe</span><span class="p">]</span>
@@ -226,12 +230,16 @@
     <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="read_all"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._read_files.read_all">[docs]</a><span class="k">def</span> <span class="nf">read_all</span><span class="p">(</span><span class="n">element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">typ1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">typ2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+<div class="viewcode-block" id="step03_read_all"><a class="viewcode-back" href="../../../tofu.openadas2tofu.html#tofu.openadas2tofu._read_files.step03_read_all">[docs]</a><span class="k">def</span> <span class="nf">step03_read_all</span><span class="p">(</span>
+    <span class="n">element</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">charge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">typ1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">typ2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Read all relevant openadas files for chosen typ1</span>
 
 <span class="sd">    Please specify:</span>
-<span class="sd">        - typ1: &#39;adf11&#39; or &#39;adf15&#39;</span>
+<span class="sd">        - typ1:</span>
+<span class="sd">            - &#39;adf11&#39;: ionisation / recombination data</span>
+<span class="sd">            - &#39;adf15&#39;: pec data</span>
 <span class="sd">        - element: the symbol of the element</span>
 
 <span class="sd">    If typ1 = &#39;adf11&#39;, you can also provide typ2 to specify the coefficients:</span>
@@ -249,10 +257,11 @@
 <span class="sd">    examples</span>
 <span class="sd">    --------</span>
 <span class="sd">        &gt;&gt;&gt; import tofu as tf</span>
-<span class="sd">        &gt;&gt;&gt; dout = tf.openadas2tofu.read_all(element=&#39;ar&#39;, typ1=&#39;adf11&#39;)</span>
-<span class="sd">        &gt;&gt;&gt; dout = tf.openadas2tofu.read_all(element=&#39;ar&#39;, typ1=&#39;adf15&#39;,</span>
-<span class="sd">                                             charge=16,</span>
-<span class="sd">                                             lambmin=3.94e-10, lambmax=4.e-10)</span>
+<span class="sd">        &gt;&gt;&gt; dout = tf.openadas2tofu.step03_read_all(element=&#39;ar&#39;, typ1=&#39;adf11&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; dout = tf.openadas2tofu.step03_read_all(element=&#39;ar&#39;, typ1=&#39;adf15&#39;,</span>
+<span class="sd">                                                    charge=16,</span>
+<span class="sd">                                                    lambmin=3.94e-10,</span>
+<span class="sd">                                                    lambmax=4.e-10)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># --------------------</span>
@@ -336,8 +345,8 @@
         <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Loading data from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">dout</span><span class="o">=</span><span class="n">dout</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span></div>
+        <span class="n">dout</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">dout</span><span class="o">=</span><span class="n">dout</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
 
 
 <span class="c1"># #############################################################################</span>
@@ -354,7 +363,7 @@
     <span class="c1"># Get second order file type</span>
     <span class="n">typ1</span> <span class="o">=</span> <span class="p">[</span><span class="n">vv</span> <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">_DTYPES</span><span class="p">[</span><span class="s1">&#39;adf11&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">pfe</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">typ1</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Second order file type culd not be inferred from file name!</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Second order file type could not be inferred from file name!</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- available: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_DTYPES</span><span class="p">[</span><span class="s1">&#39;adf11&#39;</span><span class="p">])</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -379,12 +388,16 @@
                     <span class="n">lstr</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
                     <span class="n">lin</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lstr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
                            <span class="k">if</span> <span class="n">ss</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">]</span>
-                    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lin</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lin</span><span class="p">]),</span>
-                          <span class="n">elem</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">lstr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                          <span class="s1">&#39;ADF11&#39;</span> <span class="ow">in</span> <span class="n">lstr</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+                    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">lin</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lin</span><span class="p">]),</span>
+                        <span class="n">elem</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">lstr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="c1"># &#39;ADF11&#39; in lstr[-1],</span>
+                    <span class="p">]</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
                         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;File header format seems to have changed!</span><span class="se">\n</span><span class="s2">&quot;</span>
-                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- lc = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lc</span><span class="p">))</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- pfe: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- lc = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- lstr = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lstr</span><span class="p">))</span>
                         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="n">Z</span><span class="p">,</span> <span class="n">nne</span><span class="p">,</span> <span class="n">nte</span><span class="p">,</span> <span class="n">q0</span><span class="p">,</span> <span class="n">qend</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">lin</span><span class="p">)</span>
                     <span class="n">nelog10</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
@@ -501,13 +514,22 @@
                                            <span class="n">typ0</span><span class="p">,</span> <span class="n">typ1</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_read_adf15</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">dout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">lambmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">lambmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">deg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_read_adf15</span><span class="p">(</span>
+    <span class="n">pfe</span><span class="p">,</span>
+    <span class="n">dout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">lambmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">lambmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">pec_as_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Here lambmin and lambmax are provided in m</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">deg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">deg</span> <span class="o">=</span> <span class="n">_DEG</span>
+    <span class="k">if</span> <span class="n">pec_as_func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pec_as_func</span> <span class="o">=</span> <span class="n">_PECASFUNC</span>
     <span class="k">if</span> <span class="n">dout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">dout</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -596,21 +618,37 @@
                 <span class="k">if</span> <span class="n">ind</span> <span class="o">==</span> <span class="n">pec</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
                     <span class="n">in_pec</span> <span class="o">=</span> <span class="kc">False</span>
                     <span class="n">key</span> <span class="o">=</span> <span class="n">_get_adf15_key</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">isoel</span><span class="p">,</span> <span class="n">typ0</span><span class="p">,</span> <span class="n">typ1</span><span class="p">)</span>
+                    <span class="c1"># PEC rehaping and conversion to cm3/s -&gt; m3/s</span>
+                    <span class="n">pec</span> <span class="o">=</span> <span class="n">pec</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nne</span><span class="p">,</span> <span class="n">nte</span><span class="p">))</span> <span class="o">*</span> <span class="mf">1e-6</span>
                     <span class="c1"># log(ne)+6 to convert /cm3 -&gt; /m3</span>
-                    <span class="c1"># log(pec)+6 to convert cm3/s -&gt; m3/s</span>
-                    <span class="n">func</span> <span class="o">=</span> <span class="n">scpRectSpl</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ne</span><span class="p">)</span><span class="o">+</span><span class="mi">6</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">te</span><span class="p">),</span>
-                                      <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pec</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nne</span><span class="p">,</span> <span class="n">nte</span><span class="p">))</span><span class="o">+</span><span class="mi">6</span><span class="p">,</span>
-                                      <span class="n">kx</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span> <span class="n">ky</span><span class="o">=</span><span class="n">deg</span><span class="p">)</span>
-                    <span class="n">dout</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;lambda&#39;</span><span class="p">:</span> <span class="n">lamb</span><span class="p">,</span>
-                                 <span class="s1">&#39;ION&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">+&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">charge</span><span class="p">),</span>
-                                 <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">typ0</span><span class="p">,</span> <span class="n">typ1</span><span class="p">,</span> <span class="n">isoel</span><span class="p">),</span>
-                                 <span class="s1">&#39;origin&#39;</span><span class="p">:</span> <span class="n">pfe</span><span class="p">,</span>
-                                 <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">typ</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                 <span class="s1">&#39;ne&#39;</span><span class="p">:</span> <span class="n">ne</span><span class="p">,</span> <span class="s1">&#39;te&#39;</span><span class="p">:</span> <span class="n">te</span><span class="p">,</span>
-                                 <span class="s1">&#39;pec&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;func&#39;</span><span class="p">:</span> <span class="n">func</span><span class="p">,</span>
-                                         <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;log_nete&#39;</span><span class="p">,</span>
-                                         <span class="s1">&#39;units&#39;</span><span class="p">:</span> <span class="s1">&#39;log(m3/s)&#39;</span><span class="p">,</span>
-                                         <span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="s1">&#39;pfe&#39;</span><span class="p">}}</span>
+                    <span class="n">ne</span> <span class="o">=</span> <span class="n">ne</span><span class="o">*</span><span class="mf">1e6</span>
+
+                    <span class="k">if</span> <span class="n">pec_as_func</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="n">pec_rec</span> <span class="o">=</span> <span class="n">scpRectSpl</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ne</span><span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">te</span><span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pec</span><span class="p">),</span>
+                            <span class="n">kx</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
+                            <span class="n">ky</span><span class="o">=</span><span class="n">deg</span><span class="p">)</span>
+                        <span class="k">def</span> <span class="nf">pec</span><span class="p">(</span><span class="n">Te</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ne</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pec_rec</span><span class="o">=</span><span class="n">pec_rec</span><span class="p">):</span>
+                            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pec_rec</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ne</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Te</span><span class="p">)))</span>
+
+                    <span class="n">dout</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;lambda0&#39;</span><span class="p">:</span> <span class="n">lamb</span><span class="p">,</span>
+                        <span class="s1">&#39;ion&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">+&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">charge</span><span class="p">),</span>
+                        <span class="s1">&#39;charge&#39;</span><span class="p">:</span> <span class="n">charge</span><span class="p">,</span>
+                        <span class="s1">&#39;element&#39;</span><span class="p">:</span> <span class="n">elem</span><span class="p">,</span>
+                        <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">typ0</span><span class="p">,</span> <span class="n">typ1</span><span class="p">,</span> <span class="n">isoel</span><span class="p">),</span>
+                        <span class="s1">&#39;origin&#39;</span><span class="p">:</span> <span class="n">pfe</span><span class="p">,</span>
+                        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">typ</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="s1">&#39;ne&#39;</span><span class="p">:</span> <span class="n">ne</span><span class="p">,</span>
+                        <span class="s1">&#39;ne_units&#39;</span><span class="p">:</span> <span class="s1">&#39;/m3&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;te&#39;</span><span class="p">:</span> <span class="n">te</span><span class="p">,</span>
+                        <span class="s1">&#39;te_units&#39;</span><span class="p">:</span> <span class="s1">&#39;eV&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;pec&#39;</span><span class="p">:</span> <span class="n">pec</span><span class="p">,</span>
+                        <span class="s1">&#39;pec_type&#39;</span><span class="p">:</span> <span class="s1">&#39;f(ne, Te)&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;pec_units&#39;</span><span class="p">:</span> <span class="s1">&#39;m3/s&#39;</span><span class="p">,</span>
+                    <span class="p">}</span>
 
             <span class="c1"># Get transitions from table at the end</span>
             <span class="k">if</span> <span class="s1">&#39;photon emissivity atomic transitions&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
@@ -629,7 +667,7 @@
                            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- line should be present&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dout</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="n">dout</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;lambda&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lamb</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">dout</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;lambda0&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lamb</span><span class="p">:</span>
                         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Inconsistency in file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
                         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lstr</span>
@@ -662,8 +700,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Mar 04, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+      Last updated on May 12, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>
 </footer>

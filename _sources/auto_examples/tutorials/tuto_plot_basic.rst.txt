@@ -113,7 +113,7 @@ The configuration can easily be visualized using the `.plot()` method:
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7fda4d254e20>, <matplotlib.axes._axes.Axes object at 0x7fda4d226a60>]
+    [<matplotlib.axes._axes.Axes object at 0x7f80f4568b50>, <matplotlib.axes._axes.Axes object at 0x7f80f44c9820>]
 
 
 
@@ -156,12 +156,14 @@ output.
 
  .. code-block:: none
 
+    /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+      return array(a, dtype, copy=False, order=order)
     /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7fda4c3aa700>
+    <tofu.utils.KeyHandler_mpl object at 0x7f80e77335b0>
 
 
 
@@ -201,12 +203,14 @@ The principle is similar for 2D cameras.
 
  .. code-block:: none
 
+    /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+      return array(a, dtype, copy=False, order=order)
     /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7fda2c6e7310>
+    <tofu.utils.KeyHandler_mpl object at 0x7f80a7a64b80>
 
 
 
@@ -221,7 +225,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  5.898 seconds)
+   **Total running time of the script:** ( 0 minutes  4.834 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:

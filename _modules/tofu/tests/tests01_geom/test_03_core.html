@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.tests.tests01_geom.test_03_core &#8212; Tofu 1.4.10</title>
+    <title>tofu.tests.tests01_geom.test_03_core &#8212; Tofu 1.4.9-233-gb0679bc0</title>
     <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9-233-gb0679bc0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -502,10 +502,9 @@
                     <span class="k">continue</span>
                 <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">typ</span><span class="p">][</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                     <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">typ</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
-                    <span class="n">P1Mm</span> <span class="o">=</span> <span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;P1Min&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">obj</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;P1Max&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-                    <span class="n">P2Mm</span> <span class="o">=</span> <span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;P2Min&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">obj</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;P2Max&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
                     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ldomain</span><span class="p">)):</span>
                         <span class="k">try</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computing pts 0&quot;</span><span class="p">,</span> <span class="n">ldomain</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
                             <span class="n">out</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">get_sampleV</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">,</span>
                                                   <span class="n">domain</span><span class="o">=</span><span class="n">ldomain</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span>
                                                   <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;(X,Y,Z)&#39;</span><span class="p">,</span>
@@ -522,6 +521,7 @@
                                    <span class="p">)</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                         <span class="k">try</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computing pts 1&quot;</span><span class="p">)</span>
                             <span class="n">out</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">get_sampleV</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">,</span>
                                                   <span class="n">ind</span><span class="o">=</span><span class="n">ind0</span><span class="p">,</span>
                                                   <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;(X,Y,Z)&#39;</span><span class="p">,</span>
@@ -538,6 +538,8 @@
                                    <span class="p">)</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                         <span class="k">try</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ii, Computing pts 2&quot;</span><span class="p">)</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="n">ldomain</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
                             <span class="n">out</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">get_sampleV</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">,</span>
                                                   <span class="n">domain</span><span class="o">=</span><span class="n">ldomain</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span>
                                                   <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;(X,Y,Z)&#39;</span><span class="p">,</span>
@@ -553,6 +555,7 @@
                                    <span class="p">)</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                         <span class="k">try</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computing pts 3&quot;</span><span class="p">)</span>
                             <span class="n">out</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">get_sampleV</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">resMode</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">,</span>
                                                   <span class="n">ind</span><span class="o">=</span><span class="n">ind0</span><span class="p">,</span>
                                                   <span class="n">returnas</span><span class="o">=</span><span class="s1">&#39;(X,Y,Z)&#39;</span><span class="p">,</span>
@@ -593,10 +596,32 @@
 
                             <span class="n">c0</span> <span class="o">=</span> <span class="n">pts0</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">pts2</span><span class="o">.</span><span class="n">shape</span>
                             <span class="n">c1</span> <span class="o">=</span> <span class="n">c0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">pts0</span><span class="p">,</span> <span class="n">pts2</span><span class="p">)</span>
+
                             <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+                                <span class="n">lax</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+                                <span class="n">lax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pts0</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
+                                            <span class="n">pts0</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;.b&#39;</span><span class="p">)</span>  <span class="c1"># x, y</span>
+                                <span class="n">lax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pts0</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">**</span><span class="mi">2</span>
+                                                    <span class="o">+</span> <span class="n">pts0</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+                                            <span class="n">pts0</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;.r&#39;</span><span class="p">)</span>  <span class="c1"># r, z</span>
+                                <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;pts0 : OLD&quot;</span><span class="p">)</span>
+                                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                <span class="n">lax</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+                                <span class="n">lax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pts2</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
+                                            <span class="n">pts2</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;.b&#39;</span><span class="p">)</span>  <span class="c1"># x, y</span>
+                                <span class="n">lax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pts2</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">**</span><span class="mi">2</span>
+                                                    <span class="o">+</span> <span class="n">pts2</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+                                            <span class="n">pts2</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span> <span class="s1">&#39;.r&#39;</span><span class="p">)</span>  <span class="c1"># r, z</span>
+                                <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;pts2 : NEW&quot;</span><span class="p">)</span>
+                                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                                <span class="n">n1</span> <span class="o">=</span> <span class="n">pts0</span><span class="o">.</span><span class="n">shape</span>
+                                <span class="n">n2</span> <span class="o">=</span> <span class="n">pts2</span><span class="o">.</span><span class="n">shape</span>
                                 <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Volume sampling:</span><span class="se">\n</span><span class="s2">&quot;</span>
                                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- no match old vs new algo</span><span class="se">\n</span><span class="s2">&quot;</span>
-                                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- same shape: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span>
+                                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- same shape: </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span>
+                                       <span class="o">+</span> <span class="s2">&quot;(old : </span><span class="si">{}</span><span class="s2">, new: </span><span class="si">{}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span>
+                                                                        <span class="n">n2</span><span class="p">)</span>
                                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- np.allclose() </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c1</span><span class="p">)</span>
                                        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- domain = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ldomain</span><span class="p">[</span><span class="n">ii</span><span class="p">]))</span>
                                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -2591,8 +2616,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Mar 04, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+      Last updated on May 12, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>
 </footer>

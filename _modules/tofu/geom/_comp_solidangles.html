@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.geom._comp_solidangles &#8212; Tofu 1.4.10</title>
+    <title>tofu.geom._comp_solidangles &#8212; Tofu 1.4.9-233-gb0679bc0</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9-233-gb0679bc0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -116,10 +116,8 @@
     <div class="body col-md-12 content" role="main">
       
   <h1>Source code for tofu.geom._comp_solidangles</h1><div class="highlight"><pre>
-<span></span>
-
-<span class="c1"># Built-in</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
+<span></span><span class="c1"># Built-in</span>
+<span class="c1"># import warnings</span>
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -206,7 +204,7 @@
             <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;Args traj and pts must be convertible to np.ndarrays of shape&quot;</span>
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- traj: (N,), (3, N) or (N, 3)&quot;</span>
@@ -314,7 +312,7 @@
     <span class="c1"># Main computation</span>
 
     <span class="c1"># traj2pts vector, with length (3d array (3, N, M))</span>
-    <span class="n">vect</span> <span class="o">=</span> <span class="n">traj</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">pts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">vect</span> <span class="o">=</span> <span class="o">-</span> <span class="n">pts</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">traj</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
     <span class="n">len_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vect</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)))</span>
 
     <span class="c1"># If aniso or block, normalize</span>
@@ -322,19 +320,23 @@
         <span class="n">vect</span> <span class="o">=</span> <span class="n">vect</span> <span class="o">/</span> <span class="n">len_v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
 
     <span class="c1"># Solid angle</span>
+    <span class="n">r_d</span> <span class="o">=</span> <span class="n">rad</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">len_v</span>
+    <span class="n">where_zero</span> <span class="o">=</span> <span class="n">len_v</span> <span class="o">&lt;=</span> <span class="n">rad</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">r_d</span><span class="p">[</span><span class="n">where_zero</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>  <span class="c1"># temporary value</span>
     <span class="k">if</span> <span class="n">approx</span><span class="p">:</span>
-        <span class="n">sang</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">rad</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">len_v</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">sang</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">r_d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r_d</span><span class="o">**</span><span class="mi">4</span> <span class="o">/</span> <span class="mf">4.</span> <span class="o">+</span> <span class="n">r_d</span><span class="o">**</span><span class="mi">6</span> <span class="o">/</span> <span class="mf">8.</span> <span class="o">+</span> <span class="n">r_d</span><span class="o">**</span><span class="mi">8</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">/</span> <span class="mi">64</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">sang</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">rad</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">len_v</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">sang</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">r_d</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># when particle in mesh point, distance len_v = 0 thus sang neglected</span>
+    <span class="n">sang</span><span class="p">[</span><span class="n">where_zero</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
 
     <span class="c1"># block</span>
     <span class="k">if</span> <span class="n">block</span><span class="p">:</span>
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_kwdargs_LOS_isVis</span><span class="p">()</span>
-        <span class="c1"># Issue 471: k=len_v is a 2d array, _GG only takes 1d array...</span>
         <span class="n">indvis</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_areVis_PtsFromPts_VesStruct</span><span class="p">(</span>
-            <span class="n">traj</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">len_v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span>
+            <span class="n">pts</span><span class="p">,</span> <span class="n">traj</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">len_v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span>
         <span class="p">)</span>
-        <span class="c1"># Because indvis is an array of int (cf. issue 471)</span>
         <span class="n">iout</span> <span class="o">=</span> <span class="n">indvis</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="n">sang</span><span class="p">[</span><span class="n">iout</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
         <span class="n">vect</span><span class="p">[:,</span> <span class="n">iout</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
@@ -343,8 +345,8 @@
     <span class="c1"># Return</span>
     <span class="k">if</span> <span class="n">aniso</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">sang</span><span class="p">,</span> <span class="n">vect</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">sang</span></div>
+
+    <span class="k">return</span> <span class="n">sang</span></div>
 
 
 <div class="viewcode-block" id="calc_solidangle_particle_integ"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp_solidangles.calc_solidangle_particle_integ">[docs]</a><span class="k">def</span> <span class="nf">calc_solidangle_particle_integ</span><span class="p">(</span>
@@ -384,8 +386,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Mar 04, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+      Last updated on May 12, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>
 </footer>

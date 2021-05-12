@@ -18,6 +18,15 @@ Subpackages
 Submodules
 ----------
 
+tofu.tests.tests01\_geom.sa\_prueba module
+------------------------------------------
+
+.. automodule:: tofu.tests.tests01_geom.sa_prueba
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
 tofu.tests.tests01\_geom.test\_01\_GG module
 --------------------------------------------
 
@@ -40,6 +49,24 @@ tofu.tests.tests01\_geom.test\_03\_core module
 ----------------------------------------------
 
 .. automodule:: tofu.tests.tests01_geom.test_03_core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.tests.tests01\_geom.test\_04\_sampling module
+--------------------------------------------------
+
+.. automodule:: tofu.tests.tests01_geom.test_04_sampling
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.tests.tests01\_geom.testing\_tools module
+----------------------------------------------
+
+.. automodule:: tofu.tests.tests01_geom.testing_tools
    :members:
    :undoc-members:
    :show-inheritance:

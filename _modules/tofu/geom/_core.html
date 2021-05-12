@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.geom._core &#8212; Tofu 1.4.10</title>
+    <title>tofu.geom._core &#8212; Tofu 1.4.9-233-gb0679bc0</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.9-233-gb0679bc0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -2500,7 +2500,6 @@
                  <span class="n">SavePath</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;./&#39;</span><span class="p">),</span>
                  <span class="n">SavePath_Include</span><span class="o">=</span><span class="n">tfpf</span><span class="o">.</span><span class="n">defInclude</span><span class="p">,</span>
                  <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-
         <span class="n">kwdargs</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
         <span class="k">del</span> <span class="n">kwdargs</span><span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">]</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Config</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
@@ -3956,7 +3955,9 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Config.get_kwdargs_LOS_isVis"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._core.Config.get_kwdargs_LOS_isVis">[docs]</a>    <span class="k">def</span> <span class="nf">get_kwdargs_LOS_isVis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
         <span class="n">lS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lStruct</span>
+
         <span class="c1"># -- Getting &quot;vessels&quot; or IN structures -------------------------------</span>
         <span class="n">lSIn</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span> <span class="k">if</span> <span class="n">ss</span><span class="o">.</span><span class="n">_InOut</span> <span class="o">==</span> <span class="s2">&quot;in&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lSIn</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -3966,6 +3967,7 @@
             <span class="n">S</span> <span class="o">=</span> <span class="n">lSIn</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;Surf&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lSIn</span><span class="p">])]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">S</span> <span class="o">=</span> <span class="n">lSIn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
         <span class="c1"># ... and its poly, limts, type, etc.</span>
         <span class="n">VPoly</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">Poly_closed</span>
         <span class="n">VVIn</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;VIn&quot;</span><span class="p">]</span>
@@ -3974,41 +3976,40 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">Lim</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">Lim</span>
         <span class="n">VType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Type</span>
+
         <span class="c1"># -- Getting OUT structures -------------------------------------------</span>
         <span class="n">lS</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span> <span class="k">if</span> <span class="n">ss</span><span class="o">.</span><span class="n">_InOut</span> <span class="o">==</span> <span class="s2">&quot;out&quot;</span><span class="p">]</span>
-        <span class="n">lSPolyx</span><span class="p">,</span> <span class="n">lSVInx</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="n">lSPolyy</span><span class="p">,</span> <span class="n">lSVIny</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="n">lSLim</span><span class="p">,</span> <span class="n">lSnLim</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="n">lsnvert</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">num_tot_structs</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">num_lim_structs</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">:</span>
-            <span class="n">lp</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="p">[</span><span class="n">lSPolyx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">lp</span><span class="p">]</span>
-            <span class="n">lp</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="p">[</span><span class="n">lSPolyy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">lp</span><span class="p">]</span>
-            <span class="n">lp</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;VIn&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="p">[</span><span class="n">lSVInx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">lp</span><span class="p">]</span>
-            <span class="n">lp</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s2">&quot;VIn&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-            <span class="p">[</span><span class="n">lSVIny</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">lp</span><span class="p">]</span>
-            <span class="n">lSLim</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">Lim</span><span class="p">)</span>
-            <span class="n">lSnLim</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">noccur</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lsnvert</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">lsnvert</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">lsnvert</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">lsnvert</span><span class="p">[</span><span class="n">num_lim_structs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-                <span class="p">)</span>
-            <span class="n">num_lim_structs</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">if</span> <span class="n">ss</span><span class="o">.</span><span class="n">Lim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">Lim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">num_tot_structs</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">num_tot_structs</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">Lim</span><span class="p">)</span>
-        <span class="n">lsnvert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lsnvert</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">lSPolyx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lSPolyx</span><span class="p">)</span>
-        <span class="n">lSPolyy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lSPolyy</span><span class="p">)</span>
-        <span class="n">lSVInx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lSVInx</span><span class="p">)</span>
-        <span class="n">lSVIny</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lSVIny</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lS</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+            <span class="n">lSLim</span><span class="p">,</span> <span class="n">lSnLim</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">num_lim_structs</span><span class="p">,</span> <span class="n">num_tot_structs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="n">lSPolyx</span><span class="p">,</span> <span class="n">lSPolyy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">lSVInx</span><span class="p">,</span> <span class="n">lSVIny</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">lsnvert</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># Lims</span>
+            <span class="n">lSLim</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span><span class="o">.</span><span class="n">Lim</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">]</span>
+            <span class="n">lSnLim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">noccur</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+
+            <span class="c1"># Nb of structures and of structures inc. Lims (toroidal occurences)</span>
+            <span class="n">num_lim_structs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lS</span><span class="p">)</span>
+            <span class="n">num_tot_structs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ss</span><span class="o">.</span><span class="n">noccur</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">]))</span>
+
+            <span class="c1"># build concatenated C-contiguous arrays of x and y coordinates</span>
+            <span class="n">lSPolyx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+            <span class="n">lSPolyy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+            <span class="n">lSVInx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;VIn&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+            <span class="n">lSVIny</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">dgeom</span><span class="p">[</span><span class="s1">&#39;VIn&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
+
+            <span class="c1"># lsnvert = cumulated number of points in the polygon of each Struct</span>
+            <span class="n">lsnvert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">([</span>
+                <span class="n">ss</span><span class="o">.</span><span class="n">Poly_closed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="c1"># Now setting keyword arguments:</span>
         <span class="n">dkwd</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">ves_poly</span><span class="o">=</span><span class="n">VPoly</span><span class="p">,</span>
@@ -4019,7 +4020,7 @@
             <span class="n">lstruct_polyx</span><span class="o">=</span><span class="n">lSPolyx</span><span class="p">,</span>
             <span class="n">lstruct_polyy</span><span class="o">=</span><span class="n">lSPolyy</span><span class="p">,</span>
             <span class="n">lstruct_lims</span><span class="o">=</span><span class="n">lSLim</span><span class="p">,</span>
-            <span class="n">lstruct_nlim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lSnLim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+            <span class="n">lstruct_nlim</span><span class="o">=</span><span class="n">lSnLim</span><span class="p">,</span>
             <span class="n">lstruct_normx</span><span class="o">=</span><span class="n">lSVInx</span><span class="p">,</span>
             <span class="n">lstruct_normy</span><span class="o">=</span><span class="n">lSVIny</span><span class="p">,</span>
             <span class="n">lnvert</span><span class="o">=</span><span class="n">lsnvert</span><span class="p">,</span>
@@ -8099,8 +8100,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Mar 04, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.4.3.<br/>
+      Last updated on May 12, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>
 </footer>
