@@ -2,8 +2,8 @@
 Computing a camera image with custom emissivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This tutorial defines an emissivity that varies in space and computes
-the signal received by a camera using this emissivity.
+This tutorial defines an emissivity that varies in space and computes the signal
+received by a camera using this emissivity.
 """
 
 ###############################################################################
@@ -13,15 +13,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tofu as tf
 
-configB2 = tf.geom.utils.create_config("B2")
+configB2 = tf.load_config("B2")
 
 cam2d = tf.geom.utils.create_CamLOS2D(
     config=configB2,
-    P=[3.4, 0, 0],
-    N12=100,
-    F=0.1,
-    D12=0.1,
-    angs=[np.pi, np.pi/6, 0],
+    pinhole=[3.4, 0, 0],
+    sensor_nb=100,
+    focal=0.1,
+    sensor_size=0.1,
+    orientation=[np.pi, np.pi/6, 0],
     Name="",
     Exp="",
     Diag="",
@@ -35,10 +35,11 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
-    :param pts: ndarray of shape (3, n_points) (each column is a xyz)
+    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
     :param t: optional, time parameter to add a time dependency to the
         emissivity function
-    :param vect:
+    :param vect: optional, ndarray of shape (3, n_points), if anisotropic
+        emissivity, unit direction vectors (X,Y,Z)
     :return:
         - emissivity -- 2D array holding the emissivity for each point in the
             input grid
@@ -73,6 +74,7 @@ ax.set_xlabel('y')
 ax.set_ylabel('z')
 configB2.plot(lax=ax, proj='cross')
 cam_center, = ax.plot(*project_to_2D(cam2d._dgeom['pinhole']), '*', ms=20)
+ax.set_aspect("equal")
 ax.legend(handles=[cam_center], labels=['camera pinhole'], loc='upper right')
 
 ###############################################################################
@@ -89,7 +91,8 @@ sig, units = cam2d.calc_signal(emissivity,
                                method="sum",
                                newcalc=True,
                                plot=False,
+                               ani=False,
                                t=time_vector)
 
 sig.plot(ntMax=1)
-plt.show(block=False)
+plt.show(block=True)
