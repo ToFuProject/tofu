@@ -6,6 +6,7 @@ This module contains tests for tofu.geom in its structured version
 # Built-in
 import os
 import warnings
+import itertools as itt
 
 # Standard
 import numpy as np
@@ -204,40 +205,67 @@ class Test01_DataCollection(object):
         }
 
         # Define constraint dict 
-        dconst0 = {
-            'amp': {'a1': ['a', 'd']},
-            'width': 'group',
-            'shift': {
-                'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                'b': {'key': 's1', 'coef': 1., 'offset': 0.},
-                'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+        ldconst = [
+            {
+                'amp': {'a1': ['a', 'd']},
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'b': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': True,
+                'symmetry': True,
             },
-            'double': True,
-            'symmetry': True,
-        }
+            {
+                'amp': False,
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': False,
+                'symmetry': False,
+            }
+        ]
 
-        dconst1 = {
-            'amp': False,
-            'width': 'group',
-            'shift': {
-                'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
-            },
-            'double': False,
-            'symmetry': False,
-        }
+        ldx0 = [
+            None,
+            {
+                'amp': False,
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': False,
+                'symmetry': False,
+            }
+        ]
 
-        for dd in [dconst0, dconst1]:
+        ldomain = [
+            None,
+            None,
+        ]
+
+        ldata = [
+            self.spect2d[:, 200],
+            self.spect2d[:10, 200],
+        ]
+
+
+        for comb in itt.product(lconst, ldx0, ldomain, ldata):
             dinput = tfs.fit1d_dinput(
                 dlines=self.dlines,
-                dconstraints=dd,
+                dconstraints=comb[0],
                 dprepare=None,
-                data=self.spect2d[:, 200],
+                data=comb[3],
                 lamb=self.lamb,
                 mask=None,
-                domain=None,
+                domain=comb[2],
                 pos=None,
                 subset=None,
                 same_spectrum=None,
@@ -249,7 +277,7 @@ class Test01_DataCollection(object):
                 focus_half_width=None,
                 valid_return_fract=None,
                 dscales=None,
-                dx0=None,
+                dx0=comb[1],
                 dbounds=None,
                 defconst=defconst,
             )

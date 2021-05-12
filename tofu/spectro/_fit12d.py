@@ -1665,15 +1665,24 @@ def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
     lkdict = ['amp', 'width', 'shift']
     ltypes = [int, float, np.int, np.float]
     c0 = din is None
-    c1 = (isinstance(din, dict)
-          and all([(k0 in lkconst and type(v0) in ltypes)
-                   or (k0 in lk and type(v0) in ltypes + [np.ndarray])
-                   or (k0 in lkdict
-                       and isinstance(v0, dict)
-                       and all([k1 in dinput[k0]['keys']
-                                and type(v1) in ltypes + [np.ndarray]
-                                for k1, v1 in v0.items()]))
-                   for k0, v0 in din.items()]))
+    c1 = (
+        isinstance(din, dict)
+        and all([
+            (k0 in lkconst and type(v0) in ltypes)
+            or (
+                k0 in lk and type(v0) in ltypes + [np.ndarray])
+                or (
+                    k0 in lkdict
+                    and isinstance(v0, dict)
+                    and all([
+                        k1 in dinput[k0]['keys']
+                        and type(v1) in ltypes + [np.ndarray]
+                        for k1, v1 in v0.items()
+                    ])
+                )
+            for k0, v0 in din.items()
+        ])
+    )
     if c0 is True:
         din = {}
     elif not c1:
@@ -1684,17 +1693,29 @@ def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
     return din
 
 
+def _fit12d_filldef_dscalesx0_dict(din=None, key=None, vref=None):
+    if dscales.get('shift') is None:
+        dscales['shift'] = {k0: np.full((nspect,), shiftref)
+                            for k0 in dinput['shift']['keys']}
+    else:
+        for k0 in dinput['shift']['keys']:
+            if dscales['shift'].get(k0) is None:
+                dscales['shift'][k0] = np.full((nspect,), shiftref)
+            elif type(dscales['shift'][k0]) in ltypes:
+                dscales['shift'][k0] = np.full((nspect,), dscales['shift'][k0])
+            else:
+                assert dscales['shift'][k0].shape == (nspect,)
+
+
 def fit12d_dscales(dscales=None,
                    dinput=None):
 
     # --------------
     # Input checks
-    lkconst = ['dratio', 'dshift']
-    lk = ['bck']
-    lkdict = ['amp', 'width', 'shift']
     ltypes = [int, float, np.int, np.float]
-    dscales = _fit12d_checkformat_dscalesx0(din=dscales, dinput=dinput,
-                                            name='dscales')
+    dscales = _fit12d_checkformat_dscalesx0(
+        din=dscales, dinput=dinput, name='dscales',
+    )
 
     data = dinput['dprepare']['data']
     lamb = dinput['dprepare']['lamb']
@@ -1994,6 +2015,140 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
 ###########################################################
 
 
+def fit12d_dx0(dx0=None, dinput=None):
+
+    # --------------
+    # Input checks
+    ltypes = [int, float, np.int, np.float]
+    dx0 = _fit12d_checkformat_dscalesx0(
+        din=dx0, dinput=dinput, name='dx0',
+    )
+
+    data = dinput['dprepare']['data']
+    lamb = dinput['dprepare']['lamb']
+    nspect = data.shape[0]
+
+    # --------------
+    # 2d spectrum = 1d spectrum + vert. profile
+    data2d = data.ndim == 3
+    # if data2d is True:
+        # phi = dinput['dprepare']['phi']
+        # if dinput['dprepare']['binning'] is False:
+            # lambbins = np.linspace(
+                # dinput['dprepare']['domain']['lamb']['minmax'][0],
+                # dinput['dprepare']['domain']['lamb']['minmax'][1],
+                # dinput['dprepare']['nxi']-1)
+            # phibins = np.linspace(
+                # dinput['dprepare']['domain']['phi']['minmax'][0],
+                # dinput['dprepare']['domain']['phi']['minmax'][1],
+                # dinput['dprepare']['nxj']-1)
+            # datavert = scpstats.binned_statistic(
+                # phi[dinput['dprepare']['indok']],
+                # data[:, dinput['dprepare']['indok']],
+                # statistic='mean', bins=phibins, range=None)[0]
+            # data = scpstats.binned_statistic(
+                # lamb[dinput['dprepare']['indok']],
+                # data[:, dinput['dprepare']['indok']],
+                # statistic='mean', bins=lambbins, range=None)[0]
+            # lamb = 0.5*(lambbins[1:] + lambbins[:-1])
+            # phi = 0.5*(phibins[1:] + phibins[:-1])
+        # else:
+            # datavert = np.nanmean(data, axis=1)
+            # data = np.nanmean(data, axis=2)
+            # lamb = lamb[:, 0]
+            # phi = phi[0, :]
+
+        # # bsplines modulation of bck and amp, if relevant
+        # # fit bsplines on datavert (vertical profile)
+        # # to modulate scales (bck and amp)
+
+        # dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
+        # for ii in dinput['valid']['indt'].nonzero()[0]:
+            # indnonan = ~np.isnan(datavert[ii, :])
+            # bs = scpinterp.LSQUnivariateSpline(
+                # phi[indnonan], datavert[ii, indnonan],
+                # dinput['knots'][1:-1],
+                # k=dinput['deg'],
+                # bbox=dinput['knots'][np.r_[0,-1]],
+                # ext=0)
+            # dscales['bs'][ii, :] = bs.get_coeffs()
+        # # Normalize to avoid double-amplification when amp*bs
+        # corr = np.max(dscales['bs'][dinput['valid']['indt'], :],
+                      # axis=1)[:, None]
+        # dscales['bs'][dinput['valid']['indt'], :] /= corr
+
+    # --------------
+    # Default values for filling missing fields
+    Dlamb = np.diff(dinput['dprepare']['domain']['lamb']['minmax'])
+    lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
+
+    # bck
+    x0ref = 1.
+    if dx0.get('bck') is None:
+        dx0['bck'] = np.full((nspect,), x0ref)
+    else:
+        if type(dx0['bck']) in ltypes:
+            dx0['bck'] = np.full((nspect,), dx0['bck'])
+        else:
+            assert dx0['bck'].shape == (nspect,)
+
+    # amp
+    x0ref = 1.
+    for ii, ij in enumerate(dinput['dind']['amp_x0']):
+        key = dinput['amp']['keys'][ii]
+        if dx0['amp'].get(key) is None:
+            dx0['amp'][key] = np.full((nspect,), x0ref)
+        else:
+            if type(dx0['amp'][key]) in ltypes:
+                dx0['amp'][key] = np.full((nspect,), dx0['amp'][key])
+            else:
+                assert dx0['amp'][key].shape == (nspect,)
+
+    # width
+    x0ref = 1.
+    if dx0.get('width') is None:
+        dx0['width'] = {
+            k0: np.full((nspect,), x0ref) for k0 in dinput['width']['keys']
+        }
+    else:
+        for k0 in dinput['width']['keys']:
+            if dx0['width'].get(k0) is None:
+                dx0['width'][k0] = np.full((nspect,), x0ref)
+            elif type(dscales['width'][k0]) in ltypes:
+                dx0['width'][k0] = np.full((nspect,), dx0['width'][k0])
+            else:
+                assert dscales['width'][k0].shape == (nspect,)
+
+    # shift
+    x0ref = 0.
+    if dscales.get('shift') is None:
+        dx0['shift'] = {
+            k0: np.full((nspect,), x0ref) for k0 in dinput['shift']['keys']
+        }
+    else:
+        for k0 in dinput['shift']['keys']:
+            if dx0['shift'].get(k0) is None:
+                dx0['shift'][k0] = np.full((nspect,), x0ref)
+            elif type(dscales['shift'][k0]) in ltypes:
+                dx0['shift'][k0] = np.full((nspect,), dx0['shift'][k0])
+            else:
+                assert dx0['shift'][k0].shape == (nspect,)
+
+    # Double
+    if dinput['double'] is not False:
+        dratio = 1.
+        dshift = 0.
+        if dinput['double'] is True:
+            dx0['dratio'] = float(dx0.get('dratio', dratio))
+            dx0['dshift'] = float(dx0.get('dshift', dshift))
+        else:
+            if dinput['double'].get('dratio') is None:
+                dx0['dratio'] = float(dx0.get('dratio', dratio))
+            if dinput['double'].get('dshift') is None:
+                dx0['dshift'] = float(dx0.get('dshift', dshift))
+    return dx0
+
+
 def _checkformat_dx0(dx0=None, dinput=None):
 
     # -----------------
@@ -2076,7 +2231,7 @@ def multigausfit12d_from_dlines_x0(dind=None, nbs=None,
 # TBC / TBF
 def fit12d_dx0(dx0=None, dinput=None):
 
-    dx0 = _checkformat_dx0(dx0=dx0, dinput=dinput, scales=scales)
+    dx0 = _checkformat_dx0(dx0=dx0, dinput=dinput)
 
     # Only difference between 1d and 2d
     iax = dind['amp']['x']
