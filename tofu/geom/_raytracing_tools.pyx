@@ -699,7 +699,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
     cdef int totnvert=0
     cdef int nvert
     cdef int ind_struct, ind_bounds
-    cdef int ind_los, ii, jj, kk
+    cdef int ind_los, ii, jj
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
@@ -1012,7 +1012,6 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     cdef double sin1, sin0
     cdef double invupar2
     cdef double cosl0, cosl1, sinl0, sinl1
-    cdef double[3] opp_dir
 
     # -- Computing some seful values -------------------------------------------
     cosl0 = Ccos(lim_min)
@@ -1495,7 +1494,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                    double[::1] coeff_inter_in,
                                    double[::1] vperp_out,
                                    int[::1] ind_inter_out) nogil:
-    cdef int ii, jj, kk
+    cdef int ii, jj
     cdef int ind_struct = 0
     cdef int len_lim
     cdef int ind_min
@@ -1819,12 +1818,9 @@ cdef inline void raytracing_minmax_struct_tor(const int num_los,
     """
     cdef double upscaDp=0., upar2=0., dpar2=0., crit2=0., idpar2=0.
     cdef double dist = 0., s1x = 0., s1y = 0., s2x = 0., s2y = 0.
-    cdef double lim_min=0., lim_max=0., invuz=0.
-    cdef int totnvert=0
-    cdef int nvert
-    cdef int ind_struct, ind_bounds
-    cdef int ind_los, ii, jj, kk
-    cdef bint lim_is_none
+    cdef double invuz=0.
+    cdef int ind_struct
+    cdef int ind_los
     cdef bint found_new_kout
     cdef bint forbidbis = forbidbis_org
     cdef double[3] dummy
@@ -1923,7 +1919,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
     cdef bint is_in_path
     cdef int ii=0, jj=0
     cdef double kin, kout, scauVin, q, X, sca, k
-    cdef int indin=0, indout=0, Done=0
+    cdef int indin=0, indout=0, done=0
 
     kin_tab[ii]  = Cnan
     kout_tab[ii] = Cnan
@@ -1931,7 +1927,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
     for ii in range(0,Nl):
         kout = 1.e12
         kin  = 1.e12
-        Done = 0
+        done = 0
         # For cylinder
         for jj in range(0,Ns):
             scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
@@ -1959,7 +1955,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
                             if sca<=0 and k<kout:
                                 kout = k
                                 indout = jj
-                                Done = 1
+                                done = 1
                             elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
@@ -1979,7 +1975,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
                     if us[0,ii]<=0 and k<kout:
                         kout = k
                         indout = -1
-                        Done = 1
+                        done = 1
                     elif us[0,ii]>=0 and k<min(kin,kout):
                         kin = k
                         indin = -1
@@ -1995,12 +1991,12 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
                     if us[0,ii]>=0 and k<kout:
                         kout = k
                         indout = -2
-                        Done = 1
+                        done = 1
                     elif us[0,ii]<=0 and k<min(kin,kout):
                         kin = k
                         indin = -2
         # == Analyzing if there was impact ====================================
-        if Done==1:
+        if done==1:
             kout_tab[ii] = kout
             if kin<kin_tab[ii]:
                 kin_tab[ii] = kin

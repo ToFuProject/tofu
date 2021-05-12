@@ -2382,10 +2382,6 @@ class Config(utils.ToFuObject):
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
                  fromdict=None, sep=None):
-        """
-
-        :rtype: object
-        """
         kwdargs = locals()
         del kwdargs["self"]
         super(Config, self).__init__(**kwdargs)

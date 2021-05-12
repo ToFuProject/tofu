@@ -1,5 +1,5 @@
 # Built-in
-#import warnings
+# import warnings
 
 # Common
 import numpy as np
@@ -86,7 +86,7 @@ def _check_calc_solidangle_particle(
             pts = pts.reshape((3, 1))
         if pts.shape[0] != 3:
             pts = pts.T
-    except Exception as err:
+    except Exception:
         msg = (
             "Args traj and pts must be convertible to np.ndarrays of shape"
             + "\n\t- traj: (N,), (3, N) or (N, 3)"
