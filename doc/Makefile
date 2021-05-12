@@ -45,12 +45,10 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf source/auto_examples/
 html:
+	cp -f $(ORIGINFILES) $(DESTDIRECT)
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)."
-
-copyfiles:
-	cp -f $(ORIGINFILES) $(DESTDIRECT)
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
