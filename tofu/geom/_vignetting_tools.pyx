@@ -1,4 +1,5 @@
 # distutils: language=c++
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
@@ -16,9 +17,9 @@ from cython.parallel cimport parallel
 from libcpp.vector cimport vector as vecpp
 from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
-from libc.math cimport sqrt as Csqrt
-cimport _raytracing_tools as _rt
-cimport _basic_geom_tools as _bgt
+from libc.math cimport sqrt as c_sqrt
+from . cimport _raytracing_tools as _rt
+from . cimport _basic_geom_tools as _bgt
 
 
 # ==============================================================================
@@ -397,7 +398,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
         for ii in range(npts):
-            loc_hypot = Csqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
+            loc_hypot = c_sqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 loc_hypot, pts[2,ii]):
                 nb_in_poly += 1
@@ -428,7 +429,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size()
         res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
-        with nogil, parallel(num_threads=48):
+        with nogil, parallel(num_threads=num_threads):
             for ii in prange(sz_rphi[0]):
                 res_rphi[0][ii] = vec_rphi[ii]
     else:
@@ -462,6 +463,31 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size()
         res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
-        for ii in range(sz_rphi[0]):
+        for ii in prange(sz_rphi[0], num_threads=num_threads):
             res_rphi[0][ii] = vec_rphi[ii]
+    return nb_in_poly
+
+
+# ==============================================================================
+# =  Vignetting Vmesh with VPoly
+# ==============================================================================
+cdef inline int are_in_vignette(int sz_r, int sz_z,
+                                double[:, ::1] vpoly,
+                                int npts_vpoly,
+                                double* disc_r,
+                                double* disc_z,
+                                long[:, ::1] is_in_vignette) nogil:
+    # we keep only the points in vpoly
+    cdef int ii, jj
+    cdef int nb_in_poly = 0
+
+    for ii in range(sz_r):
+        for jj in range(sz_z):
+            if _bgt.is_point_in_path(npts_vpoly,
+                                     &vpoly[0][0], &vpoly[1][0],
+                                     disc_r[ii], disc_z[jj]):
+                nb_in_poly += 1
+                is_in_vignette[ii, jj] = 1
+            else:
+                is_in_vignette[ii, jj] = 0
     return nb_in_poly

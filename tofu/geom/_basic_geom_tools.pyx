@@ -1,23 +1,20 @@
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
 # cython: initializedcheck=False
 #
-cimport cython
-
 from cython.parallel import prange
 from cpython.array cimport array, clone
-from libc.math cimport cos as Ccos, sin as Csin
-from libc.math cimport atan2 as Catan2
-from libc.math cimport sqrt as Csqrt
-from libc.math cimport fabs as Cabs
-from libc.math cimport NAN as Cnan
-from libc.math cimport pi as Cpi
+from libc.math cimport sqrt as c_sqrt
+from libc.math cimport NAN as CNAN
+from libc.math cimport pi as c_pi
 from libc.stdlib cimport malloc, free
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
-cdef double _TWOPI = 2.0 * Cpi
+cdef double _TWOPI = 2.0 * c_pi
+
 
 # ==============================================================================
 # =  Point in path
@@ -52,7 +49,7 @@ cdef inline bint is_point_in_path(const int nvert,
     cdef bint c = 0
     for i in range(nvert):
         if ( ((verty[i]>testy) != (verty[i+1]>testy)) and
-            (testx < (vertx[i+1]-vertx[i]) * (testy-verty[i]) \
+            (testx < (vertx[i+1]-vertx[i]) * (testy-verty[i])
              / (verty[i+1]-verty[i]) + vertx[i]) ):
             c = not c
     return c
@@ -115,7 +112,6 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
     inv_direction : (3) double array
        Inverse on each axis of direction of LOS
     """
-    cdef int t0 = 1000000
     # computing sign and direction
     for  ii in range(3):
         if ray_vdir[ii] * ray_vdir[ii] < _VSMALL:
@@ -130,7 +126,7 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
 
 
 # ==============================================================================
-# =  Computing Hypothenus
+# =  Computing Hypotenuse
 # =============================================================================
 cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
                                 int npts=-1):
@@ -143,9 +139,8 @@ cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
     ptr_hypot = hypot.data.as_doubles
     with nogil:
         for ii in range(npts):
-            ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
+            ptr_hypot[ii] = c_sqrt(xpts[ii] * xpts[ii] + ypts[ii] * ypts[ii])
     return hypot
-
 
 
 cdef inline double comp_min_hypot(const double[::1] xpts,
@@ -160,7 +155,8 @@ cdef inline double comp_min_hypot(const double[::1] xpts,
         tmp = xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii]
         if tmp < hypot:
             hypot = tmp
-    return Csqrt(hypot)
+    return c_sqrt(hypot)
+
 
 cdef inline double comp_min(double[::1] vec, int npts) nogil:
     cdef int ii
@@ -182,33 +178,38 @@ cdef inline void compute_cross_prod(const double[3] vec_a,
     res[2] = vec_a[0]*vec_b[1] - vec_a[1]*vec_b[0]
     return
 
+
 cdef inline double compute_dot_prod(const double[3] vec_a,
                                     const double[3] vec_b) nogil:
     return vec_a[0] * vec_b[0] + vec_a[1] * vec_b[1] + vec_a[2] * vec_b[2]
 
+
 cdef inline double compute_norm(const double[3] vec) nogil:
-    return Csqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])
+    return c_sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])
+
 
 cdef inline double compute_g(double s, double m2b2, double rm0sqr,
                              double m0sqr, double b1sqr) nogil:
-    return s + m2b2 - rm0sqr*s / Csqrt(m0sqr*s*s + b1sqr)
+    return s + m2b2 - rm0sqr * s / c_sqrt(m0sqr * s * s + b1sqr)
+
 
 cdef inline double compute_bisect(double m2b2, double rm0sqr,
                                   double m0sqr, double b1sqr,
                                   double smin, double smax) nogil:
-    cdef int maxIterations = 10000
+    cdef int max_iterations = 10000
     cdef double root = 0.
     root = compute_find(m2b2, rm0sqr, m0sqr, b1sqr,
-                smin, smax, -1.0, 1.0, maxIterations, root)
-    gmin = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
+                        smin, smax, -1.0, 1.0, max_iterations, root)
     return root
+
 
 cdef inline double compute_find(double m2b2, double rm0sqr,
                                 double m0sqr, double b1sqr,
                                 double t0, double t1, double f0, double f1,
-                                int maxIterations, double root) nogil:
+                                int max_iterations, double root) nogil:
     cdef double fm, product
-    if (t0 < t1):
+
+    if t0 < t1:
         # Test the endpoints to see whether F(t) is zero.
         if f0 == 0.:
             root = t0
@@ -219,18 +220,18 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
         if f0*f1 > 0.:
             # It is not known whether the interval bounds a root.
             return root
-        for i in range(2, maxIterations+1):
-            root = (0.5) * (t0 + t1)
-            if (root == t0 or root == t1):
+        for _ in range(2, max_iterations + 1):
+            root = 0.5 * (t0 + t1)
+            if root == t0 or root == t1:
                 # The numbers t0 and t1 are consecutive floating-point
                 # numbers.
                 break
             fm = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
             product = fm * f0
-            if (product < 0.):
+            if product < 0.:
                 t1 = root
                 f1 = fm
-            elif (product > 0.):
+            elif product > 0.:
                 t0 = root
                 f0 = fm
             else:
@@ -238,6 +239,7 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
         return root
     else:
         return root
+
 
 # ==============================================================================
 # =  Tiling
@@ -261,6 +263,7 @@ cdef inline void tile_3_to_2d(double v0, double v1, double v2,
         res[2,ii] = v2
     return
 
+
 # ==============================================================================
 # =  Polygon helpers
 # ==============================================================================
@@ -283,6 +286,7 @@ cdef inline int find_ind_lowerright_corner(const double[::1] xpts,
                 res = ii
     return res
 
+
 # ==============================================================================
 # =  Distance
 # ==============================================================================
@@ -295,15 +299,16 @@ cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
     Q_i, where vec = {Q_0, Q_1, ..., Q_npts-1}
     """
     cdef int ii
-
-    for ii in range(npts):
-        dist[ii] = Csqrt((pt0 - vec[0, ii])*(pt0 - vec[0, ii])
-                         + (pt1 - vec[1, ii])*(pt1 - vec[1, ii])
-                         + (pt2 - vec[2, ii])*(pt2 - vec[2, ii]))
+    for ii in range(0, npts):
+        dist[ii] = c_sqrt((pt0 - vec[0, ii]) * (pt0 - vec[0, ii])
+                          + (pt1 - vec[1, ii]) * (pt1 - vec[1, ii])
+                          + (pt2 - vec[2, ii]) * (pt2 - vec[2, ii]))
     return
 
-cdef inline void compute_dist_vec_vec(const double[:, ::1] vec1, const int npts1,
-                                      const double[:, ::1] vec2, const int npts2,
+
+cdef inline void compute_dist_vec_vec(const int npts1, const int npts2,
+                                      const double[:, ::1] vec1,
+                                      const double[:, ::1] vec2,
                                       double[:, ::1] dist) nogil:
     """
     Compute the distance between each point P_i and each point
@@ -314,13 +319,14 @@ cdef inline void compute_dist_vec_vec(const double[:, ::1] vec1, const int npts1
 
     for ii in range(npts1):
         for jj in range(npts2):
-            dist[ii,jj] = Csqrt((vec1[0,ii] - vec2[0, ii])
-                                * (vec1[0,ii] - vec2[0, ii])
-                                + (vec1[1,ii] - vec2[1, ii])
-                                * (vec1[1,ii] - vec2[1, ii])
-                                + (vec1[2,ii] - vec2[2, ii])
-                                * (vec1[2,ii] - vec2[2, ii]))
+            dist[ii,jj] = c_sqrt((vec1[0, ii] - vec2[0, jj])
+                                 * (vec1[0,ii] - vec2[0, jj])
+                                 + (vec1[1,ii] - vec2[1, jj])
+                                 * (vec1[1,ii] - vec2[1, jj])
+                                 + (vec1[2,ii] - vec2[2, jj])
+                                 * (vec1[2,ii] - vec2[2, jj]))
     return
+
 
 cdef inline void compute_diff_div(const double[:, ::1] vec1,
                                   const double[:, ::1] vec2,
@@ -334,13 +340,14 @@ cdef inline void compute_diff_div(const double[:, ::1] vec1,
     cdef int ii
     cdef double invd
     for ii in range(npts):
-        invd = Cnan
+        invd = CNAN
         if div[ii] != 0. :
             invd = 1./div[ii]
         res[0, ii] = (vec1[0,ii] - vec2[0,ii]) * invd
         res[1, ii] = (vec1[1,ii] - vec2[1,ii]) * invd
         res[2, ii] = (vec1[2,ii] - vec2[2,ii]) * invd
     return
+
 
 # ==============================================================================
 # == Matrix sum (np.sum)
@@ -358,16 +365,16 @@ cdef inline void sum_by_rows(double *orig, double *out,
         for i in range(max_r):
             res[i] = 0
         for j in range(n_cols):
-            for i in range(max_r): #calculate sum for max_r-rows simultaniously
+            for i in range(max_r): #calculate sum for max_r-rows simultaneously
                 res[i]+=orig[(b*max_r+i)*n_cols+j]
         for i in range(max_r):
             out[b*max_r+i]=res[i]
     # left_overs:
-    left = n_rows - n_blocks*max_r;
+    left = n_rows - n_blocks*max_r
     for i in prange(max_r):
         res[i] = 0
     for j in prange(n_cols):
-        for i in range(left): #calculate sum for left rows simultaniously
+        for i in range(left): #calculate sum for left rows simultaneously
             res[i]+=orig[(n_blocks*max_r)*n_cols+j]
     for i in prange(left):
         out[n_blocks*max_r+i]=res[i]
@@ -375,12 +382,12 @@ cdef inline void sum_by_rows(double *orig, double *out,
     return
 
 
-
-# ...........
-
 cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
     cdef int ii
-    cdef long out = 0
-    for ii in prange(n_cols):
-        out += orig[ii]
+    cdef long out
+
+    with nogil:
+        out = 0
+        for ii in prange(n_cols):
+            out += orig[ii]
     return out

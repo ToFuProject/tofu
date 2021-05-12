@@ -2382,7 +2382,6 @@ class Config(utils.ToFuObject):
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
                  fromdict=None, sep=None):
-
         kwdargs = locals()
         del kwdargs["self"]
         super(Config, self).__init__(**kwdargs)
@@ -3838,7 +3837,9 @@ class Config(utils.ToFuObject):
         )
 
     def get_kwdargs_LOS_isVis(self):
+
         lS = self.lStruct
+
         # -- Getting "vessels" or IN structures -------------------------------
         lSIn = [ss for ss in lS if ss._InOut == "in"]
         if len(lSIn) == 0:
@@ -3848,6 +3849,7 @@ class Config(utils.ToFuObject):
             S = lSIn[np.argmin([ss.dgeom["Surf"] for ss in lSIn])]
         else:
             S = lSIn[0]
+
         # ... and its poly, limts, type, etc.
         VPoly = S.Poly_closed
         VVIn = S.dgeom["VIn"]
@@ -3856,41 +3858,40 @@ class Config(utils.ToFuObject):
         else:
             Lim = S.Lim
         VType = self.Id.Type
+
         # -- Getting OUT structures -------------------------------------------
         lS = [ss for ss in lS if ss._InOut == "out"]
-        lSPolyx, lSVInx = [], []
-        lSPolyy, lSVIny = [], []
-        lSLim, lSnLim = [], []
-        lsnvert = []
-        num_tot_structs = 0
-        num_lim_structs = 0
-        for ss in lS:
-            lp = ss.Poly_closed[0]
-            [lSPolyx.append(item) for item in lp]
-            lp = ss.Poly_closed[1]
-            [lSPolyy.append(item) for item in lp]
-            lp = ss.dgeom["VIn"][0]
-            [lSVInx.append(item) for item in lp]
-            lp = ss.dgeom["VIn"][1]
-            [lSVIny.append(item) for item in lp]
-            lSLim.append(ss.Lim)
-            lSnLim.append(ss.noccur)
-            if len(lsnvert) == 0:
-                lsnvert.append(len(ss.Poly_closed[0]))
-            else:
-                lsnvert.append(
-                    len(ss.Poly_closed[0]) + lsnvert[num_lim_structs - 1]
-                )
-            num_lim_structs += 1
-            if ss.Lim is None or len(ss.Lim) == 0:
-                num_tot_structs += 1
-            else:
-                num_tot_structs += len(ss.Lim)
-        lsnvert = np.asarray(lsnvert, dtype=np.int64)
-        lSPolyx = np.asarray(lSPolyx)
-        lSPolyy = np.asarray(lSPolyy)
-        lSVInx = np.asarray(lSVInx)
-        lSVIny = np.asarray(lSVIny)
+
+        if len(lS) == 0:
+
+            lSLim, lSnLim = None, None
+            num_lim_structs, num_tot_structs = 0, 0
+            lSPolyx, lSPolyy = None, None
+            lSVInx, lSVIny = None, None
+            lsnvert = None
+
+        else:
+
+            # Lims
+            lSLim = [ss.Lim for ss in lS]
+            lSnLim = np.array([ss.noccur for ss in lS])
+
+            # Nb of structures and of structures inc. Lims (toroidal occurences)
+            num_lim_structs = len(lS)
+            num_tot_structs = int(np.sum([max(1, ss.noccur) for ss in lS]))
+
+            # build concatenated C-contiguous arrays of x and y coordinates
+            lSPolyx = np.concatenate([ss.Poly_closed[0, :] for ss in lS])
+            lSPolyy = np.concatenate([ss.Poly_closed[1, :] for ss in lS])
+            lSVInx = np.concatenate([ss.dgeom['VIn'][0, :] for ss in lS])
+            lSVIny = np.concatenate([ss.dgeom['VIn'][1, :] for ss in lS])
+
+            # lsnvert = cumulated number of points in the polygon of each Struct
+            lsnvert = np.cumsum([
+                ss.Poly_closed[0].size for ss in lS],
+                dtype=int,
+            )
+
         # Now setting keyword arguments:
         dkwd = dict(
             ves_poly=VPoly,
@@ -3901,7 +3902,7 @@ class Config(utils.ToFuObject):
             lstruct_polyx=lSPolyx,
             lstruct_polyy=lSPolyy,
             lstruct_lims=lSLim,
-            lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+            lstruct_nlim=lSnLim,
             lstruct_normx=lSVInx,
             lstruct_normy=lSVIny,
             lnvert=lsnvert,
