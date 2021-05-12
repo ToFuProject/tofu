@@ -194,7 +194,7 @@ def calc_solidangle_particle(
     # Main computation
 
     # traj2pts vector, with length (3d array (3, N, M))
-    vect = pts[:, :, None] - traj[:, None, :]
+    vect = - pts[:, :, None] + traj[:, None, :]
     len_v = np.ascontiguousarray(np.sqrt(np.sum(vect**2, axis=0)))
 
     # If aniso or block, normalize
@@ -203,7 +203,7 @@ def calc_solidangle_particle(
 
     # Solid angle
     r_d = rad[None, :] / len_v
-    where_zero = len_v <= rad[None,:]
+    where_zero = len_v <= rad[None, :]
     r_d[where_zero] = 0.  # temporary value
     if approx:
         sang = np.pi * (r_d**2 + r_d**4 / 4. + r_d**6 / 8. + r_d**8 * 5 / 64)
