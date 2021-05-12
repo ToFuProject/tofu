@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tofu as tf
 
-configB2 = tf.geom.utils.create_config("B2")
+configB2 = tf.create_config("B2")
 
 cam2d = tf.geom.utils.create_CamLOS2D(
     config=configB2,
