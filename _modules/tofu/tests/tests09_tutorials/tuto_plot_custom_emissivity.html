@@ -120,8 +120,8 @@
 <span class="sd">Computing a camera image with custom emissivity</span>
 <span class="sd">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
 
-<span class="sd">This tutorial defines an emissivity that varies in space and computes</span>
-<span class="sd">the signal received by a camera using this emissivity.</span>
+<span class="sd">This tutorial defines an emissivity that varies in space and computes the signal</span>
+<span class="sd">received by a camera using this emissivity.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1">###############################################################################</span>
@@ -131,15 +131,15 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
 
-<span class="n">configB2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_config</span><span class="p">(</span><span class="s2">&quot;B2&quot;</span><span class="p">)</span>
+<span class="n">configB2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;B2&quot;</span><span class="p">)</span>
 
 <span class="n">cam2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span>
     <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
-    <span class="n">P</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">N12</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">F</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">D12</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">angs</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">focal</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
     <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -153,10 +153,11 @@
 <div class="viewcode-block" id="emissivity"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity.emissivity">[docs]</a><span class="k">def</span> <span class="nf">emissivity</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Custom emissivity as a function of geometry.</span>
 
-<span class="sd">    :param pts: ndarray of shape (3, n_points) (each column is a xyz)</span>
+<span class="sd">    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)</span>
 <span class="sd">    :param t: optional, time parameter to add a time dependency to the</span>
 <span class="sd">        emissivity function</span>
-<span class="sd">    :param vect:</span>
+<span class="sd">    :param vect: optional, ndarray of shape (3, n_points), if anisotropic</span>
+<span class="sd">        emissivity, unit direction vectors (X,Y,Z)</span>
 <span class="sd">    :return:</span>
 <span class="sd">        - emissivity -- 2D array holding the emissivity for each point in the</span>
 <span class="sd">            input grid</span>
@@ -191,6 +192,7 @@
 <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">)</span>
 <span class="n">configB2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="s1">&#39;cross&#39;</span><span class="p">)</span>
 <span class="n">cam_center</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">project_to_2D</span><span class="p">(</span><span class="n">cam2d</span><span class="o">.</span><span class="n">_dgeom</span><span class="p">[</span><span class="s1">&#39;pinhole&#39;</span><span class="p">]),</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="p">[</span><span class="n">cam_center</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;camera pinhole&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
 
 <span class="c1">###############################################################################</span>
@@ -207,10 +209,11 @@
                                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
                                <span class="n">newcalc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">ani</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                <span class="n">t</span><span class="o">=</span><span class="n">time_vector</span><span class="p">)</span>
 
 <span class="n">sig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ntMax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 
     </div>

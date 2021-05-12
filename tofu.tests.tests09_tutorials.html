@@ -213,10 +213,7 @@
 <span id="tofu-tests-tests09-tutorials-tuto-plot-basic-module"></span><h2>tofu.tests.tests09_tutorials.tuto_plot_basic module<a class="headerlink" href="#module-tofu.tests.tests09_tutorials.tuto_plot_basic" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="getting-started-5-minutes-tutorial-for-tofu">
 <h3>Getting started: 5 minutes tutorial for <cite>tofu</cite><a class="headerlink" href="#getting-started-5-minutes-tutorial-for-tofu" title="Permalink to this headline">¶</a></h3>
-<dl class="simple">
-<dt>This is a tutorial that aims to get a new user a little familiar with tofu’s</dt><dd><p>structure.</p>
-</dd>
-</dl>
+<p>This is a tutorial that aims to get a new user a little familiar with tofu’s structure.</p>
 </div>
 </div>
 <div class="section" id="module-tofu.tests.tests09_tutorials.tuto_plot_create_geometry">
@@ -230,8 +227,8 @@
 <span id="tofu-tests-tests09-tutorials-tuto-plot-custom-emissivity-module"></span><h2>tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity module<a class="headerlink" href="#module-tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="computing-a-camera-image-with-custom-emissivity">
 <h3>Computing a camera image with custom emissivity<a class="headerlink" href="#computing-a-camera-image-with-custom-emissivity" title="Permalink to this headline">¶</a></h3>
-<p>This tutorial defines an emissivity that varies in space and computes
-the signal received by a camera using this emissivity.</p>
+<p>This tutorial defines an emissivity that varies in space and computes the signal
+received by a camera using this emissivity.</p>
 <dl class="py function">
 <dt id="tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity.emissivity">
 <code class="sig-prename descclassname"><span class="pre">tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity.</span></code><code class="sig-name descname"><span class="pre">emissivity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests09_tutorials/tuto_plot_custom_emissivity.html#emissivity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity.emissivity" title="Permalink to this definition">¶</a></dt>
@@ -239,10 +236,11 @@ the signal received by a camera using this emissivity.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>pts</strong> – ndarray of shape (3, n_points) (each column is a xyz)</p></li>
+<li><p><strong>pts</strong> – ndarray of shape (3, n_points) (each column is a xyz coordinate)</p></li>
 <li><p><strong>t</strong> – optional, time parameter to add a time dependency to the
 emissivity function</p></li>
-<li><p><strong>vect</strong> – </p></li>
+<li><p><strong>vect</strong> – optional, ndarray of shape (3, n_points), if anisotropic
+emissivity, unit direction vectors (X,Y,Z)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
