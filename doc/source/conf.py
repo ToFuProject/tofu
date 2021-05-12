@@ -19,8 +19,9 @@ from sphinx_gallery.sorting import FileNameSortKey
 
 # Getting tofu version
 splitted = tf.__version__.split(".")
+last_num = splitted[2].split("-")
 tf_version = splitted[0] + "." + splitted[1]
-tf_release = tf_version  + "." + splitted[2]
+tf_release = tf_version  + "." + last_num[0]
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
