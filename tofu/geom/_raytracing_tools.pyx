@@ -2044,18 +2044,13 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     cdef double[:, ::1] ray_vdir = view.array(shape=(3,npts),
                                               itemsize=sizeof(double),
                                               format="d")
-    # ... copying tab that will be changed
-    if lstruct_nlim is None:
-        lstruct_nlim_copy = None
-    else:
-        lstruct_nlim_copy = lstruct_nlim.copy()
     # --------------------------------------------------------------------------
     if dist is None:
         is_visible_pt_vec_core_nd(pt0, pt1, pt2,
                                   pts, npts,
                                   ves_poly, ves_norm,
                                   is_vis, ves_lims,
-                                  lstruct_nlim_copy,
+                                  lstruct_nlim,
                                   lstruct_polyx, lstruct_polyy,
                                   lstruct_lims,
                                   lstruct_normx, lstruct_normy,
@@ -2248,7 +2243,6 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      bint forbid,
                                      int num_threads):
     cdef int ii
-    cdef long[::1] lstruct_nlim_copy
     cdef array vperp_out = clone(array('d'), npts2 * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), npts2, True)
     cdef array coeff_inter_out = clone(array('d'), npts2, True)
@@ -2264,16 +2258,11 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     # We compute for each point in the polygon
     if dist is not None:
         for ii in range(npts1):
-            # ... copying tab that will be changed
-            if lstruct_nlim is None:
-                lstruct_nlim_copy = None
-            else:
-                lstruct_nlim_copy = lstruct_nlim.copy()
             is_visible_pt_vec_core(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                                    pts2, npts2,
                                    ves_poly, ves_norm,
                                    &is_vis[ii, 0], &dist[ii, 0], ves_lims,
-                                   lstruct_nlim_copy,
+                                   lstruct_nlim,
                                    lstruct_polyx, lstruct_polyy,
                                    lstruct_lims,
                                    lstruct_normx, lstruct_normy,
@@ -2287,16 +2276,11 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                    forbid, num_threads)
     else:
         for ii in range(npts1):
-            # ... copying tab that will be changed
-            if lstruct_nlim is None:
-                lstruct_nlim_copy = None
-            else:
-                lstruct_nlim_copy = lstruct_nlim.copy()
             is_visible_pt_vec_core_nd(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                                       pts2, npts2,
                                       ves_poly, ves_norm,
                                       &is_vis[ii, 0], ves_lims,
-                                      lstruct_nlim_copy,
+                                      lstruct_nlim,
                                       lstruct_polyx, lstruct_polyy,
                                       lstruct_lims,
                                       lstruct_normx, lstruct_normy,

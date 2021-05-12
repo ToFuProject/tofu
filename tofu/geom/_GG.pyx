@@ -2264,7 +2264,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef array coeff_inter_in  = clone(array('d'), nlos, True)
     cdef array coeff_inter_out = clone(array('d'), nlos, True)
     cdef array ind_inter_out = clone(array('i'), nlos * 3, True)
-    cdef long[::1] lstruct_nlim_copy
     cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
@@ -2338,30 +2337,11 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         sz_ves_lims = 0
     min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
 
-    if lstruct_lims is None or np.size(lstruct_lims) == 0:
-        lstruct_lims_np = np.array([Cnan])
-    else:
-        flat_list = []
-        for ele in lstruct_lims:
-            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                for elele in ele:
-                    if type(elele) is list:
-                        flat_list += elele
-                    else:
-                        flat_list += elele.flatten().tolist()
-            else:
-                flat_list += [Cnan]
-
-        lstruct_lims_np = np.array(flat_list)
-
-    if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-        lstruct_nlim_copy = None
-    else:
-        lstruct_nlim_copy = lstruct_nlim.copy()
+    lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
     _rt.compute_inout_tot(nlos, npts_poly,
                           ray_orig, ray_vdir,
                           ves_poly, ves_norm,
-                          lstruct_nlim_copy, ves_lims,
+                          lstruct_nlim, ves_lims,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims_np, lstruct_normx,
                           lstruct_normy, lnvert,
@@ -2558,6 +2538,30 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out)
 
 
+def flatten_lstruct_lims(list lstruct_lims) -> double[::1]:
+    """
+    utilitary function to flatten lstruct_lims
+    """
+    cdef list flat_list
+    cdef double[::1] lstruct_lims_np
+    if lstruct_lims is None or np.size(lstruct_lims) == 0:
+        lstruct_lims_np = np.array([Cnan])
+    else:
+        flat_list = []
+        for ele in lstruct_lims:
+            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+                for elele in ele:
+                    if type(elele) is list:
+                        flat_list += elele
+                    else:
+                        flat_list += elele.flatten().tolist()
+            else:
+                flat_list += [Cnan]
+        lstruct_lims_np = np.array(flat_list)
+
+    return lstruct_lims_np
+
+
 # =============================================================================
 # = Tools to know if one or multiple points are visible from other points
 # =============================================================================
@@ -2610,7 +2614,6 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
     cdef bint bool1, bool2
     cdef np.ndarray[long, ndim=2, mode='c'] are_seen = np.empty((npts1, npts2),
                                                                 dtype=int)
-    cdef long[::1] lstruct_nlim_copy
     cdef double[::1] lstruct_lims_np
     # == Testing inputs ========================================================
     if test:
@@ -2632,31 +2635,12 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
-    if lstruct_lims is None or np.size(lstruct_lims) == 0:
-        lstruct_lims_np = np.array([Cnan])
-    else:
-        flat_list = []
-        for ele in lstruct_lims:
-            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                for elele in ele:
-                    if type(elele) is list:
-                        flat_list += elele
-                    else:
-                        flat_list += elele.flatten().tolist()
-            else:
-                flat_list += [Cnan]
-        lstruct_lims_np = np.array(flat_list)
-
-    if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-        lstruct_nlim_copy = None
-    else:
-        lstruct_nlim_copy = lstruct_nlim.copy()
-
+    lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
                             are_seen, dist, ves_lims,
-                            lstruct_nlim_copy,
+                            lstruct_nlim,
                             lstruct_polyx, lstruct_polyy,
                             lstruct_lims_np,
                             lstruct_normx, lstruct_normy,
@@ -2712,12 +2696,10 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                               0 else
     """
     cdef str msg
-    cdef int npts=pts.shape[1]
+    cdef int npts = pts.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[long, ndim=1, mode='c'] is_seen = np.empty((npts),
-                                                               dtype=int)
-    cdef long[::1] lstruct_nlim_copy
     cdef double[::1] lstruct_lims_np
+    cdef np.ndarray[long, ndim=1, mode='c'] is_seen
     # == Testing inputs ========================================================
     if test:
         msg = "ves_poly and ves_norm are not optional arguments"
@@ -2738,31 +2720,13 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
-    if lstruct_lims is None or np.size(lstruct_lims) == 0:
-        lstruct_lims_np = np.array([Cnan])
-    else:
-        flat_list = []
-        for ele in lstruct_lims:
-            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                for elele in ele:
-                    if type(elele) is list:
-                        flat_list += elele
-                    else:
-                        flat_list += elele.flatten().tolist()
-            else:
-                flat_list += [Cnan]
-        lstruct_lims_np = np.array(flat_list)
-
-    if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-        lstruct_nlim_copy = None
-    else:
-        lstruct_nlim_copy = lstruct_nlim.copy()
-
+    lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
+    is_seen = np.empty((npts), dtype=int)
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
                           &is_seen[0], dist, ves_lims,
-                          lstruct_nlim_copy,
+                          lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims_np,
                           lstruct_normx, lstruct_normy,
@@ -4720,9 +4684,11 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double twopi_over_dphi
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[::1] ind_mv
+    cdef long[::1] first_ind_mv
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef double[::1] reso_rdrdz_mv
+    cdef double[::1] lstruct_lims_np
     cdef double[:, ::1] poly_mv
     cdef double[:, ::1] pts_mv
     cdef long[:, ::1] indi_mv
@@ -4736,7 +4702,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
     cdef double* step_rphi = NULL
-    cdef long[::1] first_ind_mv
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double, ndim=1] reso_rdrdz
@@ -4915,6 +4880,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(int)
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
+    lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
     # ..............
     _st.sa_assemble_arrays(block,
                            approx,
@@ -4928,7 +4894,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
                            lstruct_nlim,
                            lstruct_polyx,
                            lstruct_polyy,
-                           lstruct_lims,
+                           lstruct_lims_np,
                            lstruct_normx,
                            lstruct_normy,
                            lnvert,

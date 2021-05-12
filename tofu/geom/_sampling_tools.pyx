@@ -2052,7 +2052,7 @@ cdef inline void sa_assemble_arrays(int block,
                                     long[::1] lstruct_nlim,
                                     double[::1] lstruct_polyx,
                                     double[::1] lstruct_polyy,
-                                    list lstruct_lims,
+                                    double[::1] lstruct_lims,
                                     double[::1] lstruct_normx,
                                     double[::1] lstruct_normy,
                                     long[::1] lnvert,
@@ -2092,35 +2092,16 @@ cdef inline void sa_assemble_arrays(int block,
         coeff_inter_in  = clone(array('d'), sz_p, True)
         coeff_inter_out = clone(array('d'), sz_p, True)
         ind_inter_out = clone(array('i'), sz_p * 3, True)
-        if lstruct_lims is None or np.size(lstruct_lims) == 0:
-            lstruct_lims_np = np.array([CNAN])
-        else:
-            flat_list = []
-            for ele in lstruct_lims:
-                if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                    for elele in ele:
-                        if type(elele) is list:
-                            flat_list += elele
-                        else:
-                            flat_list += elele.flatten().tolist()
-                else:
-                    flat_list += [CNAN]
-            lstruct_lims_np = np.array(flat_list)
 
-        # ... copying tab that will be changed
-        if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-            lstruct_nlim_copy = None
-        else:
-            lstruct_nlim_copy = lstruct_nlim.copy()
         assemble_block_approx(part_coords, part_rad,
                               is_in_vignette,
                               sa_map,
                               ves_poly, ves_norm,
                               ves_lims,
-                              lstruct_nlim_copy,
+                              lstruct_nlim,
                               lstruct_polyx,
                               lstruct_polyy,
-                              lstruct_lims_np,
+                              lstruct_lims,
                               lstruct_normx,
                               lstruct_normy,
                               lnvert, vperp_out,
@@ -2165,35 +2146,16 @@ cdef inline void sa_assemble_arrays(int block,
         coeff_inter_in  = clone(array('d'), sz_p, True)
         coeff_inter_out = clone(array('d'), sz_p, True)
         ind_inter_out = clone(array('i'), sz_p * 3, True)
-        if lstruct_lims is None or np.size(lstruct_lims) == 0:
-            lstruct_lims_np = np.array([CNAN])
-        else:
-            flat_list = []
-            for ele in lstruct_lims:
-                if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
-                    for elele in ele:
-                        if type(elele) is list:
-                            flat_list += elele
-                        else:
-                            flat_list += elele.flatten().tolist()
-                else:
-                    flat_list += [CNAN]
-            lstruct_lims_np = np.array(flat_list)
 
-        # ... copying tab that will be changed
-        if lstruct_nlim is None or np.size(lstruct_nlim) == 0:
-            lstruct_nlim_copy = None
-        else:
-            lstruct_nlim_copy = lstruct_nlim.copy()
         assemble_block_exact(part_coords, part_rad,
                              is_in_vignette,
                              sa_map,
                              ves_poly, ves_norm,
                              ves_lims,
-                             lstruct_nlim_copy,
+                             lstruct_nlim,
                              lstruct_polyx,
                              lstruct_polyy,
-                             lstruct_lims_np,
+                             lstruct_lims,
                              lstruct_normx,
                              lstruct_normy,
                              lnvert, vperp_out,
