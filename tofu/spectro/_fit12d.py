@@ -54,6 +54,7 @@ _VALID_NSIGMA = 6.
 _VALID_FRACTION = 0.8
 _SIGMA_MARGIN = 3.
 _ALLOW_PICKLE = True
+_LTYPES = [int, float, np.int_, np.float_]
 
 
 ###########################################################
@@ -205,12 +206,16 @@ def _checkformat_dconstraints(dconstraints=None, defconst=None):
 
 def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
     dinput['double'] = dconstraints.get('double', defconst['double'])
-    ltypes = [int, float, np.int_, np.float_]
-    c0 = (isinstance(dinput['double'], bool)
-          or (isinstance(dinput['double'], dict)
-              and all([(kk in ['dratio', 'dshift']
-                        and type(vv) in ltypes)
-                       for kk, vv in dinput['double'].items()])))
+    c0 = (
+        isinstance(dinput['double'], bool)
+        or (
+            isinstance(dinput['double'], dict)
+            and all([
+                kk in ['dratio', 'dshift'] and type(vv) in _LTYPES
+                for kk, vv in dinput['double'].items()
+            ])
+        )
+    )
     if c0 is False:
         msg = ("dconstraints['double'] must be either:\n"
                + "\t- False: no line doubling\n"
@@ -587,7 +592,7 @@ def _binning_check(binning, nlamb=None, nphi=None,
             raise Exception(msg2)
 
     # Check which format was passed and return None or dict
-    ltypes0 = [int, float, np.int_, np.float_]
+    ltypes0 = _LTYPES
     ltypes1 = [tuple, list, np.ndarray]
     lc = [binning is False,
           (isinstance(binning, dict)
@@ -789,8 +794,7 @@ def _extract_lphi_spectra(data, phi, lamb,
 def _checkformat_possubset(pos=None, subset=None):
     if pos is None:
         pos = _POS
-    ltypes = [float, int, np.float_, np.int_]
-    c0 = isinstance(pos, bool) or type(pos) in ltypes
+    c0 = isinstance(pos, bool) or type(pos) in _LTYPES
     if not c0:
         msg = ("Arg pos must be either:\n"
                + "\t- False: no positivity constraints\n"
@@ -1031,10 +1035,8 @@ def _dvalid_checkfocus(focus=None, focus_half_width=None,
     if focus in [None, False]:
         return False
 
-    ltypes = [float, int, np.int_, np.float_]
-
     # Check focus and transform to array of floats
-    lc0 = [type(focus) in [str] + ltypes,
+    lc0 = [type(focus) in [str] + _LTYPES,
            type(focus) in [list, tuple, np.ndarray]]
     if not any(lc0):
         msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
@@ -1043,7 +1045,7 @@ def _dvalid_checkfocus(focus=None, focus_half_width=None,
     if lc0[0] is True:
         focus = [focus]
     for ii in range(len(focus)):
-        if focus[ii] not in lines_keys and type(focus[ii]) not in ltypes:
+        if focus[ii] not in lines_keys and type(focus[ii]) not in _LTYPES:
             msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
                                             lines_keys)
             raise Exception(msg)
@@ -1053,10 +1055,10 @@ def _dvalid_checkfocus(focus=None, focus_half_width=None,
     # Check focus_half_width and transform to array of floats
     if focus_half_width is None:
         focus_half_width = (np.max(lines_lamb) - np.min(lines_lamb))/20
-    lc0 = [type(focus_half_width) in ltypes,
+    lc0 = [type(focus_half_width) in _LTYPES,
            (type(focus_half_width) in [list, tuple, np.ndarray]
             and len(focus_half_width) == focus.size
-            and all([type(fhw) in ltypes for fhw in focus_half_width]))]
+            and all([type(fhw) in _LTYPES for fhw in focus_half_width]))]
     if not any(lc0):
         msg = _dvalid_checkfocus_errmsg(focus, focus_half_width,
                                         lines_keys)
@@ -1294,7 +1296,6 @@ def fit1d_dinput(
     dconstraints = _checkformat_dconstraints(
         dconstraints=dconstraints, defconst=defconst,
     )
-    ltypes = [int, float, np.int_, np.float_]
     dinput = {}
 
     # ------------------------
@@ -1442,7 +1443,6 @@ def fit2d_dinput(
 
     dconstraints = _checkformat_dconstraints(dconstraints=dconstraints,
                                              defconst=defconst)
-    ltypes = [int, float, np.int_, np.float_]
     dinput = {}
 
     # ------------------------
@@ -1663,20 +1663,19 @@ def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
     lkconst = ['dratio', 'dshift']
     lk = ['bck']
     lkdict = ['amp', 'width', 'shift']
-    ltypes = [int, float, np.int, np.float]
     c0 = din is None
     c1 = (
         isinstance(din, dict)
         and all([
-            (k0 in lkconst and type(v0) in ltypes)
+            (k0 in lkconst and type(v0) in _LTYPES)
             or (
-                k0 in lk and type(v0) in ltypes + [np.ndarray])
+                k0 in lk and type(v0) in _LTYPES + [np.ndarray])
                 or (
                     k0 in lkdict
                     and isinstance(v0, dict)
                     and all([
                         k1 in dinput[k0]['keys']
-                        and type(v1) in ltypes + [np.ndarray]
+                        and type(v1) in _LTYPES + [np.ndarray]
                         for k1, v1 in v0.items()
                     ])
                 )
@@ -1693,18 +1692,71 @@ def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
     return din
 
 
-def _fit12d_filldef_dscalesx0_dict(din=None, key=None, vref=None):
-    if dscales.get('shift') is None:
-        dscales['shift'] = {k0: np.full((nspect,), shiftref)
-                            for k0 in dinput['shift']['keys']}
+def _fit12d_filldef_dscalesx0_dict(
+    din=None, din_name=None, key=None, vref=None, nspect=None, dinput=None,
+):
+
+    # Check vref
+    if vref is not None:
+        if type(vref) not in _LTYPES and len(vref) != nspect:
+            msg = (
+                "Non-conform vref for "
+                + "{}['{}']\n".format(din_name, key)
+                + "\t- expected: float or np.ndarray (size {})".format(nspect)
+                + "\t- provided: {}".format(vref)
+            )
+            raise Exception(msgi)
+        if type(vref) in _LTYPES:
+            vref = np.full((nspect,), vref)
+
+    # check din[key]
+    if din.get(key) is None:
+        assert vref is not None
+        din[key] = {k0: vref for k0 in dinput[key]['keys']}
+
     else:
-        for k0 in dinput['shift']['keys']:
-            if dscales['shift'].get(k0) is None:
-                dscales['shift'][k0] = np.full((nspect,), shiftref)
-            elif type(dscales['shift'][k0]) in ltypes:
-                dscales['shift'][k0] = np.full((nspect,), dscales['shift'][k0])
-            else:
-                assert dscales['shift'][k0].shape == (nspect,)
+        for k0 in dinput[key]['keys']:
+            if din[key].get(k0) is None:
+                din[key][k0] = vref
+            elif type(din[key][k0]) in _LTYPES:
+                din[key][k0] = np.full((nspect,), din[key][k0])
+            elif din[key][k0].shape != (nspect,):
+                msg = (
+                    "Non-conform value for "
+                    + "{}['{}']['{}']\n".format(din_name, key, k0)
+                    + "\t- expected: float or array (size {})".format(nspect)
+                    + "\t- provided: {}".format(din[key][k0])
+                )
+                raise Exception(msg)
+    return din
+
+
+def _fit12d_filldef_dscalesx0_float(
+    din=None, din_name=None, key=None, vref=None, nspect=None,
+):
+    if dx0.get(key) is None:
+        if type(vref) is _LTYPES:
+            din[key] = np.full((nspect,), vref)
+        elif vref.shape == nspect
+            din[key] = vref
+        else:
+            msg = (
+                "Non-conform vref for {}['{}']\n".format(din_name, key)
+                + "\t- expected: float or np.ndarray (size {})".format(nspect)
+                + "\t- provided: {}".format(vref)
+            )
+            raise Exception(msg)
+    else:
+        if type(dx0[key]) in _LTYPES:
+            din[key] = np.full((nspect,), din[key])
+        elif din[key].shape != (nspect,):
+            msg = (
+                "Non-conform vref for {}['{}']\n".format(din_name, key)
+                + "\t- expected: float or np.ndarray (size {})".format(nspect)
+                + "\t- provided: {}".format(din[key])
+            )
+            raise Exception(msg)
+    return din
 
 
 def fit12d_dscales(dscales=None,
@@ -1712,7 +1764,6 @@ def fit12d_dscales(dscales=None,
 
     # --------------
     # Input checks
-    ltypes = [int, float, np.int, np.float]
     dscales = _fit12d_checkformat_dscalesx0(
         din=dscales, dinput=dinput, name='dscales',
     )
@@ -1776,15 +1827,15 @@ def fit12d_dscales(dscales=None,
     lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
 
     # bck
+    bckref = None
     if dscales.get('bck') is None:
         indbck = data < np.nanmean(data, axis=1)[:, None]
-        dscales['bck'] = np.array(np.ma.masked_where(indbck,
-                                                     data).mean(axis=1))
-    else:
-        if type(dscales['bck']) in ltypes:
-            dscales['bck'] = np.full((nspect,), dscales['bck'])
-        else:
-            assert dscales['bck'].shape == (nspect,)
+        bckref = np.array(np.ma.masked_where(
+            indbck, data,
+        ).mean(axis=1))
+    dscales = _fit12d_filldef_dscalesx0_float(
+        din=dscales, din_name='dscales', key='bck', vref=bckref, nspect=nspect,
+    )
 
     # amp
     dscales['amp'] = dscales.get('amp', dict.fromkeys(dinput['amp']['keys']))
@@ -1794,7 +1845,7 @@ def fit12d_dscales(dscales=None,
             indi = np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.
             dscales['amp'][key] = np.nanmean(data[:, indi], axis=1)
         else:
-            if type(dscales['amp'][key]) in ltypes:
+            if type(dscales['amp'][key]) in _LTYPES:
                 dscales['amp'][key] = np.full((nspect,), dscales['amp'][key])
             else:
                 assert dscales['amp'][key].shape == (nspect,)
@@ -1810,44 +1861,37 @@ def fit12d_dscales(dscales=None,
     else:
         widthref = (Dlamb/(20*lambm))**2
 
-    if dscales.get('width') is None:
-        dscales['width'] = {k0: np.full((nspect,), widthref)
-                            for k0 in dinput['width']['keys']}
-    else:
-        for k0 in dinput['width']['keys']:
-            if dscales['width'].get(k0) is None:
-                dscales['width'][k0] = np.full((nspect,), widthref)
-            elif type(dscales['width'][k0]) in ltypes:
-                dscales['width'][k0] = np.full((nspect,), dscales['width'][k0])
-            else:
-                assert dscales['width'][k0].shape == (nspect,)
+    dscales = _fit12d_filldef_dscalesx0_dict(
+        din=dscales, din_name='dscales', key='width', vref=widthref,
+        nspect=nspect, dinput=dinput,
+    )
 
     # shift
     shiftref = Dlamb/(50*lambm)
-    if dscales.get('shift') is None:
-        dscales['shift'] = {k0: np.full((nspect,), shiftref)
-                            for k0 in dinput['shift']['keys']}
-    else:
-        for k0 in dinput['shift']['keys']:
-            if dscales['shift'].get(k0) is None:
-                dscales['shift'][k0] = np.full((nspect,), shiftref)
-            elif type(dscales['shift'][k0]) in ltypes:
-                dscales['shift'][k0] = np.full((nspect,), dscales['shift'][k0])
-            else:
-                assert dscales['shift'][k0].shape == (nspect,)
+    dscales = _fit12d_filldef_dscalesx0_dict(
+        din=dscales, din_name='dscales', key='shift', vref=shiftref,
+        nspect=nspect, dinput=dinput,
+    )
 
     # Double
     if dinput['double'] is not False:
         dratio = 1.
         dshift = float(Dlamb/(50*lambm))
         if dinput['double'] is True:
-            dscales['dratio'] = float(dscales.get('dratio', dratio))
-            dscales['dshift'] = float(dscales.get('dshift', dshift))
+            pass
         else:
-            if dinput['double'].get('dratio') is None:
-                dscales['dratio'] = float(dscales.get('dratio', dratio))
-            if dinput['double'].get('dshift') is None:
-                dscales['dshift'] = float(dscales.get('dshift', dshift))
+            if dinput['double'].get('dratio') is not None:
+                dratio = dinput['double']['dratio']
+            if dinput['double'].get('dshift') is not None:
+                dratio = dinput['double']['dshift']
+        dscales = _fit12d_filldef_dscalesx0_float(
+            din=dscales, din_name='dscales', key='dratio',
+            vref=dratio, nspect=nspect,
+        )
+        dscales = _fit12d_filldef_dscalesx0_float(
+            din=dscales, din_name='dscales', key='dshift',
+            vref=dshift, nspect=nspect,
+        )
     return dscales
 
 
@@ -1906,9 +1950,8 @@ def multigausfit1d_from_dlines_scale(data, lamb,
     # Adjust with user-provided dscales
     if dscales is not False:
         lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
-        ltypes = [int, float, np.int, np.float]
         c0 = (isinstance(dscales, dict)
-              and all([type(dscales.get(ss, 1.)) in ltypes for ss in lk]))
+              and all([type(dscales.get(ss, 1.)) in _LTYPES for ss in lk]))
         if not c0:
             msg = ("Arg dscales must be a dict of the form (1. is default):\n"
                    + "\t- {}\n".format(dict.fromkeys(lk, 1.))
@@ -1992,9 +2035,8 @@ def multigausfit2d_from_dlines_scale(data, lamb, phi,
     # Adjust with user-provided dscales
     if dscales is not False:
         lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
-        ltypes = [int, float, np.int, np.float]
         c0 = (isinstance(dscales, dict)
-              and all([type(dscales.get(ss, 1.)) in ltypes for ss in lk]))
+              and all([type(dscales.get(ss, 1.)) in _LTYPES for ss in lk]))
         if not c0:
             msg = ("Arg dscales must be a dict of the form (1. is default):\n"
                    + "\t- {}\n".format(dict.fromkeys(lk, 1.))
@@ -2019,7 +2061,6 @@ def fit12d_dx0(dx0=None, dinput=None):
 
     # --------------
     # Input checks
-    ltypes = [int, float, np.int, np.float]
     dx0 = _fit12d_checkformat_dscalesx0(
         din=dx0, dinput=dinput, name='dx0',
     )
@@ -2083,69 +2124,45 @@ def fit12d_dx0(dx0=None, dinput=None):
     lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
 
     # bck
-    x0ref = 1.
-    if dx0.get('bck') is None:
-        dx0['bck'] = np.full((nspect,), x0ref)
-    else:
-        if type(dx0['bck']) in ltypes:
-            dx0['bck'] = np.full((nspect,), dx0['bck'])
-        else:
-            assert dx0['bck'].shape == (nspect,)
+    dx0 = _fit12d_filldef_dscalesx0_float(
+        din=dx0, din_name='dx0', key='bck', vref=1., nspect=nspect,
+    )
 
     # amp
-    x0ref = 1.
-    for ii, ij in enumerate(dinput['dind']['amp_x0']):
-        key = dinput['amp']['keys'][ii]
-        if dx0['amp'].get(key) is None:
-            dx0['amp'][key] = np.full((nspect,), x0ref)
-        else:
-            if type(dx0['amp'][key]) in ltypes:
-                dx0['amp'][key] = np.full((nspect,), dx0['amp'][key])
-            else:
-                assert dx0['amp'][key].shape == (nspect,)
+    dx0 = _fit12d_filldef_dscalesx0_dict(
+        din=dx0, din_name='dx0', key='amp', vref=1.,
+        nspect=nspect, dinput=dinput,
+    )
 
     # width
-    x0ref = 1.
-    if dx0.get('width') is None:
-        dx0['width'] = {
-            k0: np.full((nspect,), x0ref) for k0 in dinput['width']['keys']
-        }
-    else:
-        for k0 in dinput['width']['keys']:
-            if dx0['width'].get(k0) is None:
-                dx0['width'][k0] = np.full((nspect,), x0ref)
-            elif type(dscales['width'][k0]) in ltypes:
-                dx0['width'][k0] = np.full((nspect,), dx0['width'][k0])
-            else:
-                assert dscales['width'][k0].shape == (nspect,)
+    dx0 = _fit12d_filldef_dscalesx0_dict(
+        din=dx0, din_name='dx0', key='width', vref=1.,
+        nspect=nspect, dinput=dinput,
+    )
 
     # shift
-    x0ref = 0.
-    if dscales.get('shift') is None:
-        dx0['shift'] = {
-            k0: np.full((nspect,), x0ref) for k0 in dinput['shift']['keys']
-        }
-    else:
-        for k0 in dinput['shift']['keys']:
-            if dx0['shift'].get(k0) is None:
-                dx0['shift'][k0] = np.full((nspect,), x0ref)
-            elif type(dscales['shift'][k0]) in ltypes:
-                dx0['shift'][k0] = np.full((nspect,), dx0['shift'][k0])
-            else:
-                assert dx0['shift'][k0].shape == (nspect,)
+    dx0 = _fit12d_filldef_dscalesx0_dict(
+        din=dx0, din_name='dx0', key='shift', vref=1.,
+        nspect=nspect, dinput=dinput,
+    )
 
     # Double
     if dinput['double'] is not False:
         dratio = 1.
         dshift = 0.
         if dinput['double'] is True:
-            dx0['dratio'] = float(dx0.get('dratio', dratio))
-            dx0['dshift'] = float(dx0.get('dshift', dshift))
+            pass
         else:
-            if dinput['double'].get('dratio') is None:
-                dx0['dratio'] = float(dx0.get('dratio', dratio))
-            if dinput['double'].get('dshift') is None:
-                dx0['dshift'] = float(dx0.get('dshift', dshift))
+            if dinput['double'].get('dratio') is not None:
+                dratio = dinput['double']['dratio']
+            if dinput['double'].get('dshift') is not None:
+                dratio = dinput['double']['dshift']
+        dx0 = _fit12d_filldef_dscalesx0_float(
+            din=dx0, din_name='dx0', key='dratio', vref=dratio, nspect=nspect,
+        )
+        dx0 = _fit12d_filldef_dscalesx0_float(
+            din=dx0, din_name='dx0', key='dshift', vref=dshift, nspect=nspect,
+        )
     return dx0
 
 
@@ -2153,7 +2170,6 @@ def _checkformat_dx0(dx0=None, dinput=None):
 
     # -----------------
     # Check preliminary
-    ltypes = [int, float, np.int_, np.float_]
     c0 = dx0 is None
     c1 = (
         isinstance(dx0, dict)
@@ -2161,7 +2177,7 @@ def _checkformat_dx0(dx0=None, dinput=None):
             k0 in ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
             and isinstance(v0, dict)
             and all([
-                k1 in dinput[k0].keys() and type(v1) in ltypes
+                k1 in dinput[k0].keys() and type(v1) in _LTYPES
                 for k1 in v0.keys()
             ])
             for k0, v0 in dx0.items()
