@@ -7,12 +7,12 @@
 # Utility functions for Ray-tracing
 ################################################################################
 cimport cython
-from libc.math cimport sqrt as Csqrt, fabs as Cabs
-from libc.math cimport cos as Ccos, sin as Csin
-from libc.math cimport atan2 as Catan2
-from libc.math cimport NAN as Cnan
-from libc.math cimport pi as Cpi
-from libc.math cimport isnan as Cisnan
+from libc.math cimport sqrt as c_sqrt, fabs as c_abs
+from libc.math cimport cos as c_cos, sin as c_sin
+from libc.math cimport atan2 as c_atan2
+from libc.math cimport NAN as C_NAN
+from libc.math cimport pi as c_pi
+from libc.math cimport isnan as c_isnan
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from cpython.array cimport array, clone
@@ -179,14 +179,14 @@ cdef inline void comp_bbox_poly_tor_lim(const int nvert,
     cdef double zmin=toto, zmax=-toto
     cdef double cos_min, sin_min
     cdef double cos_max, sin_max
-    cdef double half_pi = 0.5 * Cpi
+    cdef double half_pi = 0.5 * c_pi
     cdef double[3] temp
     cdef double[6] bounds_min
     # ...
-    cos_min = Ccos(lmin)
-    sin_min = Csin(lmin)
-    cos_max = Ccos(lmax)
-    sin_max = Csin(lmax)
+    cos_min = c_cos(lmin)
+    sin_min = c_sin(lmin)
+    cos_max = c_cos(lmax)
+    sin_max = c_sin(lmax)
     if (lmin >= 0.) and (lmax >= 0.):
         if lmax > half_pi and lmin < half_pi:
             comp_bbox_poly_tor(nvert, vertr, vertz, &bounds_min[0])
@@ -205,13 +205,13 @@ cdef inline void comp_bbox_poly_tor_lim(const int nvert,
             comp_bbox_poly_tor(nvert, vertr, vertz, &bounds_min[0])
             if ymax < bounds_min[4]:
                 ymax = bounds_min[4]
-    elif (Cabs(Cabs(lmin) - Cpi) > _VSMALL
-          and Cabs(Cabs(lmax) - Cpi) > _VSMALL):
+    elif (c_abs(c_abs(lmin) - c_pi) > _VSMALL
+          and c_abs(c_abs(lmax) - c_pi) > _VSMALL):
         if lmin >= 0 :
             # lmin and lmax of opposite signs, so lmax < 0. Divide and conquer:
-            comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds[0], lmin, Cpi)
+            comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds[0], lmin, c_pi)
             comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds_min[0],
-                                   -Cpi, lmax)
+                                   -c_pi, lmax)
         else:
             # lmin and lmax of opposite signs, so lmax <= 0. Divide and conquer:
             comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds[0], lmin, -0.0)
@@ -279,14 +279,14 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian,
             x = pts[0]
             y = pts[1]
             z = pts[2]
-            pts[0] = Csqrt(x*x+y*y)
+            pts[0] = c_sqrt(x*x+y*y)
             pts[1] = z
-            pts[2] = Catan2(y,x)
+            pts[2] = c_atan2(y,x)
         else:
             x = pts[0]
             y = pts[1]
             z = pts[2]
-            pts[0] = Csqrt(x*x+y*y)
+            pts[0] = c_sqrt(x*x+y*y)
             pts[1] = z
             pts[2] = CrossRef
     else:
@@ -294,8 +294,8 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian,
             r = pts[0]
             z = pts[1]
             p = pts[2]
-            pts[0] = r*Ccos(p)
-            pts[1] = r*Csin(p)
+            pts[0] = r*c_cos(p)
+            pts[1] = r*c_sin(p)
             pts[2] = z
         else:
             r = pts[0]
@@ -358,10 +358,10 @@ cdef inline void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
             if in_is_cartesian:
                 for jj in range(nlim):
                     fst = jj * npts
-                    lims[0] = Catan2(Csin(ves_lims[jj][0]),
-                                     Ccos(ves_lims[jj][0]))
-                    lims[1] = Catan2(Csin(ves_lims[jj][1]),
-                                     Ccos(ves_lims[jj][1]))
+                    lims[0] = c_atan2(c_sin(ves_lims[jj][0]),
+                                     c_cos(ves_lims[jj][0]))
+                    lims[1] = c_atan2(c_sin(ves_lims[jj][1]),
+                                     c_cos(ves_lims[jj][1]))
                     if lims[0] < lims[1]:
                         for ii in range(npts):
                             shift_pts[0] = pts[order[0], ii]
@@ -398,16 +398,16 @@ cdef inline void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
                 # -- in coordinates: polar -------------------------------------
                 for jj in range(nlim):
                     fst = jj * npts
-                    lims[0] = Catan2(Csin(ves_lims[jj][0]),
-                                     Ccos(ves_lims[jj][0]))
-                    lims[1] = Catan2(Csin(ves_lims[jj][1]),
-                                     Ccos(ves_lims[jj][1]))
+                    lims[0] = c_atan2(c_sin(ves_lims[jj][0]),
+                                     c_cos(ves_lims[jj][0]))
+                    lims[1] = c_atan2(c_sin(ves_lims[jj][1]),
+                                     c_cos(ves_lims[jj][1]))
                     if lims[0] < lims[1]:
                         for ii in range(npts):
                             rii = pts[order[0],ii]
                             zii = pts[order[1],ii]
-                            pii = Catan2(Csin(pts[order[2],ii]),
-                                         Ccos(pts[order[2],ii]))
+                            pii = c_atan2(c_sin(pts[order[2],ii]),
+                                         c_cos(pts[order[2],ii]))
                             in_ves = is_point_in_path(nvert,
                                                       &ves_poly[0][0],
                                                       &ves_poly[1][0],
@@ -419,8 +419,8 @@ cdef inline void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
                         for ii in range(npts):
                             rii = pts[order[0],ii]
                             zii = pts[order[1],ii]
-                            pii = Catan2(Csin(pts[order[2],ii]),
-                                         Ccos(pts[order[2],ii]))
+                            pii = c_atan2(c_sin(pts[order[2],ii]),
+                                         c_cos(pts[order[2],ii]))
                             in_ves = is_point_in_path(nvert,
                                                       &ves_poly[0][0],
                                                       &ves_poly[1][0],
@@ -514,8 +514,8 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
         tzmin = (bounds[(sign[2])*3+2] - ds[2]) * inv_direction[2]
         tzmax = (bounds[(1-sign[2])*3+2] - ds[2]) * inv_direction[2]
     else:
-        tzmin = Cnan
-        tzmax = Cnan
+        tzmin = C_NAN
+        tzmax = C_NAN
     if ( (tmin > tzmax) or (tzmin > tmax) ):
         return 0
     if (tzmin > tmin):
@@ -551,7 +551,7 @@ cdef inline bint inter_ray_triangle(const double[3] ray_orig,
     _bgt.compute_cross_prod(ray_vdir, edge2, pvec)
     # if determinant is near zero ray lies in plane of triangle
     det = _bgt.compute_dot_prod(edge1, pvec)
-    if Cabs(det) < _VSMALL:
+    if c_abs(det) < _VSMALL:
         return False
     invdet = 1./det
     # calculate distance from vert to ray origin
@@ -769,7 +769,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
             if forbidbis:
                 # Compute coordinates of the 2 points where the tangents touch
                 # the inner circle
-                dist = Csqrt(dpar2-rmin2)
+                dist = c_sqrt(dpar2-rmin2)
                 s1x = (rmin2 * loc_org[0] + rmin * loc_org[1] * dist) * idpar2
                 s1y = (rmin2 * loc_org[1] - rmin * loc_org[0] * dist) * idpar2
                 s2x = (rmin2 * loc_org[0] - rmin * loc_org[1] * dist) * idpar2
@@ -879,8 +879,8 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
                     vperp_out[2+3*ind_los] = loc_vp[2]
 
                 else:
-                    coeff_inter_in[ind_los]  = Cnan
-                    coeff_inter_out[ind_los] = Cnan
+                    coeff_inter_in[ind_los]  = C_NAN
+                    coeff_inter_out[ind_los] = C_NAN
                     ind_inter_out[2+3*ind_los] = 0
                     ind_inter_out[0+3*ind_los] = 0
                     ind_inter_out[1+3*ind_los] = 0
@@ -1014,10 +1014,10 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     cdef double cosl0, cosl1, sinl0, sinl1
 
     # -- Computing some seful values -------------------------------------------
-    cosl0 = Ccos(lim_min)
-    cosl1 = Ccos(lim_max)
-    sinl0 = Csin(lim_min)
-    sinl1 = Csin(lim_max)
+    cosl0 = c_cos(lim_min)
+    cosl1 = c_cos(lim_max)
+    sinl0 = c_sin(lim_min)
+    sinl1 = c_sin(lim_max)
     invupar2 = 1./upar2
     # == Compute all solutions =================================================
     # Set tolerance value for ray_vdir[2,ii]
@@ -1037,7 +1037,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                         lpolyx[jj] * lpolyx[jj]
                     delta = upscaDp * upscaDp - upar2 * (dpar2 - coeff)
                     if delta>0.:
-                        sqd = Csqrt(delta)
+                        sqd = c_sqrt(delta)
                         # The intersection must be on the semi-line (i.e.: k>=0)
                         # First solution
                         if -upscaDp - sqd >= 0:
@@ -1054,7 +1054,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                                   sca2<0)):
                                 # Get the normalized perpendicular vector
                                 # at intersection
-                                phi = Catan2(sol1, sol0)
+                                phi = c_atan2(sol1, sol0)
                                 # Check sol inside the Lim
                                 if lim_is_none or (not lim_is_none and
                                                    ((lim_min<lim_max and
@@ -1065,8 +1065,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                                          phi<=lim_max)))):
                                     # Get the scalar product to determine
                                     # entry or exit point
-                                    sca = Ccos(phi)*normx[jj]*ray_vdir[0] + \
-                                          Csin(phi)*normx[jj]*ray_vdir[1] + \
+                                    sca = c_cos(phi)*normx[jj]*ray_vdir[0] + \
+                                          c_sin(phi)*normx[jj]*ray_vdir[1] + \
                                           normy[jj]*ray_vdir[2]
                                     if sca<=0 and k<kout:
                                         kout = k
@@ -1091,7 +1091,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                                   sca2<0)):
                                 # Get the normalized perpendicular vector
                                 # at intersection
-                                phi = Catan2(sol1,sol0)
+                                phi = c_atan2(sol1,sol0)
                                 if lim_is_none or (not lim_is_none and
                                                    ((lim_min<lim_max and
                                                      lim_min<=phi and
@@ -1102,8 +1102,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                                    )):
                                     # Get the scalar product to determine
                                     # entry or exit point
-                                    sca = Ccos(phi)*normx[jj]*ray_vdir[0] + \
-                                          Csin(phi)*normx[jj]*ray_vdir[1] + \
+                                    sca = c_cos(phi)*normx[jj]*ray_vdir[0] + \
+                                          c_sin(phi)*normx[jj]*ray_vdir[1] + \
                                           normy[jj]*ray_vdir[2]
                                     if sca<=0 and k<kout:
                                         kout = k
@@ -1139,7 +1139,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                             if sca0<0 and sca1<0 and sca2<0:
                                 continue
                         # Get the normalized perpendicular vect at intersection
-                        phi = Catan2(sol1,sol0)
+                        phi = c_atan2(sol1,sol0)
                         if lim_is_none or (not lim_is_none and
                                            ((lim_min < lim_max and
                                              lim_min <= phi and
@@ -1148,8 +1148,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                              (phi >= lim_min or
                                               phi <= lim_max)))):
                             # Get the scal prod to determine entry or exit point
-                            sca = Ccos(phi) * normx[jj] * ray_vdir[0] + \
-                                  Csin(phi) * normx[jj] * ray_vdir[1] + \
+                            sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
+                                  c_sin(phi) * normx[jj] * ray_vdir[1] + \
                                   normy[jj] * ray_vdir[2]
                             if sca<=0 and k<kout:
                                 kout = k
@@ -1160,7 +1160,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                 indin = jj
             elif ((val_a * val_a >= eps_a * eps_a) and
                   (val_b * val_b > val_a * coeff)):
-                sqd = Csqrt(val_b * val_b - val_a * coeff)
+                sqd = c_sqrt(val_b * val_b - val_a * coeff)
                 # First solution
                 q = (-val_b + sqd) / val_a
                 if q >= 0. and q < 1.:
@@ -1177,7 +1177,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                              not (sca0<0 and sca1<0 and
                                                   sca2<0)):
                             # Get the normalized perpendicular vector at inter
-                            phi = Catan2(sol1, sol0)
+                            phi = c_atan2(sol1, sol0)
                             if lim_is_none or (not lim_is_none and
                                                ((lim_min < lim_max and
                                                  lim_min <= phi and
@@ -1186,8 +1186,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                                  (phi >= lim_min or
                                                   phi <= lim_max)))):
                                 # Get the scal prod to determine in or out point
-                                sca = Ccos(phi) * normx[jj] * ray_vdir[0] + \
-                                      Csin(phi) * normx[jj] * ray_vdir[1] + \
+                                sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
+                                      c_sin(phi) * normx[jj] * ray_vdir[1] + \
                                       normy[jj] * ray_vdir[2]
                                 if sca<=0 and k<kout:
                                     kout = k
@@ -1213,7 +1213,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                              not (sca0<0 and sca1<0 and
                                                   sca2<0)):
                             # Get the normalized perpendicular vector at inter
-                            phi = Catan2(sol1,sol0)
+                            phi = c_atan2(sol1,sol0)
                             if lim_is_none or (not lim_is_none and
                                                ((lim_min < lim_max and
                                                  lim_min <= phi and
@@ -1222,8 +1222,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                                  (phi>=lim_min or
                                                   phi<=lim_max)))):
                                 # Get the scal prod to determine if in or out
-                                sca = Ccos(phi) * normx[jj] * ray_vdir[0] + \
-                                      Csin(phi) * normx[jj] * ray_vdir[1] + \
+                                sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
+                                      c_sin(phi) * normx[jj] * ray_vdir[1] + \
                                       normy[jj] * ray_vdir[2]
                                 if sca<=0 and k<kout:
                                     kout = k
@@ -1236,7 +1236,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     if not lim_is_none:
         ephi_in0 = -sinl0
         ephi_in1 =  cosl0
-        if Cabs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
+        if c_abs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
             k = -(ray_orig[0] * ephi_in0 + ray_orig[1] * ephi_in1) \
                 /(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1)
             if k >= 0:
@@ -1258,7 +1258,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
 
         ephi_in0 =  sinl1
         ephi_in1 = -cosl1
-        if Cabs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
+        if c_abs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
             k = -(ray_orig[0] * ephi_in0 + ray_orig[1] * ephi_in1)\
                 /(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1)
             if k >= 0:
@@ -1292,9 +1292,9 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
             else:
                 sout0 = ray_orig[0] + kout * ray_vdir[0]
                 sout1 = ray_orig[1] + kout * ray_vdir[1]
-                phi = Catan2(sout1, sout0)
-                vperpin[0] = Ccos(phi) * normx[indout]
-                vperpin[1] = Csin(phi) * normx[indout]
+                phi = c_atan2(sout1, sout0)
+                vperpin[0] = c_cos(phi) * normx[indout]
+                vperpin[1] = c_sin(phi) * normx[indout]
                 vperpin[2] = normy[indout]
             ind_loc[0] = indout
             if kin<kout:
@@ -1312,9 +1312,9 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
             else:
                 sin0 = ray_orig[0] + kin * ray_vdir[0]
                 sin1 = ray_orig[1] + kin * ray_vdir[1]
-                phi = Catan2(sin1,sin0)
-                vperpin[0] = -Ccos(phi) * normx[indin]
-                vperpin[1] = -Csin(phi) * normx[indin]
+                phi = c_atan2(sin1,sin0)
+                vperpin[0] = -c_cos(phi) * normx[indin]
+                vperpin[1] = -c_sin(phi) * normx[indin]
                 vperpin[2] = -normy[indin]
             ind_loc[0] = indin
     return (res_kin != kpin_loc[0]) or (res_kout != kpout_loc[0]
@@ -1349,8 +1349,8 @@ cdef inline void raytracing_inout_struct_lin(const int Nl,
     if ind_struct == 0 and ind_lim_struct == 0 :
         # If it is the first struct,
         # we have to initialize values even if no impact
-        kin_tab[ii]  = Cnan
-        kout_tab[ii] = Cnan
+        kin_tab[ii]  = C_NAN
+        kout_tab[ii] = C_NAN
 
     for ii in range(0,Nl):
         kout, kin, Done = 1.e12, 1e12, 0
@@ -1358,7 +1358,7 @@ cdef inline void raytracing_inout_struct_lin(const int Nl,
         for jj in range(0,Ns):
             scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
             # Only if plane not parallel to line
-            if Cabs(scauVin)>EpsPlane:
+            if c_abs(scauVin)>EpsPlane:
                 k = -( (Ds[1,ii] - polyx_tab[jj]) * normx_tab[jj] +
                        (Ds[2,ii] - polyy_tab[jj]) * normy_tab[jj]) \
                        / scauVin
@@ -1392,7 +1392,7 @@ cdef inline void raytracing_inout_struct_lin(const int Nl,
                                  Warning)
         # For two faces
         # Only if plane not parallel to line
-        if Cabs(us[0,ii])>EpsPlane:
+        if c_abs(us[0,ii])>EpsPlane:
             # First face
             k = -(Ds[0,ii]-L0)/us[0,ii]
             # Only if on good side of semi-line
@@ -1522,8 +1522,8 @@ cdef inline void compute_inout_tot(const int num_los,
             lbounds_ves[1] = 0
             llim_ves[0] = 1
         else:
-            lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
-            lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
+            lbounds_ves[0] = c_atan2(c_sin(ves_lims[0]), c_cos(ves_lims[0]))
+            lbounds_ves[1] = c_atan2(c_sin(ves_lims[1]), c_cos(ves_lims[1]))
             llim_ves[0] = 0
         # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
@@ -1595,8 +1595,8 @@ cdef inline void compute_inout_tot(const int num_los,
                     lim_ves[1] = lstruct_lims[lsl_ind + 1]
                     lsl_ind += 2
                     llimits[ind_struct] = 0 # False : struct is limited
-                    lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
-                    lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
+                    lim_min = c_atan2(c_sin(lim_ves[0]), c_cos(lim_ves[0]))
+                    lim_max = c_atan2(c_sin(lim_ves[1]), c_cos(lim_ves[1]))
                     comp_bbox_poly_tor_lim(nvert,
                                            &lstruct_polyx[ind_min],
                                            &lstruct_polyy[ind_min],
@@ -1613,8 +1613,8 @@ cdef inline void compute_inout_tot(const int num_los,
                         lim_ves[1] = lstruct_lims[lsl_ind + 1]
                         lsl_ind += 2
                         llimits[ind_struct] = 0 # False : struct is limited
-                        lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
-                        lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
+                        lim_min = c_atan2(c_sin(lim_ves[0]), c_cos(lim_ves[0]))
+                        lim_max = c_atan2(c_sin(lim_ves[1]), c_cos(lim_ves[1]))
                         comp_bbox_poly_tor_lim(nvert,
                                                &lstruct_polyx[ind_min],
                                                &lstruct_polyy[ind_min],
@@ -1862,7 +1862,7 @@ cdef inline void raytracing_minmax_struct_tor(const int num_los,
             if forbidbis:
                 # Compute coordinates of the 2 points where the tangents touch
                 # the inner circle
-                dist = Csqrt(dpar2-rmin2)
+                dist = c_sqrt(dpar2-rmin2)
                 s1x = (rmin2 * loc_org[0] + rmin * loc_org[1] * dist) * idpar2
                 s1y = (rmin2 * loc_org[1] - rmin * loc_org[0] * dist) * idpar2
                 s2x = (rmin2 * loc_org[0] - rmin * loc_org[1] * dist) * idpar2
@@ -1891,8 +1891,8 @@ cdef inline void raytracing_minmax_struct_tor(const int num_los,
                 coeff_inter_in[ind_los]  = kpin_loc[0]
                 coeff_inter_out[ind_los] = kpout_loc[0]
             else:
-                coeff_inter_in[ind_los]  = Cnan
-                coeff_inter_out[ind_los] = Cnan
+                coeff_inter_in[ind_los]  = C_NAN
+                coeff_inter_out[ind_los] = C_NAN
         free(loc_org)
         free(loc_dir)
         free(kpin_loc)
@@ -1921,8 +1921,8 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
     cdef double kin, kout, scauVin, q, X, sca, k
     cdef int indin=0, indout=0, done=0
 
-    kin_tab[ii]  = Cnan
-    kout_tab[ii] = Cnan
+    kin_tab[ii]  = C_NAN
+    kout_tab[ii] = C_NAN
 
     for ii in range(0,Nl):
         kout = 1.e12
@@ -1932,7 +1932,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
         for jj in range(0,Ns):
             scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
             # Only if plane not parallel to line
-            if Cabs(scauVin)>EpsPlane:
+            if c_abs(scauVin)>EpsPlane:
                 k = -( (Ds[1,ii] - polyx_tab[jj]) * normx_tab[jj] +
                        (Ds[2,ii] - polyy_tab[jj]) * normy_tab[jj]) \
                        / scauVin
@@ -1962,7 +1962,7 @@ cdef inline void raytracing_minmax_struct_lin(const int Nl,
 
         # For two faces
         # Only if plane not parallel to line
-        if Cabs(us[0,ii])>EpsPlane:
+        if c_abs(us[0,ii])>EpsPlane:
             # First face
             k = -(Ds[0,ii]-L0)/us[0,ii]
             # Only if on good side of semi-line

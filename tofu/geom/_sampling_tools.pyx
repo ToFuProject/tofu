@@ -12,7 +12,7 @@ from libc.math cimport floor as c_floor, round as c_round
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
 from libc.math cimport isnan as c_is_nan
-from libc.math cimport NAN as CNAN
+from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
@@ -190,15 +190,15 @@ cdef inline void cythonize_subdomain_dl(dl, double[2] dl_array):
     # that can be an array, a list, none, etc. So this functions will convert
     # this obscure parameter to something more 'cythonic'
     if dl is None:
-        dl_array[0] = CNAN
-        dl_array[1] = CNAN
+        dl_array[0] = C_NAN
+        dl_array[1] = C_NAN
     else:
         if dl[0] is None:
-            dl_array[0] = CNAN
+            dl_array[0] = C_NAN
         else:
             dl_array[0] = dl[0]
         if dl[1] is None:
-            dl_array[1] = CNAN
+            dl_array[1] = C_NAN
         else:
             dl_array[1] = dl[1]
     return
@@ -233,8 +233,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
 
     #.. initialization..........................................................
     lminmax[0] = 0.
-    dl_array[0] = CNAN
-    dl_array[1] = CNAN
+    dl_array[0] = C_NAN
+    dl_array[1] = C_NAN
     ncells[0] = <long*>malloc((np-1)*sizeof(long))
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:

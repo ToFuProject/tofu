@@ -15,9 +15,9 @@
 cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from libc.math cimport fabs as Cabs
-from libc.math cimport sqrt as Csqrt
-from libc.math cimport NAN as Cnan
+from libc.math cimport fabs as c_abs
+from libc.math cimport sqrt as c_sqrt
+from libc.math cimport NAN as C_NAN
 from libc.stdlib cimport malloc, free
 from ._basic_geom_tools cimport _VSMALL
 from . cimport _basic_geom_tools as _bgt
@@ -83,7 +83,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
     cdef double inv_norm_dir
 
     if norm_dir < 0:
-        norm_dir = Csqrt(_bgt.compute_dot_prod(direct, direct))
+        norm_dir = c_sqrt(_bgt.compute_dot_prod(direct, direct))
     inv_norm_dir = 1./ norm_dir
     # .. initialization .....
     for i in range(3):
@@ -109,7 +109,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
         # The line direction M and the plane normal N are not parallel.  Move
         # the line origin B = (b0,b1,b2) to B' = B + lambd*direction =
         # (0,b1',b2').
-        m0 = Csqrt(m0sqr)
+        m0 = c_sqrt(m0sqr)
         rm0 = radius * m0
         lambd = -_bgt.compute_dot_prod(MxN, DxN) / m0sqr
         for i in range(3):
@@ -120,12 +120,12 @@ cdef inline void dist_los_circle_core(const double[3] direct,
         if (b1sqr > zero) :
             # B' = (0,b1',b2') where b1' != 0.  See Sections 1.1.2 and 1.2.2
             # of the PDF documentation.
-            b1 = Csqrt(b1sqr)
+            b1 = c_sqrt(b1sqr)
             rm0sqr = radius * m0sqr
             if (rm0sqr > b1):
                 twoThirds = 2.0 / 3.0
-                sHat = Csqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
-                gHat = rm0sqr * sHat / Csqrt(m0sqr * sHat * sHat + b1sqr)
+                sHat = c_sqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
+                gHat = rm0sqr * sHat / c_sqrt(m0sqr * sHat * sHat + b1sqr)
                 cutoff = gHat - sHat
                 if (m2b2 <= -cutoff):
                     s = _bgt.compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
@@ -203,32 +203,32 @@ cdef inline void dist_los_circle_core(const double[3] direct,
         line_closest[1] = origin[1] + tmin * direction[1]
         line_closest[2] = origin[2] + tmin * direction[2]
         _bgt.compute_cross_prod(circle_normal, line_closest, NxDelta)
-        if not (Cabs(NxDelta[0]) <= _VSMALL
-                and Cabs(NxDelta[1]) <= _VSMALL
-                and Cabs(NxDelta[2]) <= _VSMALL):
-            norm_ppar = Csqrt(line_closest[0]*line_closest[0]
+        if not (c_abs(NxDelta[0]) <= _VSMALL
+                and c_abs(NxDelta[1]) <= _VSMALL
+                and c_abs(NxDelta[2]) <= _VSMALL):
+            norm_ppar = c_sqrt(line_closest[0]*line_closest[0]
                               + line_closest[1]*line_closest[1])
             circle_closest[0] = radius * line_closest[0] / norm_ppar
             circle_closest[1] = radius * line_closest[1] / norm_ppar
             circle_closest[2] = circle_center[2]
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
-            distance = Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = c_sqrt(_bgt.compute_dot_prod(diff, diff))
             result[0] = tmin
             result[1] = distance
         else:
             diff[0] = line_closest[0] - radius
             diff[1] = line_closest[1]
             diff[2] = line_closest[2] - circle_center[2]
-            distance = Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = c_sqrt(_bgt.compute_dot_prod(diff, diff))
             result[0] = tmin
             result[1] = distance
     else:
         # The line direction and the plane normal are parallel.
         # There is only one solution the intersection between line and plane
-        if not (Cabs(DxN[0]) <= _VSMALL
-                and Cabs(DxN[1]) <= _VSMALL
-                and Cabs(DxN[2]) <= _VSMALL):
+        if not (c_abs(DxN[0]) <= _VSMALL
+                and c_abs(DxN[1]) <= _VSMALL
+                and c_abs(DxN[2]) <= _VSMALL):
             # The line is A+t*N but with A != C.
             t = -_bgt.compute_dot_prod(direction, D)
             # We compute line closest
@@ -238,7 +238,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
             # We compute cirlce closest
             for i in range(3):
                 diff[i] = line_closest[i] - circle_center[i]
-            distance = radius / Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = radius / c_sqrt(_bgt.compute_dot_prod(diff, diff))
             circle_closest[0] = line_closest[0] * distance
             circle_closest[1] = line_closest[1] * distance
             circle_closest[2] = circ_z + (line_closest[2] - circ_z) * distance
@@ -250,7 +250,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
                 line_closest[2] = origin[2]
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
-            distance = Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = c_sqrt(_bgt.compute_dot_prod(diff, diff))
             result[0] = t
             result[1] = distance
         else:
@@ -258,13 +258,13 @@ cdef inline void dist_los_circle_core(const double[3] direct,
             # so C is the closest point for the circle and the distance is
             # the radius unless the ray's origin is after the circle center
             if (origin[2] * direction[2] <= circle_center[2] * direction[2]) :
-                t = Cabs(circle_center[2] - origin[2])
+                t = c_abs(circle_center[2] - origin[2])
                 result[0] = t
                 result[1] = radius
             else:
-                t = Cabs(circle_center[2] - origin[2])
+                t = c_abs(circle_center[2] - origin[2])
                 result[0] = 0
-                result[1] = Csqrt(radius*radius + t*t)
+                result[1] = c_sqrt(radius*radius + t*t)
     result[0] = result[0] * inv_norm_dir
     return
 
@@ -306,7 +306,7 @@ cdef inline void comp_dist_los_circle_vec_core(int num_los, int num_cir,
                 orig[i] = los_origins[ind_los * 3 + i]
             norm_dir = norm_dir_tab[ind_los]
             if norm_dir < 0.:
-                norm_dir = Csqrt(_bgt.compute_dot_prod(dirv, dirv))
+                norm_dir = c_sqrt(_bgt.compute_dot_prod(dirv, dirv))
             for ind_cir in range(num_cir):
                 radius = circle_radius[ind_cir]
                 circ_z = circle_z[ind_cir]
@@ -349,7 +349,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
 
     # .. initialization .....
     if norm_dir < 0:
-        norm_dir = Csqrt(_bgt.compute_dot_prod(direct, direct))
+        norm_dir = c_sqrt(_bgt.compute_dot_prod(direct, direct))
     inv_norm_dir = 1./ norm_dir
     # .. initialization .....
     for i in range(3):
@@ -374,7 +374,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
         # The line direction M and the plane normal N are not parallel.  Move
         # the line origin B = (b0,b1,b2) to B' = B + lambd*direction =
         # (0,b1',b2').
-        m0 = Csqrt(m0sqr)
+        m0 = c_sqrt(m0sqr)
         rm0 = radius * m0
         lambd = -_bgt.compute_dot_prod(MxN, DxN) / m0sqr
         for i in range(3):
@@ -385,12 +385,12 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
         if (b1sqr > zero) :
             # B' = (0,b1',b2') where b1' != 0.  See Sections 1.1.2 and 1.2.2
             # of the PDF documentation.
-            b1 = Csqrt(b1sqr)
+            b1 = c_sqrt(b1sqr)
             rm0sqr = radius * m0sqr
             if (rm0sqr > b1):
                 twoThirds = 2.0 / 3.0
-                sHat = Csqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
-                gHat = rm0sqr * sHat / Csqrt(m0sqr * sHat * sHat + b1sqr)
+                sHat = c_sqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
+                gHat = rm0sqr * sHat / c_sqrt(m0sqr * sHat * sHat + b1sqr)
                 cutoff = gHat - sHat
                 if (m2b2 <= -cutoff):
                     s = _bgt.compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
@@ -468,32 +468,32 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
         line_closest[1] = origin[1] + tmin * direction[1]
         line_closest[2] = origin[2] + tmin * direction[2]
         _bgt.compute_cross_prod(circle_normal, line_closest, NxDelta)
-        if not (Cabs(NxDelta[0]) <= _VSMALL
-                and Cabs(NxDelta[1]) <= _VSMALL
-                and Cabs(NxDelta[2]) <= _VSMALL):
-            norm_ppar = Csqrt(line_closest[0]*line_closest[0]
+        if not (c_abs(NxDelta[0]) <= _VSMALL
+                and c_abs(NxDelta[1]) <= _VSMALL
+                and c_abs(NxDelta[2]) <= _VSMALL):
+            norm_ppar = c_sqrt(line_closest[0]*line_closest[0]
                               + line_closest[1]*line_closest[1])
             circle_closest[0] = radius * line_closest[0] / norm_ppar
             circle_closest[1] = radius * line_closest[1] / norm_ppar
             circle_closest[2] = circle_center[2]
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
-            distance = Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = c_sqrt(_bgt.compute_dot_prod(diff, diff))
             are_close = distance < eps
             return are_close
         else:
             diff[0] = line_closest[0] + radius
             diff[1] = line_closest[1]
             diff[2] = line_closest[2] - circle_center[2]
-            distance = Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = c_sqrt(_bgt.compute_dot_prod(diff, diff))
             are_close = distance < eps
             return are_close
     else:
         # The line direction and the plane normal are parallel.
         # There is only one solution the intersection between line and plane
-        if not (Cabs(DxN[0]) <= _VSMALL
-                and Cabs(DxN[1]) <= _VSMALL
-                and Cabs(DxN[2]) <= _VSMALL):
+        if not (c_abs(DxN[0]) <= _VSMALL
+                and c_abs(DxN[1]) <= _VSMALL
+                and c_abs(DxN[2]) <= _VSMALL):
             # The line is A+t*N but with A != C.
             t = -_bgt.compute_dot_prod(direction, D)
             # We compute line closest
@@ -503,7 +503,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
             # We compute cirlce closest
             for i in range(3):
                 diff[i] = line_closest[i] - circle_center[i]
-            distance = radius / Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = radius / c_sqrt(_bgt.compute_dot_prod(diff, diff))
             circle_closest[0] = line_closest[0] * distance
             circle_closest[1] = line_closest[1] * distance
             circle_closest[2] = circ_z + (line_closest[2] - circ_z) * distance
@@ -514,7 +514,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
                 line_closest[2] = origin[2]
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
-            distance = Csqrt(_bgt.compute_dot_prod(diff, diff))
+            distance = c_sqrt(_bgt.compute_dot_prod(diff, diff))
             are_close = distance < eps
             return are_close
         else:
@@ -525,8 +525,8 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
                 are_close = radius < eps
                 return are_close
             else:
-                t = Cabs(circle_center[2] - origin[2])
-                are_close = Csqrt(radius*radius + t*t) < eps
+                t = c_abs(circle_center[2] - origin[2])
+                are_close = c_sqrt(radius*radius + t*t) < eps
                 return are_close
 
 cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
@@ -566,7 +566,7 @@ cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
                 orig[i] = los_origins[ind_los * 3 + i]
             norm_dir = norm_dir_tab[ind_los]
             if norm_dir < 0.:
-                norm_dir = Csqrt(_bgt.compute_dot_prod(dirv, dirv))
+                norm_dir = c_sqrt(_bgt.compute_dot_prod(dirv, dirv))
             for ind_cir in range(num_cir):
                 radius = circle_radius[ind_cir]
                 circ_z = circle_z[ind_cir]
@@ -700,8 +700,8 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                 res_dist[ind_los * num_poly + ind_pol] = loc_res[1]
                 if not loc_res[1] == loc_res[1] : #is nan
                     for ind_pol2 in range(ind_pol, num_poly):
-                        res_k[ind_los * num_poly + ind_pol2] = Cnan
-                        res_dist[ind_los * num_poly + ind_pol2] = Cnan
+                        res_k[ind_los * num_poly + ind_pol2] = C_NAN
+                        res_dist[ind_los * num_poly + ind_pol2] = C_NAN
                     continue
         free(loc_dir)
         free(loc_org)
@@ -767,7 +767,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
             at the point P_i = orig[i] + kmin[i] * vdir[i]
         dist_vpoly : (num_los) double array
             `distance[i]` is the distance from P_i to the extruded polygon.
-             if the i-th LOS intersects the poly, then distance[i] = Cnan
+             if the i-th LOS intersects the poly, then distance[i] = C_NAN
     ---
     This is the cython version, only accessible from cython. If you need
     to use it from Python please use: comp_dist_los_vpoly
@@ -787,7 +787,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     # == Compute all solutions =================================================
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
-    norm_dir2 = Csqrt(_bgt.compute_dot_prod(ray_vdir, ray_vdir))
+    norm_dir2 = c_sqrt(_bgt.compute_dot_prod(ray_vdir, ray_vdir))
     norm_dir2_ori = norm_dir2
     for jj in range(3):
         ray_vdir[jj] = ray_vdir[jj] / norm_dir2
@@ -829,10 +829,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         circle_tangent[2] = 0. # the line is horizontal
                         rdotvec = _bgt.compute_dot_prod(circle_tangent,
                                                         ray_vdir)
-                        if Cabs(rdotvec) > _VSMALL:
-                            # There is an intersection, distance = Cnan
-                            res_final[1] = Cnan # distance
-                            res_final[0] = Cnan # k
+                        if c_abs(rdotvec) > _VSMALL:
+                            # There is an intersection, distance = C_NAN
+                            res_final[1] = C_NAN # distance
+                            res_final[0] = C_NAN # k
                             # no need to continue
                             return
                 if (res_final[1] - res_a[1] > _VSMALL
@@ -842,16 +842,16 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[1] = res_a[1] # distance
             else:
                 # -- case with horizontal cone (aka cone is a plane annulus) ---
-                if (Cabs(ray_orig[2] - lpolyy[jj]) > _VSMALL
-                    and Csqrt(dpar2) >= min(lpolyx[jj], lpolyx[jj+1])
-                    and Csqrt(dpar2) <= max(lpolyx[jj], lpolyx[jj+1])):
+                if (c_abs(ray_orig[2] - lpolyy[jj]) > _VSMALL
+                    and c_sqrt(dpar2) >= min(lpolyx[jj], lpolyx[jj+1])
+                    and c_sqrt(dpar2) <= max(lpolyx[jj], lpolyx[jj+1])):
                     # if ray and annulus are NOT on the same plane:
                     # AND the origin is somewhere in the annulus (on the
                     # X,Y plane), the origin is the closest and distance
                     # is the difference of height
-                    if Cabs(ray_orig[2] - lpolyy[jj]) <= res_final[1]:
+                    if c_abs(ray_orig[2] - lpolyy[jj]) <= res_final[1]:
                         res_final[0] = 0 # k
-                        res_final[1] = Cabs(ray_orig[2] - lpolyy[jj])
+                        res_final[1] = c_abs(ray_orig[2] - lpolyy[jj])
                 else:
                     # Then the shortest distance is the distance to the
                     # outline circles
@@ -869,10 +869,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         circle_tangent[2] = 0. # the ray is horizontal
                         rdotvec = _bgt.compute_dot_prod(circle_tangent,
                                                         ray_vdir)
-                        if Cabs(rdotvec) > _VSMALL:
-                            # There is an intersection, distance = Cnan
-                            res_final[1] = Cnan # distance
-                            res_final[0] = Cnan # k
+                        if c_abs(rdotvec) > _VSMALL:
+                            # There is an intersection, distance = C_NAN
+                            res_final[1] = C_NAN # distance
+                            res_final[0] = C_NAN # k
                             # no need to continue
                             return
                     dist_los_circle_core(ray_vdir, ray_orig,
@@ -888,10 +888,10 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         circle_tangent[2] = 0. # the ray is horizontal
                         rdotvec = _bgt.compute_dot_prod(circle_tangent,
                                                         ray_vdir)
-                        if Cabs(rdotvec) > _VSMALL:
-                            # There is an intersection, distance = Cnan
-                            res_final[1] = Cnan # distance
-                            res_final[0] = Cnan # k
+                        if c_abs(rdotvec) > _VSMALL:
+                            # There is an intersection, distance = C_NAN
+                            res_final[1] = C_NAN # distance
+                            res_final[0] = C_NAN # k
                             # no need to continue
                             return
                     # The result is the one associated to the shortest distance
@@ -930,32 +930,32 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             and ray_orig[2] >= min(lpolyy[jj], lpolyy[jj+1])):
                             # origin of line in the length of cylinder:
                             res_a[0] = 0
-                            res_a[1] = Cabs(upar2 - lpolyx[jj])
+                            res_a[1] = c_abs(upar2 - lpolyx[jj])
                         elif (lpolyy[jj] >= ray_orig[2]
                               and ray_orig[2] <= lpolyy[jj+1]):
                             # ray origin below cylinder
                             if ray_vdir[2] < 0:
                                 # if the ray is going down origin is the closest
                                 res_a[0] = 0
-                                res_a[1] = Csqrt((lpolyx[jj] - upar2)**2
+                                res_a[1] = c_sqrt((lpolyx[jj] - upar2)**2
                                                  + (min(lpolyy[jj], lpolyy[jj+1])
                                                     - ray_orig[2])**2)
                             else:
                                 res_a[0] = (min(lpolyy[jj], lpolyy[jj+1])
                                             - ray_orig[2]) * invuz
-                                res_a[1] = Cabs(lpolyx[jj] - upar2)
+                                res_a[1] = c_abs(lpolyx[jj] - upar2)
                         else:
                             # ray origin above cylinder
                             if ray_vdir[2] > 0:
                                 # if the ray is going up origin is the closest
                                 res_a[0] = 0
-                                res_a[1] = Csqrt((lpolyx[jj] - upar2)**2
+                                res_a[1] = c_sqrt((lpolyx[jj] - upar2)**2
                                                  + (max(lpolyy[jj], lpolyy[jj+1])
                                                     - ray_orig[2])**2)
                             else:
                                 res_a[0] = (max(lpolyy[jj], lpolyy[jj+1])
                                             - ray_orig[2]) * invuz
-                                res_a[1] = Cabs(lpolyx[jj] - upar2)
+                                res_a[1] = c_abs(lpolyx[jj] - upar2)
                 else: # (val_b * val_b > eps_b * eps_b):
                     q = -coeff / (2. * val_b)
                     if q < 0. :
@@ -972,20 +972,20 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                         if k >= 0.:
                             # Then there is an intersection
-                            res_final[0] = Cnan
-                            res_final[1] = Cnan
+                            res_final[0] = C_NAN
+                            res_final[1] = C_NAN
                             return # no need to move forward
                         else:
                             # The closest point on the line is the LOS origin
                             res_a[0] = 0
-                            res_a[1] = -k * Csqrt(norm_dir2)
+                            res_a[1] = -k * c_sqrt(norm_dir2)
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
                         and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
             elif (val_b * val_b >= val_a * coeff):
-                sqd = Csqrt(val_b * val_b - val_a * coeff)
+                sqd = c_sqrt(val_b * val_b - val_a * coeff)
                 # First solution
                 q = (-val_b + sqd) / val_a
                 if q < 0:
@@ -1002,13 +1002,13 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k >= 0.:
                         # There is an intersection
-                        res_final[0] = Cnan
-                        res_final[1] = Cnan
+                        res_final[0] = C_NAN
+                        res_final[1] = C_NAN
                         return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
                         res_a[0] = 0
-                        res_a[1] = -k * Csqrt(norm_dir2)
+                        res_a[1] = -k * c_sqrt(norm_dir2)
                 if (res_final[1] - res_a[1] > _VSMALL
                     or (res_final[1] == res_a[1]
                         and res_final[0] - res_a[0] > _VSMALL)):
@@ -1030,13 +1030,13 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k>=0.:
                         # there is an intersection
-                        res_final[0] = Cnan
-                        res_final[1] = Cnan
+                        res_final[0] = C_NAN
+                        res_final[1] = C_NAN
                         return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
                         res_b[0] = 0
-                        res_b[1] = -k * Csqrt(norm_dir2)
+                        res_b[1] = -k * c_sqrt(norm_dir2)
                 if (res_final[1] - res_b[1] > _VSMALL
                     or (res_final[1] == res_b[1]
                         and res_final[0] - res_b[0] > _VSMALL)):

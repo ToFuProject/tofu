@@ -17,7 +17,7 @@ from cython.parallel cimport parallel
 from libcpp.vector cimport vector as vecpp
 from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
-from libc.math cimport sqrt as Csqrt
+from libc.math cimport sqrt as c_sqrt
 from . cimport _raytracing_tools as _rt
 from . cimport _basic_geom_tools as _bgt
 
@@ -398,7 +398,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
         for ii in range(npts):
-            loc_hypot = Csqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
+            loc_hypot = c_sqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 loc_hypot, pts[2,ii]):
                 nb_in_poly += 1
