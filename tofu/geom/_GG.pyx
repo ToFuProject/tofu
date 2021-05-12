@@ -4580,7 +4580,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     """
     Computes the 2D map of the integrated solid angles subtended by each of
     the sz_p particles P of radius part_r at the position part_coords
-    in the sampled volume
+    in the sampled volume.
+    If approx, a 8th degree approximation will be used for the computation
+    of the solid angle
 
     Parameters
     ----------
@@ -4595,7 +4597,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     phistep: double
         refinement along toroidal direction `phi`
     approx: bool
-        do you want to use approximation (2nd order) or exact formula ?
+        do you want to use approximation (8th order) or exact formula ?
         default: True
     RMinMax: double memory-view
         limits min and max in `r`

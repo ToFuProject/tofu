@@ -11,7 +11,7 @@ from libc.math cimport ceil as c_ceil, fabs as c_abs
 from libc.math cimport floor as c_floor, round as c_round
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
-from libc.math cimport isnan as c_is_nan
+from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
@@ -92,13 +92,13 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
         ncells[0] = <int>c_ceil(1. / dstep)
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
     # .. Computing desired limits ..............................................
-    if c_is_nan(dl[0]) and c_is_nan(dl[1]):
+    if c_isnan(dl[0]) and c_isnan(dl[1]):
         desired_limits[0] = lminmax[0]
         desired_limits[1] = lminmax[1]
     else:
-        if c_is_nan(dl[0]):
+        if c_isnan(dl[0]):
             dl[0] = lminmax[0]
-        if c_is_nan(dl[1]):
+        if c_isnan(dl[1]):
             dl[1] = lminmax[1]
         if lim and dl[0]<=lminmax[0]:
             dl[0] = lminmax[0]
@@ -2391,7 +2391,7 @@ cdef inline double sa_approx_formula(double radius,
                                      double volpi,
                                      int debug=0) nogil:
     """
-    Fourth degree approximation of solid angle computation subtended by a
+    Eigth degree approximation of solid angle computation subtended by a
     sphere of radius `radius` at a distance `distance`.
 
     Parameters
@@ -2406,7 +2406,8 @@ cdef inline double sa_approx_formula(double radius,
     Returns
     --------
         Approximation of solid angle to the 4th order:
-        \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
+        \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4  + pi/8 * (r/d)**6
+                        + pi 5/64 (r/d) ** 8
     """
     cdef double r_over_d = radius / distance
 
