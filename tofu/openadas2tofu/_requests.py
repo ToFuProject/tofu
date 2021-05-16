@@ -217,7 +217,10 @@ def step01_search_online_by_wavelengthA(
         )
     """
 
+    # -----------
     # Check input
+
+    # general
     if returnas is None:
         returnas = False
     if verb is None:
@@ -233,16 +236,43 @@ def step01_search_online_by_wavelengthA(
                + "\t- 'transition': list all available transitions\n"
                + "\t- 'file': list all files containing relevant transitions")
         raise Exception(msg)
-    if element is not None and not isinstance(element, str):
-        msg = ("Arg element must be a str (e.g.: element='ar')\n"
-               + "\t- provided: {}".format(element))
-        raise Exception(msg)
+
+    # element
+    if element is not None:
+        c0 = (
+            isinstance(element, str)
+            or (
+                isinstance(element, list)
+                and all([isinstance(ee, str) for ee in element])
+            )
+        )
+        if not c0:
+            msg = ("Arg element must be a str (e.g.: element='ar')\n"
+                   + "\t- provided: {}".format(element))
+            raise Exception(msg)
+        if isinstance(element, str):
+            element = [element]
+        element = [ee.lower() for ee in element]
+
+    # charge
     if charge is not None:
-        if not isinstance(charge, int):
-            msg = ("Arg charge must be a int!\n"
+        c0 = (
+            isinstance(charge, int)
+            or (
+                isinstance(charge, list)
+                and all([isinstance(cc, int) for cc in charge])
+            )
+        )
+        if not c0:
+            msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
                    + "\t- provided: {}".format(charge))
             raise Exception(msg)
-        charge = '0' if charge == 0 else '{}+'.format(charge)
+        if isinstance(charge, int):
+            charge = [charge]
+        charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+
+    # ---------------
+    # prepare request
 
     searchurl = '&'.join(['wave_min={}'.format(lambmin),
                           'wave_max={}'.format(lambmax),
@@ -303,9 +333,9 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() != element.lower():
+            if element is not None and elm.lower() not in element:
                 continue
-            if charge is not None and charg != charge:
+            if charge is not None and charg not in charge:
                 continue
             lamb = lstri[dcolex['Wavelength']].replace('&Aring;', '')
             typ = (
@@ -327,9 +357,9 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() != element.lower():
+            if element is not None and elm.lower() not in element:
                 continue
-            if charge is not None and charg != charge:
+            if charge is not None and charg not in charge:
                 continue
             typ = (
                 lstri[dcolex['Data Type']].replace('</span>', '')

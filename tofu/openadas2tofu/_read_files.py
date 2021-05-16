@@ -3,6 +3,7 @@
 import os
 import re
 import itertools as itt
+import warnings
 
 # Common
 import numpy as np
@@ -18,6 +19,7 @@ _DEG = 1
 _PECASFUNC = True
 
 
+# #############################################################################
 # #############################################################################
 #                       Utility functions
 # #############################################################################
@@ -48,12 +50,272 @@ def _get_subdir_from_pattern(path, pattern):
     return os.path.join(path, ld[0])
 
 
+def _format_for_DataCollection_adf15(
+    dout,
+    dsource0=None,
+    dref0=None,
+    ddata0=None,
+    dlines0=None,
+):
+    """
+    Format dout from step03_read_all() for SPectralLines object
+    (separated te, ne, ions, sources, lines)
+    """
+
+    # Remove already known lines of dlines0 provided
+    if dlines0 is not None:
+        # Check for mistakes
+        dk0 = {
+            k0: [
+                k1 for k1, v1 in dlines0.items()
+                if np.sum([(
+                    v1['ion'] == v0['ion']
+                    and v1['transition'] == v0['transition'],
+                    v1['ion'] == v0['ion'] and v1['symbol'] == v0['symbol']
+                )]) == 1
+            ]
+            for k0, v0 in dout.items()
+        }
+        dk0 = {k0: v0 for k0, v0 in dk0.items() if len(v0) > 0}
+        if len(dk0) > 0:
+            msg = (
+                "\nPossible error in openadas detected,\n"
+                + "the following lines have same ion and transition but "
+                + "different symbol (typ0typ1-isoel):\n"
+                + "\n".join([
+                    "\t- {}: {}".format(k0, v0) for k0, v0 in dk0.items()
+                ])
+                + "\n\n  => There might be redundancy / errors in openadas"
+            )
+            warnings.warn(msg)
+
+        dout = {
+            k0: v0 for k0, v0 in dout.items()
+            if not any([
+                v1['ion'] == v0['ion'] and v1['transition'] == v0['transition']
+                for v1 in dlines0.values()
+            ])
+        }
+
+    # Get dict of unique sources
+    lsource = sorted(set([v0['source'] for v0 in dout.values()]))
+    dsource = {}
+    if dsource0 is None:
+        dsource = {
+            'oa-adf15-{:02}'.format(ii): {'long': ss}
+            for ii, ss in enumerate(lsource)
+        }
+
+    else:
+        # Check against existing sources
+        nmax = int(np.max([
+            int(k0.split('-')[-1])
+            for k0 in dsource0.keys() if 'oa-adf15' in k0
+        ])) + 1
+        for ii, ss in enumerate(lsource):
+            lk0 = [k0 for k0, v0 in dsource0.items() if v0['long'] == ss]
+            if len(lk0) == 0:
+                k0 = 'oa-adf15-{:02}'.format(nmax)
+                nmax += 1
+            elif len(lk0) == 1:
+                k0 = lk0[0]
+            else:
+                msg = (
+                    "\nMultiple possible matches for source {}".format(ss)
+                )
+                raise Exception(msg)
+            dsource[k0] = {'long': ss}
+
+    # Get dict of unique Te and ne
+    dte, dne = {}, {}
+    if dref0 is None:
+        ite, ine = 0, 0
+    else:
+        ite = int(np.max([
+            int(k0.split('-')[-1]) for k0 in dref0.keys()
+            if 'Te-' in k0 and 'oa-adf15' in ddata0[k0]['source']
+        ])) + 1
+        ine = int(np.max([
+            int(k0.split('-')[-1]) for k0 in dref0.keys()
+            if 'ne-' in k0 and 'oa-adf15' in ddata0[k0]['source']
+        ])) + 1
+
+    for k0, v0 in dout.items():
+
+        # Get source
+        sour = [
+            k1 for k1, v1 in dsource.items() if v1['long'] == v0['source']
+        ][0]
+
+        # fill dte
+        kte = [
+            kk for kk, vv in dte.items()
+            if v0['te'].shape == vv['data'].shape
+            and np.allclose(v0['te'], vv['data'])
+            and sour == vv['source']
+        ]
+        normal = dref0 is None
+        if normal is False:
+            # Check vs existing Te
+            lk0 = [
+                k1 for k1, v1 in dref0.items()
+                if ddata0[k1]['source'] == sour
+                and v0['te'].shape == ddata0[k1]['data'].shape
+                and np.allclose(v0['te'], ddata0[k1]['data'])
+            ]
+            if len(lk0) == 0:
+                normal = True
+            elif len(lk0) == 1:
+                keyte = lk0[0]
+                dte[keyte] = {
+                    'data': ddata0[lk0[0]]['data'],
+                    'units': v0['te_units'],
+                    'source': sour,
+                    'dim': 'temperature',
+                    'quant': 'Te',
+                    'name': 'Te',
+                    'group': 'Te',
+                }
+            elif len(lk0) > 1:
+                msg = (
+                    "Multiple matches for dout[{}] in dref0:\n".format(k0)
+                    + "\t- {}".format(lk0)
+                )
+                raise Exception(msg)
+
+        if normal is True:
+            if len(kte) == 0:
+                keyte = 'Te-{:02}'.format(ite)
+                dte[keyte] = {
+                    'data': v0['te'],
+                    'units': v0['te_units'],
+                    'source': sour,
+                    'dim': 'temperature',
+                    'quant': 'Te',
+                    'name': 'Te',
+                    'group': 'Te',
+                }
+                ite += 1
+            elif len(kte) == 1:
+                pass
+            else:
+                msg = (
+                    "len(kte) != 1:\n"
+                    + "\t- kte = {}\n".format(kte)
+                )
+                raise Exception(msg)
+        dout[k0]['keyte'] = keyte
+
+        # fill dne
+        kne = [
+            kk for kk, vv in dne.items()
+            if v0['ne'].shape == vv['data'].shape
+            and np.allclose(v0['ne'], vv['data'])
+            and sour == vv['source']
+        ]
+        normal = dref0 is None
+        if normal is False:
+            # Check vs existing ne
+            lk0 = [
+                k1 for k1, v1 in dref0.items()
+                if ddata0[k1]['source'] == sour
+                and v0['ne'].shape == ddata0[k1]['data'].shape
+                and np.allclose(v0['ne'], ddata0[k1]['data'])
+            ]
+            if len(lk0) == 0:
+                normal = True
+            elif len(lk0) == 1:
+                keyne = lk0[0]
+                dne[keyne] = {
+                    'data': ddata0[lk0[0]]['data'],
+                    'units': v0['ne_units'],
+                    'source': sour,
+                    'dim': 'density',
+                    'quant': 'ne',
+                    'name': 'ne',
+                    'group': 'ne',
+                }
+            elif len(lk0) > 1:
+                msg = (
+                    "Multiple matches for dout[{}] in dref0:\n".format(k0)
+                    + "\t- {}".format(lk0)
+                )
+                raise Exception(msg)
+
+        if normal is True:
+            if len(kne) == 0:
+                keyne = 'ne-{:02}'.format(ine)
+                dne[keyne] = {
+                    'data': v0['ne'],
+                    'units': v0['ne_units'],
+                    'source': sour,
+                    'dim': 'density',
+                    'quant': 'ne',
+                    'name': 'ne',
+                    'group': 'ne',
+                }
+                ine += 1
+            elif len(kne) == 1:
+                pass
+            else:
+                msg = (
+                    "len(kne) != 1:\n"
+                    + "\t- kne = {}\n".format(kne)
+                )
+                raise Exception(msg)
+        dout[k0]['keyne'] = keyne
+
+    # Get dict of pec
+    dpec = {
+        '{}-pec'.format(k0): {
+            'data': v0['pec'], 'units': v0['pec_units'],
+            'ref': (v0['keyne'], v0['keyte']),
+            'source': [
+                k1 for k1, v1 in dsource.items()
+                if v1['long'] == v0['source']
+            ][0],
+            'dim': '<sigma v>',
+            'quant': 'pec',
+        }
+        for k0, v0 in dout.items()
+    }
+
+    # dlines
+    inds = np.argsort([v0['lambda0'] for v0 in dout.values()])
+    lk0 = np.array(list(dout.keys()), dtype=str)[inds]
+    dlines = {
+        k0: {
+            'ion': dout[k0]['ion'],
+            'source': [
+                k1 for k1, v1 in dsource.items()
+                if v1['long'] == dout[k0]['source']
+            ][0],
+            'lambda0': dout[k0]['lambda0'],
+            'pec': '{}-pec'.format(k0),
+            'symbol': dout[k0]['symbol'],
+            'type': dout[k0]['type'],
+            'transition': dout[k0]['transition'],
+        }
+        for k0 in lk0
+    }
+
+    # Get dict of unique ions
+    lion = sorted(set([v0['ion'] for v0 in dout.values()]))
+
+    return dne, dte, dpec, lion, dsource, dlines
+
+
+# #############################################################################
 # #############################################################################
 #                       Main functions
 # #############################################################################
 
 
-def step03_read(adas_path, **kwdargs):
+def step03_read(
+    adas_path,
+    pec_as_func=None,
+    **kwdargs,
+):
     """ Read openadas-formatted files and return a dict with the data
 
     Povide the full adas file name
@@ -114,6 +376,12 @@ def step03_read(adas_path, **kwdargs):
 
 def step03_read_all(
     element=None, charge=None, typ1=None, typ2=None,
+    pec_as_func=None,
+    format_for_DataCollection=None,
+    dsource0=None,
+    dref0=None,
+    ddata0=None,
+    dlines0=None,
     verb=None, **kwdargs,
 ):
     """ Read all relevant openadas files for chosen typ1
@@ -185,13 +453,40 @@ def step03_read_all(
                + "\t- available for {}: {}".format(typ1, _DTYPES[typ1]))
         raise Exception(msg)
 
-    if not isinstance(element, str):
+    # element
+    c0 = (
+        isinstance(element, str)
+        or (
+            isinstance(element, list)
+            and all([isinstance(ee, str) for ee in element])
+        )
+    )
+    if not c0:
         msg = "Please choose an element!"
         raise Exception(msg)
-    element = element.lower()
-    if charge is not None and not isinstance(charge, int):
-        msg = "charge must be a int!"
-        raise Exception(msg)
+    if isinstance(element, str):
+        element = [element]
+    element = [ee.lower() for ee in element]
+
+    # charge
+    if charge is not None:
+        c0 = (
+            isinstance(charge, int)
+            or (
+                isinstance(charge, list)
+                and all([isinstance(cc, int) for cc in charge])
+            )
+        )
+        if not c0:
+            msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
+                   + "\t- provided: {}".format(charge))
+            raise Exception(msg)
+        if isinstance(charge, int):
+            charge = [charge]
+        charge = ['{}.dat'.format(cc) for cc in charge]
+
+    if format_for_DataCollection is None:
+        format_for_DataCollection = False
 
     if verb is None:
         verb = True
@@ -205,19 +500,26 @@ def step03_read_all(
     if typ1 == 'adf11':
         lpath = [_get_subdir_from_pattern(path, tt) for tt in typ2]
     elif typ1 == 'adf15':
-        lpath = [_get_subdir_from_pattern(path, element)]
+        lpath = [
+            _get_subdir_from_pattern(path, ee) for ee in element
+        ]
 
     # --------------------
     # Get list of relevant files pfe
-    lpfe = list(itt.chain.from_iterable(
-        [[os.path.join(path, ff) for ff in os.listdir(path)
-          if (os.path.isfile(os.path.join(path, ff))
-              and ff[-4:] == '.dat'
-              and element in ff)]
-         for path in lpath]))
+    lpfe = list(itt.chain.from_iterable([[
+        os.path.join(path, ff) for ff in os.listdir(path)
+        if (
+            os.path.isfile(os.path.join(path, ff))
+            and ff[-4:] == '.dat'
+            and any(['][{}'.format(ee) in ff for ee in element])
+        )]
+        for path in lpath
+    ]))
 
-    if charge is not None and typ1 == 'adf15':
-        lpfe = [ff for ff in lpfe if str(charge) in ff]
+    if typ1 == 'adf15':
+        kwdargs['pec_as_func'] = pec_as_func
+        if charge is not None:
+            lpfe = [ff for ff in lpfe if any([cc in ff for cc in charge])]
 
     # --------------------
     # Extract data from each file
@@ -228,7 +530,17 @@ def step03_read_all(
             msg = "\tLoading data from {}".format(pfe)
             print(msg)
         dout = func(pfe, dout=dout, **kwdargs)
-    return dout
+
+    if typ1 == 'adf15' and format_for_DataCollection is True:
+        return _format_for_DataCollection_adf15(
+            dout,
+            dsource0=dsource0,
+            dref0=dref0,
+            ddata0=ddata0,
+            dlines0=dlines0,
+        )
+    else:
+        return dout
 
 
 # #############################################################################
@@ -392,8 +704,7 @@ def _read_adf11(pfe, deg=None, dout=None):
 
 
 def _get_adf15_key(elem, charge, isoel, typ0, typ1):
-    return '{}{}_{}_openadas_{}_{}'.format(elem, charge, isoel,
-                                           typ0, typ1)
+    return '{}{}_{}_oa_{}_{}'.format(elem, charge, isoel, typ0, typ1)
 
 
 def _read_adf15(
@@ -458,12 +769,13 @@ def _read_adf15(
                 typ = [ss[ss.index('type=')+len('type='):ss.index('/ispb')]
                        for ss in lstr[3:] if 'type=' in ss]
                 assert len(typ) == 1
-                # To be updated : proper rezading from line
+                # To be updated : proper reading from line
                 in_ne = True
                 ne = np.array([])
                 te = np.array([])
                 pec = np.full((nne*nte,), np.nan)
                 ind = 0
+                # il = 0
                 continue
 
             if 'root partition information' in line and skip is True:
@@ -496,11 +808,13 @@ def _read_adf15(
                 data = np.array(line.rstrip().strip().split(' '),
                                 dtype=float)
                 pec[ind:ind+data.size] = data
+                # pec[il, :] = data
                 ind += data.size
+                # il += 1
                 if ind == pec.size:
                     in_pec = False
                     key = _get_adf15_key(elem, charge, isoel, typ0, typ1)
-                    # PEC rehaping and conversion to cm3/s -> m3/s
+                    # PEC reshaping and conversion to cm3/s -> m3/s
                     pec = pec.reshape((nne, nte)) * 1e-6
                     # log(ne)+6 to convert /cm3 -> /m3
                     ne = ne*1e6
@@ -521,7 +835,7 @@ def _read_adf15(
                         'charge': charge,
                         'element': elem,
                         'symbol': '{}{}-{}'.format(typ0, typ1, isoel),
-                        'origin': pfe,
+                        'source': pfe,
                         'type': typ[0],
                         'ne': ne,
                         'ne_units': '/m3',
