@@ -143,7 +143,7 @@ class Test01_DataCollection(object):
 
         spect2d = bck(
             lamb=lamb[:, None],
-            offset=0.05*np.exp(-(var[None, :]-250)**2/100**2),
+            offset=0.1*np.exp(-(var[None, :]-250)**2/100**2),
             slope=0.001,
         )
         spect2d += noise(lamb=lamb[:, None], amp=0.01, freq=10, phase=0.)
@@ -183,6 +183,7 @@ class Test01_DataCollection(object):
         cls.var = var
         cls.dlines = dlines
         cls.spect2d = spect2d
+        cls.ldinput1d = []
 
     @classmethod
     def setup(self):
@@ -213,7 +214,7 @@ class Test01_DataCollection(object):
                     'a': {'key': 's1', 'coef': 1., 'offset': 0.},
                     'b': {'key': 's1', 'coef': 1., 'offset': 0.},
                     'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                    'd': {'key': 's3', 'coef': 1., 'offset': 0.001e-10},
                 },
                 'double': True,
                 'symmetry': True,
@@ -234,15 +235,14 @@ class Test01_DataCollection(object):
         ldx0 = [
             None,
             {
-                'amp': False,
-                'width': 'group',
+                # 'amp': {''},
+                'width': 1.,
                 'shift': {
-                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                    's1': 0.,
+                    's2': 1.,
                 },
-                'double': False,
-                'symmetry': False,
+                'dratio': 0,
+                'dshift': 0,
             }
         ]
 
@@ -252,12 +252,11 @@ class Test01_DataCollection(object):
         ]
 
         ldata = [
-            self.spect2d[:, 200],
-            self.spect2d[:10, 200],
+            self.spect2d[:, 10],
+            self.spect2d[:, :10].T,
         ]
 
-
-        for comb in itt.product(lconst, ldx0, ldomain, ldata):
+        for comb in itt.product(ldconst, ldx0, ldomain, ldata):
             dinput = tfs.fit1d_dinput(
                 dlines=self.dlines,
                 dconstraints=comb[0],
@@ -272,8 +271,8 @@ class Test01_DataCollection(object):
                 nspect=None,
                 same_spectrum_dlamb=None,
                 focus=None,
-                valid_fraction=None,
-                valid_nsigma=None,
+                valid_fraction=0.5,     # fraction of pixels ok per time step
+                valid_nsigma=0,         # S/N ratio for each pixel
                 focus_half_width=None,
                 valid_return_fract=None,
                 dscales=None,
@@ -281,10 +280,20 @@ class Test01_DataCollection(object):
                 dbounds=None,
                 defconst=defconst,
             )
-
+            self.ldinput1d.append(dinput)
 
     def test02_fit1d(self):
-        pass
+        for dd in self.ldinput1d:
+            dfit1d = tfs.fit1d(
+                dinput=dd,
+                method=None,
+                jac=None,
+                Ti=None,
+                verbose=None,
+            )
+            if np.sum(dfit1d['validity'] >= 0) == 0:
+                import pdb; pdb.set_trace()     # DB
+                pass
 
     def test03_fit1d_dextract(self):
         pass
