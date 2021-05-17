@@ -293,9 +293,9 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
     if 'r' in element:
         ang = np.linspace(0, 2.*np.pi, 200)
         rr = 0.5*cryst._dgeom['rcurve']
-        row = cryst._dgeom['center'] + rr*nout
+        row = cryst._dgeom['summit'] + rr*nin
         row = (row[:, None]
-               + rr*(np.cos(ang)[None, :]*nout[:, None]
+               + rr*(np.cos(ang)[None, :]*nin[:, None]
                      + np.sin(ang)[None, :]*e1[:, None]))
 
     # ---------------------
@@ -341,8 +341,6 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                             label=cryst.Id.NameLTX+' rowland',
                             **dcryst['rowland'])
     if 'v' in element:
-        #nin = cryst._dgeom['nin']
-        #e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
         if cross:

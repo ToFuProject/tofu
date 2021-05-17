@@ -505,11 +505,15 @@ class CrystalBragg(utils.ToFuObject):
         col0 = ['formula', 'symmetry', 'cut', 'density',
                 'd (A)',
                 'bragg({:9.6} A) (deg)'.format(self._dbragg['lambref']*1e10),
-                'rocking curve']
+                'Type', 'outline', 'surface (cm²)','rcurve', 'rocking curve',
+               ]
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
                '{0:5.3f}'.format(self._dmat['d']*1.e10),
-               str(self._dbragg['braggref']*180./np.pi)]
+               str(self._dbragg['braggref']*180./np.pi),
+               self._dgeom['Type'], self._dgeom['Typeoutline'],
+               '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
+               '{0:6.3f}'.format(self._dgeom['rcurve'])]
         try:
             ar0.append(self.rockingcurve['type'])
         except Exception as err:
@@ -518,16 +522,16 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------------------
         # Build geometry
-        col1 = ['Type', 'outline', 'surface (cm^2)', 'rcurve',
-                'half-extent', 'summit', 'center', 'nin', 'e1']
-        ar1 = [self._dgeom['Type'], self._dgeom['Typeoutline'],
-               '{0:5.1f}'.format(self._dgeom['surface']*1.e4),
-               '{0:6.3f}'.format(self._dgeom['rcurve']),
-               str(np.round(self._dgeom['extenthalf'], decimals=3)),
+        col1 = ['half-extent', 'summit', 'center', 'nout', 'e1',
+                'alpha', 'beta']
+        ar1 = [str(np.round(self._dgeom['extenthalf'], decimals=3)),
                str(np.round(self._dgeom['summit'], decimals=2)),
                str(np.round(self._dgeom['center'], decimals=2)),
-               str(np.round(self._dgeom['nin'], decimals=2)),
-               str(np.round(self._dgeom['e1'], decimals=2))]
+               str(np.round(self._dmat['nout'], decimals=3)),
+               str(np.round(self._dmat['e1'], decimals=3)),
+               str(np.round(self._dmat['alpha'], decimals=6)),
+               str(np.round(self._dmat['beta'], decimals=6))
+              ]
         if self._dgeom.get('move') not in [None, False]:
             col1 += ['move', 'param']
             ar1 += [self._dgeom['move'],
@@ -740,7 +744,7 @@ class CrystalBragg(utils.ToFuObject):
                 lamb = drock['lamb']
             if lamb < lmin or lamb > lmax:
                 msg = ("rocking curve was tabulated only in interval:\n"
-                       + "\tlamb in [{}; {}] m\n".format(lmin, lmax)
+                       + "\tlamb in [{}; {}I[MaI] m\n".format(lmin, lmax)
                        + "  => Please set lamb accordingly")
                 raise Exception(msg)
             bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
@@ -854,6 +858,7 @@ class CrystalBragg(utils.ToFuObject):
         nout, e1, e2 = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism
         )
+        nin = -nout
 
         # Compute start point (D) and unit vectors (us)
         D = self._dgeom['summit']
@@ -1018,6 +1023,7 @@ class CrystalBragg(utils.ToFuObject):
     def plot_rays_from_summit(self, phi=None, bragg=None, lamb=None,
                               n=None, config=None, det=None,
                               color=None, npts=None, proj=None,
+                              use_non_parallelism=None,
                               dax=None, fs=None, wintit=None, dleg=None):
         """ plot rays from the crystal summit to the tokamak amd/or to det
 
@@ -1029,20 +1035,24 @@ class CrystalBragg(utils.ToFuObject):
         if config is not None:
             cam = self.get_Rays_from_summit(
                 phi=phi, lamb=lamb, bragg=bragg,
-                n=n, config=config, returnas=object)
+                n=n, use_non_parallelism=use_non_parallelism,
+                config=config, returnas=object)
             pts0 = cam.D
             pts1 = cam.D + cam.kOut[None, :] * cam.u
             dax = _plot_optics.CrystalBragg_plot(
                 cryst=None, element='', pts0=pts0, pts1=pts1,
                 rays_color=color, rays_npts=npts,
-                proj=proj, dax=dax, fs=fs, wintit=wintit, dleg=dleg)
+                proj=proj, dax=dax, fs=fs,
+                use_non_parallelism=use_non_parallelism,
+                wintit=wintit, dleg=dleg)
 
         if det is None:
             det = False
         if det is not False:
             (D, pts_det) = self.get_Rays_from_summit_to_det(
-                phi=phi + np.pi, lamb=lamb, bragg=bragg,
-                n=n, det=det, returnas=tuple)
+                phi = phi + np.pi, lamb=lamb, bragg=bragg,
+                n=n, use_non_parallelism=use_non_parallelism,
+                det=det, returnas=tuple)
             pts0 = np.array([np.full(pts_det.shape[1:], D[0]),
                              np.full(pts_det.shape[1:], D[1]),
                              np.full(pts_det.shape[1:], D[2])])
@@ -1050,7 +1060,8 @@ class CrystalBragg(utils.ToFuObject):
             dax = _plot_optics.CrystalBragg_plot(
                 cryst=None, element='', pts0=pts0, pts1=pts1,
                 proj=proj, dax=dax, rays_color=color,
-                fs=fs, wintit=wintit, dleg=dleg)
+                fs=fs, use_non_parallelism=use_non_parallelism,
+                wintit=wintit, dleg=dleg)
         return dax
 
     # -----------------
@@ -1094,9 +1105,9 @@ class CrystalBragg(utils.ToFuObject):
             dmat basis, due to non parallelism.
             Update new values into dmat dict."""
             if alpha is None:
-                    alpha = 0
+                alpha = 0
             if beta is None:
-                    beta = 0
+                beta = 0
                 
             (self._dmat['nin'], self._dmat['nout'], self._dmat['e1'],
              self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
