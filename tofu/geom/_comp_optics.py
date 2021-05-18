@@ -62,15 +62,26 @@ def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
         return vout
 
 
-def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
-                                           rcurve, extenthalf, res=None):
+def CrystBragg_sample_outline_plot_sphrect(
+    center, nout, e1, e2,
+    rcurve, extenthalf, res=None,
+):
+    """ Get the set of points in (x, y, z) coordinates sampling the crystal
+    outline
+    """
+
+    # check inputs
     if res is None:
         res = np.min(extenthalf)/5.
+
+    # compute
     npsi = 2*int(np.ceil(extenthalf[0] / res)) + 1
     ntheta = 2*int(np.ceil(extenthalf[1] / res)) + 1
+
     psi, dtheta = CrystBragg_sample_outline_sphrect(extenthalf[0],
                                                     extenthalf[1],
                                                     npsi=npsi, ntheta=ntheta)
+
     vout = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
                                                  e1e2=False, sameshape=False)
     return center[:, None] + rcurve*vout
@@ -137,10 +148,33 @@ def get_lamb_from_bragg(bragg, d, n=None):
         n = 1
     return 2*d*np.sin(bragg) / n
 
+# ###############################################
+#           vectors <=> angles
+# ###############################################
+
+def get_vectors_from_angles(alpha, beta, nout, e1, e2):
+    """Return new unit vectors according to alpha and beta entries from user
+    caused by the non parallelism assumed on the crystal.
+    """
+
+    e1_bis = np.cos(alpha)*(
+                    np.cos(beta)*e1 + np.sin(beta)*e2
+                    ) - np.sin(alpha)*nout
+
+    e2_bis = np.cos(beta)*e2-np.sin(beta)*e1
+
+    nout_bis = np.cos(alpha)*nout + np.sin(alpha)*(
+             np.cos(beta)*e1+ np.sin(beta)*e2
+             )
+    nin_bis = -nout_bis
+
+    return nin_bis, nout_bis, e1_bis, e2_bis
+
 
 # ###############################################
 #           Approximate solution
 # ###############################################
+
 
 def get_approx_detector_rel(rcurve, bragg,
                             braggref=None, xiref=None,
@@ -291,14 +325,15 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
 
     de_cent, det_nout, det_ei and det_ej are always of shape (3,)
 
-    0:
-        (summit, e1, e2).shape = (3,)
-        (bragg, phi).shape = (nbragg,)
-        => (xi, xj).shape = (nbragg,)
-    1:
-        (summit, e1, e2).shape = (3, nlamb, npts, nbragg)
-        (bragg, phi).shape = (nlamb, npts, nbragg)
-        => (xi, xj).shape = (nlamb, npts, nbragg)
+    option:
+        0:
+            (summit, e1, e2).shape = (3,)
+            (bragg, phi).shape = (nbragg,)
+            => (xi, xj).shape = (nbragg,)
+        1:
+            (summit, e1, e2).shape = (3, nlamb, npts, nbragg)
+            (bragg, phi).shape = (nlamb, npts, nbragg)
+            => (xi, xj).shape = (nlamb, npts, nbragg)
     """
     # Check option
     gdet = [det_cent, det_nout, det_ei, det_ej]
@@ -320,17 +355,23 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
         det_cent = det_cent[:, None]
         det_nout = det_nout[:, None]
         det_ei, det_ej = det_ei[:, None], det_ej[:, None]
-        summit, e1, e2 = summit[:, None], e1[:, None], e2[:, None]
+        summit, nout = summit[:, None], nout[:, None],
+        e1, e2 = e1[:, None], e2[:, None]
     else:
         det_cent = det_cent[:, None, None, None]
         det_nout = det_nout[:, None, None, None]
         det_ei = det_ei[:, None, None, None]
         det_ej = det_ej[:, None, None, None]
+        # summit, nout = summit[:, None], nout[:, ]
+        # e1, e2 = e1[:, None], e2[:, None]
     bragg = bragg[None, ...]
     phi = phi[None, ...]
 
     # Compute
-    vect = (-np.sin(bragg)*nout + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2))
+    vect = (
+        -np.sin(bragg)*nout
+        + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2)
+    )
     k = np.sum((det_cent-summit)*det_nout, axis=0) / np.sum(vect*det_nout, axis=0)
     pts = summit + k[None, ...]*vect
     xi = np.sum((pts - det_cent)*det_ei, axis=0)
