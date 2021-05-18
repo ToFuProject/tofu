@@ -328,7 +328,7 @@ _CRYSTAL_PLOT_DDICT = {
     'cent': {'ls': 'None', 'marker': 'o', 'ms': 6},
     'summit': {'ls': 'None', 'marker': '^', 'ms': 6},
     'rowland': {'ls': '--', 'lw': 1.},
-    'vectors': {'ls': '-', 'lw': 1., 'scale': 10.},
+    'vectors': {'ls': '-', 'lw': 1.}#, 'scale': 10.},
 }
 
 
@@ -348,7 +348,7 @@ _DET_PLOT_DDICT = {
     'cent': {'ls': 'None', 'marker': 'o', 'ms': 6, 'color': 'k'},
     'summit': {'ls': 'None', 'marker': '^', 'ms': 6, 'color': 'k'},
     'rowland': {'ls': '--', 'lw': 1., 'color': 'k'},
-    'vectors': {'ls': '-', 'lw': 1., 'scale': 10., 'color': 'k'},
+    'vectors': {'ls': '-', 'lw': 1., 'color': 'k'}, # 'scale': 10.,
 }
 
 """
