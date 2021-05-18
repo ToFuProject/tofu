@@ -1491,9 +1491,9 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot_line_on_det_tracing(self, lamb=None, n=None,
                                  xi_bounds=None, xj_bounds=None, nphi=None,
-                                 det=None, johann=False,
+                                 det=None, johann=None,
                                  lpsi=None, ldtheta=None,
-                                 rocking=False, fs=None, dmargin=None,
+                                 rocking=None, fs=None, dmargin=None,
                                  wintit=None, tit=None):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
         """
@@ -1502,6 +1502,10 @@ class CrystalBragg(utils.ToFuObject):
             lamb = self._dbragg['lambref']
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
+        if johann is None:
+            johann = lpsi is not None or ldtheta is not None
+        if rocking is None:
+            rocking = False
 
         detb = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
                           xi_bounds[0], xi_bounds[0]],
@@ -1532,12 +1536,14 @@ class CrystalBragg(utils.ToFuObject):
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
         if johann and not rocking:
-            if lpsi is None or ldtheta is None:
+            if lpsi is None:
                 lpsi = np.linspace(-1., 1., 15)
+            if ldtheta is None:
                 ldtheta = np.linspace(-1., 1., 15)
-                lpsi, ldtheta = np.meshgrid(lpsi, ldtheta)
-                lpsi = lpsi.ravel()
-                ldtheta = ldtheta.ravel()
+            lpsi, ldtheta = np.meshgrid(lpsi, ldtheta)
+            lpsi = lpsi.ravel()
+            ldtheta = ldtheta.ravel()
+
             lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
             ldtheta = self._dgeom['extenthalf'][1]*np.r_[ldtheta]
             npsi = lpsi.size
