@@ -783,14 +783,19 @@ class CrystalBragg(utils.ToFuObject):
     # methods for surface and contour sampling
     # -----------------
 
-    def sample_outline_plot(self, res=None):
+    def sample_outline_plot(self, use_non_parallelism=None, res=None):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
-                func = _comp_optics.CrystBragg_sample_outline_plot_sphrect
-                outline = func(self._dgeom['center'], self._dmat['nout'],
-                               self._dmat['e1'], self._dmat['e2'],
-                               self._dgeom['rcurve'], self._dgeom['extenthalf'],
-                               res)
+                nout, e1, e2 = self.get_unit_vectors(use_non_parallelism)
+                outline = _comp_optics.CrystBragg_sample_outline_plot_sphrect(
+                    self._dgeom['summit'] - nout*self._dgeom['rcurve'],
+                    nout,
+                    e1,
+                    e2,
+                    self._dgeom['rcurve'],
+                    self._dgeom['extenthalf'],
+                    res,
+                )
             else:
                 raise NotImplementedError
         else:
