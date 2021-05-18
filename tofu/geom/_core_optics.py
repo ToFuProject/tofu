@@ -1063,7 +1063,7 @@ class CrystalBragg(utils.ToFuObject):
                              np.full(pts_det.shape[1:], D[2])])
             pts1 = pts_det
             dax = _plot_optics.CrystalBragg_plot(
-                cryst=None, element='', pts0=pts0, pts1=pts1,
+                cryst=self, element='', pts0=pts0, pts1=pts1,
                 proj=proj, dax=dax, rays_color=color,
                 fs=fs, use_non_parallelism=use_non_parallelism,
                 wintit=wintit, dleg=dleg)
