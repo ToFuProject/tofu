@@ -744,7 +744,7 @@ class CrystalBragg(utils.ToFuObject):
                 lamb = drock['lamb']
             if lamb < lmin or lamb > lmax:
                 msg = ("rocking curve was tabulated only in interval:\n"
-                       + "\tlamb in [{}; {}I[MaI] m\n".format(lmin, lmax)
+                       + "\tlamb in [{}; {}] m\n".format(lmin, lmax)
                        + "  => Please set lamb accordingly")
                 raise Exception(msg)
             bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
@@ -787,8 +787,8 @@ class CrystalBragg(utils.ToFuObject):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
                 func = _comp_optics.CrystBragg_sample_outline_plot_sphrect
-                outline = func(self._dgeom['center'], self._dgeom['nout'],
-                               self._dgeom['e1'], self._dgeom['e2'],
+                outline = func(self._dgeom['center'], self._dmat['nout'],
+                               self._dmat['e1'], self._dmat['e2'],
                                self._dgeom['rcurve'], self._dgeom['extenthalf'],
                                res)
             else:

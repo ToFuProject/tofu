@@ -233,6 +233,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         dax = _CrystalBragg_plot_3d(
             cryst=cryst, dcryst=dcryst,
             det=det, ddet=ddet,
+            nout=nout, nin=nin, e1=e1, e2=e2,
             proj=proj, res=res, dax=dax, element=element,
             pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
             draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
@@ -342,7 +343,7 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                             **dcryst['rowland'])
     if 'v' in element:
         p0 = np.repeat(summ[:,None], 3, axis=1)
-        v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
+        v = np.concatenate((nout[:, None], e1[:, None], e2[:, None]), axis=1)
         if cross:
             pr = np.hypot(p0[0, :], p0[1, :])
             vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
@@ -437,6 +438,7 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
 
 def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
                           det=None, ddet=None,
+                          nout=None, nin=None, e1=None, e2=None,
                           proj=None, dax=None,
                           element=None, res=None,
                           pts0=None, pts1=None,
@@ -463,10 +465,10 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
     if 'r' in element:
         ang = np.linspace(0, 2.*np.pi, 200)
         rr = 0.5*cryst._dgeom['rcurve']
-        row = cryst._dgeom['center'] + rr*cryst._dgeom['nout']
+        row = cryst._dgeom['summit'] + rr*nin
         row = (row[:, None]
-               + rr*(np.cos(ang)[None, :]*cryst._dgeom['nout'][:, None]
-                     + np.sin(ang)[None, :]*cryst._dgeom['e1'][:, None]))
+               + rr*(np.cos(ang)[None, :]*nin[:, None]
+                     + np.sin(ang)[None, :]*e1[:, None]))
 
     # ---------------------
     # plot
@@ -493,10 +495,8 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
                            label=cryst.Id.NameLTX+' rowland',
                            **dcryst['rowland'])
     if 'v' in element:
-        nin = cryst._dgeom['nin']
-        e1, e2 = cryst._dgeom['e1'], cryst._dgeom['e2']
         p0 = np.repeat(summ[:, None], 3, axis=1)
-        v = np.concatenate((nin[:, None], e1[:, None], e2[:, None]), axis=1)
+        v = np.concatenate((nout[:, None], e1[:, None], e2[:, None]), axis=1)
         if dax['3d'] is not None:
             dax['3d'].quiver(p0[0, :], p0[1, :], p0[2, :],
                              v[0, :], v[1, :], v[2, :],
