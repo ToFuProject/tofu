@@ -2648,6 +2648,9 @@ def multigausfit1d_from_dlines(
             _funccostjac.multigausfit1d_from_dlines_funccostjac(
                 lamb, dinput=dinput, dind=dind, jac=jac,
             )
+
+    # Try to understand amp vs func_detail
+    plt.ion()               # DB
     import pdb; pdb.set_trace()     # DB
 
     # ---------------------------

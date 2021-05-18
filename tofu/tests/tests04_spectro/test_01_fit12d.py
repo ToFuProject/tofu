@@ -282,7 +282,37 @@ class Test01_DataCollection(object):
             )
             self.ldinput1d.append(dinput)
 
-    def test02_fit1d(self):
+
+    def test02_funccostjac(self):
+        func = tfs._fit12d_funccostjac.multigausfit1d_from_dlines_funccostjac
+        for dd in self.ldinput1d:
+            func_detail, func_cost, func_jac = func(
+                lamb=dd['dprepare']['lamb'], dinput=dd,
+                dind=dd['dind'], jac='dense',
+            )
+
+            # Get x0
+            x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
+                dd=dd['dx0'], dd_name='dx0', dinput=dd,
+            )
+            scales = tfs._fit12d._dict2vector_dscalesx0bounds(
+                dd=dd['dscales'], dd_name='dscales', dinput=dd,
+            )
+
+            y0 = func_detail(x0[0, :], scales=scales[0, :])
+            y1 = func_cost(
+                x0[0, :],
+                scales=scales[0, :],
+                data=dd['dprepare']['data'][0, :],
+            )
+
+            # check consistency between func_detail and func_cost
+            assert np.allclose(
+                np.sum(y0, axis=1) - dd['dprepare']['data'][0, :],
+                y1,
+            )
+
+    def test03_fit1d(self):
         for dd in self.ldinput1d:
             dfit1d = tfs.fit1d(
                 dinput=dd,
@@ -295,7 +325,7 @@ class Test01_DataCollection(object):
                 import pdb; pdb.set_trace()     # DB
                 pass
 
-    def test03_fit1d_dextract(self):
+    def test04_fit1d_dextract(self):
         pass
 
 
