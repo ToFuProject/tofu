@@ -1377,6 +1377,8 @@ class CrystalBragg(utils.ToFuObject):
         if phi.shape != bragg.shape:
             if phi.size == 1 and bragg.ndim == 1:
                 phi = np.repeat(phi, bragg.size)
+            elif phi.ndim == 1 and bragg.size == 1:
+                bragg = np.repeat(bragg, phi.size)
             else:
                 msg = ("bragg and phi should have the same shape !\n"
                        + "\t- phi.shape = {}\n".format(phi.shape)
@@ -1391,14 +1393,18 @@ class CrystalBragg(utils.ToFuObject):
             dtheta = 0.
         if psi is None:
             psi = 0.
+
+        # Probably to update with use_non_parallelism? TBD
         summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
 
         # Compute
-        xi, xj = _comp_optics.calc_xixj_from_braggphi(summit,
-                                                      det['cent'], det['nout'],
-                                                      det['ei'], det['ej'],
-                                                      nout, e1, e2,
-                                                      bragg, phi)
+        xi, xj = _comp_optics.calc_xixj_from_braggphi(
+            summit,
+            det['cent'], det['nout'], det['ei'], det['ej'],
+            nout, e1, e2,
+            bragg, phi,
+        )
+
         if plot:
             dax = _plot_optics.CrystalBragg_plot_approx_detector_params(
                 bragg, xi, xj, data, dax)
@@ -1511,10 +1517,10 @@ class CrystalBragg(utils.ToFuObject):
         del phi
 
         # Get reference ray-tracing
-        if nphi is None:
-            nphi = 300
-        phi = np.linspace(phimin, phimax, nphi)
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
+        if nphi is None:
+            nphi = 100
+        phi = np.linspace(phimin, phimax, nphi)
 
         xi = np.full((nlamb, nphi), np.nan)
         xj = np.full((nlamb, nphi), np.nan)
@@ -1554,8 +1560,7 @@ class CrystalBragg(utils.ToFuObject):
         # Plot
         ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
             lamb, xi, xj, xi_er, xj_er,
-            det_cent=det['cent'], det_nout=det['nout'],
-            det_ei=det['ei'], det_ej=det['ej'],
+            det=det,
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
