@@ -323,14 +323,15 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
 
     de_cent, det_nout, det_ei and det_ej are always of shape (3,)
 
-    0:
-        (summit, e1, e2).shape = (3,)
-        (bragg, phi).shape = (nbragg,)
-        => (xi, xj).shape = (nbragg,)
-    1:
-        (summit, e1, e2).shape = (3, nlamb, npts, nbragg)
-        (bragg, phi).shape = (nlamb, npts, nbragg)
-        => (xi, xj).shape = (nlamb, npts, nbragg)
+    option:
+        0:
+            (summit, e1, e2).shape = (3,)
+            (bragg, phi).shape = (nbragg,)
+            => (xi, xj).shape = (nbragg,)
+        1:
+            (summit, e1, e2).shape = (3, nlamb, npts, nbragg)
+            (bragg, phi).shape = (nlamb, npts, nbragg)
+            => (xi, xj).shape = (nlamb, npts, nbragg)
     """
     # Check option
     gdet = [det_cent, det_nout, det_ei, det_ej]
@@ -352,17 +353,23 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
         det_cent = det_cent[:, None]
         det_nout = det_nout[:, None]
         det_ei, det_ej = det_ei[:, None], det_ej[:, None]
-        summit, e1, e2 = summit[:, None], e1[:, None], e2[:, None]
+        summit, nout = summit[:, None], nout[:, None],
+        e1, e2 = e1[:, None], e2[:, None]
     else:
         det_cent = det_cent[:, None, None, None]
         det_nout = det_nout[:, None, None, None]
         det_ei = det_ei[:, None, None, None]
         det_ej = det_ej[:, None, None, None]
+        # summit, nout = summit[:, None], nout[:, ]
+        # e1, e2 = e1[:, None], e2[:, None]
     bragg = bragg[None, ...]
     phi = phi[None, ...]
 
     # Compute
-    vect = (-np.sin(bragg)*nout + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2))
+    vect = (
+        -np.sin(bragg)*nout
+        + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2)
+    )
     k = np.sum((det_cent-summit)*det_nout, axis=0) / np.sum(vect*det_nout, axis=0)
     pts = summit + k[None, ...]*vect
     xi = np.sum((pts - det_cent)*det_ei, axis=0)
