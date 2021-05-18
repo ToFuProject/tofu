@@ -62,15 +62,26 @@ def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
         return vout
 
 
-def CrystBragg_sample_outline_plot_sphrect(center, nout, e1, e2,
-                                           rcurve, extenthalf, res=None):
+def CrystBragg_sample_outline_plot_sphrect(
+    center, nout, e1, e2,
+    rcurve, extenthalf, res=None,
+):
+    """ Get the set of points in (x, y, z) coordinates sampling the crystal
+    outline
+    """
+
+    # check inputs
     if res is None:
         res = np.min(extenthalf)/5.
+
+    # compute
     npsi = 2*int(np.ceil(extenthalf[0] / res)) + 1
     ntheta = 2*int(np.ceil(extenthalf[1] / res)) + 1
+
     psi, dtheta = CrystBragg_sample_outline_sphrect(extenthalf[0],
                                                     extenthalf[1],
                                                     npsi=npsi, ntheta=ntheta)
+
     vout = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
                                                  e1e2=False, sameshape=False)
     return center[:, None] + rcurve*vout

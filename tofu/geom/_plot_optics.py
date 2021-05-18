@@ -148,9 +148,15 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
 
     # vectors
     nout, e1, e2 = cryst.get_unit_vectors(
-                    use_non_parallelism=use_non_parallelism,
-                    )
+        use_non_parallelism=use_non_parallelism,
+    )
     nin = -nout
+
+    # outline
+    outline = cryst.sample_outline_plot(
+        res=res,
+        use_non_parallelism=use_non_parallelism,
+    )
 
     # det
     if det is None:
@@ -222,7 +228,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         if ddet.get(k0) is None:
             ddet[k0] = dict(_def._DET_PLOT_DDICT[k0])
         if color is not False:
-            ddett[k0]['color'] = color
+            ddet[k0]['color'] = color
 
     # ---------------------
     # call plotting functions
@@ -233,7 +239,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         dax = _CrystalBragg_plot_3d(
             cryst=cryst, dcryst=dcryst,
             det=det, ddet=ddet,
-            nout=nout, nin=nin, e1=e1, e2=e2,
+            nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
             proj=proj, res=res, dax=dax, element=element,
             pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
             draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
@@ -241,7 +247,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         dax = _CrystalBragg_plot_crosshor(
             cryst=cryst, dcryst=dcryst,
             det=det, ddet=ddet,
-            nout=nout, nin=nin, e1=e1, e2=e2,
+            nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
             proj=proj, res=res, dax=dax, element=element,
             pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
             draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
@@ -268,6 +274,7 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
 def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                                 det=None, ddet=None,
                                 nout=None, nin=None, e1=None, e2=None,
+                                outline=None,
                                 proj=None, dax=None,
                                 element=None, res=None,
                                 pts0=None, pts1=None,
@@ -305,13 +312,15 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
     hor = dax.get('hor') is not None
 
     if 'o' in element:
-        cont = cryst.sample_outline_plot(res=res)
         if cross:
-            dax['cross'].plot(np.hypot(cont[0,:], cont[1,:]), cont[2,:],
-                              label=cryst.Id.NameLTX+' outline',
-                              **dcryst['outline'])
+            dax['cross'].plot(
+                np.hypot(outline[0,:], outline[1,:]),
+                outline[2,:],
+                label=cryst.Id.NameLTX+' outline',
+                **dcryst['outline'],
+            )
         if hor:
-            dax['hor'].plot(cont[0,:], cont[1,:],
+            dax['hor'].plot(outline[0,:], outline[1,:],
                             label=cryst.Id.NameLTX+' outline',
                             **dcryst['outline'])
     if 's' in element:
@@ -439,6 +448,7 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
 def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
                           det=None, ddet=None,
                           nout=None, nin=None, e1=None, e2=None,
+                          outline=None,
                           proj=None, dax=None,
                           element=None, res=None,
                           pts0=None, pts1=None,
@@ -461,7 +471,8 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
     if 's' in element or 'v' in element:
         summ = cryst._dgeom['summit']
     if 'c' in element:
-        cent = cryst._dgeom['center']
+        cent = cryst._dgeom['summit'] + cryst._dgeom['rcurve']*nin
+        # cryst._dgeom['center']
     if 'r' in element:
         ang = np.linspace(0, 2.*np.pi, 200)
         rr = 0.5*cryst._dgeom['rcurve']
@@ -474,9 +485,8 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
     # plot
 
     if 'o' in element:
-        cont = cryst.sample_outline_plot(res=res)
         if dax['3d'] is not None:
-            dax['3d'].plot(cont[0, :], cont[1, :], cont[2, :],
+            dax['3d'].plot(outline[0, :], outline[1, :], outline[2, :],
                            label=cryst.Id.NameLTX+' outline',
                            **dcryst['outline'])
     if 's' in element:
@@ -498,12 +508,17 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
         p0 = np.repeat(summ[:, None], 3, axis=1)
         v = np.concatenate((nout[:, None], e1[:, None], e2[:, None]), axis=1)
         if dax['3d'] is not None:
-            dax['3d'].quiver(p0[0, :], p0[1, :], p0[2, :],
-                             v[0, :], v[1, :], v[2, :],
-                             np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                             label=cryst.Id.NameLTX+" unit vect",
-                             **dcryst['vectors'])
-            #, **Vdict)
+            dax['3d'].quiver(
+                p0[0, :], p0[1, :], p0[2, :],
+                v[0, :], v[1, :], v[2, :],
+                np.r_[0., 0.5, 1.],
+                length=0.1,
+                normalize=True,
+                cmap=quiver_cmap,
+                label=cryst.Id.NameLTX+" unit vect",
+                **dcryst['vectors'],
+            )
+             #, **Vdict)
             # angles='xy', scale_units='xy',
 
     # -------------
@@ -522,11 +537,16 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
             v = np.concatenate((det['nout'][:, None], det['ei'][:, None],
                                 det['ej'][:, None]), axis=1)
             if dax['3d'] is not None:
-                dax['3d'].quiver(p0[0, :], p0[1, :], p0[2, :],
-                                 v[0, :], v[1, :], v[2, :],
-                                 np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                                 label="det unit vect",
-                                 **ddet['vectors'])
+                dax['3d'].quiver(
+                    p0[0, :], p0[1, :], p0[2, :],
+                    v[0, :], v[1, :], v[2, :],
+                    np.r_[0., 0.5, 1.],
+                    length=0.1,
+                    normalize=True,
+                    cmap=quiver_cmap,
+                    label="det unit vect",
+                    **ddet['vectors'],
+                )
                 #, **Vdict)
                 # angles='xy', scale_units='xy',
         if det.get('outline') is not None and 'o' in element:
