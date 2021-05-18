@@ -802,7 +802,11 @@ def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
     gs = gridspec.GridSpec(1, 1, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
 
-    ax0.plot(det[0, :], det[1, :], ls='-', lw=1., c='k')
+    if det.get('outline') is not None:
+        ax0.plot(
+            det['outline'][0, :], det['outline'][1, :],
+            ls='-', lw=1., c='k',
+        )
     for l in range(lamb.size):
         lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
         l0, = ax0.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
