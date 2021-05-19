@@ -92,8 +92,8 @@ class Test01_DataCollection(object):
     @classmethod
     def setup_class(cls):
 
-        lamb = np.linspace(3.94, 4, 200)*1e-10
-        var = np.linspace(-250, 250, 1001)
+        lamb = np.linspace(3.94, 4, 100)*1e-10
+        var = np.linspace(-25, 25, 51)
 
         def bck(lamb=None, offset=None, slope=None):
             return offset + (lamb-lamb.min())*slope/(lamb.max()-lamb.min())
@@ -143,7 +143,7 @@ class Test01_DataCollection(object):
 
         spect2d = bck(
             lamb=lamb[:, None],
-            offset=0.1*np.exp(-(var[None, :]-250)**2/100**2),
+            offset=0.1*np.exp(-(var[None, :]-25)**2/10**2),
             slope=0.001,
         )
         spect2d += noise(lamb=lamb[:, None], amp=0.01, freq=10, phase=0.)
@@ -151,20 +151,20 @@ class Test01_DataCollection(object):
         for ii, k0 in enumerate(dlines.keys()):
             spect2d += gauss(
                 lamb=lamb[:, None],
-                amp=dlines[k0]['amp'] * np.exp(-var[None, :]**2/200**2),
+                amp=dlines[k0]['amp'] * np.exp(-var[None, :]**2/20**2),
                 lamb0=dlines[k0]['lambda0'],
                 sigma=dlines[k0]['sigma']*(
-                    1 + 2*(ii/len(dlines))*np.cos(var[None, :]*2*np.pi/500)
+                    1 + 2*(ii/len(dlines))*np.cos(var[None, :]*2*np.pi/50)
                 ),
                 delta=dlines[k0]['delta']*(
                     1 + 2*(ii/len(dlines))*np.sin(
-                        var[None, :]*2*np.pi*(len(dlines)-ii)/500
+                        var[None, :]*2*np.pi*(len(dlines)-ii)/50
                     )
                 ),
             )
             spect2d += noise(
                 lamb=lamb[:, None],
-                    amp=dlines[k0]['noise'] * np.exp(-var[None, :]**2/100**2),
+                    amp=dlines[k0]['noise'] * np.exp(-var[None, :]**2/10**2),
                     freq=10*(len(dlines)-ii),
                     phase=ii,
                 )
@@ -184,6 +184,8 @@ class Test01_DataCollection(object):
         cls.dlines = dlines
         cls.spect2d = spect2d
         cls.ldinput1d = []
+        cls.ldfit1d = []
+        cls.ldex1d = []
 
     @classmethod
     def setup(self):
@@ -229,7 +231,18 @@ class Test01_DataCollection(object):
                 },
                 'double': False,
                 'symmetry': False,
-            }
+            },
+            {
+                'amp': False,
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': False,
+                'symmetry': False,
+            },
         ]
 
         ldx0 = [
@@ -248,30 +261,39 @@ class Test01_DataCollection(object):
 
         ldomain = [
             None,
-            None,
+            {
+                'lamb': [
+                    [3.94e-10, 3.952e-10],
+                    (3.95e-10, 3.956e-10),
+                    [3.96e-10, 4e-10],
+                ],
+            },
         ]
 
         ldata = [
-            self.spect2d[:, 10],
-            self.spect2d[:, :10].T,
+            self.spect2d[:, 5],
+            self.spect2d[:, :5].T,
         ]
+        lpos = [False, True]
 
-        for comb in itt.product(ldconst, ldx0, ldomain, ldata):
+        lfocus = [None, 'a', [3.94e-10, 3.96e-10]]
+
+        for comb in itt.product(ldconst, ldx0, ldomain, ldata, lpos, lfocus):
             dinput = tfs.fit1d_dinput(
                 dlines=self.dlines,
                 dconstraints=comb[0],
                 dprepare=None,
-                data=comb[3],
+                data=np.copy(comb[3]),
                 lamb=self.lamb,
                 mask=None,
                 domain=comb[2],
-                pos=None,
+                pos=comb[4],
                 subset=None,
                 same_spectrum=None,
                 nspect=None,
                 same_spectrum_dlamb=None,
-                focus=None,
-                valid_fraction=0.5,     # fraction of pixels ok per time step
+                focus=comb[5],
+                valid_fraction=0.28,     # fraction of pixels ok per time step
                 valid_nsigma=0,         # S/N ratio for each pixel
                 focus_half_width=None,
                 valid_return_fract=None,
@@ -282,10 +304,9 @@ class Test01_DataCollection(object):
             )
             self.ldinput1d.append(dinput)
 
-
     def test02_funccostjac(self):
         func = tfs._fit12d_funccostjac.multigausfit1d_from_dlines_funccostjac
-        for dd in self.ldinput1d:
+        for ii, dd in enumerate(self.ldinput1d):
             func_detail, func_cost, func_jac = func(
                 lamb=dd['dprepare']['lamb'], dinput=dd,
                 dind=dd['dind'], jac='dense',
@@ -310,26 +331,50 @@ class Test01_DataCollection(object):
             assert np.allclose(
                 np.sum(y0, axis=1) - dd['dprepare']['data'][0, :],
                 y1,
+                equal_nan=True,
             )
 
     def test03_fit1d(self):
-        for dd in self.ldinput1d:
+        lchain = [False, True]
+        for ii, dd in enumerate(itt.product(self.ldinput1d, lchain)):
             dfit1d = tfs.fit1d(
-                dinput=dd,
+                dinput=dd[0],
                 method=None,
-                jac=None,
                 Ti=None,
+                chain=dd[1],
+                jac='dense',
                 verbose=None,
+                plot=False,
             )
-            if np.sum(dfit1d['validity'] >= 0) == 0:
-                import pdb; pdb.set_trace()     # DB
-                pass
+            assert np.sum(dfit1d['validity'] < 0) == 0
+            self.ldfit1d.append(dfit1d)
 
     def test04_fit1d_dextract(self):
-        pass
+        for ii, dd in enumerate(self.ldfit1d):
+            dex = tfs.fit1d_extract(
+                dfit1d=dd,
+                ratio=('a', 'c'),
+                pts_lamb_detail=True,
+            )
+            self.ldex1d.append(dex)
 
+    def test05_fit1d_plot(self):
+        lwar = []
+        for ii, dd in enumerate(self.ldex1d):
+            try:
+                dax = tfs._plot.plot_fit1d(
+                    dfit1d=self.ldfit1d[ii],
+                    dout=dd,
+                )
+            except Exception as err:
+                lwar.append((ii, str(err)))
 
-
-
-
-
+        if len(lwar) > 0:
+            msg = (
+                "\nThe ({}/{}) following fit1d plots failed:\n".format(
+                    len(lwar), len(self.ldex1d),
+                )
+                + "\n".join(["\t- {}: {}".format(ww[0], ww[1]) for ww in lwar])
+            )
+            warnings.warn(msg)
+        plt.close('all')

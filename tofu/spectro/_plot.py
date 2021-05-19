@@ -216,9 +216,11 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 # #################################################################
 
 
-def plot_fit1d(dfit1d=None, dout=None, showonly=None,
-               indspect=None, fs=None, dmargin=None,
-               tit=None, wintit=None):
+def plot_fit1d(
+    dfit1d=None, dout=None, showonly=None,
+    indspect=None, fs=None, dmargin=None,
+    tit=None, wintit=None,
+):
 
     # Check inputs
     # ------------
@@ -357,7 +359,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
         if dout['Ti'] is not False:
             hand = [mpatches.Patch(color=lfcol[jj%nfcol])
                     for jj in range(dinput['width']['ind'].shape[0])]
-            lleg = [dinput['width']['keys'][jj]
+            lleg = [str(dinput['width']['keys'][jj])
                     + '  {:4.2f}'.format(dout['Ti']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['width']['ind'].shape[0])]
             legT = ax.legend(handles=hand, labels=lleg,
@@ -370,7 +372,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             hand = [mpatches.Patch(facecolor='w', edgecolor='k',
                                    hatch=lhatch[jj%nhatch])
                     for jj in range(dinput['shift']['ind'].shape[0])]
-            lleg = [dinput['shift']['keys'][jj]
+            lleg = [str(dinput['shift']['keys'][jj])
                     + '  {:4.2f}'.format(dout['vi']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['shift']['ind'].shape[0])]
             legv = ax.legend(handles=hand, labels=lleg,

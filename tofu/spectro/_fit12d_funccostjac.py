@@ -127,23 +127,26 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         return y
 
     # cost and jacob return flattened results (for least_squares())
-    def cost(x,
-             lambnorm=lambnorm,
-             ibckx=ibckx,
-             ial=ial,
-             iwl=iwl,
-             ishl=ishl,
-             idratiox=idratiox,
-             idshx=idshx,
-             scales=scales,
-             coefsal=coefsal[None, :],
-             coefswl=coefswl[None, :],
-             coefssl=coefssl[None, :],
-             offsetal=offsetal[None, :],
-             offsetwl=offsetwl[None, :],
-             offsetsl=offsetsl[None, :],
-             double=dinput['double'],
-             indok=None, data=0.):
+    def cost(
+        x,
+        lambnorm=lambnorm,
+        ibckx=ibckx,
+        ial=ial,
+        iwl=iwl,
+        ishl=ishl,
+        idratiox=idratiox,
+        idshx=idshx,
+        scales=scales,
+        coefsal=coefsal[None, :],
+        coefswl=coefswl[None, :],
+        coefssl=coefssl[None, :],
+        offsetal=offsetal[None, :],
+        offsetwl=offsetwl[None, :],
+        offsetsl=offsetsl[None, :],
+        double=dinput['double'],
+        indok=None,
+        data=0.,
+    ):
         if indok is None:
             indok = np.ones(lamb.shape, dtype=bool)
 
@@ -167,6 +170,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
             y += np.nansum((amp * dratio
                             * np.exp(-(lambnorm[indok, :] - (1 + dshift))**2
                                      * inv_2wi2)), axis=1)
+
         if isinstance(data, np.ndarray):
             return y - data[indok]
         else:
