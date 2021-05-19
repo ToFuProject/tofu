@@ -900,8 +900,9 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
-    lamb, _, data, mask = _checkformat_data_fit12d_dlines(data, lamb,
-                                                          mask=mask)
+    lamb, _, data, mask = _checkformat_data_fit12d_dlines(
+        data, lamb, mask=mask,
+    )
 
     # --------------
     # Use valid data only and optionally restrict lamb
@@ -1333,11 +1334,15 @@ def fit12d_dvalid(
 def _checkformat_dlines(dlines=None, domain=None):
     if dlines is None:
         dlines = False
-    c0 = (isinstance(dlines, dict)
-          and all([(isinstance(k0, str)
-                    and isinstance(v0, dict)
-                    and 'lambda0' in v0.keys())
-                   for k0, v0 in dlines.items()]))
+    c0 = (
+        isinstance(dlines, dict)
+        and all([
+            isinstance(k0, str)
+            and isinstance(v0, dict)
+            and 'lambda0' in v0.keys()
+            for k0, v0 in dlines.items()
+        ])
+    )
     if c0 is not True:
         msg = ("Arg dlines must be a dict of the form:\n"
                + "\t{'line0': {'lambda0': float},\n"
@@ -1547,6 +1552,7 @@ def fit1d_dinput(
     dinput['dind'] = multigausfit1d_from_dlines_ind(dinput)
 
     # Add dscales, dx0 and dbounds
+    # TBD (bck => exp)
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
     dinput['dbounds'] = fit12d_dbounds(dbounds=dbounds, dinput=dinput)
     dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)
@@ -1690,7 +1696,7 @@ def multigausfit1d_from_dlines_ind(dinput=None):
     # If double [..., double_shift, double_ratio]
     # Except for bck, all indices should render nlines (2*nlines if double)
     dind = {
-        'bck': {'x': np.r_[0]},
+        'bck': {'x': np.r_[0, 1]},
         'dshift': None,
         'dratio': None,
     }
@@ -1710,8 +1716,12 @@ def multigausfit1d_from_dlines_ind(dinput=None):
         nn += dind[k0]['x'].size
 
     sizex = dind['shift']['x'][-1] + 1
-    indx = np.r_[dind['bck']['x'], dind['amp']['x'],
-                 dind['width']['x'], dind['shift']['x']]
+    indx = np.r_[
+        dind['bck']['x'],
+        dind['amp']['x'],
+        dind['width']['x'],
+        dind['shift']['x'],
+    ]
     assert np.all(np.arange(0, sizex) == indx)
 
     # check if double
@@ -1728,7 +1738,7 @@ def multigausfit1d_from_dlines_ind(dinput=None):
             sizex += 1
 
     dind['sizex'] = sizex
-    dind['nbck'] = 1
+    dind['nbck'] = 2
     # dind['shapey1'] = dind['bck']['x'].size + dinput['nlines']
 
     # Ref line for amp (for dscales)
@@ -1817,7 +1827,7 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 
 def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
     lkconst = ['dratio', 'dshift']
-    lk = ['bck']
+    lk = ['bck_amp', 'bck_rate']
     lkdict = _DORDER
     if din is None:
         din = {}
@@ -2034,17 +2044,31 @@ def fit12d_dscales(dscales=None, dinput=None):
     Dlamb = np.diff(dinput['dprepare']['domain']['lamb']['minmax'])
     lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
 
-    # bck
-    bckref = None
-    if dscales.get('bck') is None:
+    # bck_amp
+    bck_amp = None
+    if dscales.get('bck_amp') is None:
         indbck = (
             (data > np.nanmean(data, axis=1)[:, None])
             | (~dinput['dprepare']['indok'])
         )
-        bckref = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
+        bck_amp = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
+
+    # bck_rate
+    bck_rate = None
+    if dscales.get('bck_rate') is None:
+        import pdb; pdb.set_trace()     # DB
+        # TBD: bck => amp*exp(rate*lamb) 
+        bck_rate = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
+
+    import pdb; pdb.set_trace()     # DB
+    # TBF: bck => exp
     dscales = _fit12d_filldef_dscalesx0_float(
-        din=dscales, din_name='dscales', key='bck',
-        vref=bckref, nspect=nspect,
+        din=dscales, din_name='dscales', key='bck_amp',
+        vref=bck_amp, nspect=nspect,
+    )
+    dscales = _fit12d_filldef_dscalesx0_float(
+        din=dscales, din_name='dscales', key='bck_rate',
+        vref=bck_rate, nspect=nspect,
     )
 
     # amp
