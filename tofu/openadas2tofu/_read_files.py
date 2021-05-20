@@ -79,6 +79,34 @@ def _get_subdir_from_pattern(path, pattern, mult=None):
     return [os.path.join(path, dd) for dd in ld]
 
 
+def _get_available_elements_from_path(path=None, typ1=None):
+    # Check inputs
+    if not os.path.isdir(path):
+        msg = (
+            "Provided path is not an existing directory!\n"
+            + "\t- provided: {}".format(path)
+        )
+        raise Exception(msg)
+
+    ltyp = ['adf15']
+    if typ1 not in ltyp:
+        msg = (
+            "Only the following types of files are handled up to now:\n"
+            + "\t- handled: {}\n".format(ltyp)
+            + "\t- provided: {}".format(typ1)
+        )
+        raise Exception(msg)
+
+    if typ1 == 'adf15':
+        lf = [
+            ff for ff in os.listdir(path)
+            if all([ss in ff for ss in ['pec', '][']])
+        ]
+        element = [ff[ff.index('][')+2:] for ff in lf]
+    return element
+
+
+
 def _format_for_DataCollection_adf15(
     dout,
     dsource0=None,
@@ -482,9 +510,16 @@ def step03_read_all(
                + "\t- available for {}: {}".format(typ1, _DTYPES[typ1]))
         raise Exception(msg)
 
+    # --------------------
+    # Get elevant directory
+    # Level 1: Type
+    path = _get_subdir_from_pattern(path_local, typ1, mult='err')[0]
+
+    # --------------------
     # element
     c0 = (
-        isinstance(element, str)
+        element is None
+        or isinstance(element, str)
         or (
             isinstance(element, list)
             and all([isinstance(ee, str) for ee in element])
@@ -493,10 +528,13 @@ def step03_read_all(
     if not c0:
         msg = "Please choose an element!"
         raise Exception(msg)
+    if element is None:
+        element = _get_available_elements_from_path(path=path, typ1=typ1)
     if isinstance(element, str):
         element = [element]
     element = [ee.lower() for ee in element]
 
+    # --------------------
     # charge
     if charge is not None:
         c0 = (
@@ -521,10 +559,8 @@ def step03_read_all(
         verb = True
 
     # --------------------
-    # Get list of relevant directories
+    # Get list of relevant directories per element
 
-    # Level 1: Type
-    path = _get_subdir_from_pattern(path_local, typ1, mult='err')[0]
     # Level 2: element or typ2
     if typ1 == 'adf11':
         lpath = [
