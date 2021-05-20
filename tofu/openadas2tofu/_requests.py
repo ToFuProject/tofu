@@ -47,9 +47,18 @@ def _get_PATH_LOCAL():
 def _getcharray(ar, col=None, sep='  ', line='-', just='l',
                 verb=True, returnas=str):
     """ Format and return char array (for pretty printing) """
+
+    # Trivial case
     c0 = ar is None or len(ar) == 0
     if c0:
-        return ''
+        if returnas is str:
+            return ''
+        elif returnas is np.ndarray:
+            return np.array([])
+        elif returnas is False:
+            return
+
+    # Non-trivial cases
     ar = np.array(ar, dtype='U')
 
     if ar.ndim == 1:
@@ -80,10 +89,13 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 
     if verb is True:
         print('\n'.join(out))
+
     if returnas is str:
         return '\n'.join(out)
     elif returnas is np.ndarray:
         return ar
+    elif returnas is False:
+        return
 
 
 # #############################################################################
