@@ -269,14 +269,23 @@ def step01_search_online_by_wavelengthA(
                 isinstance(charge, list)
                 and all([isinstance(cc, int) for cc in charge])
             )
+            or (
+                isinstance(charge, tuple)
+                and all([isinstance(cc, int) for cc in charge])
+            )
         )
         if not c0:
             msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
                    + "\t- provided: {}".format(charge))
             raise Exception(msg)
         if isinstance(charge, int):
-            charge = [charge]
-        charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+            charge = [chargei]
+        if isinstance(charge, list):
+            charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+        elif isinstance(charge, tuple):
+            charge = tuple([
+                '0' if cc == 0 else '{}+'.format(cc) for cc in charge
+            ])
 
     # ---------------
     # prepare request
@@ -346,7 +355,11 @@ def step01_search_online_by_wavelengthA(
             )
             if c0:
                 continue
-            if charge is not None and charg not in charge:
+            c0 = (
+                (isinstance(charge, list) and charg not in charge)
+                or (isinstance(charge, tuple) and charg in charge)
+            )
+            if c0:
                 continue
             lamb = lstri[dcolex['Wavelength']].replace('&Aring;', '')
             typ = (
@@ -374,7 +387,11 @@ def step01_search_online_by_wavelengthA(
             )
             if c0:
                 continue
-            if charge is not None and charg not in charge:
+            c0 = (
+                (isinstance(charge, list) and charg not in charge)
+                or (isinstance(charge, tuple) and charg in charge)
+            )
+            if c0:
                 continue
             typ = (
                 lstri[dcolex['Data Type']].replace('</span>', '')
