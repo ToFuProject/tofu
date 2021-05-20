@@ -33,21 +33,50 @@ def _get_PATH_LOCAL():
         return None
 
 
-def _get_subdir_from_pattern(path, pattern):
-    ld = [dd for dd in os.listdir(path)
-          if (os.path.isdir(os.path.join(path, dd))
-              and pattern in dd)]
+def _get_subdir_from_pattern(path, pattern, mult=None):
+    """ Get list of files matching patterns in path
+
+    If no match => Exception
+    If multiple matches
+        => mult = True: pass
+        => mult = 'warn': warning
+        => mult = 'err': Exception
+    """
+    # Check inputs
+    if mult is None:
+        mult = 'err'
+    if mult not in [True, 'warn', 'err']:
+        msg = (
+            "Arg mult must be in [True, 'warn', 'err']!\n"
+            + "\t- provided: {}".format(mult)
+        )
+        raise Exception(msg)
+
+    if isinstance(pattern, str):
+        pattern = [pattern]
+
+    # Get matches
+    ld = [
+        dd for dd in os.listdir(path)
+        if os.path.isdir(os.path.join(path, dd))
+        and all([pp in dd for pp in pattern])
+    ]
     if len(ld) != 1:
-        av = [dd for dd in os.listdir(path)
-              if os.path.isdir(os.path.join(path, dd))]
         msg = ("You have no / many directories in your local "
                + "~/.tofu/openadas2tofu/ matching the desired file type:\n"
-               + "\t- provided : {}\n".format(pattern)
-               + "\t- available: {}\n".format(av)
+               + "\t- path: {}\n".format(path)
+               + "\t- provided (all): {}\n".format(pattern)
+               + "\t- available: {}\n".format(ld)
                + "  => download the data with "
                + "tf.openadas2tofu.step02_download()")
-        raise Exception(msg)
-    return os.path.join(path, ld[0])
+        if len(ld) == 0:
+            raise Exception(msg)
+        else:
+            if mult == 'err':
+                raise Exception(msg)
+            elif mult == 'warn':
+                warnings.warn(msg)
+    return [os.path.join(path, dd) for dd in ld]
 
 
 def _format_for_DataCollection_adf15(
@@ -495,14 +524,20 @@ def step03_read_all(
     # Get list of relevant directories
 
     # Level 1: Type
-    path = _get_subdir_from_pattern(path_local, typ1)
+    path = _get_subdir_from_pattern(path_local, typ1, mult='err')[0]
     # Level 2: element or typ2
     if typ1 == 'adf11':
-        lpath = [_get_subdir_from_pattern(path, tt) for tt in typ2]
-    elif typ1 == 'adf15':
         lpath = [
-            _get_subdir_from_pattern(path, ee) for ee in element
+            _get_subdir_from_pattern(path, tt, mult='err')[0]
+            for tt in typ2
         ]
+    elif typ1 == 'adf15':
+        lpath = np.concatenate([
+            _get_subdir_from_pattern(
+                path, ['pec', '][{}'.format(ee)], mult=True,
+            )
+            for ee in element
+        ]).tolist()
 
     # --------------------
     # Get list of relevant files pfe
