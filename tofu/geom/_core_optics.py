@@ -1287,8 +1287,8 @@ class CrystalBragg(utils.ToFuObject):
         All points on the spherical crystal's surface are identified
             by (dtheta, psi) coordinates, where:
                 - theta  = np.pi/2 + dtheta (dtheta=0 by default) for the center
-                (for the diffracted beam)
-                - psi = 0 for the center
+                (for the diffracted beam), from frame's basis vector ez
+                - psi = 0 for the center, positive in direction of e1
             They are the spherical coordinates from a sphere centered on the
             crystal's center of curvature.
 
@@ -1321,28 +1321,34 @@ class CrystalBragg(utils.ToFuObject):
         # Get local basis at crystal summit
         nout, e1, e2 = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
-        )
+            )
+        nin = -nout
 
         if nmax == 1 and np.allclose([dtheta, psi], [0., 0.]):
             summ = self._dgeom['summit']
-            nout = nout 
-            e1, e2 = e1, e2 
         else:
-            func = _comp_optics.CrystBragg_get_noute1e2_from_psitheta
-            nout, e1, e2 = func(nout, e1, e2, psi, dtheta)
-            if nout.ndim == 2:
-                cent = self._dgeom['center'][:, None]
-            elif nout.ndim == 3:
-                cent = self._dgeom['center'][:, None, None]
-            elif nout.ndim == 4:
-                cent = self._dgeom['center'][:, None, None, None]
+            # Get vectors at any points from psi & theta
+            vout, ve1, ve2 = _comp_optics.CrystBragg_get_noute1e2_from_psitheta(
+                nout, e1, e2, psi, dtheta,
+                )
+            vin = -vout
+            # cent no longer dgeom['center'] because no longer a fixed point
+            cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin 
+            if vout.ndim == 2:
+                cent = cent[:, None]
+            elif vout.ndim == 3:
+                cent = cent[:, None, None]
+            elif vout.ndim == 4:
+                cent = cent[:, None, None, None]
             else:
                 msg = "nout.ndim > 4!"
                 raise Exception(msg)
-            summ = cent + self._dgeom['rcurve']*nout
+            # Redefining summit according to nout at each point at crystal 
+            summ = cent + self._dgeom['rcurve']*vout
+            # Calling vectors from psi theta by original names
             if nmax == 1:
-                summ, nout = summ[:, 0], nout[:, 0]
-                e1, e2 = e1[:, 0], e2[:, 0]
+                summ, nout = summ[:, 0], vout[:, 0]
+                e1, e2 = ve1[:, 0], ve2[:, 0]
         return summ, nout, e1, e2
 
 
@@ -1350,6 +1356,7 @@ class CrystalBragg(utils.ToFuObject):
                                 bragg=None, lamb=None, n=None,
                                 dtheta=None, psi=None,
                                 det=None, data=None,
+                                use_non_parallelism=None,
                                 plot=True, dax=None):
         """ Assuming crystal's summit as frame origin
 
@@ -1394,8 +1401,11 @@ class CrystalBragg(utils.ToFuObject):
         if psi is None:
             psi = 0.
 
-        # Probably to update with use_non_parallelism? TBD
-        summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
+        # Probably to update with use_non_parallelism? 
+        # Get back summit & vectors at any point at the crystal surface,
+        #  according to parallelism properties
+        summit, nout, e1, e2 = self.get_local_noute1e2(
+            dtheta, psi, use_non_parallelism=use_non_parallelism)
 
         # Compute
         xi, xj = _comp_optics.calc_xixj_from_braggphi(
@@ -1448,8 +1458,10 @@ class CrystalBragg(utils.ToFuObject):
         return dtheta, psi
 
 
+    #TBC
     def calc_braggphi_from_xixj(self, xi, xj, n=None,
-                                det=None, dtheta=None, psi=None,
+                                det=None, use_non_parallelism=None,
+                                dtheta=None, psi=None,
                                 plot=True, ax=None, leg=None, colorbar=None,
                                 fs=None, wintit=None, tit=None, **kwdargs):
 
@@ -1462,7 +1474,9 @@ class CrystalBragg(utils.ToFuObject):
             dtheta = 0.
         if psi is None:
             psi = 0.
-        summit, nout, e1, e2 = self.get_local_noute1e2(dtheta, psi)
+        summit, nout, e1, e2 = self.get_local_noute1e2(
+            dtheta, psi, use_non_parallelism=use_non_parallelism,
+            )
 
         # Get bragg, phi
         bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
@@ -1492,11 +1506,19 @@ class CrystalBragg(utils.ToFuObject):
     def plot_line_on_det_tracing(self, lamb=None, n=None,
                                  xi_bounds=None, xj_bounds=None, nphi=None,
                                  det=None, johann=None,
+                                 use_non_parallelism=None,
                                  lpsi=None, ldtheta=None,
                                  rocking=None, fs=None, dmargin=None,
                                  wintit=None, tit=None):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
+        Args: 
+            - lamb: array of min size 1, in 1e-10 [m]
+            - det: dict
+            - xi_bounds: np.min & np.max of _XI 
+            - xj_bounds: np.min & np.max of _XJ
+            (from "inputs_temp/XICS_allshots_C34.py" l.649)
         """
+        #TBD
         # Check / format inputs
         if lamb is None:
             lamb = self._dbragg['lambref']
@@ -1512,10 +1534,19 @@ class CrystalBragg(utils.ToFuObject):
                          [xj_bounds[0], xj_bounds[0], xj_bounds[1],
                           xj_bounds[1], xj_bounds[0]]])
 
+        (nout, e1, e2) = self.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism
+            )
+        nin = -nout
+
         # Compute lamb / phi
-        _, phi = self.calc_braggphi_from_xixj(detb[0, :], detb[1, :], n=n,
-                                              det=det, dtheta=None,
-                                              psi=None, plot=False)
+        _, phi = self.calc_braggphi_from_xixj(
+            detb[0, :], detb[1, :], n=n,
+            det=det,
+            use_non_parallelism=use_non_parallelism,
+            dtheta=None,
+            psi=None, plot=False,
+            )
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
         del phi
@@ -1531,7 +1562,9 @@ class CrystalBragg(utils.ToFuObject):
         for ll in range(nlamb):
             xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
                 bragg=bragg[ll], phi=phi, n=n,
-                det=det, plot=False)
+                det=det, plot=False,
+                use_non_parallelism=use_non_parallelism,
+                )
 
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
@@ -1557,7 +1590,9 @@ class CrystalBragg(utils.ToFuObject):
                     xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_braggphi(
                         phi=phi, bragg=bragg[l], lamb=None, n=n,
                         dtheta=ldtheta[ii], psi=lpsi[ii],
-                        det=det, plot=False)
+                        det=det, plot=False,
+                        use_non_parallelism=use_non_parallelism,
+                        )
 
         # Get rocking curve error
         if rocking:
