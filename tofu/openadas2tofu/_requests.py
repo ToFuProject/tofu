@@ -245,6 +245,10 @@ def step01_search_online_by_wavelengthA(
                 isinstance(element, list)
                 and all([isinstance(ee, str) for ee in element])
             )
+            or (
+                isinstance(element, tuple)
+                and all([isinstance(ee, str) for ee in element])
+            )
         )
         if not c0:
             msg = ("Arg element must be a str (e.g.: element='ar')\n"
@@ -252,7 +256,10 @@ def step01_search_online_by_wavelengthA(
             raise Exception(msg)
         if isinstance(element, str):
             element = [element]
-        element = [ee.lower() for ee in element]
+        if isinstance(element, list):
+            element = [ee.lower() for ee in element]
+        elif isinstance(element, tuple):
+            element = tuple([ee.lower() for ee in element])
 
     # charge
     if charge is not None:
@@ -333,7 +340,11 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() not in element:
+            c0 = (
+                (isinstance(element, list) and elm.lower() not in element)
+                or (isinstance(element, tuple) and elm.lower() in element)
+            )
+            if c0:
                 continue
             if charge is not None and charg not in charge:
                 continue
@@ -357,7 +368,11 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() not in element:
+            c0 = (
+                (isinstance(element, list) and elm.lower() not in element)
+                or (isinstance(element, tuple) and elm.lower() in element)
+            )
+            if c0:
                 continue
             if charge is not None and charg not in charge:
                 continue

@@ -524,12 +524,22 @@ def step03_read_all(
             isinstance(element, list)
             and all([isinstance(ee, str) for ee in element])
         )
+        or (
+            isinstance(element, tuple)
+            and all([isinstance(ee, str) for ee in element])
+        )
     )
     if not c0:
         msg = "Please choose an element!"
         raise Exception(msg)
-    if element is None:
-        element = _get_available_elements_from_path(path=path, typ1=typ1)
+
+    if element is None or isinstance(element, tuple):
+        el = _get_available_elements_from_path(path=path, typ1=typ1)
+        if element is None:
+            element = el
+        else:
+            element = tuple([ee.lower() for ee in element])
+            element = [ee for ee in el if ee not in element]
     if isinstance(element, str):
         element = [element]
     element = [ee.lower() for ee in element]
