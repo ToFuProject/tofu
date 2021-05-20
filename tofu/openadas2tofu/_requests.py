@@ -279,7 +279,7 @@ def step01_search_online_by_wavelengthA(
                    + "\t- provided: {}".format(charge))
             raise Exception(msg)
         if isinstance(charge, int):
-            charge = [chargei]
+            charge = [charge]
         if isinstance(charge, list):
             charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
         elif isinstance(charge, tuple):

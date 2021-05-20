@@ -553,6 +553,10 @@ def step03_read_all(
                 isinstance(charge, list)
                 and all([isinstance(cc, int) for cc in charge])
             )
+            or (
+                isinstance(charge, tuple)
+                and all([isinstance(cc, int) for cc in charge])
+            )
         )
         if not c0:
             msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
@@ -560,7 +564,10 @@ def step03_read_all(
             raise Exception(msg)
         if isinstance(charge, int):
             charge = [charge]
-        charge = ['{}.dat'.format(cc) for cc in charge]
+        if isinstance(charge, list):
+            charge = ['{}.dat'.format(cc) for cc in charge]
+        elif isinstance(charge, tuple):
+            charge = tuple(['{}.dat'.format(cc) for cc in charge])
 
     if format_for_DataCollection is None:
         format_for_DataCollection = False
@@ -599,8 +606,26 @@ def step03_read_all(
 
     if typ1 == 'adf15':
         kwdargs['pec_as_func'] = pec_as_func
-        if charge is not None:
-            lpfe = [ff for ff in lpfe if any([cc in ff for cc in charge])]
+        if isinstance(charge, list):
+            lpfe = [
+                ff for ff in lpfe
+                if any([
+                    ''.join([ss for ss in ff.split('][')[-1] if ss.isdigit()])
+                    + '.dat'
+                    == cc
+                    for cc in charge
+                ])
+            ]
+        elif isinstance(charge, tuple):
+            lpfe = [
+                ff for ff in lpfe
+                if not any([
+                    ''.join([ss for ss in ff.split('][')[-1] if ss.isdigit()])
+                    + '.dat'
+                    == cc
+                    for cc in charge
+                ])
+            ]
 
     # --------------------
     # Extract data from each file
