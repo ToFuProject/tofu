@@ -8,6 +8,17 @@
  \usepackage{cancel}
 \usepackage{graphicx}
 
+\newcommand{\ud}[1]{\underline{#1}}
+\DeclareMathOperator{\tm}{\times}
+\DeclareMathOperator{\A}{\ud{A}}
+\DeclareMathOperator{\B}{\ud{B}}
+\DeclareMathOperator{\C}{\ud{C}}
+\DeclareMathOperator{\G}{\ud{G}}
+\DeclareMathOperator{\av}{\ud{a}}
+\DeclareMathOperator{\bv}{\ud{b}}
+\DeclareMathOperator{\cv}{\ud{c}}
+
+
 \title{Solid angle subtended by a tetrahedron computation}
 \begin{document}
 
@@ -19,18 +30,27 @@
 
 \section{Notations}
 
-Let
+\subsection{vectors}
 
 \begin{itemize}
-	\item $A$ be the vector $\vec{OA}$
-	\item $B$ be the vector $\vec{OB}$
-	\item $C$ be the vector $\vec{OC}$
-	\item $a$ be the vector $\vec{GA}$
-	\item $b$ be the vector $\vec{GB}$
-	\item $c$ be the vector $c$
-	\item $\mathbf{A}$ be the magnitude of the vector $\vec{OA}$
-	\item $\mathbf{B}$ be the magnitude of the vector $\vec{OB}$
-	\item $\mathbf{C}$ be the magnitude of the vector $\vec{OC}$
+	\item $\A=\vec{OA}$
+	\item $\B=\vec{OB}$
+	\item $\C=\vec{OC}$
+	\item $\G=\vec{OG}$
+	\item $\av=\vec{GA}$
+	\item $\bv=\vec{GB}$
+    \item $\cv=\vec{GC}$
+\end{itemize}
+
+\subsection{scalars}
+
+\begin{itemize}
+	\item $A = \|\A\|$
+	\item $B = \|\B\|$
+	\item $C = \|\C\|$
+	\item $a = \|\av\|$
+	\item $b = \|\bv\|$
+	\item $c = \|\cv\|$
 \end{itemize}
 
 \section{Computation}
@@ -39,61 +59,56 @@ The solid angle $\Omega$ subtended by the triangular surface $ABC$ is:
 
 $$
 {\displaystyle \tan \left({\frac {1}{2}}\Omega \right)
-  = {\frac {\left|{A}\ {B}\ {C}\right|}
-    {\mathbf{A}\mathbf{B}\mathbf{C} + \left({A}\cdot {B}\right)\mathbf{C}
-      + \left({A}\cdot {C}\right)\mathbf{B}
-      + \left({B}\cdot {C}\right)\mathbf{A}}}}
+  = {\frac {\left|{\A}\ {\B}\ {\C}\right|}
+    {ABC + \left({\A}\cdot {\B}\right)C
+      + \left({\A}\cdot {\C}\right)B
+      + \left({\B}\cdot {\C}\right)A}}}
 $$
 
-where $ \left|{A}\ {B}\ {C}\right|={A}\cdot ({B}\times {C}) $
+where $ \left|{\A}\ {\B}\ {\C}\right| = {\A}\cdot ({\B}\tm {\C}) $
 
 
 \subsection{Numerator}
 
 
-Given that $A = \vec{OA} = G + a$ (and resp.
-with $B$ and $C$), we get
+Given that $\A = \G + \av$ (and resp.
+with $\B$ and $\C$), we get
 
 
 \begin{align*}
-\left|{A}\ {B}\ {C}\right|
-	& =  {A} \cdot ({B}\times {C}) \\
-	& =  {A} \cdot ({(G + b)} \times {(G + c)}) \\
-	& =  {(G + a)} \cdot (\cancel{G \times G}
-	                      + G \times c
-	                      + b \times G
-	                      + b \times c) \\
-	& = \cancel{G \cdot (G \times c)}
-	                      + \cancel{G \cdot (b \times G)}\\
-         & + G \cdot (b \times c)
-	  + a \cdot (G \times c)
-	  + a \cdot (b \times G)
-	  + \cancel{a \cdot (b \times c)} \\
-	& = G \cdot (b \times c)
-	+ G \cdot (c \times a)
-	+ G \cdot (a \times b) \\
-	& = G \cdot \left(b \times c
-	+c \times a
-	+ a \times b \right)
+\left|{\A}\ {\B}\ {\C}\right|
+    & =& {\A} \cdot ({\B}\tm {\C}) \\
+    & =&  {(\G + \av)} \cdot ({(\G + \bv)} \tm {(\G + \cv)}) \\
+    & =&  {(\G + \av)} \cdot (\cancel{\G \tm \G}
+	                      + \G \tm \cv
+	                      + \bv \tm \G
+	                      + \bv \tm \cv) \\
+    & =& \cancel{\G \cdot (\G \tm \cv)}
+	                      + \cancel{\G \cdot (\bv \tm \G)}
+                          + \G \cdot (\bv \tm \cv)
+      + \av \cdot (\G \tm \cv)
+	  + \av \cdot (\bv \tm \G)
+	  + \cancel{\av \cdot (\bv \tm \cv)} \\
+    & =& \G \cdot (\bv \tm \cv)
+	+ \G \cdot (\cv \tm \av)
+	+ \G \cdot (\av \tm \bv) \\
+    & = &\G \cdot \left(\bv \tm \cv
+	+ \cv \tm \av
+	+ \av \tm \bv \right)
 \end{align*}
 
 since $G$ is the centroid of $ABC$, 
 
 \begin{equation}
-a + b + c= 0
+\av + \bv + \cv= 0
 \label{eq1}
 \end{equation}. We obtain
 
 \begin{align}
-\left|{A}\ {B}\ {C}\right|
-& = G \cdot \left(b \times c
-	+c \times a
-	+ a \times b \right) \nonumber \\
-& = G \cdot \left(b \times c
-	+c \times (-b - c)
-	+ (-b - c) \times b \right) \nonumber \\
-& = G \cdot \left(b \times c
-	+c \times (-b) + \cancel{c \times (- c)}
+\left|{\A}\ {\B}\ {\C}\right|
+& = \G \cdot \left(\bv \tm \cv + \cv \tm \av + \av \tm \bv \right) \nonumber \\
+& = \G \cdot \left(\bv \tm \cv + \cv \tm (-\bv-\cv)	+ (-\bv-\cv) \tm \bv \right) \nonumber \\
+& = G \cdot \left(\bv \times \cv + \cv \times (-\bv) + \cancel{\cv \times (-\cv)}
 	+ \cancel{(-b) \times b} + (- c) \times b \right) \nonumber \\
 & = G \cdot \left(3 b \times c \right) \nonumber \\
 & = 3 G \cdot \left( b \times c \right)
@@ -104,7 +119,7 @@ a + b + c= 0
 
 First let's see the term in $\mathbf{C}$
 \begin{align*}
- \left({A}\cdot {B}\right)\mathbf{C}
+ \left({\A}\cdot {\B}\right)C
 	=& \left( G + a \right) \cdot \left( G + b \right) \mathbf{C} \\
 	 =& (\mathbf{G}^2 +  G \cdot b	+ a \cdot G + a \cdot b    ) \mathbf{C}
 \end{align*}
