@@ -59,9 +59,9 @@ _D3 = {
     'coefs': 'lines',
     'ratio': 'lines',
     'Ti': 'x',
-    'width': 'lines',
+    'width': 'x',
     'vi': 'x',
-    'shift': 'lines',
+    'shift': 'lines',   # necessarily by line for de-normalization (*lamb0)
 }
 _VALID_NSIGMA = 6.
 _VALID_FRACTION = 0.8

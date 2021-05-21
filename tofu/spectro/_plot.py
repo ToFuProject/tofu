@@ -217,13 +217,15 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 
 def plot_fit1d(
-    dfit1d=None, dextract=None, showonly=None,
+    dfit1d=None, dextract=None, annotate=None, showonly=None,
     indspect=None, fs=None, dmargin=None,
     tit=None, wintit=None,
 ):
 
     # Check inputs
     # ------------
+    if annotate is None:
+        annotate = True
     if fs is None:
         fs = (15, 8)
     if wintit is None:
@@ -335,25 +337,27 @@ def plot_fit1d(
                 )
 
         # Annotate lines
-        for jj, k0 in enumerate(ions_u):
-            col = lcol[jj%ncol]
-            ind = (dinput['ion'] == k0).nonzero()[0]
-            for nn in ind:
-                ax.axvline(x[ispect, nn],
-                           c=col, ls='--')
-                lab = dinput['symb'][nn]
-                if dextract['coefs'] is not False:
-                    val = dextract['coefs']['values'][ispect, nn]
-                    lab += '\n{:4.2e}'.format(val)
-                if dextract['shift'] is not False:
-                    val = dextract['shift']['values'][ispect, nn]*1.e10
-                    lab += '\n({:+4.2e} A)'.format(val)
-                ax.annotate(lab,
-                            xy=(x[ispect, nn], 1.01), xytext=None,
-                            xycoords=('data', 'axes fraction'),
-                            color=col, arrowprops=None,
-                            horizontalalignment='center',
-                            verticalalignment='bottom')
+        if annotate is True:
+            for jj, k0 in enumerate(ions_u):
+                col = lcol[jj%ncol]
+                ind = (dinput['ion'] == k0).nonzero()[0]
+                for nn in ind:
+                    ax.axvline(x[ispect, nn], c=col, ls='--')
+                    lab = dinput['symb'][nn]
+                    if dextract['coefs'] is not False:
+                        val = dextract['coefs']['values'][ispect, nn]
+                        lab += '\n{:4.2e}'.format(val)
+                    if dextract['shift'] is not False:
+                        val = dextract['shift']['values'][ispect, nn]*1.e10
+                        lab += '\n({:+4.2e} A)'.format(val)
+                    ax.annotate(
+                        lab,
+                        xy=(x[ispect, nn], 1.01), xytext=None,
+                        xycoords=('data', 'axes fraction'),
+                        color=col, arrowprops=None,
+                        horizontalalignment='center',
+                        verticalalignment='bottom',
+                    )
 
         # Ion legend
         hand = [mlines.Line2D([], [], color=lcol[jj%ncol], ls='--',
