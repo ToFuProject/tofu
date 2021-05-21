@@ -68,7 +68,8 @@ _ALLOW_PICKLE = True
 _LTYPES = [int, float, np.int_, np.float_]
 
 _DBOUNDS = {
-    'bck': (0, 2),
+    'bck_amp': (0., 3.),
+    'bck_rate': (-3., 3.),
     'amp': (0, 2),
     'width': (0.01, 2.),
     'shift': (-2, 2),
@@ -76,7 +77,8 @@ _DBOUNDS = {
     'dshift': (-10., 10.),
 }
 _DX0 = {
-    'bck': 1.,
+    'bck_amp': 1.,
+    'bck_rate': 0.,
     'amp': 1.,
     'width': 1.,
     'shift': 0.,
@@ -1696,11 +1698,12 @@ def multigausfit1d_from_dlines_ind(dinput=None):
     # If double [..., double_shift, double_ratio]
     # Except for bck, all indices should render nlines (2*nlines if double)
     dind = {
-        'bck': {'x': np.r_[0, 1]},
+        'bck_amp': {'x': np.r_[0]},
+        'bck_rate': {'x': np.r_[1]},
         'dshift': None,
         'dratio': None,
     }
-    nn = dind['bck']['x'].size
+    nn = dind['bck_amp']['x'].size + dind['bck_rate']['x'].size
     inddratio, inddshift = None, None
     for k0 in _DORDER:
         ind = dinput[k0]['ind']
@@ -1717,7 +1720,8 @@ def multigausfit1d_from_dlines_ind(dinput=None):
 
     sizex = dind['shift']['x'][-1] + 1
     indx = np.r_[
-        dind['bck']['x'],
+        dind['bck_amp']['x'],
+        dind['bck_rate']['x'],
         dind['amp']['x'],
         dind['width']['x'],
         dind['shift']['x'],
@@ -2045,23 +2049,25 @@ def fit12d_dscales(dscales=None, dinput=None):
     lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
 
     # bck_amp
-    bck_amp = None
-    if dscales.get('bck_amp') is None:
+    bck_amp = dscales.get('bck_amp')
+    bck_rate = dscales.get('bck_rate')
+    if bck_amp is None or bck_rate is None:
         indbck = (
             (data > np.nanmean(data, axis=1)[:, None])
             | (~dinput['dprepare']['indok'])
         )
-        bck_amp = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
+        bcky = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
+        bckstd = np.array(np.ma.masked_where(indbck, data).std(axis=1))
 
-    # bck_rate
-    bck_rate = None
-    if dscales.get('bck_rate') is None:
-        import pdb; pdb.set_trace()     # DB
-        # TBD: bck => amp*exp(rate*lamb) 
-        bck_rate = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
+        # bck_rate
+        if bck_rate is None:
+            bck_rate = (
+                np.log((bcky+bckstd)/bcky) / (lamb.max()-lamb.min())
+            )
+        if bck_amp is None:
+            # Assuming bck = A*exp(rate*(lamb-lamb.min()))
+            bck_amp = bcky
 
-    import pdb; pdb.set_trace()     # DB
-    # TBF: bck => exp
     dscales = _fit12d_filldef_dscalesx0_float(
         din=dscales, din_name='dscales', key='bck_amp',
         vref=bck_amp, nspect=nspect,
@@ -2166,7 +2172,12 @@ def fit12d_dx0(dx0=None, dinput=None):
 
     # bck
     dx0 = _fit12d_filldef_dscalesx0_float(
-        din=dx0, din_name='dx0', key='bck', vref=1., nspect=nspect,
+        din=dx0, din_name='dx0', key='bck_amp',
+        vref=_DX0['bck_amp'], nspect=nspect,
+    )
+    dx0 = _fit12d_filldef_dscalesx0_float(
+        din=dx0, din_name='dx0', key='bck_rate',
+        vref=_DX0['bck_rate'], nspect=nspect,
     )
 
     # amp, width, shift
@@ -2430,12 +2441,21 @@ def fit12d_dbounds(dbounds=None, dinput=None):
     # bck
     dbounds['min'] = _fit12d_filldef_dscalesx0_float(
         din=dbounds['min'], din_name="dbounds['min']",
-        key='bck', vref=_DBOUNDS['bck'][0], nspect=nspect,
+        key='bck_amp', vref=_DBOUNDS['bck_amp'][0], nspect=nspect,
     )
     dbounds['max'] = _fit12d_filldef_dscalesx0_float(
         din=dbounds['max'], din_name="dbounds['max']",
-        key='bck', vref=_DBOUNDS['bck'][1], nspect=nspect,
+        key='bck_amp', vref=_DBOUNDS['bck_amp'][1], nspect=nspect,
     )
+    dbounds['min'] = _fit12d_filldef_dscalesx0_float(
+        din=dbounds['min'], din_name="dbounds['min']",
+        key='bck_rate', vref=_DBOUNDS['bck_rate'][0], nspect=nspect,
+    )
+    dbounds['max'] = _fit12d_filldef_dscalesx0_float(
+        din=dbounds['max'], din_name="dbounds['max']",
+        key='bck_rate', vref=_DBOUNDS['bck_rate'][1], nspect=nspect,
+    )
+
 
     for k0 in _DORDER:
         dbounds['min'] = _fit12d_filldef_dscalesx0_dict(
@@ -2480,7 +2500,8 @@ def _dict2vector_dscalesx0bounds(
     nspect = dinput['dprepare']['data'].shape[0]
     x = np.full((nspect, dinput['dind']['sizex']), np.nan)
 
-    x[:, dinput['dind']['bck']['x'][0]] = dd['bck']
+    x[:, dinput['dind']['bck_amp']['x'][0]] = dd['bck_amp']
+    x[:, dinput['dind']['bck_rate']['x'][0]] = dd['bck_rate']
     for k0 in _DORDER:
         for ii, k1 in enumerate(dinput[k0]['keys']):
             x[:, dinput['dind'][k0]['x'][ii]] = dd[k0][k1]
@@ -2497,159 +2518,159 @@ def _dict2vector_dscalesx0bounds(
     return x
 
 
+# DEPRECATED
+# def multigausfit1d_from_dlines_scale(data, lamb,
+                                     # scales=None, dscales=None,
+                                     # domain=None, dinput=None,
+                                     # dind=None, nspect=None):
+    # if dscales is None:
+        # dscales = False
+
+    # if scales is None:
+        # scales = np.full((nspect, dind['sizex']), np.nan)
+        # Dlamb = domain['lamb']['minmax'][1] - domain['lamb']['minmax'][0]
+        # lambm = domain['lamb']['minmax'][0]
+        # ibckx, iax = dind['bck']['x'], dind['amp']['x']
+        # iwx, isx = dind['width']['x'], dind['shift']['x']
+
+        # # bck
+        # indbck = data < np.nanmean(data, axis=1)[:, None]
+        # scales[:, ibckx[0]] = np.ma.masked_where(indbck, data).mean(axis=1)
+
+        # # amp
+        # for ii, ij in enumerate(dind['amp_x0']):
+            # indi = np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.
+            # scales[:, iax[ii]] = np.nanmean(data[:, indi], axis=1)
+
+        # # width and shift
+        # if dinput['same_spectrum'] is True:
+            # lambm2 = (lambm
+                     # + dinput['same_spectrum_dlamb']
+                     # * np.arange(0, dinput['same_spectrum_nspect']))
+            # nw0 = iwx.size / dinput['same_spectrum_nspect']
+            # lambmw = np.repeat(lambm2, nw0)
+            # scales[:, iwx] = (Dlamb/(20*lambmw))**2
+        # else:
+            # scales[:, iwx] = (Dlamb/(20*lambm))**2
+        # scales[:, isx] = Dlamb/(50*lambm)
+
+        # # Double
+        # if dinput['double'] is not False:
+            # if dinput['double'] is True:
+                # scales[:, dind['dratio']['x']] = 1.
+                # scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
+            # else:
+                # if dinput['double'].get('dratio') is None:
+                    # scales[:, dind['dratio']['x']] = 1.
+                # if dinput['double'].get('dshift') is None:
+                    # scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
+
+    # # check and return
+    # assert scales.ndim in [1, 2]
+    # if scales.ndim == 1:
+        # scales = np.tile(scales, (nspect, scales.size))
+    # assert scales.shape == (nspect, dind['sizex'])
+
+    # # Adjust with user-provided dscales
+    # if dscales is not False:
+        # lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
+        # c0 = (isinstance(dscales, dict)
+              # and all([type(dscales.get(ss, 1.)) in _LTYPES for ss in lk]))
+        # if not c0:
+            # msg = ("Arg dscales must be a dict of the form (1. is default):\n"
+                   # + "\t- {}\n".format(dict.fromkeys(lk, 1.))
+                   # + "\t- provided: {}".format(dscales))
+            # raise Exception(msg)
+
+        # for kk in lk:
+            # scales[:, dind[kk]['x']] *= dscales.get(kk, 1.)
+    # return scales
+
+
 # TBD
-def multigausfit1d_from_dlines_scale(data, lamb,
-                                     scales=None, dscales=None,
-                                     domain=None, dinput=None,
-                                     dind=None, nspect=None):
-    if dscales is None:
-        dscales = False
+# def multigausfit2d_from_dlines_scale(data, lamb, phi,
+                                     # scales=None, dscales=None,
+                                     # domain=None, dinput=None,
+                                     # dind=None, nspect=None):
+    # if dscales is None:
+        # dscales = False
 
-    if scales is None:
-        scales = np.full((nspect, dind['sizex']), np.nan)
-        Dlamb = domain['lamb']['minmax'][1] - domain['lamb']['minmax'][0]
-        lambm = domain['lamb']['minmax'][0]
-        ibckx, iax = dind['bck']['x'], dind['amp']['x']
-        iwx, isx = dind['width']['x'], dind['shift']['x']
+    # if scales is None:
+        # scales = np.full((nspect, dind['sizex']), np.nan)
+        # Dphi = domain['phi']['minmax'][1] - domain['phi']['minmax'][0]
+        # Dlamb = domain['lamb']['minmax'][1] - domain['lamb']['minmax'][0]
+        # lambm = domain['lamb']['minmax'][0]
+        # ibckx, iax = dind['bck']['x'], dind['amp']['x']
+        # iwx, isx = dind['width']['x'].ravel(), dind['shift']['x'].ravel()
 
-        # bck
-        indbck = data < np.nanmean(data, axis=1)[:, None]
-        scales[:, ibckx[0]] = np.ma.masked_where(indbck, data).mean(axis=1)
+        # # Perform by sector
+        # nbs, nlines = dinput['nbs'], dinput['nlines']
+        # na = dinput['amp']['ind'].shape[0]
+        # for ii in range(nbs):
+            # ind = np.abs(phi-dinput['ptsx0'][ii]) < Dphi/20.
 
-        # amp
-        for ii, ij in enumerate(dind['amp_x0']):
-            indi = np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.
-            scales[:, iax[ii]] = np.nanmean(data[:, indi], axis=1)
+            # # bck
+            # for jj in range(nspect):
+                # indbck = data[jj, ind] < np.nanmean(data[jj, ind])
+                # scales[jj, ibckx[ii]] = np.nanmean(data[jj, ind][indbck])
 
-        # width and shift
-        if dinput['same_spectrum'] is True:
-            lambm2 = (lambm
-                     + dinput['same_spectrum_dlamb']
-                     * np.arange(0, dinput['same_spectrum_nspect']))
-            nw0 = iwx.size / dinput['same_spectrum_nspect']
-            lambmw = np.repeat(lambm2, nw0)
-            scales[:, iwx] = (Dlamb/(20*lambmw))**2
-        else:
-            scales[:, iwx] = (Dlamb/(20*lambm))**2
-        scales[:, isx] = Dlamb/(50*lambm)
+            # # amp
+            # for jj in range(na):
+                # indl = dind['amp_x0'][jj]
+                # indlamb = np.abs(lamb-dinput['lines'][indl]) < Dlamb/20.
+                # indj = ind & indlamb
+                # if not np.any(indj):
+                    # lamb0 = dinput['lines'][indl]
+                    # msg = ("All nan in region scanned for scale:\n"
+                           # + "\t- amp[{}]\n".format(jj)
+                           # + "\t- bspline[{}]\n".format(ii)
+                           # + "\t- phi approx {}\n".format(dinput['ptsx0'][ii])
+                           # + "\t- lamb approx {}".format(lamb0))
+                    # plt.figure()
+                    # plt.scatter(lamb, phi, s=6, c='k', marker='.')
+                    # plt.scatter(lamb[ind], phi[ind], s=6, c='r', marker='.')
+                    # plt.scatter(lamb[indlamb], phi[indlamb],
+                                # s=6, c='b', marker='.');
+                    # plt.gca().set_xlim(domain['lamb']['minmax'])
+                    # plt.gca().set_ylim(domain['phi']['minmax'])
+                    # raise Exception(msg)
+                # scales[:, iax[ii, jj]] = np.nanmean(data[:, indj], axis=1)
 
-        # Double
-        if dinput['double'] is not False:
-            if dinput['double'] is True:
-                scales[:, dind['dratio']['x']] = 1.
-                scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
-            else:
-                if dinput['double'].get('dratio') is None:
-                    scales[:, dind['dratio']['x']] = 1.
-                if dinput['double'].get('dshift') is None:
-                    scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
+        # # width and shift
+        # scales[:, iwx] = (Dlamb/(20*lambm))**2
+        # scales[:, isx] = Dlamb/(50*lambm)
 
-    # check and return
-    assert scales.ndim in [1, 2]
-    if scales.ndim == 1:
-        scales = np.tile(scales, (nspect, scales.size))
-    assert scales.shape == (nspect, dind['sizex'])
+        # # double
+        # if dinput['double'] is not False:
+            # if dinput['double'] is True:
+                # scales[:, dind['dratio']['x']] = 1.
+                # scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
+            # else:
+                # if dinput['double'].get('dratio') is None:
+                    # scales[:, dind['dratio']['x']] = 1.
+                # if dinput['double'].get('dshift') is None:
+                    # scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
 
-    # Adjust with user-provided dscales
-    if dscales is not False:
-        lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
-        c0 = (isinstance(dscales, dict)
-              and all([type(dscales.get(ss, 1.)) in _LTYPES for ss in lk]))
-        if not c0:
-            msg = ("Arg dscales must be a dict of the form (1. is default):\n"
-                   + "\t- {}\n".format(dict.fromkeys(lk, 1.))
-                   + "\t- provided: {}".format(dscales))
-            raise Exception(msg)
+    # # check and return
+    # assert scales.ndim in [1, 2]
+    # if scales.ndim == 1:
+        # scales = np.tile(scales, (nspect, scales.size))
+    # assert scales.shape == (nspect, dind['sizex'])
 
-        for kk in lk:
-            scales[:, dind[kk]['x']] *= dscales.get(kk, 1.)
-    return scales
+    # # Adjust with user-provided dscales
+    # if dscales is not False:
+        # lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
+        # c0 = (isinstance(dscales, dict)
+              # and all([type(dscales.get(ss, 1.)) in _LTYPES for ss in lk]))
+        # if not c0:
+            # msg = ("Arg dscales must be a dict of the form (1. is default):\n"
+                   # + "\t- {}\n".format(dict.fromkeys(lk, 1.))
+                   # + "\t- provided: {}".format(dscales))
+            # raise Exception(msg)
 
-
-# TBD
-def multigausfit2d_from_dlines_scale(data, lamb, phi,
-                                     scales=None, dscales=None,
-                                     domain=None, dinput=None,
-                                     dind=None, nspect=None):
-    if dscales is None:
-        dscales = False
-
-    if scales is None:
-        scales = np.full((nspect, dind['sizex']), np.nan)
-        Dphi = domain['phi']['minmax'][1] - domain['phi']['minmax'][0]
-        Dlamb = domain['lamb']['minmax'][1] - domain['lamb']['minmax'][0]
-        lambm = domain['lamb']['minmax'][0]
-        ibckx, iax = dind['bck']['x'], dind['amp']['x']
-        iwx, isx = dind['width']['x'].ravel(), dind['shift']['x'].ravel()
-
-        # Perform by sector
-        nbs, nlines = dinput['nbs'], dinput['nlines']
-        na = dinput['amp']['ind'].shape[0]
-        for ii in range(nbs):
-            ind = np.abs(phi-dinput['ptsx0'][ii]) < Dphi/20.
-
-            # bck
-            for jj in range(nspect):
-                indbck = data[jj, ind] < np.nanmean(data[jj, ind])
-                scales[jj, ibckx[ii]] = np.nanmean(data[jj, ind][indbck])
-
-            # amp
-            for jj in range(na):
-                indl = dind['amp_x0'][jj]
-                indlamb = np.abs(lamb-dinput['lines'][indl]) < Dlamb/20.
-                indj = ind & indlamb
-                if not np.any(indj):
-                    lamb0 = dinput['lines'][indl]
-                    msg = ("All nan in region scanned for scale:\n"
-                           + "\t- amp[{}]\n".format(jj)
-                           + "\t- bspline[{}]\n".format(ii)
-                           + "\t- phi approx {}\n".format(dinput['ptsx0'][ii])
-                           + "\t- lamb approx {}".format(lamb0))
-                    plt.figure()
-                    plt.scatter(lamb, phi, s=6, c='k', marker='.')
-                    plt.scatter(lamb[ind], phi[ind], s=6, c='r', marker='.')
-                    plt.scatter(lamb[indlamb], phi[indlamb],
-                                s=6, c='b', marker='.');
-                    plt.gca().set_xlim(domain['lamb']['minmax'])
-                    plt.gca().set_ylim(domain['phi']['minmax'])
-                    raise Exception(msg)
-                scales[:, iax[ii, jj]] = np.nanmean(data[:, indj], axis=1)
-
-        # width and shift
-        scales[:, iwx] = (Dlamb/(20*lambm))**2
-        scales[:, isx] = Dlamb/(50*lambm)
-
-        # double
-        if dinput['double'] is not False:
-            if dinput['double'] is True:
-                scales[:, dind['dratio']['x']] = 1.
-                scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
-            else:
-                if dinput['double'].get('dratio') is None:
-                    scales[:, dind['dratio']['x']] = 1.
-                if dinput['double'].get('dshift') is None:
-                    scales[:, dind['dshift']['x']] = Dlamb/(50*lambm)
-
-    # check and return
-    assert scales.ndim in [1, 2]
-    if scales.ndim == 1:
-        scales = np.tile(scales, (nspect, scales.size))
-    assert scales.shape == (nspect, dind['sizex'])
-
-    # Adjust with user-provided dscales
-    if dscales is not False:
-        lk = ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
-        c0 = (isinstance(dscales, dict)
-              and all([type(dscales.get(ss, 1.)) in _LTYPES for ss in lk]))
-        if not c0:
-            msg = ("Arg dscales must be a dict of the form (1. is default):\n"
-                   + "\t- {}\n".format(dict.fromkeys(lk, 1.))
-                   + "\t- provided: {}".format(dscales))
-            raise Exception(msg)
-
-        for kk in lk:
-            scales[:, dind[kk]['x']] *= dscales.get(kk, 1.)
-    return scales
+        # for kk in lk:
+            # scales[:, dind[kk]['x']] *= dscales.get(kk, 1.)
+    # return scales
 
 
 ###########################################################
@@ -2871,15 +2892,15 @@ def multigausfit1d_from_dlines(
             cost[ii] = res.cost
             nfev[ii] = res.nfev
             message[ii] = res.message
-            time[ii] = round((dtm.datetime.now()-t0i).total_seconds(),
-                             ndigits=3)
+            time[ii] = round(
+                (dtm.datetime.now()-t0i).total_seconds(),
+                ndigits=3,
+            )
             sol_x[ii, :] = res.x
 
         except Exception as err:
             errmsg[ii] = str(err)
             validity[ii] = -1
-            import pdb; pdb.set_trace()     # DB
-            pass
 
         # Verbose
         if verbose in [1, 2]:
@@ -2918,7 +2939,8 @@ def multigausfit1d_from_dlines(
         lamb = lamb[:nlamb]
 
         nxbis = int(
-            dind['bck']['x'].size
+            dind['bck_amp']['x'].size
+            + dind['bck_rate']['x'].size
             + (dind['amp']['x'].size + dind['width']['x'].size)/nspect0
             + dind['shift']['x'].size
         )
@@ -2930,12 +2952,15 @@ def multigausfit1d_from_dlines(
                     dinput['double'].get('dratio') is not None
                     + dinput['double'].get('dshift') is not None
                 )
-        nb = dind['bck']['x'].size
+        nba = dind['bck_amp']['x'].size
+        nbr = dind['bck_rate']['x'].size
+        nb = nba+nbr
         na = int(dind['amp']['x'].size/nspect0)
         nw = int(dind['width']['x'].size/nspect0)
         ns = dind['shift']['x'].size
         x2 = np.full((nspect0, nxbis), np.nan)
-        x2[:, :nb] = sol_x[0, dind['bck']['x']][None, :]
+        x2[:, :nba] = sol_x[0, dind['bck_amp']['x']][None, :]
+        x2[:, nba:nbr] = sol_x[0, dind['bck_rate']['x']][None, :]
         x2[:, nb:nb+na] = reshape_custom(sol_x[0, dind['amp']['x']])
         x2[:, nb+na:nb+na+nw] = reshape_custom(sol_x[0, dind['width']['x']])
         x2[:, nb+na+nw:nb+na+nw+ns] = sol_x[:, dind['shift']['x']]

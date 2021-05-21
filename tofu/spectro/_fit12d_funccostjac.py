@@ -30,7 +30,9 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
     if jac is None:
         jac = _JAC
 
-    ibckx = dind['bck']['x']
+    ibckax = dind['bck_amp']['x']
+    ibckrx = dind['bck_rate']['x']
+    nbck = 1 # ibckax.size + ibckrx.size
     iax = dind['amp']['x']
     iwx = dind['width']['x']
     ishx = dind['shift']['x']
@@ -58,6 +60,7 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
     offsetwl = dinput['width']['offset']
     offsetsl = dinput['shift']['offset']
 
+    lambrel = lamb - np.nanmin(lamb)
     lambnorm = lamb[..., None]/dinput['lines'][None, ...]
 
     # # bsplines-specific
@@ -78,25 +81,29 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         # raise Exception(msg)
 
     # func_details returns result in same shape as input
-    def func_detail(x,
-                    lambnorm=lambnorm,
-                    ibckx=ibckx,
-                    ial=ial,
-                    iwl=iwl,
-                    ishl=ishl,
-                    idratiox=idratiox,
-                    idshx=idshx,
-                    nlines=dinput['nlines'],
-                    nbck=ibckx.size,
-                    coefsal=coefsal[None, :],
-                    coefswl=coefswl[None, :],
-                    coefssl=coefssl[None, :],
-                    offsetal=offsetal[None, :],
-                    offsetwl=offsetwl[None, :],
-                    offsetsl=offsetsl[None, :],
-                    double=dinput['double'],
-                    scales=None,
-                    indok=None):
+    def func_detail(
+        x,
+        lambrel=lambrel,
+        lambnorm=lambnorm,
+        ibckax=ibckax,
+        ibckrx=ibckrx,
+        ial=ial,
+        iwl=iwl,
+        ishl=ishl,
+        idratiox=idratiox,
+        idshx=idshx,
+        nlines=dinput['nlines'],
+        nbck=nbck,
+        coefsal=coefsal[None, :],
+        coefswl=coefswl[None, :],
+        coefssl=coefssl[None, :],
+        offsetal=offsetal[None, :],
+        offsetwl=offsetwl[None, :],
+        offsetsl=offsetsl[None, :],
+        double=dinput['double'],
+        scales=None,
+        indok=None,
+    ):
         if indok is None:
             indok = np.ones(lamb.shape, dtype=bool)
         shape = tuple(np.r_[indok.sum(), nbck+nlines])
@@ -120,7 +127,10 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
             expd = np.exp(-(lambnorm[indok, :] - (1 + dshift))**2 / (2*wi2))
 
         # compute y
-        y[:, ibckx] = xscale[ibckx]
+        y[:, :nbck] = (
+            xscale[ibckax]
+            * np.exp(xscale[ibckrx]*lambrel[indok])
+        )[:, None]
         y[:, nbck:] = amp * exp
         if double is not False:
             y[:, nbck:] += amp * dratio * expd
@@ -129,8 +139,10 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
     # cost and jacob return flattened results (for least_squares())
     def cost(
         x,
+        lambrel=lambrel,
         lambnorm=lambnorm,
-        ibckx=ibckx,
+        ibckax=ibckax,
+        ibckrx=ibckrx,
         ial=ial,
         iwl=iwl,
         ishl=ishl,
@@ -156,8 +168,13 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         amp = xscale[ial] * coefsal + offsetal
         inv_2wi2 = 1./(2.*(xscale[iwl] * coefswl + offsetwl))
         shift = xscale[ishl] * coefssl + offsetsl
-        y = np.nansum((amp * np.exp(-(lambnorm[indok, :] - (1 + shift))**2
-                                    * inv_2wi2)), axis=1) + xscale[ibckx]
+        y = (
+            np.nansum(
+                amp * np.exp(-(lambnorm[indok, :]-(1 + shift))**2 * inv_2wi2),
+                axis=1,
+            )
+            + xscale[ibckax]*np.exp(xscale[ibckrx]*lambrel[indok])
+        )
         if double is not False:
             if double is True:
                 dratio = xscale[idratiox]
@@ -184,21 +201,25 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         # Pre-instanciate jacobian
         jac0 = np.zeros((lamb.size, dind['sizex']), dtype=float)
 
-        def jacob(x, lambnorm=lambnorm,
-                  ibckx=ibckx,
-                  iax=iax, iaj=iaj, ial=ial,
-                  iwx=iwx, iwj=iwj, iwl=iwl,
-                  ishx=ishx, ishj=ishj, ishl=ishl,
-                  idratiox=idratiox, idshx=idshx,
-                  coefsal=coefsal[None, :],
-                  coefswl=coefswl[None, :],
-                  coefssl=coefssl[None, :],
-                  offsetal=offsetal[None, :],
-                  offsetwl=offsetwl[None, :],
-                  offsetsl=offsetsl[None, :],
-                  double=dinput['double'],
-                  scales=None, indok=None, data=None,
-                  jac0=jac0):
+        def jacob(
+            x,
+            lambnorm=lambnorm,
+            ibckax=ibckax,
+            ibckrx=ibckrx,
+            iax=iax, iaj=iaj, ial=ial,
+            iwx=iwx, iwj=iwj, iwl=iwl,
+            ishx=ishx, ishj=ishj, ishl=ishl,
+            idratiox=idratiox, idshx=idshx,
+            coefsal=coefsal[None, :],
+            coefswl=coefswl[None, :],
+            coefssl=coefssl[None, :],
+            offsetal=offsetal[None, :],
+            offsetwl=offsetwl[None, :],
+            offsetsl=offsetsl[None, :],
+            double=dinput['double'],
+            scales=None, indok=None, data=None,
+            jac0=jac0,
+        ):
             """ Basic docstr """
             if indok is None:
                 indok = np.ones(lamb.shape, dtype=bool)
@@ -214,7 +235,14 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
             exp = np.exp(alpha)
 
             # Background
-            jac0[indok, ibckx[0]] = scales[ibckx[0]]
+            jac0[indok, ibckax[0]] = (
+                scales[ibckax[0]]
+                * np.exp(xscale[ibckrx]*lambrel[indok])
+            )
+            jac0[indok, ibckrx[0]] = (
+                xscale[ibckax[0]] * scales[ibckrx[0]] * lambrel[indok]
+                * np.exp(xscale[ibckrx]*lambrel[indok])
+            )
 
             # amp (shape: nphi/lamb, namp[jj])
             for jj in range(len(iaj)):
