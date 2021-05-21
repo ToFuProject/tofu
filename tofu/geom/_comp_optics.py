@@ -169,7 +169,7 @@ def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     nin_bis = -nout_bis
 
     return nin_bis, nout_bis, e1_bis, e2_bis
-    
+
 # ###############################################
 #           Approximate solution
 # ###############################################
@@ -243,7 +243,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
     The position of the detector, relatively to the crystal, will be so in
     another Rowland circle with its center shifted from the original one.
     """
-  
+
     # Reference on detector
     det_nout = (det_nout_rel[0]*nout
                 + det_nout_rel[1]*e1 + det_nout_rel[2]*e2)

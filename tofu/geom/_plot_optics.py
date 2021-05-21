@@ -764,7 +764,7 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     if wintit is not False:
         ax.figure.canvas.set_window_title(wintit)
     if tit is not False:
-        ax.figure.suptitle(tit, size=14, weight='bold')
+        ax.figure.suptitle(tit, size=10, weight='bold', ha='right')
     return ax
 
 
