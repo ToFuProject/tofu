@@ -2049,6 +2049,16 @@ def fit12d_dscales(dscales=None, dinput=None):
     # Default values for filling missing fields
     Dlamb = np.diff(dinput['dprepare']['domain']['lamb']['minmax'])
     lambm = dinput['dprepare']['domain']['lamb']['minmax'][0]
+    if not (np.isfinite(Dlamb)[0] and Dlamb > 0):
+        msg = (
+            "lamb min, max seems to be non-finite or non-positive!\n"
+            + "\t- dinput['dprepare']['domain']['lamb']['minmax'] = {}".format(
+                dinput['dprepare']['domain']['lamb']['minmax']
+            )
+        )
+        raise Exception(msg)
+    if lambm == 0:
+        lambm = Dlamb / 100.
 
     # bck_amp
     bck_amp = dscales.get('bck_amp')
@@ -2141,6 +2151,7 @@ def fit12d_dscales(dscales=None, dinput=None):
                 din=dscales, din_name='dscales', key=k0,
                 vref=din[k0], nspect=nspect,
             )
+
     return dscales
 
 
@@ -2903,6 +2914,7 @@ def multigausfit1d_from_dlines(
         except Exception as err:
             errmsg[ii] = str(err)
             validity[ii] = -1
+            import pdb; pdb.set_trace()     # DB
 
         # Verbose
         if verbose in [1, 2]:
