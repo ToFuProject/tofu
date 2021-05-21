@@ -388,22 +388,46 @@ def plot_fit1d(
                 dout['ratio']['lab'][jj],
                 dout['ratio']['values'][ispect, jj])
                     for jj in range(nratio)]
-            legr = ax.legend(handles=hand,
-                             labels=lleg,
-                             title='line ratio',
-                             bbox_to_anchor=(1.01, 0.11), loc='lower left')
+            legr = ax.legend(
+                handles=hand,
+                labels=lleg,
+                title='line ratio',
+                bbox_to_anchor=(1.01, 0.21),
+                loc='lower left',
+            )
+            ax.add_artist(legr)
+
+        # bck legend
+        if True:
+            hand = [mlines.Line2D([], [], c='k', ls='None')]*2
+            lleg = [
+                'amp = {:4.2e}'.format(dout['bck_amp']['values'][ispect]),
+                'rate = {:4.2e}'.format(dout['bck_rate']['values'][ispect])
+            ]
+            legr = ax.legend(
+                handles=hand,
+                labels=lleg,
+                title='background',
+                bbox_to_anchor=(1.01, 0.05),
+                loc='lower left',
+            )
             ax.add_artist(legr)
 
         # double legend
         if dinput['double'] is not False:
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
-            lleg = ['ratio = {:4.2f}'.format(dout['dratio'][ispect]),
-                    ('shift ' + r'$\approx$'
-                     + ' {:4.2e}'.format(dout['dshift'][ispect]))]
-            legr = ax.legend(handles=hand,
-                             labels=lleg,
-                             title='double',
-                             bbox_to_anchor=(1.01, 0.), loc='lower left')
+            lleg = [
+                'ratio = {:4.2f}'.format(dout['dratio'][ispect]),
+                'shift ' + r'$\approx$'
+                + ' {:4.2e}'.format(dout['dshift'][ispect])
+            ]
+            legr = ax.legend(
+                handles=hand,
+                labels=lleg,
+                title='double',
+                bbox_to_anchor=(1.01, -0.1),
+                loc='lower left',
+            )
 
         ax.set_xlim(dinput['dprepare']['domain']['lamb']['minmax'])
 

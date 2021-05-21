@@ -53,6 +53,8 @@ _CHAIN = True
 _METHOD = 'trf'
 _LOSS = 'linear'
 _D3 = {
+    'bck_amp': 'x',
+    'bck_rate': 'x',
     'amp': 'x',
     'coefs': 'lines',
     'ratio': 'lines',
@@ -3258,7 +3260,8 @@ def fit1d(
     vi=None, shift=None,
     pts_lamb_total=None, pts_lamb_detail=None,
     plot=None, fs=None, wintit=None, tit=None, dmargin=None,
-    return_dax=None):
+    return_dax=None,
+):
 
     # ----------------------
     # Check / format
@@ -3326,7 +3329,8 @@ def fit1d(
             amp=amp, coefs=coefs, ratio=ratio,
             Ti=Ti, width=width, vi=vi, shift=shift,
             pts_lamb_total=pts_lamb_total,
-            pts_lamb_detail=pts_lamb_detail)
+            pts_lamb_detail=pts_lamb_detail,
+        )
         # TBF
         dax = _plot.plot_fit1d(
             dfit1d=dfit1d, dout=dout, showonly=showonly,
@@ -3437,6 +3441,7 @@ def fit2d(dinput=None, dprepare=None, dlines=None, dconstraints=None,
 def fit12d_get_data_checkformat(
     dfit=None,
     pts_phi=None, npts_phi=None,
+    bck=None,
     amp=None, coefs=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
@@ -3483,6 +3488,8 @@ def fit12d_get_data_checkformat(
 
     # Check / format amp, Ti, vi
     d3 = {
+        'bck_amp': [bck, 'bck_amp'],
+        'bck_rate': [bck, 'bck_rate'],
         'amp': [amp, 'amp'],
         'coefs': [coefs, 'amp'],
         'Ti': [Ti, 'width'],
@@ -3497,6 +3504,8 @@ def fit12d_get_data_checkformat(
         if d3[k0][0] is True:
             d3[k0][0] = _D3[k0]
         if d3[k0][0] is False:
+            continue
+        if 'bck' in k0:
             continue
         lc = [
             d3[k0][0] in ['lines', 'x'],
@@ -3652,6 +3661,7 @@ def fit12d_get_data_checkformat(
 
 def fit1d_extract(
     dfit1d=None,
+    bck=None,
     amp=None, coefs=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
@@ -3662,6 +3672,7 @@ def fit1d_extract(
     # Check format input
     d3, pts_phi, pts_lamb_total, pts_lamb_detail = fit12d_get_data_checkformat(
         dfit=dfit1d,
+        bck=bck,
         amp=amp, coefs=coefs, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
@@ -3689,10 +3700,28 @@ def fit1d_extract(
     # -------------------
     # Prepare output
     lk = [
+        'bck_amp', 'bck_rate',
         'amp', 'coefs', 'ratio', 'Ti', 'width', 'vi', 'shift',
         'dratio', 'dshift',
     ]
     dout = dict.fromkeys(lk, False)
+
+    # bck
+    if d3['bck_amp'] is not False:
+        dout['bck_amp'] = {
+            'values': (
+                dfit1d['sol_x'][:, dind['bck_amp']['x'][0]]
+                * dfit1d['scales'][:, dind['bck_amp']['x'][0]]
+            ),
+            'units': 'a.u.',
+        }
+        dout['bck_rate'] = {
+            'values': (
+                dfit1d['sol_x'][:, dind['bck_rate']['x'][0]]
+                * dfit1d['scales'][:, dind['bck_rate']['x'][0]]
+            ),
+            'units': 'a.u.',
+        }
 
     # amp
     if d3['amp'] is not False:
