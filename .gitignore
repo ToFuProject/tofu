@@ -43,6 +43,7 @@ build/
 # Tex files
 *.aux
 *.log
+*.synctex.gz
 
 # coverage output
 .coverage

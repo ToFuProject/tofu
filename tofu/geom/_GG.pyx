@@ -4932,3 +4932,401 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(ncells_rphi)
 
     return pts, sa_map, ind, reso_r_z
+
+# ==============================================================================
+#
+#                       Solid Angle Computation
+#                        subtended by a polygon
+#
+# ==============================================================================
+def compute_solid_angle_poly_map(double[:,::1] poly_coords,
+                                 double[:] poly_norm,
+                                 double rstep, double zstep, double phistep,
+                                 double[::1] RMinMax, double[::1] ZMinMax,
+                                 bint approx=True,
+                                 list DR=None, list DZ=None, DPhi=None,
+                                 double[:,::1] limit_vpoly=None,
+                                 bint block=False,
+                                 double[:, ::1] ves_poly=None,
+                                 double[:, ::1] ves_norm=None,
+                                 double[::1] ves_lims=None,
+                                 long[::1] lstruct_nlim=None,
+                                 double[::1] lstruct_polyx=None,
+                                 double[::1] lstruct_polyy=None,
+                                 list lstruct_lims=None,
+                                 double[::1] lstruct_normx=None,
+                                 double[::1] lstruct_normy=None,
+                                 long[::1] lnvert=None,
+                                 int nstruct_tot=0,
+                                 int nstruct_lim=0,
+                                 double rmin=-1, bint forbid=True,
+                                 double eps_uz=_SMALL, double eps_a=_VSMALL,
+                                 double eps_vz=_VSMALL, double eps_b=_VSMALL,
+                                 double eps_plane=_VSMALL, str ves_type='Tor',
+                                 double margin=_VSMALL, int num_threads=48,
+                                 bint test=True):
+    """
+    Computes the 2D map of the integrated solid angles subtended by a polygon
+    of coordinates poly_coords, not necessarily flat, one sided and side defined
+    by poly_norm, nomal vector of polygon.
+
+    Parameters
+    ----------
+    poly_coords: double array
+        coordinates of the points defining the polygon.
+        not necessarily flat.
+        poly_coords[i] being the i-th coordinate
+    poly_norm: double array
+        normal vector that defines the visble face of the polygon
+    rstep: double
+        refinement along radius `r`
+    zstep: double
+        refinement along height `z`
+    phistep: double
+        refinement along toroidal direction `phi`
+    approx: bool
+        do you want to use approximation (8th order) or exact formula ?
+        default: True
+    RMinMax: double memory-view
+        limits min and max in `r`
+    ZMinMax: double memory-view
+        limits min and max in `z`
+    DR: double memory-view, optional
+        actual sub-volume limits to get in `r`
+    DZ: double memory-view, optional
+        actual sub-volume limits to get in `z`
+    DPhi: double memory-view, optional
+        actual sub-volume limits to get in `phi`
+    limit_vpoly: (3, npts) double memory-view, optional
+        if we only want to discretize the volume inside a certain flux surface.
+        Defines the `(R,Z)` coords of the poloidal cut of the limiting flux
+        surface.
+    block: bool, optional
+        check if ppolygon is viewable from viewing points or if there is a
+        structural element blocking visibility (False)
+    ves_poly : (2, num_vertex) double array
+       Coordinates of the vertices of the Polygon defining the 2D poloidal
+       cut of the Vessel
+    ves_norm : (2, num_vertex-1) double array
+       Normal vectors going "inwards" of the edges of the Polygon defined
+       by ves_poly
+    nstruct_tot : int
+       Total number of structures (counting each limited structure as one)
+    ves_lims : array
+       Contains the limits min and max of vessel
+    lstruct_polyx : array
+       List of x coordinates of the vertices of all structures on poloidal plane
+       If no structures : None
+    lstruct_polyy : array
+       List of y coordinates of the vertices of all structures on poloidal plane
+       If no structures : None
+    lstruct_lims : array
+       List of limits of all structures
+       If no structures : None
+    lstruct_nlim : array of ints
+       List of number of limits for all structures
+       If no structures : None
+    lstruct_normx : double memory-view, optional
+       List of x-coordinates of "inwards" normal vectors of the polygon of all
+       the structures
+       If no structures : None
+    lstruct_normy : double memory-view, optional
+       List of y-coordinates of "inwards" normal vectors of the polygon of all
+       the structures
+       If no structures : None
+    rmin : double, optional
+       Minimal radius of vessel to take into consideration
+    forbid : bool, optional
+       Should we forbid values behind visible radius ? (see rmin)
+    eps_<val> : double, optional
+       Small value, acceptance of error
+    margin: double, optional
+        tolerance error. Defaults to |_VSMALL|
+    num_threads : int
+       The num_threads argument indicates how many threads the team should
+       consist of. If not given, OpenMP will decide how many threads to use.
+       Typically this is the number of cores available on the machine.
+    test : bool, optional
+       Should we run tests? Default True
+
+    Returns
+    -------
+        pts:    (2, npts) array of (R, Z) coordinates of viewing points in
+                vignette where solid angle is integrated
+        sa_map: (npts, sz_p) array approx solid angle integrated along phi
+                integral (sa * dphi * r)
+        ind:    (npts) indices to reconstruct (R,Z) map from sa_map
+        rdrdz:  (npts) volume unit: dr*dz
+    """
+    cdef int jj
+    cdef int sz_p
+    cdef int sz_r
+    cdef int sz_z
+    cdef int npts_pol
+    cdef int r_ratio
+    cdef int ind_loc_r0
+    cdef int npts_disc = 0
+    cdef int[1] max_sz_phi
+    cdef double min_phi, max_phi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
+    cdef double abs0, abs1
+    cdef double reso_r_z
+    cdef double twopi_over_dphi
+    cdef long[1] ncells_r0, ncells_r, ncells_z
+    cdef long[::1] ind_mv
+    cdef long[::1] first_ind_mv
+    cdef double[2] limits_dl
+    cdef double[1] reso_r0, reso_r, reso_z
+    cdef double[::1] reso_rdrdz_mv
+    cdef double[::1] lstruct_lims_np
+    cdef double[:, ::1] poly_mv
+    cdef double[:, ::1] pts_mv
+    cdef long[:, ::1] indi_mv
+    cdef long[:, ::1] ind_rz2pol
+    cdef long[:, ::1] is_in_vignette
+    cdef long** ltri = NULL
+    cdef long* lindex   = NULL
+    cdef long* sz_phi   = NULL
+    cdef long* lindex_z = NULL
+    cdef long* ncells_rphi = NULL
+    cdef double* disc_r0 = NULL
+    cdef double* disc_r  = NULL
+    cdef double* disc_z  = NULL
+    cdef double* step_rphi = NULL
+    cdef np.ndarray[long, ndim=2] indI
+    cdef np.ndarray[long, ndim=1] ind
+    cdef np.ndarray[double, ndim=1] reso_rdrdz
+    cdef np.ndarray[double, ndim=2] pts
+    cdef np.ndarray[double, ndim=2] sa_map
+    #
+    # == Testing inputs ========================================================
+    if test:
+        if block:
+            msg = "ves_poly and ves_norm are not optional arguments"
+            assert ves_poly is not None and ves_norm is not None, msg
+            bool1 = (ves_poly.shape[0]==2 and ves_norm.shape[0]==2
+                     and ves_norm.shape[1]==ves_poly.shape[1]-1)
+            msg = "Args ves_poly & ves_norm must be of the same shape (2, NS)!"
+            assert bool1, msg
+            bool1 = (lstruct_lims is None
+                     or len(lstruct_normy) == len(lstruct_normx))
+            bool2 = (lstruct_normx is None
+                     or len(lstruct_polyx) == len(lstruct_polyy))
+            msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims,"\
+                + " lstruct_normx, lstruct_normy, must be None or"\
+                + " lists of same len()!"
+            assert bool1 and bool2, msg
+        # TODO: add tests to verify shape of poly_coords
+        msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
+        assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
+                                          eps_vz, eps_b,
+                                          eps_plane]]), msg
+        msg = "ves_type must be a str in ['Tor','Lin']!"
+        assert ves_type.lower() in ['tor', 'lin'], msg
+    # ...
+    # .. Getting size of arrays ................................................
+    # TODO : faire algo pour plusieurs polys.
+    nvert = poly_coords.shape[1]
+    ltri = <long**>malloc(sizeof(long*))
+    _vt.triangulate_poly(&poly_coords[0,0], nvert, ltri)
+    # TODO: pas besoin de rajouter le calcul d'un vecteur normal, prendre celui du
+    # poly pour tous les tris.
+    # TODO: calcul barycentre des triangles
+    # # .. Check if points are visible ...........................................
+    # Get the actual R and Z resolutions and mesh elements
+    # .. First we discretize R without limits ..................................
+    _st.cythonize_subdomain_dl(None, limits_dl) # no limits
+    _ = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+                                   True, 0, # discretize in absolute mode
+                                   margin, &disc_r0, reso_r0, &lindex,
+                                   ncells_r0)
+    free(lindex) # getting rid of things we dont need
+    lindex = NULL
+    # .. Now the actual R limited  .............................................
+    _st.cythonize_subdomain_dl(DR, limits_dl)
+    sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_r, reso_r, &lindex,
+                                      ncells_r)
+    free(lindex) # getting rid of things we dont need
+    # .. Now Z .................................................................
+    _st.cythonize_subdomain_dl(DZ, limits_dl)
+    sz_z = _st.discretize_line1d_core(&ZMinMax[0], zstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_z, reso_z, &lindex_z,
+                                      ncells_z)
+    # .. Preparing for phi: get the limits if any and make sure to replace them
+    # .. in the proper quadrants ...............................................
+    if DPhi is None:
+        min_phi = -c_pi
+        max_phi = c_pi
+    else:
+        min_phi = DPhi[0] # to avoid conversions
+        min_phi = c_atan2(c_sin(min_phi), c_cos(min_phi))
+        max_phi = DPhi[1] # to avoid conversions
+        max_phi = c_atan2(c_sin(max_phi), c_cos(max_phi))
+    # .. Initialization ........................................................
+    sz_phi = <long*>malloc(sz_r*sizeof(long))
+    ncells_rphi  = <long*>malloc(sz_r*sizeof(long))
+    step_rphi    = <double*>malloc(sz_r*sizeof(double))
+    r_ratio = <int>(c_ceil(disc_r[sz_r - 1] / disc_r[0]))
+    twopi_over_dphi = _TWOPI / phistep
+    ind_loc_r0 = 0
+    min_phi_pi = min_phi + c_pi
+    max_phi_pi = max_phi + c_pi
+    abs0 = c_abs(min_phi_pi)
+    abs1 = c_abs(max_phi_pi)
+    # ... doing 0 loop before ..................................................
+    if min_phi < max_phi:
+        # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+        ncells_rphi[0] = <int>c_ceil(twopi_over_dphi * disc_r[0])
+        loc_nc_rphi = ncells_rphi[0]
+        step_rphi[0] = _TWOPI / ncells_rphi[0]
+        inv_drphi = 1. / step_rphi[0]
+        # Get index and cumulated indices from background
+        for jj in range(ind_loc_r0, ncells_r0[0]):
+            if disc_r0[jj]==disc_r[0]:
+                ind_loc_r0 = jj
+                break
+        # Get indices of phi
+        # Get the extreme indices of the mesh elements that really need to
+        # be created within those limits
+        if abs0 - step_rphi[0]*c_floor(abs0 * inv_drphi) < margin*step_rphi[0]:
+            nphi0 = int(c_round((min_phi + c_pi) * inv_drphi))
+        else:
+            nphi0 = int(c_floor((min_phi +c_pi) * inv_drphi))
+        if abs1-step_rphi[0]*c_floor(abs1 * inv_drphi) < margin*step_rphi[0]:
+            nphi1 = int(c_round((max_phi+c_pi) * inv_drphi)-1)
+        else:
+            nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
+        sz_phi[0] = nphi1 + 1 - nphi0
+        max_sz_phi[0] = sz_phi[0]
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = ind_i
+        for jj in range(sz_phi[0]):
+            indi_mv[0, jj] = nphi0 + jj
+        npts_disc += sz_z * sz_phi[0]
+    else:
+        # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
+        ncells_rphi[0] = <int>c_ceil(twopi_over_dphi * disc_r[0])
+        loc_nc_rphi = ncells_rphi[0]
+        step_rphi[0] = _TWOPI / ncells_rphi[0]
+        inv_drphi = 1. / step_rphi[0]
+        # Get index and cumulated indices from background
+        for jj in range(ind_loc_r0, ncells_r0[0]):
+            if disc_r0[jj]==disc_r[0]:
+                ind_loc_r0 = jj
+                break
+        # Get indices of phi
+        # Get the extreme indices of the mesh elements that really need to
+        # be created within those limits
+        if abs0 - step_rphi[0]*c_floor(abs0 * inv_drphi) < margin*step_rphi[0]:
+            nphi0 = int(c_round((min_phi + c_pi) * inv_drphi))
+        else:
+            nphi0 = int(c_floor((min_phi + c_pi) * inv_drphi))
+        if abs1-step_rphi[0]*c_floor(abs1 * inv_drphi) < margin*step_rphi[0]:
+            nphi1 = int(c_round((max_phi+c_pi) * inv_drphi)-1)
+        else:
+            nphi1 = int(c_floor((max_phi+c_pi) * inv_drphi))
+        sz_phi[0] = nphi1+1+loc_nc_rphi-nphi0
+        max_sz_phi[0] = sz_phi[0]
+        ind_i = -np.ones((sz_r, sz_phi[0] * r_ratio + 1), dtype=int)
+        indi_mv = ind_i
+        for jj in range(loc_nc_rphi - nphi0):
+            indi_mv[0, jj] = nphi0 + jj
+        for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
+            indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
+        npts_disc += sz_z * sz_phi[0]
+    # ... doing the others .....................................................
+    npts_disc += _st.sa_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
+                                 disc_r, disc_r0, step_rphi,
+                                 ind_loc_r0,
+                                 ncells_r0[0], ncells_z[0], &max_sz_phi[0],
+                                 min_phi, max_phi, sz_phi, indi_mv,
+                                 margin, num_threads)
+    # ... vignetting ...........................................................
+    is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
+    if limit_vpoly is not None:
+        npts_vpoly = limit_vpoly.shape[1] - 1
+        # we make sure it is closed
+        if not(abs(limit_vpoly[0, 0] - limit_vpoly[0, npts_vpoly]) < _VSMALL
+                and abs(limit_vpoly[1, 0]
+                        - limit_vpoly[1, npts_vpoly]) < _VSMALL):
+            poly_mv = np.concatenate((limit_vpoly, limit_vpoly[:,0:1]), axis=1)
+        else:
+            poly_mv = limit_vpoly
+        _ = _vt.are_in_vignette(sz_r, sz_z,
+                                poly_mv, npts_vpoly,
+                                disc_r, disc_z,
+                                is_in_vignette)
+    # .. preparing for actual discretization ...................................
+    ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
+    npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
+                                     is_in_vignette,
+                                     sz_r, sz_z)
+    # initializing arrays
+    reso_rdrdz = np.empty((npts_pol, ))
+    sa_map = np.zeros((npts_pol, sz_p))
+    pts = np.empty((2, npts_pol))
+    ind = -np.ones((npts_pol, ), dtype=int)
+    pts_mv = pts
+    ind_mv = ind
+    reso_rdrdz_mv = reso_rdrdz
+    reso_r_z = reso_r[0]*reso_z[0]
+    ind_i = np.sort(ind_i, axis=1)
+    indi_mv = ind_i
+    first_ind_mv = np.argmax(ind_i > -1, axis=1).astype(int)
+    # initializing utilitary arrays
+    num_threads = _ompt.get_effective_num_threads(num_threads)
+    lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
+    # ..............
+    # TODO: pour checker si triangle est visible par un point ed discretization
+    # checker juste si point voit le barycentre du triangle.
+    _st.sa_assemble_arrays(block,
+                           approx,
+                           ltri, poly_norm,
+
+                           is_in_vignette,
+                           sa_map,
+                           ves_poly,
+                           ves_norm,
+                           ves_lims,
+                           lstruct_nlim,
+                           lstruct_polyx,
+                           lstruct_polyy,
+                           lstruct_lims_np,
+                           lstruct_normx,
+                           lstruct_normy,
+                           lnvert,
+                           nstruct_tot,
+                           nstruct_lim,
+                           rmin,
+                           eps_uz, eps_a,
+                           eps_vz, eps_b,
+                           eps_plane,
+                           forbid,
+                           first_ind_mv,
+                           indi_mv,
+                           sz_p, sz_r, sz_z,
+                           ncells_rphi,
+                           reso_r_z,
+                           disc_r,
+                           step_rphi,
+                           disc_z,
+                           ind_rz2pol,
+                           sz_phi,
+                           reso_rdrdz_mv,
+                           pts_mv,
+                           ind_mv,
+                           num_threads)
+    # ... freeing up memory ....................................................
+    free(lindex_z)
+    free(disc_r)
+    free(disc_z)
+    free(disc_r0)
+    free(sz_phi)
+    free(step_rphi)
+    free(ncells_rphi)
+
+    return pts, sa_map, ind, reso_r_z
