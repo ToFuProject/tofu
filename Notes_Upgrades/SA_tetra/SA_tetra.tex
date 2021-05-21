@@ -1,4 +1,5 @@
 \documentclass[10pt,a4paper]{article}
+\usepackage[margin=0.5in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{amsmath}
@@ -21,12 +22,15 @@
 Let
 
 \begin{itemize}
-	\item $\vec{a}$ be the vector $\vec{OA}$
-	\item $\vec{b}$ be the vector $\vec{OB}$
-	\item $\vec{c}$ be the vector $\vec{OC}$
-	\item $a$ be the magnitude of the vector $\vec{OA}$
-	\item $b$ be the magnitude of the vector $\vec{OB}$
-	\item $c$ be the magnitude of the vector $\vec{OC}$
+	\item $A$ be the vector $\vec{OA}$
+	\item $B$ be the vector $\vec{OB}$
+	\item $C$ be the vector $\vec{OC}$
+	\item $a$ be the vector $\vec{GA}$
+	\item $b$ be the vector $\vec{GB}$
+	\item $c$ be the vector $c$
+	\item $\mathbf{A}$ be the magnitude of the vector $\vec{OA}$
+	\item $\mathbf{B}$ be the magnitude of the vector $\vec{OB}$
+	\item $\mathbf{C}$ be the magnitude of the vector $\vec{OC}$
 \end{itemize}
 
 \section{Computation}
@@ -35,134 +39,147 @@ The solid angle $\Omega$ subtended by the triangular surface $ABC$ is:
 
 $$
 {\displaystyle \tan \left({\frac {1}{2}}\Omega \right)
-  = {\frac {\left|{\vec {a}}\ {\vec {b}}\ {\vec {c}}\right|}
-    {abc + \left({\vec {a}}\cdot {\vec {b}}\right)c
-      + \left({\vec {a}}\cdot {\vec {c}}\right)b
-      + \left({\vec {b}}\cdot {\vec {c}}\right)a}}}
+  = {\frac {\left|{A}\ {B}\ {C}\right|}
+    {\mathbf{A}\mathbf{B}\mathbf{C} + \left({A}\cdot {B}\right)\mathbf{C}
+      + \left({A}\cdot {C}\right)\mathbf{B}
+      + \left({B}\cdot {C}\right)\mathbf{A}}}}
 $$
 
-where $ \left|{\vec {a}}\ {\vec {b}}\ {\vec {c}}\right|={\vec {a}}\cdot ({\vec {b}}\times {\vec {c}}) $
+where $ \left|{A}\ {B}\ {C}\right|={A}\cdot ({B}\times {C}) $
 
 
 \subsection{Numerator}
 
 
-Given that $\vec{a} = \vec{OA} = \vec{OG} + \vec{GA}$ (and resp.
+Given that $A = \vec{OA} = G + a$ (and resp.
 with $B$ and $C$), we get
 
 
 \begin{align*}
-\left|{\vec {a}}\ {\vec {b}}\ {\vec {c}}\right|
-	& =  {\vec {a}} \cdot ({\vec {b}}\times {\vec {c}}) \\
-	& =  {\vec {a}} \cdot ({(\vec{OG} + \vec{GB})} \times {(\vec{OG} + \vec{GC})}) \\
-	& =  {(\vec{OG} + \vec{GA})} \cdot (\cancel{\vec{OG} \times \vec{OG}}
-	                      + \vec{OG} \times \vec{GC}
-	                      + \vec{GB} \times \vec{OG}
-	                      + \vec{GB} \times \vec{GC}) \\
-	& = \cancel{\vec{OG} \cdot (\vec{OG} \times \vec{GC})}
-	                      + \cancel{\vec{OG} \cdot (\vec{GB} \times \vec{OG})}\\
-         & + \vec{OG} \cdot (\vec{GB} \times \vec{GC})
-	  + \vec{GA} \cdot (\vec{OG} \times \vec{GC})
-	  + \vec{GA} \cdot (\vec{GB} \times \vec{OG})
-	  + \cancel{\vec{GA} \cdot (\vec{GB} \times \vec{GC})} \\
-	& = \vec{OG} \cdot (\vec{GB} \times \vec{GC})
-	+ \vec{OG} \cdot (\vec{GC} \times \vec{GA})
-	+ \vec{OG} \cdot (\vec{GA} \times \vec{GB}) \\
-	& = \vec{OG} \cdot (\vec{GB} \times \vec{GC})
-	+ \vec{OG} \cdot (\vec{GC} \times \vec{GA})
-	+ \vec{OG} \cdot (\vec{GA} \times \vec{GB})\\
-	& = \vec{OG} \cdot \left(\vec{GB} \times \vec{GC}
-	+\vec{GC} \times \vec{GA}
-	+ \vec{GA} \times \vec{GB} \right)
+\left|{A}\ {B}\ {C}\right|
+	& =  {A} \cdot ({B}\times {C}) \\
+	& =  {A} \cdot ({(G + b)} \times {(G + c)}) \\
+	& =  {(G + a)} \cdot (\cancel{G \times G}
+	                      + G \times c
+	                      + b \times G
+	                      + b \times c) \\
+	& = \cancel{G \cdot (G \times c)}
+	                      + \cancel{G \cdot (b \times G)}\\
+         & + G \cdot (b \times c)
+	  + a \cdot (G \times c)
+	  + a \cdot (b \times G)
+	  + \cancel{a \cdot (b \times c)} \\
+	& = G \cdot (b \times c)
+	+ G \cdot (c \times a)
+	+ G \cdot (a \times b) \\
+	& = G \cdot \left(b \times c
+	+c \times a
+	+ a \times b \right)
 \end{align*}
 
 since $G$ is the centroid of $ABC$, 
 
 \begin{equation}
-\vec{GA} + \vec{GB} + \vec{GC}= 0
+a + b + c= 0
 \label{eq1}
 \end{equation}. We obtain
 
 \begin{align}
-\left|{\vec {a}}\ {\vec {b}}\ {\vec {c}}\right|
-& = \vec{OG} \cdot \left(\vec{GB} \times \vec{GC}
-	+\vec{GC} \times \vec{GA}
-	+ \vec{GA} \times \vec{GB} \right) \nonumber \\
-& = \vec{OG} \cdot \left(\vec{GB} \times \vec{GC}
-	+\vec{GC} \times (-\vec{GB} - \vec{GC})
-	+ (-\vec{GB} - \vec{GC}) \times \vec{GB} \right) \nonumber \\
-& = \vec{OG} \cdot \left(\vec{GB} \times \vec{GC}
-	+\vec{GC} \times (-\vec{GB}) + \cancel{\vec{GC} \times (- \vec{GC})}
-	+ \cancel{(-\vec{GB}) \times \vec{GB}} + (- \vec{GC}) \times \vec{GB} \right) \nonumber \\
-& = \vec{OG} \cdot \left(3 \vec{GB} \times \vec{GC} \right) \nonumber \\
-& = 3 \vec{OG} \cdot \left( \vec{GB} \times \vec{GC} \right)
+\left|{A}\ {B}\ {C}\right|
+& = G \cdot \left(b \times c
+	+c \times a
+	+ a \times b \right) \nonumber \\
+& = G \cdot \left(b \times c
+	+c \times (-b - c)
+	+ (-b - c) \times b \right) \nonumber \\
+& = G \cdot \left(b \times c
+	+c \times (-b) + \cancel{c \times (- c)}
+	+ \cancel{(-b) \times b} + (- c) \times b \right) \nonumber \\
+& = G \cdot \left(3 b \times c \right) \nonumber \\
+& = 3 G \cdot \left( b \times c \right)
 \end{align}
 
 \subsection{Denominator}
 
 
-First let's see the term in $c$
+First let's see the term in $\mathbf{C}$
 \begin{align*}
- \left({\vec {a}}\cdot {\vec {b}}\right)c 
-	=& \left( \vec{OG} + \vec{GA} \right) \cdot \left( \vec{OG} + \vec{GB} \right) c \\
-	 =& (g^2 +  \vec{OG} \cdot \vec{GB}	+ \vec{GA} \cdot \vec{OG} + \vec{GA} \cdot \vec{GB}    ) c
+ \left({A}\cdot {B}\right)\mathbf{C}
+	=& \left( G + a \right) \cdot \left( G + b \right) \mathbf{C} \\
+	 =& (\mathbf{G}^2 +  G \cdot b	+ a \cdot G + a \cdot b    ) \mathbf{C}
 \end{align*}
 
 Using \eqref{eq1}
 
 \begin{align}
- \left({\vec {a}}\cdot {\vec {b}}\right)c 
-	 =& (g^2 +  \vec{OG} \cdot \vec{GB}	+ (-\vec{GB} - \vec{GC}) \cdot \vec{OG} + (-\vec{GB} - \vec{GC}) \cdot \vec{GB}    ) c \nonumber \\
-	 =& (g^2 - ||GB||^2 - \vec{OG} \cdot \vec{GC} - \vec{GC} \cdot \vec{GB})c
+ \left({A}\cdot {B}\right)\mathbf{C}
+	 =& (\mathbf{G}^2 +  G \cdot b	+ (-b - c) \cdot G + (-b - c) \cdot b    ) c \nonumber \\
+	 =& (\mathbf{G}^2 - ||GB||^2 - G \cdot c - c \cdot b)\mathbf{C}
 \end{align}
 
 
 
-Now, the term in $b$
+Now, the term in $\mathbf{B}$
 
 
 \begin{align*}
- \left({\vec {a}}\cdot {\vec {c}}\right)c 
-	=& \left( \vec{OG} + \vec{GA} \right) \cdot \left( \vec{OG} + \vec{GC} \right) b \\
-	 =& (g^2 +  \vec{OG} \cdot \vec{GC}	+ \vec{GA} \cdot \vec{OG} + \vec{GA} \cdot \vec{GC}    ) b
+ \left({A}\cdot {C}\right)\mathbf{B} 
+	=& \left( G + a \right) \cdot \left( G + c \right) \mathbf{B} \\
+	 =& (\mathbf{G}^2 +  G \cdot c	+ a \cdot G + a \cdot c    ) \mathbf{B}
 \end{align*}
 
 Using \eqref{eq1}
 
 \begin{align}
- \left({\vec {a}}\cdot {\vec {c}}\right)b
-	 =& (g^2 +  \vec{OG} \cdot \vec{GC}	+ (-\vec{GB} - \vec{GC}) \cdot \vec{OG} + (-\vec{GB} - \vec{GC}) \cdot \vec{GC}    ) b \nonumber \\
-	 =& (g^2 - ||GC||^2 - \vec{OG} \cdot \vec{GC} - \vec{GC} \cdot \vec{GB})b
+ \left({A}\cdot {C}\right)\mathbf{B}
+	 =& (\mathbf{G}^2 +  G \cdot c	+ (-b - c) \cdot G + (-b - c) \cdot c    ) b \nonumber \\
+	 =& (\mathbf{G}^2 - ||GC||^2 - G \cdot c - c \cdot b)\mathbf{B}
 \end{align}
 
 
 For the third term there is no simplification
 
 \begin{align}
- \left({\vec {b}}\cdot {\vec {c}}\right)a 
-	=& \left( \vec{OG} + \vec{GB} \right) \cdot \left( \vec{OG} + \vec{GC} \right) a
+ \left({B}\cdot {C}\right)\mathbf{A}
+	=& \left( G + b \right) \cdot \left( G + c \right) \mathbf{A}
 \end{align}
 
 
 For the computation of the norms, we can use:
 
 \begin{align*}
-a^2 &= ||OG||^2 + ||GA||^2\\
-    &=  g^2 + ||GA||^2
+\mathbf{A}^2 &= ||OG||^2 + \mathbf{a}^2 - 2 G \cdot a \\
+        &=  \mathbf{G}^2 + \mathbf{a}^2 - 2 G \cdot a 
 \end{align*}
 
-thus
+and respectively with B and C, we obtain
+
 
 \begin{align}
-g^2 &= a^2 - ||GA||^2 \nonumber \\ 
-    &= b^2 - ||GB||^2 \nonumber \\
-    &= c^2 - ||GC||^2
+(\mathbf{A}\mathbf{B}\mathbf{C})^2 &= (\mathbf{G}^2 + \mathbf{a} - 2 G \cdot a )^2(\mathbf{G}^2 + \mathbf{b} - 2 G \cdot b)^2(\mathbf{G}^2 + \mathbf{c} - 2 G \cdot c)^2 
 \end{align}
 
-and
 
-\begin{align}
-(abc)^2 &= (g^2 + ||GA||)^2(g^2 + ||GB||)^2(g^2 + ||GC||)^2 
-\end{align}
+\section{Final formula}
+
+
+$$
+{\displaystyle \tan \left({\frac {1}{2}}\Omega \right)
+  = {\frac {3 G \cdot \left( b \times c \right)}
+    {\mathbf{A}\mathbf{B}\mathbf{C} + \left({A}\cdot {B}\right)\mathbf{C}
+      + \left({A}\cdot {C}\right)\mathbf{B}
+      + \left({B}\cdot {C}\right)\mathbf{A}}}}
+$$
+
+
+$$
+{\displaystyle \tan \left({\frac {1}{2}}\Omega \right)
+  = {\frac {3 G \cdot \left( b \times c \right)}
+    {\mathbf{A}\mathbf{B}\mathbf{C} +
+    (\mathbf{G}^2 - ||GB||^2 - G \cdot c - c \cdot b)\mathbf{C}
+      + (\mathbf{G}^2 - ||GC||^2 - G \cdot c - c \cdot b)\mathbf{B}
+      + \left( G + b \right) \cdot \left( G + c \right) \mathbf{A}
+      }}}
+$$
 
 \end{document}
