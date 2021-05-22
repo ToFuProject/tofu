@@ -114,7 +114,7 @@ Using \eqref{eq1}
 \begin{align}
  \left({A}\cdot {B}\right)\mathbf{C}
 	 =& (\mathbf{G}^2 +  G \cdot b	+ (-b - c) \cdot G + (-b - c) \cdot b    ) c \nonumber \\
-	 =& (\mathbf{G}^2 - ||GB||^2 - G \cdot c - c \cdot b)\mathbf{C}
+	 =& (\mathbf{G}^2 - G \cdot c - c \cdot b)\mathbf{C}
 \end{align}
 
 
@@ -133,7 +133,7 @@ Using \eqref{eq1}
 \begin{align}
  \left({A}\cdot {C}\right)\mathbf{B}
 	 =& (\mathbf{G}^2 +  G \cdot c	+ (-b - c) \cdot G + (-b - c) \cdot c    ) b \nonumber \\
-	 =& (\mathbf{G}^2 - ||GC||^2 - G \cdot c - c \cdot b)\mathbf{B}
+	 =& (\mathbf{G}^2 - G \cdot c - c \cdot b)\mathbf{B}
 \end{align}
 
 
@@ -148,15 +148,15 @@ For the third term there is no simplification
 For the computation of the norms, we can use:
 
 \begin{align*}
-\mathbf{A}^2 &= ||OG||^2 + \mathbf{a}^2 - 2 G \cdot a \\
-        &=  \mathbf{G}^2 + \mathbf{a}^2 - 2 G \cdot a 
+\mathbf{A}^2 &= ||OG||^2 + \mathbf{a}^2 + 2 G \cdot a \\
+        &=  \mathbf{G}^2 + \mathbf{a}^2 + 2 G \cdot a 
 \end{align*}
 
 and respectively with B and C, we obtain
 
 
 \begin{align}
-(\mathbf{A}\mathbf{B}\mathbf{C})^2 &= (\mathbf{G}^2 + \mathbf{a} - 2 G \cdot a )^2(\mathbf{G}^2 + \mathbf{b} - 2 G \cdot b)^2(\mathbf{G}^2 + \mathbf{c} - 2 G \cdot c)^2 
+(\mathbf{A}\mathbf{B}\mathbf{C})^2 &= (\mathbf{G}^2 + \mathbf{a} + 2 G \cdot a )^2(\mathbf{G}^2 + \mathbf{b} + 2 G \cdot b)^2(\mathbf{G}^2 + \mathbf{c} + 2 G \cdot c)^2 
 \end{align}
 
 
@@ -176,8 +176,8 @@ $$
 {\displaystyle \tan \left({\frac {1}{2}}\Omega \right)
   = {\frac {3 G \cdot \left( b \times c \right)}
     {\mathbf{A}\mathbf{B}\mathbf{C} +
-    (\mathbf{G}^2 - ||GB||^2 - G \cdot c - c \cdot b)\mathbf{C}
-      + (\mathbf{G}^2 - ||GC||^2 - G \cdot c - c \cdot b)\mathbf{B}
+    (\mathbf{G}^2 - G \cdot c - c \cdot b)\mathbf{C}
+      + (\mathbf{G}^2 - G \cdot c - c \cdot b)\mathbf{B}
       + \left( G + b \right) \cdot \left( G + c \right) \mathbf{A}
       }}}
 $$
