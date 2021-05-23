@@ -5,9 +5,12 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
- \usepackage{cancel}
+\usepackage{cancel}
+\usepackage{xcolor}
 \usepackage{graphicx}
 
+%\renewcommand\CancelColor{<color command>}
+\newcommand\cc[2][black]{\renewcommand\CancelColor{\color{#1}}\cancel{#2}}
 \newcommand{\ud}[1]{\underline{#1}}
 \DeclareMathOperator{\tm}{\times}
 \DeclareMathOperator{\A}{\ud{A}}
@@ -108,11 +111,83 @@ since $G$ is the centroid of $ABC$,
 \left|{\A}\ {\B}\ {\C}\right|
 & = \G \cdot \left(\bv \tm \cv + \cv \tm \av + \av \tm \bv \right) \nonumber \\
 & = \G \cdot \left(\bv \tm \cv + \cv \tm (-\bv-\cv)	+ (-\bv-\cv) \tm \bv \right) \nonumber \\
-& = G \cdot \left(\bv \times \cv + \cv \times (-\bv) + \cancel{\cv \times (-\cv)}
-	+ \cancel{(-b) \times b} + (- c) \times b \right) \nonumber \\
-& = G \cdot \left(3 b \times c \right) \nonumber \\
-& = 3 G \cdot \left( b \times c \right)
+& = \G \cdot \left(\bv \times \cv + \cv \times (-\bv) + \cancel{\cv \times (-\cv)}
+	+ \cancel{(-\bv) \times \bv} + (- \cv) \times \bv \right) \nonumber \\
+& = \G \cdot \left(3 \bv \times \cv \right) \nonumber \\
+& = 3 \G \cdot \left( \bv \times \cv \right)
 \end{align}
+
+
+\subsection{norms}
+
+We can write:
+$$
+\begin{array}{ll}
+    A^2
+    & = \A \cdot \A\\
+    & = (\G+\av) \cdot (\G + \av)\\
+    & = G^2 + 2\G \cdot \av + a^2\\
+\end{array}
+$$
+
+Hence:
+$$
+\begin{array}{ll}
+    (ABC)^2
+    & = (G^2 + 2\G \cdot \av + a^2)
+    (G^2 + 2\G \cdot \bv + b^2)
+    (G^2 + 2\G \cdot \cv + c^2)\\
+    & = (G^2 + 2\G \cdot \av + a^2)
+    (G^4 + 2G^2\G \cdot \cv + G^2c^2
+     + 2G^2\G \cdot \bv + 4(\G \cdot \bv)(\G \cdot \cv) + 2c^2\G \cdot \bv
+     + b^2G^2 + 2b^2\G \cdot \cv + b^2c^2)\\
+\end{array}
+$$
+
+Given that: $\av = -(\bv+\cv) \Rightarrow a^2=b^2 + 2\bv \cdot \cv + c^2$
+
+We can write:
+$$
+\begin{array}{lll}
+    (ABC)^2
+    & = & (G^2 + 2\G \cdot \av + a^2)
+    (G^4 + 2G^2\G \cdot \cv + G^2c^2
+     + 2G^2\G \cdot \bv + 4(\G \cdot \bv)(\G \cdot \cv) + 2c^2\G \cdot \bv
+     + b^2G^2 + 2b^2\G \cdot \cv + b^2c^2)\\
+    & = & (G^2 - 2\G \cdot \bv - 2\G \cdot \cv + b^2 + 2\bv \cdot \cv + c^2)\\
+    && (G^4 + 2G^2\G \cdot \cv + G^2c^2
+     + 2G^2\G \cdot \bv + 4(\G \cdot \bv)(\G \cdot \cv) + 2c^2\G \cdot \bv
+     + b^2G^2 + 2b^2\G \cdot \cv + b^2c^2)\\
+    & = & G^2
+    \left(G^4 + \cc[black]{2G^2\G \cdot \cv} + G^2c^2
+     + \cc[red]{2G^2\G \cdot \bv} + \cc[blue]{4(\G \cdot \bv)(\G \cdot \cv)}
+     + \cc[green]{2c^2\G \cdot \bv}
+     + b^2G^2 + \cc[yellow]{2b^2\G \cdot \cv} + b^2c^2\right)\\
+     && - 2\G \cdot \bv
+    \left(\cc[red]{G^4} + \cc[blue]{2G^2\G \cdot \cv} + \cc[green]{G^2c^2}
+     + 2G^2\G \cdot \bv + 4(\G \cdot \bv)(\G \cdot \cv) + 2c^2\G \cdot \bv
+     + \cc[red]{b^2G^2} + \cc[cyan]{2b^2\G \cdot \cv} + \cc[blue]{b^2c^2}\right)\\
+     && - 2\G \cdot \cv 
+    \left(\cc[black]{G^4} + 2G^2\G \cdot \cv + \cc[magenta]{G^2c^2}
+     + 2G^2\G \cdot \bv + 4(\G \cdot \bv)(\G \cdot \cv)
+     + \cc[black]{2c^2\G \cdot \bv}
+     + \cc[yellow]{b^2G^2} + 2b^2\G \cdot \cv + \cc[green]{b^2c^2}\right)\\
+     &&+ 2\bv \cdot \cv
+    \left(G^4 + 2G^2\G \cdot \cv + G^2c^2
+     + 2G^2\G \cdot \bv + 4(\G \cdot \bv)(\G \cdot \cv) + 2c^2\G \cdot \bv
+     + b^2G^2 + 2b^2\G \cdot \cv + b^2c^2\right)\\
+     && + b^2
+    \left(G^4 + 2G^2\G \cdot \cv + G^2c^2
+     + \cc[red]{2G^2\G \cdot \bv} + \cc[cyan]{4(\G \cdot \bv)(\G \cdot \cv)}
+     + \cc[blue]{2c^2\G \cdot \bv}
+     + b^2G^2 + 2b^2\G \cdot \cv + b^2c^2\right)\\
+     && + c^2
+    \left(G^4 + \cc[magenta]{2G^2\G} \cdot \cv + G^2c^2
+     + 2G^2\G \cdot \bv + \cc[black]{4(\G \cdot \bv)(\G \cdot \cv)} + 2c^2\G \cdot \bv
+     + b^2G^2 + \cc[green]{2b^2\G \cdot \cv} + b^2c^2\right)\\
+\end{array}
+$$
+
 
 \subsection{Denominator}
 
