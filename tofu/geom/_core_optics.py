@@ -1345,6 +1345,7 @@ class CrystalBragg(utils.ToFuObject):
                 raise Exception(msg)
             # Redefining summit according to nout at each point at crystal 
             summ = cent + self._dgeom['rcurve']*vout
+            nout, e1, e2 = vout, ve1, ve2
             # Calling vectors from psi theta by original names
             if nmax == 1:
                 summ, nout = summ[:, 0], vout[:, 0]
@@ -1485,7 +1486,6 @@ class CrystalBragg(utils.ToFuObject):
             summit, nin, e1, e2,
             xi=xii, xj=xjj,
             )
-
         if plot is not False:
             if tit is None:
                 crstr = 'cryst {}'.format(self.Id.Name)
