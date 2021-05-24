@@ -1934,7 +1934,7 @@ class Struct(utils.ToFuObject):
             msg += "    - 'object': return a %s instance\n" % cls.__name__
             msg += "    - 'dict' : return a dict with polygon, pos and extent"
             raise Exception(msg)
-        if not pfe[-4:] == ".txt":
+        if not pfe.endswith(".txt"):
             msg = "Only accepts .txt files (fed to np.loadtxt) !\n"
             msg += "    file:  %s" % pfe
             raise Exception(msg)
