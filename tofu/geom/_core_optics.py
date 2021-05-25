@@ -1506,13 +1506,16 @@ class CrystalBragg(utils.ToFuObject):
                 )
         return bragg, phi
 
-    def plot_line_on_det_tracing(self, lamb=None, n=None,
-                                 xi_bounds=None, xj_bounds=None, nphi=None,
-                                 det=None, johann=None,
-                                 use_non_parallelism=None,
-                                 lpsi=None, ldtheta=None,
-                                 rocking=None, fs=None, dmargin=None,
-                                 wintit=None, tit=None):
+    def plot_line_on_det_tracing(
+        self, lamb=None, n=None,
+        xi_bounds=None, xj_bounds=None, nphi=None,
+        det=None, johann=None,
+        use_non_parallelism=None,
+        lpsi=None, ldtheta=None,
+        ax=None, dleg=None,
+        rocking=None, fs=None, dmargin=None,
+        wintit=None, tit=None,
+    ):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
         Args:
             - lamb: array of min size 1, in 1e-10 [m]
@@ -1601,9 +1604,9 @@ class CrystalBragg(utils.ToFuObject):
             pass
 
         # Plot
-        ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+        return _plot_optics.CrystalBragg_plot_line_tracing_on_det(
             lamb, xi, xj, xi_er, xj_er,
-            det=det,
+            det=det, ax=ax, dleg=dleg,
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
