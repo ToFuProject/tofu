@@ -1469,7 +1469,7 @@ def fit1d_dinput(
     # ------------------------
     mz = np.array([dlines[k0].get('m', np.nan) for k0 in lines_keys])
     symb = np.array([dlines[k0].get('symbol', k0) for k0 in lines_keys])
-    ion = np.array([dlines[k0].get('ION', '?') for k0 in lines_keys])
+    ion = np.array([dlines[k0].get('ion', '?') for k0 in lines_keys])
 
     # ------------------------
     # same_spectrum

@@ -359,14 +359,21 @@ def plot_fit1d(
                         verticalalignment='bottom',
                     )
 
-        # Ion legend
-        hand = [mlines.Line2D([], [], color=lcol[jj%ncol], ls='--',
-                              label=ions_u[jj])
-                for jj in range(nions)]
-        legi = ax.legend(handles=hand,
-                         title='ions',
-                         bbox_to_anchor=(1.01, 1.), loc='upper left')
-        ax.add_artist(legi)
+            # Ion legend
+            hand = [
+                mlines.Line2D(
+                    [], [],
+                    color=lcol[jj%ncol], ls='--', label=ions_u[jj]
+                )
+                for jj in range(nions)
+            ]
+            legi = ax.legend(
+                handles=hand,
+                title='ions',
+                bbox_to_anchor=(1.01, 1.),
+                loc='upper left',
+            )
+            ax.add_artist(legi)
 
         # Ti legend
         if dextract['Ti'] is not False:
@@ -375,9 +382,12 @@ def plot_fit1d(
             lleg = [str(dinput['width']['keys'][jj])
                     + '  {:4.2f}'.format(dextract['Ti']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['width']['ind'].shape[0])]
-            legT = ax.legend(handles=hand, labels=lleg,
-                             title='Ti (keV)',
-                             bbox_to_anchor=(1.01, 0.8), loc='upper left')
+            legT = ax.legend(
+                handles=hand, labels=lleg,
+                title='Ti (keV)',
+                bbox_to_anchor=(1.01, 1.), # 0.8
+                loc='upper left',
+            )
             ax.add_artist(legT)
 
         # vi legend
@@ -388,9 +398,12 @@ def plot_fit1d(
             lleg = [str(dinput['shift']['keys'][jj])
                     + '  {:4.2f}'.format(dextract['vi']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['shift']['ind'].shape[0])]
-            legv = ax.legend(handles=hand, labels=lleg,
-                             title='vi (km/s)',
-                             bbox_to_anchor=(1.01, 0.5), loc='upper left')
+            legv = ax.legend(
+                handles=hand, labels=lleg,
+                title='vi (km/s)',
+                bbox_to_anchor=(1.01, 0.75), # 0.5
+                loc='upper left',
+            )
             ax.add_artist(legv)
 
         # Ratios legend
@@ -405,7 +418,7 @@ def plot_fit1d(
                 handles=hand,
                 labels=lleg,
                 title='line ratio',
-                bbox_to_anchor=(1.01, 0.21),
+                bbox_to_anchor=(1.01, 0.30), # 0.21
                 loc='lower left',
             )
             ax.add_artist(legr)
@@ -421,7 +434,7 @@ def plot_fit1d(
                 handles=hand,
                 labels=lleg,
                 title='background',
-                bbox_to_anchor=(1.01, 0.05),
+                bbox_to_anchor=(1.01, 0.10),    # 0.05
                 loc='lower left',
             )
             ax.add_artist(legr)
