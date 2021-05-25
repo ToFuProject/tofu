@@ -9,7 +9,6 @@ structure.
 # The following imports matplotlib, preferably using a
 # backend that allows the plots to be interactive (Qt5Agg).
 import numpy as np
-import matplotlib  # prefer using Qt5Agg backend
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since
