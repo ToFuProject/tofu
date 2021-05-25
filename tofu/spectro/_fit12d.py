@@ -3609,25 +3609,34 @@ def fit12d_get_data_checkformat(
               )
         if not any(lc):
             raise Exception(msg)
+
         if lc[0]:
-            c0 = (len(ratio) == 2
-                  and all([ss in lkeys for ss in ratio]))
+            c0 = (
+                len(ratio) == 2
+                and all([ss in lkeys for ss in ratio])
+            )
             if not c0:
                 raise Exception(msg)
             ratio = np.reshape(ratio, (2, 1))
+
         elif lc[1]:
-            c0 = all([(isinstance(t, tuple)
-                       and len(tt) == 2
-                       and all([ss in lkeys for ss in tt]))
-                      for tt in ratio])
+            c0 = all([
+                isinstance(tt, tuple)
+                and len(tt) == 2
+                and all([ss in lkeys for ss in tt])
+                for tt in ratio
+            ])
             if not c0:
                 raise Exception(msg)
             ratio = np.array(ratio).T
-        c0 = (isinstance(ratio, np.ndarray)
-              and ratio.ndim == 2
-              and ratio.shape[0] == 2
-              and all([ss in lkeys for ss in ratio[0, :]])
-              and all([ss in lkeys for ss in ratio[1, :]]))
+
+        c0 = (
+            isinstance(ratio, np.ndarray)
+            and ratio.ndim == 2
+            and ratio.shape[0] == 2
+            and all([ss in lkeys for ss in ratio[0, :]])
+            and all([ss in lkeys for ss in ratio[1, :]])
+        )
         if not c0:
             raise Exception(msg)
 
