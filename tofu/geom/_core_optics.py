@@ -1118,7 +1118,7 @@ class CrystalBragg(utils.ToFuObject):
              self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
                              alpha, beta,
                              self._dgeom['nout'], self._dgeom['e1'],
-                             self._dgeom['e2']
+                             self._dgeom['e2'],
                              )
             self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
@@ -1346,7 +1346,6 @@ class CrystalBragg(utils.ToFuObject):
             # Redefining summit according to nout at each point at crystal 
             summ = cent + self._dgeom['rcurve']*vout
             nout, e1, e2 = vout, ve1, ve2
-            # Calling vectors from psi theta by original names
             if nmax == 1:
                 summ, nout = summ[:, 0], vout[:, 0]
                 e1, e2 = ve1[:, 0], ve2[:, 0]
@@ -1459,7 +1458,6 @@ class CrystalBragg(utils.ToFuObject):
         return dtheta, psi
 
 
-    #TBC
     def calc_braggphi_from_xixj(self, xi, xj, n=None,
                                 det=None, use_non_parallelism=None,
                                 dtheta=None, psi=None,

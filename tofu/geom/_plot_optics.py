@@ -824,10 +824,12 @@ def CrystalBragg_plot_line_tracing_on_det(lamb, xi, xj, xi_err, xj_err,
     return [ax0]
 
 
-def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
-                                  cmap=None, vmin=None, vmax=None,
-                                  fs=None, dmargin=None, wintit=None, tit=None,
-                                  angunits='deg', err=None):
+def CrystalBragg_plot_johannerror(
+                xi, xj, lamb, phi, err_lamb, err_phi,
+                cmap=None, vmin=None, vmax=None,
+                fs=None, dmargin=None, wintit=None, tit=None,
+                angunits='deg', err=None,
+                                  ):
 
     # Check inputs
     # ------------
@@ -871,7 +873,7 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
     # Plot
     # ------------
 
-    fig = fig = plt.figure(figsize=fs)
+    fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal') # adjustable='datalim')
     ax1 = fig.add_subplot(gs[0, 1], aspect='equal', # adjustable='datalim',
@@ -900,7 +902,6 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
         fig.suptitle(tit, size=14, weight='bold')
 
     return [ax0, ax1, ax2]
-
 
 
 # #################################################################
