@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 
 # tofu-specific
 from tofu import __version__
-import tofu.pathfile as tfpf
 
+_SAVEPATH = os.getcwd()
 _SEP = '.'
 _dict_lexcept_key = []
 
@@ -149,7 +149,7 @@ def flatten_dict(d, parent_key='', sep=None, deep='ref',
                 elif deep=='copy':
                     v = v.copy(deep='copy')
             new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, collections.MutableMapping):
+            if isinstance(v, collections.abc.MutableMapping):
                 items.extend(flatten_dict(v, new_key,
                                           deep=deep, sep=sep).items())
             else:
@@ -367,9 +367,9 @@ def _save_npzmat_dict(dd, sep=None):
             # None will be recreated at load time
             pass
         elif (type(dd[k]) in [int,float,bool,str]
-              or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)
-              or issubclass(dd[k].__class__,np.bool_)):
+              or issubclass(dd[k].__class__, int)
+              or issubclass(dd[k].__class__, float)
+              or issubclass(dd[k].__class__, np.bool_)):
             dnpzmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
             dnpzmat[k] = np.asarray(dd[k])
@@ -2143,8 +2143,11 @@ class ToFuObjectBase(object):
                         if eqk:
                             eqk = d0[k].dtype == d1[k].dtype
                             if eqk:
-                                if (issubclass(d0[k].dtype.type, np.int)
-                                    or issubclass(d0[k].dtype.type, np.float)):
+                                c0 = (
+                                    issubclass(d0[k].dtype.type, int)
+                                    or issubclass(d0[k].dtype.type, float)
+                                )
+                                if c0:
                                     eqk = np.allclose(d0[k],d1[k], equal_nan=True)
                                 else:
                                     eqk = np.all(d0[k]==d1[k])
@@ -2177,6 +2180,13 @@ class ToFuObjectBase(object):
                                 if not eqk:
                                     m0 = 'tri ' + str(d0[k].triangles)
                                     m1 = 'tri ' + str(d1[k].triangles)
+                    elif 'trifind' in k:
+                        lpar0 = inspect.signature(d0[k]).parameters
+                        lpar1 = inspect.signature(d1[k]).parameters
+                        eqk = lpar0.keys() == lpar1.keys()
+                        if not eqk:
+                            m0 = 'tri ' + lpar0.keys()
+                            m1 = 'tri ' + lpar1.keys()
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))
@@ -2550,6 +2560,16 @@ class ToFuObject(ToFuObjectBase):
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
+
+        if name is None and self.Id.Name is None:
+            msg = "Please set a unique instance name before saving using:\n"
+            msg += "    self.Id.set_Name( name )\n\n"
+            msg += "  => (to avoid saving of different instances with no name)"
+            raise Exception(msg)
+        if path is None and self.Id.SavePath is None:
+            msg = "Please specify a saving path (path=...)"
+            raise Exception(msg)
+
         return save(self, path=path, name=name,
                     sep=sep, deep=deep, mode=mode,
                     strip=strip, compressed=compressed,
@@ -2646,6 +2666,8 @@ class ID(ToFuObjectBase):
                                  SaveName=None, include=None,
                                  lObj=None, dUSR=None):
         # Str args
+        if SavePath is None:
+            SavePath = _SAVEPATH
         ls = [usr, Type, SavePath, Exp, Diag, SaveName]
         assert all(ss is None or type(ss) is str for ss in ls)
         if usr is None:
@@ -2800,7 +2822,7 @@ class ID(ToFuObjectBase):
         return self._dall['Name']
     @property
     def NameLTX(self):
-        return r"$"+self.Name.replace('_','\_')+r"$"
+        return r"$" + self.Name.replace('_', '\_') + r"$"
     @property
     def Exp(self):
         return self._dall['Exp']
@@ -3265,7 +3287,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                     def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[0]))
                 else:
-                    def func(val, ind0=None, refb=ref2):
+                    def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
@@ -3275,7 +3297,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                 else:
                     refb = 0.5*(ref[1:]+ref[:-1])
                     if Type == 'x':
-                        def func(val, ind0=None, refb=ref2):
+                        def func(val, ind0=None, refb=refb):
                             return np.digitize([val[0]], refb)[0]
                     else:
                         def func(val, ind0=None, refb=refb):

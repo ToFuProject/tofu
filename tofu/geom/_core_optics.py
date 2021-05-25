@@ -1113,7 +1113,7 @@ class CrystalBragg(utils.ToFuObject):
                 alpha = 0
             if beta is None:
                 beta = 0
-                
+
             (self._dmat['nin'], self._dmat['nout'], self._dmat['e1'],
              self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
                              alpha, beta,

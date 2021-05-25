@@ -5,10 +5,12 @@ on:
     branches-ignore:
       - master
       - devel
+      - deploy-test
   pull_request:
     branches-ignore:
       - master
       - devel
+      - deploy-test
 jobs:
   build-linux:
     runs-on: ubuntu-latest

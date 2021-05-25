@@ -170,9 +170,11 @@ def get_vectors_from_angles(alpha, beta, nout, e1, e2):
 
     return nin_bis, nout_bis, e1_bis, e2_bis
 
+
 # ###############################################
 #           Approximate solution
 # ###############################################
+
 
 def get_approx_detector_rel(rcurve, bragg,
                             braggref=None, xiref=None,

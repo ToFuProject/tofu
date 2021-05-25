@@ -147,6 +147,7 @@ class MultiIDSLoader(object):
     # Known short version of signal str
     _dshort = _defimas2tofu._dshort
     _didsdiag = _defimas2tofu._didsdiag
+    _lidsconfig = _defimas2tofu._lidsconfig
     _lidsdiag = _defimas2tofu._lidsdiag
     _lidslos = _defimas2tofu._lidslos
     _lidssynth = _defimas2tofu._lidssynth
@@ -267,6 +268,8 @@ class MultiIDSLoader(object):
                 if not all([iids in self._IDS_BASE
                             for iids in self._dids.keys()]):
                     ids_base = True
+                else:
+                    ids_base = False
             if not isinstance(ids_base, bool):
                 msg = ("Arg ids_base must be bool:\n"
                        + "\t- False: adds no ids\n"
@@ -1632,6 +1635,22 @@ class MultiIDSLoader(object):
             Name = wall.type.name
             if Name == '':
                 Name = 'imas wall'
+        if '_' in Name:
+            Name = Name.strip('_')
+            ln = Name.split('_')
+            if len(ln) > 1:
+                for ii, nn in enumerate(ln[1:]):
+                    if nn[0].islower():
+                        ln[ii+1] = nn.capitalize()
+                Name = ''.join(ln)
+        if ' ' in Name:
+            Name = Name.strip(' ')
+            ln = Name.split(' ')
+            if len(ln) > 1:
+                for ii, nn in enumerate(ln[1:]):
+                    if nn[0].islower():
+                        ln[ii+1] = nn.capitalize()
+                Name = ''.join(ln)
         config = mod.Config(lStruct=lS, Name=Name, **kwargs)
 
         # Output

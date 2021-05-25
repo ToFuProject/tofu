@@ -78,13 +78,13 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
     if dlines is not None:
         lines = [k0 for k0, v0 in dlines.items()
-                 if (v0['lambda'] >= lambfit[0]
-                     and v0['lambda'] <= lambfit[-1])]
+                 if (v0['lambda0'] >= lambfit[0]
+                     and v0['lambda0'] <= lambfit[-1])]
         lions = sorted(set([dlines[k0]['ION'] for k0 in lines]))
         nions = len(lions)
         dions = {k0: [k1 for k1 in lines if dlines[k1]['ION'] == k0]
                  for k0 in lions}
-        dions = {k0: {'lamb': np.array([dlines[k1]['lambda']
+        dions = {k0: {'lamb': np.array([dlines[k1]['lambda0']
                                         for k1 in dions[k0]]),
                       'symbol': [dlines[k1]['symbol'] for k1 in dions[k0]]}
                  for k0 in lions}
@@ -216,9 +216,11 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 # #################################################################
 
 
-def plot_fit1d(dfit1d=None, dout=None, showonly=None,
-               indspect=None, fs=None, dmargin=None,
-               tit=None, wintit=None):
+def plot_fit1d(
+    dfit1d=None, dout=None, showonly=None,
+    indspect=None, fs=None, dmargin=None,
+    tit=None, wintit=None,
+):
 
     # Check inputs
     # ------------
@@ -357,7 +359,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
         if dout['Ti'] is not False:
             hand = [mpatches.Patch(color=lfcol[jj%nfcol])
                     for jj in range(dinput['width']['ind'].shape[0])]
-            lleg = [dinput['width']['keys'][jj]
+            lleg = [str(dinput['width']['keys'][jj])
                     + '  {:4.2f}'.format(dout['Ti']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['width']['ind'].shape[0])]
             legT = ax.legend(handles=hand, labels=lleg,
@@ -370,7 +372,7 @@ def plot_fit1d(dfit1d=None, dout=None, showonly=None,
             hand = [mpatches.Patch(facecolor='w', edgecolor='k',
                                    hatch=lhatch[jj%nhatch])
                     for jj in range(dinput['shift']['ind'].shape[0])]
-            lleg = [dinput['shift']['keys'][jj]
+            lleg = [str(dinput['shift']['keys'][jj])
                     + '  {:4.2f}'.format(dout['vi']['values'][ispect, jj]*1.e-3)
                     for jj in range(dinput['shift']['ind'].shape[0])]
             legv = ax.legend(handles=hand, labels=lleg,

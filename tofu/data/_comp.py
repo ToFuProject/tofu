@@ -11,6 +11,10 @@ import scipy.linalg as scplin
 import scipy.stats as scpstats
 from matplotlib.tri import LinearTriInterpolator as mplTriLinInterp
 
+
+from . import _comp_new
+
+
 _fmin_coef = 5.
 _ANITYPE = 'sca'
 _FILLVALUE = np.nan
@@ -374,7 +378,6 @@ def filter_svd(data, lapack_driver='gesdd', modes=[]):
     return data_in, data_out
 
 
-
 #############################################
 #############################################
 #############################################
@@ -383,16 +386,20 @@ def filter_svd(data, lapack_driver='gesdd', modes=[]):
 #############################################
 
 
-def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
-                          interp_t='nearest', interp_space=None,
-                          fill_value=None,
-                          idmesh=None, mpltri=None, vquant=None,
-                          tall=None, tbinall=None, ntall=None,
-                          indtq=None, indtr1=None, indtr2=None,
-                          trifind=None):
+def get_finterp_isotropic(
+    idquant, idref1d, idref2d,
+    vquant=None, vr1=None, vr2=None,
+    interp_t=None, interp_space=None,
+    idmesh=None, fill_value=None,
+    tall=None, tbinall=None, ntall=None,
+    indtq=None, indtr1=None, indtr2=None,
+    mpltri=None, trifind=None,
+):
 
     if fill_value is None:
         fill_value = _FILLVALUE
+    if interp_t is None:
+        interp_t = 'nearest'
 
     # -----------------------------------
     # Interpolate directly on 2d quantity
@@ -410,31 +417,28 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                      tall=tall, tbinall=tbinall,
                      idref1d=idref1d, idref2d=idref2d):
 
-                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                r, z = np.hypot(pts[0, :], pts[1, :]), pts[2, :]
                 shapeval = list(pts.shape)
                 shapeval[0] = ntall if t is None else t.size
                 val = np.full(tuple(shapeval), fill_value)
 
-                if t is None:
-                    for ii in range(0,ntall):
-                        val[ii,...] = mplTriLinInterp(mpltri,
-                                                      vquant[indtq[ii],:],
-                                                      trifinder=trifind)(r,z).filled(fill_value)
-                    t = tall
-                else:
-                    ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                           tbinall=tbinall,
-                                                           idref1d=idref1d,
-                                                           idref2d=idref2d)[1:-2]
-                    for ii in range(0, ntall):
-                        ind = indt == indtu[ii]
-                        val[ind, ...] = mplTriLinInterp(
-                            mpltri,
-                            vquant[indtq[indtu[ii]], :],
-                            trifinder=trifind
-                        )(r, z).filled(fill_value)
+                ntall, indt, indtu, indtq = _comp_new._get_indtu(
+                    t=t, tall=tall,
+                    tbinall=tbinall,
+                    indtq=indtq,
+                )[1:-2]
+                for ii in range(0, ntall):
+                    ind = indt == indtu[ii]
+                    val[ind, ...] = mplTriLinInterp(
+                        mpltri,
+                        vquant[indtq[indtu[ii]], :],
+                        trifinder=trifind,
+                    )(r, z).filled(fill_value)
+
                 if np.any(np.isnan(val)) and not np.isnan(fill_value):
                     val[np.isnan(val)] = fill_value
+                if t is None and tall is not None:
+                    t = tall
                 return val, t
 
         # --------------------
@@ -452,29 +456,39 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 val = np.full(tuple(shapeval), fill_value)
 
                 indpts = trifind(r,z)
-                indok = indpts > -1
-                if t is None:
-                    for ii in range(0, ntall):
-                        val[ii, indok] = vquant[indtq[ii], indpts[indok]]
-                    t = tall
+                if isinstance(indpts, tuple):
+                    indr, indz = indpts
+                    indok = (indr > -1) & (indz > -1)
+                    indr = indr[indok]
+                    indz = indz[indok]
                 else:
-                    ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                           tbinall=tbinall,
-                                                           idref1d=idref1d,
-                                                           idref2d=idref2d)[1:-2]
+                    indok = indpts > -1
+                    indpts = indpts[indok]
+
+                ntall, indt, indtu, indtq = _comp_new._get_indtu(
+                    t=t, tall=tall,
+                    tbinall=tbinall,
+                    indtq=indtq,
+                )[1:-2]
+
+                if isinstance(indpts, tuple):
                     for ii in range(0, ntall):
                         ind = indt == indtu[ii]
-                        val[ind, indok] = vquant[indtq[indtu[ii]],
-                                                 indpts[indok]]
+                        val[ind, indok] = vquant[indtq[indtu[ii]], indr, indz]
+                else:
+                    for ii in range(0, ntall):
+                        ind = indt == indtu[ii]
+                        val[ind, indok] = vquant[indtq[indtu[ii]], indpts]
+
+
                 if np.any(np.isnan(val)) and not np.isnan(fill_value):
                     val[np.isnan(val)] = fill_value
+                if t is None and tall is not None:
+                    t = tall
                 return val, t
 
 
     else:
-        vr2 = plasma._ddata[idref2d]['data']
-        vr1 = plasma._ddata[idref1d]['data']
-
         if interp_space == 1:
 
             def func(pts, vect=None, t=None, ntall=ntall,
@@ -491,45 +505,35 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 shapeval[0] = ntall if t is None else t.size
                 val = np.full(tuple(shapeval), fill_value)
                 t0tri, t0int = 0., 0.
-                if t is None:
-                    for ii in range(0,ntall):
-                        # get ref values for mapping
-                        # this is the slowest step (~1.8 s)
-                        vii = mplTriLinInterp(mpltri,
-                                              vr2[indtr2[ii],:],
-                                              trifinder=trifind)(r,z)
 
-                        # interpolate 1d
-                        # This is reasonable (~0.15 s)
-                        val[ii, ...] = scpinterp.interp1d(
-                            vr1[indtr1[ii], :],
-                            vquant[indtq[ii], :],
-                            kind='linear',
-                            bounds_error=False,
-                            fill_value=fill_value
-                        )(np.asarray(vii))
-                    t = tall
-                else:
-                    out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
-                                            idref1d=idref1d, idref2d=idref2d,
-                                            indtr1=indtr1, indtr2=indtr2)[1:]
-                    ntall, indt, indtu, indtr1, indtr2 = out
-                    for ii in range(0, ntall):
-                        # get ref values for mapping
-                        vii = mplTriLinInterp(mpltri,
-                                              vr2[indtr2[ii], :],
-                                              trifinder=trifind)(r, z)
+                ntall, indt, indtu, indtq, indtr1, indtr2 = \
+                        _comp_new._get_indtu(
+                            t=t, tall=tall, tbinall=tbinall,
+                            indtq=indtq,
+                            indtr1=indtr1, indtr2=indtr2,
+                        )[1:]
 
-                        # interpolate 1d
-                        ind = indt == indtu[ii]
-                        val[ind, ...] = scpinterp.interp1d(
-                            vr1[indtr1[ii], :],
-                            vquant[indtq[indtu[ii]], :],
-                            kind='linear',
-                            bounds_error=False,
-                            fill_value=fill_value
-                        )(np.asarray(vii))
+                for ii in range(0, ntall):
+                    # get ref values for mapping
+                    vii = mplTriLinInterp(
+                        mpltri,
+                        vr2[indtr2[indtu[ii]], :],
+                        trifinder=trifind,
+                    )(r, z)
+
+                    # interpolate 1d
+                    ind = indt == indtu[ii]
+                    val[ind, ...] = scpinterp.interp1d(
+                        vr1[indtr1[indtu[ii]], :],
+                        vquant[indtq[indtu[ii]], :],
+                        kind='linear',
+                        bounds_error=False,
+                        fill_value=fill_value,
+                    )(np.asarray(vii))
+
                 val[np.isnan(val)] = fill_value
+                if t is None and tall is not None:
+                    t = tall
                 return val, t
 
         else:
@@ -545,49 +549,65 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 shapeval = list(pts.shape)
                 shapeval[0] = ntall if t is None else t.size
                 val = np.full(tuple(shapeval), fill_value)
+
                 indpts = trifind(r,z)
-                indok = indpts > -1
-                if t is None:
-                    for ii in range(0,ntall):
-                        # interpolate 1d
-                        val[ii, indok] = scpinterp.interp1d(
-                            vr1[indtr1[ii], :],
-                            vquant[indtq[ii], :],
-                            kind='linear',
-                            bounds_error=False,
-                            fill_value=fill_value
-                        )(vr2[indtr2[ii], indpts[indok]])
-                    t = tall
+                if isinstance(indpts, tuple):
+                    indr, indz = indpts
+                    indok = (indr > -1) & (indz > -1)
+                    indr = indr[indok]
+                    indz = indz[indok]
                 else:
-                    out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
-                                            idref1d=idref1d, idref2d=idref2d,
-                                            indtr1=indtr1, indtr2=indtr2)[1:]
-                    ntall, indt, indtu, indtr1, indtr2 = out
-                    for ii in range(0,ntall):
+                    indok = indpts > -1
+                    indpts = indpts[indok]
+
+                ntall, indt, indtu, indtq, indtr1, indtr2 = \
+                        _comp_new._get_indtu(
+                            t=t, tall=tall, tbinall=tbinall,
+                            indtq=indtq,
+                            indtr1=indtr1, indtr2=indtr2,
+                        )[1:]
+
+                if isinstance(indpts, tuple):
+                    for ii in range(0, ntall):
                         # interpolate 1d
                         ind = indt == indtu[ii]
                         val[ind, indok] = scpinterp.interp1d(
-                            vr1[indtr1[ii], :],
+                            vr1[indtr1[indtu[ii]], :],
                             vquant[indtq[indtu[ii]], :],
                             kind='linear',
                             bounds_error=False,
-                            fill_value=fill_value
-                        )(vr2[indtr2[ii], indpts[indok]])
+                            fill_value=fill_value,
+                        )(vr2[indtr2[indtu[ii]], indr, indz])
+                else:
+                    for ii in range(0, ntall):
+                        # interpolate 1d
+                        ind = indt == indtu[ii]
+                        val[ind, indok] = scpinterp.interp1d(
+                            vr1[indtr1[indtu[ii]], :],
+                            vquant[indtq[indtu[ii]], :],
+                            kind='linear',
+                            bounds_error=False,
+                            fill_value=fill_value,
+                        )(vr2[indtr2[indtu[ii]], indpts])
 
                 # Double check nan in case vr2 is itself nan on parts of mesh
                 if np.any(np.isnan(val)) and not np.isnan(fill_value):
                     val[np.isnan(val)] = fill_value
+                if t is None and tall is not None:
+                    t = tall
                 return val, t
     return func
 
 
-def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
-                    interp_t='nearest', interp_space=None,
-                    fill_value=None, mpltri=None,
-                    idmesh=None, vq2dR=None,
-                    vq2dPhi=None, vq2dZ=None,
-                    tall=None, tbinall=None, ntall=None,
-                    indtq=None, trifind=None, Type=None):
+def get_finterp_ani(
+    idq2dR, idq2dPhi, idq2dZ,
+    interp_t=None, interp_space=None,
+    fill_value=None, mpltri=None,
+    idmesh=None, vq2dR=None,
+    vq2dPhi=None, vq2dZ=None,
+    tall=None, tbinall=None, ntall=None,
+    indtq=None, trifind=None, Type=None,
+):
 
     # -----------------------------------
     # Interpolate directly on 2d quantity
@@ -597,6 +617,8 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
         Type = _ANITYPE
     if fill_value is None:
         fill_value = _FILLVALUE
+    if interp_t is None:
+        interp_t = 'nearest'
 
     # --------------------
     # Linear interpolation
@@ -610,13 +632,13 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                  tall=tall, tbinall=tbinall):
 
             # Get pts in (r,z,phi)
-            r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-            phi = np.arctan2(pts[1,:],pts[0,:])
+            r, z = np.hypot(pts[0, :], pts[1, :]), pts[2, :]
+            phi = np.arctan2(pts[1, :], pts[0, :])
 
             # Deduce vect in (r,z,phi)
-            vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
-            vPhi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
-            vZ = vect[2,:]
+            vR = np.cos(phi)*vect[0, :] + np.sin(phi)*vect[1, :]
+            vPhi = -np.sin(phi)*vect[0, :] + np.cos(phi)*vect[1, :]
+            vZ = vect[2, :]
 
             # Prepare output
             shapeval = list(pts.shape)
@@ -626,39 +648,29 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
             valZ = np.full(tuple(shapeval), fill_value)
 
             # Interpolate
-            if t is None:
-                for ii in range(0,ntall):
-                    valR[ii,...]   = mplTriLinInterp(mpltri,
-                                                     vq2dR[indtq[ii],:],
-                                                     trifinder=trifind)(r, z)
-                    valPhi[ii,...] = mplTriLinInterp(mpltri,
-                                                     vq2dPhi[indtq[ii],:],
-                                                     trifinder=trifind)(r, z)
-                    valZ[ii,...]   = mplTriLinInterp(mpltri,
-                                                     vq2dZ[indtq[ii],:],
-                                                     trifinder=trifind)(r, z)
-                t = tall
-            else:
-                ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                       tbinall=tbinall)[1:4]
-                for ii in range(0,ntall):
-                    ind = indt == indtu[ii]
-                    valR[ind, ...] = mplTriLinInterp(
-                        mpltri,
-                        vq2dR[indtq[indtu[ii]], :],
-                        trifinder=trifind
-                    )(r, z)
-                    valPhi[ind, ...] = mplTriLinInterp(
-                        mpltri,
-                        vq2dPhi[indtq[indtu[ii]], :],
-                        trifinder=trifind
-                    )(r, z)
-                    valZ[ind, ...] = mplTriLinInterp(
-                        mpltri,
-                        vq2dZ[indtq[indtu[ii]], :],
-                        trifinder=trifind
-                    )(r, z)
+            ntall, indt, indtu, indtq = _comp_new._get_indtu(
+                t=t, tall=tall,
+                indtq=indtq,
+                tbinall=tbinall,
+            )[1:4]
 
+            for ii in range(0, ntall):
+                ind = indt == indtu[ii]
+                valR[ind, ...] = mplTriLinInterp(
+                    mpltri,
+                    vq2dR[indtq[indtu[ii]], :],
+                    trifinder=trifind,
+                )(r, z)
+                valPhi[ind, ...] = mplTriLinInterp(
+                    mpltri,
+                    vq2dPhi[indtq[indtu[ii]], :],
+                    trifinder=trifind,
+                )(r, z)
+                valZ[ind, ...] = mplTriLinInterp(
+                    mpltri,
+                    vq2dZ[indtq[indtu[ii]], :],
+                    trifinder=trifind,
+                )(r, z)
 
             if Type == 'sca':
                 val = (valR*vR[None, :] + valPhi*vPhi[None, :]
@@ -668,6 +680,8 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                              + valZ*vZ[None, :])
 
             val[np.isnan(val)] = fill_value
+            if t is None and tall is not None:
+                t = tall
             return val, t
 
     # --------------------
@@ -697,22 +711,33 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
 
             # Interpolate
             indpts = trifind(r, z)
-            indok = indpts > -1
-            if t is None:
-                for ii in range(0,ntall):
-                    valR[ii, ...] = vq2dR[indtq[ii], indpts]
-                    valPhi[ii, ...] = vq2dPhi[indtq[ii], indpts]
-                    valZ[ii, ...] = vq2dZ[indtq[ii], indpts]
-                t = tall
+            if isinstance(indpts, tuple):
+                indr, indz = trifind(r, z)
+                indok = (indr > -1) & (indz > -1)
+                indr = indr[indok]
+                indz = indz[indok]
             else:
-                ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                       tbinall=tbinall)[1:-2]
+                indok = indpts > -1
+                indpts = indpts[indok]
 
+            ntall, indt, indtu, indtq = _comp_new._get_indtu(
+                t=t, tall=tall,
+                indtq=indtq,
+                tbinall=tbinall,
+            )[1:-2]
+
+            if isinstance(indpts, tuple):
                 for ii in range(0, ntall):
                     ind = indt == indtu[ii]
-                    valR[ind, ...] = vq2dR[indtq[indtu[ii]], indpts]
-                    valPhi[ind, ...] = vq2dPhi[indtq[indtu[ii]], indpts]
-                    valZ[ind, ...] = vq2dZ[indtq[indtu[ii]], indpts]
+                    valR[ind, indok] = vq2dR[indtq[indtu[ii]], indr, indz]
+                    valPhi[ind, indok] = vq2dPhi[indtq[indtu[ii]], indr, indz]
+                    valZ[ind, indok] = vq2dZ[indtq[indtu[ii]], indr, indz]
+            else:
+                for ii in range(0, ntall):
+                    ind = indt == indtu[ii]
+                    valR[ind, indok] = vq2dR[indtq[indtu[ii]], indpts]
+                    valPhi[ind, indok] = vq2dPhi[indtq[indtu[ii]], indpts]
+                    valZ[ind, indok] = vq2dZ[indtq[indtu[ii]], indpts]
 
             if Type == 'sca':
                 val = (valR*vR[None, :] + valPhi*vPhi[None, :]
@@ -720,6 +745,9 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
             elif Type == 'abs(sca)':
                 val = np.abs(valR*vR[None, :] + valPhi*vPhi[None, :]
                              + valZ*vZ[None, :])
+
             val[np.isnan(val)] = fill_value
+            if t is None and tall is not None:
+                t = tall
             return val, t
     return func
