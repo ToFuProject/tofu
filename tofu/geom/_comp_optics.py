@@ -245,7 +245,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
     The position of the detector, relatively to the crystal, will be so in
     another Rowland circle with its center shifted from the original one.
     """
-  
+
     # Reference on detector
     det_nout = (det_nout_rel[0]*nout
                 + det_nout_rel[1]*e1 + det_nout_rel[2]*e2)
@@ -337,7 +337,7 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
     """
     # Check option
     gdet = [det_cent, det_nout, det_ei, det_ej]
-    g0 = [summit, e1, e2]
+    g0 = [summit, nout, e1, e2]
     g1 = [bragg, phi]
     assert all([gg.shape == (3,) for gg in gdet])
     assert all([gg.shape == g0[0].shape for gg in g0])
@@ -372,7 +372,9 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
         -np.sin(bragg)*nout
         + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2)
     )
-    k = np.sum((det_cent-summit)*det_nout, axis=0) / np.sum(vect*det_nout, axis=0)
+    k = np.sum(
+        (det_cent-summit)*det_nout, axis=0
+        ) / np.sum(vect*det_nout, axis=0)
     pts = summit + k[None, ...]*vect
     xi = np.sum((pts - det_cent)*det_ei, axis=0)
     xj = np.sum((pts - det_cent)*det_ej, axis=0)
@@ -421,7 +423,7 @@ def calc_braggphi_from_xixjpts(det_cent, det_ei, det_ej,
 
     c0 = summit.shape == nin.shape == e1.shape == e2.shape
     if not c0:
-        msg = "summit, nin, e1, e2) must all have the same shape"
+        msg = "(summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
     ndimsum = summit.ndim
 
