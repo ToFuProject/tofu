@@ -110,10 +110,10 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
             indok = np.ones(lamb.shape, dtype=bool)
         shape = tuple(np.r_[indok.sum(), nbck+nlines])
         y = np.full(shape, np.nan)
-        xscale = x*scales
-        # xscale = np.insert(x, indconst, const)*scales
+        # xscale = x*scales
+        xscale = np.insert(x, indconst, const)*scales
 
-        # import pdb; pdb.set_trace()     # DB
+        import pdb; pdb.set_trace()     # DB
         # Prepare
         amp = xscale[ial]*coefsal + offsetal
         wi2 = xscale[iwl]*coefswl + offsetwl
