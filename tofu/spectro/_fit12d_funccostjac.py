@@ -60,6 +60,9 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
     offsetwl = dinput['width']['offset']
     offsetsl = dinput['shift']['offset']
 
+    const = None
+    indconst = None
+
     lambrel = lamb - np.nanmin(lamb)
     lambnorm = lamb[..., None]/dinput['lines'][None, ...]
 

@@ -33,6 +33,8 @@ __all__ = [
 
 _NPEAKMAX = 12
 _DCONSTRAINTS = {
+    'bck_amp': False,
+    'bck_rate': False,
     'amp': False,
     'width': False,
     'shift': False,
@@ -218,12 +220,14 @@ def get_symmetry_axis_1dprofile(phi, data, cent_fraction=None):
 def _checkformat_dconstraints(dconstraints=None, defconst=None):
     # Check constraints
     if dconstraints is None:
-        dconstraints =  defconst
+        dconstraints = defconst
 
     # Check dconstraints keys
     lk = sorted(_DCONSTRAINTS.keys())
-    c0= (isinstance(dconstraints, dict)
-         and all([k0 in lk for k0 in dconstraints.keys()]))
+    c0= (
+        isinstance(dconstraints, dict)
+        and all([k0 in lk for k0 in dconstraints.keys()])
+    )
     if not c0:
         msg = (
             "\ndconstraints should contain constraints for spectrum fitting\n"
@@ -238,6 +242,31 @@ def _checkformat_dconstraints(dconstraints=None, defconst=None):
 
 
 def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
+    dinput['double'] = dconstraints.get('double', defconst['double'])
+    c0 = (
+        isinstance(dinput['double'], bool)
+        or (
+            isinstance(dinput['double'], dict)
+            and all([
+                kk in ['dratio', 'dshift'] and type(vv) in _LTYPES
+                for kk, vv in dinput['double'].items()
+            ])
+        )
+    )
+    if c0 is False:
+        msg = ("dconstraints['double'] must be either:\n"
+               + "\t- False: no line doubling\n"
+               + "\t- True:  line doubling with unknown ratio and shift\n"
+               + "\t- {'dratio': float}: line doubling with:\n"
+               + "\t  \t explicit ratio, unknown shift\n"
+               + "\t- {'dshift': float}: line doubling with:\n"
+               + "\t  \t unknown ratio, explicit shift\n"
+               + "\t- {'dratio': float, 'dshift': float}: line doubling with:\n"
+               + "\t  \t explicit ratio, explicit shift")
+        raise Exception(msg)
+
+
+def _dconstants_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
     dinput['double'] = dconstraints.get('double', defconst['double'])
     c0 = (
         isinstance(dinput['double'], bool)
@@ -1383,7 +1412,7 @@ def _checkformat_dlines(dlines=None, domain=None):
 
 
 def fit1d_dinput(
-    dlines=None, dconstraints=None, dprepare=None,
+    dlines=None, dconstraints=None, dconstants=None, dprepare=None,
     data=None, lamb=None, mask=None,
     domain=None, pos=None, subset=None,
     same_spectrum=None, nspect=None, same_spectrum_dlamb=None,
@@ -1447,15 +1476,19 @@ def fit1d_dinput(
     dconstraints = _checkformat_dconstraints(
         dconstraints=dconstraints, defconst=defconst,
     )
+    dconstants = _checkformat_dconstraints(
+        dconstants=dconstants, defconst=defconst,
+    )
     dinput = {}
 
     # ------------------------
     # Check / format double
     # ------------------------
     _dconstraints_double(dinput, dconstraints, defconst=defconst)
+    _dconstants_double(dinput, dconstants)
 
     # ------------------------
-    # Check / format width, shift, amp (groups with posssible ratio)
+    # Check / format width, shift, amp (groups with possible ratio)
     # ------------------------
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(
