@@ -278,10 +278,14 @@ class Test01_DataCollection(object):
 
         lfocus = [None, 'a', [3.94e-10, 3.96e-10]]
 
-        for comb in itt.product(ldconst, ldx0, ldomain, ldata, lpos, lfocus):
+        ldconstants = [None, {'shift': {'s1': 0}}]
+
+        combin = [ldconst, ldx0, ldomain, ldata, lpos, lfocus, ldconstants]
+        for comb in itt.product(*combin):
             dinput = tfs.fit1d_dinput(
                 dlines=self.dlines,
                 dconstraints=comb[0],
+                dconstants=comb[6],
                 dprepare=None,
                 data=np.copy(comb[3]),
                 lamb=self.lamb,
@@ -364,7 +368,8 @@ class Test01_DataCollection(object):
             try:
                 dax = tfs._plot.plot_fit1d(
                     dfit1d=self.ldfit1d[ii],
-                    dout=dd,
+                    dextract=dd,
+                    annotate=self.ldfit1d[ii]['dinput']['keys'][0],
                 )
             except Exception as err:
                 lwar.append((ii, str(err)))

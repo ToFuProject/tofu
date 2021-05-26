@@ -241,6 +241,70 @@ def _checkformat_dconstraints(dconstraints=None, defconst=None):
     return copy.deepcopy(dconstraints)
 
 
+def _checkformat_dconstants(dconstants=None, dconstraints=None):
+    if dconstants is None:
+        return
+
+    lk = [kk for kk in sorted(dconstraints.keys()) if kk != 'symmetry']
+    if not isinstance(dconstants, dict):
+        msg = (
+            "\ndconstants should be None or a dict with keys in:\n"
+            + "\t- available keys: {}\n".format(lk)
+            + "\t- provided : {}".format(type(dconstants))
+        )
+        raise Exception(msg)
+
+    # Check dconstraints keys
+    lc = [
+        k0 for k0, v0 in dconstants.items()
+        if not (
+            k0 in lk
+            and (
+                (
+                    k0 in _DORDER
+                    and isinstance(v0, dict)
+                    and all([
+                        k1 in dconstraints[k0].keys()
+                        and type(v1) in _LTYPES
+                        for k1, v1 in v0.items()
+                    ])
+                )
+                or (
+                    k0 not in _DORDER
+                    and type(v0) in _LTYPES
+                )
+            )
+        )
+    ]
+    if len(lc) > 0:
+        dc0 = [
+            '\t\t{}: {}'.format(
+                kk,
+                sorted(dconstraints[kk].keys()) if kk in _DORDER else float
+            )
+            for kk in lk
+        ]
+        dc1 = [
+            '\t\t{}: {}'.format(
+                kk,
+                sorted(dconstants[kk].keys())
+                if kk in _DORDER else dconstants[kk]
+            )
+            for kk in sorted(dconstants.keys())
+        ]
+        msg = (
+            "\ndconstants should be None or a dict with keys in:\n"
+            + "\t- available keys:\n"
+            + "\n".join(dc0)
+            + "\n\t- provided keys:\n"
+            + "\n".join(dc1)
+        )
+        raise Exception(msg)
+
+    # copy to avoid modifying reference
+    return copy.deepcopy(dconstants)
+
+
 def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
     dinput['double'] = dconstraints.get('double', defconst['double'])
     c0 = (
@@ -266,32 +330,10 @@ def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
         raise Exception(msg)
 
 
-def _dconstants_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
-    dinput['double'] = dconstraints.get('double', defconst['double'])
-    c0 = (
-        isinstance(dinput['double'], bool)
-        or (
-            isinstance(dinput['double'], dict)
-            and all([
-                kk in ['dratio', 'dshift'] and type(vv) in _LTYPES
-                for kk, vv in dinput['double'].items()
-            ])
-        )
-    )
-    if c0 is False:
-        msg = ("dconstraints['double'] must be either:\n"
-               + "\t- False: no line doubling\n"
-               + "\t- True:  line doublin with unknown ratio and shift\n"
-               + "\t- {'dratio': float}: line doubling with:\n"
-               + "\t  \t explicit ratio, unknown shift\n"
-               + "\t- {'dshift': float}: line doubling with:\n"
-               + "\t  \t unknown ratio, explicit shift\n"
-               + "\t- {'dratio': floati, 'dshift': float}: line doubling with:\n"
-               + "\t  \t explicit ratio, explicit shift")
-        raise Exception(msg)
-
-
-def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
+def _width_shift_amp(
+    indict, dconstants=None,
+    keys=None, dlines=None, nlines=None, k0=None,
+):
 
     # ------------------------
     # Prepare error message
@@ -310,19 +352,19 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
     c2 = (
         isinstance(indict, dict)
         and all([
-            isinstance(k0, str)
+            isinstance(k1, str)
             and (
-                (isinstance(v0, str))# and v0 in keys)
+                (isinstance(v1, str))# and v0 in keys)
                 or (
-                    isinstance(v0, list)
+                    isinstance(v1, list)
                     and all([
-                        isinstance(v1, str)
+                        isinstance(v2, str)
                         # and v1 in keys
-                        for v1 in v0
+                        for v2 in v1
                     ])
                 )
             )
-            for k0, v0 in indict.items()
+            for k1, v1 in indict.items()
         ])
     )
     c3 = (
@@ -371,10 +413,10 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
         }
 
     if c1:
-        lk = sorted(set([dlines[k0].get(indict, k0) for k0 in keys]))
+        lk = sorted(set([dlines[k1].get(indict, k1) for k1 in keys]))
         ind = np.array([
-            [dlines[k1].get(indict, k1) == k0 for k1 in keys]
-            for k0 in lk
+            [dlines[k2].get(indict, k2) == k1 for k2 in keys]
+            for k1 in lk
         ])
         outdict = {
             'keys': np.r_[lk],
@@ -385,28 +427,28 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
 
     elif c2:
         lkl = []
-        for k0, v0 in indict.items():
-            if isinstance(v0, str):
-                v0 = [v0]
-            v0 = [k1 for k1 in v0 if k1 in keys]
+        for k1, v1 in indict.items():
+            if isinstance(v1, str):
+                v1 = [v1]
+            v1 = [k2 for k2 in v1 if k2 in keys]
             c0 = (
-                len(set(v0)) == len(v0)
-                and all([k1 not in lkl for k1 in v0])
+                len(set(v1)) == len(v1)
+                and all([k2 not in lkl for k2 in v1])
             )
             if not c0:
                 msg = (
-                    "Inconsistency in indict[{}], either:\n".format(k0)
-                    + "\t- v0 not unique: {}\n".format(v0)
-                    + "\t- some v0 not in keys: {}\n".format(keys)
-                    + "\t- some v0 in lkl:      {}".format(lkl)
+                    "Inconsistency in indict[{}], either:\n".format(k1)
+                    + "\t- v1 not unique: {}\n".format(v1)
+                    + "\t- some v1 not in keys: {}\n".format(keys)
+                    + "\t- some v1 in lkl:      {}".format(lkl)
                 )
                 raise Exception(msg)
-            indict[k0] = v0
-            lkl += v0
-        for k0 in set(keys).difference(lkl):
-            indict[k0] = [k0]
+            indict[k1] = v1
+            lkl += v1
+        for k1 in set(keys).difference(lkl):
+            indict[k1] = [k1]
         lk = sorted(set(indict.keys()))
-        ind = np.array([[k1 in indict[k0] for k1 in keys] for k0 in lk])
+        ind = np.array([[k2 in indict[k1] for k2 in keys] for k1 in lk])
         outdict = {
             'keys': np.r_[lk],
             'ind': ind,
@@ -418,8 +460,8 @@ def _width_shift_amp(indict, keys=None, dlines=None, nlines=None, k0=None):
         lk = sorted(set([v0['key'] for v0 in indict.values()]))
         lk += sorted(set(keys).difference(indict.keys()))
         ind = np.array([
-            [indict.get(k1, {'key': k1})['key'] == k0 for k1 in keys]
-            for k0 in lk
+            [indict.get(k2, {'key': k2})['key'] == k1 for k2 in keys]
+            for k1 in lk
         ])
         coefs = np.array([
             indict.get(k1, {'coef': 1.}).get('coef', 1.) for k1 in keys
@@ -1476,16 +1518,12 @@ def fit1d_dinput(
     dconstraints = _checkformat_dconstraints(
         dconstraints=dconstraints, defconst=defconst,
     )
-    dconstants = _checkformat_dconstraints(
-        dconstants=dconstants, defconst=defconst,
-    )
     dinput = {}
 
     # ------------------------
     # Check / format double
     # ------------------------
     _dconstraints_double(dinput, dconstraints, defconst=defconst)
-    _dconstants_double(dinput, dconstants)
 
     # ------------------------
     # Check / format width, shift, amp (groups with possible ratio)
@@ -1493,6 +1531,7 @@ def fit1d_dinput(
     for k0 in ['amp', 'width', 'shift']:
         dinput[k0] = _width_shift_amp(
             dconstraints.get(k0, defconst[k0]),
+            dconstants=dconstants,
             keys=lines_keys, nlines=nlines,
             dlines=dlines, k0=k0,
         )
@@ -1593,6 +1632,7 @@ def fit1d_dinput(
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
     dinput['dbounds'] = fit12d_dbounds(dbounds=dbounds, dinput=dinput)
     dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)
+    dinput['dconstants'] = fit12d_dconstants(dconstants=dconstants, dinput=dinput)
 
     return dinput
 
@@ -2291,118 +2331,6 @@ def fit12d_dx0(dx0=None, dinput=None):
     return dx0
 
 
-# def _checkformat_dx0(dx0=None, dinput=None):
-
-    # # -----------------
-    # # Check preliminary
-    # c0 = dx0 is None
-    # c1 = (
-        # isinstance(dx0, dict)
-        # and all([
-            # k0 in ['bck', 'amp', 'width', 'shift', 'dratio', 'dshift']
-            # and isinstance(v0, dict)
-            # and all([
-                # k1 in dinput[k0].keys() and type(v1) in _LTYPES
-                # for k1 in v0.keys()
-            # ])
-            # for k0, v0 in dx0.items()
-        # ])
-    # )
-
-    # if not any([c0, c1]):
-        # msg = ("dx0 must be None or a dict of the form:\n"
-               # + "\t{'amp': {'a0': float, 'a1': float, ...},\n"
-               # + "\t 'width': {'w0': float, 'w1': float, ...},\n"
-               # + "\t 'shift': {'s0': float, 's1': float, ...}\n"
-               # + "  where, as defined in dconstraints:\n"
-               # + "\t- [a0, a1, ...] are keys of amp groups\n"
-               # + "\t- [w0, w1, ...] are keys of width groups\n"
-               # + "\t- [s0, s1, ...] are keys of shift groups\n\n"
-               # + "You provided:\n{}".format(dx0))
-        # raise Exception(msg)
-
-    # # -----------------
-    # # Build
-    # if c0:
-        # dx0 = {}
-
-    # dx0['bck'] = dx0.get('bck', 1.)
-    # for kk, vv in [('amp', 1.), ('width', 1.), ('shift', 0.)]:
-        # dx0[kk] = {
-            # k1: dx0.get(kk, {kk: {k1: vv}}).get(k1, vv)
-            # for k1 in dinput[kk].keys()
-        # }
-
-    # # double
-    # if dinput['double'] is not False:
-        # dx0['dratio'] = dx0.get('dratio', 1.)
-        # dx0['dshift'] = dx0.get('dshift', 0.)
-    # return dx0
-
-
-# # DEPRECATED ?
-# def multigausfit12d_from_dlines_x0(dind=None, nbs=None,
-                                   # double=None, dx0=None,
-                                   # nspect=None, keys=None):
-
-    # # Only difference between 1d and 2d
-    # iax = dind['amp']['x']
-    # if nbs is not None:
-        # dx0['amp'] = np.repeat(dx0['amp'], nbs)
-        # iax = iax.T.ravel()
-
-    # # Each x0 should be understood as x0*scale
-    # x0_scale = np.full((nspect, dind['sizex']), np.nan)
-    # x0_scale[:, iax] = dx0['amp'] # / scales[?]
-    # x0_scale[:, dind['bck']['x']] = 1.
-    # x0_scale[:, dind['width']['x']] = dx0['width']
-    # x0_scale[:, dind['shift']['x']] = dx0['shift']
-    # if double is not False:
-        # if double is True:
-            # x0_scale[:, dind['dratio']['x']] = 0.7
-            # x0_scale[:, dind['dshift']['x']] = 0.7
-        # else:
-            # if double.get('dratio') is None:
-                # x0_scale[:, dind['dratio']['x']] = 0.7
-            # if double.get('dshift') is None:
-                # x0_scale[:, dind['dshift']['x']] = 0.7
-    # return x0_scale
-
-
-# # TBC / TBF
-# def fit12d_dx0(dx0=None, dinput=None):
-
-    # dx0 = _checkformat_dx0(dx0=dx0, dinput=dinput)
-
-    # # Only difference between 1d and 2d
-    # iax = dind['amp']['x']
-    # if nbs is not None:
-        # dx0['amp'] = np.repeat(dx0['amp'], nbs)
-        # iax = iax.T.ravel()
-
-    # # Each x0 should be understood as x0*scale
-    # x0_scale = np.full((nspect, dind['sizex']), np.nan)
-    # x0_scale[:, iax] = dx0['amp'] # / scales[?]
-    # x0_scale[:, dind['bck']['x']] = 1.
-    # x0_scale[:, dind['width']['x']] = dx0['width']
-    # x0_scale[:, dind['shift']['x']] = dx0['shift']
-    # if double is not False:
-        # if double is True:
-            # x0_scale[:, dind['dratio']['x']] = 0.7
-            # x0_scale[:, dind['dshift']['x']] = 0.7
-        # else:
-            # if double.get('dratio') is None:
-                # x0_scale[:, dind['dratio']['x']] = 0.7
-            # if double.get('dshift') is None:
-                # x0_scale[:, dind['dshift']['x']] = 0.7
-
-    # # Include at least like dscales: bck amp, shift, width, dratio, dshift
-
-
-    # return dx0
-
-
-
 ###########################################################
 ###########################################################
 #
@@ -2410,36 +2338,6 @@ def fit12d_dx0(dx0=None, dinput=None):
 #
 ###########################################################
 ###########################################################
-
-
-# def fit12d_dbounds(dbounds=None, dinput=None):
-    # # def multigausfit12d_from_dlines_bounds(sizex=None, dind=None, double=None):
-    # # Each x0 should be understood as x0*scale
-    # xup = np.full((sizex,), np.nan)
-    # xlo = np.full((sizex,), np.nan)
-    # xup[dind['bck']['x']] = 10.
-    # xlo[dind['bck']['x']] = 0.
-    # xup[dind['amp']['x']] = 2
-    # xlo[dind['amp']['x']] = 0.
-    # xup[dind['width']['x']] = 2.
-    # xlo[dind['width']['x']] = 0.01
-    # xup[dind['shift']['x']] = 2.
-    # xlo[dind['shift']['x']] = -2.
-    # if double is not False:
-        # if double is True:
-            # xup[dind['dratio']['x']] = 1.6
-            # xlo[dind['dratio']['x']] = 0.4
-            # xup[dind['dshift']['x']] = 10.
-            # xlo[dind['dshift']['x']] = -10.
-        # else:
-            # if double.get('dratio') is None:
-                # xup[dind['dratio']['x']] = 1.6
-                # xlo[dind['dratio']['x']] = 0.4
-            # if double.get('dshift') is None:
-                # xup[dind['dshift']['x']] = 10.
-                # xlo[dind['dshift']['x']] = -10.
-    # bounds_scale = (xlo, xup)
-    # return bounds_scale
 
 
 def fit12d_dbounds(dbounds=None, dinput=None):
@@ -2532,13 +2430,69 @@ def fit12d_dbounds(dbounds=None, dinput=None):
 ###########################################################
 ###########################################################
 #
+#           constants
+#
+###########################################################
+###########################################################
+
+
+def fit12d_dconstants(dconstants=None, dinput=None):
+
+    # --------------
+    # Input checks
+    dconstants = _fit12d_checkformat_dscalesx0(
+        din=dconstants, dinput=dinput, name="dconstants",
+    )
+    nspect = dinput['dprepare']['data'].shape[0]
+
+    # --------------
+    # 2d spectrum = 1d spectrum + vert. profile
+    # data2d = dinput['dprepare']['data'].ndim == 3
+    # if data2d is True:
+        # if dbounds['min'].get('bs') is None:
+            # dbounds['min']['bs'] = np.full((nspect,), -10.)
+        # if dbounds['max'].get('bs') is None:
+            # dbounds['max']['bs'] = np.full((nspect,), 10.)
+
+    # --------------
+    # Default values for filling missing fields
+
+    # bck
+    dconstants = _fit12d_filldef_dscalesx0_float(
+        din=dconstants, din_name="dconstants",
+        key='bck_amp', vref=np.nan, nspect=nspect,
+    )
+    dconstants = _fit12d_filldef_dscalesx0_float(
+        din=dconstants, din_name="dconstants",
+        key='bck_rate', vref=np.nan, nspect=nspect,
+    )
+
+    for k0 in _DORDER:
+        dconstants = _fit12d_filldef_dscalesx0_dict(
+            din=dconstants, din_name="dconstants",
+            key=k0, vref=np.nan, nspect=nspect,
+            dinput=dinput,
+        )
+
+    # Double
+    if dinput['double'] is not False:
+        for k0 in ['dratio', 'dshift']:
+            dconstants = _fit12d_filldef_dscalesx0_float(
+                din=dconstants, din_name="dconstants",
+                key=k0, vref=np.nan, nspect=nspect,
+            )
+    return dconstants
+
+
+###########################################################
+###########################################################
+#
 #           dict to vector (scales, x0, bounds)
 #
 ###########################################################
 ###########################################################
 
 
-# TBC
 def _dict2vector_dscalesx0bounds(
     dd=None, dd_name=None,
     dinput=None,
@@ -2872,10 +2826,20 @@ def multigausfit1d_from_dlines(
     bounds = np.array([boundmin[0, :], boundmax[0, :]])
 
     # ---------------------------
+    # Separate free from constant parameters
+    const = _dict2vector_dscalesx0bounds(
+        dd=dinput['dconstants'], dd_name='dconstants', dinput=dinput,
+    )
+    indx = np.any(np.isnan(const), axis=0)
+    const = const[:, ~indx]
+    x0[:, ~indx] = const / scales[:, ~indx]
+
+    # ---------------------------
     # Get function, cost function and jacobian
     func_detail, func_cost, func_jac = \
             _funccostjac.multigausfit1d_from_dlines_funccostjac(
                 lamb, dinput=dinput, dind=dind, jac=jac,
+                indx=indx,
             )
 
     # ---------------------------
@@ -2917,21 +2881,25 @@ def multigausfit1d_from_dlines(
 
             # optimization
             res = scpopt.least_squares(
-                func_cost, x0[ii, :],
-                jac=func_jac, bounds=bounds,
+                func_cost, x0[ii, indx],
+                jac=func_jac, bounds=bounds[:, indx],
                 method=method, ftol=ftol, xtol=xtol,
                 gtol=gtol, x_scale=1.0, f_scale=1.0,
                 loss=loss, diff_step=None,
                 tr_solver=tr_solver, tr_options=tr_options,
                 jac_sparsity=None, max_nfev=max_nfev,
                 verbose=verbscp, args=(),
-                kwargs={'data': datacost[ii, :],
-                        'scales': scales[ii, :],
-                        'indok': dprepare['indok'][ii, :]})
+                kwargs={
+                    'data': datacost[ii, :],
+                    'scales': scales[ii, :],
+                    'const': const[ii, :],
+                    'indok': dprepare['indok'][ii, :],
+                },
+            )
             dti = (dtm.datetime.now() - t0i).total_seconds()
 
             if chain is True and ii < nspect-1:
-                x0[ii+1, :] = res.x
+                x0[ii+1, indx] = res.x
 
             # cost, message, time
             success[ii] = res.success
@@ -2942,12 +2910,14 @@ def multigausfit1d_from_dlines(
                 (dtm.datetime.now()-t0i).total_seconds(),
                 ndigits=3,
             )
-            sol_x[ii, :] = res.x
+            sol_x[ii, indx] = res.x
+            sol_x[ii, ~indx] = const[ii, :] / scales[ii, ~indx]
 
         except Exception as err:
             errmsg[ii] = str(err)
             validity[ii] = -1
             import pdb; pdb.set_trace()     # DB
+            pass
 
         # Verbose
         if verbose in [1, 2]:
@@ -3063,6 +3033,7 @@ def multigausfit1d_from_dlines(
         'scales': scales, 'x0': x0, 'bounds': bounds,
         'jac': jac, 'sol_x': sol_x,
         'dratio': dratio, 'dshift': dshift,
+        'indx': indx,
         'time': time, 'success': success,
         'validity': validity, 'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
@@ -3549,6 +3520,7 @@ def fit12d_get_data_checkformat(
         if d3[k0][0] is True:
             d3[k0][0] = _D3[k0]
         if d3[k0][0] is False:
+            d3[k0] = d3[k0][0]
             continue
         if 'bck' in k0:
             continue
