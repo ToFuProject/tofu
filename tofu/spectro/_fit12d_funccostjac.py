@@ -83,6 +83,8 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
     # func_details returns result in same shape as input
     def func_detail(
         x,
+        indconst=None,
+        const=None,
         lambrel=lambrel,
         lambnorm=lambnorm,
         ibckax=ibckax,
@@ -109,7 +111,9 @@ def multigausfit1d_from_dlines_funccostjac(lamb,
         shape = tuple(np.r_[indok.sum(), nbck+nlines])
         y = np.full(shape, np.nan)
         xscale = x*scales
+        # xscale = np.insert(x, indconst, const)*scales
 
+        # import pdb; pdb.set_trace()     # DB
         # Prepare
         amp = xscale[ial]*coefsal + offsetal
         wi2 = xscale[iwl]*coefswl + offsetwl

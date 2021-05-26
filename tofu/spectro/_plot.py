@@ -218,7 +218,7 @@ def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
 
 def plot_fit1d(
     dfit1d=None, dextract=None, annotate=None, showonly=None,
-    indspect=None, fs=None, dmargin=None,
+    indspect=None, xlim=None, fs=None, dmargin=None,
     tit=None, wintit=None,
 ):
 
@@ -226,6 +226,12 @@ def plot_fit1d(
     # ------------
     if annotate is None:
         annotate = True
+    if annotate is True:
+        annotate = dfit1d['dinput']['keys']
+    if isinstance(annotate, str):
+        annotate = [annotate]
+    if xlim is None:
+        xlim = False
     if fs is None:
         fs = (15, 8)
     if wintit is None:
@@ -337,13 +343,15 @@ def plot_fit1d(
                 )
 
         # Annotate lines
-        if annotate is True:
+        if annotate is not False:
             for jj, k0 in enumerate(ions_u):
                 col = lcol[jj%ncol]
                 ind = (dinput['ion'] == k0).nonzero()[0]
                 for nn in ind:
-                    ax.axvline(x[ispect, nn], c=col, ls='--')
+                    if dinput['keys'][nn] not in annotate:
+                        continue
                     lab = dinput['symb'][nn]
+                    ax.axvline(x[ispect, nn], c=col, ls='--')
                     if dextract['coefs'] is not False:
                         val = dextract['coefs']['values'][ispect, nn]
                         lab += '\n{:4.2e}'.format(val)
@@ -461,6 +469,8 @@ def plot_fit1d(
             fig.suptitle(titi, size=14, weight='bold')
         if wintit is not False:
             fig.canvas.set_window_title(wintit)
+    if xlim is not False:
+        ax.set_xlim(xlim)
     return ax
 
 
