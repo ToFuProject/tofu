@@ -4885,7 +4885,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
     # ..............
-    _st.sa_assemble_arrays(block,
+    _st.sa_sphere_assemble(block,
                            approx,
                            part_coords,
                            part_r,
@@ -4939,8 +4939,9 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
 #                        subtended by a polygon
 #
 # ==============================================================================
-def compute_solid_angle_poly_map(double[:,::1] poly_coords,
-                                 double[:] poly_norm,
+def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
+                                 double[:, ::1] poly_norm,
+                                 long[::1] lnvert_poly,
                                  double rstep, double zstep, double phistep,
                                  double[::1] RMinMax, double[::1] ZMinMax,
                                  bint approx=True,
@@ -4956,7 +4957,7 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
                                  list lstruct_lims=None,
                                  double[::1] lstruct_normx=None,
                                  double[::1] lstruct_normy=None,
-                                 long[::1] lnvert=None,
+                                 long[::1] lstruct_nvert=None,
                                  int nstruct_tot=0,
                                  int nstruct_lim=0,
                                  double rmin=-1, bint forbid=True,
@@ -4966,18 +4967,19 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
                                  double margin=_VSMALL, int num_threads=48,
                                  bint test=True):
     """
-    Computes the 2D map of the integrated solid angles subtended by a polygon
-    of coordinates poly_coords, not necessarily flat, one sided and side defined
-    by poly_norm, nomal vector of polygon.
+    Computes the 2D map of the integrated solid angles subtended by a list of
+    npoly polygons of coordinates poly_coords[npoly], not necessarily flat,
+    one sided and side defined by poly_norm[npoly], nomal vector of polygon.
 
     Parameters
     ----------
     poly_coords: double array
-        coordinates of the points defining the polygon.
+        coordinates of the points defining the polygons.
         not necessarily flat.
-        poly_coords[i] being the i-th coordinate
+        poly_coords[np, i] being the i-th coordinate of the np polygon
     poly_norm: double array
-        normal vector that defines the visble face of the polygon
+        normal vector that defines the visible face of the polygon
+        poly_norm[np] defines the norm of the np-th polygon
     rstep: double
         refinement along radius `r`
     zstep: double
@@ -5062,10 +5064,12 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
     cdef int sz_p
     cdef int sz_r
     cdef int sz_z
-    cdef int npts_pol
+    cdef int npoly
     cdef int r_ratio
+    cdef int npts_pol
     cdef int ind_loc_r0
     cdef int npts_disc = 0
+    cdef int tot_num_tri
     cdef int[1] max_sz_phi
     cdef double min_phi, max_phi
     cdef double min_phi_pi
@@ -5094,11 +5098,14 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
     cdef double* step_rphi = NULL
+    cdef double** data = NULL
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double, ndim=1] reso_rdrdz
     cdef np.ndarray[double, ndim=2] pts
     cdef np.ndarray[double, ndim=2] sa_map
+    cdef np.ndarray[double, ndim=2] centroids
+    cdef np.ndarray[double, ndim=2, mode="c"] temp
     #
     # == Testing inputs ========================================================
     if test:
@@ -5126,13 +5133,31 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
     # .. Getting size of arrays ................................................
-    # TODO : faire algo pour plusieurs polys.
-    nvert = poly_coords.shape[1]
-    ltri = <long**>malloc(sizeof(long*))
-    _vt.triangulate_poly(&poly_coords[0,0], nvert, ltri)
-    # TODO: pas besoin de rajouter le calcul d'un vecteur normal, prendre celui du
-    # poly pour tous les tris.
-    # TODO: calcul barycentre des triangles
+    npoly = poly_coords.shape[0]
+    # .. Dividing polys in triangles ...........................................
+    ltri = <long**>malloc(sizeof(long*) * npoly)
+    # re writting_polygons coordinates to C type:
+    data = <double **> malloc(npoly * sizeof(double *))
+    for ii in range(npoly):
+        temp = poly_coords[ii]
+        data[ii] = &temp[0, 0]
+    _vt.triangulate_polys(
+        &data[0],
+        &lnvert_poly[0],
+        npoly,
+        ltri,
+        num_threads
+    )
+    # .. Getting centroids of triangles .......................................
+    centroids = np.zeros((3, tot_num_tri))
+    _bgt.find_centroids_ltri(
+        poly_coords,
+        ltri,
+        &lnvert_poly[0],
+        npoly,
+        num_threads,
+        centroids,
+    )
     # # .. Check if points are visible ...........................................
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
@@ -5267,7 +5292,7 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
                                      sz_r, sz_z)
     # initializing arrays
     reso_rdrdz = np.empty((npts_pol, ))
-    sa_map = np.zeros((npts_pol, sz_p))
+    sa_map = np.zeros((npts_pol, npoly))
     pts = np.empty((2, npts_pol))
     ind = -np.ones((npts_pol, ), dtype=int)
     pts_mv = pts
@@ -5283,43 +5308,46 @@ def compute_solid_angle_poly_map(double[:,::1] poly_coords,
     # ..............
     # TODO: pour checker si triangle est visible par un point ed discretization
     # checker juste si point voit le barycentre du triangle.
-    _st.sa_assemble_arrays(block,
-                           approx,
-                           ltri, poly_norm,
-
-                           is_in_vignette,
-                           sa_map,
-                           ves_poly,
-                           ves_norm,
-                           ves_lims,
-                           lstruct_nlim,
-                           lstruct_polyx,
-                           lstruct_polyy,
-                           lstruct_lims_np,
-                           lstruct_normx,
-                           lstruct_normy,
-                           lnvert,
-                           nstruct_tot,
-                           nstruct_lim,
-                           rmin,
-                           eps_uz, eps_a,
-                           eps_vz, eps_b,
-                           eps_plane,
-                           forbid,
-                           first_ind_mv,
-                           indi_mv,
-                           sz_p, sz_r, sz_z,
-                           ncells_rphi,
-                           reso_r_z,
-                           disc_r,
-                           step_rphi,
-                           disc_z,
-                           ind_rz2pol,
-                           sz_phi,
-                           reso_rdrdz_mv,
-                           pts_mv,
-                           ind_mv,
-                           num_threads)
+    _st.sa_tri_assemble(
+        block,
+        approx,
+        poly_coords,
+        ltri[0], poly_norm,
+        centroids,
+        is_in_vignette,
+        sa_map,
+        ves_poly,
+        ves_norm,
+        ves_lims,
+        lstruct_nlim,
+        lstruct_polyx,
+        lstruct_polyy,
+        lstruct_lims_np,
+        lstruct_normx,
+        lstruct_normy,
+        lstruct_nvert,
+        nstruct_tot,
+        nstruct_lim,
+        rmin,
+        eps_uz, eps_a,
+        eps_vz, eps_b,
+        eps_plane,
+        forbid,
+        first_ind_mv,
+        indi_mv,
+        npoly, sz_r, sz_z,
+        ncells_rphi,
+        reso_r_z,
+        disc_r,
+        step_rphi,
+        disc_z,
+        ind_rz2pol,
+        sz_phi,
+        reso_rdrdz_mv,
+        pts_mv,
+        ind_mv,
+        num_threads
+    )
     # ... freeing up memory ....................................................
     free(lindex_z)
     free(disc_r)

@@ -4,12 +4,15 @@
 # cython: cdivision=True
 # cython: initializedcheck=False
 #
-from cython.parallel import prange
-from cpython.array cimport array, clone
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as CNAN
 from libc.math cimport pi as c_pi
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
+from cpython.array cimport clone
+from cpython.array cimport array
+from cython.parallel import prange
+from cython.parallel cimport parallel
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
@@ -53,6 +56,7 @@ cdef inline bint is_point_in_path(const int nvert,
              / (verty[i+1]-verty[i]) + vertx[i]) ):
             c = not c
     return c
+
 
 cdef inline int is_point_in_path_vec(const int nvert,
                                      const double* vertx,
@@ -286,6 +290,50 @@ cdef inline int find_ind_lowerright_corner(const double[::1] xpts,
                 res = ii
     return res
 
+
+cdef inline void find_centroid_tri(const double[3] xpts,
+                                   const double[3] ypts,
+                                   const double[3] zpts,
+                                   double[::1] centroid) nogil:
+    centroid[0] = (xpts[0] + xpts[1] + xpts[2]) / 3.
+    centroid[1] = (ypts[0] + ypts[1] + ypts[2]) / 3.
+    centroid[2] = (zpts[0] + zpts[1] + zpts[2]) / 3.
+    return
+
+
+cdef inline void find_centroids_ltri(const double[:, :, ::1] poly_coords,
+                                     const long** ltri,
+                                     const long* lnvert,
+                                     const int npoly,
+                                     const int num_threads,
+                                     double[:, ::1] centroid) nogil:
+    cdef int ipol
+    cdef int itri
+    cdef int wim1
+    cdef int wi
+    cdef int wip1
+    cdef double[3] xtri
+    cdef double[3] ytri
+    cdef double[3] ztri
+
+    with nogil, parallel(num_threads=num_threads):
+        for ipol in prange(npoly):
+            for itri in range(lnvert[ipol] - 2):
+                wim1 = ltri[ipol][itri*3]
+                wi   = ltri[ipol][itri*3+1]
+                wip1 = ltri[ipol][itri*3+2]
+                xtri[0] = poly_coords[ipol, 0, wim1]
+                ytri[0] = poly_coords[ipol, 1, wim1]
+                ztri[0] = poly_coords[ipol, 2, wim1]
+                xtri[1] = poly_coords[ipol, 0, wi]
+                ytri[1] = poly_coords[ipol, 1, wi]
+                ztri[1] = poly_coords[ipol, 2, wi]
+                xtri[2] = poly_coords[ipol, 0, wip1]
+                ytri[2] = poly_coords[ipol, 1, wip1]
+                ztri[2] = poly_coords[ipol, 2, wip1]
+                find_centroid_tri(xtri, ytri, ztri,
+                                  centroid[ipol])
+    return
 
 # ==============================================================================
 # =  Distance

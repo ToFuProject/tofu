@@ -66,6 +66,13 @@ cdef void compute_cross_prod(const double[3] vec_a,
                              const double[3] vec_b,
                              double[3] res) nogil
 
+cdef void find_centroids_ltri(const double[:, :, ::1] poly_coords,
+                              const long** ltri,
+                              const long* lnvert,
+                              const int npoly,
+                              const int num_threads,
+                              double[:, ::1] centroid) nogil
+
 cdef void compute_dist_pt_vec(const double pt0, const double pt1,
                               const double pt2, const int npts,
                               const double[:, ::1] vec,

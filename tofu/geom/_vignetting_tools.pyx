@@ -176,6 +176,7 @@ cdef inline int get_one_ear(double* polygon,
         assert False, "Got here but shouldnt have "
     return -1
 
+
 cdef inline void earclipping_poly(double* vignett,
                                   long* ltri,
                                   double* diff,
@@ -266,10 +267,10 @@ cdef inline void triangulate_poly(double* vignett_poly,
 
 
 cdef inline int triangulate_polys(double** vignett_poly,
-                                   long* lnvert,
-                                   int nvign,
-                                   long** ltri,
-                                   int num_threads) nogil except -1:
+                                  long* lnvert,
+                                  int nvign,
+                                  long** ltri,
+                                  int num_threads) nogil except -1:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
