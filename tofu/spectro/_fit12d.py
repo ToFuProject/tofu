@@ -1409,27 +1409,41 @@ def fit12d_dvalid(
 def _checkformat_dlines(dlines=None, domain=None):
     if dlines is None:
         dlines = False
-    c0 = (
-        isinstance(dlines, dict)
-        and all([
+
+    if not isinstance(dlines, dict):
+        msg = "Arg dlines must be a dict!"
+        raise Exception(msg)
+
+    lc = [
+        (k0, type(v0)) for k0, v0 in dlines.items()
+        if not (
             isinstance(k0, str)
             and isinstance(v0, dict)
             and 'lambda0' in v0.keys()
-            for k0, v0 in dlines.items()
-        ])
-    )
-    if c0 is not True:
-        msg = ("Arg dlines must be a dict of the form:\n"
-               + "\t{'line0': {'lambda0': float},\n"
-               + "\t 'line1': {'lambda0': float},\n"
-               + "\t  ...\n"
-               + "\t 'lineN': {'lambda0': float}}\n"
-               + "  You provided: {}".format(dlines))
+            and (
+                type(v0['lambda0']) in _LTYPES
+                or (
+                    isinstance(v0['lambda0'], np.ndarray)
+                    and v0['lambda0'].size == 1
+                )
+            )
+        )
+    ]
+    if len(lc) > 0:
+        lc = ["\t- {}: {}".format(*cc) for cc in lc]
+        msg = (
+            "Arg dlines must be a dict of the form:\n"
+            + "\t{'line0': {'lambda0': float},\n"
+            + "\t 'line1': {'lambda0': float},\n"
+            + "\t  ...\n"
+            + "\t 'lineN': {'lambda0': float}}\n"
+            + "  You provided:\n{}".format('\n'.join(lc))
+        )
         raise Exception(msg)
 
     # Select relevant lines (keys, lamb)
     lines_keys = np.array([k0 for k0 in dlines.keys()])
-    lines_lamb = np.array([dlines[k0]['lambda0'] for k0 in lines_keys])
+    lines_lamb = np.array([float(dlines[k0]['lambda0']) for k0 in lines_keys])
     if domain not in [None, False]:
         ind = (
             (lines_lamb >= domain['lamb']['minmax'][0])
@@ -2916,8 +2930,6 @@ def multigausfit1d_from_dlines(
         except Exception as err:
             errmsg[ii] = str(err)
             validity[ii] = -1
-            import pdb; pdb.set_trace()     # DB
-            pass
 
         # Verbose
         if verbose in [1, 2]:
