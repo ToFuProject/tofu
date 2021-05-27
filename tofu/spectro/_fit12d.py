@@ -24,6 +24,7 @@ from . import _plot
 
 
 __all__ = [
+    'get_localextrema_1d',
     'fit1d_dinput', 'fit2d_dinput',
     'fit12d_dvalid', 'fit12d_dscales',
     'fit1d', 'fit2d',
@@ -101,76 +102,166 @@ _DX0 = {
 ###########################################################
 
 
-# DEPRECATED !!!!!!!!!!!!!!!!!
-def get_peaks(x, y, nmax=None):
+def _get_localextrema_1d_check(
+    data=None, lamb=None,
+    weights=None, smooth=None,
+    returnas=None,
+):
+    # data
+    c0 = (
+        isinstance(data, np.ndarray)
+        and data.ndim in [1, 2]
+        and data.size > 0
+        and np.all(np.isfinite(data))
+    )
+    if not c0:
+        msg = (
+            "Arg data must be a (nlamb,) or (nt, nlamb) finite np.array!\n"
+            + "\t- provided: {}\n".format(data)
+        )
+        raise Exception(msg)
+    if data.ndim == 1:
+        data = data[None, :]
+
+    # lamb
+    if lamb is None:
+        lamb = np.arange(data.shape[1])
+    c0 = (
+        isinstance(lamb, np.ndarray)
+        and lamb.shape == (data.shape[1],)
+        and np.all(np.isfinite(lamb))
+        and np.all(np.diff(lamb) > 0)
+    )
+    if not c0:
+        msg = (
+            "Arg lamb must be a finite increasing (data.shape[0],) np.array!\n"
+            + "\t- provided: {}".format(lamb)
+        )
+        raise Exception(msg)
+
+    # weights (for fitting, optional)
+    c0 = (
+        weights is None
+        or (
+            isinstance(weights, np.ndarray)
+            and weights.shape == (data.shape[1],)
+        )
+    )
+    if not c0:
+        msg = (
+            "Arg weights must be either None or a (nlamb,) np.array!\n"
+            + "Fed to scipy.interpolate.UnivariateSpline(w=weights)\n"
+            + "\t- provided: {}".format(weights)
+        )
+        raise Exception(msg)
+
+    # smooth
+    if smooth is None:
+        smooth = False
+    c0 = smooth is False or (isinstance(smooth, float) and smooth > 0)
+    if not c0:
+        msg = (
+            "Arg smooth must be a bool\n"
+            + "Used to smooth the bsplines fitting\n"
+            + "\t- False: spline fits all points\n"
+            + "\t- float > 0: spline is smoothed\n"
+            + "\t    => smooth = estimate of the minimum line width "
+            + "at half_maximum\n"
+        )
+        raise Exception(msg)
+
+    # returnas
+    if returnas is None:
+        returnas = float
+    c0 = returnas in [bool, float]
+    if not c0:
+        msg = (
+            "Arg returnas must be:\n"
+            + "\t- bool: return 2 (nt, nlamb) bool arrays, True at extrema\n"
+            + "\t- float: return 2 (nt, nn) float arrays, of extrema values\n"
+            + "  You provided:\n{}".format(returnas)
+        )
+        raise Exception(msg)
+
+    return data, lamb, weights, smooth, returnas
+
+
+def get_localextrema_1d(
+    data=None, lamb=None,
+    smooth=None, weights=None,
+    returnas=None,
+):
     """ Automatically find peaks in spectrum """
 
-    raise Exception("Deprecated!")
+    # ------------------
+    #   check inputs
+    data, lamb, weights, smooth, returnas = _get_localextrema_1d_check(
+        data=data, lamb=lamb,
+        weights=weights, smooth=smooth,
+        returnas=returnas,
+    )
 
-    if nmax is None:
-        nmax = _NPEAKMAX
+    # -----------------
+    #   fit and extract extrema
+    bbox = [lamb.min(), lamb.max()]
+    mini, maxi = [], []
+    if smooth is False:
+        for ii in range(data.shape[0]):
+            bs = scpinterp.UnivariateSpline(
+                lamb, data[ii, :], w=weights,
+                bbox=bbox, k=4,
+                s=0, ext=2,
+                check_finite=False,
+            )
+            extrema = bs.derivative(1).roots()
+            indmin = bs.derivative(2)(extrema) > 0.
+            indmax = bs.derivative(2)(extrema) < 0.
+            mini.append(extrema[indmin])
+            maxi.append(extrema[indmax])
+    else:
+        nint = int(np.ceil((bbox[1]-bbox[0]) / (1.5*smooth)))
+        delta = (bbox[1]-bbox[0]) / nint
+        nknots = nint - 1
+        knots = np.linspace(bbox[0]+delta, bbox[1]-delta, nknots)
+        for ii in range(data.shape[0]):
+            bs = scpinterp.LSQUnivariateSpline(
+                lamb, data[ii, :], t=knots,
+                w=weights,
+                bbox=bbox, k=4, ext=2,
+                check_finite=False,
+            )
+            extrema = bs.derivative(1).roots()
+            indmin = bs.derivative(2)(extrema) > 0.
+            indmax = bs.derivative(2)(extrema) < 0.
+            mini.append(extrema[indmin])
+            maxi.append(extrema[indmax])
 
-    # Prepare
-    ybis = np.copy(y)
-    A = np.empty((nmax,), dtype=y.dtype)
-    x0 = np.empty((nmax,), dtype=x.dtype)
-    sigma = np.empty((nmax,), dtype=y.dtype)
-    def gauss(xx, A, x0, sigma): return A*np.exp(-(xx-x0)**2/sigma**2)
-    def gauss_jac(xx, A, x0, sigma):
-        jac = np.empty((xx.size, 3), dtype=float)
-        jac[:, 0] = np.exp(-(xx-x0)**2/sigma**2)
-        jac[:, 1] = A*2*(xx-x0)/sigma**2 * np.exp(-(xx-x0)**2/sigma**2)
-        jac[:, 2] = A*2*(xx-x0)**2/sigma**3 * np.exp(-(xx-x0)**2/sigma**2)
-        return jac
+    # -----------------
+    #   reshape
+    if returnas is bool:
+        bins = 0.5*(lamb[1:] + lamb[:-1])
+        bins = np.r_[
+            bins[0]-(lamb[1]-lamb[0]),
+            bins,
+            bins[-1]+(lamb[-1]-lamb[-2]),
+        ]
+        minima = np.zeros(data.shape, dtype=bool)
+        maxima = np.zeros(data.shape, dtype=bool)
+        for ii in range(data.shape[0]):
+            if len(mini[ii]) > 0:
+                minima[ii, np.digitize(mini[ii], bins, right=False)-1] = True
+            if len(maxi[ii]) > 0:
+                maxima[ii, np.digitize(maxi[ii], bins, right=False)-1] = True
+    else:
+        nmin = np.max([len(mm) for mm in mini])
+        nmax = np.max([len(mm) for mm in maxi])
+        minima = np.full((data.shape[0], nmin), np.nan)
+        maxima = np.full((data.shape[0], nmax), np.nan)
+        for ii in range(data.shape[0]):
+            minima[ii, :len(mini[ii])] = mini[ii]
+            maxima[ii, :len(maxi[ii])] = maxi[ii]
 
-    dx = np.nanmin(np.diff(x))
-
-    # Loop
-    nn = 0
-    while nn < nmax:
-        ind = np.nanargmax(ybis)
-        x00 = x[ind]
-        if np.any(np.diff(ybis[ind:], n=2) >= 0.):
-            wp = min(x.size-1,
-                     ind + np.nonzero(np.diff(ybis[ind:],n=2)>=0.)[0][0] + 1)
-        else:
-            wp = ybis.size-1
-        if np.any(np.diff(ybis[:ind+1], n=2) >= 0.):
-            wn = max(0, np.nonzero(np.diff(ybis[:ind+1],n=2)>=0.)[0][-1] - 1)
-        else:
-            wn = 0
-        width = x[wp]-x[wn]
-        assert width>0.
-        indl = np.arange(wn, wp+1)
-        sig = np.ones((indl.size,))
-        if (np.abs(np.mean(np.diff(ybis[ind:wp+1])))
-            > np.abs(np.mean(np.diff(ybis[wn:ind+1])))):
-            sig[indl < ind] = 1.5
-            sig[indl > ind] = 0.5
-        else:
-            sig[indl < ind] = 0.5
-            sig[indl > ind] = 1.5
-        p0 = (ybis[ind], x00, width)#,0.)
-        bounds = (np.r_[0., x[wn], dx/2.],
-                  np.r_[5.*ybis[ind], x[wp], 5.*width])
-        try:
-            (Ai, x0i, sigi) = scpopt.curve_fit(gauss, x[indl], ybis[indl],
-                                               p0=p0, bounds=bounds, jac=gauss_jac,
-                                               sigma=sig, x_scale='jac')[0]
-        except Exception as err:
-            print(str(err))
-            import ipdb
-            ipdb.set_trace()
-            pass
-
-        ybis = ybis - gauss(x, Ai, x0i, sigi)
-        A[nn] = Ai
-        x0[nn] = x0i
-        sigma[nn] = sigi
-
-
-        nn += 1
-    return A, x0, sigma
+    return minima, maxima
 
 
 def get_symmetry_axis_1dprofile(phi, data, cent_fraction=None):
