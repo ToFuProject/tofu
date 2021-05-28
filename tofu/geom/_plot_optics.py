@@ -26,6 +26,7 @@ _QUIVERCOLOR = np.array([[1., 0., 0., 1.],
                          [0., 1., 0., 1.],
                          [0., 0., 1., 1.]])
 _QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
+_RAYS_NPTS = 10
 
 
 # Generic
@@ -96,21 +97,24 @@ def _check_projdax_mpl(dax=None, proj=None,
     return dax
 
 
-
 # #################################################################
 # #################################################################
 #                   Generic geometry plot
 # #################################################################
 # #################################################################
 
-def CrystalBragg_plot(cryst=None, dcryst=None,
-                      det=None, ddet=None,
-                      dax=None, proj=None, res=None, element=None,
-                      color=None, dP=None,
-                      pts0=None, pts1=None, rays_color=None, rays_npts=None,
-                      dleg=None, draw=True, fs=None, dmargin=None,
-                      use_non_parallelism=None,
-                      wintit=None, tit=None):
+
+def CrystalBragg_plot(
+    cryst=None, dcryst=None,
+    det=None, ddet=None,
+    dax=None, proj=None, res=None, element=None,
+    color=None,
+    pts_summit=None, pts1=None, pts2=None,
+    rays_color=None, rays_npts=None,
+    dleg=None, draw=True, fs=None, dmargin=None,
+    use_non_parallelism=None,
+    wintit=None, tit=None,
+):
 
     # ---------------------
     # Check / format inputs
@@ -147,16 +151,18 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         raise Exception(msg)
 
     # vectors
-    nout, e1, e2 = cryst.get_unit_vectors(
-        use_non_parallelism=use_non_parallelism,
-    )
-    nin = -nout
+    if cryst is not None:
+        nout, e1, e2 = cryst.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism,
+        )
+        nin = -nout
 
     # outline
-    outline = cryst.sample_outline_plot(
-        res=res,
-        use_non_parallelism=use_non_parallelism,
-    )
+    if cryst is not None:
+        outline = cryst.sample_outline_plot(
+            res=res,
+            use_non_parallelism=use_non_parallelism,
+        )
 
     # det
     if det is None:
@@ -181,23 +187,26 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
             raise Exception(msg)
 
     # pts
-    lc = [pts0 is None, pts1 is None]
-    c0 = (np.sum(lc) == 1
-          or (not any(lc)
-              and (pts0.shape != pts1.shape or pts0.shape[0] != 3)))
-    if c0:
-        msg = ("pts0 and pts1 must be:\n"
-               + "\t- both None\n"
-               + "\t- both np.ndarray of same shape, with shape[0] == 3\n"
-               + "  You provided:\n"
-               + "\t- pts0: {}\n".format(pts0)
-               + "\t- pts1: {}".format(pts1))
+    lc = [pts_summit is not None, pts1 is not None, pts2 is not None]
+    c0 = (
+        (not any(lc))
+        or all(lc)
+    )
+    if not c0:
+        msg = (
+            "pts_summit and pts1 and pts2 must be:\n"
+            + "\t- all None\n"
+            + "\t- all np.ndarray of same shape, with shape[0] == 3\n"
+            + "  You provided:\n"
+            + "\t- pts_summit: {}\n".format(pts_summit)
+            + "\t- pts1: {}".format(pts1)
+            + "\t- pts2: {}".format(pts2)
+        )
         raise Exception(msg)
-    if pts0 is not None:
+
+    if pts_summit is not None:
         if rays_color is None:
             rays_color = 'k'
-        if rays_npts is None:
-            rays_npts = 10
 
     # dict for plotting
     if color is None:
@@ -241,7 +250,8 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
             det=det, ddet=ddet,
             nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
             proj=proj, res=res, dax=dax, element=element,
-            pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
+            pts_summit=pts_summit, pts1=pts1, pts2=pts2,
+            rays_color=rays_color,
             draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
     else:
         dax = _CrystalBragg_plot_crosshor(
@@ -249,7 +259,8 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
             det=det, ddet=ddet,
             nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
             proj=proj, res=res, dax=dax, element=element,
-            pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
+            pts_summit=pts_summit, pts1=pts1, pts2=pts2,
+            rays_color=rays_color, rays_npts=rays_npts,
             draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
 
     # recompute the ax.dataLim
@@ -271,16 +282,18 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
     return dax
 
 
-def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
-                                det=None, ddet=None,
-                                nout=None, nin=None, e1=None, e2=None,
-                                outline=None,
-                                proj=None, dax=None,
-                                element=None, res=None,
-                                pts0=None, pts1=None,
-                                rays_color=None, rays_npts=None,
-                                quiver_cmap=None, draw=True,
-                                dmargin=None, fs=None, wintit=None):
+def _CrystalBragg_plot_crosshor(
+    cryst=None, dcryst=None,
+    det=None, ddet=None,
+    nout=None, nin=None, e1=None, e2=None,
+    outline=None,
+    proj=None, dax=None,
+    element=None,
+    pts_summit=None, pts1=None, pts2=None,
+    rays_color=None, rays_npts=None,
+    quiver_cmap=None, draw=True,
+    dmargin=None, fs=None, wintit=None,
+):
 
     # ---------------------
     # Check / format inputs
@@ -422,39 +435,46 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                                 **ddet['outline'])
 
     # -------------
-    # pts0 and pts1
-    if pts0 is not None:
-        if pts0.ndim == 3:
-            pts0 = np.reshape(pts0, (3, pts0.shape[1]*pts0.shape[2]))
-            pts1 = np.reshape(pts1, (3, pts1.shape[1]*pts1.shape[2]))
+    # pts_summit
+    if pts_summit is not None:
+        if rays_npts is None:
+            rays_npts = _RAYS_NPTS
+        k = np.linspace(0, 1, rays_npts)
+        shape = np.r_[pts1.shape, 1]
+        lines = np.concatenate((
+            pts1[..., None] + k*(pts_summit[..., None, None]-pts1[..., None]),
+            pts_summit[..., None, None]
+            + k[1:]*(pts2[..., None]-pts_summit[..., None, None]),
+            np.full(shape, np.nan),
+        ), axis=-1).reshape((3, np.prod(shape[1:])*2*rays_npts), order='C')
+
         if cross:
-            k = np.r_[np.linspace(0, 1, rays_npts), np.nan]
-            pts01 = np.reshape((pts0[:, :, None]
-                                + k[None, None, :]*(pts1-pts0)[:, :, None]),
-                               (3, pts0.shape[1]*(rays_npts+1)))
-            linesr = np.hypot(pts01[0, :], pts01[1, :])
-            dax['cross'].plot(linesr, pts01[2, :],
-                              color=rays_color, lw=1., ls='-')
+            if pts1 is not None:
+                dax['cross'].plot(
+                    np.hypot(lines[0, :], lines[1, :]),
+                    lines[2, :],
+                    color=rays_color, lw=1., ls='-',
+                )
         if hor:
-            k = np.r_[0, 1, np.nan]
-            pts01 = np.reshape((pts0[:2, :, None]
-                                + k[None, None, :]*(pts1-pts0)[:2, :, None]),
-                               (2, pts0.shape[1]*3))
-            dax['hor'].plot(pts01[0, :], pts01[1, :],
-                            color=rays_color, lw=1., ls='-')
+            dax['hor'].plot(
+                lines[0, :], lines[1, :],
+                color=rays_color, lw=1., ls='-',
+            )
     return dax
 
 
-def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
-                          det=None, ddet=None,
-                          nout=None, nin=None, e1=None, e2=None,
-                          outline=None,
-                          proj=None, dax=None,
-                          element=None, res=None,
-                          pts0=None, pts1=None,
-                          rays_color=None, rays_npts=None,
-                          quiver_cmap=None, draw=True,
-                          dmargin=None, fs=None, wintit=None):
+def _CrystalBragg_plot_3d(
+    cryst=None, dcryst=None,
+    det=None, ddet=None,
+    nout=None, nin=None, e1=None, e2=None,
+    outline=None,
+    proj=None, dax=None,
+    element=None, res=None,
+    pts_summit=None, pts1=None, pts2=None,
+    rays_color=None,
+    quiver_cmap=None, draw=True,
+    dmargin=None, fs=None, wintit=None,
+):
 
     # ---------------------
     # Check / format inputs
@@ -562,17 +582,27 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
 
     # -------------
     # pts0 and pts1
-    if pts0 is not None:
-        if pts0.ndim == 3:
-            pts0 = np.reshape(pts0, (3, pts0.shape[1]*pts0.shape[2]))
-            pts1 = np.reshape(pts1, (3, pts1.shape[1]*pts1.shape[2]))
+    if pts_summit is not None:
+        shape = np.r_[pts1.shape, 1]
+        if pts1.shape == pts_summit.shape:
+            lines = np.concatenate((
+                pts1[..., None],
+                pts_summit[..., None],
+                pts2[..., None],
+                np.full(shape, np.nan),
+            ), axis=-1).reshape((3, np.prod(shape[1:])*4), order='C')
+        else:
+            lines = np.concatenate((
+                pts1[..., None],
+                np.repeat(pts_summit[..., None], shape[2], axis=-1)[..., None],
+                pts2[..., None],
+                np.full(shape, np.nan),
+            ), axis=-1).reshape((3, np.prod(shape[1:])*4), order='C')
         if dax['3d'] is not None:
-            k = np.r_[0, 1, np.nan]
-            pts01 = np.reshape((pts0[:, :, None]
-                                + k[None, None, :]*(pts1-pts0)[:, :, None]),
-                               (3, pts0.shape[1]*3))
-            dax['3d'].plot(pts01[0, :], pts01[1, :], pts01[2, :],
-                           color=rays_color, lw=1., ls='-')
+            dax['3d'].plot(
+                lines[0, :], lines[1, :], lines[2, :],
+                color=rays_color, lw=1., ls='-',
+            )
     return dax
 
 

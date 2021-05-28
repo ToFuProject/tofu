@@ -1,8 +1,14 @@
 
+
+import warnings
+
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 import matplotlib.pyplot as plt
+
+
+_LTYPES = [int, float, np.int_, np.float_]
 
 
 # ###############################################
@@ -15,33 +21,107 @@ import matplotlib.pyplot as plt
 #           sampling
 # ###############################################
 
-def CrystBragg_sample_outline_sphrect(extent_psi, extent_dtheta, npsi=None, 
-                                      ntheta=None):
+
+def _check_dthetapsi(
+    dtheta=None, psi=None,
+    extenthalf_psi=None, extenthalf_dtheta=None,
+    ntheta=None, npsi=None,
+    include_summit=None,
+):
+    # Check inputs
+    if dtheta is None:
+        dtheta = 0.
+    if psi is None:
+        psi = 0.
+
+    # if envelop => get all points around cryst + summit
+    if any([isinstance(vv, str) and vv == 'envelop' for vv in [dtheta, psi]]):
+        psi, dtheta = CrystBragg_sample_outline_sphrect(
+            extenthalf_psi, extenthalf_dtheta,
+            npsi=npsi, ntheta=ntheta,
+            include_summit=include_summit,
+        )
+
+    c0 = all([
+        type(vv) in _LTYPES
+        or isinstance(vv, np.ndarray)
+        for vv in [dtheta, psi]
+    ])
+
+    dtheta = np.atleast_1d(dtheta)
+    psi = np.atleast_1d(psi)
+    if psi.shape != dtheta.shape:
+        msg = (
+            "dtheta and psi should have the same shape\n"
+            + "\t- dtheta.shape = {}\n".format(dtheta.shape)
+            + "\t- psi.shape = {}".format(psi.shape)
+        )
+        raise Exception(msg)
+    return dtheta, psi
+
+
+def CrystBragg_sample_outline_sphrect(
+    extent_psi, extent_dtheta,
+    npsi=None, ntheta=None,
+    include_summit=None,
+):
+    # check inputs
+    if include_summit is None:
+        include_summit = True
+    if ntheta is None:
+        ntheta = 5
+    if npsi is None:
+        npsi = 3
+
+    # compute
     psi = extent_psi*np.linspace(-1, 1., npsi)
     dtheta = extent_dtheta*np.linspace(-1, 1., ntheta)
     psimin = np.full((ntheta,), psi[0])
     psimax = np.full((ntheta,), psi[-1])
     dthetamin = np.full((npsi,), dtheta[0])
     dthetamax = np.full((npsi,), dtheta[-1])
-    psi = np.concatenate((psi, psimax,
-                          psi[::-1], psimin))
-    dtheta = np.concatenate((dthetamin, dtheta,
-                             dthetamax, dtheta[::-1]))
+    psi = np.concatenate((psi, psimax, psi[::-1], psimin))
+    dtheta = np.concatenate((dthetamin, dtheta, dthetamax, dtheta[::-1]))
+    if include_summit is True:
+        psi = np.r_[psi, 0.]
+        dtheta = np.r_[dtheta, 0.]
     return psi, dtheta
 
 
-def CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
-                                          e1e2=True, sameshape=False):
-    # Prepare
+def CrystBragg_get_noute1e2_from_psitheta(
+    nout, e1, e2,
+    psi=None, dtheta=None,
+    e1e2=None, sameshape=None,
+    extenthalf_psi=None,
+    extenthalf_dtheta=None,
+    ntheta=None, npsi=None,
+    include_summit=None,
+):
+    # check inputs
+    if e1e2 is None:
+        e1e2 = True
+    if sameshape is None:
+        sameshape = psi.shape == nout.shape[1:]
     if sameshape:
         assert psi.shape == nout.shape[1:]
-    else:
+
+    dtheta, psi = _check_dthetapsi(
+        dtheta=dtheta, psi=psi,
+        extenthalf_psi=extenthalf_psi,
+        extenthalf_dtheta=extenthalf_dtheta,
+        ntheta=ntheta, npsi=npsi,
+        include_summit=include_summit,
+    )
+
+    # Prepare
+    if sameshape is False:
         assert psi.ndim in [1, 2, 3]
         if psi.ndim == 1:
-            nout, e1, e2 = nout[:, None], e1[:, None], e2[:, None]
+            nout = nout[:, None]
+            e1, e2 = e1[:, None], e2[:, None]
         elif psi.ndim == 2:
-            nout, e1, e2 = (nout[:, None, None], 
-                            e1[:, None, None], e2[:, None, None])
+            nout = nout[:, None, None]
+            e1, e2 = e1[:, None, None], e2[:, None, None]
         else:
             nout = nout[:, None, None, None]
             e1, e2 = e1[:, None, None, None], e2[:, None, None, None]
@@ -78,44 +158,52 @@ def CrystBragg_sample_outline_plot_sphrect(
     npsi = 2*int(np.ceil(extenthalf[0] / res)) + 1
     ntheta = 2*int(np.ceil(extenthalf[1] / res)) + 1
 
-    psi, dtheta = CrystBragg_sample_outline_sphrect(extenthalf[0],
-                                                    extenthalf[1],
-                                                    npsi=npsi, ntheta=ntheta)
+    psi, dtheta = CrystBragg_sample_outline_sphrect(
+        extenthalf[0], extenthalf[1],
+        npsi=npsi, ntheta=ntheta,
+        include_summit=False,
+    )
 
-    vout = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2, psi, dtheta,
-                                                 e1e2=False, sameshape=False)
+    vout = CrystBragg_get_noute1e2_from_psitheta(
+        nout, e1, e2, psi, dtheta,
+        e1e2=False, sameshape=False,
+    )
     return center[:, None] + rcurve*vout
 
+# DEPRECATED?
+# def CrystBragg_sample_outline_Rays(
+    # center, nout, e1, e2,
+    # rcurve, extenthalf,
+    # bragg, phi,
+# ):
+    # psi, dtheta = CrystBragg_sample_outline_sphrect(
+        # extenthalf[0], extenthalf[1],
+        # npsi=3, ntheta=3,
+    # )
 
-def CrystBragg_sample_outline_Rays(center, nout, e1, e2,
-                                   rcurve, extenthalf,
-                                   bragg, phi):
-    psi, dtheta = CrystBragg_sample_outline_sphrect(extenthalf[0],
-                                                    extenthalf[1],
-                                                    npsi=3, ntheta=3)
-    psi = np.append(psi, [0])
-    dtheta = np.append(dtheta, [0])
-    npts = psi.size
+    # psi = np.append(psi, [0])
+    # dtheta = np.append(dtheta, [0])
+    # npts = psi.size
 
-    # add repetitions for rays
-    nrays = phi.size
-    psi = np.repeat(psi, nrays)
-    dtheta = np.repeat(dtheta, nrays)
+    # # add repetitions for rays
+    # nrays = phi.size
+    # psi = np.repeat(psi, nrays)
+    # dtheta = np.repeat(dtheta, nrays)
 
-    # add tiling for pts
-    bragg = np.tile(bragg, npts)
-    phi = np.tile(phi, npts)
+    # # add tiling for pts
+    # bragg = np.tile(bragg, npts)
+    # phi = np.tile(phi, npts)
 
-    # Compute local vectors
-    vout, ve1, ve2 = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2,
-                                                           psi, dtheta,
-                                                           e1e2=True,
-                                                           sameshape=False)
-    # Deduce D, u
-    D = center[:, None] + rcurve*vout
-    u = (-np.sin(bragg)*vout
-         + np.cos(bragg)*(np.cos(phi)*ve1 + np.sin(phi)*ve2))
-    return D, u
+    # # Compute local vectors
+    # vout, ve1, ve2 = CrystBragg_get_noute1e2_from_psitheta(nout, e1, e2,
+                                                           # psi, dtheta,
+                                                           # e1e2=True,
+                                                           # sameshape=False)
+    # # Deduce D, u
+    # D = center[:, None] + rcurve*vout
+    # u = (-np.sin(bragg)*vout
+         # + np.cos(bragg)*(np.cos(phi)*ve1 + np.sin(phi)*ve2))
+    # return D, u
 
 
 # ###############################################
@@ -174,6 +262,10 @@ def get_vectors_from_angles(alpha, beta, nout, e1, e2):
 # ###############################################
 #           Approximate solution
 # ###############################################
+
+
+def get_rowland_dist_from_bragg(bragg=None, rcurve=None):
+    return rcurve*np.sin(bragg)
 
 
 def get_approx_detector_rel(rcurve, bragg,
@@ -556,24 +648,45 @@ def _calc_spect1d_from_data2d(ldata, lamb, phi,
 # ###############################################
 
 
-def calc_dthetapsiphi_from_lambpts(pts, center, rcurve,
-                                   bragg, nlamb, npts,
-                                   nout, e1, e2, extenthalf, ndtheta=None):
+def calc_dthetapsiphi_from_lambpts(
+    pts,
+    bragg, nlamb, npts,
+    center=None, rcurve=None,
+    nout=None, e1=None, e2=None,
+    extenthalf=None,
+    ndtheta=None,
+):
+    """ Return (dtheta, psi) of pts on crystal where bragg diffraction happens
 
+    For given pts and lamb/bragg
+
+    For each pts/lamb, there may be up to 2 arcs on the crystal
+    Only returns valid solution (inside extenthalf), with nan elsewhere
+
+    psi and dtheta returned as (nlamb, npts, 2, ndtheta) arrays
+
+    """
+
+    # Check input
     if ndtheta is None:
-        ndtheta = 100
+        ndtheta = 10
 
-    scaPCem = np.full((nlamb, npts), np.nan)
-    dtheta = np.full((nlamb, npts, ndtheta), np.nan)
-    psi = np.full((nlamb, npts, ndtheta), np.nan)
+    # Prepare output
+    scaPCem = np.full((nlamb, npts, 2), np.nan)
+    dtheta = np.full((nlamb, npts, ndtheta, 2), np.nan)
+    psi = np.full((nlamb, npts, ndtheta, 2), np.nan)
+    dtheta_u = np.full((nlamb, npts, ndtheta), np.nan)
+    psi_u = np.full((nlamb, npts, ndtheta), np.nan)
+    sol1 = np.full((nlamb, npts), np.nan)
+    sol2 = np.full((nlamb, npts), np.nan)
 
     # Get to scalar product scaPCem
     PC = center[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)
     cos2 = np.cos(bragg)**2
-    deltaon4 = (rcurve**2*cos2[:, None]**2
-                - (rcurve**2*cos2[:, None]
-                   - PCnorm2[None, :]*np.sin(bragg)[:, None]**2))
+    deltaon4 = np.sin(bragg)[:, None]**2*(
+        PCnorm2[None, :] - rcurve**2*cos2[:, None]
+    )
 
     # Get two relevant solutions
     ind = deltaon4 >= 0.
@@ -584,19 +697,16 @@ def calc_dthetapsiphi_from_lambpts(pts, center, rcurve,
 
     # Only keep solution going outward sphere
     # scaPMem = scaPCem + rcurve >= 0
-    # And take same sign as ref to avoid double solution if P inside
-    scaRef = np.repeat(np.sum(PC*nout[:, None], axis=0)[None, :],
-                       nlamb, axis=0)[ind]
-    ind1 = (sol1 >= -rcurve) & (sol1*scaRef >= 0)
-    ind2 = (sol2 >= -rcurve) & (sol2*scaRef >= 0)
-    assert not np.any(ind1 & ind2)
+    ind1 = (sol1 >= -rcurve)
+    ind2 = (sol2 >= -rcurve)
+
     sol1 = sol1[ind1]
     sol2 = sol2[ind2]
     indn = ind.nonzero()
     ind1 = [indn[0][ind1], indn[1][ind1]]
     ind2 = [indn[0][ind2], indn[1][ind2]]
-    scaPCem[ind1[0], ind1[1]] = sol1
-    scaPCem[ind2[0], ind2[1]] = sol2
+    scaPCem[ind1[0], ind1[1], 0] = sol1
+    scaPCem[ind2[0], ind2[1], 1] = sol2
     ind = ~np.isnan(scaPCem)
 
     # Get equation on PCem
@@ -605,28 +715,59 @@ def calc_dthetapsiphi_from_lambpts(pts, center, rcurve,
     Y = np.sum(PC*e1[:, None], axis=0)
     Z = np.sum(PC*e2[:, None], axis=0)
 
-    scaPCem = np.repeat(scaPCem[..., None], ndtheta, axis=-1)
+    scaPCem = np.repeat(scaPCem[:, :, None, :], ndtheta, axis=2)
     ind = ~np.isnan(scaPCem)
-    XYnorm = np.repeat(np.repeat(np.sqrt(X**2 + Y**2)[None, :],
-                                 nlamb, axis=0)[..., None],
-                       ndtheta, axis=-1)[ind]
-    Z = np.repeat(np.repeat(Z[None, :], nlamb, axis=0)[..., None],
-                  ndtheta, axis=-1)[ind]
+    XYnorm = np.repeat(
+        np.repeat(
+            np.repeat(np.sqrt(X**2 + Y**2)[None, :], nlamb, axis=0)[..., None],
+            ndtheta,
+            axis=-1,
+        )[..., None],
+        2,
+        axis=-1,
+    )[ind]
+    Z = np.repeat(
+        np.repeat(
+            np.repeat(Z[None, :], nlamb, axis=0)[..., None],
+            ndtheta, 
+            axis=-1,
+        )[..., None],
+        2,
+        axis=-1,
+    )[ind]
     # Define angextra to get
     # sin(psi + angextra) = (scaPCem - Z*sin(theta)) / (XYnorm*cos(theta))
     angextra = np.repeat(
-        np.repeat(np.arctan2(X, Y)[None, :], nlamb, axis=0)[..., None],
-        ndtheta, axis=-1)[ind]
+        np.repeat(
+            np.repeat(np.arctan2(X, Y)[None, :], nlamb, axis=0)[..., None],
+            ndtheta, axis=-1)[..., None],
+        2, axis=-1)[ind]
     dtheta[ind] = np.repeat(
-        np.repeat(extenthalf[1]*np.linspace(-1, 1, ndtheta)[None, :],
-                  npts, axis=0)[None, ...],
+        np.repeat(
+            np.repeat(
+                extenthalf[1]*np.linspace(-1, 1, ndtheta)[:, None],
+                2, axis=1)[None, ...],
+            npts, axis=0)[None, ...],
         nlamb, axis=0)[ind]
 
     psi[ind] = (np.arcsin(
         (scaPCem[ind] - Z*np.sin(dtheta[ind]))/(XYnorm*np.cos(dtheta[ind])))
-                - angextra)
-    indnan = ~ind
-    indout = np.abs(psi) > extenthalf[0]
-    psi[indnan] = np.nan
-    dtheta[indnan] = np.nan
-    return dtheta, psi, indnan, indout
+        - angextra
+    )
+    ind[ind] = np.abs(psi[ind]) <= extenthalf[0]
+    psi[~ind] = np.nan
+    dtheta[~ind] = np.nan
+    if np.any(np.sum(ind, axis=-1) == 2):
+        msg = (
+            "\nTwo solutions found for {} / {} points!".format(
+                np.sum(np.sum(ind, axis=-1) == 2),
+                np.prod(ind.shape[:-1]),
+            )
+        )
+        warnings.warn(msg)
+        return dtheta, psi, ind
+    else:
+        ind_u = np.any(ind, axis=-1)
+        dtheta_u[ind_u] = dtheta[ind]
+        psi_u[ind_u] = psi[ind]
+        return dtheta_u, psi_u, ind_u

@@ -142,7 +142,7 @@ def _Struct_plot_format(ss, proj='all', **kwdargs):
 
 
 
-def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
+def Struct_plot(lS, lax=None, proj=None, element=None, dP=None,
                 dI=None, dBs=None, dBv=None,
                 dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                 Lim=None, Nstep=None, dLeg=None, indices=False,
@@ -161,6 +161,8 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
         axP          The plt.Axes instance on which the poloidal plot was performed
         axT          The plt.Axes instance on which the toroidal plot was performed
     """
+    if proj is None:
+        proj = 'all'
     proj = proj.lower()
     if Test:
         msg = "Arg proj must be in ['cross','hor','all','3d'] !"
