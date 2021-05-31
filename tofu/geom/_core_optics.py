@@ -886,6 +886,7 @@ class CrystalBragg(utils.ToFuObject):
         include_summit=None,
         det=None, config=None, length=None,
         returnas=None,
+        return_xixj=None,
         grid=None,
     ):
 
@@ -893,6 +894,9 @@ class CrystalBragg(utils.ToFuObject):
         # Check input
         if returnas is None:
             returnas = 'pts'
+        if return_xixj is None:
+            return_xixj = False
+
         lret = ['(pts, vect, length)', '(pts, vect)', 'pts'] #, object]
         if returnas not in lret:
             msg = (
@@ -938,6 +942,7 @@ class CrystalBragg(utils.ToFuObject):
             k0: np.full(vect.shape[1:], np.nan)
             for k0 in ['config', 'det', 'length']
         }
+        xi, xj = None, None
         if config is not None:
             dk['config'] = None
         if det is not None:
@@ -955,6 +960,15 @@ class CrystalBragg(utils.ToFuObject):
                     / np.sum(vect*nout, axis=0)
                 )
             dk['det'][k>=0.] = k[k>=0.]
+            if return_xixj is True:
+                if grid:
+                    pts_end = pts_start[..., None] + dk['det'][None, ...]*vect
+                else:
+                    pts_end = pts_start + dk['det'][None, ...]*vect
+                ei = det['ei'].reshape(shape)
+                ej = det['ej'].reshape(shape)
+                xi = np.sum((pts_end - cent)*ei, axis=0)
+                xj = np.sum((pts_end - cent)*ej, axis=0)
         if length is not None:
             dk['length'][:] = length
 
@@ -964,48 +978,22 @@ class CrystalBragg(utils.ToFuObject):
         # return
         if returnas == 'pts':
             if grid:
-                return pts_start, pts_start[..., None] + k[None, ...]*vect
+                pts_end = pts_start[..., None] + k[None, ...]*vect
+                if return_xixj:
+                    return pts_start, pts_end, xi, xj
+                else:
+                    return pts_start, pts_end
             else:
-                return pts_start, pts_start + k[None, ...]*vect
+                pts_end = pts_start + k[None, ...]*vect
+                if return_xixj:
+                    return pts_start, pts_end, xi, xj
+                else:
+                    return pts_start, pts_end
         elif returnas == '(pts, vect, length)':
-            return pts_start, vect, k
-
-    # DEPRECATED?
-    # def get_Rays_envelop(
-        # self,
-        # phi=None, bragg=None, lamb=None, n=None,
-        # use_non_parallelism=None,
-        # returnas=object, config=None, name=None,
-    # ):
-        # raise Exception('TBC')
-        # # Check inputs
-        # phi, bragg = self._checkformat_get_Rays_from(
-            # phi=phi, bragg=bragg,
-            # lamb=lamb, n=n,
-        # )
-        # assert phi.ndim == 1
-
-        # # choice of basis
-        # nout, e1, e2 = self.get_unit_vectors(
-            # use_non_parallelism=use_non_parallelism
-        # )
-
-        # # Compute
-        # func = _comp_optics.CrystBragg_sample_outline_Rays
-        # D, us = func(self._dgeom['center'],
-                     # nout, e1, e2,
-                     # self._dgeom['rcurve'], self._dgeom['extenthalf'],
-                     # bragg, phi)
-
-        # # Format output
-        # if returnas == tuple:
-            # return (D, us)
-        # elif returnas == object:
-            # from ._core import CamLOS1D
-            # if name is None:
-                # name = self.Id.Name + 'ExtractCam'
-            # return CamLOS1D(dgeom=(D, us), Name=name, Diag=self.Id.Diag,
-                            # Exp=self.Id.Exp, shot=self.Id.shot, config=config)
+            if return_xixj:
+                return pts_start, vect, k, xi, xj
+            else:
+                return pts_start, vect, k
 
     # -----------------
     # methods for general plotting
@@ -1013,7 +1001,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot(
         self, dcryst=None,
-        phi=None, bragg=None, lamb=None,
+        phi=None, bragg=None, lamb=None, pts=None,
         n=None, config=None, det=None, length=None,
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
@@ -1030,7 +1018,9 @@ class CrystalBragg(utils.ToFuObject):
         The projection is 3d, cross-section or horizontal
         Optionaly add rays reflected on cryst at:
             - lamb / phi: desired wavelength and incidence angle
-            - psi, dtheta : desired pts onthe crystal surface
+        and either:
+            - psi, dtheta : desired pts on the crystal surface
+            - pts: emitted from desired pts (e.g.: in the plasma)
 
         Parameters
         ----------
@@ -1088,38 +1078,78 @@ class CrystalBragg(utils.ToFuObject):
                 - use_non_parallelism: True  => return the geometrical basis
                 - use_non_parallelism: False  => return the mesh basis
         """
-        kwdargs = locals()
-        lout = ['self']
-        for k in lout:
-            del kwdargs[k]
         if det is None:
             det = False
         det = self._checkformat_det(det)
 
+        lc = [
+            dtheta is not None or psi is not None or phi is not None,
+            pts is not None
+        ]
+        if np.sum(lc) == 2:
+            msg = (
+                "For ray tracing, please provide either:\n"
+                + "\t- dtheta, psi, phi, lamb/bragg\n"
+                + "\t- pts, lamb/bragg\n"
+            )
+            raise Exception(msg)
+
         # Add rays?
-        if phi is not None:
+        if lc[0]:
             # Get one way
+            # pts.shape = (3, nlamb, npts, ndtheta)
             pts_summit, pts1 = self.get_rays_from_cryst(
                 phi=phi, lamb=lamb, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
                 dtheta=dtheta, psi=psi,
                 ntheta=ntheta, npsi=npsi,
                 include_summit=include_summit,
-                config=config, det=det, returnas='pts',
+                config=config, det=det,
+                returnas='pts', return_xixj=False,
                 grid=grid,
             )
             # Get the other way
-            pts2 = self.get_rays_from_cryst(
+            pts2, xi, xj = self.get_rays_from_cryst(
                 phi=phi+np.pi, lamb=lamb, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
                 dtheta=dtheta, psi=psi,
                 ntheta=ntheta, npsi=npsi,
                 include_summit=include_summit,
-                config=config, det=det, returnas='pts',
+                config=config, det=det,
+                returnas='pts', return_xixj=True,
                 grid=grid,
-            )[1]
+            )[1:]
+        elif lc[1]:
+            c0 = (
+                isinstance(pts, np.ndarray)
+                and pts.ndim == 2
+                and pts.shape[0] == 3
+            )
+            if not c0:
+                msg = ("Arg pts must be a (3, npts) np.array!")
+                raise Exception(msg)
+
+            # pts.shape = (nlamb, npts, ndtheta)
+            dtheta, psi, phi, bragg, _, _ = self.calc_raytracing_from_lambpts(
+                pts=pts, lamb=lamb,
+            )
+            pts_summit, pts2, xi, xj = self.get_rays_from_cryst(
+                phi=phi+np.pi, lamb=None, bragg=bragg,
+                n=n, use_non_parallelism=use_non_parallelism,
+                dtheta=dtheta, psi=psi,
+                ntheta=ntheta, npsi=npsi,
+                include_summit=include_summit,
+                config=config, det=det,
+                returnas='pts', return_xixj=True,
+                grid=grid,
+            )
+            pts1 = np.repeat(
+                np.repeat(pts[:, None, :], dtheta.shape[0], axis=1)[..., None],
+                dtheta.shape[2],
+                axis=-1,
+            )
         else:
-            pts_summit, pts1, pts2 = None, None, None
+            pts_summit, pts1, pts2, xi, xj = None, None, None, None, None
 
         return _plot_optics.CrystalBragg_plot(
             cryst=self, dcryst=dcryst,
@@ -1127,6 +1157,7 @@ class CrystalBragg(utils.ToFuObject):
             dax=dax, proj=proj, res=res, element=element,
             color=color,
             pts_summit=pts_summit, pts1=pts1, pts2=pts2,
+            xi=xi, xj=xj,
             rays_color=rays_color, rays_npts=rays_npts,
             dleg=dleg, draw=draw, fs=fs, dmargin=dmargin,
             use_non_parallelism=use_non_parallelism,
