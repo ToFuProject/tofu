@@ -4970,7 +4970,8 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     Computes the 2D map of the integrated solid angles subtended by a list of
     npoly polygons of coordinates poly_coords[npoly], not necessarily flat,
     one sided and side defined by poly_norm[npoly], nomal vector of polygon.
-
+    If you want to see the details of the computation see:
+        $TOFU_DIR/Notes_Upgrades/SA_tetra/SA_tetra.tex
     Parameters
     ----------
     poly_coords: double array
@@ -5102,9 +5103,13 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     cdef np.ndarray[long, ndim=2] indI
     cdef np.ndarray[long, ndim=1] ind
     cdef np.ndarray[double, ndim=1] reso_rdrdz
+    cdef np.ndarray[double, ndim=1] dot_GBGC
     cdef np.ndarray[double, ndim=2] pts
     cdef np.ndarray[double, ndim=2] sa_map
+    cdef np.ndarray[double, ndim=2] vec_GB
+    cdef np.ndarray[double, ndim=2] vec_GC
     cdef np.ndarray[double, ndim=2] centroids
+    cdef np.ndarray[double, ndim=2] cross_GBGC
     cdef np.ndarray[double, ndim=2, mode="c"] temp
     #
     # == Testing inputs ========================================================
@@ -5148,17 +5153,32 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         ltri,
         num_threads
     )
+    # cpumputing total number of triangles
+    tot_num_tri = np.sum(lnvert_poly) - 2 * npoly
     # .. Getting centroids of triangles .......................................
+    dot_GBGC = np.zeros(tot_num_tri)
+    vec_GB = np.zeros((3, tot_num_tri))
+    vec_GC = np.zeros((3, tot_num_tri))
     centroids = np.zeros((3, tot_num_tri))
-    _bgt.find_centroids_ltri(
+    cross_GBGC = np.zeros((3, tot_num_tri))
+    _bgt.find_centroids_GB_GC_ltri(
         poly_coords,
         ltri,
         &lnvert_poly[0],
         npoly,
         num_threads,
         centroids,
+        vec_GB,
+        vec_GC,
     )
-    # # .. Check if points are visible ...........................................
+    _bgt.compute_dot_cross_vec(vec_GB,
+                               vec_GC,
+                               cross_GBGC,
+                               dot_GBGC,
+                               tot_num_tri,
+                               num_threads,
+                               )
+    # .. Check if points are visible ...........................................
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -5312,8 +5332,12 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         block,
         approx,
         poly_coords,
-        ltri[0], poly_norm,
+        ltri, poly_norm,
         centroids,
+        vec_GB,
+        vec_GC,
+        cross_GBGC,
+        dot_GBGC,
         is_in_vignette,
         sa_map,
         ves_poly,

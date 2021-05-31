@@ -2653,10 +2653,15 @@ cdef inline double comp_sa_sphr_ext(double radius,
 cdef inline void sa_tri_assemble(
     int block,
     int use_approx,
-    double[:, :, ::1] poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
     long** ltri,
     double[:, ::1] poly_norm,
     double[:, ::1] centroids,
+    double[:, ::1] vec_GB,
+    double[:, ::1] vec_GC,
+    double[:, ::1] cross_GBGC,
+    double[::1] dot_GBGC,
     long[:, ::1] is_in_vignette,
     double[:, ::1] sa_map,
     double[:, ::1] ves_poly,
@@ -2708,10 +2713,15 @@ cdef inline void sa_tri_assemble(
         ind_inter_out = clone(array('i'), num_tot_tri * 3, True)
 
         tri_asmbl_block_approx(
-            poly_coords,
+            npoly,
+            lnvert_poly,
             ltri,
             poly_norm,
             centroids,
+            vec_GB,
+            vec_GC,
+            cross_GBGC,
+            dot_GBGC,
             is_in_vignette,
             sa_map,
             ves_poly, ves_norm,
@@ -2808,9 +2818,15 @@ cdef inline void sa_tri_assemble(
 
 cdef inline void tri_asmbl_block_approx(
     double[:, :, ::1] poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
     long** ltri,
     double[:, ::1] poly_norm,
     double[:, ::1] centroids,
+    double[:, ::1] vec_GB,
+    double[:, ::1] vec_GC,
+    double[:, ::1] cross_GBGC,
+    double[::1] dot_GBGC,
     long[:, ::1] is_in_vignette,
     double[:, ::1] sa_map,
     double[:, ::1] ves_poly,
@@ -2870,9 +2886,10 @@ cdef inline void tri_asmbl_block_approx(
     cdef double loc_phi
     cdef double loc_step_rphi
     cdef long* is_vis
-    cdef double* dist = NULL
+    cdef double* dist_og = NULL
+    cdef double* dist_opts = NULL
 
-    dist = <double*> malloc(num_tot_tri * sizeof(double))
+    dist_og = <double*> malloc(num_tot_tri * sizeof(double))
     is_vis = <long*> malloc(num_tot_tri * sizeof(long))
     for rr in range(sz_r):
         loc_r = disc_r[rr]
@@ -2895,13 +2912,13 @@ cdef inline void tri_asmbl_block_approx(
                     # computing distance ....
                     _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
                                              num_tot_tri, centroids,
-                                             &dist[0])
+                                             &dist_og[0])
                     # checking if visible .....
                     _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
                                                centroids,
                                                num_tot_tri,
                                                ves_poly, ves_norm,
-                                               &is_vis[0], dist,
+                                               &is_vis[0], dist_og,
                                                ves_lims,
                                                lstruct_nlim,
                                                lstruct_polyx,
@@ -2922,18 +2939,49 @@ cdef inline void tri_asmbl_block_approx(
                                                1, # is toroidal
                                                forbid, 1)
 
-                    for pp in range(num_tot_tri):
-                        if is_vis[pp]:
+                    for ipoly in range(npoly):
+                        dist_opts = <double*> malloc(lnvert[ipoly] * sizeof(double))
+                        # computing distances to vertices of poly (OA, OB, OC)
+                        _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                                                 lnver[ipoly],
+                                                 poly_coords[ipoly]
+                                                 &dist_opts[0])
+                        for itri in range(lnvert[ipoly] - 2):
+                            iglob = ipoly + itri * npoly
                             sa_map[ind_pol,
-                                   pp] += comp_sa_tri_appx(poly_coords[pp],
-                                                           ltri[pp])
-    free(dist)
+                                   ipoly] += comp_sa_tri_appx(
+                                       # ltri[ipoly],
+                                       centroids[:, iglob],
+                                       vec_GB[:, iglob],
+                                       vec_GC[:, iglob],
+                                       cross_GBGC[:, iglob],
+                                       dot_GBGC[iglob],
+                                                           )
+    free(dist_og)
     free(is_vis)
     return
 
 
-cdef inline void comp_sa_tri_appx(
-    double[:, ::1] poly_coords,
-    long* ltri,
-    ) nogil:
-    return
+cdef inline double comp_sa_tri_appx(
+    double[:] centroids,
+    double[:] vec_GB,
+    double[:] vec_GC,
+    double[:] cross_GBGC,
+    double dot_GBGC,
+) nogil:
+    """
+    Given by:
+    numerator = 3 G \dot (b \cross c)
+    denominator = G \dot G (norm A + norm B + norm C)
+                  + (c \dot b) (norm A - norm B - norm C)
+                  + (c \dot G) (norm A - norm C)
+                  + (G \dot b) (norm A - norm B)
+    with G centroid of triangle
+    """
+    cdef double numertor
+    cdef double denumertor
+    cdef double normA, normB, normC, normG2
+    cdef double cdotG, bdotG
+    
+    numerator = 
+    return 
