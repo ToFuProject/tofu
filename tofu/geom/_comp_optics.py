@@ -675,6 +675,8 @@ def calc_dthetapsiphi_from_lambpts(
     scaPCem = np.full((nlamb, npts, 2), np.nan)
     dtheta = np.full((nlamb, npts, ndtheta, 2), np.nan)
     psi = np.full((nlamb, npts, ndtheta, 2), np.nan)
+    num = np.full((nlamb, npts, ndtheta, 2), np.nan)
+    angextra = np.full((nlamb, npts, ndtheta, 2), np.nan)
     dtheta_u = np.full((nlamb, npts, ndtheta), np.nan)
     psi_u = np.full((nlamb, npts, ndtheta), np.nan)
     sol1 = np.full((nlamb, npts), np.nan)
@@ -737,7 +739,7 @@ def calc_dthetapsiphi_from_lambpts(
     )[ind]
     # Define angextra to get
     # sin(psi + angextra) = (scaPCem - Z*sin(theta)) / (XYnorm*cos(theta))
-    angextra = np.repeat(
+    angextra[ind] = np.repeat(
         np.repeat(
             np.repeat(np.arctan2(X, Y)[None, :], nlamb, axis=0)[..., None],
             ndtheta, axis=-1)[..., None],
@@ -750,10 +752,11 @@ def calc_dthetapsiphi_from_lambpts(
             npts, axis=0)[None, ...],
         nlamb, axis=0)[ind]
 
-    psi[ind] = (np.arcsin(
-        (scaPCem[ind] - Z*np.sin(dtheta[ind]))/(XYnorm*np.cos(dtheta[ind])))
-        - angextra
+    num[ind] = (
+        (scaPCem[ind] - Z*np.sin(dtheta[ind])) / (XYnorm*np.cos(dtheta[ind]))
     )
+    ind[ind] = np.abs(num[ind]) <= 1.
+    psi[ind] = np.arcsin(num[ind]) - angextra[ind]
     ind[ind] = np.abs(psi[ind]) <= extenthalf[0]
     psi[~ind] = np.nan
     dtheta[~ind] = np.nan

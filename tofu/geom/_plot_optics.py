@@ -439,6 +439,8 @@ def _CrystalBragg_plot_crosshor(
     if pts_summit is not None:
         if rays_npts is None:
             rays_npts = _RAYS_NPTS
+        import pdb; pdb.set_trace()     #DB
+
         k = np.linspace(0, 1, rays_npts)
         shape = np.r_[pts1.shape, 1]
         lines = np.concatenate((
