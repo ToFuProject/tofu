@@ -1542,11 +1542,9 @@ class CrystalBragg(utils.ToFuObject):
         pts = np.atleast_1d(pts)
         if pts.ndim == 1:
             pts = pts.reshape((3, 1))
-        if 3 not in pts.shape or pts.ndim != 2:
-            msg = "pts must be a (3, npts) array of (X, Y, Z) coordinates!"
+        if pts.shape[0] != 3 or pts.ndim < 2:
+            msg = "pts must be a (3, ...) array of (X, Y, Z) coordinates!"
             raise Exception(msg)
-        if pts.shape[0] != 3:
-            pts = pts.T
         return pts
 
     @staticmethod
@@ -1963,7 +1961,7 @@ class CrystalBragg(utils.ToFuObject):
             use_non_parallelism=use_non_parallelism
             )
 
-        # Compute dtheta, psi, indnan
+        # Compute dtheta, psi, indnan (nlamb, npts, ndtheta)
         dtheta, psi, indok, grid = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts,
             bragg,
@@ -1973,17 +1971,19 @@ class CrystalBragg(utils.ToFuObject):
             extenthalf=self._dgeom['extenthalf'],
             ndtheta=ndtheta,
             grid=grid,
-         )
+        )
 
+        # reshape bragg for matching dtheta.shape
         if grid is True:
             bragg = np.repeat(
                 np.repeat(bragg[:, None], npts, axis=-1)[..., None],
                 dtheta.shape[2],
                 axis=-1,
             )
+            pts = pts[:, None, :, None]
         else:
             bragg = np.repeat(bragg[:, None], dtheta.shape[1], axis=1)
-
+            pts = pts[..., None]
         bragg[~indok] = np.nan
 
         bragg2, phi = self._calc_braggphi_from_pts(
@@ -1991,7 +1991,7 @@ class CrystalBragg(utils.ToFuObject):
             dtheta=dtheta,
             psi=psi,
             use_non_parallelism=use_non_parallelism,
-            grid=grid,
+            grid=False,
         )
         assert np.allclose(bragg, bragg2, equal_nan=True)
         return dtheta, psi, phi, bragg

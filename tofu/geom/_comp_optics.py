@@ -11,6 +11,36 @@ import matplotlib.pyplot as plt
 _LTYPES = [int, float, np.int_, np.float_]
 
 
+
+# ###############################################
+#           utility
+# ###############################################
+
+def _are_broadcastable(**kwdargs):
+
+    lv = list(kwdargs.values())
+    c0 = (
+        all([isinstance(vv, np.ndarray) for vv in lv])
+        and all([
+            all([
+                (m == n) or (m == 1) or (n == 1)
+                for m, n in zip(vv.shape[::-1], lv[0].shape[::-1])
+            ])
+            for vv in lv
+        ])
+    )
+    if not c0:
+        msg = (
+            "All args must be broadcastable with each other!\n"
+            + "You provided:\n"
+            + "\n".join([
+                '\t- {}.shape = {}'.format(k0, v0.shape)
+                for k0, v0 in kwdargs.items()
+            ])
+        )
+        raise Exception(msg)
+
+
 # ###############################################
 # ###############################################
 #           CrystalBragg
@@ -448,15 +478,7 @@ def calc_braggphi_from_pts_summits(
     vin=None, ve1=None, ve2=None,
 ):
     # check inputs
-    lv = [pts, summits, vin, ve1, ve2]
-    c0 = (
-        all([isinstance(vv, np.ndarray) for vv in lv])
-    )
-    if not c0:
-        msg = (
-            "All args [pts, summits, vin, ve1, ve2] must be broadcastable!\n"
-        )
-        raise Exception(msg)
+    _are_broadcastable(pts=pts, summits=summits, vin=vin, ve1=ve1, ve2=ve2)
 
     # compute
     vect = pts - summits
@@ -501,8 +523,6 @@ def calc_braggphi_from_xixjpts(
     # Check format
     if grid is None:
         grid = True
-    # TBF !!!!!!!!
-
 
     lc = [pts is not None, all([xx is not None for xx in [xi, xj]])]
     if np.sum(lc) != 1:
@@ -528,18 +548,43 @@ def calc_braggphi_from_xixjpts(
             pts = (det_cent[:, None, None]
                    + xi[None, ...]*det_ei[:, None, None]
                    + xj[None, ...]*det_ej[:, None, None])
-    ndimpts = pts.ndim
-    assert ndimpts in [2, 3]
 
     c0 = summit.shape == nin.shape == e1.shape == e2.shape
     if not c0:
         msg = "(summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
     ndimsum = summit.ndim
-    assert ndimsum in [1, 2, 3], summit.shape
+    assert ndimsum in [1, 2, 3, 4], summit.shape
+
+    err = False
+    c0 = (
+        (
+            grid is True
+            and pts.ndim in [1, 2]
+            and summit.ndim in [1, 2, 3]
+        )
+        or (
+            grid is False
+        )
+    )
+    if not c0:
+        msg = (
+            "Args pts and summit/nin/e1/e2 must be such that:\n"
+            + "\t- grid = True:\n"
+            + "\t\tpts.ndim in [1, 2] and pts.shape[0] == 3\n"
+            + "\t\tsummit.ndim in [1, 2, 3]\n"
+            + "\t- grid = False:\n"
+            + "\t\tpts can be directly broadcasted to summit\n"
+            + "  You provided:\n"
+            + "\t- pts.shape = {}\n".format(pts.shape)
+            + "\t- summit.shape = {}".format(summit.shape)
+        )
+        raise Exception(msg)
+
 
     # --------------
     # Prepare
+    # This part should be re-checked for all combinations !
     if grid is True:
         if ndimpts == 2:
             summit = summit[..., None]
@@ -553,17 +598,16 @@ def calc_braggphi_from_xixjpts(
         elif ndimsum == 2:
             pts = pts[:, None, ...]
         elif ndimsum == 3:
-            pts = pts[:, None, None, ...]
+            pts = pts[:, None, ...]
+        elif ndimsum == 4:
+            pts = pts[:, None, :, None]
     else:
-        assert ndimsum >= ndimpts
-        if ndimsum == ndimpts:
-            assert pts.shape == summit.shape
-        elif ndimsum == 3 and ndimpts == 2:
-            pts = pts[:, :, None]
+        pass
 
     # --------------
     # Compute
     # Everything has shape (3, nxi0, nxi1, npts0, npts1) => sum on axis=0
+    # or is broadcastable
     return calc_braggphi_from_pts_summits(
         pts=pts,
         summits=summit,
