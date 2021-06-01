@@ -2653,6 +2653,7 @@ cdef inline double comp_sa_sphr_ext(double radius,
 cdef inline void sa_tri_assemble(
     int block,
     int use_approx,
+    double[:, :, ::1] poly_coords,
     int npoly,
     long[::1] lnvert_poly,
     long** ltri,
@@ -2713,6 +2714,7 @@ cdef inline void sa_tri_assemble(
         ind_inter_out = clone(array('i'), num_tot_tri * 3, True)
 
         tri_asmbl_block_approx(
+            poly_coords,
             npoly,
             lnvert_poly,
             ltri,
@@ -2747,72 +2749,36 @@ cdef inline void sa_tri_assemble(
             disc_z, ind_rz2pol, sz_phi,
             reso_rdrdz, pts_mv, ind_mv,
             num_threads)
-    # elif not block and use_approx:
-    #     assemble_unblock_approx(part_coords, part_rad,
-    #                             is_in_vignette,
-    #                             sa_map,
-    #                             first_ind, indi_mv,
-    #                             num_tot_tri, sz_r, sz_z,
-    #                             ncells_rphi,
-    #                             reso_r_z, disc_r, step_rphi,
-    #                             disc_z, ind_rz2pol,
-    #                             sz_phi,
-    #                             reso_rdrdz, pts_mv, ind_mv,
-    #                             num_threads)
-    # elif block:
-    #     # .. useless tabs .....................................................
-    #     # declared here so that cython can run without gil
-    #     if ves_lims is not None:
-    #         sz_ves_lims = np.size(ves_lims)
-    #     else:
-    #         sz_ves_lims = 0
-    #     npts_poly = ves_norm.shape[1]
-    #     ray_orig = np.zeros((3, num_tot_tri))
-    #     ray_vdir = np.zeros((3, num_tot_tri))
-    #     vperp_out = clone(array('d'), num_tot_tri * 3, True)
-    #     coeff_inter_in  = clone(array('d'), num_tot_tri, True)
-    #     coeff_inter_out = clone(array('d'), num_tot_tri, True)
-    #     ind_inter_out = clone(array('i'), num_tot_tri * 3, True)
-
-    #     assemble_block_exact(part_coords, part_rad,
-    #                          is_in_vignette,
-    #                          sa_map,
-    #                          ves_poly, ves_norm,
-    #                          ves_lims,
-    #                          lstruct_nlim,
-    #                          lstruct_polyx,
-    #                          lstruct_polyy,
-    #                          lstruct_lims,
-    #                          lstruct_normx,
-    #                          lstruct_normy,
-    #                          lnvert, vperp_out,
-    #                          coeff_inter_in, coeff_inter_out,
-    #                          ind_inter_out, sz_ves_lims,
-    #                          ray_orig, ray_vdir, npts_poly,
-    #                          nstruct_tot, nstruct_lim,
-    #                          rmin,
-    #                          eps_uz, eps_a,
-    #                          eps_vz, eps_b, eps_plane,
-    #                          forbid,
-    #                          first_ind, indi_mv,
-    #                          num_tot_tri, sz_r, sz_z,
-    #                          ncells_rphi,
-    #                          reso_r_z, disc_r, step_rphi,
-    #                          disc_z, ind_rz2pol, sz_phi,
-    #                          reso_rdrdz, pts_mv, ind_mv,
-    #                          num_threads)
-    # else:
-    #     assemble_unblock_exact(part_coords, part_rad,
-    #                            is_in_vignette,
-    #                            sa_map,
-    #                            first_ind, indi_mv,
-    #                            num_tot_tri, sz_r, sz_z,
-    #                            ncells_rphi,
-    #                            reso_r_z, disc_r, step_rphi,
-    #                            disc_z, ind_rz2pol,
-    #                            sz_phi,
-    #                            reso_rdrdz, pts_mv, ind_mv,
-    #                            num_threads)
+    elif not block and use_approx:
+        tri_asmbl_unblock_approx(
+            poly_coords,
+            npoly,
+            lnvert_poly,
+            ltri,
+            poly_norm,
+            centroids,
+            vec_GB,
+            vec_GC,
+            cross_GBGC,
+            dot_GBGC,
+            is_in_vignette,
+            sa_map,
+            first_ind,
+            indi_mv,
+            num_tot_tri,
+            sz_r, sz_z,
+            ncells_rphi,
+            reso_r_z,
+            disc_r,
+            step_rphi,
+            disc_z,
+            ind_rz2pol,
+            sz_phi,
+            reso_rdrdz,
+            pts_mv,
+            ind_mv,
+            num_threads
+        )
     return
 
 
@@ -2873,12 +2839,12 @@ cdef inline void tri_asmbl_block_approx(
     cdef int rr
     cdef int zz
     cdef int jj
-    cdef int pp
+    cdef int itri
+    cdef int ipoly
     cdef int ind_pol
     cdef int loc_first_ind
     cdef int loc_size_phi
     cdef long indiijj
-    cdef double vol_pi
     cdef double loc_x
     cdef double loc_y
     cdef double loc_r
@@ -2886,11 +2852,16 @@ cdef inline void tri_asmbl_block_approx(
     cdef double loc_phi
     cdef double loc_step_rphi
     cdef long* is_vis
-    cdef double* dist_og = NULL
+    cdef double* dot_Gb = NULL
+    cdef double* dot_Gc = NULL
+    cdef double* norm_G2 = NULL
     cdef double* dist_opts = NULL
+    cdef double* numerator = NULL
 
-    dist_og = <double*> malloc(num_tot_tri * sizeof(double))
     is_vis = <long*> malloc(num_tot_tri * sizeof(long))
+    dot_Gb = <double*> malloc(num_tot_tri * sizeof(double))
+    dot_Gc = <double*> malloc(num_tot_tri * sizeof(double))
+    norm_G2 = <double*> malloc(num_tot_tri * sizeof(double))
     for rr in range(sz_r):
         loc_r = disc_r[rr]
         loc_size_phi = sz_phi[rr]
@@ -2909,16 +2880,21 @@ cdef inline void tri_asmbl_block_approx(
                     loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
                     loc_x = loc_r * c_cos(loc_phi)
                     loc_y = loc_r * c_sin(loc_phi)
-                    # computing distance ....
-                    _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                    # OG norm and other associated values  ....
+                    _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
                                              num_tot_tri, centroids,
-                                             &dist_og[0])
+                                             cross_GBGC,
+                                             vec_GB, vec_GC,
+                                             &numerator[0],
+                                             &dot_Gb[0],
+                                             &dot_Gc[0],
+                                             &norm_G2[0])
                     # checking if visible .....
                     _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
                                                centroids,
                                                num_tot_tri,
                                                ves_poly, ves_norm,
-                                               &is_vis[0], dist_og,
+                                               &is_vis[0], norm_G2,
                                                ves_lims,
                                                lstruct_nlim,
                                                lstruct_polyx,
@@ -2940,34 +2916,151 @@ cdef inline void tri_asmbl_block_approx(
                                                forbid, 1)
 
                     for ipoly in range(npoly):
-                        dist_opts = <double*> malloc(lnvert[ipoly] * sizeof(double))
+                        dist_opts = <double*> malloc(lnvert_poly[ipoly]
+                                                     * sizeof(double))
                         # computing distances to vertices of poly (OA, OB, OC)
                         _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
-                                                 lnver[ipoly],
-                                                 poly_coords[ipoly]
+                                                 lnvert_poly[ipoly],
+                                                 poly_coords[ipoly],
                                                  &dist_opts[0])
-                        for itri in range(lnvert[ipoly] - 2):
+                        for itri in range(lnvert_poly[ipoly] - 2):
+                            iglob = ipoly + itri * npoly
+                            if is_vis[iglob]:
+                                sa_map[ind_pol,
+                                       ipoly] += comp_sa_tri_appx(
+                                           itri,
+                                           ltri[ipoly],
+                                           numerator[iglob],
+                                           dot_Gb[iglob],
+                                           dot_Gc[iglob],
+                                           norm_G2[iglob],
+                                           dot_GBGC[iglob],
+                                           dist_opts,
+                                       )
+                        free(dist_opts)
+    free(dot_Gb)
+    free(dot_Gc)
+    free(norm_G2)
+    free(is_vis)
+    return
+
+cdef inline void tri_asmbl_unblock_approx(
+    double[:, :, ::1] poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
+    long** ltri,
+    double[:, ::1] poly_norm,
+    double[:, ::1] centroids,
+    double[:, ::1] vec_GB,
+    double[:, ::1] vec_GC,
+    double[:, ::1] cross_GBGC,
+    double[::1] dot_GBGC,
+    long[:, ::1] is_in_vignette,
+    double[:, ::1] sa_map,
+    long[::1] first_ind_mv,
+    long[:, ::1] indi_mv,
+    int num_tot_tri,
+    int sz_r, int sz_z,
+    long* ncells_rphi,
+    double reso_r_z,
+    double* disc_r,
+    double* step_rphi,
+    double* disc_z,
+    long[:, ::1] ind_rz2pol,
+    long* sz_phi,
+    double[::1] reso_rdrdz,
+    double[:, ::1] pts_mv,
+    long[::1] ind_mv,
+    int num_threads
+) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int itri
+    cdef int ipoly
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef double* dot_Gb = NULL
+    cdef double* dot_Gc = NULL
+    cdef double* norm_G2 = NULL
+    cdef double* dist_opts = NULL
+    cdef double* numerator = NULL
+
+    dot_Gb = <double*> malloc(num_tot_tri * sizeof(double))
+    dot_Gc = <double*> malloc(num_tot_tri * sizeof(double))
+    norm_G2 = <double*> malloc(num_tot_tri * sizeof(double))
+    for rr in range(sz_r):
+        loc_r = disc_r[rr]
+        loc_size_phi = sz_phi[rr]
+        loc_step_rphi = step_rphi[rr]
+        loc_first_ind = first_ind_mv[rr]
+        for zz in range(sz_z):
+            loc_z = disc_z[zz]
+            if is_in_vignette[rr, zz]:
+                ind_pol = ind_rz2pol[rr, zz]
+                ind_mv[ind_pol] = rr * sz_z + zz
+                reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                pts_mv[0, ind_pol] = loc_r
+                pts_mv[1, ind_pol] = loc_z
+                for jj in range(loc_size_phi):
+                    indiijj = indi_mv[rr, loc_first_ind + jj]
+                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
+                    # OG norm and other associated values  ....
+                    _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
+                                             num_tot_tri, centroids,
+                                             cross_GBGC,
+                                             vec_GB, vec_GC,
+                                             &numerator[0],
+                                             &dot_Gb[0],
+                                             &dot_Gc[0],
+                                             &norm_G2[0])
+                    for ipoly in range(npoly):
+                        dist_opts = <double*> malloc(lnvert_poly[ipoly]
+                                                     * sizeof(double))
+                        # computing distances to vertices of poly (OA, OB, OC)
+                        _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                                                 lnvert_poly[ipoly],
+                                                 poly_coords[ipoly],
+                                                 &dist_opts[0])
+                        for itri in range(lnvert_poly[ipoly] - 2):
                             iglob = ipoly + itri * npoly
                             sa_map[ind_pol,
                                    ipoly] += comp_sa_tri_appx(
-                                       # ltri[ipoly],
-                                       centroids[:, iglob],
-                                       vec_GB[:, iglob],
-                                       vec_GC[:, iglob],
-                                       cross_GBGC[:, iglob],
+                                       itri,
+                                       ltri[ipoly],
+                                       numerator[iglob],
+                                       dot_Gb[iglob],
+                                       dot_Gc[iglob],
+                                       norm_G2[iglob],
                                        dot_GBGC[iglob],
-                                                           )
-    free(dist_og)
-    free(is_vis)
+                                       dist_opts,
+                                   )
+                        free(dist_opts)
+    free(dot_Gb)
+    free(dot_Gc)
+    free(norm_G2)
     return
 
 
 cdef inline double comp_sa_tri_appx(
-    double[:] centroids,
-    double[:] vec_GB,
-    double[:] vec_GC,
-    double[:] cross_GBGC,
-    double dot_GBGC,
+    int itri,
+    long* ltri,
+    double numerator,
+    double dot_Gb,
+    double dot_Gc,
+    double norm_G2,
+    double dot_bc,
+    double* dist_opts,
 ) nogil:
     """
     Given by:
@@ -2978,10 +3071,20 @@ cdef inline double comp_sa_tri_appx(
                   + (G \dot b) (norm A - norm B)
     with G centroid of triangle
     """
-    cdef double numertor
-    cdef double denumertor
-    cdef double normA, normB, normC, normG2
-    cdef double cdotG, bdotG
-    
-    numerator = 
-    return 
+    cdef double normA
+    cdef double normB
+    cdef double normC
+    cdef double denumerator
+
+    normA = dist_opts[ltri[itri*3]]
+    normB = dist_opts[ltri[itri*3 + 1]]
+    normC = dist_opts[ltri[itri*3 + 2]]
+
+    denumerator = (
+        normA * normB * normC
+        + norm_G2 * (normA + normB + normC)
+        + dot_bc * (normA - normB - normC)
+        + dot_Gb * (normA - normB)
+        + dot_Gc * (normA - normC)
+    )
+    return numerator/denumerator

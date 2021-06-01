@@ -296,6 +296,8 @@ cdef void sa_tri_assemble(
     int block,
     int use_approx,
     double[:, :, ::1] poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
     long** ltri,
     double[:, ::1] poly_norm,
     double[:, ::1] centroids,

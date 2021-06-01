@@ -91,6 +91,17 @@ cdef void find_centroids_GB_GC_ltri(const double[:, :, ::1] poly_coords,
                                     double[:, ::1] vec_GC,
                                     ) nogil
 
+cdef void compute_vec_ass_tri(const double pt0, const double pt1,
+                              const double pt2, int npts,
+                              const double[:, ::1] ptG,
+                              const double[:, ::1] cross_bc,
+                              const double[:, ::1] vecb,
+                              const double[:, ::1] vecc,
+                              double* num,
+                              double* dot_Gb,
+                              double* dot_Gc,
+                              double* normG2) nogil
+
 cdef void compute_dist_pt_vec(const double pt0, const double pt1,
                               const double pt2, const int npts,
                               const double[:, ::1] vec,
