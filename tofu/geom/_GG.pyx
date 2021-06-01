@@ -5109,6 +5109,7 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     cdef np.ndarray[double, ndim=2] vec_GB
     cdef np.ndarray[double, ndim=2] vec_GC
     cdef np.ndarray[double, ndim=2] centroids
+    cdef np.ndarray[double, ndim=2] poly_norm_tot
     cdef np.ndarray[double, ndim=2] cross_GBGC
     cdef np.ndarray[double, ndim=2, mode="c"] temp
     #
@@ -5171,6 +5172,10 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         vec_GB,
         vec_GC,
     )
+
+    poly_norm_tot = np.repeat(poly_norm, np.asarray(lnvert_poly) - 2, axis = 1)
+    assert poly_norm_tot.shape[1] == tot_num_tri
+
     _bgt.compute_dot_cross_vec(vec_GB,
                                vec_GC,
                                cross_GBGC,
@@ -5332,7 +5337,9 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         block,
         approx,
         poly_coords,
-        ltri, poly_norm,
+        npoly,
+        lnvert_poly,
+        ltri, poly_norm_tot,
         centroids,
         vec_GB,
         vec_GC,

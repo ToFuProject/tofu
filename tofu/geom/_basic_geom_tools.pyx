@@ -427,20 +427,30 @@ cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
                           + (pt2 - vec[2, ii]) * (pt2 - vec[2, ii]))
     return
 
-# TODO: FAIRE UNE FONCTION QUI CALCULE G \dot (b \ cross c) !!!!!!!!!!!!!!!!!!!!!!
+
 cdef inline void compute_vec_ass_tri(const double pt0, const double pt1,
                                      const double pt2, int npts,
                                      const double[:, ::1] ptG,
+                                     const double[:, ::1] poly_norm,
                                      const double[:, ::1] cross_bc,
                                      const double[:, ::1] vecb,
                                      const double[:, ::1] vecc,
+                                     double* side_of_poly,
                                      double* num,
                                      double* dot_Gb,
                                      double* dot_Gc,
                                      double* normG2) nogil:
     """
-    Compute the distance between the point P = [pt0, pt1, pt2] and each point
-    Q_i, where ptG = {Q_0, Q_1, ..., Q_npts-1}
+    Computes:
+       - numerator of triangle SA comp : 3 G \dot (b \cross c)
+       - G \dot b = OG \dot Gb
+       - G \dot c = OG \dot Gc
+       - (norm G)**2 = G \dot G = OG \dot \OG
+    ptG are the coordinates of all G, centroids of all triangles
+    pt0, pt1, pt2 are the coordinates of O
+    cross_bc are b x c for all triangles
+    vecb = \vec Gb
+    vecc = \vec Gc
     """
     cdef int ii
     for ii in range(0, npts):
@@ -456,6 +466,9 @@ cdef inline void compute_vec_ass_tri(const double pt0, const double pt1,
         dot_Gc[ii] = ((pt0 - ptG[0, ii])   * vecc[0, ii]
                       + (pt1 - ptG[1, ii]) * vecc[1, ii]
                       + (pt2 - ptG[2, ii]) * vecc[2, ii])
+        side_of_poly[ii] = ((pt0 - ptG[0, ii])   * poly_norm[0, ii]
+                            + (pt1 - ptG[1, ii]) * poly_norm[1, ii]
+                            + (pt2 - ptG[2, ii]) * poly_norm[2, ii])
     return
 
 

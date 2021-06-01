@@ -2857,11 +2857,13 @@ cdef inline void tri_asmbl_block_approx(
     cdef double* norm_G2 = NULL
     cdef double* dist_opts = NULL
     cdef double* numerator = NULL
+    cdef double* side_of_poly = NULL
 
     is_vis = <long*> malloc(num_tot_tri * sizeof(long))
     dot_Gb = <double*> malloc(num_tot_tri * sizeof(double))
     dot_Gc = <double*> malloc(num_tot_tri * sizeof(double))
     norm_G2 = <double*> malloc(num_tot_tri * sizeof(double))
+    side_of_poly = <double*> malloc(num_tot_tri * sizeof(double))
     for rr in range(sz_r):
         loc_r = disc_r[rr]
         loc_size_phi = sz_phi[rr]
@@ -2883,8 +2885,10 @@ cdef inline void tri_asmbl_block_approx(
                     # OG norm and other associated values  ....
                     _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
                                              num_tot_tri, centroids,
+                                             poly_norm,
                                              cross_GBGC,
                                              vec_GB, vec_GC,
+                                             &side_of_poly[0],
                                              &numerator[0],
                                              &dot_Gb[0],
                                              &dot_Gc[0],
@@ -2916,6 +2920,8 @@ cdef inline void tri_asmbl_block_approx(
                                                forbid, 1)
 
                     for ipoly in range(npoly):
+                        if side_of_poly[ipoly] < 0.:
+                            continue  # point is not on right side of poly
                         dist_opts = <double*> malloc(lnvert_poly[ipoly]
                                                      * sizeof(double))
                         # computing distances to vertices of poly (OA, OB, OC)
@@ -2993,10 +2999,12 @@ cdef inline void tri_asmbl_unblock_approx(
     cdef double* norm_G2 = NULL
     cdef double* dist_opts = NULL
     cdef double* numerator = NULL
+    cdef double* side_of_poly = NULL
 
     dot_Gb = <double*> malloc(num_tot_tri * sizeof(double))
     dot_Gc = <double*> malloc(num_tot_tri * sizeof(double))
     norm_G2 = <double*> malloc(num_tot_tri * sizeof(double))
+    side_of_poly = <double*> malloc(num_tot_tri * sizeof(double))
     for rr in range(sz_r):
         loc_r = disc_r[rr]
         loc_size_phi = sz_phi[rr]
@@ -3018,13 +3026,17 @@ cdef inline void tri_asmbl_unblock_approx(
                     # OG norm and other associated values  ....
                     _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
                                              num_tot_tri, centroids,
+                                             poly_norm,
                                              cross_GBGC,
                                              vec_GB, vec_GC,
+                                             &side_of_poly[0],
                                              &numerator[0],
                                              &dot_Gb[0],
                                              &dot_Gc[0],
                                              &norm_G2[0])
                     for ipoly in range(npoly):
+                        if side_of_poly[ipoly] < 0.:
+                            continue  # point is not on right side of poly
                         dist_opts = <double*> malloc(lnvert_poly[ipoly]
                                                      * sizeof(double))
                         # computing distances to vertices of poly (OA, OB, OC)
@@ -3049,6 +3061,7 @@ cdef inline void tri_asmbl_unblock_approx(
     free(dot_Gb)
     free(dot_Gc)
     free(norm_G2)
+    free(side_of_poly)
     return
 
 
