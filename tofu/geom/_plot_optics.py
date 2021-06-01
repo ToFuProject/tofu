@@ -189,7 +189,7 @@ def _CrystalBragg_plot_check(
 
     # vectors and outline
     if cryst is not None:
-        nout, e1, e2 = cryst.get_unit_vectors(
+        nout, e1, e2, use_non_parallelism = cryst.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
         )
         nin = -nout

@@ -480,7 +480,7 @@ class CrystalBragg(utils.ToFuObject):
             nout = self._dgeom['nout']
             e1 = self._dgeom['e1']
             e2 = self._dgeom['e2']
-        return nout, e1, e2
+        return nout, e1, e2, use_non_parallelism
 
     # -----------------
     # methods for color
@@ -786,7 +786,9 @@ class CrystalBragg(utils.ToFuObject):
     def sample_outline_plot(self, use_non_parallelism=None, res=None):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
-                nout, e1, e2 = self.get_unit_vectors(use_non_parallelism)
+                nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
+                    use_non_parallelism=use_non_parallelism,
+                )
                 outline = _comp_optics.CrystBragg_sample_outline_plot_sphrect(
                     self._dgeom['summit'] - nout*self._dgeom['rcurve'],
                     nout,
@@ -1324,7 +1326,7 @@ class CrystalBragg(utils.ToFuObject):
                    + "\n\t-" + "\n\t-".join(['rcurve'] +'summit'))
             raise Exception(msg)
 
-        nout, e1, e2 = self.get_unit_vectors(
+        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
         )
 
@@ -1433,9 +1435,9 @@ class CrystalBragg(utils.ToFuObject):
 
         """
         # Get local basis at crystal summit
-        nout, e1, e2 = self.get_unit_vectors(
+        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
-            )
+        )
         nin = -nout
 
         # Get vectors at any points from psi & dtheta
@@ -1653,9 +1655,9 @@ class CrystalBragg(utils.ToFuObject):
                          [xj_bounds[0], xj_bounds[0], xj_bounds[1],
                           xj_bounds[1], xj_bounds[0]]])
 
-        (nout, e1, e2) = self.get_unit_vectors(
-            use_non_parallelism=use_non_parallelism
-            )
+        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism,
+        )
         nin = -nout
 
         # Compute lamb / phi
@@ -1954,7 +1956,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
 
         # get nout, e1, e2
-        nout, e1, e2 = self.get_unit_vectors(
+        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism
             )
 

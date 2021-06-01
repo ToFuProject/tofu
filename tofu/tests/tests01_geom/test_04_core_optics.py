@@ -284,7 +284,7 @@ class Test01_Crystal(object):
             )
             dist = obj.get_rowland_dist_from_lambbragg()
             pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1, 0]
-            lamb = obj._DEFLAMB + np.r_[-1, 0, 1, 2]*1-12
+            lamb = obj.dbragg['lambref'] + np.r_[-1, 0, 1, 2]*1-12
             dax = obj.plot(
                 pts=pts,
                 lamb=lamb,
