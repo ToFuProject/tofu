@@ -30,6 +30,8 @@ _URL = 'https://physics.nist.gov/PhysRefData/ASD/lines_form.html'
 # _CREATE_CUSTOM = True
 # _INCLUDE_PARTIAL = True
 
+_URL_SEARCH_PRE = 'https://physics.nist.gov/cgi-bin/ASD/lines1.pl?'
+
 
 ######  TBD #####
 
@@ -94,13 +96,119 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 # #############################################################################
 
 
-class FileAlreayExistsException(Exception):
-    pass
+def _get_totalurl(
+    element=None,
+    charge=None,
+    ion=None,
+    lambmin=None,
+    lambmax=None,
+    wav_observed=None,
+    wav_calculated=None,
+    transisions_allowed=None,
+    transitions_forbidden=None,
+    info_ref=None,
+    info_conf=None,
+    info_term=None,
+    info_energy=None,
+    info_J=None,
+    info_g=None,
+):
+
+    # ----------
+    # check inputs
+
+    # ion
+    if ion is None:
+        ion = ''
+    if isinstance(ion, list) or isinstance(ion, np.ndarray):
+        if not all([isinstance(ss, str) for ss in ion]):
+            msg = ()
+            raise Exception(msg)
+        ion = '%2B%3B+'.join([ss.replace('+', '') for ss in ion])
+    elif not isinstance(ion, str):
+        msg = ()
+        raise Exception(msg)
+    ion = ion.replace('+', '')
+
+    # lamb
+
+
+    # ---------
+    # build url
+
+    lsearchurl =[
+        'spectra={}'.format(ion),
+        'limits_type=0',
+        'low_w={}'.format(),
+        'upp_w={}'.format(),
+        'unit=0',       # 0 = A, 1 = nm, 2 = um
+        'submit=Retrieve+Data',
+        'de=0',
+        'format=0',         # 0 = html, 1 = ASCII, 2 = CSV, 3 = tab-delimited
+        'line_out=0',
+        'en_unit=1',        # 0 = cm^-1, 1 = eV, 2 = Rydberg
+        'output=0',         # 0 = all results, 1 = display by page
+        'bibrefs=1',        # show bibliographic ref. (remove otherwise)
+        'page_size=15',     # nb of results per page (if output=1)
+        'show_obs_wl=1',    # show observed wavelengths (remove otherwise)
+        'show_calc_wl=1',   # show calculated wavelength (remove otherwise)
+        'unc_out=1',
+        'order_out=0',      # 0 = sort by wavelength, 1 = by Multiplet
+        'max_low_enrg=',
+        'show_av=3',        # 0-2 = vac/air (2000, 10000,  both), 3 = vacuum
+        'max_upp_enrg=',
+        'tsb_value=0',
+        'min_str=',
+        'A_out=0',
+        'intens_out=on',
+        'max_str=',
+        'allowed_out=1',    # show allowed transitions (E1), remove otherwise
+        'forbid_out=1',     # show forbidden transitions (M1, E2...), remove...
+        'min_accur=',
+        'min_intens=',
+        'conf_out=on',      # level info: show configuration (remove...)
+        'term_out=on',      # level info: show term (remove...)
+        'enrg_out=on',      # level info: show energy (remove...)
+        'J_out=on',         # level info: show J (remove...)
+        'g_out=on',         # level info: show g (remove...)
+    ]
+
+    dop = {
+        'show_obs_wl=1': wav_observed,
+        'show_calc_wl=1': wav_calculated,
+        'allowed_out=1': transitions_allowed,
+        'forbid_out=1': transitions_forbidden,
+        'bibrefs=1': info_ref,
+        'conf_out=on': info_conf,
+        'term_out=on': info_term,
+        'enrg_out=on': info_energy,
+        'J_out=on': info_J,
+        'g_out=on': info_g,
+    }
+    for k0, v0 in dop.items():
+        if v0 is False:
+            lsearchurl.remove(k0)
+
+    import pdb; pdb.set_trace()     # DB
+    return '{}{}'.format(_URL_SEARCH_PRE, '&'.join(lsearchurl))
 
 
 def step01_search_online(
-    searchstr=None, returnas=None,
-    include_partial=None, verb=None,
+    element=None,
+    ion=None,
+    lambmin=None,
+    lambmax=None,
+    wav_observed=None,
+    wav_calculated=None,
+    transisions_allowed=None,
+    transitions_forbidden=None,
+    info_ref=None,
+    info_conf=None,
+    info_term=None,
+    info_J=None,
+    info_g=None,
+    returnas=None,
+    verb=None,
 ):
     """ Perform an online freeform search on https://open.adas.ac.uk
 
@@ -122,15 +230,27 @@ def step01_search_online(
         returnas = False
     if verb is None:
         verb = True
-    if include_partial is None:
-        include_partial = _INCLUDE_PARTIAL
-    if searchstr is None:
-        searchstr = ''
-    searchurl = '+'.join([requests.utils.quote(kk)
-                          for kk in searchstr.split(' ')])
 
-    total_url = '{}{}&{}'.format(_URL_SEARCH, searchurl, 'searching=1')
+    # submit search url
+    total_url = _get_totalurl(
+        element=element,
+        ion=ion,
+        lambmin=lambmin,
+        lambmax=lambmax,
+        wav_observed=wav_observed,
+        wav_calculated=wav_calculated,
+        transisions_allowed=transisions_allowed,
+        transitions_forbidden=transitions_forbidden,
+        info_ref=info_ref,
+        info_conf=info_conf,
+        info_term=info_term,
+        info_J=info_J,
+        info_g=info_g,
+    )
+    import pdb; pdb.set_trace()     # DB
     resp = requests.get(total_url)
+    import pdb; pdb.set_trace()     # DB
+
 
     # Extract response from html
     out = resp.text.split('\n')
@@ -213,10 +333,9 @@ def step01_search_online_by_wavelengthA(
     example
     -------
         >>> import tofu as tf
-        >>> tf.openadas2tofu.step01_earch_online_by_wavelengthA(3., 4., 'ar')
-        >>> tf.openadas2tofu.step01_earch_online_by_wavelengthA(
+        >>> tf.nist2tofu.step01_earch_online_by_wavelengthA(3., 4., 'ar')
+        >>> tf.nist2tofu.step01_earch_online_by_wavelengthA(
             3., 4., 'w',
-            resolveby='file',
         )
     """
 
@@ -234,10 +353,11 @@ def step01_search_online_by_wavelengthA(
         lambmax = ''
     if resolveby is None:
         resolveby = 'transition'
-    if resolveby not in ['transition', 'file']:
-        msg = ("Arg resolveby must be:\n"
-               + "\t- 'transition': list all available transitions\n"
-               + "\t- 'file': list all files containing relevant transitions")
+    if resolveby not in ['transition']:
+        msg = (
+            "Arg resolveby must be:\n"
+            + "\t- 'transition': list all available transitions\n"
+        )
         raise Exception(msg)
 
     # element
@@ -277,12 +397,49 @@ def step01_search_online_by_wavelengthA(
     # ---------------
     # prepare request
 
-    searchurl = '&'.join(['wave_min={}'.format(lambmin),
-                          'wave_max={}'.format(lambmax),
-                          'resolveby={}'.format(resolveby)])
+    searchurl = '&'.join([
+            'spectra={}'.format(ion),
+            'limits_type=0',
+            'low_w={}'.format(),
+            'upp_w={}'.format(),
+            'unit=0',       # 0 = A, 1 = nm, 2 = um
+    ])
 
-    total_url = '{}{}&{}'.format(_URL_SEARCH_WAVL, searchurl, 'searching=1')
+    searchurl_post = '&'.join([
+        'submit=Retrieve+Data',
+        'de=0',
+        'format=0',         # 0 = html, 1 = ASCII, 2 = CSV, 3 = tab-delimited
+        'line_out=0',
+        'en_unit=1',        # 0 = cm^-1, 1 = eV, 2 = Rydberg
+        'output=0',         # 0 = all results, 1 = display by page
+        'bibrefs=1',        # show bibliographic ref. (remove otherwise)
+        'page_size=15',     # nb of results per page (if output=1)
+        'show_obs_wl=1',    # show observed wavelengths
+        'show_calc_wl=1',   # show calculated wavelength
+        'unc_out=1',
+        'order_out=0',
+        'max_low_enrg=',
+        'show_av=3',        # 0-2 = vac/air (2000, 10000,  both), 3 = vacuum
+        'max_upp_enrg=',
+        'tsb_value=0',
+        'min_str=',
+        'A_out=0',
+        'intens_out=on',
+        'max_str=',
+        'allowed_out=1',    # show allowed transitions (E1)
+        'forbid_out=1',     # show forbidden transitions (M1, E2...)
+        'min_accur=',
+        'min_intens=',
+        'conf_out=on',      # level info: show configuration
+        'term_out=on',      # level info: show term
+        'enrg_out=on',      # level info: show energy
+        'J_out=on',         # level info: show J
+        #'g_out=on',         # level info: show g
+    ])
+
+    total_url = '{}{}&{}'.format(_URL_SEARCH_PRE, searchurl, searchurl_post)
     resp = requests.get(total_url)
+    import pdb; pdb.set_trace()      # DB
 
     # Extract response from html
     out = resp.text.split('\n')

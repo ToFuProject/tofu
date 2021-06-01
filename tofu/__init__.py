@@ -69,7 +69,7 @@ import tofu.data as data
 # -------------------------------------
 
 msg = None
-dsub = dict.fromkeys(['imas2tofu', 'openadas2tofu', 'mag'])
+dsub = dict.fromkeys(['imas2tofu', 'openadas2tofu', 'nist2tofu', 'mag'])
 for sub in dsub.keys():
     try:
         exec('import tofu.{0} as {0}'.format(sub))
