@@ -249,7 +249,7 @@ def _CrystalBragg_plot_check(
             raise Exception(msg)
 
     if rays_color in ['pts', 'lamb'] and pts_summit is not None:
-        if pts_summit.ndim != 4:
+        if pts_summit.ndim not in [4, 5]:
             msg = (
                 "For pts-wise or lambda-wise coloring, "
                 + "input pts_summit must be 4d np.ndarray of shape "
@@ -263,7 +263,7 @@ def _CrystalBragg_plot_check(
     rays = None
     if pts_summit is not None:
         # pts.shape = (3, nlamb, npts, ndtheta)
-        # rays.shape = (3, nlamb, npts, ndtheta, 2*nk)
+        # rays.shape = (3, nlamb, npts, ndtheta, 2, 2*rays_npts)
         shape = np.r_[pts1.shape, 1]
         k = np.linspace(0, 1, rays_npts)
         rays = np.concatenate((
@@ -273,16 +273,16 @@ def _CrystalBragg_plot_check(
             np.full(shape, np.nan),
         ), axis=-1)
 
-        nlamb, npts, ndtheta, nk = rays.shape[1:]
+        nlamb, npts, ndtheta, _, nk = rays.shape[1:]
         if rays_color in ['pts', 'lamb']:
             if rays_color == 'lamb':
-                rays = rays.reshape(3, nlamb, npts*ndtheta*nk).swapaxes(1, 2)
+                rays = rays.reshape(3, nlamb, npts*ndtheta*nk*2).swapaxes(1, 2)
             elif rays_color == 'pts':
                 rays = rays.swapaxes(1, 2).reshape(
-                    3, npts, nlamb*ndtheta*nk,
+                    3, npts, nlamb*ndtheta*nk*2,
                 ).swapaxes(1, 2)
         else:
-            rays = rays.reshape(3, nlamb*npts*ndtheta*nk, order='C')
+            rays = rays.reshape(3, nlamb*npts*ndtheta*nk*2, order='C')
 
     # xi, xj
     lc = [xi is not None, xj is not None]
@@ -302,11 +302,11 @@ def _CrystalBragg_plot_check(
     if lc[0]:
         if rays_color in ['pts', 'lamb']:
             if rays_color == 'lamb':
-                xi = xi.reshape(nlamb, npts*ndtheta).T
-                xj = xj.reshape(nlamb, npts*ndtheta).T
+                xi = xi.reshape(nlamb, npts*ndtheta*2).T
+                xj = xj.reshape(nlamb, npts*ndtheta*2).T
             elif rays_color == 'pts':
-                xi = xi.swapaxes(0, 1).reshape(npts, nlamb*ndtheta).T
-                xj = xj.swapaxes(0, 1).reshape(npts, nlamb*ndtheta).T
+                xi = xi.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*2).T
+                xj = xj.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*2).T
         else:
             xi = xi.ravel()
             xj = xj.ravel()

@@ -145,18 +145,24 @@ def CrystBragg_get_noute1e2_from_psitheta(
 
     # Prepare
     if sameshape is False:
-        assert psi.ndim in [1, 2, 3]
+        assert psi.ndim in [1, 2, 3, 4]
         if psi.ndim == 1:
             nout = nout[:, None]
             e1, e2 = e1[:, None], e2[:, None]
         elif psi.ndim == 2:
             nout = nout[:, None, None]
             e1, e2 = e1[:, None, None], e2[:, None, None]
-        else:
+        elif psi.ndim == 3:
             nout = nout[:, None, None, None]
             e1, e2 = e1[:, None, None, None], e2[:, None, None, None]
-    theta = np.pi/2. + dtheta[None, ...]
-    psi = psi[None, ...]
+        else:
+            nout = nout[:, None, None, None, None]
+            e1 = e1[:, None, None, None, None]
+            e2 = e2[:, None, None, None, None]
+
+    # Not necessary for broadcasting (last dims first)
+    theta = np.pi/2.  + dtheta# [None, ...]
+    #psi = psi[None, ...]
 
     # Compute
     vout = (
@@ -197,7 +203,7 @@ def CrystBragg_sample_outline_plot_sphrect(
     vout = CrystBragg_get_noute1e2_from_psitheta(
         nout, e1, e2, psi, dtheta,
         e1e2=False, sameshape=False,
-    )[0]
+    )
     return center[:, None] + rcurve*vout
 
 
@@ -430,18 +436,20 @@ def calc_xixj_from_braggphi(
     gdet = [det_cent, det_nout, det_ei, det_ej]
     g0 = [summit, nout, e1, e2]
     g1 = [bragg, phi]
-    assert all([gg.shape == (3,) for gg in gdet])
-    assert all([gg.shape == g0[0].shape for gg in g0])
-    assert all([gg.shape == g1[0].shape for gg in g1])
+
+    # check nbroadcastable
+    _are_broadcastable(bragg=bragg, phi=phi)
+    assert all([gg.shape == (3,) for gg in gdet]), "gdet no broadcast!"
+    assert all([gg.shape == g0[0].shape for gg in g0]), "g0 no broadcast!"
+    lc = [
+        g0[0].shape == (3,) and g1[0].ndim == 1,
+        g0[0].ndim in [4, 5] and g0[0].shape[0] == 3
+        and phi.shape == g0[0].shape[1:],
+    ]
+    assert np.sum(lc) == 1, "Muliple options!"
     if option is None:
-        lc = [
-            g0[0].shape == (3,) and g1[0].ndim == 1,
-            g0[0].ndim == 4 and g0[0].shape[0] == 3
-            and g1[0].ndim == 3 and g1[0].shape == g0[0].shape[1:],
-        ]
-        assert np.sum(lc) == 1
         option = lc.index(True)
-    assert option in [0, 1]
+    assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
     # Prepare
     if option == 0:
@@ -455,8 +463,15 @@ def calc_xixj_from_braggphi(
         det_nout = det_nout[:, None, None, None]
         det_ei = det_ei[:, None, None, None]
         det_ej = det_ej[:, None, None, None]
-    bragg = bragg[None, ...]
-    phi = phi[None, ...]
+        if g0[0].ndim == 5:
+            det_cent = det_cent[..., None]
+            det_nout = det_nout[..., None]
+            det_ei = det_ei[..., None]
+            det_ej = det_ej[..., None]
+
+    # Not necessary for broadcasting (last dims first)
+    # bragg = bragg[None, ...]
+    # phi = phi[None, ...]
 
     # Compute
     vect = (
@@ -554,14 +569,14 @@ def calc_braggphi_from_xixjpts(
         msg = "(summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
     ndimsum = summit.ndim
-    assert ndimsum in [1, 2, 3, 4], summit.shape
+    assert ndimsum in [1, 2, 3, 4, 5], summit.shape
 
     err = False
     c0 = (
         (
             grid is True
             and pts.ndim in [1, 2]
-            and summit.ndim in [1, 2, 3]
+            and summit.ndim in [1, 2, 3, 4]
         )
         or (
             grid is False
@@ -810,8 +825,9 @@ def calc_dthetapsiphi_from_lambpts(
         scaPCem[ind1[0], ind1[1], 0] = sol1
         scaPCem[ind2[0], ind2[1], 1] = sol2
     else:
-        scaPCem[ind1, 0] = sol1
-        scaPCem[ind2, 1] = sol2
+        indn = ind.nonzero()[0]
+        scaPCem[indn[ind1], 0] = sol1
+        scaPCem[indn[ind2], 1] = sol2
     ind = ~np.isnan(scaPCem)
 
     # Get equation on PCem
@@ -895,15 +911,10 @@ def calc_dthetapsiphi_from_lambpts(
     dtheta[~ind] = np.nan
     if np.any(np.sum(ind, axis=-1) == 2):
         msg = (
-            "\nTwo solutions found for {} / {} points!".format(
+            "\nDouble solutions found for {} / {} points!".format(
                 np.sum(np.sum(ind, axis=-1) == 2),
                 np.prod(ind.shape[:-1]),
             )
         )
         warnings.warn(msg)
-        return dtheta, psi, ind, grid
-    else:
-        ind_u = np.any(ind, axis=-1)
-        dtheta_u[ind_u] = dtheta[ind]
-        psi_u[ind_u] = psi[ind]
-        return dtheta_u, psi_u, ind_u, grid
+    return dtheta, psi, ind, grid

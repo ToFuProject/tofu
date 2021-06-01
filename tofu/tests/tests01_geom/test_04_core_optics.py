@@ -271,12 +271,40 @@ class Test01_Crystal(object):
                 for k1, v1 in det0.items():
                     assert np.linalg.norm(v1 - det1[k1]) <= 0.01
 
-    def test12_plot(self):
+    def test09_plot(self):
+        ii = 0
         for k0, obj in self.dobj.items():
             det = obj.get_detector_approx()
-            dax = obj.plot()
-            dax = obj.plot(det=det, element='scvr')
+            det['outline'] = np.array([
+                0.1*np.r_[-1, 1, 1, -1, -1],
+                0.1*np.r_[-1, -1, 1, 1, -1],
+            ])
+            pts, vect = obj.get_rays_from_cryst(
+                phi=np.pi, returnas='(pts, vect)',
+            )
+            dist = obj.get_rowland_dist_from_lambbragg()
+            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1, 0]
+            lamb = obj._DEFLAMB + np.r_[-1, 0, 1, 2]*1-12
+            dax = obj.plot(
+                pts=pts,
+                lamb=lamb,
+                det=det,
+                rays_color='pts' if ii%2 == 0 else 'lamb',
+            )
+            ii += 1
         plt.close('all')
+
+    def test10_get_lamb_avail_from_pts(self):
+        for k0, obj in self.dobj.items():
+            det = obj.get_detector_approx()
+            pts, vect = obj.get_rays_from_cryst(
+                phi=np.pi, returnas='(pts, vect)',
+            )
+            dist = obj.get_rowland_dist_from_lambbragg()
+            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1, 0]
+            lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
+                pts=pts, det=det,
+            )
 
     def test15_saveload(self, verb=False):
         for k0, obj in self.dobj.items():

@@ -96,8 +96,8 @@ class CrystalBragg(utils.ToFuObject):
                      'dBv':{'color':'g','ls':'--'},
                      'Nstep':50},
               '3d':{}}
-    _DEFLAMB = 3.971561e-10
-    _DEFNPEAKS = 12
+    # _DEFLAMB = 3.971561e-10
+    # _DEFNPEAKS = 12
     # _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
 
 
@@ -1144,8 +1144,14 @@ class CrystalBragg(utils.ToFuObject):
                 grid=grid,
             )
             pts1 = np.repeat(
-                np.repeat(pts[:, None, :], dtheta.shape[0], axis=1)[..., None],
-                dtheta.shape[2],
+                np.repeat(
+                    np.repeat(
+                        pts[:, None, :], dtheta.shape[0], axis=1,
+                    )[..., None],
+                    dtheta.shape[2],
+                    axis=-1,
+                )[..., None],
+                2,
                 axis=-1,
             )
         else:
@@ -1451,8 +1457,10 @@ class CrystalBragg(utils.ToFuObject):
             cent = cent[:, None, None]
         elif vout.ndim == 4:
             cent = cent[:, None, None, None]
+        elif vout.ndim == 5:
+            cent = cent[:, None, None, None, None]
         else:
-            msg = "nout.ndim > 4!"
+            msg = "nout.ndim > 5!"
             raise Exception(msg)
         # Redefining summit according to nout at each point at crystal
         summ = cent + self._dgeom['rcurve']*vout
@@ -1494,17 +1502,6 @@ class CrystalBragg(utils.ToFuObject):
         # Check / format inputs
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         phi = np.atleast_1d(phi)
-        assert bragg.ndim == phi.ndim
-        if phi.shape != bragg.shape:
-            if phi.size == 1 and bragg.ndim == 1:
-                phi = np.repeat(phi, bragg.size)
-            elif phi.ndim == 1 and bragg.size == 1:
-                bragg = np.repeat(bragg, phi.size)
-            else:
-                msg = ("bragg and phi should have the same shape !\n"
-                       + "\t- phi.shape = {}\n".format(phi.shape)
-                       + "\t- bragg.shape = {}\n".format(bragg.shape))
-                raise Exception(msg)
 
         # Check / get det
         det = self._checkformat_det(det)
@@ -1910,13 +1907,13 @@ class CrystalBragg(utils.ToFuObject):
 
         # Compute dtheta / psi for each pts and lamb
         npts = lamb.shape[0]
-        dtheta = np.full((npts, nlamb, ndtheta), np.nan)
-        psi = np.full((npts, nlamb, ndtheta), np.nan)
-        phi = np.full((npts, nlamb, ndtheta), np.nan)
+        dtheta = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        psi = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        phi = np.full((npts, nlamb, ndtheta, 2), np.nan)
         for ii in range(nlamb):
             (
-                dtheta[:, ii, :], psi[:, ii, :],
-                phi[:, ii, :],
+                dtheta[:, ii, :, :], psi[:, ii, :, :],
+                phi[:, ii, :, :],
             ) = self._calc_dthetapsiphi_from_lambpts(
                 pts=pts, bragg=bragg[:, ii], lamb=None,
                 n=n, ndtheta=ndtheta,
@@ -1927,7 +1924,7 @@ class CrystalBragg(utils.ToFuObject):
         if return_xixj is True and det is not None:
             xi, xj = self.calc_xixj_from_braggphi(
                 phi=phi,
-                bragg=np.repeat(bragg[..., None], ndtheta, axis=-1),
+                bragg=bragg[..., None, None],
                 n=n,
                 dtheta=dtheta,
                 psi=psi,
@@ -1962,6 +1959,7 @@ class CrystalBragg(utils.ToFuObject):
             )
 
         # Compute dtheta, psi, indnan (nlamb, npts, ndtheta)
+        # In general there are 2 solutions! (only close to rowland in practice)
         dtheta, psi, indok, grid = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts,
             bragg,
@@ -1976,14 +1974,22 @@ class CrystalBragg(utils.ToFuObject):
         # reshape bragg for matching dtheta.shape
         if grid is True:
             bragg = np.repeat(
-                np.repeat(bragg[:, None], npts, axis=-1)[..., None],
-                dtheta.shape[2],
+                np.repeat(
+                    np.repeat(bragg[:, None], npts, axis=-1)[..., None],
+                    dtheta.shape[2],
+                    axis=-1,
+                )[..., None],
+                2,
                 axis=-1,
             )
-            pts = pts[:, None, :, None]
+            pts = pts[:, None, :, None, None]
         else:
-            bragg = np.repeat(bragg[:, None], dtheta.shape[1], axis=1)
-            pts = pts[..., None]
+            bragg = np.repeat(
+                np.repeat(bragg[:, None], dtheta.shape[1], axis=1)[..., None],
+                2,
+                axis=-1,
+            )
+            pts = pts[..., None, None]
         bragg[~indok] = np.nan
 
         bragg2, phi = self._calc_braggphi_from_pts(
