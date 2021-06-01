@@ -1187,8 +1187,10 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
         if lamb is None:
             lamb = self._dbragg['lambref']
-        return _comp_optics.get_bragg_from_lamb(np.atleast_1d(lamb),
-                                                self._dmat['d'], n=n)
+        return _comp_optics.get_bragg_from_lamb(
+            np.atleast_1d(lamb), self._dmat['d'], n=n,
+        )
+
     def get_lamb_from_bragg(self, bragg=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
         if self._dmat['d'] is None:
@@ -1456,12 +1458,20 @@ class CrystalBragg(utils.ToFuObject):
         summ = cent + self._dgeom['rcurve']*vout
         return summ, vout, ve1, ve2
 
-    def calc_xixj_from_braggphi(self, phi=None,
-                                bragg=None, lamb=None, n=None,
-                                dtheta=None, psi=None,
-                                det=None, data=None,
-                                use_non_parallelism=None,
-                                plot=True, dax=None):
+    def calc_xixj_from_braggphi(
+        self,
+        phi=None,
+        bragg=None,
+        lamb=None,
+        n=None,
+        dtheta=None,
+        psi=None,
+        det=None,
+        use_non_parallelism=None,
+        data=None,
+        plot=True,
+        dax=None,
+    ):
         """ Assuming crystal's summit as frame origin
 
         According to [1], this assumes a local frame centered on the crystal
@@ -1515,15 +1525,16 @@ class CrystalBragg(utils.ToFuObject):
 
         # Compute
         xi, xj = _comp_optics.calc_xixj_from_braggphi(
-            summit,
-            det['cent'], det['nout'], det['ei'], det['ej'],
-            nout, e1, e2,
-            bragg, phi,
+            det_cent=det['cent'],
+            det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
+            summit=summit, nout=nout, e1=e1, e2=e2,
+            bragg=bragg, phi=phi,
         )
 
         if plot:
             dax = _plot_optics.CrystalBragg_plot_approx_detector_params(
-                bragg, xi, xj, data, dax)
+                bragg, xi, xj, data, dax,
+            )
         return xi, xj
 
     @staticmethod
@@ -1591,7 +1602,8 @@ class CrystalBragg(utils.ToFuObject):
             det['cent'], det['ei'], det['ej'],
             summit, nin, e1, e2,
             xi=xii, xj=xjj,
-            )
+            grid=True,
+        )
 
         if plot is not False:
             if tit is None:
@@ -1805,7 +1817,6 @@ class CrystalBragg(utils.ToFuObject):
         bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
             det['cent'], det['ei'], det['ej'],
             summit, -nout, e1, e2, pts=pts,
-            lambdtheta=True,
             grid=grid,
         )
         return bragg, phi
@@ -1875,12 +1886,15 @@ class CrystalBragg(utils.ToFuObject):
         n=None, ndtheta=None, npsi=None,
         det=None, nlamb=None,
         use_non_parallelism=None,
+        return_xixj=None,
     ):
         # Check / format
         if ndtheta is None:
             ndtheta = 20
         if nlamb is None:
             nlamb = 100
+        if return_xixj is None:
+            return_xixj = det is not None
 
         # Get lamb min / max
         lamb, bragg, phi = self.get_lambbraggphi_from_pts_dthetapsi(
@@ -1900,18 +1914,34 @@ class CrystalBragg(utils.ToFuObject):
         npts = lamb.shape[0]
         dtheta = np.full((npts, nlamb, ndtheta), np.nan)
         psi = np.full((npts, nlamb, ndtheta), np.nan)
+        phi = np.full((npts, nlamb, ndtheta), np.nan)
         for ii in range(nlamb):
             (
                 dtheta[:, ii, :], psi[:, ii, :],
-                phi, bragg,
+                phi[:, ii, :],
             ) = self._calc_dthetapsiphi_from_lambpts(
                 pts=pts, bragg=bragg[:, ii], lamb=None,
                 n=n, ndtheta=ndtheta,
                 use_non_parallelism=use_non_parallelism,
                 grid=False,
-            )
+            )[:3]
 
-        return lamb, dtheta, psi
+        if return_xixj is True and det is not None:
+            xi, xj = self.calc_xixj_from_braggphi(
+                phi=phi,
+                bragg=np.repeat(bragg[..., None], ndtheta, axis=-1),
+                n=n,
+                dtheta=dtheta,
+                psi=psi,
+                det=det,
+                data=None,
+                use_non_parallelism=use_non_parallelism,
+                plot=False,
+                dax=None,
+            )
+            return lamb, phi, dtheta, psi, xi, xj
+        else:
+            return lamb, phi, dtheta, psi
 
 
     def _calc_dthetapsiphi_from_lambpts(
@@ -1956,8 +1986,6 @@ class CrystalBragg(utils.ToFuObject):
 
         bragg[~indok] = np.nan
 
-        # TBF !!!
-        import pdb; pdb.set_trace() # DB
         bragg2, phi = self._calc_braggphi_from_pts(
             pts,
             dtheta=dtheta,

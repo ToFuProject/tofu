@@ -184,7 +184,7 @@ def get_bragg_from_lamb(lamb, d, n=None):
     """
     if n is None:
         n = 1
-    bragg= np.full(lamb.shape, np.nan)
+    bragg = np.full(lamb.shape, np.nan)
     sin = n*lamb/(2.*d)
     indok = np.abs(sin) <= 1.
     bragg[indok] = np.arcsin(sin[indok])
@@ -376,8 +376,12 @@ def get_e1e2_detectorplane(nn, nIn):
     return e1, e2
 
 
-def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
-                            nout, e1, e2, bragg, phi, option=None):
+def calc_xixj_from_braggphi(
+    det_cent=None, det_nout=None, det_ei=None, det_ej=None,
+    summit=None, nout=None, e1=None, e2=None,
+    bragg=None, phi=None,
+    option=None,
+):
     """ Several options for shapes
 
     de_cent, det_nout, det_ei and det_ej are always of shape (3,)
@@ -400,9 +404,11 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
     assert all([gg.shape == g0[0].shape for gg in g0])
     assert all([gg.shape == g1[0].shape for gg in g1])
     if option is None:
-        lc = [g0[0].shape == (3,) and g1[0].ndim == 1,
-              g0[0].ndim == 4 and g0[0].shape[0] == 3
-              and g1[0].ndim == 3 and g1[0].shape == g0[0].shape[1:]]
+        lc = [
+            g0[0].shape == (3,) and g1[0].ndim == 1,
+            g0[0].ndim == 4 and g0[0].shape[0] == 3
+            and g1[0].ndim == 3 and g1[0].shape == g0[0].shape[1:],
+        ]
         assert np.sum(lc) == 1
         option = lc.index(True)
     assert option in [0, 1]
@@ -419,8 +425,6 @@ def calc_xixj_from_braggphi(summit, det_cent, det_nout, det_ei, det_ej,
         det_nout = det_nout[:, None, None, None]
         det_ei = det_ei[:, None, None, None]
         det_ej = det_ej[:, None, None, None]
-        # summit, nout = summit[:, None], nout[:, ]
-        # e1, e2 = e1[:, None], e2[:, None]
     bragg = bragg[None, ...]
     phi = phi[None, ...]
 
@@ -472,20 +476,25 @@ def calc_braggphi_from_xixjpts(
     det_cent, det_ei, det_ej,
     summit, nin, e1, e2,
     xi=None, xj=None, pts=None,
-    lambdtheta=False,
     grid=None,
 ):
     """ Return bragg phi for pts or (xj, xi) seen from (summit, nin, e1, e2)
 
-    npts = pts.shape[1] or xi.
-    nsum = summit.shape[1]
+    Either provide:
+        pts => (3, npts)
+        xi, xj => pts with shape (3, nxi, nxj)
+
+    summit, nin, e1, e2 must have the same shape (3, nsumm)
 
     bragg.shape = (nsum, )
 
     if grid is True:
-        return  (nbragg, npts) arrays
+        all pts evaluated for all summ/nin
+        return  (nsumm, npts) or (nsum, nxi, nxj) arrays
     else:
-        return (npts,) == (nbragg,) arrays
+        each pts has a unique corresponding summ/nin (except possibly ndtheta)
+        return (npts,) or (nxi, nxj) arrays
+            or (npts, ndtheta) or (nxi, nxj, ndtheta) arrays
     """
 
     # --------------
@@ -504,7 +513,6 @@ def calc_braggphi_from_xixjpts(
         assert pts.shape[0] == 3
         if pts.ndim == 1:
             pts = pts.reshape((3, 1))
-        assert pts.ndim in [2, 3]
     elif lc[1]:
         xi = np.atleast_1d(xi)
         xj = np.atleast_1d(xj)
@@ -521,32 +529,37 @@ def calc_braggphi_from_xixjpts(
                    + xi[None, ...]*det_ei[:, None, None]
                    + xj[None, ...]*det_ej[:, None, None])
     ndimpts = pts.ndim
+    assert ndimpts in [2, 3]
 
     c0 = summit.shape == nin.shape == e1.shape == e2.shape
     if not c0:
         msg = "(summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
     ndimsum = summit.ndim
+    assert ndimsum in [1, 2, 3], summit.shape
 
     # --------------
-    # Prepare       TBF for grid !
-    import pdb; pdb.set_trace()     # DB
+    # Prepare
     if grid is True:
-        if lambdtheta is True:
-            pts = pts[:, None, :, None]
+        if ndimpts == 2:
+            summit = summit[..., None]
+            nin, e1, e2 = nin[..., None], e1[..., None], e2[..., None]
         else:
-            assert summit.ndim in [1, 2], summit.shape
-            if ndimpts == 2:
-                summit = summit[..., None]
-                nin, e1, e2 = nin[..., None], e1[..., None], e2[..., None]
-            else:
-                summit = summit[..., None, None]
-                nin = nin[..., None, None]
-                e1, e2 = e1[..., None, None], e2[..., None, None]
-            if ndimsum == 2:
-                pts = pts[:, None, ...]
+            summit = summit[..., None, None]
+            nin = nin[..., None, None]
+            e1, e2 = e1[..., None, None], e2[..., None, None]
+        if ndimsum == 1:
+            pass
+        elif ndimsum == 2:
+            pts = pts[:, None, ...]
+        elif ndimsum == 3:
+            pts = pts[:, None, None, ...]
     else:
-        pass
+        assert ndimsum >= ndimpts
+        if ndimsum == ndimpts:
+            assert pts.shape == summit.shape
+        elif ndimsum == 3 and ndimpts == 2:
+            pts = pts[:, :, None]
 
     # --------------
     # Compute
