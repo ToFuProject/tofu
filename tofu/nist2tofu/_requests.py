@@ -4,10 +4,10 @@ import os
 import shutil
 import requests
 import warnings
+import csv
 
 # Common
 import numpy as np
-import pandas as pd
 
 
 __all__ = [
@@ -36,7 +36,9 @@ _DOP = {
     'wav_observed': {'str': 'show_obs_wl=1', 'def': True, 'cache': 'D'},
     'wav_calculated': {'str': 'show_calc_wl=1', 'def': True, 'cache': 'E'},
     'transitions_allowed': {'str': 'allowed_out=1', 'def': True, 'cache': 'F'},
-    'transitions_forbidden': {'str': 'forbid_out=1', 'def': True, 'cache': 'G'},
+    'transitions_forbidden': {
+        'str': 'forbid_out=1', 'def': True, 'cache': 'G',
+    },
     'info_ref': {'str': 'bibrefs=1', 'def': True, 'cache': 'H'},
     'info_conf': {'str': 'conf_out=on', 'def': True, 'cache': 'H'},
     'info_term': {'str': 'term_out=on', 'def': True, 'cache': 'J'},
@@ -50,8 +52,54 @@ _LTYPES = [int, float, np.int_, np.float_]
 
 
 # #############################################################################
+# #############################################################################
 #                           Utility functions
 # #############################################################################
+
+
+def _getcharray(
+    ar,
+    col=None, sep='  ', line='-', just='l',
+    verb=True, returnas=str,
+):
+    """ Format and return char array (for pretty printing) """
+    c0 = ar is None or len(ar) == 0
+    if c0:
+        return ''
+    ar = np.array(ar, dtype='U')
+
+    if ar.ndim == 1:
+        ar = ar.reshape((1, ar.size))
+
+    # Get just len
+    nn = np.char.str_len(ar).max(axis=0)
+    if col is not None:
+        if len(col) not in ar.shape:
+            msg = ("len(col) should be in np.array(ar, dtype='U').shape:\n"
+                   + "\t- len(col) = {}\n".format(len(col))
+                   + "\t- ar.shape = {}".format(ar.shape))
+            raise Exception(msg)
+        if len(col) != ar.shape[1]:
+            ar = ar.T
+            nn = np.char.str_len(ar).max(axis=0)
+        nn = np.fmax(nn, [len(cc) for cc in col])
+
+    # Apply to array
+    fjust = np.char.ljust if just == 'l' else np.char.rjust
+    out = np.array([sep.join(v) for v in fjust(ar, nn)])
+
+    # Apply to col
+    if col is not None:
+        arcol = np.array([col, [line*n for n in nn]], dtype='U')
+        arcol = np.array([sep.join(v) for v in fjust(arcol, nn)])
+        out = np.append(arcol, out)
+
+    if verb is True:
+        print('\n'.join(out))
+    if returnas is str:
+        return '\n'.join(out)
+    elif returnas is np.ndarray:
+        return ar
 
 
 def _get_PATH_LOCAL(strict=True):
@@ -95,7 +143,7 @@ def _get_totalurl(
     info_energy=None,
     info_J=None,
     info_g=None,
-    dop=dict(_DOP)
+    dop=dict(_DOP),
 ):
 
     # ----------
@@ -255,9 +303,80 @@ def _get_totalurl(
         path_local, 'ASD', _get_cache_url(dop=dop) + '.csv',
     )
     path_local = _get_PATH_LOCAL(strict=True)
-    return cache_url, total_url, path_local
+    return cache_url, total_url, path_local, dop
 
 
+# #############################################################################
+# #############################################################################
+#                           csv parsing
+# #############################################################################
+
+
+def _csv_parser(pfe=None, url=None, path_local=None, create_custom=None):
+
+    # Download url
+    if url is not None:
+        if path_local is None:
+            if create_custom is True:
+                os.system('python ' + _CUSTOM)
+                path_local = _get_PATH_LOCAL()
+            else:
+                path = os.path.join(
+                    os.path.expanduser('~'), '.tofu', 'nist2tofu',
+                )
+                msg = (
+                    "You do not seem to have a local ./tofu repository\n"
+                    + "tofu uses that local repository to store user-specific "
+                    + "data and downloads\n"
+                    + "In particular, openadas files are downloaded in:\n"
+                    + "\t{}\n".format(path)
+                    + "  => to set-up your local .tofu repo, run (terminal):\n"
+                    + "\ttofu custom"
+                )
+                raise Exception(msg)
+
+        try:
+            with requests.get(url, stream=True) as rr:
+                rr.raise_for_status()
+                with open(pfe, 'wb') as ff:
+                    for chunk in rr.iter_content(chunk_size=8192):
+                        # filter-out keep-alive new chunks
+                        if chunk:
+                            ff.write(chunk)
+                            # ff.flush()
+        except Exception as err:
+            msg = (
+                str(err)
+                + "\n\nFile could not be downloaded:\n"
+                + "\t{}\n".format(url)
+                + "  => Maybe check internet connection?"
+            )
+            raise Exception(msg)
+
+    # Read file
+    dout = {}
+    ii = 0
+    lkout = ['Unnamed: 0', 'Aki(s^-1)', 'Acc', 'Unnamed: 22', '']
+    with open(pfe, mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                line_count += 1
+            else:
+                key = 'nist_{:03}'.format(ii)
+                dout[key] = {
+                    k0: v0.replace('=', '').replace('"', '')
+                    for k0, v0 in row.items()
+                    if k0 not in lkout
+                }
+                line_count += 1
+                ii += 1
+
+    return dout
+
+
+# #############################################################################
 # #############################################################################
 #                          online search
 # #############################################################################
@@ -279,10 +398,8 @@ def step01_search_online_by_wavelengthA(
     info_J=None,
     info_g=None,
     cache_from=None,
-    cache_to=None,
-    cache_update=None,
     cache_info=None,
-    return_df=None,
+    return_dout=None,
     return_dsources=None,
     return_url=None,
     verb=None,
@@ -310,14 +427,10 @@ def step01_search_online_by_wavelengthA(
     # Check input
     if cache_from is None:
         cache_from = _CACHE_FROM
-    if cache_to is None:
-        cache_to = _CACHE_TO
-    if cache_update is None:
-        cache_update = _CACHE_UPDATE
     if cache_info is None:
         cache_info = _CACHE_INFO
-    if return_df is None:
-        return_df = False
+    if return_dout is None:
+        return_dout = False
     if return_dsources is None:
         return_dsources = False
     if return_url is None:
@@ -331,7 +444,7 @@ def step01_search_online_by_wavelengthA(
 
     # ----------
     # get search url
-    cache_url, total_url, path_local = _get_totalurl(
+    cache_url, total_url, path_local, dop = _get_totalurl(
         element=element,
         charge=charge,
         ion=ion,
@@ -357,112 +470,86 @@ def step01_search_online_by_wavelengthA(
     )
     loaded_from_cache = False
     if c0:
-        df = pd.read_csv(cache_url)
+        dout = _csv_parser(url=None, pfe=cache_url)
         if cache_info is True:
             msg = "Loaded from cache:\n\t{}".format(cache_url)
             print(msg)
         loaded_from_cache = True
     else:
-        try:
-            df = pd.read_csv(total_url)
-        except Exception as err:
-            msg = (
-                "\n{}\n".format(str(err))
-                + "For some reason (see above), data could not be loaded from:"
-                + "\n\t{}\n".format(_URL)
-                + "\n  => Maybe check your internet connection?"
-            )
-            raise Exception(msg)
+        dout = _csv_parser(
+            url=total_url, pfe=cache_url,
+            path_local=path_local,
+            create_custom=create_custom,
+        )
 
     # Trivial case
-    if '<!DOCTYPE html' in df.columns:
+    lcol = list(list(dout.values())[0].keys())
+    if '<!DOCTYPE html' in lcol:
         if format_for_DataCollection is True:
             return None, None
         else:
             lv = [
-                (None, return_df), (None, return_dsources), (None, return_url),
+                (None, return_dout),
+                (None, return_dsources),
+                (None, return_url),
             ]
             out = tuple([vv[0] for vv in lv if vv[1] is True])
             return out
 
     # ----------
     # Complete source
-    if loaded_from_cache is False:
-        for kk in df.columns:
-            for ii in df.index:
-                if isinstance(df.loc[ii, kk], str):
-                    if '=' in df.loc[ii, kk]:
-                        df.loc[ii, kk] = df.loc[ii, kk].replace('=', '')
-                    if df.loc[ii, kk].count('"') == 2:
-                        df.loc[ii, kk] = df.loc[ii, kk].replace('"', '')
-                    if len(df.loc[ii, kk]) == 0:
-                        df.loc[ii, kk] = '-'
+    if 'element' not in lcol or 'sp_num' not in lcol:
+        if dop['ion']['val'] == 'H':
+            for k0 in dout.keys():
+                dout[k0]['element'] = 'H'
+                dout[k0]['sp_num'] = '1'
+        else:
+            msg = (
+                "Unknown case"
+            )
+            raise Exception(msg)
 
-    if 'line_ref' in df.columns:
+    dsources = None
+    if 'line_ref' in lcol:
         lsources = sorted(set([
             (
-                df.loc[ii, 'line_ref'],
-                df.loc[ii, 'element'],
-                df.loc[ii, 'sp_num'],
+                v0['line_ref'],
+                v0['element'],
+                v0['sp_num'],
             )
-            for ii in df.index
-            if df.loc[ii, 'line_ref'] != '-'
+            for k0, v0 in dout.items()
+            if v0['line_ref'] != ''
         ]))
         dsources = _get_dsources(lsources)
-    else:
-        import pdb; pdb.set_trace()     # DB
-        pass
-
 
     # ----------
-    # Save to cache
-    c0 = (
-        cache_to is True
-        and (
-            loaded_from_cache is False
-            or cache_update is True
-        )
-    )
-    if c0:
-        if path_local is None:
-            if create_custom is True:
-                os.system('python ' + _CUSTOM)
-                path_local = _get_PATH_LOCAL()
-            else:
-                path = os.path.join(
-                    os.path.expanduser('~'), '.tofu', 'nist2tofu',
-                )
-                msg = (
-                    "You do not seem to have a local ./tofu repository\n"
-                    + "tofu uses that local repository to store user-specific "
-                    + "data and downloads\n"
-                    + "In particular, openadas files are downloaded in:\n"
-                    + "\t{}\n".format(path)
-                    + "  => to set-up your local .tofu repo, run in terminal:\n"
-                    + "\ttofu custom"
-                )
-                raise Exception(msg)
-        df.to_csv(cache_url)
-        if cache_info is True:
-            msg = "Saved to cache:\n\t{}".format(cache_url)
-            print(msg)
-
-    # ----------
-    # print and return
+    # print
     if verb is True:
-        try:
-            print(df.to_markdown())
-        except Exception as err:
-            print(df)
+        col = list(list(dout.values())[0].keys())
+        char = np.array(
+            [[k0] + [v0[kk] for kk in col] for k0, v0 in dout.items()]
+        )
+        col = ['key'] + col
+        arr = _getcharray(char, col=col,
+                          sep='  ', line='-', just='l',
+                          returnas=str, verb=verb)
 
+    # ----------
+    # return
     if format_for_DataCollection is True:
-        return _format_for_DataCollection(df=df, dsources=dsources)
+        return _format_for_DataCollection(dout=dout, dsources=dsources)
     else:
         url = cache_url if loaded_from_cache else total_url
-        lv = [(df, return_df), (dsources, return_dsources), (url, return_url)]
+        lv = [
+            (dout, return_dout),
+            (dsources, return_dsources),
+            (url, return_url),
+        ]
         out = tuple([vv[0] for vv in lv if vv[1] is True])
         if len(out) == 0:
             out = None
+        elif len(out) == 1:
+            out = out[0]
         return out
 
 
@@ -563,56 +650,59 @@ def _get_dsources(lsources):
 
 
 def _extract_one_line(
-    df=None, dsources=None,
-    ii=None, key=None, lamb0=None,
-    dout=None,
+    dout=None, dsources=None,
+    k0=None, key=None, lamb0=None,
+    dlines=None, lcol=None,
 ):
-    ion = '{}{}+'.format(df.loc[ii, 'element'], df.loc[ii, 'sp_num'])
-    dout[key] = {
+    ion = '{}{}+'.format(dout[k0]['element'], dout[k0]['sp_num'])
+    dlines[key] = {
         'ion': ion,
         'lambda0': lamb0,
     }
     ls = ['conf_i', 'term_i', 'J_i', 'conf_k', 'term_k', 'J_k']
-    if all([ss in df.columns for ss in ls]):
-        dout[key]['transition'] = (
+    if all([ss in lcol for ss in ls]):
+        dlines[key]['transition'] = (
             '{} {} {}'.format(
-                df.loc[ii, 'conf_i'], df.loc[ii, 'term_i'], df.loc[ii, 'J_i'],
+                dout[k0]['conf_i'], dout[k0]['term_i'], dout[k0]['J_i'],
             ),
             '{} {} {}'.format(
-                df.loc[ii, 'conf_k'], df.loc[ii, 'term_k'], df.loc[ii, 'J_k'],
+                dout[k0]['conf_k'], dout[k0]['term_k'], dout[k0]['J_k'],
             )
         )
-    if 'line_ref' in df.columns and df.loc[ii, 'line_ref'] in dsources.keys():
-        dout[key]['source'] = df.loc[ii, 'line_ref']
+    if 'line_ref' in lcol and dout[k0]['line_ref'] in dsources.keys():
+        dlines[key]['source'] = dout[k0]['line_ref']
     else:
-        dout[key]['source'] = 'unknown'
+        dlines[key]['source'] = 'unknown'
+        if 'unknown' not in dsources.keys():
+            dsources['unknown'] = {'long': 'unknown', 'url': 'None'}
     nn, tt = key.split('_')[1:]
-    dout[key]['symbol'] = 'n{}{}'.format(nn, tt[0])
-    return dout
+    dlines[key]['symbol'] = 'n{}{}'.format(nn, tt[0])
+    return dlines, dsources
 
 
-def _format_for_DataCollection(df=None, dsources=None):
+def _format_for_DataCollection(dout=None, dsources=None):
     dlines = {}
-    for ii in df.index:
+    lcol = list(list(dout.values())[0].keys())
+    for k0 in dout.keys():
         kl = 'obs_wl_vac(A)'
-        c0 = kl in df.columns and df.loc[ii, kl] != '-'
+        c0 = kl in lcol and dout[k0][kl] != ''
         if c0:
-            key = 'nist_{:03}_obs'.format(ii)
-            lamb0 = float(df.loc[ii, kl])*1e-10
-            dlines = _extract_one_line(
-                df=df, dsources=dsources,
-                ii=ii, key=key, lamb0=lamb0,
-                dout=dlines,
+            key = '{}_obs'.format(k0)
+            lamb0 = float(dout[k0][kl])*1e-10
+            dlines, dsources = _extract_one_line(
+                dout=dout, dsources=dsources,
+                k0=k0, key=key, lamb0=lamb0,
+                dlines=dlines, lcol=lcol,
             )
         kl = 'ritz_wl_vac(A)'
-        c0 = kl in df.columns and df.loc[ii, kl] != '-'
+        c0 = kl in lcol and dout[k0][kl] != ''
         if c0:
-            key = 'nist_{:03}_calc'.format(ii)
-            lamb0 = float(df.loc[ii, kl])*1e-10
-            dlines = _extract_one_line(
-                df=df, dsources=dsources,
-                ii=ii, key=key, lamb0=lamb0,
-                dout=dlines,
+            key = '{}_calc'.format(k0)
+            lamb0 = float(dout[k0][kl])*1e-10
+            dlines, dsources = _extract_one_line(
+                dout=dout, dsources=dsources,
+                k0=k0, key=key, lamb0=lamb0,
+                dlines=dlines, lcol=lcol,
             )
 
     return dlines, dsources

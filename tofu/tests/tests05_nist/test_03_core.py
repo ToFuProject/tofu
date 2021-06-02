@@ -74,47 +74,39 @@ class Test01_openadas(object):
 
         llambmin = [None, 3.94]
         llambmax = [None, 4.]
-        lion = [None, 'He', ['ar', 'W44+']]
+        lion = [None, 'H', ['ar', 'W44+']]
 
         lcache_from = [False, True]
-        lcache_to = [True, False]
-        lcache_update = [True, False]
         ldatacol = [False, True]
 
         # Search by searchstr
         llcomb = [
             llambmin, llambmax, lion,
-            lcache_to, lcache_from, lcache_update,
+            lcache_from,
             ldatacol,
         ]
-        ii, itot = -1, 2*2*3*2*2*2*2
+        ii, itot = -1, 2*2*3*2*2
         for comb in itt.product(*llcomb):
             ii += 1
             if all([vv is None for vv in comb[:2]]):
                 continue
-            if comb[2] == 'He' and all([vv is not None for vv in comb[:2]]):
+            if comb[2] == 'H' and comb[1] is None:
                 continue
-            if any([vv is None for vv in comb[:2]]) and comb[2] != 'He':
+            if comb[2] == 'H' and all([vv is not None for vv in comb[:2]]):
                 continue
-            c0 = (
-                comb[4] is False
-                and (comb[5] is False or comb[3] is False or comb[6] is False)
-            )
-            if c0:
+            if any([vv is None for vv in comb[:2]]) and comb[2] != 'H':
                 continue
-            print('{} / {}'.format(ii, itot))
+            print('{} / {}  -  {}'.format(ii, itot, comb))
             out = tfn.step01_search_online_by_wavelengthA(
                 lambmin=comb[0],
                 lambmax=comb[1],
                 ion=comb[2],
                 verb=True,
-                return_df=True,
+                return_dout=True,
                 return_dsources=True,
-                cache_from=comb[4],
-                cache_to=comb[3],
-                cache_update=comb[5],
+                cache_from=comb[3],
                 cache_info=True,
-                format_for_DataCollection=comb[6],
+                format_for_DataCollection=comb[4],
                 create_custom=True,
             )
 
