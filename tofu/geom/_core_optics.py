@@ -1023,6 +1023,8 @@ class CrystalBragg(utils.ToFuObject):
         and either:
             - psi, dtheta : desired pts on the crystal surface
             - pts: emitted from desired pts (e.g.: in the plasma)
+                   (need to be refresh with get_rays_from_cryst method
+                    if new pts are wanted)
 
         Parameters
         ----------
@@ -1084,6 +1086,8 @@ class CrystalBragg(utils.ToFuObject):
             det = False
         det = self._checkformat_det(det)
 
+        lc = [
+            dtheta is not None or psi is not None or phi is not None,
             pts is not None
         ]
         if np.sum(lc) == 2:
