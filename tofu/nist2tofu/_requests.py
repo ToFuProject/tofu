@@ -253,7 +253,7 @@ def _get_totalurl(
     # ---------
     # build url
 
-    lsearchurl =[
+    lsearchurl = [
         'lines1.pl?spectra={}'.format(ion),
         'limits_type=0',
         'low_w={}'.format(dlamb['lambmin']),
